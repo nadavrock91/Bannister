@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bannister.Views.ManageActivitiesPage"
+             Title="Manage Activities"
+             BackgroundColor="#F5F7FC">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="15">
+        
+        <!-- Search and Filter Bar -->
+        <Frame Grid.Row="0" 
+               Padding="15" 
+               CornerRadius="12" 
+               BackgroundColor="White"
+               HasShadow="True"
+               BorderColor="Transparent">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                
+                <!-- Search Box -->
+                <SearchBar x:Name="searchBar"
+                          Grid.Row="0"
+                          Placeholder="Search activities..."
+                          TextChanged="OnSearchTextChanged"
+                          SearchButtonPressed="OnSearchPressed" />
+                
+                <!-- Filter Options -->
+                <HorizontalStackLayout Grid.Row="1" Spacing="10">
+                    <Label Text="Category:" VerticalOptions="Center" />
+                    <Picker x:Name="categoryFilter"
+                           WidthRequest="150"
+                           SelectedIndexChanged="OnCategoryFilterChanged" />
+                    
+                    <Label Text="Sort:" VerticalOptions="Center" Margin="20,0,0,0" />
+                    <Picker x:Name="sortPicker"
+                           WidthRequest="150"
+                           SelectedIndexChanged="OnSortChanged">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>Name (A-Z)</x:String>
+                                <x:String>Name (Z-A)</x:String>
+                                <x:String>EXP (High to Low)</x:String>
+                                <x:String>EXP (Low to High)</x:String>
+                                <x:String>Category</x:String>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+                </HorizontalStackLayout>
+            </Grid>
+        </Frame>
+
+        <!-- Activities List -->
+        <Border Grid.Row="1"
+                Stroke="#DDD"
+                StrokeThickness="1"
+                BackgroundColor="White"
+                Padding="0">
+            <CollectionView x:Name="activitiesList"
+                           SelectionMode="Multiple">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Padding="12"
+                               Margin="8"
+                               CornerRadius="8"
+                               BackgroundColor="#F9F9F9"
+                               BorderColor="#DDD"
+                               HasShadow="False">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="15">
+                                
+                                <!-- Activity Image -->
+                                <Frame Grid.Column="0"
+                                       Padding="0"
+                                       CornerRadius="8"
+                                       WidthRequest="60"
+                                       HeightRequest="60"
+                                       IsClippedToBounds="True"
+                                       BorderColor="#DDD"
+                                       HasShadow="False">
+                                    <Image Source="{Binding ImagePath}"
+                                           Aspect="AspectFill" />
+                                </Frame>
+
+                                <!-- Activity Info -->
+                                <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                    <Label Text="{Binding Name}"
+                                           FontSize="16"
+                                           FontAttributes="Bold" />
+                                    <Label Text="{Binding Category}"
+                                           FontSize="12"
+                                           TextColor="#666" />
+                                    <HorizontalStackLayout Spacing="10">
+                                        <Label Text="{Binding ExpGain, StringFormat='EXP: {0}'}"
+                                               FontSize="12"
+                                               TextColor="#5B63EE"
+                                               FontAttributes="Bold" />
+                                        <Label Text="{Binding MeaningfulUntilLevel, StringFormat='Cutoff: {0}'}"
+                                               FontSize="12"
+                                               TextColor="#999" />
+                                        <Label Text="{Binding Multiplier, StringFormat='x{0}'}"
+                                               FontSize="12"
+                                               TextColor="#FF6B6B"
+                                               FontAttributes="Bold"
+                                               IsVisible="{Binding ShowMultiplier}" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+
+                                <!-- Edit Button -->
+                                <Button Grid.Column="2"
+                                        Text="✏️"
+                                        FontSize="18"
+                                        WidthRequest="50"
+                                        HeightRequest="50"
+                                        CornerRadius="25"
+                                        BackgroundColor="#5B63EE"
+                                        TextColor="White"
+                                        Clicked="OnEditClicked"
+                                        CommandParameter="{Binding .}" />
+
+                                <!-- Duplicate Button -->
+                                <Button Grid.Column="3"
+                                        Text="📋"
+                                        FontSize="18"
+                                        WidthRequest="50"
+                                        HeightRequest="50"
+                                        CornerRadius="25"
+                                        BackgroundColor="#4CAF50"
+                                        TextColor="White"
+                                        Clicked="OnDuplicateClicked"
+                                        CommandParameter="{Binding .}" />
+
+                                <!-- Delete Button -->
+                                <Button Grid.Column="4"
+                                        Text="🗑️"
+                                        FontSize="18"
+                                        WidthRequest="50"
+                                        HeightRequest="50"
+                                        CornerRadius="25"
+                                        BackgroundColor="#FF6B6B"
+                                        TextColor="White"
+                                        Clicked="OnDeleteClicked"
+                                        CommandParameter="{Binding .}" />
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Border>
+
+        <!-- Bottom Action Bar -->
+        <Frame Grid.Row="2"
+               Padding="15"
+               CornerRadius="12"
+               BackgroundColor="White"
+               HasShadow="True"
+               BorderColor="Transparent">
+            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
+                
+                <Button Grid.Column="0"
+                        Text="Bulk Edit Selected"
+                        Clicked="OnBulkEditClicked"
+                        BackgroundColor="#5B63EE"
+                        TextColor="White"
+                        CornerRadius="8" />
+
+                <Button Grid.Column="1"
+                        Text="Delete Selected"
+                        Clicked="OnDeleteSelectedClicked"
+                        BackgroundColor="#FF6B6B"
+                        TextColor="White"
+                        CornerRadius="8" />
+
+                <Button Grid.Column="2"
+                        Text="Export to CSV"
+                        Clicked="OnExportClicked"
+                        BackgroundColor="#4ECDC4"
+                        TextColor="White"
+                        CornerRadius="8" />
+
+                <Button Grid.Column="3"
+                        Text="Close"
+                        Clicked="OnCloseClicked"
+                        BackgroundColor="#999"
+                        TextColor="White"
+                        CornerRadius="8" />
+            </Grid>
+        </Frame>
+    </Grid>
+</ContentPage>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bannister.Views.SetMultiplierPage"
+             Title="Set Multiplier"
+             BackgroundColor="White">
+
+    <Grid Padding="24" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="20"
+          VerticalOptions="Center"
+          MaximumWidthRequest="400">
+
+        <!-- Title -->
+        <Label Text="Set Multiplier"
+               FontSize="20"
+               FontAttributes="Bold"
+               HorizontalTextAlignment="Center" />
+
+        <!-- Description -->
+        <VerticalStackLayout Grid.Row="1" Spacing="8">
+            <Label Text="Set multiplier for:"
+                   FontSize="14" />
+            <Label x:Name="lblActivityName"
+                   Text="Activity Name"
+                   FontSize="14"
+                   FontAttributes="Bold"
+                   TextColor="#5B63EE" />
+        </VerticalStackLayout>
+
+        <!-- Multiplier Input -->
+        <VerticalStackLayout Grid.Row="2" Spacing="8">
+            <Label Text="Multiplier:"
+                   FontSize="14"
+                   FontAttributes="Bold" />
+            <Entry x:Name="txtMultiplier"
+                   Text="3"
+                   Keyboard="Numeric"
+                   FontSize="16"
+                   TextChanged="OnMultiplierChanged" />
+            <Label x:Name="lblPreview"
+                   Text="→ 10 × 3 = 30 EXP"
+                   TextColor="#5B63EE"
+                   FontSize="14" />
+        </VerticalStackLayout>
+
+        <!-- Buttons -->
+        <Grid Grid.Row="3"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="12">
+            <Button Text="Set"
+                    Clicked="OnSetClicked"
+                    BackgroundColor="#5B63EE"
+                    TextColor="White"
+                    CornerRadius="8"
+                    HeightRequest="50" />
+            <Button Text="Cancel"
+                    Grid.Column="1"
+                    Clicked="OnCancelClicked"
+                    BackgroundColor="#EEE"
+                    TextColor="#333"
+                    CornerRadius="8"
+                    HeightRequest="50" />
+        </Grid>
+
+    </Grid>
+</ContentPage>

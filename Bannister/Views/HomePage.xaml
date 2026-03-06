@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bannister.Views.HomePage"
+             Title="Bannister"
+             BackgroundColor="#6B73FF">
+    <Grid>
+        <!-- Main Content -->
+        <ScrollView>
+            <VerticalStackLayout Padding="24" Spacing="16">
+                <!-- Header -->
+                <Label Text="Home" FontSize="28" FontAttributes="Bold" TextColor="White" />
+                <Label x:Name="lblWelcome" Text="Welcome, user" TextColor="White" />
+                <!-- Games Section -->
+                <Label Text="Games" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="0,24,0,8" />
+                <Button x:Name="btnGames" Text="🎮 Games (0)" Clicked="OnGamesClicked"
+                        BackgroundColor="White" TextColor="#5B63EE"
+                        CornerRadius="8" HeightRequest="56"
+                        FontSize="18" FontAttributes="Bold" />
+                <!-- New Habits Section -->
+                <Button x:Name="btnNewHabits" Text="🌱 New Habits" Clicked="OnNewHabitsClicked"
+                        BackgroundColor="#E8F5E9" TextColor="#2E7D32"
+                        CornerRadius="8" HeightRequest="48"
+                        FontSize="16" FontAttributes="Bold" />
+                <!-- Charts Section -->
+                <Button x:Name="btnCharts" Text="📊 Charts" Clicked="OnChartsClicked"
+                        BackgroundColor="#E3F2FD" TextColor="#1565C0"
+                        CornerRadius="8" HeightRequest="48"
+                        FontSize="16" FontAttributes="Bold" />
+                <!-- Dragons Section -->
+                <Label Text="Dragons" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="0,16,0,8" />
+                <Button x:Name="btnDragons" Text="🐉 Dragons (0)" Clicked="OnDragonsClicked"
+                        BackgroundColor="White" TextColor="#5B63EE" CornerRadius="8" HeightRequest="48"
+                        FontSize="16" FontAttributes="Bold" />
+                <!-- Streaks Section -->
+                <Label Text="Streaks" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="0,16,0,8" />
+                <Button x:Name="btnStreaks" Text="🔥 Streaks (0 active)" Clicked="OnStreaksClicked"
+                        BackgroundColor="#FFF3E0" TextColor="#E65100" CornerRadius="8" HeightRequest="48" />
+                <!-- Logout -->
+                <Button Text="Logout" Clicked="OnLogoutClicked"
+                        BackgroundColor="White" TextColor="#333"
+                        CornerRadius="8" HeightRequest="48" Margin="0,16,0,0" />
+            </VerticalStackLayout>
+        </ScrollView>
+        <!-- Loading Overlay (shown during navigation) -->
+        <Grid x:Name="loadingOverlay"
+              IsVisible="False"
+              BackgroundColor="#80000000"
+              InputTransparent="False">
+            <VerticalStackLayout VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="16">
+                <ActivityIndicator IsRunning="True"
+                                   Color="White"
+                                   WidthRequest="50"
+                                   HeightRequest="50" />
+                <Label Text="Loading..."
+                       TextColor="White"
+                       FontSize="16"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

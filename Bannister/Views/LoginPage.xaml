@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bannister.Views.LoginPage"
+             Title="Login"
+             BackgroundColor="#F5F5F5">
+
+    <FlyoutBase.ContextFlyout>
+        <MenuFlyout>
+            <MenuFlyoutItem Text="Import Data from Backup" Clicked="OnImportClicked" />
+            <MenuFlyoutItem Text="Export Data to Backup" Clicked="OnExportClicked" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem Text="Open Data Folder" Clicked="OnOpenDataFolderClicked" />
+        </MenuFlyout>
+    </FlyoutBase.ContextFlyout>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+
+            <!-- Long-press gesture for mobile -->
+            <VerticalStackLayout.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnLongPress" NumberOfTapsRequired="1" />
+            </VerticalStackLayout.GestureRecognizers>
+
+            <Label Text="🐉" FontSize="64" HorizontalOptions="Center" />
+            <Label Text="Bannister" FontSize="32" FontAttributes="Bold" HorizontalOptions="Center" />
+            <Label Text="Slay your dragons" HorizontalOptions="Center" TextColor="Gray" />
+
+            <Frame BackgroundColor="White" Padding="20" CornerRadius="10" Margin="0,20,0,0">
+                <VerticalStackLayout Spacing="16">
+
+                    <Label x:Name="lblTitle" Text="Welcome Back" FontSize="18" FontAttributes="Bold" />
+
+                    <Entry x:Name="txtUsername" Placeholder="Username" />
+                    <Entry x:Name="txtPassword" Placeholder="Password" IsPassword="True" />
+
+                    <HorizontalStackLayout Spacing="8">
+                        <CheckBox x:Name="chkRemember" Color="#6200EE" />
+                        <Label Text="Remember me" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+
+                    <Label x:Name="lblError" TextColor="Red" IsVisible="False" />
+
+                    <Button x:Name="btnLogin" Text="Login" Clicked="OnLoginClicked"
+                            BackgroundColor="#6200EE" TextColor="White" CornerRadius="8" HeightRequest="48" />
+
+                    <Button x:Name="btnToggle" Text="Need an account?" Clicked="OnToggleClicked"
+                            BackgroundColor="Transparent" TextColor="#6200EE" />
+
+                    <Button x:Name="btnTestDev" Text="TEST (DEV)" Clicked="OnTestDevClicked"
+                            BackgroundColor="White" TextColor="#333" BorderColor="#CCC" BorderWidth="1" CornerRadius="8" HeightRequest="48" IsVisible="False" />
+
+                    <Button x:Name="btnRunFix" Text="Run Fix (DEV)" Clicked="OnRunFixClicked"
+                            BackgroundColor="#4CAF50" TextColor="White" CornerRadius="8" HeightRequest="48" IsVisible="False" />
+
+                    <Button x:Name="btnDeleteDb" Text="Delete Database (DEV)" Clicked="OnDeleteDatabaseClicked"
+                            BackgroundColor="#FF5722" TextColor="White" CornerRadius="8" HeightRequest="40" FontSize="12" IsVisible="False" />
+
+                </VerticalStackLayout>
+            </Frame>
+
+            <Label Text="💡 Right-click or long-press for options" FontSize="12" TextColor="Gray" HorizontalOptions="Center" Opacity="0.6" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

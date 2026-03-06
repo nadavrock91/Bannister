@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bannister.Views.BatchAddActivitiesPage"
+             Title="Batch Add Activities"
+             BackgroundColor="#F5F7FC">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20" RowSpacing="15">
+        
+        <!-- Header with count input -->
+        <VerticalStackLayout Grid.Row="0" Spacing="10">
+            <Label Text="How many activities do you want to add?" FontSize="16" FontAttributes="Bold" />
+            <HorizontalStackLayout Spacing="10">
+                <Entry x:Name="txtRowCount" 
+                       Text="5" 
+                       Keyboard="Numeric" 
+                       WidthRequest="100"
+                       Placeholder="1-100" />
+                <Button Text="Continue" 
+                        Clicked="OnContinueClicked"
+                        BackgroundColor="#5B63EE"
+                        TextColor="White"
+                        CornerRadius="8"
+                        Padding="15,8" />
+                <Button Text="Cancel" 
+                        Clicked="OnCancelClicked"
+                        BackgroundColor="#EEE"
+                        TextColor="#333"
+                        CornerRadius="8"
+                        Padding="15,8" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+
+        <!-- Default values section -->
+        <Frame Grid.Row="1" 
+               x:Name="defaultsFrame"
+               IsVisible="False"
+               Padding="15" 
+               CornerRadius="8" 
+               BackgroundColor="White"
+               HasShadow="True"
+               BorderColor="Transparent">
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Default values (applied to empty cells):" FontAttributes="Bold" />
+                <HorizontalStackLayout Spacing="15">
+                    <Label Text="Category:" VerticalOptions="Center" />
+                    <Picker x:Name="pickerDefaultCategory" 
+                            WidthRequest="150"
+                            Title="Select category" />
+                    
+                    <Label Text="Cutoff Level:" VerticalOptions="Center" Margin="20,0,0,0" />
+                    <Entry x:Name="txtDefaultCutoff" 
+                           Text="20" 
+                           Keyboard="Numeric" 
+                           WidthRequest="80"
+                           Placeholder="1-100" />
+                    <Label Text="(1-100)" 
+                           VerticalOptions="Center" 
+                           TextColor="#999" 
+                           FontSize="12" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </Frame>
+
+        <!-- Grid/ScrollView for activities -->
+        <Border Grid.Row="2"
+                x:Name="gridBorder"
+                IsVisible="False"
+                Stroke="#DDD"
+                StrokeThickness="1"
+                BackgroundColor="White"
+                Padding="0">
+            <ScrollView>
+                <Grid x:Name="activitiesGrid" 
+                      BackgroundColor="White"
+                      ColumnSpacing="0"
+                      RowSpacing="0">
+                    <!-- Grid will be dynamically populated -->
+                </Grid>
+            </ScrollView>
+        </Border>
+
+        <!-- Footer with date helper text and action buttons -->
+        <VerticalStackLayout Grid.Row="3" Spacing="10" x:Name="footerSection" IsVisible="False">
+            <Label Text="Dates: 2025-12-31 or 12/31/2025 or Dec 31, 2025. Leave empty for no date limit."
+                   FontSize="12"
+                   TextColor="#666"
+                   HorizontalTextAlignment="Center" />
+            
+            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                <Button Text="Add Activities"
+                        Clicked="OnAddActivitiesClicked"
+                        BackgroundColor="#5B63EE"
+                        TextColor="White"
+                        CornerRadius="8"
+                        Padding="20,10" />
+                
+                <Button Text="Cancel"
+                        Clicked="OnCancelClicked"
+                        BackgroundColor="#EEE"
+                        TextColor="#333"
+                        CornerRadius="8"
+                        Padding="20,10" />
+                
+                <Button Text="+ Add 5 Rows"
+                        Clicked="OnAddRowsClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="#5B63EE"
+                        BorderColor="#5B63EE"
+                        BorderWidth="1"
+                        CornerRadius="8"
+                        Padding="15,10" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

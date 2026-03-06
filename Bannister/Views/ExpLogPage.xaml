@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bannister.Views.ExpLogPage"
+             Title="Activity Log"
+             BackgroundColor="#F5F7FC">
+    
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20" RowSpacing="15">
+        
+        <!-- Title -->
+        <Label Grid.Row="0"
+               Text="Activity Log"
+               FontSize="24"
+               FontAttributes="Bold"
+               TextColor="#12161E"
+               HorizontalOptions="Center"/>
+        
+        <!-- Stats Summary -->
+        <Frame Grid.Row="1"
+               Padding="15"
+               CornerRadius="12"
+               BackgroundColor="White"
+               HasShadow="True"
+               BorderColor="Transparent">
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                
+                <!-- Total EXP -->
+                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                    <Label Text="Total EXP"
+                           FontSize="12"
+                           TextColor="#666"
+                           HorizontalOptions="Center"/>
+                    <Label x:Name="lblTotalExp"
+                           Text="0"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#4CAF50"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                
+                <!-- Today -->
+                <VerticalStackLayout Grid.Column="1" Spacing="5">
+                    <Label Text="Today"
+                           FontSize="12"
+                           TextColor="#666"
+                           HorizontalOptions="Center"/>
+                    <Label x:Name="lblTodayExp"
+                           Text="0"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#2196F3"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                
+                <!-- This Week -->
+                <VerticalStackLayout Grid.Column="2" Spacing="5">
+                    <Label Text="This Week"
+                           FontSize="12"
+                           TextColor="#666"
+                           HorizontalOptions="Center"/>
+                    <Label x:Name="lblWeekExp"
+                           Text="0"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#FF9800"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                
+            </Grid>
+        </Frame>
+        
+        <!-- Log List -->
+        <CollectionView Grid.Row="2"
+                       x:Name="logList"
+                       SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame Padding="15"
+                           Margin="0,0,0,10"
+                           CornerRadius="12"
+                           BackgroundColor="White"
+                           HasShadow="True"
+                           BorderColor="Transparent">
+                        
+                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                            
+                            <!-- Activity Name & EXP -->
+                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0"
+                                       Text="{Binding ActivityName}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#12161E"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding ExpEarned, StringFormat='+{0} EXP'}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#4CAF50"/>
+                            </Grid>
+                            
+                            <!-- Level Change -->
+                            <Label Grid.Row="1"
+                                   Text="{Binding LevelChangeText}"
+                                   FontSize="14"
+                                   TextColor="#666"
+                                   IsVisible="{Binding LeveledUp}"/>
+                            
+                            <!-- Timestamp -->
+                            <Label Grid.Row="2"
+                                   Text="{Binding ExecutedAt, StringFormat='{0:MMM dd, yyyy h:mm tt}'}"
+                                   FontSize="12"
+                                   TextColor="#999"/>
+                            
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+            
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="40" Spacing="10">
+                    <Label Text="No activity logged yet."
+                           FontSize="16"
+                           TextColor="#999"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Complete activities to see your progress!"
+                           FontSize="14"
+                           TextColor="#AAA"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+        </CollectionView>
+        
+        <!-- Back Button -->
+        <Button Grid.Row="3"
+                Text="Back"
+                Clicked="OnBackClicked"
+                BackgroundColor="#EEE"
+                TextColor="#333"
+                CornerRadius="8"
+                HeightRequest="45"/>
+        
+    </Grid>
+    
+</ContentPage>

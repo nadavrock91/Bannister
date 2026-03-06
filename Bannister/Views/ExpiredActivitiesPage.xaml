@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bannister.Views.ExpiredActivitiesPage"
+             Title="Expired Activities"
+             BackgroundColor="#F5F7FC">
+    
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+            
+            <Label Text="Expired Activities"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="#12161E"
+                   HorizontalOptions="Center"/>
+            
+            <Label Text="The following activities have expired. For each activity, choose to:&#x0a;• Postpone - Set a new end date&#x0a;• Move to Expired - Activity moves to 'Expired' category"
+                   FontSize="14"
+                   TextColor="#5A6273"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   MaximumWidthRequest="500"/>
+            
+            <CollectionView x:Name="expiredList"
+                           SelectionMode="Single"
+                           SelectionChanged="OnSelectionChanged">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Padding="15"
+                               Margin="0,0,0,10"
+                               CornerRadius="12"
+                               BackgroundColor="#FFF3E0"
+                               HasShadow="True"
+                               BorderColor="Transparent">
+                            
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                                  ColumnSpacing="10"
+                                  RowSpacing="5">
+                                
+                                <Label Grid.Row="0"
+                                       Text="{Binding Name}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#E65100"/>
+                                
+                                <Label Grid.Row="1"
+                                       Text="{Binding Game, StringFormat='Game: {0}'}"
+                                       FontSize="14"
+                                       TextColor="#F57C00"/>
+                                
+                                <Label Grid.Row="2"
+                                       Text="{Binding Category, StringFormat='Category: {0}'}"
+                                       FontSize="14"
+                                       TextColor="#FF9800"/>
+                                
+                                <Label Grid.Row="3"
+                                       Text="{Binding EndDateDisplay}"
+                                       FontSize="12"
+                                       TextColor="#999"/>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                
+                <CollectionView.EmptyView>
+                    <Label Text="No expired activities!"
+                           FontSize="16"
+                           TextColor="#999"
+                           Padding="40"
+                           HorizontalOptions="Center"/>
+                </CollectionView.EmptyView>
+            </CollectionView>
+            
+            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                <Button Text="Postpone Selected"
+                        Clicked="OnPostponeClicked"
+                        BackgroundColor="#5B63EE"
+                        TextColor="White"
+                        CornerRadius="8"
+                        WidthRequest="150"
+                        HeightRequest="45"/>
+                
+                <Button Text="Move to Expired"
+                        Clicked="OnExpireClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="#E64848"
+                        BorderColor="#E64848"
+                        BorderWidth="1"
+                        CornerRadius="8"
+                        WidthRequest="150"
+                        HeightRequest="45"/>
+            </HorizontalStackLayout>
+            
+            <Button Text="Expire All"
+                    Clicked="OnExpireAllClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="#666"
+                    BorderColor="#999"
+                    BorderWidth="1"
+                    CornerRadius="8"
+                    HeightRequest="45"/>
+            
+            <Button Text="Done"
+                    Clicked="OnDoneClicked"
+                    BackgroundColor="#EEE"
+                    TextColor="#333"
+                    CornerRadius="8"
+                    HeightRequest="45"/>
+            
+        </VerticalStackLayout>
+    </ScrollView>
+    
+</ContentPage>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bannister.Views.DragonSelector"
+             Title="Choose Dragon Image"
+             BackgroundColor="#F0F0F0">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="16">
+
+        <!-- Title -->
+        <Label Text="Select a Dragon Image"
+               FontSize="20"
+               FontAttributes="Bold"
+               Margin="0,0,0,16" />
+
+        <!-- Image Grid -->
+        <ScrollView Grid.Row="1">
+            <FlexLayout x:Name="imageGrid"
+                       Direction="Row"
+                       Wrap="Wrap"
+                       JustifyContent="Start"
+                       AlignContent="Start"
+                       Padding="0">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Padding="6"
+                               CornerRadius="10"
+                               BackgroundColor="White"
+                               BorderColor="Transparent"
+                               HeightRequest="140"
+                               WidthRequest="140"
+                               Margin="6"
+                               HasShadow="True">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnImageTapped" />
+                            </Frame.GestureRecognizers>
+                            
+                            <Image Source="{Binding}"
+                                   Aspect="AspectFit" />
+                        </Frame>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+        </ScrollView>
+
+        <!-- No images message -->
+        <Label x:Name="noImagesLabel"
+               Grid.Row="1"
+               Text="No dragon images found in library."
+               IsVisible="False"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               TextColor="Gray" />
+
+        <!-- Bottom Buttons -->
+        <Grid Grid.Row="2"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="16"
+              Margin="0,16,0,0">
+
+            <Button x:Name="chooseButton"
+                    Text="Choose This One"
+                    Clicked="OnChooseClicked"
+                    BackgroundColor="#5B63EE"
+                    TextColor="White"
+                    CornerRadius="8"
+                    HeightRequest="50"
+                    IsEnabled="False"
+                    Opacity="0.6" />
+
+            <Button Text="Cancel"
+                    Clicked="OnCancelClicked"
+                    Grid.Column="1"
+                    BackgroundColor="#EEE"
+                    TextColor="#333"
+                    CornerRadius="8"
+                    HeightRequest="50" />
+        </Grid>
+
+    </Grid>
+</ContentPage>
