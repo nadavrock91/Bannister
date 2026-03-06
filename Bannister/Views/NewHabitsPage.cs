@@ -15,8 +15,10 @@ public class NewHabitsPage : ContentPage
     private Label _lblAllowance;
     private Label _lblAvailableSlots;
     private VerticalStackLayout _activeHabitsContainer;
+    private VerticalStackLayout _pendingHabitsContainer;
     private VerticalStackLayout _graduatedHabitsContainer;
     private Button _btnAddHabit;
+    private Button _btnAddPending;
 
     public NewHabitsPage(AuthService auth, GameService games, NewHabitService newHabits, 
         ActivityService activities, ExpService exp, DatabaseService db)
@@ -127,6 +129,44 @@ public class NewHabitsPage : ContentPage
         _activeHabitsContainer = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_activeHabitsContainer);
 
+        // Pending habits section
+        var pendingHeader = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            Margin = new Thickness(0, 16, 0, 8)
+        };
+
+        pendingHeader.Add(new Label
+        {
+            Text = "⏳ Pending Habits",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+
+        _btnAddPending = new Button
+        {
+            Text = "+ Add to Queue",
+            BackgroundColor = Color.FromArgb("#9C27B0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 12,
+            Padding = new Thickness(12, 6),
+            HeightRequest = 36
+        };
+        _btnAddPending.Clicked += OnAddPendingClicked;
+        pendingHeader.Add(_btnAddPending, 1, 0);
+
+        mainStack.Children.Add(pendingHeader);
+
+        _pendingHabitsContainer = new VerticalStackLayout { Spacing = 8 };
+        mainStack.Children.Add(_pendingHabitsContainer);
+
         // Graduated habits section
         mainStack.Children.Add(new Label
         {
@@ -159,7 +199,8 @@ public class NewHabitsPage : ContentPage
                    "• Miss a day - you lose EXP and the habit fails\n" +
                    "• Complete 7 days → habit graduates!\n" +
                    "• Graduate = +1 allowance slot\n" +
-                   "• Fail = -1 allowance slot (min 1)",
+                   "• Fail = -1 allowance slot (min 1)\n\n" +
+                   "💡 Use Pending to queue habits for later!",
             TextColor = Color.FromArgb("#1565C0"),
             FontSize = 13,
             LineHeight = 1.4
@@ -230,7 +271,30 @@ public class NewHabitsPage : ContentPage
         {
             foreach (var habit in activeHabits)
             {
-                _activeHabitsContainer.Children.Add(CreateActiveHabitCard(habit));
+                _activeHabitsContainer.Children.Add(CreateActiveHabitCard(habit, availableSlots));
+            }
+        }
+
+        // Load pending habits
+        _pendingHabitsContainer.Children.Clear();
+        var pendingHabits = await _newHabits.GetAllPendingHabitsAsync(_auth.CurrentUsername);
+
+        if (pendingHabits.Count == 0)
+        {
+            _pendingHabitsContainer.Children.Add(new Label
+            {
+                Text = "No pending habits. Add habits to your queue!",
+                TextColor = Colors.White,
+                Opacity = 0.7,
+                HorizontalTextAlignment = TextAlignment.Center
+            });
+        }
+        else
+        {
+            for (int i = 0; i < pendingHabits.Count; i++)
+            {
+                _pendingHabitsContainer.Children.Add(
+                    CreatePendingHabitCard(pendingHabits[i], i, pendingHabits.Count, availableSlots));
             }
         }
 
@@ -275,7 +339,7 @@ public class NewHabitsPage : ContentPage
         }
     }
 
-    private Frame CreateActiveHabitCard(NewHabit habit)
+    private Frame CreateActiveHabitCard(NewHabit habit, int availableSlots)
     {
         var frame = new Frame
         {
@@ -294,6 +358,7 @@ public class NewHabitsPage : ContentPage
             },
             RowDefinitions =
             {
+                new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto },
@@ -345,6 +410,25 @@ public class NewHabitsPage : ContentPage
             TextColor = Color.FromArgb("#666")
         }, 0, 3);
 
+        // Action buttons row
+        var buttonStack = new HorizontalStackLayout { Spacing = 8 };
+
+        // Move to pending button
+        var btnMoveToPending = new Button
+        {
+            Text = "⏸️",
+            BackgroundColor = Color.FromArgb("#9C27B0"),
+            TextColor = Colors.White,
+            FontSize = 14,
+            WidthRequest = 40,
+            HeightRequest = 40,
+            Padding = 0,
+            CornerRadius = 8
+        };
+        btnMoveToPending.Clicked += async (s, e) => await MoveToPendingAsync(habit);
+        buttonStack.Children.Add(btnMoveToPending);
+
+        // Delete button
         var btnDelete = new Button
         {
             Text = "🗑️",
@@ -356,7 +440,141 @@ public class NewHabitsPage : ContentPage
             Padding = 0
         };
         btnDelete.Clicked += async (s, e) => await DeleteHabitAsync(habit);
-        grid.Add(btnDelete, 1, 3);
+        buttonStack.Children.Add(btnDelete);
+
+        grid.Add(buttonStack, 1, 3);
+
+        frame.Content = grid;
+        return frame;
+    }
+
+    private Frame CreatePendingHabitCard(NewHabit habit, int index, int total, int availableSlots)
+    {
+        var frame = new Frame
+        {
+            BackgroundColor = Color.FromArgb("#E1BEE7"),
+            Padding = 12,
+            CornerRadius = 10,
+            HasShadow = true
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 12
+        };
+
+        // Order number
+        grid.Add(new Label
+        {
+            Text = $"#{index + 1}",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#7B1FA2"),
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+
+        // Info stack
+        var infoStack = new VerticalStackLayout { Spacing = 2 };
+        infoStack.Children.Add(new Label
+        {
+            Text = habit.HabitName,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+        infoStack.Children.Add(new Label
+        {
+            Text = $"📁 {habit.Game}",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#666")
+        });
+        grid.Add(infoStack, 1, 0);
+
+        // Action buttons
+        var buttonStack = new HorizontalStackLayout { Spacing = 4 };
+
+        // Move up
+        if (index > 0)
+        {
+            var btnUp = new Button
+            {
+                Text = "▲",
+                BackgroundColor = Color.FromArgb("#7B1FA2"),
+                TextColor = Colors.White,
+                FontSize = 12,
+                WidthRequest = 32,
+                HeightRequest = 32,
+                Padding = 0,
+                CornerRadius = 6
+            };
+            btnUp.Clicked += async (s, e) =>
+            {
+                await _newHabits.MovePendingHabitUpAsync(habit);
+                await LoadHabitsAsync();
+            };
+            buttonStack.Children.Add(btnUp);
+        }
+
+        // Move down
+        if (index < total - 1)
+        {
+            var btnDown = new Button
+            {
+                Text = "▼",
+                BackgroundColor = Color.FromArgb("#7B1FA2"),
+                TextColor = Colors.White,
+                FontSize = 12,
+                WidthRequest = 32,
+                HeightRequest = 32,
+                Padding = 0,
+                CornerRadius = 6
+            };
+            btnDown.Clicked += async (s, e) =>
+            {
+                await _newHabits.MovePendingHabitDownAsync(habit);
+                await LoadHabitsAsync();
+            };
+            buttonStack.Children.Add(btnDown);
+        }
+
+        // Activate button (only if slots available)
+        var btnActivate = new Button
+        {
+            Text = "▶️",
+            BackgroundColor = availableSlots > 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#999"),
+            TextColor = Colors.White,
+            FontSize = 12,
+            WidthRequest = 32,
+            HeightRequest = 32,
+            Padding = 0,
+            CornerRadius = 6,
+            IsEnabled = availableSlots > 0
+        };
+        btnActivate.Clicked += async (s, e) => await ActivatePendingAsync(habit);
+        buttonStack.Children.Add(btnActivate);
+
+        // Delete button
+        var btnDelete = new Button
+        {
+            Text = "✕",
+            BackgroundColor = Color.FromArgb("#F44336"),
+            TextColor = Colors.White,
+            FontSize = 12,
+            WidthRequest = 32,
+            HeightRequest = 32,
+            Padding = 0,
+            CornerRadius = 6
+        };
+        btnDelete.Clicked += async (s, e) => await DeletePendingAsync(habit);
+        buttonStack.Children.Add(btnDelete);
+
+        grid.Add(buttonStack, 2, 0);
 
         frame.Content = grid;
         return frame;
@@ -410,6 +628,85 @@ public class NewHabitsPage : ContentPage
         return frame;
     }
 
+    private async Task MoveToPendingAsync(NewHabit habit)
+    {
+        bool confirm = await DisplayAlert(
+            "Move to Pending",
+            $"Move '{habit.HabitName}' to pending?\n\nThis will pause the habit (no penalty) and free up your slot.",
+            "Move to Pending",
+            "Cancel");
+
+        if (confirm)
+        {
+            await _newHabits.MoveToPendingAsync(habit);
+            await LoadHabitsAsync();
+        }
+    }
+
+    private async Task ActivatePendingAsync(NewHabit habit)
+    {
+        var availableSlots = await _newHabits.GetAvailableSlotsAsync(_auth.CurrentUsername);
+        if (availableSlots <= 0)
+        {
+            await DisplayAlert("No Slots", "No allowance slots available. Complete or pause an active habit first!", "OK");
+            return;
+        }
+
+        // Get the positive activity
+        var positiveActivity = await _activities.GetActivityAsync(habit.PositiveActivityId);
+        if (positiveActivity == null)
+        {
+            await DisplayAlert("Error", "Could not find the activity.", "OK");
+            return;
+        }
+
+        // Check if negative activity is already set
+        Activity? negativeActivity = null;
+        if (habit.NegativeActivityId > 0)
+        {
+            negativeActivity = await _activities.GetActivityAsync(habit.NegativeActivityId);
+        }
+
+        // If no negative activity, ask user to select/create one
+        if (negativeActivity == null)
+        {
+            await DisplayAlert("Set Penalty Activity",
+                $"Before activating '{habit.HabitName}', you need to set a penalty activity.\n\nThis is what happens if you miss a day.",
+                "Continue");
+
+            negativeActivity = await GetOrCreateNegativeActivityAsync(positiveActivity);
+            if (negativeActivity == null)
+            {
+                await DisplayAlert("Cancelled", "You need a penalty activity to activate a habit.", "OK");
+                return;
+            }
+
+            // Update the habit with the negative activity ID
+            habit.NegativeActivityId = negativeActivity.Id;
+        }
+
+        await _newHabits.ActivatePendingHabitAsync(habit);
+        await DisplayAlert("Habit Activated!",
+            $"'{habit.HabitName}' is now active!\n\nRemember to do it daily to avoid penalties.",
+            "Got it!");
+        await LoadHabitsAsync();
+    }
+
+    private async Task DeletePendingAsync(NewHabit habit)
+    {
+        bool confirm = await DisplayAlert(
+            "Remove from Queue",
+            $"Remove '{habit.HabitName}' from the pending queue?\n\n(The activities will NOT be deleted)",
+            "Remove",
+            "Cancel");
+
+        if (confirm)
+        {
+            await _newHabits.DeletePendingHabitAsync(habit);
+            await LoadHabitsAsync();
+        }
+    }
+
     private async Task DeleteHabitAsync(NewHabit habit)
     {
         bool confirm = await DisplayAlert(
@@ -432,6 +729,41 @@ public class NewHabitsPage : ContentPage
             
             await LoadHabitsAsync();
         }
+    }
+
+    private async void OnAddPendingClicked(object? sender, EventArgs e)
+    {
+        // For pending, just select the positive activity - negative will be set when activating
+        var allGames = await _games.GetGamesAsync(_auth.CurrentUsername);
+        if (allGames.Count == 0)
+        {
+            await DisplayAlert("No Games", "Please create a game first.", "OK");
+            return;
+        }
+
+        Activity? positiveActivity = null;
+
+        // Go directly to activity selection
+        var selectionPage = new ActivitySelectionPage(_activities, _games, _auth.CurrentUsername, "Select Activity for Pending Queue", negativeOnly: false);
+        await Navigation.PushModalAsync(selectionPage);
+        positiveActivity = await selectionPage.GetSelectedActivityAsync();
+        
+        if (positiveActivity == null) 
+            return;
+
+        // Create pending habit with just the positive activity (negative = 0 for now)
+        await _newHabits.CreatePendingHabitAsync(
+            _auth.CurrentUsername,
+            positiveActivity.Game,
+            positiveActivity.Name,
+            positiveActivity.Id,
+            0); // No negative activity yet - will be set when activating
+
+        await DisplayAlert("Added to Queue!",
+            $"'{positiveActivity.Name}' added to pending.\n\nWhen you activate it, you'll set up the penalty activity.",
+            "OK");
+
+        await LoadHabitsAsync();
     }
 
     private async void OnAddHabitClicked(object? sender, EventArgs e)
@@ -531,13 +863,8 @@ public class NewHabitsPage : ContentPage
         }
     }
 
-    /// <summary>
-    /// Creates a negative activity with values pre-filled from the positive activity.
-    /// Uses the existing ActivityCreationPage via modal with prefill parameters.
-    /// </summary>
     private async Task<Activity?> CreatePrefillledNegativeActivityAsync(Activity positiveActivity)
     {
-        // Calculate negative level based on positive activity
         int absLevel = Math.Abs(positiveActivity.MeaningfulUntilLevel);
         
         string negativeName = $"{positiveActivity.Name} (Negative)";
@@ -545,14 +872,12 @@ public class NewHabitsPage : ContentPage
         string negativeImage = positiveActivity.ImagePath ?? "";
         string negativeCategory = "Negative";
 
-        // Use the existing ActivityCreationPage with prefill support
         var activity = await ActivityCreationPage.CreateActivityModalAsync(
             Navigation, 
             _auth, 
             _activities, 
             _games, 
             positiveActivity.Game,
-            // Prefill parameters
             prefillName: negativeName,
             prefillLevel: negativeLevel,
             prefillImage: negativeImage,
@@ -562,9 +887,6 @@ public class NewHabitsPage : ContentPage
         return activity;
     }
 
-    /// <summary>
-    /// Gets or creates a negative activity (for when user selected existing positive activity)
-    /// </summary>
     private async Task<Activity?> GetOrCreateNegativeActivityAsync(Activity positiveActivity)
     {
         string negativeChoice = await DisplayActionSheet(
@@ -585,7 +907,6 @@ public class NewHabitsPage : ContentPage
         }
         else if (negativeChoice == "Create new negative activity")
         {
-            // Create with prefill
             return await CreatePrefillledNegativeActivityAsync(positiveActivity);
         }
 
@@ -631,14 +952,6 @@ public class NewHabitsPage : ContentPage
             $"❌ Miss a day: {negative.ExpGain:+#;-#;0} EXP\n\n" +
             "Complete 7 days to graduate!",
             "Let's go!");
-
-        // Verify habit was created
-        var verifyHabits = await _newHabits.GetAllActiveHabitsAsync(_auth.CurrentUsername);
-        System.Diagnostics.Debug.WriteLine($"[NEW HABIT PAGE] After insert, found {verifyHabits.Count} active habits");
-        foreach (var h in verifyHabits)
-        {
-            System.Diagnostics.Debug.WriteLine($"[NEW HABIT PAGE]   - {h.HabitName} (ID: {h.Id}, Status: {h.Status})");
-        }
 
         await LoadHabitsAsync();
     }

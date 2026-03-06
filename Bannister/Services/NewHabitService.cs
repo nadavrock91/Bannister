@@ -112,6 +112,127 @@ public class NewHabitService
             .ToListAsync();
     }
 
+    #region Pending Habits
+
+    public async Task<List<NewHabit>> GetAllPendingHabitsAsync(string username)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<NewHabit>();
+        
+        return await conn.Table<NewHabit>()
+            .Where(h => h.Username == username && h.Status == "pending")
+            .OrderBy(h => h.PendingOrder)
+            .ToListAsync();
+    }
+
+    public async Task<NewHabit> CreatePendingHabitAsync(
+        string username,
+        string game,
+        string habitName,
+        int positiveActivityId,
+        int negativeActivityId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<NewHabit>();
+
+        // Get max pending order
+        var pendingHabits = await GetAllPendingHabitsAsync(username);
+        int maxOrder = pendingHabits.Count > 0 ? pendingHabits.Max(h => h.PendingOrder) : 0;
+
+        var newHabit = new NewHabit
+        {
+            Username = username,
+            Game = game,
+            HabitName = habitName,
+            PositiveActivityId = positiveActivityId,
+            NegativeActivityId = negativeActivityId,
+            ConsecutiveDays = 0,
+            Status = "pending",
+            PendingOrder = maxOrder + 1
+        };
+
+        await conn.InsertAsync(newHabit);
+        return newHabit;
+    }
+
+    public async Task ActivatePendingHabitAsync(NewHabit habit)
+    {
+        var conn = await _db.GetConnectionAsync();
+        
+        habit.Status = "active";
+        habit.StartedAt = DateTime.UtcNow;
+        habit.ConsecutiveDays = 0;
+        habit.LastAppliedDate = null;
+        
+        await conn.UpdateAsync(habit);
+        
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Activated pending habit: {habit.HabitName}, NegativeActivityId: {habit.NegativeActivityId}");
+    }
+
+    public async Task MoveToPendingAsync(NewHabit habit)
+    {
+        var conn = await _db.GetConnectionAsync();
+        
+        // Get max pending order
+        var pendingHabits = await GetAllPendingHabitsAsync(habit.Username);
+        int maxOrder = pendingHabits.Count > 0 ? pendingHabits.Max(h => h.PendingOrder) : 0;
+        
+        habit.Status = "pending";
+        habit.ConsecutiveDays = 0;
+        habit.LastAppliedDate = null;
+        habit.PendingOrder = maxOrder + 1;
+        
+        await conn.UpdateAsync(habit);
+        
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Moved to pending: {habit.HabitName}");
+    }
+
+    public async Task DeletePendingHabitAsync(NewHabit habit)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.DeleteAsync(habit);
+        
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Deleted pending habit: {habit.HabitName}");
+    }
+
+    public async Task MovePendingHabitUpAsync(NewHabit habit)
+    {
+        var conn = await _db.GetConnectionAsync();
+        var pendingHabits = await GetAllPendingHabitsAsync(habit.Username);
+        
+        var currentIndex = pendingHabits.FindIndex(h => h.Id == habit.Id);
+        if (currentIndex > 0)
+        {
+            var aboveHabit = pendingHabits[currentIndex - 1];
+            int tempOrder = habit.PendingOrder;
+            habit.PendingOrder = aboveHabit.PendingOrder;
+            aboveHabit.PendingOrder = tempOrder;
+            
+            await conn.UpdateAsync(habit);
+            await conn.UpdateAsync(aboveHabit);
+        }
+    }
+
+    public async Task MovePendingHabitDownAsync(NewHabit habit)
+    {
+        var conn = await _db.GetConnectionAsync();
+        var pendingHabits = await GetAllPendingHabitsAsync(habit.Username);
+        
+        var currentIndex = pendingHabits.FindIndex(h => h.Id == habit.Id);
+        if (currentIndex < pendingHabits.Count - 1)
+        {
+            var belowHabit = pendingHabits[currentIndex + 1];
+            int tempOrder = habit.PendingOrder;
+            habit.PendingOrder = belowHabit.PendingOrder;
+            belowHabit.PendingOrder = tempOrder;
+            
+            await conn.UpdateAsync(habit);
+            await conn.UpdateAsync(belowHabit);
+        }
+    }
+
+    #endregion
+
     public async Task<NewHabit?> CreateNewHabitAsync(
         string username, 
         string game, 

@@ -30,7 +30,7 @@ public class NewHabit
     // When this habit was added to the active list
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     
-    // Status: "active", "graduated", "failed"
+    // Status: "active", "graduated", "failed", "pending"
     public string Status { get; set; } = "active";
     
     // When it graduated or failed
@@ -38,6 +38,9 @@ public class NewHabit
     
     // Days required to graduate (default 7 for daily)
     public int DaysToGraduate { get; set; } = 7;
+    
+    // Order for pending habits (lower = higher priority)
+    public int PendingOrder { get; set; } = 0;
     
     [Ignore]
     public bool IsGraduated => Status == "graduated";
@@ -47,6 +50,9 @@ public class NewHabit
     
     [Ignore]
     public bool IsActive => Status == "active";
+    
+    [Ignore]
+    public bool IsPending => Status == "pending";
     
     [Ignore]
     public int DaysRemaining => Math.Max(0, DaysToGraduate - ConsecutiveDays);
