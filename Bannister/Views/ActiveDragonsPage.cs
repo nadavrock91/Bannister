@@ -175,7 +175,14 @@ public class ActiveDragonsPage : ContentPage
         {
             var attempts = await _attempts.GetAttemptsForDragonAsync(_auth.CurrentUsername, dragon.Game, dragon.Title);
             var activeAttempt = attempts.FirstOrDefault(a => a.IsActive);
-            int days = activeAttempt?.DurationDays ?? 0;
+            
+            // Get actual day count - use logs if auto-increment is enabled
+            int days = 0;
+            if (activeAttempt != null)
+            {
+                days = await GetActualDayCountAsync(dragon, activeAttempt);
+            }
+            
             dragonData.Add((dragon, attempts, days));
         }
 
@@ -191,15 +198,42 @@ public class ActiveDragonsPage : ContentPage
             _ => dragonData.OrderByDescending(d => d.activeDays)
         };
 
-        foreach (var (dragon, attempts, _) in sorted)
+        foreach (var (dragon, attempts, activeDays) in sorted)
         {
-            _dragonsList.Children.Add(BuildDragonSection(dragon, attempts));
+            _dragonsList.Children.Add(await BuildDragonSectionAsync(dragon, attempts, activeDays));
         }
+    }
+
+    /// <summary>
+    /// Get the actual day count for a dragon attempt.
+    /// Uses DragonDayLog if auto-increment is enabled, otherwise calculates from dates.
+    /// </summary>
+    private async Task<int> GetActualDayCountAsync(Dragon dragon, Attempt attempt)
+    {
+        if (dragon.IsAutoIncrement)
+        {
+            // Get day count from logs
+            var conn = await GetConnectionAsync();
+            var logs = await conn.Table<DragonDayLog>()
+                .Where(l => l.Username == _auth.CurrentUsername 
+                    && l.Game == dragon.Game 
+                    && l.DragonTitle == dragon.Title
+                    && l.AttemptNumber == attempt.AttemptNumber)
+                .ToListAsync();
+
+            if (logs.Count > 0)
+            {
+                return logs.Max(l => l.DayNumber);
+            }
+        }
+        
+        // Fall back to calculated duration
+        return attempt.DurationDays;
     }
 
     private string GetDragonKey(Dragon dragon) => $"{dragon.Game}|{dragon.Title}";
 
-    private View BuildDragonSection(Dragon dragon, List<Attempt> attempts)
+    private async Task<View> BuildDragonSectionAsync(Dragon dragon, List<Attempt> attempts, int displayDays)
     {
         var container = new VerticalStackLayout { Spacing = 8 };
 
@@ -296,15 +330,14 @@ public class ActiveDragonsPage : ContentPage
             Margin = new Thickness(40, 0, 0, 0)
         });
 
-        // Current attempt summary
+        // Current attempt summary - use displayDays instead of activeAttempt.DurationDays
         if (hasActiveAttempt)
         {
             var attemptRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(40, 4, 0, 0) };
 
-            int durationDays = activeAttempt!.DurationDays;
             attemptRow.Children.Add(new Label
             {
-                Text = durationDays.ToString(),
+                Text = displayDays.ToString(),
                 FontSize = 28,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#5B63EE"),
@@ -313,7 +346,7 @@ public class ActiveDragonsPage : ContentPage
 
             attemptRow.Children.Add(new Label
             {
-                Text = durationDays == 1 ? "day battling" : "days battling",
+                Text = displayDays == 1 ? "day battling" : "days battling",
                 FontSize = 14,
                 TextColor = Color.FromArgb("#666"),
                 VerticalOptions = LayoutOptions.End,
@@ -322,7 +355,7 @@ public class ActiveDragonsPage : ContentPage
 
             attemptRow.Children.Add(new Label
             {
-                Text = $"(Attempt #{activeAttempt.AttemptNumber})",
+                Text = $"(Attempt #{activeAttempt!.AttemptNumber})",
                 FontSize = 12,
                 TextColor = Color.FromArgb("#999"),
                 VerticalOptions = LayoutOptions.End,
@@ -387,7 +420,7 @@ public class ActiveDragonsPage : ContentPage
                 HeightRequest = 32,
                 HorizontalOptions = LayoutOptions.Start
             };
-            btnEditDays.Clicked += async (s, e) => await EditActiveAttemptAsync(activeAttempt!, dragon);
+            btnEditDays.Clicked += async (s, e) => await EditActiveAttemptAsync(activeAttempt!, dragon, displayDays);
             buttonsRow.Children.Add(btnEditDays);
 
             // Mark Failed button
@@ -508,7 +541,9 @@ public class ActiveDragonsPage : ContentPage
 
             foreach (var attempt in sortedAttempts)
             {
-                attemptsContainer.Children.Add(BuildAttemptCard(attempt, dragon));
+                // Get actual days for this attempt too
+                int attemptDays = await GetActualDayCountAsync(dragon, attempt);
+                attemptsContainer.Children.Add(BuildAttemptCard(attempt, dragon, attemptDays));
             }
 
             container.Children.Add(attemptsContainer);
@@ -517,7 +552,7 @@ public class ActiveDragonsPage : ContentPage
         return container;
     }
 
-    private Frame BuildAttemptCard(Attempt attempt, Dragon dragon)
+    private Frame BuildAttemptCard(Attempt attempt, Dragon dragon, int displayDays)
     {
         var isActive = attempt.IsActive;
         var isFailed = attempt.FailedAt.HasValue;
@@ -563,10 +598,10 @@ public class ActiveDragonsPage : ContentPage
             HorizontalTextAlignment = TextAlignment.Center
         });
 
-        // Days (big number)
+        // Days (big number) - use displayDays
         stack.Children.Add(new Label
         {
-            Text = attempt.DurationDays.ToString(),
+            Text = displayDays.ToString(),
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             TextColor = isActive ? Color.FromArgb("#5B63EE") : Color.FromArgb("#333"),
@@ -576,7 +611,7 @@ public class ActiveDragonsPage : ContentPage
         // "days" label
         stack.Children.Add(new Label
         {
-            Text = attempt.DurationDays == 1 ? "day" : "days",
+            Text = displayDays == 1 ? "day" : "days",
             FontSize = 11,
             TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center
@@ -646,12 +681,12 @@ public class ActiveDragonsPage : ContentPage
         }
     }
 
-    private async Task EditActiveAttemptAsync(Attempt activeAttempt, Dragon dragon)
+    private async Task EditActiveAttemptAsync(Attempt activeAttempt, Dragon dragon, int currentDays)
     {
         string daysStr = await DisplayPromptAsync(
             "Edit Active Attempt",
-            $"Current: {activeAttempt.DurationDays} days\n\nEnter the correct number of days:",
-            initialValue: activeAttempt.DurationDays.ToString(),
+            $"Current: {currentDays} days\n\nEnter the correct number of days:",
+            initialValue: currentDays.ToString(),
             keyboard: Keyboard.Numeric,
             placeholder: "e.g., 30");
 
@@ -660,12 +695,70 @@ public class ActiveDragonsPage : ContentPage
             return;
         }
 
-        await UpdateAttemptDaysAsync(activeAttempt.Id, newDays);
+        // If auto-increment is enabled, update the logs
+        if (dragon.IsAutoIncrement)
+        {
+            await UpdateDayLogsAsync(dragon, activeAttempt, newDays);
+        }
+        else
+        {
+            await UpdateAttemptDaysAsync(activeAttempt.Id, newDays);
+        }
         
         _expandedDragons[GetDragonKey(dragon)] = true;
         _savedScrollY = _mainScroll.ScrollY;
         await LoadDragonsAsync();
         await RestoreScrollPositionAsync();
+    }
+
+    /// <summary>
+    /// Update the DragonDayLog entries to reflect the new day count
+    /// </summary>
+    private async Task UpdateDayLogsAsync(Dragon dragon, Attempt attempt, int newDayCount)
+    {
+        var conn = await GetConnectionAsync();
+        
+        // Get existing logs
+        var logs = await conn.Table<DragonDayLog>()
+            .Where(l => l.Username == _auth.CurrentUsername 
+                && l.Game == dragon.Game 
+                && l.DragonTitle == dragon.Title
+                && l.AttemptNumber == attempt.AttemptNumber)
+            .OrderBy(l => l.LogDate)
+            .ToListAsync();
+
+        int currentMax = logs.Count > 0 ? logs.Max(l => l.DayNumber) : 0;
+
+        if (newDayCount > currentMax)
+        {
+            // Add more days
+            var today = DateTime.UtcNow.Date;
+            for (int i = currentMax + 1; i <= newDayCount; i++)
+            {
+                var log = new DragonDayLog
+                {
+                    Username = _auth.CurrentUsername,
+                    Game = dragon.Game,
+                    DragonTitle = dragon.Title,
+                    AttemptNumber = attempt.AttemptNumber,
+                    LogDate = today,
+                    DayNumber = i,
+                    Source = "manual",
+                    Description = "Manual adjustment",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await conn.InsertAsync(log);
+            }
+        }
+        else if (newDayCount < currentMax)
+        {
+            // Remove excess days (delete logs with DayNumber > newDayCount)
+            var logsToDelete = logs.Where(l => l.DayNumber > newDayCount).ToList();
+            foreach (var log in logsToDelete)
+            {
+                await conn.DeleteAsync(log);
+            }
+        }
     }
 
     private async Task EditPastAttemptAsync(Attempt attempt, Dragon dragon)
@@ -1041,9 +1134,18 @@ public class ActiveDragonsPage : ContentPage
             if (activeAttempt == null)
                 continue;
 
+            // Get current max day from logs
+            var existingLogs = await conn.Table<DragonDayLog>()
+                .Where(l => l.Username == _auth.CurrentUsername 
+                    && l.Game == dragon.Game 
+                    && l.DragonTitle == dragon.Title
+                    && l.AttemptNumber == activeAttempt.AttemptNumber)
+                .ToListAsync();
+            
+            int currentDay = existingLogs.Count > 0 ? existingLogs.Max(l => l.DayNumber) : activeAttempt.DurationDays;
+
             // Calculate how many days to log (in case app wasn't opened for multiple days)
-            var lastDate = dragon.LastAutoIncrementDate?.Date ?? activeAttempt.StartedAt?.Date ?? today.AddDays(-1);
-            var currentDay = activeAttempt.DurationDays;
+            var lastDate = dragon.LastAutoIncrementDate?.Date ?? today.AddDays(-1);
 
             // Log each day since last increment
             for (var date = lastDate.AddDays(1); date <= today; date = date.AddDays(1))

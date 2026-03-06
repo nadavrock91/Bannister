@@ -12,6 +12,8 @@ public class DragonHistoryPage : ContentPage
     private readonly Attempt _attempt;
     private readonly DatabaseService _db;
     private VerticalStackLayout _historyContainer;
+    private Label _lblCurrentDays;
+    private Label _lblHeaderDays;
 
     public DragonHistoryPage(DatabaseService db, Dragon dragon, Attempt attempt)
     {
@@ -60,12 +62,14 @@ public class DragonHistoryPage : ContentPage
             TextColor = Colors.White
         });
 
-        headerStack.Children.Add(new Label
+        // This will be updated after loading logs
+        _lblHeaderDays = new Label
         {
             Text = $"Attempt #{_attempt.AttemptNumber} • Currently {_attempt.DurationDays} days",
             FontSize = 14,
             TextColor = Color.FromArgb("#FFFFFFCC")
-        });
+        };
+        headerStack.Children.Add(_lblHeaderDays);
 
         if (_attempt.StartedAt.HasValue)
         {
@@ -101,16 +105,17 @@ public class DragonHistoryPage : ContentPage
             RowSpacing = 4
         };
 
-        // Current days
+        // Current days - will be updated after loading logs
         var currentStack = new VerticalStackLayout { HorizontalOptions = LayoutOptions.Center };
-        currentStack.Children.Add(new Label
+        _lblCurrentDays = new Label
         {
             Text = _attempt.DurationDays.ToString(),
             FontSize = 32,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#5B63EE"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        };
+        currentStack.Children.Add(_lblCurrentDays);
         currentStack.Children.Add(new Label
         {
             Text = "Current",
@@ -197,6 +202,14 @@ public class DragonHistoryPage : ContentPage
                 && l.AttemptNumber == _attempt.AttemptNumber)
             .OrderByDescending(l => l.LogDate)
             .ToListAsync();
+
+        // Update the current days display with actual value from logs
+        int actualCurrentDays = logs.Count > 0 
+            ? logs.Max(l => l.DayNumber) 
+            : _attempt.DurationDays;
+        
+        _lblCurrentDays.Text = actualCurrentDays.ToString();
+        _lblHeaderDays.Text = $"Attempt #{_attempt.AttemptNumber} • Currently {actualCurrentDays} days";
 
         if (logs.Count == 0)
         {
