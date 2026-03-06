@@ -203,6 +203,36 @@ public class Activity
     public int MissingImagePromptCount { get; set; } = 0;
     
     /// <summary>
+    /// Optional notes/clarifications for this activity.
+    /// </summary>
+    private string _notes = "";
+    public string Notes 
+    { 
+        get => _notes ?? ""; 
+        set => _notes = value ?? ""; 
+    }
+    
+    /// <summary>
+    /// Returns true if this activity has notes
+    /// </summary>
+    [Ignore]
+    public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
+    
+    /// <summary>
+    /// Returns a preview of the notes (first 50 chars)
+    /// </summary>
+    [Ignore]
+    public string NotesPreview
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Notes)) return "";
+            if (Notes.Length <= 50) return Notes;
+            return Notes.Substring(0, 47) + "...";
+        }
+    }
+    
+    /// <summary>
     /// Returns true if this activity should be displayed today based on day restrictions
     /// </summary>
     [Ignore]

@@ -520,6 +520,43 @@ public partial class ActivityGamePage
             grid.Children.Add(timesFrame);
         }
 
+        // Notes Badge (bottom-right, above name label, only if has notes)
+        System.Diagnostics.Debug.WriteLine($"[NOTES] Activity '{activity.Name}' HasNotes={activity.HasNotes}, Notes='{activity.Notes}'");
+        if (activity.HasNotes)
+        {
+            var notesFrame = new Frame
+            {
+                VerticalOptions = LayoutOptions.End,
+                HorizontalOptions = LayoutOptions.End,
+                Padding = new Thickness(6, 2),
+                CornerRadius = 8,
+                BackgroundColor = Color.FromArgb("#795548"), // Brown for notes
+                BorderColor = Colors.Transparent,
+                Margin = new Thickness(4, 4, 40, 36) // Above name label, left of menu/+ buttons
+            };
+            
+            var notesLabel = new Label
+            {
+                Text = "📝",
+                TextColor = Colors.White,
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold
+            };
+            notesFrame.Content = notesLabel;
+            
+            // Add tooltip behavior - tap to view full notes
+            var notesTapGesture = new TapGestureRecognizer();
+            notesTapGesture.Tapped += async (s, e) => {
+                await Application.Current.MainPage.DisplayAlert("Notes", activity.Notes, "OK");
+            };
+            notesFrame.GestureRecognizers.Add(notesTapGesture);
+            
+            // Add hover behavior with ToolTipProperties
+            ToolTipProperties.SetText(notesFrame, activity.NotesPreview);
+            
+            grid.Children.Add(notesFrame);
+        }
+
         // Days Since Click Badge (bottom-left, above name label)
         var daysBadgeFrame = new Frame
         {

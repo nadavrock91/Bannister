@@ -178,6 +178,12 @@ public partial class HomePage : ContentPage
         await Navigation.PushAsync(page);
     }
 
+    private async void OnRulesClicked(object sender, EventArgs e)
+    {
+        var page = new GameRulesPage(_db, _auth.CurrentUsername);
+        await Navigation.PushAsync(page);
+    }
+
     private async void OnDragonsClicked(object sender, EventArgs e)
     {
         var page = new DragonsHubPage(_auth, _dragons, _attempts);

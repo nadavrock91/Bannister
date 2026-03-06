@@ -266,6 +266,9 @@ public class AutoAwardConfirmationPage : ContentPage
         }
 
         // Award EXP for each selected activity
+        int bonusExp = 0;
+        var bonusDetails = new List<string>();
+        
         foreach (var activity in selectedActivities)
         {
             int expAmount = GetActivityExp(activity);
@@ -276,14 +279,37 @@ public class AutoAwardConfirmationPage : ContentPage
                 await _expService.ApplyExpAsync(_username, _gameId, activity.Name, expAmount, activity.Id);
             }
 
+            // Record display day streak (same as manual calculation)
+            await _activityService.RecordDisplayDayStreakAsync(activity);
+            
+            // Increment times completed
+            activity.TimesCompleted++;
+            
+            // Check for streak milestone bonus (only for positive EXP activities)
+            if (expAmount > 0)
+            {
+                int streakBonus = ActivityService.CalculateStreakBonus(activity.DisplayDayStreak);
+                if (streakBonus > 0)
+                {
+                    await _expService.ApplyExpAsync(_username, _gameId, $"{activity.Name} (Streak Bonus)", streakBonus, activity.Id);
+                    bonusExp += streakBonus;
+                    bonusDetails.Add($"🔥 {activity.Name} streak bonus ({activity.DisplayDayStreak} days): +{streakBonus}");
+                }
+            }
+
             // Update LastAutoAwarded
             activity.LastAutoAwarded = DateTime.Now;
             await _activityService.UpdateActivityAsync(activity);
         }
 
+        int grandTotal = _totalExp + bonusExp;
+        string bonusMessage = bonusDetails.Count > 0 
+            ? $"\n\n{string.Join("\n", bonusDetails)}" 
+            : "";
+        
         await DisplayAlert(
             "EXP Awarded!",
-            $"Awarded {_totalExp} total EXP from {selectedActivities.Count} auto-award activit{(selectedActivities.Count == 1 ? "y" : "ies")}.",
+            $"Awarded {grandTotal} total EXP from {selectedActivities.Count} auto-award activit{(selectedActivities.Count == 1 ? "y" : "ies")}.{bonusMessage}",
             "OK"
         );
 

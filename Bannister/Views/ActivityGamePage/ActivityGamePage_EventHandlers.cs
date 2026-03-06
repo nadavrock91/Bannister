@@ -79,13 +79,17 @@ public partial class ActivityGamePage
             // Update NewHabit progress if this activity is linked to a NewHabit
             await RecordNewHabitProgressAsync(activityVM.Id);
             
-            // Check for streak milestone bonus
-            int streakBonus = ActivityService.CalculateStreakBonus(activityVM.Activity.DisplayDayStreak);
-            if (streakBonus > 0)
+            // Check for streak milestone bonus (only for positive EXP activities)
+            // Negative activities should not get reduced punishment for streaks
+            if (activityVM.ExpGain > 0)
             {
-                await _exp.ApplyExpAsync(_auth.CurrentUsername, _game!.GameId, $"{activityVM.Name} (Streak Bonus)", streakBonus, activityVM.Id);
-                totalExp += streakBonus;
-                details.Add($"🔥 {activityVM.Name} streak bonus ({activityVM.Activity.DisplayDayStreak} days): +{streakBonus}");
+                int streakBonus = ActivityService.CalculateStreakBonus(activityVM.Activity.DisplayDayStreak);
+                if (streakBonus > 0)
+                {
+                    await _exp.ApplyExpAsync(_auth.CurrentUsername, _game!.GameId, $"{activityVM.Name} (Streak Bonus)", streakBonus, activityVM.Id);
+                    totalExp += streakBonus;
+                    details.Add($"🔥 {activityVM.Name} streak bonus ({activityVM.Activity.DisplayDayStreak} days): +{streakBonus}");
+                }
             }
         }
 
@@ -137,6 +141,10 @@ public partial class ActivityGamePage
 
     private async Task ShowContextMenu(ActivityGameViewModel activityVM)
     {
+        string notesOption = activityVM.HasNotes 
+            ? $"📝 Edit Notes" 
+            : "📝 Add Notes";
+            
         string action = await DisplayActionSheet(
             activityVM.Name,
             "Cancel",
@@ -146,6 +154,7 @@ public partial class ActivityGamePage
             "Applied X Times (one-time)",
             "Update Habit Streak",
             $"Times Completed: {activityVM.Activity.TimesCompleted}",
+            notesOption,
             "Duplicate as Negative",
             "Set Auto-Award"
         );
@@ -171,6 +180,10 @@ public partial class ActivityGamePage
         else if (action.StartsWith("Times Completed"))
         {
             await EditTimesCompleted(activityVM);
+        }
+        else if (action.Contains("Notes"))
+        {
+            await EditNotes(activityVM);
         }
         else if (action == "Duplicate as Negative")
         {
@@ -375,6 +388,37 @@ public partial class ActivityGamePage
             await DisplayAlert("Updated", $"Times completed: {newCount}", "OK");
             await RefreshActivitiesAsync();
         }
+    }
+
+    private async Task EditNotes(ActivityGameViewModel activityVM)
+    {
+        var activity = activityVM.Activity;
+        
+        string? result = await DisplayPromptAsync(
+            "📝 Notes",
+            "Enter notes or clarifications for this activity:",
+            initialValue: activity.Notes ?? "",
+            maxLength: 500,
+            placeholder: "e.g., Only applies after 4pm, Only on weekdays...");
+
+        if (result == null) return; // Cancelled
+
+        activity.Notes = result.Trim();
+        await _activities.UpdateActivityAsync(activity);
+        
+        // Update the ViewModel to trigger property changes
+        activityVM.UpdateActivity(activity);
+        
+        if (string.IsNullOrWhiteSpace(result))
+        {
+            await DisplayAlert("Notes Cleared", "Notes have been removed.", "OK");
+        }
+        else
+        {
+            await DisplayAlert("Notes Saved", "Notes have been updated.", "OK");
+        }
+        
+        await RefreshActivitiesAsync();
     }
 
     private async Task RecordNewHabitProgressAsync(int activityId)

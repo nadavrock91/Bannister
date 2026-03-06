@@ -236,6 +236,38 @@ public class ActivityGameViewModel : INotifyPropertyChanged
 
     #endregion
 
+    #region Notes Properties
+
+    /// <summary>
+    /// Notes/clarifications for this activity
+    /// </summary>
+    public string Notes
+    {
+        get => _activity.Notes ?? "";
+        set
+        {
+            if (_activity.Notes != value)
+            {
+                _activity.Notes = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasNotes));
+                OnPropertyChanged(nameof(NotesPreview));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether this activity has notes
+    /// </summary>
+    public bool HasNotes => !string.IsNullOrWhiteSpace(_activity.Notes);
+
+    /// <summary>
+    /// Preview of notes (first 50 chars)
+    /// </summary>
+    public string NotesPreview => _activity.NotesPreview;
+
+    #endregion
+
     /// <summary>
     /// Set the current level for percent-based EXP calculation
     /// </summary>
@@ -369,6 +401,9 @@ public class ActivityGameViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(DisplayDayStreak));
         OnPropertyChanged(nameof(DisplayDayStreakDisplay));
         OnPropertyChanged(nameof(ShowDisplayDayStreak));
+        OnPropertyChanged(nameof(Notes));
+        OnPropertyChanged(nameof(HasNotes));
+        OnPropertyChanged(nameof(NotesPreview));
     }
 
     protected void OnPropertyChanged([CallerMemberName] string? name = null)
