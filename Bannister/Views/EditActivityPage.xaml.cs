@@ -16,6 +16,7 @@ public partial class EditActivityPage : ContentPage
     private readonly string _gameId;
     private readonly Activity _activity;
     private string? _selectedImageFilename = null;
+    private DisplayDaysSelector _displayDaysSelector;
 
     public EditActivityPage(AuthService auth, ActivityService activities, string gameId, Activity activity)
     {
@@ -24,6 +25,10 @@ public partial class EditActivityPage : ContentPage
         _activities = activities;
         _gameId = gameId;
         _activity = activity;
+        
+        // Initialize display days selector and add to UI
+        _displayDaysSelector = new DisplayDaysSelector();
+        displayDaysContainer.Children.Add(_displayDaysSelector.Container);
     }
 
     protected override async void OnAppearing()
@@ -105,6 +110,9 @@ public partial class EditActivityPage : ContentPage
                 imgActivityPreview.Source = ImageSource.FromFile(fullPath);
             }
         }
+        
+        // Load display days
+        _displayDaysSelector.LoadFromActivity(_activity.DisplayDaysOfWeek, _activity.DisplayDayOfMonth);
     }
 
     private void OnRewardTypeChanged(object sender, EventArgs e)
@@ -421,6 +429,10 @@ public partial class EditActivityPage : ContentPage
             {
                 _activity.HabitTargetDate = null;
             }
+            
+            // Save display days
+            _activity.DisplayDaysOfWeek = _displayDaysSelector.GetDisplayDaysOfWeek();
+            _activity.DisplayDayOfMonth = _displayDaysSelector.GetDisplayDayOfMonth();
 
             await _activities.UpdateActivityAsync(_activity);
 

@@ -221,6 +221,9 @@
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
+            <!-- Display Days Section (populated programmatically) -->
+            <VerticalStackLayout x:Name="displayDaysContainer" Spacing="8" />
+
             <!-- Activity Image -->
             <VerticalStackLayout Spacing="12">
                 <Label Text="Activity Image" FontAttributes="Bold" />

@@ -95,6 +95,30 @@ public class Activity
     public bool ShowTimesCompletedBadge { get; set; } = false;
     
     /// <summary>
+    /// Optional notes/description for this activity
+    /// </summary>
+    private string _notes = "";
+    public string Notes 
+    { 
+        get => _notes ?? ""; 
+        set => _notes = value ?? ""; 
+    }
+    
+    /// <summary>
+    /// Returns true if activity has notes content
+    /// </summary>
+    [Ignore]
+    public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
+    
+    /// <summary>
+    /// Returns a preview of the notes (first 50 chars)
+    /// </summary>
+    [Ignore]
+    public string NotesPreview => HasNotes 
+        ? (Notes.Length > 50 ? Notes.Substring(0, 50) + "..." : Notes) 
+        : "";
+    
+    /// <summary>
     /// Returns true if this activity has achieved habit status based on its type
     /// </summary>
     [Ignore]
@@ -102,11 +126,12 @@ public class Activity
     {
         get
         {
+            // All thresholds are now in days
             return HabitType switch
             {
-                "Daily" => HabitStreak >= 7,      // 7 consecutive days
-                "Weekly" => HabitStreak >= 4,     // 4 consecutive weeks
-                "Monthly" => HabitStreak >= 3,    // 3 consecutive months
+                "Daily" => HabitStreak >= 7,       // 7 consecutive days
+                "Weekly" => HabitStreak >= 28,     // 4 weeks = 28 days
+                "Monthly" => HabitStreak >= 90,    // 3 months ≈ 90 days
                 _ => false
             };
         }
@@ -120,11 +145,12 @@ public class Activity
     {
         get
         {
+            // All targets are now in days
             int target = HabitType switch
             {
-                "Daily" => 7,
-                "Weekly" => 4,
-                "Monthly" => 3,
+                "Daily" => 7,       // 7 days
+                "Weekly" => 28,     // 28 days (4 weeks)
+                "Monthly" => 90,    // 90 days (3 months)
                 _ => 1
             };
             return Math.Min(100, (int)(HabitStreak * 100.0 / target));
@@ -201,36 +227,6 @@ public class Activity
     /// After 3 times, a black image is auto-assigned.
     /// </summary>
     public int MissingImagePromptCount { get; set; } = 0;
-    
-    /// <summary>
-    /// Optional notes/clarifications for this activity.
-    /// </summary>
-    private string _notes = "";
-    public string Notes 
-    { 
-        get => _notes ?? ""; 
-        set => _notes = value ?? ""; 
-    }
-    
-    /// <summary>
-    /// Returns true if this activity has notes
-    /// </summary>
-    [Ignore]
-    public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
-    
-    /// <summary>
-    /// Returns a preview of the notes (first 50 chars)
-    /// </summary>
-    [Ignore]
-    public string NotesPreview
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(Notes)) return "";
-            if (Notes.Length <= 50) return Notes;
-            return Notes.Substring(0, 47) + "...";
-        }
-    }
     
     /// <summary>
     /// Returns true if this activity should be displayed today based on day restrictions

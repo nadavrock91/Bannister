@@ -399,17 +399,30 @@ namespace Bannister.Services
             }
             
             // Check if streak continues or resets
+            int daysSinceLastHabit = activity.LastHabitDate.HasValue 
+                ? (int)(today - activity.LastHabitDate.Value.Date).TotalDays 
+                : 0;
+            
             bool streakContinues = activity.LastHabitDate.HasValue && activity.HabitType switch
             {
-                "Daily" => (today - activity.LastHabitDate.Value.Date).TotalDays <= 1,
-                "Weekly" => (today - activity.LastHabitDate.Value.Date).TotalDays <= 7,
-                "Monthly" => (today - activity.LastHabitDate.Value.Date).TotalDays <= 31,
+                "Daily" => daysSinceLastHabit <= 1,
+                "Weekly" => daysSinceLastHabit <= 7,
+                "Monthly" => daysSinceLastHabit <= 31,
                 _ => false
             };
             
             if (streakContinues)
             {
-                activity.HabitStreak++;
+                // For Daily: increment by 1
+                // For Weekly/Monthly: increment by actual days passed (tracks total days habit not broken)
+                int increment = activity.HabitType switch
+                {
+                    "Daily" => 1,
+                    "Weekly" => daysSinceLastHabit > 0 ? daysSinceLastHabit : 1,
+                    "Monthly" => daysSinceLastHabit > 0 ? daysSinceLastHabit : 1,
+                    _ => 1
+                };
+                activity.HabitStreak += increment;
             }
             else
             {
