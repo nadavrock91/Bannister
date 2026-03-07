@@ -27,11 +27,6 @@
                         BackgroundColor="#E3F2FD" TextColor="#1565C0"
                         CornerRadius="8" HeightRequest="48"
                         FontSize="16" FontAttributes="Bold" />
-                <!-- Rules Section -->
-                <Button x:Name="btnRules" Text="📜 Rules of the Game" Clicked="OnRulesClicked"
-                        BackgroundColor="#FFF8E1" TextColor="#F57F17"
-                        CornerRadius="8" HeightRequest="48"
-                        FontSize="16" FontAttributes="Bold" />
                 <!-- Dragons Section -->
                 <Label Text="Dragons" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="0,16,0,8" />
                 <Button x:Name="btnDragons" Text="🐉 Dragons (0)" Clicked="OnDragonsClicked"
@@ -41,6 +36,11 @@
                 <Label Text="Streaks" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="0,16,0,8" />
                 <Button x:Name="btnStreaks" Text="🔥 Streaks (0 active)" Clicked="OnStreaksClicked"
                         BackgroundColor="#FFF3E0" TextColor="#E65100" CornerRadius="8" HeightRequest="48" />
+                <!-- Countdowns Section -->
+                <Label Text="Predictions" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="0,16,0,8" />
+                <Button x:Name="btnCountdowns" Text="⏳ Countdowns (0)" Clicked="OnCountdownsClicked"
+                        BackgroundColor="#E1F5FE" TextColor="#0277BD" CornerRadius="8" HeightRequest="48"
+                        FontSize="16" FontAttributes="Bold" />
                 <!-- Logout -->
                 <Button Text="Logout" Clicked="OnLogoutClicked"
                         BackgroundColor="White" TextColor="#333"

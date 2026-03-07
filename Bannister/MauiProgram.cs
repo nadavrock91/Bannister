@@ -50,6 +50,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<BackupService>();
         builder.Services.AddSingleton<StreakService>();
         builder.Services.AddSingleton<NewHabitService>();
+        builder.Services.AddSingleton<CountdownService>();  // Add this line
 
         // Conversation Practice Module
         var dbPath = Path.Combine(FileSystem.AppDataDirectory, "bannister.db");
@@ -72,6 +73,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ExpiredActivitiesPage>();
         builder.Services.AddTransient<ExpLogPage>();
         builder.Services.AddTransient<DragonTreePage>();
+      
 
         // Conversation Practice Pages
         builder.Services.AddTransient<ConversationListPage>();

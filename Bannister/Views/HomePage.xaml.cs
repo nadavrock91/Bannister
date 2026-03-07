@@ -20,10 +20,12 @@ public partial class HomePage : ContentPage
     private readonly StreakService _streaks;
     private readonly DatabaseService _db;
     private readonly ExpService _exp;
+    private readonly CountdownService _countdowns;
     private bool _introChecked = false;
 
     public HomePage(AuthService auth, GameService games, DragonService dragons,
-        BackupService backup, AttemptService attempts, StreakService streaks, DatabaseService db, ExpService exp)
+        BackupService backup, AttemptService attempts, StreakService streaks, DatabaseService db, ExpService exp,
+        CountdownService countdowns)
     {
         InitializeComponent();
         _auth = auth;
@@ -34,6 +36,7 @@ public partial class HomePage : ContentPage
         _streaks = streaks;
         _db = db;
         _exp = exp;
+        _countdowns = countdowns;
     }
 
     protected override async void OnAppearing()
@@ -129,6 +132,20 @@ public partial class HomePage : ContentPage
             activeStreaksCount += streaks.Count;
         }
         btnStreaks.Text = $"🔥 Streaks ({activeStreaksCount} active)";
+        
+        // Count active countdowns
+        var activeCountdowns = await _countdowns.GetActiveCountdownsAsync(_auth.CurrentUsername);
+        var expiredCountdowns = await _countdowns.GetExpiredCountdownsAsync(_auth.CurrentUsername);
+        if (expiredCountdowns.Count > 0)
+        {
+            btnCountdowns.Text = $"⏳ Countdowns ({activeCountdowns.Count} active, {expiredCountdowns.Count} need resolution!)";
+            btnCountdowns.BackgroundColor = Color.FromArgb("#FFF3E0");
+            btnCountdowns.TextColor = Color.FromArgb("#E65100");
+        }
+        else
+        {
+            btnCountdowns.Text = $"⏳ Countdowns ({activeCountdowns.Count} active)";
+        }
     }
 
     private async Task CheckExpiredActivitiesAsync()
@@ -178,12 +195,6 @@ public partial class HomePage : ContentPage
         await Navigation.PushAsync(page);
     }
 
-    private async void OnRulesClicked(object sender, EventArgs e)
-    {
-        var page = new GameRulesPage(_db, _auth.CurrentUsername);
-        await Navigation.PushAsync(page);
-    }
-
     private async void OnDragonsClicked(object sender, EventArgs e)
     {
         var page = new DragonsHubPage(_auth, _dragons, _attempts);
@@ -193,6 +204,12 @@ public partial class HomePage : ContentPage
     private async void OnStreaksClicked(object sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("streakdashboard");
+    }
+
+    private async void OnCountdownsClicked(object sender, EventArgs e)
+    {
+        var page = new CountdownsHomePage(_auth, _countdowns);
+        await Navigation.PushAsync(page);
     }
 
     private async void OnLogoutClicked(object sender, EventArgs e)
