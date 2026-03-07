@@ -13,6 +13,7 @@ public class ActivitySelectionPage : ContentPage
     private readonly GameService _games;
     private readonly string _username;
     private readonly bool _negativeOnly;
+    private readonly bool _includeAllStatuses;
     private readonly TaskCompletionSource<Activity?> _tcs;
 
     private VerticalStackLayout _activityList;
@@ -24,12 +25,13 @@ public class ActivitySelectionPage : ContentPage
     private string? _selectedGameId = null;
     private string _searchText = "";
 
-    public ActivitySelectionPage(ActivityService activities, GameService games, string username, string title, bool negativeOnly = false)
+    public ActivitySelectionPage(ActivityService activities, GameService games, string username, string title, bool negativeOnly = false, bool includeAllStatuses = false)
     {
         _activities = activities;
         _games = games;
         _username = username;
         _negativeOnly = negativeOnly;
+        _includeAllStatuses = includeAllStatuses;
         _tcs = new TaskCompletionSource<Activity?>();
 
         Title = title;
@@ -309,6 +311,11 @@ public class ActivitySelectionPage : ContentPage
             if (_negativeOnly)
             {
                 _currentActivities = allActivities.Where(a => a.ExpGain < 0 || a.Category == "Negative").ToList();
+            }
+            else if (_includeAllStatuses)
+            {
+                // Include all positive activities regardless of status (Active, Possible, Stale, Expired)
+                _currentActivities = allActivities.Where(a => a.ExpGain > 0 && a.Category != "Negative").ToList();
             }
             else
             {

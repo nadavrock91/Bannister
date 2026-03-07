@@ -341,9 +341,11 @@ public class NewHabitsPage : ContentPage
 
     private Frame CreateActiveHabitCard(NewHabit habit, int availableSlots)
     {
+        bool isReadyToGraduate = habit.ConsecutiveDays >= habit.DaysToGraduate;
+        
         var frame = new Frame
         {
-            BackgroundColor = Colors.White,
+            BackgroundColor = isReadyToGraduate ? Color.FromArgb("#E8F5E9") : Colors.White, // Light green if ready
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
@@ -384,7 +386,7 @@ public class NewHabitsPage : ContentPage
             TextColor = Color.FromArgb("#666")
         }, 0, 1);
 
-        // Progress
+        // Progress - show filled circles for completed days
         var progressStack = new HorizontalStackLayout { Spacing = 4 };
         for (int i = 0; i < habit.DaysToGraduate; i++)
         {
@@ -398,37 +400,65 @@ public class NewHabitsPage : ContentPage
         Grid.SetColumnSpan(progressStack, 2);
 
         // Status
-        bool isDoneToday = habit.LastAppliedDate?.Date == DateTime.Now.Date;
-        string statusText = isDoneToday
-            ? "✅ Done today!"
-            : $"⏳ {habit.DaysRemaining} days to go";
+        string statusText;
+        if (isReadyToGraduate)
+        {
+            statusText = "🎉 Ready to graduate!";
+        }
+        else
+        {
+            bool isDoneToday = habit.LastAppliedDate?.Date == DateTime.Now.Date;
+            statusText = isDoneToday
+                ? "✅ Done today!"
+                : $"⏳ {habit.DaysRemaining} days to go";
+        }
 
         grid.Add(new Label
         {
             Text = statusText,
             FontSize = 12,
-            TextColor = Color.FromArgb("#666")
+            TextColor = isReadyToGraduate ? Color.FromArgb("#2E7D32") : Color.FromArgb("#666"),
+            FontAttributes = isReadyToGraduate ? FontAttributes.Bold : FontAttributes.None
         }, 0, 3);
 
         // Action buttons row
         var buttonStack = new HorizontalStackLayout { Spacing = 8 };
 
-        // Move to pending button
-        var btnMoveToPending = new Button
+        if (isReadyToGraduate)
         {
-            Text = "⏸️",
-            BackgroundColor = Color.FromArgb("#9C27B0"),
-            TextColor = Colors.White,
-            FontSize = 14,
-            WidthRequest = 40,
-            HeightRequest = 40,
-            Padding = 0,
-            CornerRadius = 8
-        };
-        btnMoveToPending.Clicked += async (s, e) => await MoveToPendingAsync(habit);
-        buttonStack.Children.Add(btnMoveToPending);
+            // Graduate button (green, prominent)
+            var btnGraduate = new Button
+            {
+                Text = "🎓 Graduate",
+                BackgroundColor = Color.FromArgb("#4CAF50"),
+                TextColor = Colors.White,
+                FontSize = 14,
+                HeightRequest = 40,
+                Padding = new Thickness(12, 0),
+                CornerRadius = 8
+            };
+            btnGraduate.Clicked += async (s, e) => await GraduateHabitAsync(habit);
+            buttonStack.Children.Add(btnGraduate);
+        }
+        else
+        {
+            // Move to pending button (pause)
+            var btnMoveToPending = new Button
+            {
+                Text = "⏸️",
+                BackgroundColor = Color.FromArgb("#9C27B0"),
+                TextColor = Colors.White,
+                FontSize = 14,
+                WidthRequest = 40,
+                HeightRequest = 40,
+                Padding = 0,
+                CornerRadius = 8
+            };
+            btnMoveToPending.Clicked += async (s, e) => await MoveToPendingAsync(habit);
+            buttonStack.Children.Add(btnMoveToPending);
+        }
 
-        // Delete button
+        // Delete button (always available)
         var btnDelete = new Button
         {
             Text = "🗑️",
@@ -692,6 +722,50 @@ public class NewHabitsPage : ContentPage
         await LoadHabitsAsync();
     }
 
+    private async Task GraduateHabitAsync(NewHabit habit)
+    {
+        // Ask for confirmation
+        bool confirm = await DisplayAlert(
+            "🎓 Graduate Habit",
+            $"Congratulations! You've completed '{habit.HabitName}' for {habit.DaysToGraduate} days!\n\n" +
+            "Graduate this habit to increase your allowance.",
+            "Graduate!",
+            "Not Yet");
+
+        if (!confirm) return;
+
+        // Graduate the habit
+        await _newHabits.GraduateHabitAsync(habit);
+
+        // Ask about deleting the negative activity
+        if (habit.NegativeActivityId > 0)
+        {
+            var negativeActivity = await _activities.GetActivityAsync(habit.NegativeActivityId);
+            if (negativeActivity != null)
+            {
+                bool deleteNegative = await DisplayAlert(
+                    "Delete Penalty Activity?",
+                    $"Do you want to delete the penalty activity '{negativeActivity.Name}'?\n\n" +
+                    "You won't need it anymore since the habit graduated.",
+                    "Delete",
+                    "Keep");
+
+                if (deleteNegative)
+                {
+                    await _activities.DeleteActivityAsync(negativeActivity.Id);
+                    await DisplayAlert("Deleted", $"'{negativeActivity.Name}' has been removed.", "OK");
+                }
+            }
+        }
+
+        await DisplayAlert("🎉 Habit Graduated!",
+            $"'{habit.HabitName}' has graduated!\n\n" +
+            "+1 allowance slot unlocked!",
+            "Awesome!");
+
+        await LoadHabitsAsync();
+    }
+
     private async Task DeletePendingAsync(NewHabit habit)
     {
         bool confirm = await DisplayAlert(
@@ -743,8 +817,8 @@ public class NewHabitsPage : ContentPage
 
         Activity? positiveActivity = null;
 
-        // Go directly to activity selection
-        var selectionPage = new ActivitySelectionPage(_activities, _games, _auth.CurrentUsername, "Select Activity for Pending Queue", negativeOnly: false);
+        // Go directly to activity selection - include ALL activities (Possible, Stale, Expired, Active)
+        var selectionPage = new ActivitySelectionPage(_activities, _games, _auth.CurrentUsername, "Select Activity for Pending Queue", negativeOnly: false, includeAllStatuses: true);
         await Navigation.PushModalAsync(selectionPage);
         positiveActivity = await selectionPage.GetSelectedActivityAsync();
         

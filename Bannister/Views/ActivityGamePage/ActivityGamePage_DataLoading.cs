@@ -141,27 +141,13 @@ public partial class ActivityGamePage
 
         if (staleActivities.Count > 0)
         {
-            bool moveToStale = await DisplayAlert(
-                "Stale Activities Found",
-                $"You have {staleActivities.Count} activity(ies) not used in 30+ days.\n\n" +
-                "Would you like to move them to the 'Stale' category?",
-                "Move to Stale",
-                "Keep them");
+            // Show confirmation page with toggles for each activity
+            var confirmPage = new StaleActivitiesConfirmationPage(
+                staleActivities,
+                _activities);
 
-            if (moveToStale)
-            {
-                foreach (var activity in staleActivities)
-                {
-                    activity.Category = "Stale";
-                    await _activities.UpdateActivityAsync(activity);
-                }
-
-                await DisplayAlert(
-                    "Done",
-                    $"Moved {staleActivities.Count} activity(ies) to 'Stale' category.\n\n" +
-                    "Use the 'Stale' filter to view them.",
-                    "OK");
-            }
+            await Navigation.PushModalAsync(confirmPage);
+            await confirmPage.GetMovedCountAsync();
         }
     }
 

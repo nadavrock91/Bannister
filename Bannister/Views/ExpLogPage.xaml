@@ -82,34 +82,50 @@
                            HasShadow="True"
                            BorderColor="Transparent">
                         
-                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             
-                            <!-- Activity Name & EXP -->
-                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                                <Label Grid.Column="0"
-                                       Text="{Binding ActivityName}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="#12161E"/>
-                                <Label Grid.Column="1"
-                                       Text="{Binding ExpEarned, StringFormat='+{0} EXP'}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="#4CAF50"/>
+                            <!-- Left side: Activity info -->
+                            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                                
+                                <!-- Activity Name & EXP -->
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding ActivityName}"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="#12161E"/>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding ExpText}"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="{Binding ExpColor}"/>
+                                </Grid>
+                                
+                                <!-- Level Change -->
+                                <Label Grid.Row="1"
+                                       Text="{Binding LevelChangeText}"
+                                       FontSize="14"
+                                       TextColor="#666"
+                                       IsVisible="{Binding LeveledUp}"/>
+                                
+                                <!-- Timestamp -->
+                                <Label Grid.Row="2"
+                                       Text="{Binding ExecutedAt, StringFormat='{0:MMM dd, yyyy h:mm tt}'}"
+                                       FontSize="12"
+                                       TextColor="#999"/>
+                                
                             </Grid>
                             
-                            <!-- Level Change -->
-                            <Label Grid.Row="1"
-                                   Text="{Binding LevelChangeText}"
-                                   FontSize="14"
-                                   TextColor="#666"
-                                   IsVisible="{Binding LeveledUp}"/>
-                            
-                            <!-- Timestamp -->
-                            <Label Grid.Row="2"
-                                   Text="{Binding ExecutedAt, StringFormat='{0:MMM dd, yyyy h:mm tt}'}"
-                                   FontSize="12"
-                                   TextColor="#999"/>
+                            <!-- Right side: Delete button -->
+                            <Button Grid.Column="1"
+                                    Text="🗑️"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#F44336"
+                                    FontSize="18"
+                                    WidthRequest="44"
+                                    HeightRequest="44"
+                                    VerticalOptions="Center"
+                                    Clicked="OnDeleteClicked"/>
                             
                         </Grid>
                     </Frame>

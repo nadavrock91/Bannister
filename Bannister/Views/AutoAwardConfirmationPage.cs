@@ -58,11 +58,23 @@ public class AutoAwardConfirmationPage : ContentPage
 
     private void BuildUI()
     {
-        var scrollView = new ScrollView();
-        var mainStack = new VerticalStackLayout
+        // Main grid: top section (fixed) + scrollable activities
+        var mainGrid = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto }, // Header + buttons (fixed)
+                new RowDefinition { Height = GridLength.Star }  // Scrollable activities
+            },
+            BackgroundColor = Color.FromArgb("#F5F7FC")
+        };
+
+        // ===== TOP SECTION (Fixed, no scroll) =====
+        var topSection = new VerticalStackLayout
         {
             Padding = 20,
-            Spacing = 15
+            Spacing = 15,
+            BackgroundColor = Color.FromArgb("#F5F7FC")
         };
 
         // Header
@@ -74,80 +86,78 @@ public class AutoAwardConfirmationPage : ContentPage
             TextColor = Color.FromArgb("#333"),
             HorizontalOptions = LayoutOptions.Center
         };
-        mainStack.Children.Add(lblTitle);
+        topSection.Children.Add(lblTitle);
 
-        var lblSubtitle = new Label
-        {
-            Text = "These activities are scheduled for auto-award today.\nUncheck any you don't want to award.",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
-            HorizontalOptions = LayoutOptions.Center,
-            HorizontalTextAlignment = TextAlignment.Center
-        };
-        mainStack.Children.Add(lblSubtitle);
-
-        // Activities list
-        foreach (var activity in _eligibleActivities)
-        {
-            mainStack.Children.Add(BuildActivityCard(activity));
-        }
-
-        // Total EXP display
-        var totalFrame = new Frame
-        {
-            Padding = 15,
-            CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            BorderColor = Colors.Transparent,
-            Margin = new Thickness(0, 10, 0, 0)
-        };
-
+        // Total EXP display (plain text, not button-like)
         _lblTotal = new Label
         {
-            FontSize = 18,
+            FontSize = 28,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
-            HorizontalOptions = LayoutOptions.Center
+            TextColor = Color.FromArgb("#4CAF50"),
+            HorizontalOptions = LayoutOptions.Center,
+            Margin = new Thickness(0, 5, 0, 10)
         };
+        topSection.Children.Add(_lblTotal);
 
-        totalFrame.Content = _lblTotal;
-        mainStack.Children.Add(totalFrame);
-
-        // Buttons
-        var buttonStack = new HorizontalStackLayout
-        {
-            Spacing = 10,
-            Margin = new Thickness(0, 10, 0, 0)
-        };
-
+        // Big Award button
         var btnAward = new Button
         {
-            Text = "Award EXP",
+            Text = "✓ Award EXP",
             BackgroundColor = Color.FromArgb("#4CAF50"),
             TextColor = Colors.White,
-            CornerRadius = 8,
-            FontSize = 16,
+            CornerRadius = 12,
+            FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            HorizontalOptions = LayoutOptions.FillAndExpand
+            HeightRequest = 60,
+            HorizontalOptions = LayoutOptions.Fill
         };
         btnAward.Clicked += OnAwardClicked;
-        buttonStack.Children.Add(btnAward);
+        topSection.Children.Add(btnAward);
 
+        // Skip button (smaller, secondary)
         var btnSkip = new Button
         {
             Text = "Skip All",
             BackgroundColor = Color.FromArgb("#999"),
             TextColor = Colors.White,
             CornerRadius = 8,
-            HorizontalOptions = LayoutOptions.FillAndExpand
+            FontSize = 14,
+            HeightRequest = 40,
+            HorizontalOptions = LayoutOptions.Fill
         };
         btnSkip.Clicked += OnSkipClicked;
-        buttonStack.Children.Add(btnSkip);
+        topSection.Children.Add(btnSkip);
 
-        mainStack.Children.Add(buttonStack);
+        // Subtitle
+        var lblSubtitle = new Label
+        {
+            Text = "Uncheck any you don't want to award:",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#666"),
+            HorizontalOptions = LayoutOptions.Start,
+            Margin = new Thickness(0, 10, 0, 0)
+        };
+        topSection.Children.Add(lblSubtitle);
 
-        scrollView.Content = mainStack;
-        Content = scrollView;
+        mainGrid.Add(topSection, 0, 0);
+
+        // ===== SCROLLABLE ACTIVITIES LIST =====
+        var scrollView = new ScrollView();
+        var activityStack = new VerticalStackLayout
+        {
+            Padding = new Thickness(20, 10, 20, 20),
+            Spacing = 10
+        };
+
+        foreach (var activity in _eligibleActivities)
+        {
+            activityStack.Children.Add(BuildActivityCard(activity));
+        }
+
+        scrollView.Content = activityStack;
+        mainGrid.Add(scrollView, 0, 1);
+
+        Content = mainGrid;
     }
 
     private Frame BuildActivityCard(Activity activity)

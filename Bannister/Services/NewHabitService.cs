@@ -197,37 +197,69 @@ public class NewHabitService
 
     public async Task MovePendingHabitUpAsync(NewHabit habit)
     {
+        System.Diagnostics.Debug.WriteLine($"[MOVE UP] Moving habit '{habit.HabitName}' (Id={habit.Id}, Order={habit.PendingOrder})");
+        
         var conn = await _db.GetConnectionAsync();
         var pendingHabits = await GetAllPendingHabitsAsync(habit.Username);
         
+        System.Diagnostics.Debug.WriteLine($"[MOVE UP] Found {pendingHabits.Count} pending habits");
+        foreach (var h in pendingHabits)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MOVE UP]   - '{h.HabitName}' Id={h.Id}, Order={h.PendingOrder}");
+        }
+        
         var currentIndex = pendingHabits.FindIndex(h => h.Id == habit.Id);
+        System.Diagnostics.Debug.WriteLine($"[MOVE UP] Current index: {currentIndex}");
+        
         if (currentIndex > 0)
         {
             var aboveHabit = pendingHabits[currentIndex - 1];
+            System.Diagnostics.Debug.WriteLine($"[MOVE UP] Swapping with '{aboveHabit.HabitName}' (Order={aboveHabit.PendingOrder})");
+            
             int tempOrder = habit.PendingOrder;
             habit.PendingOrder = aboveHabit.PendingOrder;
             aboveHabit.PendingOrder = tempOrder;
             
             await conn.UpdateAsync(habit);
             await conn.UpdateAsync(aboveHabit);
+            
+            System.Diagnostics.Debug.WriteLine($"[MOVE UP] After swap: '{habit.HabitName}'={habit.PendingOrder}, '{aboveHabit.HabitName}'={aboveHabit.PendingOrder}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"[MOVE UP] Cannot move up - already at top");
         }
     }
 
     public async Task MovePendingHabitDownAsync(NewHabit habit)
     {
+        System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Moving habit '{habit.HabitName}' (Id={habit.Id}, Order={habit.PendingOrder})");
+        
         var conn = await _db.GetConnectionAsync();
         var pendingHabits = await GetAllPendingHabitsAsync(habit.Username);
         
+        System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Found {pendingHabits.Count} pending habits");
+        
         var currentIndex = pendingHabits.FindIndex(h => h.Id == habit.Id);
+        System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Current index: {currentIndex}");
+        
         if (currentIndex < pendingHabits.Count - 1)
         {
             var belowHabit = pendingHabits[currentIndex + 1];
+            System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Swapping with '{belowHabit.HabitName}' (Order={belowHabit.PendingOrder})");
+            
             int tempOrder = habit.PendingOrder;
             habit.PendingOrder = belowHabit.PendingOrder;
             belowHabit.PendingOrder = tempOrder;
             
             await conn.UpdateAsync(habit);
             await conn.UpdateAsync(belowHabit);
+            
+            System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] After swap: '{habit.HabitName}'={habit.PendingOrder}, '{belowHabit.HabitName}'={belowHabit.PendingOrder}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Cannot move down - already at bottom");
         }
     }
 
@@ -367,17 +399,18 @@ public class NewHabitService
         }
 
         habit.LastAppliedDate = today;
-
-        // Check if graduated
+        
+        // Save the updated habit (UI will check if ready to graduate)
+        await conn.UpdateAsync(habit);
+        
+        // Return the habit if it's now ready to graduate (so UI can show graduation option)
         if (habit.ConsecutiveDays >= habit.DaysToGraduate)
         {
-            return await GraduateHabitAsync(habit);
+            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' is ready to graduate! ({habit.ConsecutiveDays}/{habit.DaysToGraduate} days)");
+            return habit; // Return habit so UI knows it's ready
         }
-        else
-        {
-            await conn.UpdateAsync(habit);
-            return null;
-        }
+        
+        return null;
     }
 
     /// <summary>
