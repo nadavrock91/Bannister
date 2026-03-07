@@ -23,7 +23,7 @@ public class GamesListPage : ContentPage
     private readonly DatabaseService _db;
     private bool _isNavigating = false;
     
-    private VerticalStackLayout _gamesStackLayout;
+    private FlexLayout _gamesGrid;
     private Grid _loadingOverlay;
 
     public GamesListPage(AuthService auth, GameService games, ExpService exp, DatabaseService db)
@@ -67,13 +67,16 @@ public class GamesListPage : ContentPage
             Opacity = 0.9
         });
 
-        // Games list container
-        _gamesStackLayout = new VerticalStackLayout
+        // Games grid container using FlexLayout for wrapping
+        _gamesGrid = new FlexLayout
         {
-            Spacing = 8,
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Start,
+            AlignContent = Microsoft.Maui.Layouts.FlexAlignContent.Start,
             Margin = new Thickness(0, 16, 0, 0)
         };
-        mainStack.Children.Add(_gamesStackLayout);
+        mainStack.Children.Add(_gamesGrid);
 
         // Add Game button
         var btnAddGame = new Button
@@ -140,7 +143,7 @@ public class GamesListPage : ContentPage
 
     private async Task LoadGamesAsync()
     {
-        _gamesStackLayout.Children.Clear();
+        _gamesGrid.Children.Clear();
         
         var games = await _games.GetGamesAsync(_auth.CurrentUsername);
 
@@ -163,31 +166,40 @@ public class GamesListPage : ContentPage
                 Level = progress.level
             };
 
-            var frame = CreateGameFrame(viewModel);
-            _gamesStackLayout.Children.Add(frame);
+            var frame = CreateGameCard(viewModel);
+            _gamesGrid.Children.Add(frame);
         }
     }
 
-    private Frame CreateGameFrame(GameListViewModel vm)
+    private Frame CreateGameCard(GameListViewModel vm)
     {
         var frame = new Frame
         {
             BackgroundColor = vm.BackgroundColor,
-            Padding = 16,
-            CornerRadius = 8,
+            Padding = 12,
+            CornerRadius = 12,
             BorderColor = vm.BorderColor,
-            HasShadow = true
+            HasShadow = true,
+            WidthRequest = 140,
+            HeightRequest = 100,
+            Margin = new Thickness(6)
         };
 
-        var stack = new VerticalStackLayout { Spacing = 4 };
+        var stack = new VerticalStackLayout 
+        { 
+            Spacing = 6,
+            VerticalOptions = LayoutOptions.Center
+        };
 
         stack.Children.Add(new Label
         {
             Text = vm.DisplayName,
             TextColor = Color.FromArgb("#5B63EE"),
-            FontSize = 18,
+            FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            HorizontalTextAlignment = TextAlignment.Center
+            HorizontalTextAlignment = TextAlignment.Center,
+            LineBreakMode = LineBreakMode.TailTruncation,
+            MaxLines = 2
         });
 
         stack.Children.Add(new Label
@@ -198,6 +210,17 @@ public class GamesListPage : ContentPage
             HorizontalTextAlignment = TextAlignment.Center
         });
 
+        // Level progress indicator
+        var levelColor = GetLevelColor(vm.Level);
+        stack.Children.Add(new BoxView
+        {
+            Color = levelColor,
+            HeightRequest = 4,
+            CornerRadius = 2,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(10, 4, 10, 0)
+        });
+
         frame.Content = stack;
 
         var tapGesture = new TapGestureRecognizer();
@@ -205,6 +228,16 @@ public class GamesListPage : ContentPage
         frame.GestureRecognizers.Add(tapGesture);
 
         return frame;
+    }
+
+    private Color GetLevelColor(int level)
+    {
+        // Color gradient based on level
+        if (level >= 50) return Color.FromArgb("#9C27B0"); // Purple - high level
+        if (level >= 30) return Color.FromArgb("#2196F3"); // Blue
+        if (level >= 15) return Color.FromArgb("#4CAF50"); // Green
+        if (level >= 5) return Color.FromArgb("#FF9800");  // Orange
+        return Color.FromArgb("#9E9E9E"); // Gray - low level
     }
 
     private async Task<HashSet<string>> GetGamesVisitedTodayAsync()
