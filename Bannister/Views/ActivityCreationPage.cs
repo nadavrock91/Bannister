@@ -22,6 +22,7 @@ public class ActivityCreationPage : ContentPage
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
     private readonly GameService _games;
+    private readonly StreakService? _streaks;
 
     private string _gameId = "";
     private string? _selectedImageFilename = null;
@@ -127,11 +128,12 @@ public class ActivityCreationPage : ContentPage
         }
     }
 
-    public ActivityCreationPage(AuthService auth, ActivityService activities, GameService games)
+    public ActivityCreationPage(AuthService auth, ActivityService activities, GameService games, StreakService? streaks = null)
     {
         _auth = auth;
         _activities = activities;
         _games = games;
+        _streaks = streaks;
         
         Title = "Add Activity";
         BuildUI();
@@ -153,9 +155,10 @@ public class ActivityCreationPage : ContentPage
         bool isNegative = false,
         bool noHabitTarget = false,
         DateTime? prefillStartDate = null,
-        DateTime? prefillEndDate = null)
+        DateTime? prefillEndDate = null,
+        StreakService? streaks = null)
     {
-        var page = new ActivityCreationPage(auth, activities, games);
+        var page = new ActivityCreationPage(auth, activities, games, streaks);
         page._isModalMode = true;
         page._modalTcs = new TaskCompletionSource<Activity?>();
         page.GameId = gameId;
@@ -567,7 +570,7 @@ public class ActivityCreationPage : ContentPage
         
         streakSection.Children.Add(new Label
         {
-            Text = "🔥 When enabled, consecutive days of using this activity will be tracked as streaks",
+            Text = "🔥 When enabled, this activity becomes its own category with attempt cards showing day counts",
             FontSize = 12,
             TextColor = Color.FromArgb("#FF9800"),
             FontAttributes = FontAttributes.Italic
@@ -1091,7 +1094,8 @@ public class ActivityCreationPage : ContentPage
                 expGain = (isNegativeCategory || isNegativeValue) ? -(meaningful * 2) : (meaningful * 2);
             }
 
-            if (expGain > 0 && !chkNoHabitTarget.IsChecked && !chkHasHabitTarget.IsChecked)
+            // Skip habit target check for streak containers (they don't need habit targets)
+            if (!chkStreakTracked.IsChecked && expGain > 0 && !chkNoHabitTarget.IsChecked && !chkHasHabitTarget.IsChecked)
             {
                 await DisplayAlert("Habit Target Required", 
                     "Please either:\n• Set a habit target date, or\n• Check 'I don't want this as a habit'", 
@@ -1114,7 +1118,7 @@ public class ActivityCreationPage : ContentPage
                 IsStreakTracked = chkStreakTracked.IsChecked,
                 IsPossible = chkIsPossible.IsChecked,
                 ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked,
-                NoHabitTarget = chkNoHabitTarget.IsChecked,
+                NoHabitTarget = chkNoHabitTarget.IsChecked || chkStreakTracked.IsChecked, // Auto-set for streak containers
                 HabitTargetDate = chkHasHabitTarget.IsChecked ? dateHabitTarget.Date : null,
                 HabitTargetFirstSet = chkHasHabitTarget.IsChecked ? DateTime.Now : null,
                 HabitTargetPostponeCount = 0,
@@ -1136,6 +1140,34 @@ public class ActivityCreationPage : ContentPage
             
             _activities.LastCreatedActivityId = activity.Id;
 
+            // *** STREAK CONTAINER CONVERSION ***
+            if (activity.IsStreakTracked)
+            {
+                // Save original category before converting
+                activity.OriginalCategory = category;
+                
+                // Set category to activity name (this activity becomes its own category)
+                activity.Category = activity.Name;
+                
+                // Mark as streak container
+                activity.IsStreakContainer = true;
+                
+                await _activities.UpdateActivityAsync(activity);
+                
+                // Start the first streak attempt (if StreakService available)
+                if (_streaks != null)
+                {
+                    await _streaks.StartNewStreakAsync(
+                        _auth.CurrentUsername,
+                        GameId,
+                        activity.Id,
+                        activity.Name);
+                }
+                
+                System.Diagnostics.Debug.WriteLine(
+                    $"[STREAK CONTAINER] Created streak container '{activity.Name}' with first attempt");
+            }
+
             if (_isModalMode)
             {
                 _modalTcs?.TrySetResult(activity);
@@ -1143,7 +1175,10 @@ public class ActivityCreationPage : ContentPage
             }
             else
             {
-                await DisplayAlert("Success", "Activity created!", "OK");
+                string successMessage = activity.IsStreakContainer 
+                    ? "Streak activity created!\n\nNavigate to its category to see your attempts." 
+                    : "Activity created!";
+                await DisplayAlert("Success", successMessage, "OK");
                 await Navigation.PopAsync();
             }
         }

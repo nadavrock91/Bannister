@@ -35,6 +35,9 @@
 		<MauiXaml Update="Views\EditActivityPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\ExpiredActivitiesPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\ExpLogPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

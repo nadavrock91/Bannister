@@ -15,13 +15,13 @@ public class NewHabitService
 
     #region Allowance Management
 
-    public async Task<HabitAllowance> GetOrCreateAllowanceAsync(string username)
+    public async Task<HabitAllowance> GetOrCreateAllowanceAsync(string username, string frequency = "Daily")
     {
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<HabitAllowance>();
         
         var allowance = await conn.Table<HabitAllowance>()
-            .Where(a => a.Username == username)
+            .Where(a => a.Username == username && a.Frequency == frequency)
             .FirstOrDefaultAsync();
 
         if (allowance == null)
@@ -29,6 +29,7 @@ public class NewHabitService
             allowance = new HabitAllowance
             {
                 Username = username,
+                Frequency = frequency,
                 CurrentAllowance = 1,
                 HighestAllowance = 1
             };
@@ -38,14 +39,15 @@ public class NewHabitService
         return allowance;
     }
 
-    public async Task<int> GetAvailableSlotsAsync(string username)
+    public async Task<int> GetAvailableSlotsAsync(string username, string frequency = "Daily")
     {
-        var allowance = await GetOrCreateAllowanceAsync(username);
+        var allowance = await GetOrCreateAllowanceAsync(username, frequency);
         var activeHabits = await GetAllActiveHabitsAsync(username);
-        return Math.Max(0, allowance.CurrentAllowance - activeHabits.Count);
+        var habitsOfFrequency = activeHabits.Where(h => h.Frequency == frequency).Count();
+        return Math.Max(0, allowance.CurrentAllowance - habitsOfFrequency);
     }
 
-    private async Task UpdateAllowanceAsync(HabitAllowance allowance)
+    public async Task UpdateAllowanceAsync(HabitAllowance allowance)
     {
         var conn = await _db.GetConnectionAsync();
         if (allowance.CurrentAllowance > allowance.HighestAllowance)
@@ -112,6 +114,18 @@ public class NewHabitService
             .ToListAsync();
     }
 
+    public async Task<NewHabit?> GetHabitByIdAsync(int habitId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        return await conn.FindAsync<NewHabit>(habitId);
+    }
+
+    public async Task UpdateHabitAsync(NewHabit habit)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(habit);
+    }
+
     #region Pending Habits
 
     public async Task<List<NewHabit>> GetAllPendingHabitsAsync(string username)
@@ -166,7 +180,7 @@ public class NewHabitService
         
         await conn.UpdateAsync(habit);
         
-        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Activated pending habit: {habit.HabitName}, NegativeActivityId: {habit.NegativeActivityId}");
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Activated pending habit: {habit.HabitName}");
     }
 
     public async Task MoveToPendingAsync(NewHabit habit)
@@ -197,69 +211,37 @@ public class NewHabitService
 
     public async Task MovePendingHabitUpAsync(NewHabit habit)
     {
-        System.Diagnostics.Debug.WriteLine($"[MOVE UP] Moving habit '{habit.HabitName}' (Id={habit.Id}, Order={habit.PendingOrder})");
-        
         var conn = await _db.GetConnectionAsync();
         var pendingHabits = await GetAllPendingHabitsAsync(habit.Username);
         
-        System.Diagnostics.Debug.WriteLine($"[MOVE UP] Found {pendingHabits.Count} pending habits");
-        foreach (var h in pendingHabits)
-        {
-            System.Diagnostics.Debug.WriteLine($"[MOVE UP]   - '{h.HabitName}' Id={h.Id}, Order={h.PendingOrder}");
-        }
-        
         var currentIndex = pendingHabits.FindIndex(h => h.Id == habit.Id);
-        System.Diagnostics.Debug.WriteLine($"[MOVE UP] Current index: {currentIndex}");
-        
         if (currentIndex > 0)
         {
             var aboveHabit = pendingHabits[currentIndex - 1];
-            System.Diagnostics.Debug.WriteLine($"[MOVE UP] Swapping with '{aboveHabit.HabitName}' (Order={aboveHabit.PendingOrder})");
-            
             int tempOrder = habit.PendingOrder;
             habit.PendingOrder = aboveHabit.PendingOrder;
             aboveHabit.PendingOrder = tempOrder;
             
             await conn.UpdateAsync(habit);
             await conn.UpdateAsync(aboveHabit);
-            
-            System.Diagnostics.Debug.WriteLine($"[MOVE UP] After swap: '{habit.HabitName}'={habit.PendingOrder}, '{aboveHabit.HabitName}'={aboveHabit.PendingOrder}");
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine($"[MOVE UP] Cannot move up - already at top");
         }
     }
 
     public async Task MovePendingHabitDownAsync(NewHabit habit)
     {
-        System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Moving habit '{habit.HabitName}' (Id={habit.Id}, Order={habit.PendingOrder})");
-        
         var conn = await _db.GetConnectionAsync();
         var pendingHabits = await GetAllPendingHabitsAsync(habit.Username);
         
-        System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Found {pendingHabits.Count} pending habits");
-        
         var currentIndex = pendingHabits.FindIndex(h => h.Id == habit.Id);
-        System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Current index: {currentIndex}");
-        
         if (currentIndex < pendingHabits.Count - 1)
         {
             var belowHabit = pendingHabits[currentIndex + 1];
-            System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Swapping with '{belowHabit.HabitName}' (Order={belowHabit.PendingOrder})");
-            
             int tempOrder = habit.PendingOrder;
             habit.PendingOrder = belowHabit.PendingOrder;
             belowHabit.PendingOrder = tempOrder;
             
             await conn.UpdateAsync(habit);
             await conn.UpdateAsync(belowHabit);
-            
-            System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] After swap: '{habit.HabitName}'={habit.PendingOrder}, '{belowHabit.HabitName}'={belowHabit.PendingOrder}");
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine($"[MOVE DOWN] Cannot move down - already at bottom");
         }
     }
 
@@ -272,17 +254,27 @@ public class NewHabitService
         int positiveExp,
         int negativeExp,
         string category = "New Habits",
-        string? imagePath = null)
+        string? imagePath = null,
+        string frequency = "Daily")
     {
-        // Check if there's available allowance (global, not per-game)
-        var availableSlots = await GetAvailableSlotsAsync(username);
+        // Check if there's available allowance for this frequency
+        var availableSlots = await GetAvailableSlotsAsync(username, frequency);
         if (availableSlots <= 0)
         {
-            System.Diagnostics.Debug.WriteLine("[NEW HABIT] No available slots");
+            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] No available {frequency} slots");
             return null;
         }
 
         var conn = await _db.GetConnectionAsync();
+
+        // Set days to graduate based on frequency
+        int daysToGraduate = frequency switch
+        {
+            "Daily" => 7,
+            "Weekly" => 4,
+            "Monthly" => 3,
+            _ => 7
+        };
 
         // Create the positive activity
         var positiveActivity = new Activity
@@ -294,7 +286,7 @@ public class NewHabitService
             MeaningfulUntilLevel = positiveExp / 2,
             Category = category,
             ImagePath = imagePath ?? "",
-            HabitType = "Daily",
+            HabitType = frequency,
             StartDate = DateTime.Now
         };
         await conn.InsertAsync(positiveActivity);
@@ -323,12 +315,14 @@ public class NewHabitService
             PositiveActivityId = positiveActivity.Id,
             NegativeActivityId = negativeActivity.Id,
             ConsecutiveDays = 0,
+            DaysToGraduate = daysToGraduate,
+            Frequency = frequency,
             StartedAt = DateTime.UtcNow,
             Status = "active"
         };
         await conn.InsertAsync(newHabit);
 
-        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Created '{habitName}' with positive ID {positiveActivity.Id} and negative ID {negativeActivity.Id}");
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Created '{habitName}' ({frequency}) with positive ID {positiveActivity.Id} and negative ID {negativeActivity.Id}");
 
         return newHabit;
     }
@@ -399,18 +393,17 @@ public class NewHabitService
         }
 
         habit.LastAppliedDate = today;
-        
-        // Save the updated habit (UI will check if ready to graduate)
-        await conn.UpdateAsync(habit);
-        
-        // Return the habit if it's now ready to graduate (so UI can show graduation option)
+
+        // Check if graduated
         if (habit.ConsecutiveDays >= habit.DaysToGraduate)
         {
-            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' is ready to graduate! ({habit.ConsecutiveDays}/{habit.DaysToGraduate} days)");
-            return habit; // Return habit so UI knows it's ready
+            return await GraduateHabitAsync(habit);
         }
-        
-        return null;
+        else
+        {
+            await conn.UpdateAsync(habit);
+            return null;
+        }
     }
 
     /// <summary>
@@ -462,13 +455,13 @@ public class NewHabitService
         habit.CompletedAt = DateTime.UtcNow;
         await conn.UpdateAsync(habit);
 
-        // Increase global allowance
-        var allowance = await GetOrCreateAllowanceAsync(habit.Username);
+        // Increase frequency-specific allowance
+        var allowance = await GetOrCreateAllowanceAsync(habit.Username, habit.Frequency);
         allowance.CurrentAllowance++;
         allowance.TotalGraduated++;
         await UpdateAllowanceAsync(allowance);
 
-        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' GRADUATED! Allowance now {allowance.CurrentAllowance}");
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' GRADUATED! {habit.Frequency} allowance now {allowance.CurrentAllowance}");
         
         return habit;
     }
@@ -480,6 +473,42 @@ public class NewHabitService
     {
         await _activities.BlankActivityAsync(habit.NegativeActivityId);
         System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Removed negative activity for '{habit.HabitName}'");
+    }
+
+    /// <summary>
+    /// Manually fail a habit (called from UI when user chooses to fail)
+    /// </summary>
+    public async Task FailHabitManualAsync(NewHabit habit, ExpService? expService = null, string? game = null)
+    {
+        var conn = await _db.GetConnectionAsync();
+
+        // Apply the negative penalty if expService provided
+        if (expService != null)
+        {
+            var negativeActivity = await _activities.GetActivityAsync(habit.NegativeActivityId);
+            if (negativeActivity != null)
+            {
+                string gameToUse = game ?? habit.Game;
+                await expService.ApplyExpAsync(habit.Username, gameToUse, negativeActivity.Name, negativeActivity.ExpGain, negativeActivity.Id);
+                System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Applied penalty {negativeActivity.ExpGain} for manual fail '{habit.HabitName}'");
+            }
+        }
+
+        habit.Status = "failed";
+        habit.CompletedAt = DateTime.UtcNow;
+        await conn.UpdateAsync(habit);
+
+        // Decrease frequency-specific allowance (minimum 1)
+        var allowance = await GetOrCreateAllowanceAsync(habit.Username, habit.Frequency);
+        allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
+        allowance.TotalFailed++;
+        await UpdateAllowanceAsync(allowance);
+
+        // Deactivate both activities
+        await _activities.BlankActivityAsync(habit.PositiveActivityId);
+        await _activities.BlankActivityAsync(habit.NegativeActivityId);
+
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' FAILED (manual)! {habit.Frequency} allowance now {allowance.CurrentAllowance}");
     }
 
     private async Task FailHabitAsync(NewHabit habit, ExpService expService, string game)
@@ -498,8 +527,8 @@ public class NewHabitService
         habit.CompletedAt = DateTime.UtcNow;
         await conn.UpdateAsync(habit);
 
-        // Decrease global allowance (minimum 1)
-        var allowance = await GetOrCreateAllowanceAsync(habit.Username);
+        // Decrease frequency-specific allowance (minimum 1)
+        var allowance = await GetOrCreateAllowanceAsync(habit.Username, habit.Frequency);
         allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
         allowance.TotalFailed++;
         await UpdateAllowanceAsync(allowance);
@@ -508,7 +537,7 @@ public class NewHabitService
         await _activities.BlankActivityAsync(habit.PositiveActivityId);
         await _activities.BlankActivityAsync(habit.NegativeActivityId);
 
-        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' FAILED! Allowance now {allowance.CurrentAllowance}");
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' FAILED! {habit.Frequency} allowance now {allowance.CurrentAllowance}");
     }
 
     #endregion

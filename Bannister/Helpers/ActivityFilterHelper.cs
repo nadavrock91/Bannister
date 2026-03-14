@@ -53,6 +53,13 @@ public static class ActivityFilterHelper
                     .OrderByDescending(a => a.Activity.StartDate)
                     .ToList();
 
+            case "Missing Image":
+                // Show activities without an image
+                return activities
+                    .Where(a => string.IsNullOrEmpty(a.Activity.ImagePath))
+                    .OrderBy(a => a.Name)
+                    .ToList();
+
             case "All Activities":
             default:
                 // Exclude possible, expired, and stale activities from All Activities by default

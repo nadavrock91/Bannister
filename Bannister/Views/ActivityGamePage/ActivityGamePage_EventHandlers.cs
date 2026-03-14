@@ -156,7 +156,9 @@ public partial class ActivityGamePage
             $"Times Completed: {activityVM.Activity.TimesCompleted}",
             notesOption,
             "Duplicate as Negative",
-            "Set Auto-Award"
+            "Set Auto-Award",
+            "⏸️ Disable Activity",
+            "🗑️ Remove Activity"
         );
 
         if (string.IsNullOrEmpty(action) || action == "Cancel") return;
@@ -193,6 +195,51 @@ public partial class ActivityGamePage
         {
             await SetAutoAward(activityVM);
         }
+        else if (action == "⏸️ Disable Activity")
+        {
+            await DisableActivity(activityVM);
+        }
+        else if (action == "🗑️ Remove Activity")
+        {
+            await RemoveActivity(activityVM);
+        }
+    }
+
+    private async Task DisableActivity(ActivityGameViewModel activityVM)
+    {
+        bool confirm = await DisplayAlert(
+            "Disable Activity",
+            $"Disable '{activityVM.Name}'?\n\nThis will hide the activity (set IsActive = false). You can restore it later from Manage Activities.",
+            "Disable",
+            "Cancel");
+        
+        if (!confirm) return;
+        
+        await _activities.BlankActivityAsync(activityVM.Activity.Id);
+        await RefreshActivitiesAsync();
+    }
+    
+    private async Task RemoveActivity(ActivityGameViewModel activityVM)
+    {
+        bool confirm = await DisplayAlert(
+            "Remove Activity",
+            $"⚠️ Remove '{activityVM.Name}' completely?\n\nThis will reset ALL data for this activity (name, EXP, image, streaks, etc.) to defaults. The row will remain in the database but be completely blank.\n\nThis cannot be undone!",
+            "Remove",
+            "Cancel");
+        
+        if (!confirm) return;
+        
+        // Double confirm for destructive action
+        bool doubleConfirm = await DisplayAlert(
+            "Are you sure?",
+            $"Really remove '{activityVM.Name}'? All data will be lost.",
+            "Yes, Remove It",
+            "No, Keep It");
+        
+        if (!doubleConfirm) return;
+        
+        await _activities.ResetActivityToDefaultsAsync(activityVM.Activity.Id);
+        await RefreshActivitiesAsync();
     }
 
     private async Task EditActivity(ActivityGameViewModel activityVM)

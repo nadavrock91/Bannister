@@ -48,6 +48,17 @@ public class Activity
     
     // If true, streak auto-increments daily without needing to click the activity
     public bool IsStreakAutoIncrement { get; set; } = false;
+    
+    /// <summary>
+    /// If true, this activity is a "streak container" - it becomes a category and 
+    /// displays each streak attempt as a separate card rather than the activity itself.
+    /// </summary>
+    public bool IsStreakContainer { get; set; } = false;
+    
+    /// <summary>
+    /// For streak container activities, stores the original category before conversion.
+    /// </summary>
+    public string OriginalCategory { get; set; } = "";
 
     // Auto-award settings
     [Indexed]

@@ -345,6 +345,13 @@ public partial class ActivityGamePage
                 .Where(vm => vm.Activity.Category == "Stale")
                 .ToList();
         }
+        else if (_currentMetaFilter == "Missing Image")
+        {
+            // Show all activities without images across all categories
+            filtered = _allActivities
+                .Where(vm => string.IsNullOrEmpty(vm.Activity.ImagePath))
+                .ToList();
+        }
         else
         {
             var visibleActivities = await _activities.GetVisibleActivitiesAsync(
@@ -364,8 +371,8 @@ public partial class ActivityGamePage
             vm.CurrentLevel = _currentLevel;
         }
 
-        // For "Possible", "Expired", and "Stale" filters, skip category filtering
-        if (_currentMetaFilter != "Possible" && _currentMetaFilter != "Expired" && _currentMetaFilter != "Stale")
+        // For "Possible", "Expired", "Stale", and "Missing Image" filters, skip category filtering
+        if (_currentMetaFilter != "Possible" && _currentMetaFilter != "Expired" && _currentMetaFilter != "Stale" && _currentMetaFilter != "Missing Image")
         {
             // Apply category filter based on current category (case-insensitive)
             if (_categories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _categories.Count)
@@ -731,8 +738,9 @@ public partial class ActivityGamePage
         string lastCheckedDate = Preferences.Get(lastCheckedKey, "");
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
+        // TESTING: Comment out to test multiple times per day
         // Only check once per day per game
-        if (lastCheckedDate == today) return;
+        // if (lastCheckedDate == today) return;
 
         var brokenStreaks = await _activities.CheckAndBreakMissedStreaksAsync(_auth.CurrentUsername, _game.GameId);
 
@@ -743,34 +751,53 @@ public partial class ActivityGamePage
 
             foreach (var (activity, brokenStreak, penalty) in brokenStreaks)
             {
-                // Confirm each broken streak
-                bool confirmed = await DisplayAlert(
-                    "⚠️ Streak Broken!",
-                    $"'{activity.Name}' streak of {brokenStreak} days was broken!\n\n" +
-                    $"You missed a scheduled day.\n\n" +
-                    $"Penalty: {penalty} EXP\n\n" +
-                    "This happens when you don't use an activity on its scheduled display day.",
-                    "Accept Penalty",
-                    "I understand");
+                // Show action sheet with multiple options
+                string result = await DisplayActionSheet(
+                    $"⚠️ Streak Broken: {activity.Name}",
+                    null, // no cancel
+                    null, // no destructive
+                    "✅ Accept Penalty (streak was broken)",
+                    "📅 Yesterday didn't count (restore streak)",
+                    "🔄 Forgot to click yesterday (restore streak)");
 
-                // Apply penalty regardless of which button they press
-                if (penalty < 0)
+                if (result == "✅ Accept Penalty (streak was broken)")
                 {
-                    await _exp.ApplyExpAsync(_auth.CurrentUsername, _game.GameId, $"{activity.Name} (Streak Broken)", penalty, activity.Id);
-                    totalPenalty += penalty;
-                    penaltyDetails.Add($"{activity.Name}: {brokenStreak} day streak → {penalty} EXP");
+                    // Apply penalty
+                    if (penalty < 0)
+                    {
+                        await _exp.ApplyExpAsync(_auth.CurrentUsername, _game.GameId, $"{activity.Name} (Streak Broken)", penalty, activity.Id);
+                        totalPenalty += penalty;
+                        penaltyDetails.Add($"{activity.Name}: {brokenStreak} day streak → {penalty} EXP");
+                    }
+                }
+                else if (result == "📅 Yesterday didn't count (restore streak)" || 
+                         result == "🔄 Forgot to click yesterday (restore streak)")
+                {
+                    // Restore the streak - set LastDisplayDayUsed to yesterday so streak continues
+                    activity.DisplayDayStreak = brokenStreak; // Restore the streak count
+                    activity.LastDisplayDayUsed = DateTime.Now.AddDays(-1); // Set to yesterday
+                    await _activities.UpdateActivityAsync(activity);
+                    
+                    string reason = result.Contains("didn't count") ? "day excluded" : "retroactive click";
+                    await DisplayAlert("Streak Restored", 
+                        $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: {reason}", 
+                        "OK");
                 }
             }
 
-            // Show summary if multiple streaks broken
-            if (brokenStreaks.Count > 1)
+            // Show summary if multiple streaks broken and penalties applied
+            if (penaltyDetails.Count > 1)
             {
                 await DisplayAlert(
                     "Streak Penalties Applied",
-                    $"{brokenStreaks.Count} streaks were broken.\n\n" +
+                    $"{penaltyDetails.Count} streaks were broken.\n\n" +
                     $"Total penalty: {totalPenalty} EXP\n\n" +
                     string.Join("\n", penaltyDetails),
                     "OK");
+            }
+            else if (penaltyDetails.Count == 1)
+            {
+                await DisplayAlert("Penalty Applied", $"Total penalty: {totalPenalty} EXP", "OK");
             }
 
             // Refresh EXP display

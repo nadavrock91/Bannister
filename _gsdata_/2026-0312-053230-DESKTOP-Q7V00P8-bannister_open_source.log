@@ -1,0 +1,27 @@
+2026-03-12 05:32:30: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-03-12 05:32:30: L: Reading State File C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/_gsdata_/_file_state_v4._gs
+2026-03-12 05:32:56: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_file_state_v4._gs
+2026-03-12 05:32:58: /.vs/Bannister/CopilotIndices/17.13.441.19478/CodeChunks.db-wal: L:TimeSize<>; Warning: Older file to replace Newer file
+2026-03-12 05:32:58: /.vs/Bannister/CopilotIndices/17.13.441.19478/SemanticSymbols.db-wal: L:TimeSize<>; Warning: Older file to replace Newer file
+2026-03-12 05:32:58: Changes: 6, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 6581
+2026-03-12 05:32:58: Left to Right: Copy File: 6 
+2026-03-12 05:32:58: == Sync Started by On Schedule Min=30 Hour=5 
+2026-03-12 05:32:59: ConnectCloned connected to file:///C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister
+2026-03-12 05:32:59: ConnectCloned connected to file:///C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister
+2026-03-12 05:32:59: ConnectCloned connected to file:///C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister
+2026-03-12 05:32:59: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister_open_source
+2026-03-12 05:32:59: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister_open_source
+2026-03-12 05:32:59: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister_open_source
+2026-03-12 05:33:05: Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/v17/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/v17/DocumentLayout.json' (65,292)
+2026-03-12 05:33:05: Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/v17/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/v17/.suo' (240,128)
+2026-03-12 05:33:05: > Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/CopilotIndices/17.13.441.19478/CodeChunks.db-wal' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/CopilotIndices/17.13.441.19478/CodeChunks.db-wal' (4,140,632)
+2026-03-12 05:33:05: Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/v17/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/v17/DocumentLayout.backup.json' (65,292)
+2026-03-12 05:33:05: > Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/CopilotIndices/17.13.441.19478/SemanticSymbols.db-wal' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/CopilotIndices/17.13.441.19478/SemanticSymbols.db-wal' (4,194,192)
+2026-03-12 05:33:09: C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/CopilotIndices/17.13.441.19478/CodeChunks.db-wal: Source file has changed between Analyze and Sync from '[file] size=4,140,632 accu-time=2026-03-07 22:09:35 attr=Archive,WArchive cktype=0' to 'size=4,140,632 time=2026-03-07 22:18:16', noted in source file state
+2026-03-12 05:33:09: < Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/CopilotIndices/17.13.441.19478/CodeChunks.db-wal' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/CopilotIndices/17.13.441.19478/CodeChunks.db-wal' (4,140,632)
+2026-03-12 05:33:09: Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/win10-x64/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/win10-x64/AppX/vs.appxrecipe' (59,032)
+2026-03-12 05:33:10: C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/CopilotIndices/17.13.441.19478/SemanticSymbols.db-wal: Source file has changed between Analyze and Sync from '[file] size=4,194,192 accu-time=2026-03-07 21:34:14 attr=Archive,WArchive cktype=0' to 'size=4,194,192 time=2026-03-07 22:18:16', noted in source file state
+2026-03-12 05:33:10: < Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/CopilotIndices/17.13.441.19478/SemanticSymbols.db-wal' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/CopilotIndices/17.13.441.19478/SemanticSymbols.db-wal' (4,194,192)
+2026-03-12 05:33:10: Save State File C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/_gsdata_/_file_state_v4._gs
+2026-03-12 05:33:13: Save State File goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_file_state_v4._gs
+2026-03-12 05:33:15: == Sync Complete. Time: 00:00:16, Speed: 626.04 KB/s, OK: 6, Errors: 0

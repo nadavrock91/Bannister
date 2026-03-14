@@ -141,7 +141,8 @@ public partial class ActivityGamePage
                 "Active Now",
                 "Possible",
                 "Expired",
-                "Stale"
+                "Stale",
+                "Missing Image"
             }
         };
         metaFilterPicker.SelectedIndexChanged += OnMetaFilterChanged;
@@ -205,16 +206,39 @@ public partial class ActivityGamePage
         return frame;
     }
 
-    private void BuildActivitiesGridWithHeaders(List<ActivityGameViewModel> activities)
+    // *** MODIFIED: Now async and checks for streak containers ***
+    private async void BuildActivitiesGridWithHeaders(List<ActivityGameViewModel> activities)
     {
         var mainStack = new VerticalStackLayout { Spacing = 8 };
 
+        // Check if current category is a streak container
+        if (_categories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _categories.Count)
+        {
+            string currentCategory = _categories[_currentCategoryIndex];
+            var streakContainer = GetStreakContainerForCategory(currentCategory);
+            
+            if (streakContainer != null)
+            {
+                // This is a streak container category - show streak attempts instead
+                await BuildStreakContainerViewAsync(mainStack, streakContainer);
+                activitiesCollection.Content = mainStack;
+                return;
+            }
+        }
+
+        // Regular activity display
         string currentSection = "";
         Grid? currentRow = null;
         int columnIndex = 0;
 
         foreach (var activity in activities)
         {
+            // Skip streak container activities - they only show in their own category
+            if (activity.Activity.IsStreakContainer)
+            {
+                continue;
+            }
+
             // Check if we need a new section header
             if (!string.IsNullOrEmpty(activity.SectionHeader) && activity.SectionHeader != currentSection)
             {

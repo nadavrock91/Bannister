@@ -380,6 +380,52 @@ namespace Bannister.Services
         }
 
         /// <summary>
+        /// Reset an activity to default values (removes all data but keeps the row)
+        /// </summary>
+        public async Task ResetActivityToDefaultsAsync(int activityId)
+        {
+            var activity = await GetActivityAsync(activityId);
+            if (activity != null)
+            {
+                string oldName = activity.Name;
+                
+                // Reset all fields to defaults
+                activity.Name = "";
+                activity.Category = "";
+                activity.ExpGain = 0;
+                activity.RewardType = "Fixed";
+                activity.PercentOfLevel = 0;
+                activity.MeaningfulUntilLevel = 100;
+                activity.ImagePath = "";
+                activity.StartDate = null;
+                activity.EndDate = null;
+                activity.IsActive = false;
+                activity.IsPossible = false;
+                activity.Multiplier = 1;
+                activity.IsAutoAward = false;
+                activity.AutoAwardFrequency = "None";
+                activity.AutoAwardDays = "";
+                activity.LastAutoAwarded = null;
+                activity.LastHabitDate = null;
+                activity.HabitStreak = 0;
+                activity.HabitType = "None";
+                activity.StreakStartDate = null;
+                activity.TimesCompleted = 0;
+                activity.Notes = "";
+                activity.DisplayDaysOfWeek = "";
+                activity.DisplayDayOfMonth = 0;
+                activity.DisplayDayStreak = 0;
+                activity.LastDisplayDayUsed = null;
+                activity.HabitTargetDate = null;
+                activity.HabitTargetFirstSet = null;
+                activity.ShowTimesCompletedBadge = false;
+                
+                await UpdateActivityAsync(activity);
+                System.Diagnostics.Debug.WriteLine($"[ACTIVITY] Reset activity {activityId} (was: {oldName}) to defaults");
+            }
+        }
+
+        /// <summary>
         /// Record that a habit activity was completed today
         /// </summary>
         public async Task RecordHabitCompletionAsync(Activity activity)

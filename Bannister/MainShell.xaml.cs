@@ -8,7 +8,6 @@ public partial class MainShell : Shell
         InitializeComponent();
 
         Routing.RegisterRoute("gameslist", typeof(GamesListPage));
-        Routing.RegisterRoute("newhabits", typeof(NewHabitsPage));
         Routing.RegisterRoute("activitygrid", typeof(ActivityGamePage));
         Routing.RegisterRoute("setupgoal", typeof(SetupGoalPage));
         Routing.RegisterRoute("addactivity", typeof(ActivityCreationPage));
@@ -21,6 +20,8 @@ public partial class MainShell : Shell
         Routing.RegisterRoute("dragontree", typeof(DragonTreePage));
         Routing.RegisterRoute("streakdashboard", typeof(StreakDashboardPage));
         Routing.RegisterRoute("streakattempts", typeof(StreakAttemptsPage));
+        Routing.RegisterRoute("habits", typeof(HabitsHomePage));
+        Routing.RegisterRoute("newhabits", typeof(NewHabitsPage));
     }
 }
 

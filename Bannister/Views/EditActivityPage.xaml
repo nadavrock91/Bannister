@@ -221,9 +221,6 @@
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
-            <!-- Display Days Section (populated programmatically) -->
-            <VerticalStackLayout x:Name="displayDaysContainer" Spacing="8" />
-
             <!-- Activity Image -->
             <VerticalStackLayout Spacing="12">
                 <Label Text="Activity Image" FontAttributes="Bold" />
@@ -244,6 +241,12 @@
                     <Button Text="Browse..." 
                             Clicked="OnBrowseImage"
                             BackgroundColor="#5B63EE"
+                            TextColor="White"
+                            CornerRadius="8" />
+
+                    <Button Text="Set to Black"
+                            Clicked="OnSetToBlack"
+                            BackgroundColor="#333"
                             TextColor="White"
                             CornerRadius="8" />
 

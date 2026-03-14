@@ -186,7 +186,7 @@ public partial class HomePage : ContentPage
 
     private async void OnNewHabitsClicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("newhabits");
+        await Shell.Current.GoToAsync("habits");
     }
 
     private async void OnChartsClicked(object sender, EventArgs e)

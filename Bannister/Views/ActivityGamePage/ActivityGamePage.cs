@@ -130,7 +130,33 @@ public partial class ActivityGamePage : ContentPage
             }
             else
             {
-                // Just refresh EXP and activities without resetting category
+                // Check if categories have changed (e.g., streak container created/removed)
+                var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game?.GameId ?? "");
+                var currentCategoryCount = allActivities
+                    .Select(a => a.Category ?? "Misc")
+                    .Where(c => !c.Equals("Expired", StringComparison.OrdinalIgnoreCase) 
+                             && !c.Equals("Stale", StringComparison.OrdinalIgnoreCase))
+                    .Distinct()
+                    .Count();
+                
+                // If category count changed, reload categories while preserving position
+                if (currentCategoryCount != _categories.Count)
+                {
+                    string? currentCategory = _currentCategoryIndex >= 0 && _currentCategoryIndex < _categories.Count 
+                        ? _categories[_currentCategoryIndex] 
+                        : null;
+                    
+                    await LoadCategoriesAsync();
+                    
+                    // Try to stay on the same category
+                    if (!string.IsNullOrEmpty(currentCategory) && _categories.Contains(currentCategory))
+                    {
+                        _currentCategoryIndex = _categories.IndexOf(currentCategory);
+                        UpdateCategoryDisplay();
+                    }
+                }
+                
+                // Refresh EXP and activities
                 await RefreshExpAsync();
                 await RefreshActivitiesAsync();
             }

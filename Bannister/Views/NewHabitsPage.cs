@@ -3,6 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
+[QueryProperty(nameof(Frequency), "frequency")]
 public class NewHabitsPage : ContentPage
 {
     private readonly AuthService _auth;
@@ -12,13 +13,28 @@ public class NewHabitsPage : ContentPage
     private readonly ExpService _exp;
     private readonly DatabaseService _db;
 
+    private string _frequency = "Daily";
+    public string Frequency
+    {
+        get => _frequency;
+        set
+        {
+            _frequency = value;
+            UpdateForFrequency();
+        }
+    }
+
+    private Label _lblHeader;
+    private Label _lblSubheader;
     private Label _lblAllowance;
     private Label _lblAvailableSlots;
+    private Label _lblActiveHeader;
     private VerticalStackLayout _activeHabitsContainer;
     private VerticalStackLayout _pendingHabitsContainer;
     private VerticalStackLayout _graduatedHabitsContainer;
     private Button _btnAddHabit;
     private Button _btnAddPending;
+    private Frame _allowanceFrame;
 
     public NewHabitsPage(AuthService auth, GameService games, NewHabitService newHabits, 
         ActivityService activities, ExpService exp, DatabaseService db)
@@ -30,8 +46,8 @@ public class NewHabitsPage : ContentPage
         _exp = exp;
         _db = db;
 
-        Title = "New Habits";
-        BackgroundColor = Color.FromArgb("#6B73FF");
+        Title = "Daily Habits";
+        BackgroundColor = Color.FromArgb("#5C6BC0"); // Default indigo for Daily
 
         BuildUI();
     }
@@ -39,7 +55,48 @@ public class NewHabitsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        UpdateForFrequency();
         await LoadHabitsAsync();
+    }
+
+    private void UpdateForFrequency()
+    {
+        // Update colors based on frequency
+        string bgColor = _frequency switch
+        {
+            "Daily" => "#5C6BC0",   // Indigo
+            "Weekly" => "#00897B",  // Teal
+            "Monthly" => "#8E24AA", // Purple
+            _ => "#5C6BC0"
+        };
+
+        string graduationText = _frequency switch
+        {
+            "Daily" => "Complete every day for 7 days to graduate",
+            "Weekly" => "Complete every week for 4 weeks to graduate",
+            "Monthly" => "Complete every month for 3 months to graduate",
+            _ => "Complete every day for 7 days to graduate"
+        };
+
+        string headerEmoji = _frequency switch
+        {
+            "Daily" => "🌅",
+            "Weekly" => "📆",
+            "Monthly" => "📅",
+            _ => "🌅"
+        };
+
+        BackgroundColor = Color.FromArgb(bgColor);
+        Title = $"{_frequency} Habits";
+
+        if (_lblHeader != null)
+            _lblHeader.Text = $"{headerEmoji} {_frequency} Habits";
+        
+        if (_lblSubheader != null)
+            _lblSubheader.Text = graduationText;
+
+        if (_lblActiveHeader != null)
+            _lblActiveHeader.Text = $"🔥 {_frequency} Habits";
     }
 
     private void BuildUI()
@@ -52,30 +109,36 @@ public class NewHabitsPage : ContentPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        _lblHeader = new Label
         {
-            Text = "🌱 New Habits",
+            Text = "🌅 Daily Habits",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             TextColor = Colors.White
-        });
+        };
+        mainStack.Children.Add(_lblHeader);
 
-        mainStack.Children.Add(new Label
+        _lblSubheader = new Label
         {
-            Text = "Build new habits one at a time. Complete 7 days to graduate and unlock more slots.",
+            Text = "Complete every day for 7 days to graduate",
             TextColor = Colors.White,
             Opacity = 0.9
-        });
+        };
+        mainStack.Children.Add(_lblSubheader);
 
-        // Allowance display (global, not per-game)
-        var allowanceFrame = new Frame
+        // Allowance display
+        _allowanceFrame = new Frame
         {
-            BackgroundColor = Color.FromArgb("#4CAF50"),
+            BackgroundColor = Color.FromArgb("#2E7D32"),
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true,
             Margin = new Thickness(0, 8, 0, 0)
         };
+
+        var allowanceTap = new TapGestureRecognizer();
+        allowanceTap.Tapped += OnAllowanceTapped;
+        _allowanceFrame.GestureRecognizers.Add(allowanceTap);
 
         var allowanceStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -99,14 +162,23 @@ public class NewHabitsPage : ContentPage
         };
         allowanceStack.Children.Add(_lblAvailableSlots);
 
-        allowanceFrame.Content = allowanceStack;
-        mainStack.Children.Add(allowanceFrame);
+        allowanceStack.Children.Add(new Label
+        {
+            Text = "tap to edit",
+            FontSize = 11,
+            TextColor = Colors.White,
+            Opacity = 0.6,
+            HorizontalTextAlignment = TextAlignment.Center
+        });
+
+        _allowanceFrame.Content = allowanceStack;
+        mainStack.Children.Add(_allowanceFrame);
 
         // Add habit button
         _btnAddHabit = new Button
         {
             Text = "+ Add New Habit",
-            BackgroundColor = Color.FromArgb("#FF9800"),
+            BackgroundColor = Color.FromArgb("#666"),
             TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
@@ -117,14 +189,15 @@ public class NewHabitsPage : ContentPage
         mainStack.Children.Add(_btnAddHabit);
 
         // Active habits section
-        mainStack.Children.Add(new Label
+        _lblActiveHeader = new Label
         {
-            Text = "🔥 Active Habits",
+            Text = "🔥 Daily Habits",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Colors.White,
             Margin = new Thickness(0, 16, 0, 8)
-        });
+        };
+        mainStack.Children.Add(_lblActiveHeader);
 
         _activeHabitsContainer = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_activeHabitsContainer);
@@ -152,7 +225,7 @@ public class NewHabitsPage : ContentPage
         _btnAddPending = new Button
         {
             Text = "+ Add to Queue",
-            BackgroundColor = Color.FromArgb("#9C27B0"),
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
             TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 12,
@@ -183,7 +256,7 @@ public class NewHabitsPage : ContentPage
         // Info section
         var infoFrame = new Frame
         {
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            BackgroundColor = Color.FromArgb("#C8E6C9"),
             Padding = 16,
             CornerRadius = 12,
             HasShadow = false,
@@ -201,7 +274,7 @@ public class NewHabitsPage : ContentPage
                    "• Graduate = +1 allowance slot\n" +
                    "• Fail = -1 allowance slot (min 1)\n\n" +
                    "💡 Use Pending to queue habits for later!",
-            TextColor = Color.FromArgb("#1565C0"),
+            TextColor = Color.FromArgb("#1B5E20"),
             FontSize = 13,
             LineHeight = 1.4
         };
@@ -211,27 +284,68 @@ public class NewHabitsPage : ContentPage
         Content = scrollView;
     }
 
+    private async void OnAllowanceTapped(object? sender, EventArgs e)
+    {
+        var allowance = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername, _frequency);
+        
+        string result = await DisplayActionSheet(
+            $"{_frequency} Allowance: {allowance.CurrentAllowance}",
+            "Cancel",
+            null,
+            "✏️ Edit Allowance",
+            "📊 View Stats");
+        
+        if (result == "✏️ Edit Allowance")
+        {
+            string input = await DisplayPromptAsync(
+                "Edit Allowance",
+                $"Current {_frequency} allowance: {allowance.CurrentAllowance}\n\nEnter new value:",
+                initialValue: allowance.CurrentAllowance.ToString(),
+                keyboard: Keyboard.Numeric);
+            
+            if (!string.IsNullOrEmpty(input) && int.TryParse(input, out int newValue) && newValue >= 1)
+            {
+                allowance.CurrentAllowance = newValue;
+                if (newValue > allowance.HighestAllowance)
+                    allowance.HighestAllowance = newValue;
+                await _newHabits.UpdateAllowanceAsync(allowance);
+                await LoadHabitsAsync();
+            }
+        }
+        else if (result == "📊 View Stats")
+        {
+            await DisplayAlert($"{_frequency} Habit Stats",
+                $"Current Allowance: {allowance.CurrentAllowance}\n" +
+                $"Highest Allowance: {allowance.HighestAllowance}\n" +
+                $"Total Graduated: {allowance.TotalGraduated}\n" +
+                $"Total Failed: {allowance.TotalFailed}",
+                "OK");
+        }
+    }
+
     private async Task LoadHabitsAsync()
     {
-        // Check for missed habits across all games
+        // Check for missed habits across all games - but only for this frequency
         var allActiveHabits = await _newHabits.GetAllActiveHabitsAsync(_auth.CurrentUsername);
+        var frequencyHabits = allActiveHabits.Where(h => h.Frequency == _frequency).ToList();
         var missedHabits = new List<NewHabit>();
         var checkedGames = new HashSet<string>();
         
-        foreach (var habit in allActiveHabits)
+        foreach (var habit in frequencyHabits)
         {
             if (!checkedGames.Contains(habit.Game))
             {
                 checkedGames.Add(habit.Game);
                 var missed = await _newHabits.CheckMissedHabitsAsync(_auth.CurrentUsername, habit.Game, _exp);
-                missedHabits.AddRange(missed);
+                // Only add missed habits of this frequency
+                missedHabits.AddRange(missed.Where(h => h.Frequency == _frequency));
             }
         }
         
         if (missedHabits.Count > 0)
         {
-            await DisplayAlert("Habits Failed",
-                $"{missedHabits.Count} habit(s) failed because you missed a day:\n\n" +
+            await DisplayAlert($"{_frequency} Habits Failed",
+                $"{missedHabits.Count} habit(s) failed because you missed:\n\n" +
                 string.Join("\n", missedHabits.Select(h => $"• {h.HabitName}")),
                 "OK");
         }
@@ -239,9 +353,9 @@ public class NewHabitsPage : ContentPage
         // Check for graduations
         await CheckGraduationsAsync();
 
-        // Load global allowance
-        var allowance = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername);
-        var availableSlots = await _newHabits.GetAvailableSlotsAsync(_auth.CurrentUsername);
+        // Load frequency-specific allowance
+        var allowance = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername, _frequency);
+        var availableSlots = await _newHabits.GetAvailableSlotsAsync(_auth.CurrentUsername, _frequency);
 
         _lblAllowance.Text = $"Allowance: {allowance.CurrentAllowance}";
         _lblAvailableSlots.Text = availableSlots > 0
@@ -251,19 +365,20 @@ public class NewHabitsPage : ContentPage
         _btnAddHabit.IsEnabled = availableSlots > 0;
         _btnAddHabit.BackgroundColor = availableSlots > 0
             ? Color.FromArgb("#FF9800")
-            : Color.FromArgb("#999");
+            : Color.FromArgb("#666");
 
-        // Load ALL active habits across all games
+        // Load active habits for this frequency
         _activeHabitsContainer.Children.Clear();
-        var activeHabits = await _newHabits.GetAllActiveHabitsAsync(_auth.CurrentUsername);
+        var activeHabits = allActiveHabits.Where(h => h.Frequency == _frequency).ToList();
 
         if (activeHabits.Count == 0)
         {
             _activeHabitsContainer.Children.Add(new Label
             {
-                Text = "No active habits. Add one to get started!",
+                Text = $"No {_frequency.ToLower()} habits yet. Add one to get started!",
                 TextColor = Colors.White,
                 Opacity = 0.7,
+                FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
             });
         }
@@ -275,9 +390,10 @@ public class NewHabitsPage : ContentPage
             }
         }
 
-        // Load pending habits
+        // Load pending habits for this frequency
         _pendingHabitsContainer.Children.Clear();
-        var pendingHabits = await _newHabits.GetAllPendingHabitsAsync(_auth.CurrentUsername);
+        var allPendingHabits = await _newHabits.GetAllPendingHabitsAsync(_auth.CurrentUsername);
+        var pendingHabits = allPendingHabits.Where(h => h.Frequency == _frequency).ToList();
 
         if (pendingHabits.Count == 0)
         {
@@ -286,6 +402,7 @@ public class NewHabitsPage : ContentPage
                 Text = "No pending habits. Add habits to your queue!",
                 TextColor = Colors.White,
                 Opacity = 0.7,
+                FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
             });
         }
@@ -298,9 +415,10 @@ public class NewHabitsPage : ContentPage
             }
         }
 
-        // Load graduated habits (across all games)
+        // Load graduated habits for this frequency
         _graduatedHabitsContainer.Children.Clear();
-        var graduatedHabits = await _newHabits.GetAllGraduatedHabitsAsync(_auth.CurrentUsername);
+        var allGraduatedHabits = await _newHabits.GetAllGraduatedHabitsAsync(_auth.CurrentUsername);
+        var graduatedHabits = allGraduatedHabits.Where(h => h.Frequency == _frequency).Take(10).ToList();
 
         if (graduatedHabits.Count == 0)
         {
@@ -309,12 +427,13 @@ public class NewHabitsPage : ContentPage
                 Text = "No graduated habits yet.",
                 TextColor = Colors.White,
                 Opacity = 0.7,
+                FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
             });
         }
         else
         {
-            foreach (var habit in graduatedHabits.Take(10)) // Show only last 10
+            foreach (var habit in graduatedHabits)
             {
                 _graduatedHabitsContainer.Children.Add(CreateGraduatedHabitCard(habit));
             }
@@ -324,8 +443,9 @@ public class NewHabitsPage : ContentPage
     private async Task CheckGraduationsAsync()
     {
         var activeHabits = await _newHabits.GetAllActiveHabitsAsync(_auth.CurrentUsername);
+        var frequencyHabits = activeHabits.Where(h => h.Frequency == _frequency).ToList();
 
-        foreach (var habit in activeHabits)
+        foreach (var habit in frequencyHabits)
         {
             if (habit.ConsecutiveDays >= habit.DaysToGraduate)
             {
@@ -333,7 +453,7 @@ public class NewHabitsPage : ContentPage
 
                 await DisplayAlert("🎓 Habit Graduated!",
                     $"'{habit.HabitName}' has graduated!\n\n" +
-                    "You've earned +1 allowance slot!",
+                    $"You've earned +1 {_frequency.ToLower()} allowance slot!",
                     "Awesome!");
             }
         }
@@ -341,11 +461,9 @@ public class NewHabitsPage : ContentPage
 
     private Frame CreateActiveHabitCard(NewHabit habit, int availableSlots)
     {
-        bool isReadyToGraduate = habit.ConsecutiveDays >= habit.DaysToGraduate;
-        
         var frame = new Frame
         {
-            BackgroundColor = isReadyToGraduate ? Color.FromArgb("#E8F5E9") : Colors.White, // Light green if ready
+            BackgroundColor = Colors.White,
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
@@ -360,7 +478,6 @@ public class NewHabitsPage : ContentPage
             },
             RowDefinitions =
             {
-                new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto },
@@ -386,7 +503,7 @@ public class NewHabitsPage : ContentPage
             TextColor = Color.FromArgb("#666")
         }, 0, 1);
 
-        // Progress - show filled circles for completed days
+        // Progress circles
         var progressStack = new HorizontalStackLayout { Spacing = 4 };
         for (int i = 0; i < habit.DaysToGraduate; i++)
         {
@@ -400,65 +517,37 @@ public class NewHabitsPage : ContentPage
         Grid.SetColumnSpan(progressStack, 2);
 
         // Status
-        string statusText;
-        if (isReadyToGraduate)
-        {
-            statusText = "🎉 Ready to graduate!";
-        }
-        else
-        {
-            bool isDoneToday = habit.LastAppliedDate?.Date == DateTime.Now.Date;
-            statusText = isDoneToday
-                ? "✅ Done today!"
-                : $"⏳ {habit.DaysRemaining} days to go";
-        }
+        bool isDoneToday = habit.LastAppliedDate?.Date == DateTime.UtcNow.Date;
+        string statusText = isDoneToday
+            ? "✅ Done today!"
+            : $"⏳ {habit.DaysRemaining} {(_frequency == "Daily" ? "days" : _frequency == "Weekly" ? "weeks" : "months")} to go";
 
         grid.Add(new Label
         {
             Text = statusText,
             FontSize = 12,
-            TextColor = isReadyToGraduate ? Color.FromArgb("#2E7D32") : Color.FromArgb("#666"),
-            FontAttributes = isReadyToGraduate ? FontAttributes.Bold : FontAttributes.None
+            TextColor = Color.FromArgb("#666")
         }, 0, 3);
 
-        // Action buttons row
+        // Action buttons
         var buttonStack = new HorizontalStackLayout { Spacing = 8 };
 
-        if (isReadyToGraduate)
+        // Move to pending button
+        var btnMoveToPending = new Button
         {
-            // Graduate button (green, prominent)
-            var btnGraduate = new Button
-            {
-                Text = "🎓 Graduate",
-                BackgroundColor = Color.FromArgb("#4CAF50"),
-                TextColor = Colors.White,
-                FontSize = 14,
-                HeightRequest = 40,
-                Padding = new Thickness(12, 0),
-                CornerRadius = 8
-            };
-            btnGraduate.Clicked += async (s, e) => await GraduateHabitAsync(habit);
-            buttonStack.Children.Add(btnGraduate);
-        }
-        else
-        {
-            // Move to pending button (pause)
-            var btnMoveToPending = new Button
-            {
-                Text = "⏸️",
-                BackgroundColor = Color.FromArgb("#9C27B0"),
-                TextColor = Colors.White,
-                FontSize = 14,
-                WidthRequest = 40,
-                HeightRequest = 40,
-                Padding = 0,
-                CornerRadius = 8
-            };
-            btnMoveToPending.Clicked += async (s, e) => await MoveToPendingAsync(habit);
-            buttonStack.Children.Add(btnMoveToPending);
-        }
+            Text = "⏸️",
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
+            TextColor = Colors.White,
+            FontSize = 14,
+            WidthRequest = 40,
+            HeightRequest = 40,
+            Padding = 0,
+            CornerRadius = 8
+        };
+        btnMoveToPending.Clicked += async (s, e) => await MoveToPendingAsync(habit);
+        buttonStack.Children.Add(btnMoveToPending);
 
-        // Delete button (always available)
+        // Delete button
         var btnDelete = new Button
         {
             Text = "🗑️",
@@ -573,7 +662,7 @@ public class NewHabitsPage : ContentPage
             buttonStack.Children.Add(btnDown);
         }
 
-        // Activate button (only if slots available)
+        // Activate button
         var btnActivate = new Button
         {
             Text = "▶️",
@@ -620,14 +709,23 @@ public class NewHabitsPage : ContentPage
             HasShadow = false
         };
 
-        var stack = new HorizontalStackLayout { Spacing = 8 };
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 8
+        };
 
-        stack.Children.Add(new Label
+        grid.Add(new Label
         {
             Text = "🎓",
             FontSize = 20,
             VerticalOptions = LayoutOptions.Center
-        });
+        }, 0, 0);
 
         var infoStack = new VerticalStackLayout();
         infoStack.Children.Add(new Label
@@ -643,18 +741,17 @@ public class NewHabitsPage : ContentPage
             FontSize = 11,
             TextColor = Color.FromArgb("#666")
         });
-        stack.Children.Add(infoStack);
+        grid.Add(infoStack, 1, 0);
 
-        stack.Children.Add(new Label
+        grid.Add(new Label
         {
             Text = habit.CompletedAt?.ToString("MMM dd") ?? "",
             FontSize = 12,
             TextColor = Color.FromArgb("#666"),
-            VerticalOptions = LayoutOptions.Center,
-            HorizontalOptions = LayoutOptions.EndAndExpand
-        });
+            VerticalOptions = LayoutOptions.Center
+        }, 2, 0);
 
-        frame.Content = stack;
+        frame.Content = grid;
         return frame;
     }
 
@@ -675,94 +772,17 @@ public class NewHabitsPage : ContentPage
 
     private async Task ActivatePendingAsync(NewHabit habit)
     {
-        var availableSlots = await _newHabits.GetAvailableSlotsAsync(_auth.CurrentUsername);
+        var availableSlots = await _newHabits.GetAvailableSlotsAsync(_auth.CurrentUsername, _frequency);
         if (availableSlots <= 0)
         {
-            await DisplayAlert("No Slots", "No allowance slots available. Complete or pause an active habit first!", "OK");
+            await DisplayAlert("No Slots", $"No {_frequency.ToLower()} allowance slots available. Complete or pause an active habit first!", "OK");
             return;
-        }
-
-        // Get the positive activity
-        var positiveActivity = await _activities.GetActivityAsync(habit.PositiveActivityId);
-        if (positiveActivity == null)
-        {
-            await DisplayAlert("Error", "Could not find the activity.", "OK");
-            return;
-        }
-
-        // Check if negative activity is already set
-        Activity? negativeActivity = null;
-        if (habit.NegativeActivityId > 0)
-        {
-            negativeActivity = await _activities.GetActivityAsync(habit.NegativeActivityId);
-        }
-
-        // If no negative activity, ask user to select/create one
-        if (negativeActivity == null)
-        {
-            await DisplayAlert("Set Penalty Activity",
-                $"Before activating '{habit.HabitName}', you need to set a penalty activity.\n\nThis is what happens if you miss a day.",
-                "Continue");
-
-            negativeActivity = await GetOrCreateNegativeActivityAsync(positiveActivity);
-            if (negativeActivity == null)
-            {
-                await DisplayAlert("Cancelled", "You need a penalty activity to activate a habit.", "OK");
-                return;
-            }
-
-            // Update the habit with the negative activity ID
-            habit.NegativeActivityId = negativeActivity.Id;
         }
 
         await _newHabits.ActivatePendingHabitAsync(habit);
         await DisplayAlert("Habit Activated!",
-            $"'{habit.HabitName}' is now active!\n\nRemember to do it daily to avoid penalties.",
+            $"'{habit.HabitName}' is now active!\n\nRemember to complete it regularly to avoid penalties.",
             "Got it!");
-        await LoadHabitsAsync();
-    }
-
-    private async Task GraduateHabitAsync(NewHabit habit)
-    {
-        // Ask for confirmation
-        bool confirm = await DisplayAlert(
-            "🎓 Graduate Habit",
-            $"Congratulations! You've completed '{habit.HabitName}' for {habit.DaysToGraduate} days!\n\n" +
-            "Graduate this habit to increase your allowance.",
-            "Graduate!",
-            "Not Yet");
-
-        if (!confirm) return;
-
-        // Graduate the habit
-        await _newHabits.GraduateHabitAsync(habit);
-
-        // Ask about deleting the negative activity
-        if (habit.NegativeActivityId > 0)
-        {
-            var negativeActivity = await _activities.GetActivityAsync(habit.NegativeActivityId);
-            if (negativeActivity != null)
-            {
-                bool deleteNegative = await DisplayAlert(
-                    "Delete Penalty Activity?",
-                    $"Do you want to delete the penalty activity '{negativeActivity.Name}'?\n\n" +
-                    "You won't need it anymore since the habit graduated.",
-                    "Delete",
-                    "Keep");
-
-                if (deleteNegative)
-                {
-                    await _activities.DeleteActivityAsync(negativeActivity.Id);
-                    await DisplayAlert("Deleted", $"'{negativeActivity.Name}' has been removed.", "OK");
-                }
-            }
-        }
-
-        await DisplayAlert("🎉 Habit Graduated!",
-            $"'{habit.HabitName}' has graduated!\n\n" +
-            "+1 allowance slot unlocked!",
-            "Awesome!");
-
         await LoadHabitsAsync();
     }
 
@@ -791,23 +811,13 @@ public class NewHabitsPage : ContentPage
 
         if (confirm)
         {
-            var allowance = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername);
-            allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
-            allowance.TotalFailed++;
-            
-            var conn = await _db.GetConnectionAsync();
-            await conn.UpdateAsync(allowance);
-
-            // Only delete the habit tracking record, NOT the activities
-            await conn.DeleteAsync(habit);
-            
+            await _newHabits.FailHabitManualAsync(habit, _exp, habit.Game);
             await LoadHabitsAsync();
         }
     }
 
     private async void OnAddPendingClicked(object? sender, EventArgs e)
     {
-        // For pending, just select the positive activity - negative will be set when activating
         var allGames = await _games.GetGamesAsync(_auth.CurrentUsername);
         if (allGames.Count == 0)
         {
@@ -815,44 +825,8 @@ public class NewHabitsPage : ContentPage
             return;
         }
 
-        Activity? positiveActivity = null;
-
-        // Go directly to activity selection - include ALL activities (Possible, Stale, Expired, Active)
-        var selectionPage = new ActivitySelectionPage(_activities, _games, _auth.CurrentUsername, "Select Activity for Pending Queue", negativeOnly: false, includeAllStatuses: true);
-        await Navigation.PushModalAsync(selectionPage);
-        positiveActivity = await selectionPage.GetSelectedActivityAsync();
-        
-        if (positiveActivity == null) 
-            return;
-
-        // Create pending habit with just the positive activity (negative = 0 for now)
-        await _newHabits.CreatePendingHabitAsync(
-            _auth.CurrentUsername,
-            positiveActivity.Game,
-            positiveActivity.Name,
-            positiveActivity.Id,
-            0); // No negative activity yet - will be set when activating
-
-        await DisplayAlert("Added to Queue!",
-            $"'{positiveActivity.Name}' added to pending.\n\nWhen you activate it, you'll set up the penalty activity.",
-            "OK");
-
-        await LoadHabitsAsync();
-    }
-
-    private async void OnAddHabitClicked(object? sender, EventArgs e)
-    {
-        // First, need to select a game for creating new activities
-        var allGames = await _games.GetGamesAsync(_auth.CurrentUsername);
-        if (allGames.Count == 0)
-        {
-            await DisplayAlert("No Games", "Please create a game first.", "OK");
-            return;
-        }
-
-        // Step 1: Choose positive activity source
         string positiveChoice = await DisplayActionSheet(
-            "Add Habit - Select Positive Activity",
+            $"Add to {_frequency} Pending - Select Positive Activity",
             "Cancel",
             null,
             "Select existing activity",
@@ -863,7 +837,6 @@ public class NewHabitsPage : ContentPage
 
         Activity? positiveActivity = null;
         Activity? negativeActivity = null;
-        bool createdNewPositive = false;
 
         if (positiveChoice == "Select existing activity")
         {
@@ -872,13 +845,11 @@ public class NewHabitsPage : ContentPage
             positiveActivity = await selectionPage.GetSelectedActivityAsync();
             if (positiveActivity == null) return;
 
-            // For existing activity, still need to select/create negative
             negativeActivity = await GetOrCreateNegativeActivityAsync(positiveActivity);
             if (negativeActivity == null) return;
         }
         else if (positiveChoice == "Create new activity")
         {
-            // Ask which game
             string? selectedGameId = null;
             if (allGames.Count == 1)
             {
@@ -893,25 +864,138 @@ public class NewHabitsPage : ContentPage
                 if (selectedGameId == null) return;
             }
             
-            // Create positive activity
             positiveActivity = await ActivityCreationPage.CreateActivityModalAsync(
                 Navigation, _auth, _activities, _games, selectedGameId);
             if (positiveActivity == null) return;
             
-            createdNewPositive = true;
-            
-            // Automatically launch negative activity creation with prefilled values
             await DisplayAlert("Now Create Penalty Activity",
                 $"Great! '{positiveActivity.Name}' created.\n\n" +
-                "Now let's create the penalty activity for when you miss a day.\n\n" +
-                "The name and image will be pre-filled for you.",
+                "Now let's create the penalty activity for when you miss.",
                 "Continue");
             
-            // Create prefilled negative activity
             negativeActivity = await CreatePrefillledNegativeActivityAsync(positiveActivity);
             if (negativeActivity == null)
             {
-                // User cancelled - ask if they want to select existing instead
+                bool selectExisting = await DisplayAlert(
+                    "No Penalty Activity",
+                    "You didn't create a penalty activity. Would you like to select an existing one?",
+                    "Select Existing",
+                    "Cancel");
+                
+                if (selectExisting)
+                {
+                    negativeActivity = await GetOrCreateNegativeActivityAsync(positiveActivity);
+                    if (negativeActivity == null) return;
+                }
+                else
+                {
+                    return;
+                }
+            }
+        }
+
+        if (positiveActivity != null && negativeActivity != null)
+        {
+            // Create pending habit with frequency
+            var conn = await _db.GetConnectionAsync();
+            await conn.CreateTableAsync<NewHabit>();
+
+            int daysToGraduate = _frequency switch
+            {
+                "Daily" => 7,
+                "Weekly" => 4,
+                "Monthly" => 3,
+                _ => 7
+            };
+
+            var pendingHabits = await _newHabits.GetAllPendingHabitsAsync(_auth.CurrentUsername);
+            int maxOrder = pendingHabits.Count > 0 ? pendingHabits.Max(h => h.PendingOrder) : 0;
+
+            var newHabit = new NewHabit
+            {
+                Username = _auth.CurrentUsername,
+                Game = positiveActivity.Game,
+                HabitName = positiveActivity.Name,
+                PositiveActivityId = positiveActivity.Id,
+                NegativeActivityId = negativeActivity.Id,
+                ConsecutiveDays = 0,
+                DaysToGraduate = daysToGraduate,
+                Frequency = _frequency,
+                Status = "pending",
+                PendingOrder = maxOrder + 1
+            };
+
+            await conn.InsertAsync(newHabit);
+
+            await DisplayAlert("Added to Queue!",
+                $"'{positiveActivity.Name}' added to {_frequency.ToLower()} pending.\n\nActivate it when you have an available slot!",
+                "OK");
+
+            await LoadHabitsAsync();
+        }
+    }
+
+    private async void OnAddHabitClicked(object? sender, EventArgs e)
+    {
+        var allGames = await _games.GetGamesAsync(_auth.CurrentUsername);
+        if (allGames.Count == 0)
+        {
+            await DisplayAlert("No Games", "Please create a game first.", "OK");
+            return;
+        }
+
+        string positiveChoice = await DisplayActionSheet(
+            $"Add {_frequency} Habit - Select Positive Activity",
+            "Cancel",
+            null,
+            "Select existing activity",
+            "Create new activity");
+
+        if (positiveChoice == "Cancel" || string.IsNullOrEmpty(positiveChoice))
+            return;
+
+        Activity? positiveActivity = null;
+        Activity? negativeActivity = null;
+
+        if (positiveChoice == "Select existing activity")
+        {
+            var selectionPage = new ActivitySelectionPage(_activities, _games, _auth.CurrentUsername, "Select Activity for Habit", negativeOnly: false);
+            await Navigation.PushModalAsync(selectionPage);
+            positiveActivity = await selectionPage.GetSelectedActivityAsync();
+            if (positiveActivity == null) return;
+
+            negativeActivity = await GetOrCreateNegativeActivityAsync(positiveActivity);
+            if (negativeActivity == null) return;
+        }
+        else if (positiveChoice == "Create new activity")
+        {
+            string? selectedGameId = null;
+            if (allGames.Count == 1)
+            {
+                selectedGameId = allGames[0].GameId;
+            }
+            else
+            {
+                var gameNames = allGames.Select(g => g.DisplayName).ToArray();
+                string? gameChoice = await DisplayActionSheet("Select Game", "Cancel", null, gameNames);
+                if (gameChoice == "Cancel" || string.IsNullOrEmpty(gameChoice)) return;
+                selectedGameId = allGames.FirstOrDefault(g => g.DisplayName == gameChoice)?.GameId;
+                if (selectedGameId == null) return;
+            }
+            
+            positiveActivity = await ActivityCreationPage.CreateActivityModalAsync(
+                Navigation, _auth, _activities, _games, selectedGameId);
+            if (positiveActivity == null) return;
+            
+            await DisplayAlert("Now Create Penalty Activity",
+                $"Great! '{positiveActivity.Name}' created.\n\n" +
+                "Now let's create the penalty activity for when you miss.\n\n" +
+                "The name and image will be pre-filled for you.",
+                "Continue");
+            
+            negativeActivity = await CreatePrefillledNegativeActivityAsync(positiveActivity);
+            if (negativeActivity == null)
+            {
                 bool selectExisting = await DisplayAlert(
                     "No Penalty Activity",
                     "You didn't create a penalty activity. Would you like to select an existing one?",
@@ -925,12 +1009,11 @@ public class NewHabitsPage : ContentPage
                 }
                 else
                 {
-                    return; // Cancel the whole habit creation
+                    return;
                 }
             }
         }
 
-        // Create the habit
         if (positiveActivity != null && negativeActivity != null)
         {
             await CreateHabitFromActivitiesAsync(positiveActivity, negativeActivity);
@@ -964,7 +1047,7 @@ public class NewHabitsPage : ContentPage
     private async Task<Activity?> GetOrCreateNegativeActivityAsync(Activity positiveActivity)
     {
         string negativeChoice = await DisplayActionSheet(
-            "Add Habit - Select Penalty Activity",
+            "Select Penalty Activity",
             "Cancel",
             null,
             "Select existing negative activity",
@@ -992,14 +1075,23 @@ public class NewHabitsPage : ContentPage
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<NewHabit>();
 
-        var availableSlots = await _newHabits.GetAvailableSlotsAsync(_auth.CurrentUsername);
-        System.Diagnostics.Debug.WriteLine($"[NEW HABIT PAGE] Available slots before create: {availableSlots}");
+        var availableSlots = await _newHabits.GetAvailableSlotsAsync(_auth.CurrentUsername, _frequency);
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT PAGE] Available {_frequency} slots before create: {availableSlots}");
         
         if (availableSlots <= 0)
         {
-            await DisplayAlert("No Slots", "No allowance slots available. Complete an existing habit first!", "OK");
+            await DisplayAlert("No Slots", $"No {_frequency.ToLower()} allowance slots available. Complete an existing habit first!", "OK");
             return;
         }
+
+        // Set days to graduate based on frequency
+        int daysToGraduate = _frequency switch
+        {
+            "Daily" => 7,
+            "Weekly" => 4,
+            "Monthly" => 3,
+            _ => 7
+        };
 
         var newHabit = new NewHabit
         {
@@ -1009,22 +1101,32 @@ public class NewHabitsPage : ContentPage
             PositiveActivityId = positive.Id,
             NegativeActivityId = negative.Id,
             ConsecutiveDays = 0,
+            DaysToGraduate = daysToGraduate,
+            Frequency = _frequency,
             StartedAt = DateTime.UtcNow,
             Status = "active"
         };
         
-        System.Diagnostics.Debug.WriteLine($"[NEW HABIT PAGE] Creating habit: {newHabit.HabitName}, User: {newHabit.Username}, Game: {newHabit.Game}, Status: {newHabit.Status}");
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT PAGE] Creating {_frequency} habit: {newHabit.HabitName}");
         
         await conn.InsertAsync(newHabit);
         
         System.Diagnostics.Debug.WriteLine($"[NEW HABIT PAGE] Habit inserted with ID: {newHabit.Id}");
 
+        string unitText = _frequency switch
+        {
+            "Daily" => "days",
+            "Weekly" => "weeks",
+            "Monthly" => "months",
+            _ => "days"
+        };
+
         await DisplayAlert("Habit Created!",
             $"'{positive.Name}' is now being tracked!\n\n" +
             $"📁 Game: {positive.Game}\n" +
-            $"✅ Do it daily: {positive.ExpGain:+#;-#;0} EXP\n" +
-            $"❌ Miss a day: {negative.ExpGain:+#;-#;0} EXP\n\n" +
-            "Complete 7 days to graduate!",
+            $"✅ Complete it: {positive.ExpGain:+#;-#;0} EXP\n" +
+            $"❌ Miss it: {negative.ExpGain:+#;-#;0} EXP\n\n" +
+            $"Complete {daysToGraduate} {unitText} to graduate!",
             "Let's go!");
 
         await LoadHabitsAsync();

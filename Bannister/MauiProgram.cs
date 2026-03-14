@@ -73,8 +73,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ExpiredActivitiesPage>();
         builder.Services.AddTransient<ExpLogPage>();
         builder.Services.AddTransient<DragonTreePage>();
-      
-
+        builder.Services.AddTransient<HabitsHomePage>();
+        
         // Conversation Practice Pages
         builder.Services.AddTransient<ConversationListPage>();
         builder.Services.AddTransient<AddScenarioPage>();
