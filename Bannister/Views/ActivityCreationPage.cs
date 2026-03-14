@@ -22,7 +22,6 @@ public class ActivityCreationPage : ContentPage
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
     private readonly GameService _games;
-    private readonly StreakService? _streaks;
 
     private string _gameId = "";
     private string? _selectedImageFilename = null;
@@ -57,6 +56,13 @@ public class ActivityCreationPage : ContentPage
     private CheckBox chkNoHabitTarget;
     private CheckBox chkHasHabitTarget;
     private DatePicker dateHabitTarget;
+    
+    // Level Cap Controls
+    private CheckBox chkHasLevelCap;
+    private VerticalStackLayout levelCapDetails;
+    private Entry txtLevelCapAt;
+    private Entry txtLevelCapStreak;
+    private CheckBox chkLevelDownOnBreak;
     
     // Display days selector
     private DisplayDaysSelector _displayDaysSelector;
@@ -128,12 +134,11 @@ public class ActivityCreationPage : ContentPage
         }
     }
 
-    public ActivityCreationPage(AuthService auth, ActivityService activities, GameService games, StreakService? streaks = null)
+    public ActivityCreationPage(AuthService auth, ActivityService activities, GameService games)
     {
         _auth = auth;
         _activities = activities;
         _games = games;
-        _streaks = streaks;
         
         Title = "Add Activity";
         BuildUI();
@@ -155,10 +160,9 @@ public class ActivityCreationPage : ContentPage
         bool isNegative = false,
         bool noHabitTarget = false,
         DateTime? prefillStartDate = null,
-        DateTime? prefillEndDate = null,
-        StreakService? streaks = null)
+        DateTime? prefillEndDate = null)
     {
-        var page = new ActivityCreationPage(auth, activities, games, streaks);
+        var page = new ActivityCreationPage(auth, activities, games);
         page._isModalMode = true;
         page._modalTcs = new TaskCompletionSource<Activity?>();
         page.GameId = gameId;
@@ -570,12 +574,80 @@ public class ActivityCreationPage : ContentPage
         
         streakSection.Children.Add(new Label
         {
-            Text = "🔥 When enabled, this activity becomes its own category with attempt cards showing day counts",
+            Text = "🔥 When enabled, consecutive days of using this activity will be tracked as streaks",
             FontSize = 12,
             TextColor = Color.FromArgb("#FF9800"),
             FontAttributes = FontAttributes.Italic
         });
         mainStack.Children.Add(streakSection);
+
+        // Level Cap Section
+        var levelCapSection = new VerticalStackLayout { Spacing = 8 };
+        levelCapSection.Children.Add(new Label
+        {
+            Text = "Level Cap",
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#D32F2F")
+        });
+        
+        var levelCapRow = new HorizontalStackLayout { Spacing = 12 };
+        chkHasLevelCap = new CheckBox();
+        chkHasLevelCap.CheckedChanged += (s, e) => { levelCapDetails.IsVisible = e.Value; };
+        levelCapRow.Children.Add(chkHasLevelCap);
+        levelCapRow.Children.Add(new Label
+        {
+            Text = "Require streak to progress past level",
+            VerticalOptions = LayoutOptions.Center
+        });
+        levelCapSection.Children.Add(levelCapRow);
+        
+        // Level cap details (hidden by default)
+        levelCapDetails = new VerticalStackLayout { Spacing = 8, IsVisible = false };
+        
+        var capLevelRow = new HorizontalStackLayout { Spacing = 12 };
+        capLevelRow.Children.Add(new Label { Text = "Cap at level:", VerticalOptions = LayoutOptions.Center });
+        txtLevelCapAt = new Entry
+        {
+            Keyboard = Keyboard.Numeric,
+            Text = "10",
+            WidthRequest = 80
+        };
+        capLevelRow.Children.Add(txtLevelCapAt);
+        levelCapDetails.Children.Add(capLevelRow);
+        
+        var capStreakRow = new HorizontalStackLayout { Spacing = 12 };
+        capStreakRow.Children.Add(new Label { Text = "Require streak:", VerticalOptions = LayoutOptions.Center });
+        txtLevelCapStreak = new Entry
+        {
+            Keyboard = Keyboard.Numeric,
+            Text = "7",
+            WidthRequest = 80
+        };
+        capStreakRow.Children.Add(txtLevelCapStreak);
+        capStreakRow.Children.Add(new Label { Text = "days", VerticalOptions = LayoutOptions.Center });
+        levelCapDetails.Children.Add(capStreakRow);
+        
+        var levelDownRow = new HorizontalStackLayout { Spacing = 12 };
+        chkLevelDownOnBreak = new CheckBox();
+        levelDownRow.Children.Add(chkLevelDownOnBreak);
+        levelDownRow.Children.Add(new Label
+        {
+            Text = "Level down if streak breaks",
+            VerticalOptions = LayoutOptions.Center,
+            TextColor = Color.FromArgb("#D32F2F")
+        });
+        levelCapDetails.Children.Add(levelDownRow);
+        
+        levelCapSection.Children.Add(levelCapDetails);
+        
+        levelCapSection.Children.Add(new Label
+        {
+            Text = "🔒 EXP cannot push you past this level until you achieve the required streak. Breaking the streak can reset your level.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#D32F2F"),
+            FontAttributes = FontAttributes.Italic
+        });
+        mainStack.Children.Add(levelCapSection);
 
         // Activity Status (Possible)
         var statusSection = new VerticalStackLayout { Spacing = 8 };
@@ -1094,8 +1166,7 @@ public class ActivityCreationPage : ContentPage
                 expGain = (isNegativeCategory || isNegativeValue) ? -(meaningful * 2) : (meaningful * 2);
             }
 
-            // Skip habit target check for streak containers (they don't need habit targets)
-            if (!chkStreakTracked.IsChecked && expGain > 0 && !chkNoHabitTarget.IsChecked && !chkHasHabitTarget.IsChecked)
+            if (expGain > 0 && !chkNoHabitTarget.IsChecked && !chkHasHabitTarget.IsChecked)
             {
                 await DisplayAlert("Habit Target Required", 
                     "Please either:\n• Set a habit target date, or\n• Check 'I don't want this as a habit'", 
@@ -1118,12 +1189,18 @@ public class ActivityCreationPage : ContentPage
                 IsStreakTracked = chkStreakTracked.IsChecked,
                 IsPossible = chkIsPossible.IsChecked,
                 ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked,
-                NoHabitTarget = chkNoHabitTarget.IsChecked || chkStreakTracked.IsChecked, // Auto-set for streak containers
+                NoHabitTarget = chkNoHabitTarget.IsChecked,
                 HabitTargetDate = chkHasHabitTarget.IsChecked ? dateHabitTarget.Date : null,
                 HabitTargetFirstSet = chkHasHabitTarget.IsChecked ? DateTime.Now : null,
                 HabitTargetPostponeCount = 0,
                 DisplayDaysOfWeek = _displayDaysSelector.GetDisplayDaysOfWeek(),
-                DisplayDayOfMonth = _displayDaysSelector.GetDisplayDayOfMonth()
+                DisplayDayOfMonth = _displayDaysSelector.GetDisplayDayOfMonth(),
+                
+                // Level cap settings
+                HasLevelCap = chkHasLevelCap.IsChecked,
+                LevelCapAt = int.TryParse(txtLevelCapAt.Text, out int capAt) && capAt >= 1 && capAt <= 100 ? capAt : 10,
+                LevelCapStreakRequired = int.TryParse(txtLevelCapStreak.Text, out int capStreak) && capStreak >= 1 ? capStreak : 7,
+                LevelDownOnStreakBreak = chkLevelDownOnBreak.IsChecked
             };
 
             if (chkStartDate.IsChecked == true)
@@ -1140,34 +1217,6 @@ public class ActivityCreationPage : ContentPage
             
             _activities.LastCreatedActivityId = activity.Id;
 
-            // *** STREAK CONTAINER CONVERSION ***
-            if (activity.IsStreakTracked)
-            {
-                // Save original category before converting
-                activity.OriginalCategory = category;
-                
-                // Set category to activity name (this activity becomes its own category)
-                activity.Category = activity.Name;
-                
-                // Mark as streak container
-                activity.IsStreakContainer = true;
-                
-                await _activities.UpdateActivityAsync(activity);
-                
-                // Start the first streak attempt (if StreakService available)
-                if (_streaks != null)
-                {
-                    await _streaks.StartNewStreakAsync(
-                        _auth.CurrentUsername,
-                        GameId,
-                        activity.Id,
-                        activity.Name);
-                }
-                
-                System.Diagnostics.Debug.WriteLine(
-                    $"[STREAK CONTAINER] Created streak container '{activity.Name}' with first attempt");
-            }
-
             if (_isModalMode)
             {
                 _modalTcs?.TrySetResult(activity);
@@ -1175,10 +1224,7 @@ public class ActivityCreationPage : ContentPage
             }
             else
             {
-                string successMessage = activity.IsStreakContainer 
-                    ? "Streak activity created!\n\nNavigate to its category to see your attempts." 
-                    : "Activity created!";
-                await DisplayAlert("Success", successMessage, "OK");
+                await DisplayAlert("Success", "Activity created!", "OK");
                 await Navigation.PopAsync();
             }
         }

@@ -297,11 +297,15 @@ public partial class ActivityGamePage
             Spacing = 12
         };
 
-        // Meaningful Escalation Timer (NEW - at top)
+        // Level Caps Panel (at very top - shows activities that cap levels)
+        var levelCapsPanel = BuildLevelCapsPanel();
+        stack.Children.Add(levelCapsPanel);
+
+        // Meaningful Escalation Timer (compact version)
         var escalationTimer = BuildEscalationTimerPanel();
         stack.Children.Add(escalationTimer);
 
-        // Level Over Time Chart (MOVED UP - now before EXP chart)
+        // Level Over Time Chart
         var levelChartFrame = new Frame
         {
             Padding = 12,
@@ -324,7 +328,7 @@ public partial class ActivityGamePage
 
         _levelChartView = new GraphicsView
         {
-            HeightRequest = 250,
+            HeightRequest = 200, // Reduced from 250
             Drawable = new LevelChartDrawable(_levelChartData)
         };
         levelChartStack.Children.Add(_levelChartView);
@@ -332,7 +336,7 @@ public partial class ActivityGamePage
         levelChartFrame.Content = levelChartStack;
         stack.Children.Add(levelChartFrame);
 
-        // EXP Over Time Chart (NOW BELOW Level chart)
+        // EXP Over Time Chart
         var expChartFrame = new Frame
         {
             Padding = 12,
@@ -355,7 +359,7 @@ public partial class ActivityGamePage
 
         _expChartView = new GraphicsView
         {
-            HeightRequest = 250,
+            HeightRequest = 200, // Reduced from 250
             Drawable = new ExpChartDrawable(_expChartData)
         };
         expChartStack.Children.Add(_expChartView);

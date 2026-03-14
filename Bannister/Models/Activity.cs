@@ -59,6 +59,35 @@ public class Activity
     /// For streak container activities, stores the original category before conversion.
     /// </summary>
     public string OriginalCategory { get; set; } = "";
+    
+    // ============ LEVEL CAP SETTINGS ============
+    
+    /// <summary>
+    /// If true, this activity enforces a level cap until streak requirement is met.
+    /// </summary>
+    public bool HasLevelCap { get; set; } = false;
+    
+    /// <summary>
+    /// The level at which progress is capped until streak requirement is met.
+    /// EXP cannot accumulate past this level's threshold.
+    /// </summary>
+    public int LevelCapAt { get; set; } = 0;
+    
+    /// <summary>
+    /// The streak (consecutive days) required to unlock past the level cap.
+    /// </summary>
+    public int LevelCapStreakRequired { get; set; } = 7;
+    
+    /// <summary>
+    /// If true, breaking the streak will reset level back to LevelCapAt.
+    /// </summary>
+    public bool LevelDownOnStreakBreak { get; set; } = false;
+    
+    /// <summary>
+    /// Returns true if the level cap is currently active (has cap but streak not met)
+    /// </summary>
+    [Ignore]
+    public bool IsLevelCapActive => HasLevelCap && DisplayDayStreak < LevelCapStreakRequired;
 
     // Auto-award settings
     [Indexed]

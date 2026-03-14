@@ -96,6 +96,47 @@
                        FontAttributes="Italic" />
             </VerticalStackLayout>
 
+            <!-- Level Cap Section -->
+            <VerticalStackLayout x:Name="levelCapSection" Spacing="8">
+                <Label Text="Level Cap" FontAttributes="Bold" TextColor="#D32F2F" />
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkHasLevelCap" CheckedChanged="OnLevelCapChanged" />
+                    <Label Text="Require streak to progress past level"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                
+                <VerticalStackLayout x:Name="levelCapDetails" Spacing="8" IsVisible="False">
+                    <HorizontalStackLayout Spacing="12">
+                        <Label Text="Cap at level:" VerticalOptions="Center" />
+                        <Entry x:Name="txtLevelCapAt" 
+                               Keyboard="Numeric"
+                               Text="10"
+                               WidthRequest="80" />
+                    </HorizontalStackLayout>
+                    
+                    <HorizontalStackLayout Spacing="12">
+                        <Label Text="Require streak:" VerticalOptions="Center" />
+                        <Entry x:Name="txtLevelCapStreak" 
+                               Keyboard="Numeric"
+                               Text="7"
+                               WidthRequest="80" />
+                        <Label Text="days" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    
+                    <HorizontalStackLayout Spacing="12">
+                        <CheckBox x:Name="chkLevelDownOnBreak" />
+                        <Label Text="Level down if streak breaks"
+                               VerticalOptions="Center"
+                               TextColor="#D32F2F" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+                
+                <Label Text="🔒 EXP cannot push you past this level until you achieve the required streak. Breaking the streak can reset your level."
+                       FontSize="12"
+                       TextColor="#D32F2F"
+                       FontAttributes="Italic" />
+            </VerticalStackLayout>
+
             <!-- Possible Activity -->
             <VerticalStackLayout Spacing="8">
                 <Label Text="Activity Status" FontAttributes="Bold" />

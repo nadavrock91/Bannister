@@ -171,10 +171,13 @@ public class StreakService
     /// <summary>
     /// Check and break any streaks that haven't been used today (for non-auto-increment streaks)
     /// Call this on app startup or game load
+    /// Returns list of broken streaks with their activities (for level-down processing)
     /// </summary>
-    public async Task CheckAndBreakExpiredStreaksAsync(string username, string game, ActivityService activityService)
+    public async Task<List<(StreakAttempt streak, Activity activity)>> CheckAndBreakExpiredStreaksAsync(
+        string username, string game, ActivityService activityService)
     {
         var conn = await _db.GetConnectionAsync();
+        var brokenStreaks = new List<(StreakAttempt, Activity)>();
         
         var activeStreaks = await conn.Table<StreakAttempt>()
             .Where(s => s.Username == username && s.Game == game && s.IsActive)
@@ -182,7 +185,7 @@ public class StreakService
 
         var today = DateTime.UtcNow.Date;
 
-        // Get activities to check which are auto-increment
+        // Get activities to check which are auto-increment and for level-cap info
         var activities = await activityService.GetActivitiesAsync(username, game);
         var activityDict = activities.ToDictionary(a => a.Id);
 
@@ -206,9 +209,17 @@ public class StreakService
                     await conn.UpdateAsync(streak);
                     
                     System.Diagnostics.Debug.WriteLine($"[STREAK] Broke streak for '{streak.ActivityName}' - {daysSinceLastUse} days since last use");
+                    
+                    // Add to broken list for level-down processing
+                    if (activity != null)
+                    {
+                        brokenStreaks.Add((streak, activity));
+                    }
                 }
             }
         }
+        
+        return brokenStreaks;
     }
 
     /// <summary>

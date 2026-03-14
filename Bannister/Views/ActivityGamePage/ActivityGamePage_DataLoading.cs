@@ -729,6 +729,7 @@ public partial class ActivityGamePage
     /// <summary>
     /// Check for broken display day streaks and apply penalties.
     /// Shows confirmation dialogs for each broken streak.
+    /// Also handles level-down for activities with level caps.
     /// </summary>
     private async Task CheckBrokenStreaksAsync()
     {
@@ -738,9 +739,8 @@ public partial class ActivityGamePage
         string lastCheckedDate = Preferences.Get(lastCheckedKey, "");
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
-        // TESTING: Comment out to test multiple times per day
         // Only check once per day per game
-        // if (lastCheckedDate == today) return;
+        if (lastCheckedDate == today) return;
 
         var brokenStreaks = await _activities.CheckAndBreakMissedStreaksAsync(_auth.CurrentUsername, _game.GameId);
 
@@ -748,19 +748,31 @@ public partial class ActivityGamePage
         {
             int totalPenalty = 0;
             var penaltyDetails = new List<string>();
+            var levelDowns = new List<(Activity activity, int fromLevel, int toLevel, int expLost)>();
 
             foreach (var (activity, brokenStreak, penalty) in brokenStreaks)
             {
+                // Build options - add level down warning if applicable
+                string acceptOption = "✅ Accept Penalty (streak was broken)";
+                if (activity.HasLevelCap && activity.LevelDownOnStreakBreak)
+                {
+                    var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
+                    if (currentLevel > activity.LevelCapAt)
+                    {
+                        acceptOption = $"✅ Accept Penalty + LEVEL DOWN to {activity.LevelCapAt}";
+                    }
+                }
+
                 // Show action sheet with multiple options
                 string result = await DisplayActionSheet(
-                    $"⚠️ Streak Broken: {activity.Name}",
+                    $"⚠️ Streak Broken: {activity.Name} ({brokenStreak} days)",
                     null, // no cancel
                     null, // no destructive
-                    "✅ Accept Penalty (streak was broken)",
+                    acceptOption,
                     "📅 Yesterday didn't count (restore streak)",
                     "🔄 Forgot to click yesterday (restore streak)");
 
-                if (result == "✅ Accept Penalty (streak was broken)")
+                if (result != null && result.StartsWith("✅"))
                 {
                     // Apply penalty
                     if (penalty < 0)
@@ -768,6 +780,20 @@ public partial class ActivityGamePage
                         await _exp.ApplyExpAsync(_auth.CurrentUsername, _game.GameId, $"{activity.Name} (Streak Broken)", penalty, activity.Id);
                         totalPenalty += penalty;
                         penaltyDetails.Add($"{activity.Name}: {brokenStreak} day streak → {penalty} EXP");
+                    }
+
+                    // Check for level down
+                    if (activity.HasLevelCap && activity.LevelDownOnStreakBreak)
+                    {
+                        var levelDownResult = await _exp.HandleStreakBreakLevelDownAsync(
+                            _auth.CurrentUsername, 
+                            _game.GameId, 
+                            activity);
+
+                        if (levelDownResult.leveledDown)
+                        {
+                            levelDowns.Add((activity, levelDownResult.fromLevel, levelDownResult.toLevel, levelDownResult.expLost));
+                        }
                     }
                 }
                 else if (result == "📅 Yesterday didn't count (restore streak)" || 
@@ -785,6 +811,24 @@ public partial class ActivityGamePage
                 }
             }
 
+            // Show level down summary if any occurred
+            if (levelDowns.Count > 0)
+            {
+                var message = new System.Text.StringBuilder();
+                message.AppendLine("Your level was reduced due to broken streaks:\n");
+                
+                foreach (var (activity, fromLevel, toLevel, expLost) in levelDowns)
+                {
+                    message.AppendLine($"• {activity.Name}");
+                    message.AppendLine($"  Level {fromLevel} → Level {toLevel}");
+                    message.AppendLine($"  Lost {expLost:N0} EXP\n");
+                }
+
+                message.AppendLine("Rebuild your streak to progress past this level.");
+
+                await DisplayAlert("⚠️ LEVEL DOWN", message.ToString(), "OK");
+            }
+
             // Show summary if multiple streaks broken and penalties applied
             if (penaltyDetails.Count > 1)
             {
@@ -795,7 +839,7 @@ public partial class ActivityGamePage
                     string.Join("\n", penaltyDetails),
                     "OK");
             }
-            else if (penaltyDetails.Count == 1)
+            else if (penaltyDetails.Count == 1 && levelDowns.Count == 0)
             {
                 await DisplayAlert("Penalty Applied", $"Total penalty: {totalPenalty} EXP", "OK");
             }

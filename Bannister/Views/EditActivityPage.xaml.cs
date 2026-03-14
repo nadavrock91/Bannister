@@ -63,6 +63,13 @@ public partial class EditActivityPage : ContentPage
         // Set streak tracking
         chkStreakTracked.IsChecked = _activity.IsStreakTracked;
 
+        // Set level cap settings
+        chkHasLevelCap.IsChecked = _activity.HasLevelCap;
+        levelCapDetails.IsVisible = _activity.HasLevelCap;
+        txtLevelCapAt.Text = _activity.LevelCapAt > 0 ? _activity.LevelCapAt.ToString() : "10";
+        txtLevelCapStreak.Text = _activity.LevelCapStreakRequired > 0 ? _activity.LevelCapStreakRequired.ToString() : "7";
+        chkLevelDownOnBreak.IsChecked = _activity.LevelDownOnStreakBreak;
+
         // Set possible status
         chkIsPossible.IsChecked = _activity.IsPossible;
 
@@ -144,6 +151,11 @@ public partial class EditActivityPage : ContentPage
     private void OnIsPossibleChanged(object sender, CheckedChangedEventArgs e)
     {
         // Could add visual feedback here if needed
+    }
+
+    private void OnLevelCapChanged(object sender, CheckedChangedEventArgs e)
+    {
+        levelCapDetails.IsVisible = e.Value;
     }
 
     private void OnNoHabitTargetChanged(object sender, CheckedChangedEventArgs e)
@@ -520,6 +532,31 @@ public partial class EditActivityPage : ContentPage
             _activity.EndDate = endDateTime;
             _activity.IsPossible = chkIsPossible.IsChecked;
             _activity.ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked;
+            
+            // Update level cap settings
+            _activity.HasLevelCap = chkHasLevelCap.IsChecked;
+            if (_activity.HasLevelCap)
+            {
+                if (int.TryParse(txtLevelCapAt.Text, out int capLevel) && capLevel >= 1 && capLevel <= 100)
+                {
+                    _activity.LevelCapAt = capLevel;
+                }
+                else
+                {
+                    _activity.LevelCapAt = 10;
+                }
+                
+                if (int.TryParse(txtLevelCapStreak.Text, out int capStreak) && capStreak >= 1)
+                {
+                    _activity.LevelCapStreakRequired = capStreak;
+                }
+                else
+                {
+                    _activity.LevelCapStreakRequired = 7;
+                }
+                
+                _activity.LevelDownOnStreakBreak = chkLevelDownOnBreak.IsChecked;
+            }
             
             // Only update habit target if not a streak container
             if (!_activity.IsStreakContainer)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -37,6 +37,14 @@ namespace Bannister.Services
         {
             level = Math.Clamp(level, 1, MaxLevel);
             return LevelThresholds[level];
+        }
+
+        /// <summary>
+        /// Alias for TotalExpAtLevelStart - cumulative EXP required to reach a level
+        /// </summary>
+        public static int CumulativeExpForLevel(int level)
+        {
+            return TotalExpAtLevelStart(level);
         }
 
         /// <summary>

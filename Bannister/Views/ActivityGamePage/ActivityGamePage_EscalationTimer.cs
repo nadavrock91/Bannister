@@ -13,22 +13,25 @@ public partial class ActivityGamePage
     private Label? _escalationDaysLabel;
     private Button? _escalationResetButton;
     private Button? _escalationToggleButton;
+    
+    // Level caps panel
+    private Frame? _levelCapsFrame;
+    private VerticalStackLayout? _levelCapsStack;
 
     /// <summary>
-    /// Build the vertical escalation timer panel for the right side
+    /// Build the Level Caps panel showing activities that cap progression
     /// </summary>
-    private Frame BuildEscalationTimerPanel()
+    private Frame BuildLevelCapsPanel()
     {
-        System.Diagnostics.Debug.WriteLine(">>> BuildEscalationTimerPanel() called");
-        
-        _escalationTimerFrame = new Frame
+        _levelCapsFrame = new Frame
         {
             Padding = 12,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
+            BackgroundColor = Color.FromArgb("#FFF3E0"), // Light orange background
             HasShadow = true,
-            BorderColor = Colors.Transparent,
-            Margin = new Thickness(0, 0, 0, 12)
+            BorderColor = Color.FromArgb("#FF9800"),
+            Margin = new Thickness(0, 0, 0, 12),
+            IsVisible = false // Hidden by default, shown when there are level caps
         };
 
         var stack = new VerticalStackLayout { Spacing = 8 };
@@ -36,71 +39,231 @@ public partial class ActivityGamePage
         // Title
         var titleLabel = new Label
         {
-            Text = "Meaningful Escalation",
+            Text = "🔒 Level Caps",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#333")
+            TextColor = Color.FromArgb("#E65100")
         };
         stack.Children.Add(titleLabel);
 
-        // Button row
-        var buttonRow = new HorizontalStackLayout 
-        { 
-            Spacing = 4,
-            HorizontalOptions = LayoutOptions.Center
+        // Container for level cap items
+        _levelCapsStack = new VerticalStackLayout { Spacing = 6 };
+        stack.Children.Add(_levelCapsStack);
+
+        _levelCapsFrame.Content = stack;
+        return _levelCapsFrame;
+    }
+
+    /// <summary>
+    /// Refresh the level caps panel with current data
+    /// </summary>
+    private async Task RefreshLevelCapsPanelAsync()
+    {
+        if (_game == null || _levelCapsStack == null || _levelCapsFrame == null) return;
+
+        try
+        {
+            // Get current level first
+            var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
+            
+            var levelCaps = await _exp.GetAllLevelCapsAsync(_auth.CurrentUsername, _game.GameId, currentLevel);
+            
+            _levelCapsStack.Children.Clear();
+
+            if (levelCaps.Count == 0)
+            {
+                _levelCapsFrame.IsVisible = false;
+                return;
+            }
+
+            _levelCapsFrame.IsVisible = true;
+
+            foreach (var (activity, isBlocking) in levelCaps)
+            {
+                var itemFrame = new Frame
+                {
+                    Padding = 8,
+                    CornerRadius = 8,
+                    BackgroundColor = isBlocking ? Color.FromArgb("#FFCDD2") : Color.FromArgb("#C8E6C9"),
+                    HasShadow = false,
+                    BorderColor = Colors.Transparent
+                };
+
+                var itemGrid = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = GridLength.Auto }
+                    },
+                    ColumnSpacing = 8
+                };
+
+                // Activity info
+                var infoStack = new VerticalStackLayout { Spacing = 2 };
+                
+                var nameLabel = new Label
+                {
+                    Text = activity.Name,
+                    FontSize = 12,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#333"),
+                    LineBreakMode = LineBreakMode.TailTruncation
+                };
+                infoStack.Children.Add(nameLabel);
+
+                var detailLabel = new Label
+                {
+                    Text = $"Cap at Lv{activity.LevelCapAt} • Need {activity.LevelCapStreakRequired}d streak",
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#666")
+                };
+                infoStack.Children.Add(detailLabel);
+
+                Grid.SetColumn(infoStack, 0);
+                itemGrid.Children.Add(infoStack);
+
+                // Status badge
+                var statusStack = new VerticalStackLayout 
+                { 
+                    HorizontalOptions = LayoutOptions.End,
+                    VerticalOptions = LayoutOptions.Center
+                };
+
+                var streakLabel = new Label
+                {
+                    Text = $"🔥 {activity.DisplayDayStreak}d",
+                    FontSize = 11,
+                    FontAttributes = FontAttributes.Bold,
+                    HorizontalOptions = LayoutOptions.End,
+                    TextColor = activity.DisplayDayStreak >= activity.LevelCapStreakRequired 
+                        ? Color.FromArgb("#4CAF50") 
+                        : Color.FromArgb("#F44336")
+                };
+                statusStack.Children.Add(streakLabel);
+
+                var statusLabel = new Label
+                {
+                    Text = isBlocking ? "⛔ BLOCKING" : "✅ UNLOCKED",
+                    FontSize = 9,
+                    FontAttributes = FontAttributes.Bold,
+                    HorizontalOptions = LayoutOptions.End,
+                    TextColor = isBlocking ? Color.FromArgb("#D32F2F") : Color.FromArgb("#388E3C")
+                };
+                statusStack.Children.Add(statusLabel);
+
+                Grid.SetColumn(statusStack, 1);
+                itemGrid.Children.Add(statusStack);
+
+                itemFrame.Content = itemGrid;
+                _levelCapsStack.Children.Add(itemFrame);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error refreshing level caps panel: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Build the vertical escalation timer panel for the right side (compact version)
+    /// </summary>
+    private Frame BuildEscalationTimerPanel()
+    {
+        System.Diagnostics.Debug.WriteLine(">>> BuildEscalationTimerPanel() called");
+        
+        _escalationTimerFrame = new Frame
+        {
+            Padding = 10,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent,
+            Margin = new Thickness(0, 0, 0, 12)
         };
 
-        // Reset button (small, at top)
+        var stack = new VerticalStackLayout { Spacing = 6 };
+
+        // Title and buttons in a row
+        var headerGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 4
+        };
+
+        var titleLabel = new Label
+        {
+            Text = "Meaningful Escalation",
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            VerticalOptions = LayoutOptions.Center,
+            TextColor = Color.FromArgb("#333")
+        };
+        Grid.SetColumn(titleLabel, 0);
+        headerGrid.Children.Add(titleLabel);
+
+        // Reset button (small)
         _escalationResetButton = new Button
         {
-            Text = "✓ Reset",
+            Text = "✓",
             BackgroundColor = Color.FromArgb("#4CAF50"),
             TextColor = Colors.White,
-            CornerRadius = 6,
+            CornerRadius = 4,
             FontSize = 10,
-            Padding = new Thickness(6, 3)
+            Padding = new Thickness(6, 2),
+            WidthRequest = 28,
+            HeightRequest = 24
         };
         _escalationResetButton.Clicked += OnEscalationResetClicked;
-        buttonRow.Children.Add(_escalationResetButton);
+        Grid.SetColumn(_escalationResetButton, 1);
+        headerGrid.Children.Add(_escalationResetButton);
 
-        // Toggle button (disable/enable)
+        // Toggle button (small)
         _escalationToggleButton = new Button
         {
-            Text = "⏸ Disable",
+            Text = "⏸",
             BackgroundColor = Color.FromArgb("#FF9800"),
             TextColor = Colors.White,
-            CornerRadius = 6,
+            CornerRadius = 4,
             FontSize = 10,
-            Padding = new Thickness(6, 3)
+            Padding = new Thickness(6, 2),
+            WidthRequest = 28,
+            HeightRequest = 24
         };
         _escalationToggleButton.Clicked += OnEscalationToggleClicked;
-        buttonRow.Children.Add(_escalationToggleButton);
+        Grid.SetColumn(_escalationToggleButton, 2);
+        headerGrid.Children.Add(_escalationToggleButton);
 
-        stack.Children.Add(buttonRow);
+        stack.Children.Add(headerGrid);
 
         // Days remaining label
         _escalationDaysLabel = new Label
         {
             Text = "30 days",
-            FontSize = 24,
+            FontSize = 20,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
             TextColor = Color.FromArgb("#4CAF50")
         };
         stack.Children.Add(_escalationDaysLabel);
 
-        // Vertical progress bar container
+        // Vertical progress bar container (REDUCED HEIGHT)
         var progressContainer = new Frame
         {
             Padding = 0,
-            CornerRadius = 8,
+            CornerRadius = 6,
             BackgroundColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false,
-            HeightRequest = 300,
-            WidthRequest = 40,
+            HeightRequest = 120, // Reduced from 300
+            WidthRequest = 30,   // Reduced from 40
             HorizontalOptions = LayoutOptions.Center,
-            Margin = new Thickness(0, 12, 0, 12)
+            Margin = new Thickness(0, 4, 0, 4)
         };
 
         // Vertical progress bar (rotated horizontal bar)
@@ -109,9 +272,9 @@ public partial class ActivityGamePage
             Progress = 1.0,
             ProgressColor = Color.FromArgb("#4CAF50"),
             BackgroundColor = Colors.Transparent,
-            Rotation = -90, // Rotate to make it vertical
-            WidthRequest = 300,
-            HeightRequest = 40,
+            Rotation = -90,
+            WidthRequest = 120, // Match container height
+            HeightRequest = 30, // Match container width
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
         };
@@ -119,11 +282,11 @@ public partial class ActivityGamePage
         progressContainer.Content = _escalationProgressBar;
         stack.Children.Add(progressContainer);
 
-        // Info label
+        // Info label (smaller)
         var infoLabel = new Label
         {
-            Text = "Days until you must\nmeaningfully escalate",
-            FontSize = 10,
+            Text = "Days to escalate",
+            FontSize = 9,
             TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center
@@ -251,36 +414,18 @@ public partial class ActivityGamePage
     }
 
     /// <summary>
-    /// Update the escalation timer display with current values
+    /// Update the escalation timer display based on game state
     /// </summary>
     private async Task UpdateEscalationTimerAsync()
     {
-        System.Diagnostics.Debug.WriteLine(">>> UpdateEscalationTimerAsync() called");
-        
-        if (_game == null)
-        {
-            System.Diagnostics.Debug.WriteLine(">>> _game is null, returning");
+        if (_game == null || _escalationDaysLabel == null || _escalationProgressBar == null)
             return;
-        }
-        
-        if (_escalationDaysLabel == null || _escalationProgressBar == null)
-        {
-            System.Diagnostics.Debug.WriteLine(">>> UI controls are null, returning");
-            return;
-        }
 
-        // Re-fetch game to get latest values
+        // Reload game to get fresh state
         _game = await _games.GetGameAsync(_auth.CurrentUsername, _game.GameId);
-        if (_game == null)
-        {
-            System.Diagnostics.Debug.WriteLine(">>> Game not found after re-fetch");
-            return;
-        }
+        if (_game == null) return;
 
-        // DEBUG: Log the raw values
-        System.Diagnostics.Debug.WriteLine($">>> Game: {_game.GameId}");
-        System.Diagnostics.Debug.WriteLine($">>> LastMeaningfulEscalation: {_game.LastMeaningfulEscalation}");
-        System.Diagnostics.Debug.WriteLine($">>> LastMeaningfulEscalation.HasValue: {_game.LastMeaningfulEscalation.HasValue}");
+        System.Diagnostics.Debug.WriteLine($">>> UpdateEscalationTimerAsync() called");
         System.Diagnostics.Debug.WriteLine($">>> IsEscalationTimerDisabled: {_game.IsEscalationTimerDisabled}");
 
         int daysRemaining = _game.DaysRemaining;
@@ -293,7 +438,7 @@ public partial class ActivityGamePage
         // Update toggle button text
         if (_escalationToggleButton != null)
         {
-            _escalationToggleButton.Text = isDisabled ? "▶ Enable" : "⏸ Disable";
+            _escalationToggleButton.Text = isDisabled ? "▶" : "⏸";
             _escalationToggleButton.BackgroundColor = isDisabled ? 
                 Color.FromArgb("#4CAF50") : Color.FromArgb("#FF9800");
         }
@@ -339,6 +484,9 @@ public partial class ActivityGamePage
             _escalationDaysLabel.TextColor = textColor;
             _escalationProgressBar.ProgressColor = barColor;
         }
+        
+        // Also refresh level caps panel
+        await RefreshLevelCapsPanelAsync();
         
         System.Diagnostics.Debug.WriteLine($">>> UpdateEscalationTimerAsync() complete - showing {_escalationDaysLabel.Text}");
     }

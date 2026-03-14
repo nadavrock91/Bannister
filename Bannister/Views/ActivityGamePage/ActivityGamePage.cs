@@ -159,6 +159,7 @@ public partial class ActivityGamePage : ContentPage
                 // Refresh EXP and activities
                 await RefreshExpAsync();
                 await RefreshActivitiesAsync();
+                await RefreshLevelCapsPanelAsync(); // Refresh level caps panel after edit
             }
         }
         catch (Exception ex)
