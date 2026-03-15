@@ -21,11 +21,12 @@ public partial class HomePage : ContentPage
     private readonly DatabaseService _db;
     private readonly ExpService _exp;
     private readonly CountdownService _countdowns;
+    private readonly LearningService _learning;
     private bool _introChecked = false;
 
     public HomePage(AuthService auth, GameService games, DragonService dragons,
         BackupService backup, AttemptService attempts, StreakService streaks, DatabaseService db, ExpService exp,
-        CountdownService countdowns)
+        CountdownService countdowns, LearningService learning)
     {
         InitializeComponent();
         _auth = auth;
@@ -37,6 +38,7 @@ public partial class HomePage : ContentPage
         _db = db;
         _exp = exp;
         _countdowns = countdowns;
+        _learning = learning;
     }
 
     protected override async void OnAppearing()
@@ -146,6 +148,20 @@ public partial class HomePage : ContentPage
         {
             btnCountdowns.Text = $"⏳ Countdowns ({activeCountdowns.Count} active)";
         }
+
+        // Update learning button with stats
+        var (totalBooks, completedBooks, totalVideos, completedVideos) = await _learning.GetStatsAsync(_auth.CurrentUsername);
+        int pendingBooks = totalBooks - completedBooks;
+        int pendingVideos = totalVideos - completedVideos;
+        
+        if (totalBooks == 0 && totalVideos == 0)
+        {
+            btnLearning.Text = "📚 Learning (Books & Videos)";
+        }
+        else
+        {
+            btnLearning.Text = $"📚 Learning ({pendingBooks} books, {pendingVideos} videos to go)";
+        }
     }
 
     private async Task CheckExpiredActivitiesAsync()
@@ -192,6 +208,12 @@ public partial class HomePage : ContentPage
     private async void OnChartsClicked(object sender, EventArgs e)
     {
         var page = new ChartsHubPage(_auth, _games, _exp, _db);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnLearningClicked(object sender, EventArgs e)
+    {
+        var page = new LearningPage(_auth, _learning);
         await Navigation.PushAsync(page);
     }
 

@@ -210,16 +210,18 @@ public class Activity
     public int HabitTargetPostponeCount { get; set; } = 0;
     
     /// <summary>
-    /// Returns true if this activity needs a habit decision (neither target date nor opted out)
+    /// Returns true if this activity needs a habit decision (neither target date nor opted out).
+    /// Auto-award activities and activities that are already habits are excluded.
     /// </summary>
     [Ignore]
-    public bool NeedsHabitDecision => !NoHabitTarget && !HabitTargetDate.HasValue && ExpGain > 0 && Category != "Negative";
+    public bool NeedsHabitDecision => !NoHabitTarget && !HabitTargetDate.HasValue && ExpGain > 0 && Category != "Negative" && !IsAutoAward && !IsHabit;
     
     /// <summary>
-    /// Returns true if the habit target date has passed
+    /// Returns true if the habit target date has passed AND the activity hasn't become a habit yet.
+    /// If the activity is already a habit, we don't need to prompt about expired target.
     /// </summary>
     [Ignore]
-    public bool IsHabitTargetExpired => HabitTargetDate.HasValue && HabitTargetDate.Value.Date < DateTime.Now.Date;
+    public bool IsHabitTargetExpired => HabitTargetDate.HasValue && HabitTargetDate.Value.Date < DateTime.Now.Date && !IsHabit && !IsAutoAward;
     
     /// <summary>
     /// Days since habit target was first set

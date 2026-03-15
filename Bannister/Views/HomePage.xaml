@@ -27,6 +27,12 @@
                         BackgroundColor="#E3F2FD" TextColor="#1565C0"
                         CornerRadius="8" HeightRequest="48"
                         FontSize="16" FontAttributes="Bold" />
+                <!-- Learning Section -->
+                <Label Text="Learning" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="0,16,0,8" />
+                <Button x:Name="btnLearning" Text="📚 Learning (Books &amp; Videos)" Clicked="OnLearningClicked"
+                        BackgroundColor="#FCE4EC" TextColor="#C2185B"
+                        CornerRadius="8" HeightRequest="48"
+                        FontSize="16" FontAttributes="Bold" />
                 <!-- Dragons Section -->
                 <Label Text="Dragons" FontSize="18" FontAttributes="Bold" TextColor="White" Margin="0,16,0,8" />
                 <Button x:Name="btnDragons" Text="🐉 Dragons (0)" Clicked="OnDragonsClicked"

@@ -728,7 +728,7 @@ public partial class ActivityGamePage
 
     /// <summary>
     /// Check for broken display day streaks and apply penalties.
-    /// Shows confirmation dialogs for each broken streak.
+    /// Shows a dedicated page for each broken streak decision.
     /// Also handles level-down for activities with level caps.
     /// </summary>
     private async Task CheckBrokenStreaksAsync()
@@ -746,70 +746,15 @@ public partial class ActivityGamePage
 
         if (brokenStreaks.Count > 0)
         {
-            int totalPenalty = 0;
-            var penaltyDetails = new List<string>();
-            var levelDowns = new List<(Activity activity, int fromLevel, int toLevel, int expLost)>();
+            // Show the dedicated streak broken page
+            var streakPage = new StreakBrokenPage(_auth, _activities, _exp, _game.GameId, brokenStreaks);
+            await Navigation.PushModalAsync(streakPage);
+            await streakPage.GetResultAsync();
 
-            foreach (var (activity, brokenStreak, penalty) in brokenStreaks)
-            {
-                // Build options - add level down warning if applicable
-                string acceptOption = "✅ Accept Penalty (streak was broken)";
-                if (activity.HasLevelCap && activity.LevelDownOnStreakBreak)
-                {
-                    var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
-                    if (currentLevel > activity.LevelCapAt)
-                    {
-                        acceptOption = $"✅ Accept Penalty + LEVEL DOWN to {activity.LevelCapAt}";
-                    }
-                }
-
-                // Show action sheet with multiple options
-                string result = await DisplayActionSheet(
-                    $"⚠️ Streak Broken: {activity.Name} ({brokenStreak} days)",
-                    null, // no cancel
-                    null, // no destructive
-                    acceptOption,
-                    "📅 Yesterday didn't count (restore streak)",
-                    "🔄 Forgot to click yesterday (restore streak)");
-
-                if (result != null && result.StartsWith("✅"))
-                {
-                    // Apply penalty
-                    if (penalty < 0)
-                    {
-                        await _exp.ApplyExpAsync(_auth.CurrentUsername, _game.GameId, $"{activity.Name} (Streak Broken)", penalty, activity.Id);
-                        totalPenalty += penalty;
-                        penaltyDetails.Add($"{activity.Name}: {brokenStreak} day streak → {penalty} EXP");
-                    }
-
-                    // Check for level down
-                    if (activity.HasLevelCap && activity.LevelDownOnStreakBreak)
-                    {
-                        var levelDownResult = await _exp.HandleStreakBreakLevelDownAsync(
-                            _auth.CurrentUsername, 
-                            _game.GameId, 
-                            activity);
-
-                        if (levelDownResult.leveledDown)
-                        {
-                            levelDowns.Add((activity, levelDownResult.fromLevel, levelDownResult.toLevel, levelDownResult.expLost));
-                        }
-                    }
-                }
-                else if (result == "📅 Yesterday didn't count (restore streak)" || 
-                         result == "🔄 Forgot to click yesterday (restore streak)")
-                {
-                    // Restore the streak - set LastDisplayDayUsed to yesterday so streak continues
-                    activity.DisplayDayStreak = brokenStreak; // Restore the streak count
-                    activity.LastDisplayDayUsed = DateTime.Now.AddDays(-1); // Set to yesterday
-                    await _activities.UpdateActivityAsync(activity);
-                    
-                    string reason = result.Contains("didn't count") ? "day excluded" : "retroactive click";
-                    await DisplayAlert("Streak Restored", 
-                        $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: {reason}", 
-                        "OK");
-                }
-            }
+            // Get results from the page
+            var levelDowns = streakPage.LevelDowns;
+            var penaltyDetails = streakPage.PenaltyDetails;
+            int totalPenalty = streakPage.TotalPenalty;
 
             // Show level down summary if any occurred
             if (levelDowns.Count > 0)
