@@ -195,6 +195,9 @@ public partial class ActivityGamePage
                 currentLevel
             );
             await Navigation.PushModalAsync(confirmPage);
+            
+            // Wait for the modal to complete before continuing
+            await confirmPage.WaitForCompletionAsync();
 
             await RefreshExpAsync();
             await RefreshActivitiesAsync();

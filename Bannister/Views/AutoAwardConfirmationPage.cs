@@ -27,6 +27,14 @@ public class AutoAwardConfirmationPage : ContentPage
     private Label _lblProgressText;
     private Label _lblProgressDetail;
     private Button _btnAward;
+    
+    // Completion tracking
+    private TaskCompletionSource<bool> _tcs = new();
+    
+    /// <summary>
+    /// Wait for the page to complete (user awarded or skipped)
+    /// </summary>
+    public Task<bool> WaitForCompletionAsync() => _tcs.Task;
 
     public AutoAwardConfirmationPage(
         List<Activity> eligibleActivities,
@@ -356,6 +364,7 @@ public class AutoAwardConfirmationPage : ContentPage
 
         if (selectedActivities.Count == 0)
         {
+            _tcs.TrySetResult(true);
             await Navigation.PopModalAsync();
             return;
         }
@@ -460,6 +469,7 @@ public class AutoAwardConfirmationPage : ContentPage
                 "OK"
             );
 
+            _tcs.TrySetResult(true);
             await Navigation.PopModalAsync();
         }
         catch (Exception ex)
@@ -501,6 +511,7 @@ public class AutoAwardConfirmationPage : ContentPage
             }
 
             _progressOverlay.IsVisible = false;
+            _tcs.TrySetResult(true);
             await Navigation.PopModalAsync();
         }
     }

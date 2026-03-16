@@ -25,6 +25,7 @@ public class StreakBrokenPage : ContentPage
     private Label _progressLabel;
     private Label _activityNameLabel;
     private Label _streakInfoLabel;
+    private Label _missedDateLabel;
     private Label _penaltyLabel;
     private Button _acceptButton;
     private Frame _levelDownWarning;
@@ -148,6 +149,14 @@ public class StreakBrokenPage : ContentPage
         };
         activityStack.Children.Add(_streakInfoLabel);
 
+        _missedDateLabel = new Label
+        {
+            Text = "Missed: March 14, 2026",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        };
+        activityStack.Children.Add(_missedDateLabel);
+
         _penaltyLabel = new Label
         {
             Text = "Penalty: -14 EXP",
@@ -206,23 +215,23 @@ public class StreakBrokenPage : ContentPage
         _acceptButton.Clicked += OnAcceptPenaltyClicked;
         mainStack.Children.Add(_acceptButton);
 
-        // Yesterday didn't count button
-        var yesterdayBtn = new Button
+        // Day before yesterday didn't count button
+        var dayBeforeBtn = new Button
         {
-            Text = "📅 Yesterday Didn't Count",
+            Text = "📅 That Day Didn't Count",
             BackgroundColor = Color.FromArgb("#2196F3"),
             TextColor = Colors.White,
             FontSize = 16,
             CornerRadius = 8,
             HeightRequest = 50
         };
-        yesterdayBtn.Clicked += OnYesterdayDidntCountClicked;
-        mainStack.Children.Add(yesterdayBtn);
+        dayBeforeBtn.Clicked += OnDayDidntCountClicked;
+        mainStack.Children.Add(dayBeforeBtn);
 
         // Add explanation
         mainStack.Children.Add(new Label
         {
-            Text = "Use this if yesterday was an exception (sick, travel, etc.)",
+            Text = "Use if the missed day was an exception (sick, travel, etc.)",
             FontSize = 11,
             TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
@@ -232,7 +241,7 @@ public class StreakBrokenPage : ContentPage
         // Forgot to click button
         var forgotBtn = new Button
         {
-            Text = "🔄 Forgot to Click Yesterday",
+            Text = "🔄 Forgot to Log That Day",
             BackgroundColor = Color.FromArgb("#9C27B0"),
             TextColor = Colors.White,
             FontSize = 16,
@@ -245,7 +254,7 @@ public class StreakBrokenPage : ContentPage
         // Add explanation
         mainStack.Children.Add(new Label
         {
-            Text = "Use this if you did the activity but forgot to log it",
+            Text = "Use if you did the activity but forgot to log it",
             FontSize = 11,
             TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
@@ -271,6 +280,11 @@ public class StreakBrokenPage : ContentPage
         _progressLabel.Text = $"{_currentIndex + 1} of {_brokenStreaks.Count}";
         _activityNameLabel.Text = activity.Name;
         _streakInfoLabel.Text = $"🔥 {brokenStreak} day streak was broken";
+        
+        // The missed day is 2 days ago (day before yesterday)
+        var missedDate = DateTime.Now.AddDays(-2);
+        _missedDateLabel.Text = $"Missed: {missedDate:dddd, MMMM d}";
+        
         _penaltyLabel.Text = $"Penalty: {penalty} EXP";
 
         // Check for level down
@@ -328,17 +342,19 @@ public class StreakBrokenPage : ContentPage
         MoveToNext();
     }
 
-    private async void OnYesterdayDidntCountClicked(object sender, EventArgs e)
+    private async void OnDayDidntCountClicked(object sender, EventArgs e)
     {
         var (activity, brokenStreak, _) = _brokenStreaks[_currentIndex];
 
-        // Restore the streak
+        // Restore the streak - the missed day was 2 days ago (day before yesterday)
+        // Set LastDisplayDayUsed to day before yesterday so today's check passes
         activity.DisplayDayStreak = brokenStreak;
-        activity.LastDisplayDayUsed = DateTime.Now.AddDays(-1);
+        activity.LastDisplayDayUsed = DateTime.Now.AddDays(-2);
         await _activities.UpdateActivityAsync(activity);
 
+        string missedDate = DateTime.Now.AddDays(-2).ToString("MMM dd");
         await DisplayAlert("Streak Restored", 
-            $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: Yesterday excluded", 
+            $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: {missedDate} excluded", 
             "OK");
 
         MoveToNext();
@@ -348,13 +364,14 @@ public class StreakBrokenPage : ContentPage
     {
         var (activity, brokenStreak, _) = _brokenStreaks[_currentIndex];
 
-        // Restore the streak
+        // Restore the streak - user claims they did it 2 days ago but forgot to log
         activity.DisplayDayStreak = brokenStreak;
-        activity.LastDisplayDayUsed = DateTime.Now.AddDays(-1);
+        activity.LastDisplayDayUsed = DateTime.Now.AddDays(-2);
         await _activities.UpdateActivityAsync(activity);
 
+        string missedDate = DateTime.Now.AddDays(-2).ToString("MMM dd");
         await DisplayAlert("Streak Restored", 
-            $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: Retroactive click", 
+            $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: Retroactive log for {missedDate}", 
             "OK");
 
         MoveToNext();

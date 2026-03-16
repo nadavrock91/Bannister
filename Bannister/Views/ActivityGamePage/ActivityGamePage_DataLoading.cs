@@ -37,6 +37,14 @@ public partial class ActivityGamePage
 
             await _exp.EnsureUserStateAsync(username, _game.GameId);
             await LoadDragonAsync();
+            
+            // IMPORTANT: Check broken streaks FIRST before auto-award
+            // This ensures penalties are applied before any bonuses
+            System.Diagnostics.Debug.WriteLine($"[LOAD GAME] About to call CheckBrokenStreaksAsync");
+            await CheckBrokenStreaksAsync(); // Check for broken display day streaks
+            System.Diagnostics.Debug.WriteLine($"[LOAD GAME] Finished CheckBrokenStreaksAsync");
+            
+            // Now check auto-award (after broken streaks are handled)
             await CheckAutoAwardActivitiesAsync();
             
             System.Diagnostics.Debug.WriteLine($"[LOAD GAME] About to call CheckAndMoveExpiredActivitiesAsync");
@@ -50,10 +58,6 @@ public partial class ActivityGamePage
             System.Diagnostics.Debug.WriteLine($"[LOAD GAME] About to call CheckHabitTargetsAsync");
             await CheckHabitTargetsAsync(); // Check for habit target decisions and expired targets
             System.Diagnostics.Debug.WriteLine($"[LOAD GAME] Finished CheckHabitTargetsAsync");
-            
-            System.Diagnostics.Debug.WriteLine($"[LOAD GAME] About to call CheckBrokenStreaksAsync");
-            await CheckBrokenStreaksAsync(); // Check for broken display day streaks
-            System.Diagnostics.Debug.WriteLine($"[LOAD GAME] Finished CheckBrokenStreaksAsync");
             
             await RefreshExpAsync();
             await UpdateEscalationTimerAsync(); // Update escalation timer display
