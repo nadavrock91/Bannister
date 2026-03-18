@@ -281,8 +281,8 @@ public class StreakBrokenPage : ContentPage
         _activityNameLabel.Text = activity.Name;
         _streakInfoLabel.Text = $"🔥 {brokenStreak} day streak was broken";
         
-        // The missed day is 2 days ago (day before yesterday)
-        var missedDate = DateTime.Now.AddDays(-2);
+        // The missed day is yesterday
+        var missedDate = DateTime.Now.AddDays(-1);
         _missedDateLabel.Text = $"Missed: {missedDate:dddd, MMMM d}";
         
         _penaltyLabel.Text = $"Penalty: {penalty} EXP";
@@ -346,13 +346,13 @@ public class StreakBrokenPage : ContentPage
     {
         var (activity, brokenStreak, _) = _brokenStreaks[_currentIndex];
 
-        // Restore the streak - the missed day was 2 days ago (day before yesterday)
-        // Set LastDisplayDayUsed to day before yesterday so today's check passes
+        // Restore the streak - the missed day was yesterday but it was an exception
+        // Set LastDisplayDayUsed to yesterday so today continues the streak
         activity.DisplayDayStreak = brokenStreak;
-        activity.LastDisplayDayUsed = DateTime.Now.AddDays(-2);
+        activity.LastDisplayDayUsed = DateTime.Now.AddDays(-1);
         await _activities.UpdateActivityAsync(activity);
 
-        string missedDate = DateTime.Now.AddDays(-2).ToString("MMM dd");
+        string missedDate = DateTime.Now.AddDays(-1).ToString("MMM dd");
         await DisplayAlert("Streak Restored", 
             $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: {missedDate} excluded", 
             "OK");
@@ -364,15 +364,35 @@ public class StreakBrokenPage : ContentPage
     {
         var (activity, brokenStreak, _) = _brokenStreaks[_currentIndex];
 
-        // Restore the streak - user claims they did it 2 days ago but forgot to log
+        // Restore the streak - user did the activity yesterday but forgot to log
+        // Set LastDisplayDayUsed to yesterday so today continues the streak
         activity.DisplayDayStreak = brokenStreak;
-        activity.LastDisplayDayUsed = DateTime.Now.AddDays(-2);
+        activity.LastDisplayDayUsed = DateTime.Now.AddDays(-1);
         await _activities.UpdateActivityAsync(activity);
-
-        string missedDate = DateTime.Now.AddDays(-2).ToString("MMM dd");
-        await DisplayAlert("Streak Restored", 
-            $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: Retroactive log for {missedDate}", 
-            "OK");
+        
+        // Award the EXP for the missed day (since they claim they did it)
+        int expAmount = activity.ExpGain;
+        string missedDate = DateTime.Now.AddDays(-1).ToString("MMM dd");
+        
+        if (expAmount > 0)
+        {
+            await _exp.ApplyExpAsync(
+                _auth.CurrentUsername, 
+                _gameId, 
+                $"{activity.Name} (Retroactive {missedDate})", 
+                expAmount, 
+                activity.Id);
+                
+            await DisplayAlert("Streak Restored + EXP Awarded", 
+                $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\n+{expAmount} EXP awarded for {missedDate}", 
+                "OK");
+        }
+        else
+        {
+            await DisplayAlert("Streak Restored", 
+                $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: Retroactive log for {missedDate}", 
+                "OK");
+        }
 
         MoveToNext();
     }

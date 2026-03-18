@@ -268,6 +268,18 @@ public partial class ActivityGamePage
         btnViewLog.Clicked += OnViewLogClicked;
         stack.Children.Add(btnViewLog);
 
+        // Options button with context menu
+        var btnOptions = new Button
+        {
+            Text = "⚙️ Options",
+            BackgroundColor = Color.FromArgb("#607D8B"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 13
+        };
+        btnOptions.Clicked += OnOptionsClicked;
+        stack.Children.Add(btnOptions);
+
         // Add Conversation Practice button for conversation game
         if (GameId == "conversation_practice")
         {

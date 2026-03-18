@@ -219,6 +219,18 @@ public partial class ActivityGamePage
         btnViewLog.Clicked += OnViewLogClicked;
         stack.Children.Add(btnViewLog);
 
+        // Options button with context menu
+        var btnOptions = new Button
+        {
+            Text = "⚙️ Options",
+            BackgroundColor = Color.FromArgb("#607D8B"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 13
+        };
+        btnOptions.Clicked += OnOptionsClicked;
+        stack.Children.Add(btnOptions);
+
         frame.Content = stack;
         return frame;
     }

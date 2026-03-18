@@ -122,14 +122,25 @@ public partial class ActivityGamePage
         string lastCheckDate = Preferences.Get(autoAwardKey, "");
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
+        // Check if already processed today
         if (lastCheckDate == today)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Already checked today, skipping");
             return;
+        }
+        
+        // Set the preference IMMEDIATELY to prevent any possibility of double execution
+        Preferences.Set(autoAwardKey, today);
+        System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Set preference to {today}");
 
         var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
         var autoAwardActivities = allActivities.Where(a => a.IsAutoAward).ToList();
 
         if (autoAwardActivities.Count == 0)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] No auto-award activities found");
             return;
+        }
 
         var eligibleActivities = new List<Models.Activity>();
         var now = DateTime.Now;
@@ -181,8 +192,8 @@ public partial class ActivityGamePage
 
         if (eligibleActivities.Count > 0)
         {
-            Preferences.Set(autoAwardKey, today);
-
+            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Found {eligibleActivities.Count} eligible activities, showing page");
+            
             // Get current level for PercentOfLevel calculations
             var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
 
@@ -197,10 +208,16 @@ public partial class ActivityGamePage
             await Navigation.PushModalAsync(confirmPage);
             
             // Wait for the modal to complete before continuing
+            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Waiting for modal completion...");
             await confirmPage.WaitForCompletionAsync();
+            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Modal completed");
 
             await RefreshExpAsync();
             await RefreshActivitiesAsync();
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] No eligible activities");
         }
     }
 }

@@ -744,7 +744,15 @@ public partial class ActivityGamePage
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
         // Only check once per day per game
-        if (lastCheckedDate == today) return;
+        if (lastCheckedDate == today)
+        {
+            System.Diagnostics.Debug.WriteLine($"[BROKEN STREAK] Already checked today, skipping");
+            return;
+        }
+        
+        // Set the preference IMMEDIATELY to prevent any possibility of double execution
+        Preferences.Set(lastCheckedKey, today);
+        System.Diagnostics.Debug.WriteLine($"[BROKEN STREAK] Set preference to {today}");
 
         var brokenStreaks = await _activities.CheckAndBreakMissedStreaksAsync(_auth.CurrentUsername, _game.GameId);
 
@@ -796,7 +804,7 @@ public partial class ActivityGamePage
             // Refresh EXP display
             await RefreshExpAsync();
         }
-
-        Preferences.Set(lastCheckedKey, today);
+        
+        // Preference already set at the start of this method
     }
 }
