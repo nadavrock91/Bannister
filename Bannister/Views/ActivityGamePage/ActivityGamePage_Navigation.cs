@@ -54,6 +54,17 @@ public partial class ActivityGamePage
     }
 
     // Selection Events
+    private void OnSelectAllClicked(object? sender, EventArgs e)
+    {
+        if (_allActivities != null)
+        {
+            foreach (var activity in _allActivities)
+            {
+                activity.IsSelected = true;
+            }
+        }
+    }
+
     private void OnClearSelectionClicked(object? sender, EventArgs e)
     {
         if (_allActivities != null)
@@ -114,6 +125,7 @@ public partial class ActivityGamePage
         var options = new[]
         {
             "📊 Manual EXP Adjustment",
+            "🎁 Apply Auto-Awards",
             "🔄 Reset Daily Checks",
             "📋 Export Data"
         };
@@ -123,6 +135,10 @@ public partial class ActivityGamePage
         if (result == "📊 Manual EXP Adjustment")
         {
             await ShowManualExpAdjustmentAsync();
+        }
+        else if (result == "🎁 Apply Auto-Awards")
+        {
+            await ShowManualAutoAwardAsync();
         }
         else if (result == "🔄 Reset Daily Checks")
         {
@@ -187,6 +203,42 @@ public partial class ActivityGamePage
             $"{emoji} EXP Adjusted",
             $"{(isAdding ? "Added" : "Removed")} {amount} EXP\n\nReason: {reason}",
             "OK");
+    }
+
+    private async Task ShowManualAutoAwardAsync()
+    {
+        if (_game == null) return;
+
+        // Get all auto-award activities (regardless of LastAutoAwarded)
+        var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
+        var autoAwardActivities = allActivities.Where(a => a.IsAutoAward && a.IsActive).ToList();
+
+        if (autoAwardActivities.Count == 0)
+        {
+            await DisplayAlert("No Auto-Award Activities", 
+                "You don't have any auto-award activities in this game.", "OK");
+            return;
+        }
+
+        // Get current level for PercentOfLevel calculations
+        var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
+
+        // Show the auto-award page with ALL auto-award activities
+        var confirmPage = new AutoAwardConfirmationPage(
+            autoAwardActivities,
+            _exp,
+            _activities,
+            _auth.CurrentUsername,
+            _game.GameId,
+            currentLevel
+        );
+        
+        await Navigation.PushModalAsync(confirmPage);
+        await confirmPage.WaitForCompletionAsync();
+
+        await RefreshExpAsync();
+        await RefreshActivitiesAsync();
+        await LoadChartDataAsync();
     }
 
     private async Task ResetDailyChecksAsync()

@@ -175,6 +175,17 @@ public partial class ActivityGamePage
         btnCalculateExp.Clicked += OnCalculateClicked;
         stack.Children.Add(btnCalculateExp);
 
+        var btnSelectAll = new Button
+        {
+            Text = "Select All",
+            BackgroundColor = Color.FromArgb("#7E57C2"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 13
+        };
+        btnSelectAll.Clicked += OnSelectAllClicked;
+        stack.Children.Add(btnSelectAll);
+
         var btnClear = new Button
         {
             Text = "Clear Selection",
