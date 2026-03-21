@@ -1,7 +1,5 @@
 using SQLite;
-
 namespace Bannister.Models;
-
 /// <summary>
 /// Represents a video in the learning queue
 /// </summary>
@@ -21,6 +19,12 @@ public class LearningVideo
     /// URL to the video (YouTube, Vimeo, etc.)
     /// </summary>
     public string Url { get; set; } = "";
+    
+    /// <summary>
+    /// YouTube video ID (e.g., "dQw4w9WgXcQ" from youtube.com/watch?v=dQw4w9WgXcQ)
+    /// Used for fetching thumbnails and building watch URLs
+    /// </summary>
+    public string VideoId { get; set; } = "";
     
     /// <summary>
     /// Optional channel/creator name
@@ -66,4 +70,12 @@ public class LearningVideo
     /// Optional thumbnail path
     /// </summary>
     public string? ThumbnailPath { get; set; }
+    
+    /// <summary>
+    /// Get YouTube thumbnail URL (medium quality)
+    /// </summary>
+    [Ignore]
+    public string? YouTubeThumbnailUrl => !string.IsNullOrEmpty(VideoId) 
+        ? $"https://img.youtube.com/vi/{VideoId}/mqdefault.jpg" 
+        : null;
 }

@@ -181,7 +181,26 @@ public class StreakDashboardPage : ContentPage
         // Title row with expand button
         var titleRow = new HorizontalStackLayout { Spacing = 12 };
 
-        // Expand/Collapse button
+        // Create the attempts container FIRST (before the button so we can reference it)
+        var attemptsContainer = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Start,
+            Margin = new Thickness(24, 0, 0, 0),
+            IsVisible = isExpanded // Set initial visibility
+        };
+
+        // Populate attempts container
+        if (sortedAttempts.Count > 0)
+        {
+            foreach (var attempt in sortedAttempts)
+            {
+                attemptsContainer.Children.Add(BuildAttemptCard(attempt, sortedAttempts.Count));
+            }
+        }
+
+        // Expand/Collapse button - toggles visibility without rebuilding
         var btnExpand = new Button
         {
             Text = isExpanded ? $"▼ ({sortedAttempts.Count})" : $"▶ ({sortedAttempts.Count})",
@@ -194,8 +213,15 @@ public class StreakDashboardPage : ContentPage
         };
         btnExpand.Clicked += (s, e) =>
         {
+            // Toggle expanded state
             _expandedActivities[activity.Id] = !_expandedActivities[activity.Id];
-            _ = LoadActivitiesAsync(); // Refresh
+            bool nowExpanded = _expandedActivities[activity.Id];
+            
+            // Update button text
+            btnExpand.Text = nowExpanded ? $"▼ ({sortedAttempts.Count})" : $"▶ ({sortedAttempts.Count})";
+            
+            // Toggle visibility of attempts container (no rebuild needed!)
+            attemptsContainer.IsVisible = nowExpanded;
         };
         titleRow.Children.Add(btnExpand);
 
@@ -232,23 +258,26 @@ public class StreakDashboardPage : ContentPage
             Margin = new Thickness(40, 0, 0, 0)
         });
 
-        // Current streak summary
-        if (hasActiveStreak)
+        // Current streak info
+        if (activeStreak != null)
         {
-            var streakRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(40, 4, 0, 0) };
+            var streakRow = new HorizontalStackLayout 
+            { 
+                Spacing = 8,
+                Margin = new Thickness(40, 4, 0, 0)
+            };
 
-            // Fire emoji
             streakRow.Children.Add(new Label
             {
                 Text = "🔥",
-                FontSize = 24,
+                FontSize = 20,
                 VerticalOptions = LayoutOptions.Center
             });
 
             streakRow.Children.Add(new Label
             {
-                Text = activeStreak!.DaysAchieved.ToString(),
-                FontSize = 28,
+                Text = activeStreak.DaysAchieved.ToString(),
+                FontSize = 24,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#FF9800"),
                 VerticalOptions = LayoutOptions.Center
@@ -259,73 +288,79 @@ public class StreakDashboardPage : ContentPage
                 Text = activeStreak.DaysAchieved == 1 ? "day" : "days",
                 FontSize = 14,
                 TextColor = Color.FromArgb("#666"),
-                VerticalOptions = LayoutOptions.End,
-                Margin = new Thickness(0, 0, 0, 4)
+                VerticalOptions = LayoutOptions.Center
             });
 
-            // Edit button (pencil)
+            // Edit button
             var btnEdit = new Button
             {
                 Text = "✏️",
                 BackgroundColor = Colors.Transparent,
-                TextColor = Color.FromArgb("#5B63EE"),
-                FontSize = 18,
-                WidthRequest = 36,
-                HeightRequest = 36,
-                CornerRadius = 18,
+                TextColor = Color.FromArgb("#666"),
+                FontSize = 16,
+                HeightRequest = 30,
+                WidthRequest = 30,
                 Padding = 0,
                 VerticalOptions = LayoutOptions.Center
             };
-            btnEdit.Clicked += async (s, e) => await EditActiveStreakAsync(activeStreak!);
+            btnEdit.Clicked += async (s, e) => await EditActiveStreakAsync(activeStreak);
             streakRow.Children.Add(btnEdit);
 
-            // History button (chart)
+            // History button
             var btnHistory = new Button
             {
                 Text = "📊",
                 BackgroundColor = Colors.Transparent,
-                TextColor = Color.FromArgb("#5B63EE"),
-                FontSize = 18,
-                WidthRequest = 36,
-                HeightRequest = 36,
-                CornerRadius = 18,
+                TextColor = Color.FromArgb("#666"),
+                FontSize = 16,
+                HeightRequest = 30,
+                WidthRequest = 30,
                 Padding = 0,
                 VerticalOptions = LayoutOptions.Center
             };
-            btnHistory.Clicked += async (s, e) => await ShowStreakHistoryAsync(activeStreak!);
+            btnHistory.Clicked += async (s, e) => await ShowStreakHistoryAsync(activeStreak);
             streakRow.Children.Add(btnHistory);
 
             // End button
             var btnEnd = new Button
             {
                 Text = "End",
-                BackgroundColor = Color.FromArgb("#F44336"),
+                BackgroundColor = Color.FromArgb("#E53935"),
                 TextColor = Colors.White,
-                FontSize = 12,
+                FontSize = 11,
+                CornerRadius = 4,
                 HeightRequest = 28,
-                CornerRadius = 6,
-                Padding = new Thickness(12, 0),
+                Padding = new Thickness(8, 0),
                 VerticalOptions = LayoutOptions.Center
             };
-            btnEnd.Clicked += async (s, e) => await EndStreakAsync(activeStreak!);
+            btnEnd.Clicked += async (s, e) => await EndStreakAsync(activeStreak);
             streakRow.Children.Add(btnEnd);
 
             headerStack.Children.Add(streakRow);
+        }
+        else if (sortedAttempts.Count > 0)
+        {
+            // Show best past streak
+            var bestStreak = sortedAttempts.OrderByDescending(a => a.DaysAchieved).First();
+            headerStack.Children.Add(new Label
+            {
+                Text = $"Best: {bestStreak.DaysAchieved} days (Attempt #{bestStreak.AttemptNumber})",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#666"),
+                Margin = new Thickness(40, 0, 0, 0)
+            });
         }
         else
         {
             headerStack.Children.Add(new Label
             {
-                Text = sortedAttempts.Count == 0 ? "No attempts yet" : "No active streak",
-                FontSize = 13,
+                Text = "No attempts yet",
+                FontSize = 12,
                 TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic,
                 Margin = new Thickness(40, 0, 0, 0)
             });
         }
-
-        // Buttons row with Add Past Streak
-        var buttonsRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(40, 8, 0, 0) };
 
         // Add Past Streak button
         var btnAddPast = new Button
@@ -333,42 +368,36 @@ public class StreakDashboardPage : ContentPage
             Text = "+ Add Past Streak",
             BackgroundColor = Color.FromArgb("#FF9800"),
             TextColor = Colors.White,
-            CornerRadius = 6,
             FontSize = 12,
+            CornerRadius = 6,
             HeightRequest = 32,
-            HorizontalOptions = LayoutOptions.Start
+            Padding = new Thickness(12, 0),
+            HorizontalOptions = LayoutOptions.Start,
+            Margin = new Thickness(40, 4, 0, 0)
         };
         btnAddPast.Clicked += async (s, e) => await ShowAddPastStreakMenuAsync(activity);
-        buttonsRow.Children.Add(btnAddPast);
+        headerStack.Children.Add(btnAddPast);
 
-        headerStack.Children.Add(buttonsRow);
-
-        // Auto-Increment toggle row (separate row for clarity)
-        var autoRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(40, 4, 0, 0) };
+        // Auto-increment checkbox
+        var autoIncrementRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(40, 4, 0, 0)
+        };
 
         var chkAutoIncrement = new CheckBox
         {
             IsChecked = activity.IsStreakAutoIncrement,
-            Color = Color.FromArgb("#4CAF50"),
-            VerticalOptions = LayoutOptions.Center
+            Color = Color.FromArgb("#4CAF50")
         };
         chkAutoIncrement.CheckedChanged += async (s, e) =>
         {
             activity.IsStreakAutoIncrement = e.Value;
             await _activities.UpdateActivityAsync(activity);
-            
-            // If enabling auto-increment and there's no active streak, create one
-            if (e.Value && !hasActiveStreak)
-            {
-                await _streaks.GetOrCreateActiveStreakAsync(_auth.CurrentUsername, activity.Game, activity.Id, activity.Name);
-                _savedScrollY = _mainScroll.ScrollY;
-                await LoadActivitiesAsync();
-                await RestoreScrollPositionAsync();
-            }
         };
-        autoRow.Children.Add(chkAutoIncrement);
+        autoIncrementRow.Children.Add(chkAutoIncrement);
 
-        autoRow.Children.Add(new Label
+        autoIncrementRow.Children.Add(new Label
         {
             Text = "Auto-increment daily (no click needed)",
             FontSize = 12,
@@ -376,46 +405,31 @@ public class StreakDashboardPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         });
 
-        // Show indicator if auto-increment is enabled
         if (activity.IsStreakAutoIncrement)
         {
-            autoRow.Children.Add(new Label
+            autoIncrementRow.Children.Add(new Label
             {
                 Text = "⚡",
                 FontSize = 14,
-                VerticalOptions = LayoutOptions.Center,
-                Margin = new Thickness(4, 0, 0, 0)
+                VerticalOptions = LayoutOptions.Center
             });
         }
 
-        headerStack.Children.Add(autoRow);
+        headerStack.Children.Add(autoIncrementRow);
 
         headerFrame.Content = headerStack;
         container.Children.Add(headerFrame);
 
-        // Attempt cards (if expanded)
-        if (isExpanded && sortedAttempts.Count > 0)
+        // Add the pre-built attempts container (visibility already set based on isExpanded)
+        if (sortedAttempts.Count > 0)
         {
-            var attemptsContainer = new FlexLayout
-            {
-                Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
-                JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
-                AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Start,
-                Margin = new Thickness(24, 0, 0, 0)
-            };
-
-            foreach (var attempt in sortedAttempts)
-            {
-                attemptsContainer.Children.Add(BuildAttemptCard(attempt));
-            }
-
             container.Children.Add(attemptsContainer);
         }
 
         return container;
     }
 
-    private Frame BuildAttemptCard(StreakAttempt attempt)
+    private Frame BuildAttemptCard(StreakAttempt attempt, int totalAttempts)
     {
         var isActive = attempt.IsActive;
         var borderColor = isActive ? Color.FromArgb("#4CAF50") : Color.FromArgb("#BDBDBD");
@@ -432,13 +446,10 @@ public class StreakDashboardPage : ContentPage
             Margin = new Thickness(0, 4, 8, 4)
         };
 
-        // Make non-active cards tappable to edit
-        if (!isActive)
-        {
-            var tapGesture = new TapGestureRecognizer();
-            tapGesture.Tapped += async (s, e) => await EditPastStreakAsync(attempt);
-            frame.GestureRecognizers.Add(tapGesture);
-        }
+        // Make all cards tappable for options
+        var tapGesture = new TapGestureRecognizer();
+        tapGesture.Tapped += async (s, e) => await ShowAttemptOptionsAsync(attempt, totalAttempts);
+        frame.GestureRecognizers.Add(tapGesture);
 
         var stack = new VerticalStackLayout { Spacing = 4 };
 
@@ -485,10 +496,10 @@ public class StreakDashboardPage : ContentPage
         }
         else
         {
-            // Show "tap to edit" hint for past attempts
+            // Show "tap for options" hint
             stack.Children.Add(new Label
             {
-                Text = "tap to edit",
+                Text = "tap for options",
                 FontSize = 9,
                 TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic,
@@ -499,6 +510,91 @@ public class StreakDashboardPage : ContentPage
 
         frame.Content = stack;
         return frame;
+    }
+
+    private async Task ShowAttemptOptionsAsync(StreakAttempt attempt, int totalAttempts)
+    {
+        var options = new List<string>();
+
+        options.Add("✏️ Edit Days");
+        options.Add("📊 View History");
+        
+        if (attempt.IsActive)
+        {
+            options.Add("🛑 End Streak");
+        }
+
+        // Only show delete if there's more than one attempt, or always allow delete
+        options.Add("🗑️ Delete Attempt");
+
+        var result = await DisplayActionSheet(
+            $"Attempt #{attempt.AttemptNumber} ({attempt.DaysAchieved} days)",
+            "Cancel",
+            null,
+            options.ToArray());
+
+        if (result == "✏️ Edit Days")
+        {
+            if (attempt.IsActive)
+            {
+                await EditActiveStreakAsync(attempt);
+            }
+            else
+            {
+                await EditPastStreakAsync(attempt);
+            }
+        }
+        else if (result == "📊 View History")
+        {
+            await ShowStreakHistoryAsync(attempt);
+        }
+        else if (result == "🛑 End Streak")
+        {
+            await EndStreakAsync(attempt);
+        }
+        else if (result == "🗑️ Delete Attempt")
+        {
+            await DeleteAttemptAsync(attempt, totalAttempts);
+        }
+    }
+
+    private async Task DeleteAttemptAsync(StreakAttempt attempt, int totalAttempts)
+    {
+        string warningMessage;
+        
+        if (attempt.IsActive && totalAttempts > 1)
+        {
+            warningMessage = $"Delete Attempt #{attempt.AttemptNumber} ({attempt.DaysAchieved} days)?\n\n" +
+                           "Since this is the active streak, the previous attempt will be reactivated.\n\n" +
+                           "This cannot be undone.";
+        }
+        else if (attempt.IsActive)
+        {
+            warningMessage = $"Delete Attempt #{attempt.AttemptNumber} ({attempt.DaysAchieved} days)?\n\n" +
+                           "This is the only attempt. A new streak will start when you next use this activity.\n\n" +
+                           "This cannot be undone.";
+        }
+        else
+        {
+            warningMessage = $"Delete Attempt #{attempt.AttemptNumber} ({attempt.DaysAchieved} days)?\n\n" +
+                           "This cannot be undone.";
+        }
+
+        bool confirm = await DisplayAlert(
+            "Delete Attempt",
+            warningMessage,
+            "Delete",
+            "Cancel");
+
+        if (!confirm) return;
+
+        await _streaks.DeleteStreakAttemptAsync(attempt.Id);
+
+        // Keep the activity expanded and refresh
+        _expandedActivities[attempt.ActivityId] = true;
+        _savedScrollY = _mainScroll.ScrollY;
+        await LoadActivitiesAsync();
+        await RestoreScrollPositionAsync();
     }
 
     private async Task EditPastStreakAsync(StreakAttempt attempt)
@@ -622,8 +718,17 @@ public class StreakDashboardPage : ContentPage
 
     private async Task RestoreScrollPositionAsync()
     {
-        // Small delay to let the UI rebuild
-        await Task.Delay(50);
+        // Give the UI time to rebuild and layout
+        await Task.Delay(100);
+        
+        // Restore scroll position
         await _mainScroll.ScrollToAsync(0, _savedScrollY, false);
+        
+        // Double-check after another brief delay (layout can shift)
+        await Task.Delay(50);
+        if (Math.Abs(_mainScroll.ScrollY - _savedScrollY) > 10)
+        {
+            await _mainScroll.ScrollToAsync(0, _savedScrollY, false);
+        }
     }
 }

@@ -37,14 +37,6 @@ public partial class ActivityGamePage
 
             await _exp.EnsureUserStateAsync(username, _game.GameId);
             await LoadDragonAsync();
-            
-            // IMPORTANT: Check broken streaks FIRST before auto-award
-            // This ensures penalties are applied before any bonuses
-            System.Diagnostics.Debug.WriteLine($"[LOAD GAME] About to call CheckBrokenStreaksAsync");
-            await CheckBrokenStreaksAsync(); // Check for broken display day streaks
-            System.Diagnostics.Debug.WriteLine($"[LOAD GAME] Finished CheckBrokenStreaksAsync");
-            
-            // Now check auto-award (after broken streaks are handled)
             await CheckAutoAwardActivitiesAsync();
             
             System.Diagnostics.Debug.WriteLine($"[LOAD GAME] About to call CheckAndMoveExpiredActivitiesAsync");
@@ -58,6 +50,10 @@ public partial class ActivityGamePage
             System.Diagnostics.Debug.WriteLine($"[LOAD GAME] About to call CheckHabitTargetsAsync");
             await CheckHabitTargetsAsync(); // Check for habit target decisions and expired targets
             System.Diagnostics.Debug.WriteLine($"[LOAD GAME] Finished CheckHabitTargetsAsync");
+            
+            System.Diagnostics.Debug.WriteLine($"[LOAD GAME] About to call CheckBrokenStreaksAsync");
+            await CheckBrokenStreaksAsync(); // Check for broken display day streaks
+            System.Diagnostics.Debug.WriteLine($"[LOAD GAME] Finished CheckBrokenStreaksAsync");
             
             await RefreshExpAsync();
             await UpdateEscalationTimerAsync(); // Update escalation timer display
@@ -203,12 +199,17 @@ public partial class ActivityGamePage
             .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        // Always start at index 0
+        // Build navigable categories - only those with activities showing today
+        // (unless showAllActivities is true, then all categories are navigable)
+        await UpdateNavigableCategoriesAsync(allActivities);
+
+        // Always start at index 0 of navigable categories
         _currentCategoryIndex = 0;
 
         if (_categories.Count == 0)
         {
             _categories.Add("Misc");
+            _navigableCategories.Add("Misc");
             lblPageInfo.Text = "No categories";
             btnPrevPage.IsEnabled = false;
             btnNextPage.IsEnabled = false;
@@ -221,26 +222,79 @@ public partial class ActivityGamePage
         // Temporarily unsubscribe to avoid triggering refresh during setup
         categoryPicker.SelectedIndexChanged -= OnCategoryChanged;
         
-        // Category picker gets ONLY actual categories (no "All" or "Expired")
+        // Category picker gets ALL actual categories (no "All" or "Expired")
         categoryPicker.ItemsSource = _categories;
         
         // Small delay to ensure ItemsSource is fully set (Windows MAUI fix)
         await Task.Delay(50);
         
-        // Set selected index with bounds checking
-        if (_categories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _categories.Count)
+        // Set selected index with bounds checking - use the navigable category
+        if (_navigableCategories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _navigableCategories.Count)
         {
-            categoryPicker.SelectedIndex = _currentCategoryIndex;
+            string currentCategory = _navigableCategories[_currentCategoryIndex];
+            int pickerIndex = _categories.IndexOf(currentCategory);
+            if (pickerIndex >= 0)
+            {
+                categoryPicker.SelectedIndex = pickerIndex;
+            }
         }
         
         // Force UI update
         await Dispatcher.DispatchAsync(() => 
         {
-            categoryPicker.SelectedIndex = _currentCategoryIndex;
+            if (_navigableCategories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _navigableCategories.Count)
+            {
+                string currentCategory = _navigableCategories[_currentCategoryIndex];
+                int pickerIndex = _categories.IndexOf(currentCategory);
+                if (pickerIndex >= 0)
+                {
+                    categoryPicker.SelectedIndex = pickerIndex;
+                }
+            }
         });
         
         // Re-subscribe after setup
         categoryPicker.SelectedIndexChanged += OnCategoryChanged;
+    }
+
+    /// <summary>
+    /// Update the list of navigable categories (those with activities showing today)
+    /// </summary>
+    private async Task UpdateNavigableCategoriesAsync(List<Activity>? allActivities = null)
+    {
+        if (_game == null) return;
+        
+        allActivities ??= await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
+        
+        if (_showAllActivities)
+        {
+            // When showing all, all categories are navigable
+            _navigableCategories = _categories.ToList();
+        }
+        else
+        {
+            // Get activities that would be visible today
+            var visibleActivities = await _activities.GetVisibleActivitiesAsync(
+                _auth.CurrentUsername, 
+                _game.GameId, 
+                _currentLevel, 
+                false); // Don't show all - only today's activities
+            
+            // Get unique categories from visible activities
+            _navigableCategories = visibleActivities
+                .Select(a => a.Category ?? "Misc")
+                .Where(c => !c.Equals("Expired", StringComparison.OrdinalIgnoreCase) 
+                         && !c.Equals("Stale", StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            
+            // Ensure at least one category is navigable
+            if (_navigableCategories.Count == 0 && _categories.Count > 0)
+            {
+                _navigableCategories.Add(_categories[0]);
+            }
+        }
     }
 
     private async Task LoadChartDataAsync()
@@ -378,10 +432,10 @@ public partial class ActivityGamePage
         // For "Possible", "Expired", "Stale", and "Missing Image" filters, skip category filtering
         if (_currentMetaFilter != "Possible" && _currentMetaFilter != "Expired" && _currentMetaFilter != "Stale" && _currentMetaFilter != "Missing Image")
         {
-            // Apply category filter based on current category (case-insensitive)
-            if (_categories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _categories.Count)
+            // Apply category filter based on current navigable category (case-insensitive)
+            if (_navigableCategories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _navigableCategories.Count)
             {
-                string currentCategory = _categories[_currentCategoryIndex];
+                string currentCategory = _navigableCategories[_currentCategoryIndex];
                 filtered = filtered.Where(vm => 
                     string.Equals(vm.Category, currentCategory, StringComparison.OrdinalIgnoreCase)).ToList();
             }
@@ -435,14 +489,27 @@ public partial class ActivityGamePage
 
     private void UpdateCategoryDisplay()
     {
-        if (_categories.Count == 0) return;
+        if (_navigableCategories.Count == 0) return;
 
-        lblPageInfo.Text = $"{_currentCategoryIndex + 1}/{_categories.Count}: {_categories[_currentCategoryIndex]}";
+        // Ensure index is within bounds of navigable categories
+        if (_currentCategoryIndex >= _navigableCategories.Count)
+            _currentCategoryIndex = _navigableCategories.Count - 1;
+        if (_currentCategoryIndex < 0)
+            _currentCategoryIndex = 0;
+
+        string currentCategory = _navigableCategories[_currentCategoryIndex];
+        
+        // Show navigable count for arrows, but display current category
+        lblPageInfo.Text = $"{_currentCategoryIndex + 1}/{_navigableCategories.Count}: {currentCategory}";
         btnPrevPage.IsEnabled = _currentCategoryIndex > 0;
-        btnNextPage.IsEnabled = _currentCategoryIndex < _categories.Count - 1;
+        btnNextPage.IsEnabled = _currentCategoryIndex < _navigableCategories.Count - 1;
 
-        // Update picker to match current category (no offset needed)
-        categoryPicker.SelectedIndex = _currentCategoryIndex;
+        // Update picker to match current category (find in full categories list)
+        int pickerIndex = _categories.IndexOf(currentCategory);
+        if (pickerIndex >= 0 && pickerIndex < _categories.Count)
+        {
+            categoryPicker.SelectedIndex = pickerIndex;
+        }
     }
 
     private async Task CheckAndShowMissingImagesPopup()
@@ -732,8 +799,7 @@ public partial class ActivityGamePage
 
     /// <summary>
     /// Check for broken display day streaks and apply penalties.
-    /// Shows a dedicated page for each broken streak decision.
-    /// Also handles level-down for activities with level caps.
+    /// Shows confirmation dialogs for each broken streak.
     /// </summary>
     private async Task CheckBrokenStreaksAsync()
     {
@@ -743,47 +809,51 @@ public partial class ActivityGamePage
         string lastCheckedDate = Preferences.Get(lastCheckedKey, "");
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
+        // TESTING: Comment out to test multiple times per day
         // Only check once per day per game
-        if (lastCheckedDate == today)
-        {
-            System.Diagnostics.Debug.WriteLine($"[BROKEN STREAK] Already checked today, skipping");
-            return;
-        }
-        
-        // Set the preference IMMEDIATELY to prevent any possibility of double execution
-        Preferences.Set(lastCheckedKey, today);
-        System.Diagnostics.Debug.WriteLine($"[BROKEN STREAK] Set preference to {today}");
+        // if (lastCheckedDate == today) return;
 
         var brokenStreaks = await _activities.CheckAndBreakMissedStreaksAsync(_auth.CurrentUsername, _game.GameId);
 
         if (brokenStreaks.Count > 0)
         {
-            // Show the dedicated streak broken page
-            var streakPage = new StreakBrokenPage(_auth, _activities, _exp, _game.GameId, brokenStreaks);
-            await Navigation.PushModalAsync(streakPage);
-            await streakPage.GetResultAsync();
+            int totalPenalty = 0;
+            var penaltyDetails = new List<string>();
 
-            // Get results from the page
-            var levelDowns = streakPage.LevelDowns;
-            var penaltyDetails = streakPage.PenaltyDetails;
-            int totalPenalty = streakPage.TotalPenalty;
-
-            // Show level down summary if any occurred
-            if (levelDowns.Count > 0)
+            foreach (var (activity, brokenStreak, penalty) in brokenStreaks)
             {
-                var message = new System.Text.StringBuilder();
-                message.AppendLine("Your level was reduced due to broken streaks:\n");
-                
-                foreach (var (activity, fromLevel, toLevel, expLost) in levelDowns)
+                // Show action sheet with multiple options
+                string result = await DisplayActionSheet(
+                    $"⚠️ Streak Broken: {activity.Name}",
+                    null, // no cancel
+                    null, // no destructive
+                    "✅ Accept Penalty (streak was broken)",
+                    "📅 Yesterday didn't count (restore streak)",
+                    "🔄 Forgot to click yesterday (restore streak)");
+
+                if (result == "✅ Accept Penalty (streak was broken)")
                 {
-                    message.AppendLine($"• {activity.Name}");
-                    message.AppendLine($"  Level {fromLevel} → Level {toLevel}");
-                    message.AppendLine($"  Lost {expLost:N0} EXP\n");
+                    // Apply penalty
+                    if (penalty < 0)
+                    {
+                        await _exp.ApplyExpAsync(_auth.CurrentUsername, _game.GameId, $"{activity.Name} (Streak Broken)", penalty, activity.Id);
+                        totalPenalty += penalty;
+                        penaltyDetails.Add($"{activity.Name}: {brokenStreak} day streak → {penalty} EXP");
+                    }
                 }
-
-                message.AppendLine("Rebuild your streak to progress past this level.");
-
-                await DisplayAlert("⚠️ LEVEL DOWN", message.ToString(), "OK");
+                else if (result == "📅 Yesterday didn't count (restore streak)" || 
+                         result == "🔄 Forgot to click yesterday (restore streak)")
+                {
+                    // Restore the streak - set LastDisplayDayUsed to yesterday so streak continues
+                    activity.DisplayDayStreak = brokenStreak; // Restore the streak count
+                    activity.LastDisplayDayUsed = DateTime.Now.AddDays(-1); // Set to yesterday
+                    await _activities.UpdateActivityAsync(activity);
+                    
+                    string reason = result.Contains("didn't count") ? "day excluded" : "retroactive click";
+                    await DisplayAlert("Streak Restored", 
+                        $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: {reason}", 
+                        "OK");
+                }
             }
 
             // Show summary if multiple streaks broken and penalties applied
@@ -796,7 +866,7 @@ public partial class ActivityGamePage
                     string.Join("\n", penaltyDetails),
                     "OK");
             }
-            else if (penaltyDetails.Count == 1 && levelDowns.Count == 0)
+            else if (penaltyDetails.Count == 1)
             {
                 await DisplayAlert("Penalty Applied", $"Total penalty: {totalPenalty} EXP", "OK");
             }
@@ -804,7 +874,7 @@ public partial class ActivityGamePage
             // Refresh EXP display
             await RefreshExpAsync();
         }
-        
-        // Preference already set at the start of this method
+
+        Preferences.Set(lastCheckedKey, today);
     }
 }

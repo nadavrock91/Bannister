@@ -13,15 +13,10 @@ public partial class EditActivityPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
-    private readonly StreakService? _streaks;
     private readonly string _gameId;
     private readonly Activity _activity;
     private string? _selectedImageFilename = null;
-    
-    // Track original state to detect changes
-    private bool _wasStreakTracked;
-    private bool _wasStreakContainer;
-    private string _originalCategory;
+    private DisplayDaysSelector? _displayDaysSelector = null;
 
     public EditActivityPage(AuthService auth, ActivityService activities, string gameId, Activity activity)
     {
@@ -30,14 +25,6 @@ public partial class EditActivityPage : ContentPage
         _activities = activities;
         _gameId = gameId;
         _activity = activity;
-        
-        // Try to get StreakService from DI
-        _streaks = Application.Current?.Handler?.MauiContext?.Services.GetService<StreakService>();
-        
-        // Store original state
-        _wasStreakTracked = activity.IsStreakTracked;
-        _wasStreakContainer = activity.IsStreakContainer;
-        _originalCategory = activity.Category ?? "Misc";
     }
 
     protected override async void OnAppearing()
@@ -63,13 +50,6 @@ public partial class EditActivityPage : ContentPage
         // Set streak tracking
         chkStreakTracked.IsChecked = _activity.IsStreakTracked;
 
-        // Set level cap settings
-        chkHasLevelCap.IsChecked = _activity.HasLevelCap;
-        levelCapDetails.IsVisible = _activity.HasLevelCap;
-        txtLevelCapAt.Text = _activity.LevelCapAt > 0 ? _activity.LevelCapAt.ToString() : "10";
-        txtLevelCapStreak.Text = _activity.LevelCapStreakRequired > 0 ? _activity.LevelCapStreakRequired.ToString() : "7";
-        chkLevelDownOnBreak.IsChecked = _activity.LevelDownOnStreakBreak;
-
         // Set possible status
         chkIsPossible.IsChecked = _activity.IsPossible;
 
@@ -89,7 +69,6 @@ public partial class EditActivityPage : ContentPage
         // Load categories and select current
         var existingActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _gameId);
         var categories = existingActivities
-            .Where(a => !a.IsStreakContainer) // Don't show streak container "categories"
             .Select(a => a.Category ?? "Misc")
             .Distinct()
             .OrderBy(c => c)
@@ -97,21 +76,9 @@ public partial class EditActivityPage : ContentPage
 
         if (!categories.Contains("Misc"))
             categories.Insert(0, "Misc");
-        
-        // Add original category if it was stored (for streak containers being reverted)
-        if (!string.IsNullOrEmpty(_activity.OriginalCategory) && !categories.Contains(_activity.OriginalCategory))
-        {
-            categories.Add(_activity.OriginalCategory);
-        }
 
         pickerCategory.ItemsSource = categories;
-        
-        // For streak containers, show the original category, not the container name
-        string categoryToSelect = _activity.IsStreakContainer && !string.IsNullOrEmpty(_activity.OriginalCategory)
-            ? _activity.OriginalCategory
-            : (_activity.Category ?? "Misc");
-            
-        int catIndex = categories.IndexOf(categoryToSelect);
+        int catIndex = categories.IndexOf(_activity.Category ?? "Misc");
         pickerCategory.SelectedIndex = catIndex >= 0 ? catIndex : 0;
 
         // Set schedule - StartDate/EndDate now include time
@@ -129,6 +96,17 @@ public partial class EditActivityPage : ContentPage
             timeEnd.Time = _activity.EndDate.Value.TimeOfDay;
         }
 
+        // Add Display Days Selector dynamically (after Schedule section)
+        AddDisplayDaysSelector();
+        
+        // Load display days values
+        if (_displayDaysSelector != null)
+        {
+            _displayDaysSelector.LoadFromActivity(
+                _activity.DisplayDaysOfWeek ?? "",
+                _activity.DisplayDayOfMonth);
+        }
+
         // Set image from filename
         _selectedImageFilename = _activity.ImagePath;
         if (!string.IsNullOrEmpty(_selectedImageFilename))
@@ -137,6 +115,39 @@ public partial class EditActivityPage : ContentPage
             if (File.Exists(fullPath))
             {
                 imgActivityPreview.Source = ImageSource.FromFile(fullPath);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Add DisplayDaysSelector to the UI dynamically
+    /// </summary>
+    private void AddDisplayDaysSelector()
+    {
+        // Find the main VerticalStackLayout (first child of ScrollView)
+        if (Content is ScrollView scrollView && 
+            scrollView.Content is VerticalStackLayout mainStack)
+        {
+            // Find the Schedule section index (look for "Schedule (optional)" label)
+            int scheduleIndex = -1;
+            for (int i = 0; i < mainStack.Children.Count; i++)
+            {
+                if (mainStack.Children[i] is VerticalStackLayout section)
+                {
+                    var firstChild = section.Children.FirstOrDefault();
+                    if (firstChild is Label label && label.Text == "Schedule (optional)")
+                    {
+                        scheduleIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            if (scheduleIndex >= 0)
+            {
+                // Create and insert DisplayDaysSelector after Schedule section
+                _displayDaysSelector = new DisplayDaysSelector();
+                mainStack.Children.Insert(scheduleIndex + 1, _displayDaysSelector.Container);
             }
         }
     }
@@ -151,11 +162,6 @@ public partial class EditActivityPage : ContentPage
     private void OnIsPossibleChanged(object sender, CheckedChangedEventArgs e)
     {
         // Could add visual feedback here if needed
-    }
-
-    private void OnLevelCapChanged(object sender, CheckedChangedEventArgs e)
-    {
-        levelCapDetails.IsVisible = e.Value;
     }
 
     private void OnNoHabitTargetChanged(object sender, CheckedChangedEventArgs e)
@@ -208,6 +214,11 @@ public partial class EditActivityPage : ContentPage
     {
         chkHasHabitTarget.IsChecked = true;
         dateHabitTarget.Date = DateTime.Now.AddYears(1);
+    }
+
+    private void OnLevelCapChanged(object sender, CheckedChangedEventArgs e)
+    {
+        // Could add visual feedback or enable/disable related controls here if needed
     }
 
     private void OnMeaningfulLevelChanged(object sender, TextChangedEventArgs e)
@@ -421,7 +432,6 @@ public partial class EditActivityPage : ContentPage
         }
 
         bool isPercentType = pickerRewardType.SelectedIndex == 1;
-        bool newStreakTracked = chkStreakTracked.IsChecked;
 
         if (isPercentType)
         {
@@ -471,142 +481,48 @@ public partial class EditActivityPage : ContentPage
 
         try
         {
-            // *** HANDLE STREAK CONTAINER CONVERSION ***
-            bool convertingToStreak = newStreakTracked && !_wasStreakTracked;
-            bool convertingFromStreak = !newStreakTracked && _wasStreakTracked && _wasStreakContainer;
-
-            if (convertingToStreak)
-            {
-                // Converting TO a streak container
-                bool confirm = await DisplayAlert(
-                    "Convert to Streak Activity?",
-                    $"This will:\n" +
-                    $"• Make '{activityName}' its own category\n" +
-                    $"• Track each day as a streak attempt\n" +
-                    $"• Start your first attempt automatically\n\n" +
-                    $"Continue?",
-                    "Convert",
-                    "Cancel");
-
-                if (!confirm)
-                {
-                    chkStreakTracked.IsChecked = false;
-                    return;
-                }
-
-                _activity.OriginalCategory = category;
-                _activity.Category = activityName; // Activity becomes its own category
-                _activity.IsStreakContainer = true;
-                _activity.IsStreakTracked = true;
-                _activity.NoHabitTarget = true; // Streak containers don't need habit targets
-            }
-            else if (convertingFromStreak)
-            {
-                // Converting FROM a streak container back to normal
-                _activity.Category = category;
-                _activity.IsStreakContainer = false;
-                _activity.IsStreakTracked = false;
-                // Keep OriginalCategory for reference
-            }
-            else
-            {
-                // Normal update - but handle category correctly for existing streak containers
-                if (_activity.IsStreakContainer && newStreakTracked)
-                {
-                    // Still a streak container - category should stay as the activity name
-                    _activity.Category = activityName;
-                    // But update OriginalCategory if user changed the picker
-                    _activity.OriginalCategory = category;
-                }
-                else
-                {
-                    _activity.Category = category;
-                }
-                _activity.IsStreakTracked = newStreakTracked;
-            }
-
-            // Update other fields
+            // Update existing activity
             _activity.Name = activityName;
+            _activity.Category = category;
             _activity.ImagePath = _selectedImageFilename ?? "";
             _activity.StartDate = startDateTime;
             _activity.EndDate = endDateTime;
+            _activity.IsStreakTracked = chkStreakTracked.IsChecked;
             _activity.IsPossible = chkIsPossible.IsChecked;
             _activity.ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked;
+            _activity.NoHabitTarget = chkNoHabitTarget.IsChecked;
             
-            // Update level cap settings
-            _activity.HasLevelCap = chkHasLevelCap.IsChecked;
-            if (_activity.HasLevelCap)
+            // Handle habit target date with tracking
+            var newTargetDate = chkHasHabitTarget.IsChecked ? dateHabitTarget.Date : (DateTime?)null;
+            
+            if (newTargetDate.HasValue)
             {
-                if (int.TryParse(txtLevelCapAt.Text, out int capLevel) && capLevel >= 1 && capLevel <= 100)
+                // Setting a target date
+                if (!_activity.HabitTargetFirstSet.HasValue)
                 {
-                    _activity.LevelCapAt = capLevel;
+                    // First time setting target
+                    _activity.HabitTargetFirstSet = DateTime.Now;
                 }
-                else
+                else if (_activity.HabitTargetDate.HasValue && newTargetDate.Value > _activity.HabitTargetDate.Value)
                 {
-                    _activity.LevelCapAt = 10;
+                    // Postponing to a later date
+                    _activity.HabitTargetPostponeCount++;
                 }
-                
-                if (int.TryParse(txtLevelCapStreak.Text, out int capStreak) && capStreak >= 1)
-                {
-                    _activity.LevelCapStreakRequired = capStreak;
-                }
-                else
-                {
-                    _activity.LevelCapStreakRequired = 7;
-                }
-                
-                _activity.LevelDownOnStreakBreak = chkLevelDownOnBreak.IsChecked;
+                _activity.HabitTargetDate = newTargetDate;
             }
-            
-            // Only update habit target if not a streak container
-            if (!_activity.IsStreakContainer)
+            else
             {
-                _activity.NoHabitTarget = chkNoHabitTarget.IsChecked;
-                
-                // Handle habit target date with tracking
-                var newTargetDate = chkHasHabitTarget.IsChecked ? dateHabitTarget.Date : (DateTime?)null;
-                
-                if (newTargetDate.HasValue)
-                {
-                    if (!_activity.HabitTargetFirstSet.HasValue)
-                    {
-                        _activity.HabitTargetFirstSet = DateTime.Now;
-                    }
-                    else if (_activity.HabitTargetDate.HasValue && newTargetDate.Value > _activity.HabitTargetDate.Value)
-                    {
-                        _activity.HabitTargetPostponeCount++;
-                    }
-                    _activity.HabitTargetDate = newTargetDate;
-                }
-                else
-                {
-                    _activity.HabitTargetDate = null;
-                }
+                _activity.HabitTargetDate = null;
+            }
+
+            // Save display days settings
+            if (_displayDaysSelector != null)
+            {
+                _activity.DisplayDaysOfWeek = _displayDaysSelector.GetDisplayDaysOfWeek();
+                _activity.DisplayDayOfMonth = _displayDaysSelector.GetDisplayDayOfMonth();
             }
 
             await _activities.UpdateActivityAsync(_activity);
-
-            // Start first streak attempt if converting to streak container
-            if (convertingToStreak && _streaks != null)
-            {
-                await _streaks.StartNewStreakAsync(
-                    _auth.CurrentUsername,
-                    _gameId,
-                    _activity.Id,
-                    _activity.Name);
-
-                // Flag that ActivityGamePage should reload categories
-                if (Navigation.ModalStack.Count > 0)
-                {
-                    var navPage = Navigation.ModalStack[0] as NavigationPage;
-                    // The parent page will reload categories automatically via OnAppearing
-                }
-
-                await DisplayAlert("Streak Activity Created! 🔥",
-                    $"'{activityName}' is now a streak activity.\n\n" +
-                    $"Navigate to its category to see your attempts and record daily progress.",
-                    "OK");
-            }
 
             await Navigation.PopModalAsync();
         }

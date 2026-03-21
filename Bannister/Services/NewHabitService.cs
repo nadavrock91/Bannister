@@ -57,6 +57,19 @@ public class NewHabitService
         await conn.UpdateAsync(allowance);
     }
 
+    /// <summary>
+    /// Check if all allowance slots are graduated (ready for allowance increase)
+    /// </summary>
+    public async Task<bool> AreAllSlotsGraduatedAsync(string username, string frequency)
+    {
+        var allowance = await GetOrCreateAllowanceAsync(username, frequency);
+        var activeHabits = await GetAllActiveHabitsAsync(username);
+        var activeOfFrequency = activeHabits.Where(h => h.Frequency == frequency).Count();
+        
+        // All slots graduated = no active habits of this frequency and allowance > 0
+        return activeOfFrequency == 0 && allowance.CurrentAllowance > 0;
+    }
+
     #endregion
 
     #region Habit CRUD
@@ -247,73 +260,34 @@ public class NewHabitService
 
     #endregion
 
-    public async Task<NewHabit?> CreateNewHabitAsync(
-        string username, 
-        string game, 
+    public async Task<NewHabit> CreateHabitAsync(
+        string username,
+        string game,
         string habitName,
-        int positiveExp,
-        int negativeExp,
-        string category = "New Habits",
-        string? imagePath = null,
+        int positiveActivityId,
+        int negativeActivityId,
+        int daysToGraduate = 7,
         string frequency = "Daily")
     {
-        // Check if there's available allowance for this frequency
-        var availableSlots = await GetAvailableSlotsAsync(username, frequency);
-        if (availableSlots <= 0)
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<NewHabit>();
+
+        // Get the activities for reference
+        var positiveActivity = await _activities.GetActivityAsync(positiveActivityId);
+        var negativeActivity = await _activities.GetActivityAsync(negativeActivityId);
+
+        if (positiveActivity == null || negativeActivity == null)
         {
-            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] No available {frequency} slots");
-            return null;
+            throw new ArgumentException("Could not find activities");
         }
 
-        var conn = await _db.GetConnectionAsync();
-
-        // Set days to graduate based on frequency
-        int daysToGraduate = frequency switch
-        {
-            "Daily" => 7,
-            "Weekly" => 4,
-            "Monthly" => 3,
-            _ => 7
-        };
-
-        // Create the positive activity
-        var positiveActivity = new Activity
-        {
-            Username = username,
-            Game = game,
-            Name = habitName,
-            ExpGain = positiveExp,
-            MeaningfulUntilLevel = positiveExp / 2,
-            Category = category,
-            ImagePath = imagePath ?? "",
-            HabitType = frequency,
-            StartDate = DateTime.Now
-        };
-        await conn.InsertAsync(positiveActivity);
-
-        // Create the negative activity
-        var negativeActivity = new Activity
-        {
-            Username = username,
-            Game = game,
-            Name = $"{habitName} (Missed)",
-            ExpGain = -Math.Abs(negativeExp),
-            MeaningfulUntilLevel = 100,
-            Category = "Negative",
-            ImagePath = imagePath ?? "",
-            HabitType = "None",
-            StartDate = DateTime.Now
-        };
-        await conn.InsertAsync(negativeActivity);
-
-        // Create the new habit tracker
         var newHabit = new NewHabit
         {
             Username = username,
             Game = game,
             HabitName = habitName,
-            PositiveActivityId = positiveActivity.Id,
-            NegativeActivityId = negativeActivity.Id,
+            PositiveActivityId = positiveActivityId,
+            NegativeActivityId = negativeActivityId,
             ConsecutiveDays = 0,
             DaysToGraduate = daysToGraduate,
             Frequency = frequency,
@@ -349,9 +323,10 @@ public class NewHabitService
     /// <summary>
     /// Record that the positive activity was done today.
     /// Call this when user clicks the positive activity.
-    /// Returns the habit if it graduated, null otherwise.
+    /// Returns true if the habit is now ready to graduate (all circles filled).
+    /// Does NOT auto-graduate - user must manually click Graduate button.
     /// </summary>
-    public async Task<NewHabit?> RecordHabitDoneAsync(int positiveActivityId)
+    public async Task<bool> RecordHabitDoneAsync(int positiveActivityId)
     {
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<NewHabit>();
@@ -360,7 +335,7 @@ public class NewHabitService
             .Where(h => h.PositiveActivityId == positiveActivityId && h.Status == "active")
             .FirstOrDefaultAsync();
 
-        if (habit == null) return null;
+        if (habit == null) return false;
 
         var today = DateTime.UtcNow.Date;
         var lastDate = habit.LastAppliedDate?.Date;
@@ -369,7 +344,7 @@ public class NewHabitService
         {
             // Already recorded today
             System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' already recorded today");
-            return null;
+            return false;
         }
 
         if (lastDate == today.AddDays(-1))
@@ -393,17 +368,16 @@ public class NewHabitService
         }
 
         habit.LastAppliedDate = today;
+        await conn.UpdateAsync(habit);
 
-        // Check if graduated
-        if (habit.ConsecutiveDays >= habit.DaysToGraduate)
+        // Return true if ready to graduate (but don't auto-graduate)
+        bool readyToGraduate = habit.ConsecutiveDays >= habit.DaysToGraduate;
+        if (readyToGraduate)
         {
-            return await GraduateHabitAsync(habit);
+            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' is READY TO GRADUATE (manual click required)");
         }
-        else
-        {
-            await conn.UpdateAsync(habit);
-            return null;
-        }
+        
+        return readyToGraduate;
     }
 
     /// <summary>
@@ -445,7 +419,16 @@ public class NewHabitService
     }
 
     /// <summary>
-    /// Graduate a habit. Returns the habit for UI to ask about removing negative.
+    /// Check if a habit is ready to graduate (all circles filled)
+    /// </summary>
+    public bool IsReadyToGraduate(NewHabit habit)
+    {
+        return habit.ConsecutiveDays >= habit.DaysToGraduate && habit.Status == "active";
+    }
+
+    /// <summary>
+    /// Graduate a habit manually. 
+    /// Does NOT increase allowance - that only happens when ALL slots are graduated.
     /// </summary>
     public async Task<NewHabit?> GraduateHabitAsync(NewHabit habit)
     {
@@ -455,15 +438,37 @@ public class NewHabitService
         habit.CompletedAt = DateTime.UtcNow;
         await conn.UpdateAsync(habit);
 
-        // Increase frequency-specific allowance
+        // Track graduation count but DON'T increase allowance yet
         var allowance = await GetOrCreateAllowanceAsync(habit.Username, habit.Frequency);
-        allowance.CurrentAllowance++;
         allowance.TotalGraduated++;
-        await UpdateAllowanceAsync(allowance);
+        await conn.UpdateAsync(allowance);
 
-        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' GRADUATED! {habit.Frequency} allowance now {allowance.CurrentAllowance}");
+        System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' GRADUATED! (allowance unchanged until all slots graduated)");
         
         return habit;
+    }
+
+    /// <summary>
+    /// Check if we should increase allowance (all current slots graduated)
+    /// and increase it if so. Returns true if allowance was increased.
+    /// </summary>
+    public async Task<bool> TryIncreaseAllowanceAsync(string username, string frequency)
+    {
+        var allowance = await GetOrCreateAllowanceAsync(username, frequency);
+        var activeHabits = await GetAllActiveHabitsAsync(username);
+        var activeOfFrequency = activeHabits.Where(h => h.Frequency == frequency).Count();
+        
+        // Only increase allowance if ALL slots are graduated (no active habits)
+        if (activeOfFrequency == 0)
+        {
+            allowance.CurrentAllowance++;
+            await UpdateAllowanceAsync(allowance);
+            
+            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] All {frequency} slots graduated! Allowance increased to {allowance.CurrentAllowance}");
+            return true;
+        }
+        
+        return false;
     }
 
     /// <summary>

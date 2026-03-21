@@ -22,11 +22,12 @@ public partial class HomePage : ContentPage
     private readonly ExpService _exp;
     private readonly CountdownService _countdowns;
     private readonly LearningService _learning;
+    private readonly ActivityService _activities;
     private bool _introChecked = false;
 
     public HomePage(AuthService auth, GameService games, DragonService dragons,
         BackupService backup, AttemptService attempts, StreakService streaks, DatabaseService db, ExpService exp,
-        CountdownService countdowns, LearningService learning)
+        CountdownService countdowns, LearningService learning, ActivityService activities)
     {
         InitializeComponent();
         _auth = auth;
@@ -39,6 +40,7 @@ public partial class HomePage : ContentPage
         _exp = exp;
         _countdowns = countdowns;
         _learning = learning;
+        _activities = activities;
     }
 
     protected override async void OnAppearing()
@@ -112,6 +114,7 @@ public partial class HomePage : ContentPage
             // Create default games
             await _games.CreateGameAsync(_auth.CurrentUsername, "Conversation Practice");
             await _games.CreateGameAsync(_auth.CurrentUsername, "Diet");
+            await _games.CreateGameAsync(_auth.CurrentUsername, "Learning");
             games = await _games.GetGamesAsync(_auth.CurrentUsername);
         }
 
@@ -213,7 +216,7 @@ public partial class HomePage : ContentPage
 
     private async void OnLearningClicked(object sender, EventArgs e)
     {
-        var page = new LearningPage(_auth, _learning);
+        var page = new LearningPage(_auth, _learning, _activities, _games);
         await Navigation.PushAsync(page);
     }
 
@@ -243,4 +246,5 @@ public partial class HomePage : ContentPage
         // RESET STACK — ANDROID REQUIRED
         await Shell.Current.GoToAsync("//login");
     }
+    
 }

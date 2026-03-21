@@ -350,8 +350,7 @@ public class NewHabitsPage : ContentPage
                 "OK");
         }
 
-        // Check for graduations
-        await CheckGraduationsAsync();
+        // NOTE: No auto-graduation check - user must manually click Graduate button
 
         // Load frequency-specific allowance
         var allowance = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername, _frequency);
@@ -440,30 +439,29 @@ public class NewHabitsPage : ContentPage
         }
     }
 
-    private async Task CheckGraduationsAsync()
+    private async Task CheckAllowanceIncreaseAsync()
     {
-        var activeHabits = await _newHabits.GetAllActiveHabitsAsync(_auth.CurrentUsername);
-        var frequencyHabits = activeHabits.Where(h => h.Frequency == _frequency).ToList();
-
-        foreach (var habit in frequencyHabits)
+        // Check if all slots are graduated and we should increase allowance
+        bool increased = await _newHabits.TryIncreaseAllowanceAsync(_auth.CurrentUsername, _frequency);
+        
+        if (increased)
         {
-            if (habit.ConsecutiveDays >= habit.DaysToGraduate)
-            {
-                await _newHabits.GraduateHabitAsync(habit);
-
-                await DisplayAlert("🎓 Habit Graduated!",
-                    $"'{habit.HabitName}' has graduated!\n\n" +
-                    $"You've earned +1 {_frequency.ToLower()} allowance slot!",
-                    "Awesome!");
-            }
+            var allowance = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername, _frequency);
+            await DisplayAlert("🎉 Allowance Increased!",
+                $"All {_frequency.ToLower()} habit slots graduated!\n\n" +
+                $"Your allowance is now {allowance.CurrentAllowance}.",
+                "Awesome!");
         }
     }
 
     private Frame CreateActiveHabitCard(NewHabit habit, int availableSlots)
     {
+        bool isReadyToGraduate = _newHabits.IsReadyToGraduate(habit);
+        
         var frame = new Frame
         {
-            BackgroundColor = Colors.White,
+            BackgroundColor = isReadyToGraduate ? Color.FromArgb("#E8F5E9") : Colors.White,
+            BorderColor = isReadyToGraduate ? Color.FromArgb("#4CAF50") : Colors.Transparent,
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
@@ -518,19 +516,49 @@ public class NewHabitsPage : ContentPage
 
         // Status
         bool isDoneToday = habit.LastAppliedDate?.Date == DateTime.UtcNow.Date;
-        string statusText = isDoneToday
-            ? "✅ Done today!"
-            : $"⏳ {habit.DaysRemaining} {(_frequency == "Daily" ? "days" : _frequency == "Weekly" ? "weeks" : "months")} to go";
+        string statusText;
+        
+        if (isReadyToGraduate)
+        {
+            statusText = "🎓 Ready to graduate!";
+        }
+        else if (isDoneToday)
+        {
+            statusText = "✅ Done today!";
+        }
+        else
+        {
+            statusText = $"⏳ {habit.DaysRemaining} {(_frequency == "Daily" ? "days" : _frequency == "Weekly" ? "weeks" : "months")} to go";
+        }
 
         grid.Add(new Label
         {
             Text = statusText,
             FontSize = 12,
-            TextColor = Color.FromArgb("#666")
+            TextColor = isReadyToGraduate ? Color.FromArgb("#2E7D32") : Color.FromArgb("#666"),
+            FontAttributes = isReadyToGraduate ? FontAttributes.Bold : FontAttributes.None
         }, 0, 3);
 
         // Action buttons
         var buttonStack = new HorizontalStackLayout { Spacing = 8 };
+
+        // Graduate button (only shown when ready)
+        if (isReadyToGraduate)
+        {
+            var btnGraduate = new Button
+            {
+                Text = "🎓",
+                BackgroundColor = Color.FromArgb("#4CAF50"),
+                TextColor = Colors.White,
+                FontSize = 14,
+                WidthRequest = 40,
+                HeightRequest = 40,
+                Padding = 0,
+                CornerRadius = 8
+            };
+            btnGraduate.Clicked += async (s, e) => await GraduateHabitManuallyAsync(habit);
+            buttonStack.Children.Add(btnGraduate);
+        }
 
         // Move to pending button
         var btnMoveToPending = new Button
@@ -814,6 +842,40 @@ public class NewHabitsPage : ContentPage
             await _newHabits.FailHabitManualAsync(habit, _exp, habit.Game);
             await LoadHabitsAsync();
         }
+    }
+
+    private async Task GraduateHabitManuallyAsync(NewHabit habit)
+    {
+        bool confirm = await DisplayAlert(
+            "🎓 Graduate Habit",
+            $"Graduate '{habit.HabitName}'?\n\n" +
+            $"You've completed {habit.ConsecutiveDays} {(_frequency == "Daily" ? "days" : _frequency == "Weekly" ? "weeks" : "months")} in a row!\n\n" +
+            "This will free up your slot for a new habit.",
+            "Graduate!",
+            "Not Yet");
+
+        if (!confirm) return;
+
+        await _newHabits.GraduateHabitAsync(habit);
+
+        // Ask about removing the negative activity
+        bool removeNegative = await DisplayAlert(
+            "Remove Penalty Activity?",
+            $"'{habit.HabitName}' has graduated!\n\n" +
+            "Would you like to remove the penalty activity from the game?\n\n" +
+            "(The positive activity will remain)",
+            "Yes, Remove It",
+            "No, Keep It");
+
+        if (removeNegative)
+        {
+            await _newHabits.RemoveNegativeActivityAsync(habit);
+        }
+
+        // Check if all slots are now graduated (triggers allowance increase)
+        await CheckAllowanceIncreaseAsync();
+
+        await LoadHabitsAsync();
     }
 
     private async void OnAddPendingClicked(object? sender, EventArgs e)

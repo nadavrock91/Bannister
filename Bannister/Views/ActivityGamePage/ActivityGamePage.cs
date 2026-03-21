@@ -29,7 +29,8 @@ public partial class ActivityGamePage : ContentPage
     private Game? _game;
     private int _currentLevel = 1;
     private List<ActivityGameViewModel> _allActivities = new();
-    private List<string> _categories = new();
+    private List<string> _categories = new();  // All categories (for dropdown)
+    private List<string> _navigableCategories = new();  // Categories with activities showing today (for arrows)
     private int _currentCategoryIndex = 0;
     private string _currentMetaFilter = "All Activities";
     private bool _isInitialLoad = true; // Track if page has been loaded already
@@ -130,36 +131,9 @@ public partial class ActivityGamePage : ContentPage
             }
             else
             {
-                // Check if categories have changed (e.g., streak container created/removed)
-                var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game?.GameId ?? "");
-                var currentCategoryCount = allActivities
-                    .Select(a => a.Category ?? "Misc")
-                    .Where(c => !c.Equals("Expired", StringComparison.OrdinalIgnoreCase) 
-                             && !c.Equals("Stale", StringComparison.OrdinalIgnoreCase))
-                    .Distinct()
-                    .Count();
-                
-                // If category count changed, reload categories while preserving position
-                if (currentCategoryCount != _categories.Count)
-                {
-                    string? currentCategory = _currentCategoryIndex >= 0 && _currentCategoryIndex < _categories.Count 
-                        ? _categories[_currentCategoryIndex] 
-                        : null;
-                    
-                    await LoadCategoriesAsync();
-                    
-                    // Try to stay on the same category
-                    if (!string.IsNullOrEmpty(currentCategory) && _categories.Contains(currentCategory))
-                    {
-                        _currentCategoryIndex = _categories.IndexOf(currentCategory);
-                        UpdateCategoryDisplay();
-                    }
-                }
-                
-                // Refresh EXP and activities
+                // Just refresh EXP and activities without resetting category
                 await RefreshExpAsync();
                 await RefreshActivitiesAsync();
-                await RefreshLevelCapsPanelAsync(); // Refresh level caps panel after edit
             }
         }
         catch (Exception ex)

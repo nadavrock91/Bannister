@@ -13,7 +13,26 @@ public partial class ActivityGamePage
     {
         if (categoryPicker.SelectedIndex >= 0)
         {
-            _currentCategoryIndex = categoryPicker.SelectedIndex;
+            // User selected from dropdown - get the category name
+            string selectedCategory = _categories[categoryPicker.SelectedIndex];
+            
+            // Find this category in navigable categories (or add it temporarily if in show all mode)
+            int navIndex = _navigableCategories.FindIndex(c => 
+                string.Equals(c, selectedCategory, StringComparison.OrdinalIgnoreCase));
+            
+            if (navIndex >= 0)
+            {
+                // Category is navigable, use its index
+                _currentCategoryIndex = navIndex;
+            }
+            else
+            {
+                // Category not navigable (no activities today) - temporarily add it for viewing
+                // This allows dropdown to access all categories even when arrows skip empty ones
+                _navigableCategories.Add(selectedCategory);
+                _currentCategoryIndex = _navigableCategories.Count - 1;
+            }
+            
             UpdateCategoryDisplay();
             _ = RefreshActivitiesAsync();
         }
@@ -31,7 +50,7 @@ public partial class ActivityGamePage
 
     private void OnNextCategoryClicked(object? sender, EventArgs e)
     {
-        if (_currentCategoryIndex < _categories.Count - 1)
+        if (_currentCategoryIndex < _navigableCategories.Count - 1)
         {
             _currentCategoryIndex++;
             UpdateCategoryDisplay();
@@ -54,17 +73,6 @@ public partial class ActivityGamePage
     }
 
     // Selection Events
-    private void OnSelectAllClicked(object? sender, EventArgs e)
-    {
-        if (_allActivities != null)
-        {
-            foreach (var activity in _allActivities)
-            {
-                activity.IsSelected = true;
-            }
-        }
-    }
-
     private void OnClearSelectionClicked(object? sender, EventArgs e)
     {
         if (_allActivities != null)
@@ -118,159 +126,6 @@ public partial class ActivityGamePage
         {
             await DisplayAlert("Error", "Conversation service not available", "OK");
         }
-    }
-
-    private async void OnOptionsClicked(object? sender, EventArgs e)
-    {
-        var options = new[]
-        {
-            "📊 Manual EXP Adjustment",
-            "🎁 Apply Auto-Awards",
-            "🔄 Reset Daily Checks",
-            "📋 Export Data"
-        };
-
-        var result = await DisplayActionSheet("⚙️ Options", "Cancel", null, options);
-
-        if (result == "📊 Manual EXP Adjustment")
-        {
-            await ShowManualExpAdjustmentAsync();
-        }
-        else if (result == "🎁 Apply Auto-Awards")
-        {
-            await ShowManualAutoAwardAsync();
-        }
-        else if (result == "🔄 Reset Daily Checks")
-        {
-            await ResetDailyChecksAsync();
-        }
-        else if (result == "📋 Export Data")
-        {
-            await DisplayAlert("Export", "Export functionality coming soon!", "OK");
-        }
-    }
-
-    private async Task ShowManualExpAdjustmentAsync()
-    {
-        if (_game == null) return;
-
-        // First, ask if adding or removing EXP
-        var action = await DisplayActionSheet(
-            "Manual EXP Adjustment",
-            "Cancel",
-            null,
-            "➕ Add EXP",
-            "➖ Remove EXP");
-
-        if (action == null || action == "Cancel") return;
-
-        bool isAdding = action == "➕ Add EXP";
-
-        // Get amount
-        string amountStr = await DisplayPromptAsync(
-            isAdding ? "Add EXP" : "Remove EXP",
-            "Enter amount:",
-            keyboard: Keyboard.Numeric,
-            initialValue: "10");
-
-        if (string.IsNullOrWhiteSpace(amountStr)) return;
-
-        if (!int.TryParse(amountStr, out int amount) || amount <= 0)
-        {
-            await DisplayAlert("Invalid Amount", "Please enter a positive number.", "OK");
-            return;
-        }
-
-        // Get reason
-        string reason = await DisplayPromptAsync(
-            "Reason",
-            "Enter reason for adjustment:",
-            initialValue: isAdding ? "Manual bonus" : "Manual correction");
-
-        if (string.IsNullOrWhiteSpace(reason)) return;
-
-        // Apply the adjustment
-        int expChange = isAdding ? amount : -amount;
-        string source = $"Manual: {reason}";
-
-        await _exp.ApplyExpAsync(_auth.CurrentUsername, _game.GameId, source, expChange);
-
-        await RefreshExpAsync();
-        await LoadChartDataAsync();
-
-        string emoji = isAdding ? "✅" : "⚠️";
-        await DisplayAlert(
-            $"{emoji} EXP Adjusted",
-            $"{(isAdding ? "Added" : "Removed")} {amount} EXP\n\nReason: {reason}",
-            "OK");
-    }
-
-    private async Task ShowManualAutoAwardAsync()
-    {
-        if (_game == null) return;
-
-        // Get all auto-award activities (regardless of LastAutoAwarded)
-        var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
-        var autoAwardActivities = allActivities.Where(a => a.IsAutoAward && a.IsActive).ToList();
-
-        if (autoAwardActivities.Count == 0)
-        {
-            await DisplayAlert("No Auto-Award Activities", 
-                "You don't have any auto-award activities in this game.", "OK");
-            return;
-        }
-
-        // Get current level for PercentOfLevel calculations
-        var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
-
-        // Show the auto-award page with ALL auto-award activities
-        var confirmPage = new AutoAwardConfirmationPage(
-            autoAwardActivities,
-            _exp,
-            _activities,
-            _auth.CurrentUsername,
-            _game.GameId,
-            currentLevel
-        );
-        
-        await Navigation.PushModalAsync(confirmPage);
-        await confirmPage.WaitForCompletionAsync();
-
-        await RefreshExpAsync();
-        await RefreshActivitiesAsync();
-        await LoadChartDataAsync();
-    }
-
-    private async Task ResetDailyChecksAsync()
-    {
-        if (_game == null) return;
-
-        bool confirm = await DisplayAlert(
-            "Reset Daily Checks",
-            "This will reset the following daily checks so they run again:\n\n" +
-            "• Broken streak check\n" +
-            "• Auto-award check\n" +
-            "• Habit target check\n\n" +
-            "Use this if something went wrong and you need to re-run the checks.\n\n" +
-            "Continue?",
-            "Reset",
-            "Cancel");
-
-        if (!confirm) return;
-
-        // Clear the preference keys for this game
-        string brokenStreakKey = $"BrokenStreakCheck_{_auth.CurrentUsername}_{_game.GameId}";
-        string autoAwardKey = $"AutoAward_LastCheck_{_auth.CurrentUsername}_{_game.GameId}";
-        string habitTargetKey = $"HabitTargetCheck_{_auth.CurrentUsername}_{_game.GameId}";
-
-        Preferences.Remove(brokenStreakKey);
-        Preferences.Remove(autoAwardKey);
-        Preferences.Remove(habitTargetKey);
-
-        await DisplayAlert(
-            "Checks Reset",
-            "Daily checks have been reset. They will run again when you reload the game.",
-            "OK");
     }
 
     private async void OnBackClicked(object? sender, EventArgs e)

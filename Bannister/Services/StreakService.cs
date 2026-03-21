@@ -171,13 +171,10 @@ public class StreakService
     /// <summary>
     /// Check and break any streaks that haven't been used today (for non-auto-increment streaks)
     /// Call this on app startup or game load
-    /// Returns list of broken streaks with their activities (for level-down processing)
     /// </summary>
-    public async Task<List<(StreakAttempt streak, Activity activity)>> CheckAndBreakExpiredStreaksAsync(
-        string username, string game, ActivityService activityService)
+    public async Task CheckAndBreakExpiredStreaksAsync(string username, string game, ActivityService activityService)
     {
         var conn = await _db.GetConnectionAsync();
-        var brokenStreaks = new List<(StreakAttempt, Activity)>();
         
         var activeStreaks = await conn.Table<StreakAttempt>()
             .Where(s => s.Username == username && s.Game == game && s.IsActive)
@@ -185,7 +182,7 @@ public class StreakService
 
         var today = DateTime.UtcNow.Date;
 
-        // Get activities to check which are auto-increment and for level-cap info
+        // Get activities to check which are auto-increment
         var activities = await activityService.GetActivitiesAsync(username, game);
         var activityDict = activities.ToDictionary(a => a.Id);
 
@@ -209,17 +206,9 @@ public class StreakService
                     await conn.UpdateAsync(streak);
                     
                     System.Diagnostics.Debug.WriteLine($"[STREAK] Broke streak for '{streak.ActivityName}' - {daysSinceLastUse} days since last use");
-                    
-                    // Add to broken list for level-down processing
-                    if (activity != null)
-                    {
-                        brokenStreaks.Add((streak, activity));
-                    }
                 }
             }
         }
-        
-        return brokenStreaks;
     }
 
     /// <summary>
@@ -231,71 +220,63 @@ public class StreakService
     {
         var conn = await _db.GetConnectionAsync();
         var today = DateTime.UtcNow.Date;
-        int incrementedCount = 0;
 
-        // Get all streak-tracked activities that are auto-increment
-        var activities = await activityService.GetActivitiesAsync(username, game);
-        var autoIncrementActivities = activities.Where(a => a.IsStreakTracked && a.IsStreakAutoIncrement).ToList();
-
-        System.Diagnostics.Debug.WriteLine($"[STREAK AUTO] Found {autoIncrementActivities.Count} auto-increment activities");
-
-        foreach (var activity in autoIncrementActivities)
+        // Check if already ran today
+        string prefKey = $"StreakAutoIncrement_{username}_{game}";
+        string lastRun = Preferences.Get(prefKey, "");
+        string todayStr = today.ToString("yyyy-MM-dd");
+        
+        if (lastRun == todayStr)
         {
-            var activeStreak = await conn.Table<StreakAttempt>()
-                .Where(s => s.Username == username && s.Game == game && s.ActivityId == activity.Id && s.IsActive)
-                .FirstOrDefaultAsync();
-
-            if (activeStreak == null)
-            {
-                // No active streak - create one starting today
-                System.Diagnostics.Debug.WriteLine($"[STREAK AUTO] Creating new auto-increment streak for '{activity.Name}'");
-                await GetOrCreateActiveStreakAsync(username, game, activity.Id, activity.Name);
-                incrementedCount++;
-                continue;
-            }
-
-            // Check if already updated today
-            if (activeStreak.LastUsedDate.HasValue && activeStreak.LastUsedDate.Value.Date == today)
-            {
-                System.Diagnostics.Debug.WriteLine($"[STREAK AUTO] '{activity.Name}' already updated today");
-                continue;
-            }
-
-            // Check how many days since last update
-            if (activeStreak.LastUsedDate.HasValue)
-            {
-                var daysSinceLastUse = (today - activeStreak.LastUsedDate.Value.Date).Days;
-
-                if (daysSinceLastUse >= 1)
-                {
-                    // Auto-increment: add all missing days
-                    int daysBefore = activeStreak.DaysAchieved;
-                    activeStreak.DaysAchieved += daysSinceLastUse;
-                    activeStreak.LastUsedDate = today;
-                    await conn.UpdateAsync(activeStreak);
-                    incrementedCount++;
-                    
-                    // Log the auto-increment
-                    await LogStreakChangeAsync(activeStreak.Id, daysBefore, activeStreak.DaysAchieved, "auto_increment", 
-                        daysSinceLastUse > 1 ? $"Auto-added {daysSinceLastUse} days" : null);
-                    
-                    System.Diagnostics.Debug.WriteLine($"[STREAK AUTO] Auto-incremented '{activity.Name}' by {daysSinceLastUse} days, now at {activeStreak.DaysAchieved} days");
-                }
-            }
-            else
-            {
-                // No last used date, set it to today
-                activeStreak.LastUsedDate = today;
-                await conn.UpdateAsync(activeStreak);
-            }
+            return 0; // Already ran today
         }
 
-        System.Diagnostics.Debug.WriteLine($"[STREAK AUTO] Total streaks auto-incremented: {incrementedCount}");
+        // Get all active streaks
+        var activeStreaks = await conn.Table<StreakAttempt>()
+            .Where(s => s.Username == username && s.Game == game && s.IsActive)
+            .ToListAsync();
+
+        // Get activities to check which are auto-increment
+        var activities = await activityService.GetActivitiesAsync(username, game);
+        var activityDict = activities.ToDictionary(a => a.Id);
+
+        int incrementedCount = 0;
+
+        foreach (var streak in activeStreaks)
+        {
+            // Only auto-increment if activity has the flag
+            if (!activityDict.TryGetValue(streak.ActivityId, out var activity) || !activity.IsStreakAutoIncrement)
+            {
+                continue;
+            }
+
+            // Check if already incremented today
+            if (streak.LastUsedDate.HasValue && streak.LastUsedDate.Value.Date == today)
+            {
+                continue;
+            }
+
+            // Increment the streak
+            int daysBefore = streak.DaysAchieved;
+            streak.DaysAchieved++;
+            streak.LastUsedDate = today;
+            await conn.UpdateAsync(streak);
+            
+            // Log the auto-increment
+            await LogStreakChangeAsync(streak.Id, daysBefore, streak.DaysAchieved, "auto_increment");
+            
+            incrementedCount++;
+            System.Diagnostics.Debug.WriteLine($"[STREAK] Auto-incremented '{streak.ActivityName}' to {streak.DaysAchieved} days");
+        }
+
+        // Mark as ran today
+        Preferences.Set(prefKey, todayStr);
+
         return incrementedCount;
     }
 
     /// <summary>
-    /// Manually end/break a streak
+    /// End an active streak
     /// </summary>
     public async Task EndStreakAsync(int streakId)
     {
@@ -334,6 +315,78 @@ public class StreakService
             // Log the manual edit
             await LogStreakChangeAsync(streakId, daysBefore, newDays, "manual_edit", 
                 $"Manual edit: {daysBefore} → {newDays}");
+        }
+    }
+
+    /// <summary>
+    /// Delete a streak attempt. If it's the active one, reactivate the previous attempt.
+    /// </summary>
+    public async Task<bool> DeleteStreakAttemptAsync(int streakId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        var streak = await conn.GetAsync<StreakAttempt>(streakId);
+        
+        if (streak == null)
+            return false;
+
+        bool wasActive = streak.IsActive;
+        int deletedAttemptNumber = streak.AttemptNumber;
+        string username = streak.Username;
+        string game = streak.Game;
+        int activityId = streak.ActivityId;
+
+        // Delete the streak logs first
+        await DeleteStreakLogsAsync(streakId);
+        
+        // Delete the streak attempt
+        await conn.DeleteAsync(streak);
+
+        // If the deleted streak was active, reactivate the previous one
+        if (wasActive)
+        {
+            // Find the previous attempt (highest attempt number that's not the deleted one)
+            var previousAttempt = await conn.Table<StreakAttempt>()
+                .Where(s => s.Username == username && s.Game == game && s.ActivityId == activityId)
+                .OrderByDescending(s => s.AttemptNumber)
+                .FirstOrDefaultAsync();
+
+            if (previousAttempt != null)
+            {
+                previousAttempt.IsActive = true;
+                previousAttempt.EndedAt = null; // Clear the end date
+                previousAttempt.LastUsedDate = DateTime.UtcNow.Date; // Set to today so it continues
+                await conn.UpdateAsync(previousAttempt);
+                
+                System.Diagnostics.Debug.WriteLine($"[STREAK] Reactivated attempt #{previousAttempt.AttemptNumber} after deleting #{deletedAttemptNumber}");
+            }
+        }
+
+        // Renumber remaining attempts to fill the gap
+        await RenumberAttemptsAsync(username, game, activityId);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Renumber streak attempts to be sequential (1, 2, 3, ...)
+    /// </summary>
+    private async Task RenumberAttemptsAsync(string username, string game, int activityId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        var attempts = await conn.Table<StreakAttempt>()
+            .Where(s => s.Username == username && s.Game == game && s.ActivityId == activityId)
+            .OrderBy(s => s.AttemptNumber)
+            .ToListAsync();
+
+        int expectedNumber = 1;
+        foreach (var attempt in attempts)
+        {
+            if (attempt.AttemptNumber != expectedNumber)
+            {
+                attempt.AttemptNumber = expectedNumber;
+                await conn.UpdateAsync(attempt);
+            }
+            expectedNumber++;
         }
     }
 

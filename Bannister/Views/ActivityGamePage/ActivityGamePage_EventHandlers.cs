@@ -360,6 +360,16 @@ public partial class ActivityGamePage
             btnShowAll.TextColor = Color.FromArgb("#666");
         }
         
+        // Rebuild navigable categories based on new showAll state
+        await UpdateNavigableCategoriesAsync();
+        
+        // Reset to first navigable category if current is no longer navigable
+        if (_currentCategoryIndex >= _navigableCategories.Count)
+        {
+            _currentCategoryIndex = 0;
+        }
+        
+        UpdateCategoryDisplay();
         await RefreshActivitiesAsync();
     }
 
@@ -543,6 +553,48 @@ public partial class ActivityGamePage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[NEWHABIT] Error recording progress: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handle Select All button click - selects all visible activities
+    /// </summary>
+    private void OnSelectAllClicked(object? sender, EventArgs e)
+    {
+        if (_allActivities == null) return;
+        
+        foreach (var activity in _allActivities)
+        {
+            activity.IsSelected = true;
+        }
+    }
+
+    /// <summary>
+    /// Handle Options button click - show options menu
+    /// </summary>
+    private async void OnOptionsClicked(object? sender, EventArgs e)
+    {
+        var result = await DisplayActionSheet(
+            "⚙️ Options",
+            "Cancel",
+            null,
+            "📊 View Activity Log",
+            "🔄 Refresh",
+            "📤 Export Data");
+
+        if (result == null || result == "Cancel") return;
+
+        if (result == "📊 View Activity Log")
+        {
+            OnViewLogClicked(sender, e);
+        }
+        else if (result == "🔄 Refresh")
+        {
+            await RefreshActivitiesAsync();
+        }
+        else if (result == "📤 Export Data")
+        {
+            await DisplayAlert("Export", "Export functionality coming soon.", "OK");
         }
     }
 }

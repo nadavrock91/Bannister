@@ -81,6 +81,10 @@ public partial class ActivityGamePage
 
             foreach (var (activity, isBlocking) in levelCaps)
             {
+                // Calculate days missing/blocking
+                int daysNeeded = activity.LevelCapStreakRequired;
+                int currentStreak = activity.DisplayDayStreak;
+                
                 var itemFrame = new Frame
                 {
                     Padding = 8,
@@ -124,37 +128,111 @@ public partial class ActivityGamePage
                 Grid.SetColumn(infoStack, 0);
                 itemGrid.Children.Add(infoStack);
 
-                // Status badge
-                var statusStack = new VerticalStackLayout 
-                { 
-                    HorizontalOptions = LayoutOptions.End,
-                    VerticalOptions = LayoutOptions.Center
-                };
-
-                var streakLabel = new Label
+                if (isBlocking)
                 {
-                    Text = $"🔥 {activity.DisplayDayStreak}d",
-                    FontSize = 11,
-                    FontAttributes = FontAttributes.Bold,
-                    HorizontalOptions = LayoutOptions.End,
-                    TextColor = activity.DisplayDayStreak >= activity.LevelCapStreakRequired 
-                        ? Color.FromArgb("#4CAF50") 
-                        : Color.FromArgb("#F44336")
-                };
-                statusStack.Children.Add(streakLabel);
+                    // BLOCKING: Show fire emojis - one per day it's been blocking
+                    // Calculate days blocking = days since we reached the cap level without required streak
+                    // We use (required - current streak) as days blocking, minimum 1
+                    int daysBlocking = Math.Max(1, daysNeeded - currentStreak);
+                    
+                    // Build the fire string - one 🔥 per day
+                    string fireEmojis = string.Concat(Enumerable.Repeat("🔥", daysBlocking));
+                    
+                    var blockingStack = new VerticalStackLayout
+                    {
+                        HorizontalOptions = LayoutOptions.End,
+                        Spacing = 2
+                    };
+                    
+                    // Fire emojis row with BIG blocking days number
+                    var fireRow = new HorizontalStackLayout
+                    {
+                        HorizontalOptions = LayoutOptions.End,
+                        Spacing = 6
+                    };
+                    
+                    // Fire emojis - wrap them so they stack vertically if many
+                    var fireLabel = new Label
+                    {
+                        Text = fireEmojis,
+                        FontSize = 18,
+                        HorizontalOptions = LayoutOptions.End,
+                        HorizontalTextAlignment = TextAlignment.End,
+                        VerticalOptions = LayoutOptions.Center,
+                        LineBreakMode = LineBreakMode.WordWrap,
+                        MaximumWidthRequest = 60 // Forces wrapping after ~3 emojis
+                    };
+                    fireRow.Children.Add(fireLabel);
+                    
+                    // BIG blocking days number
+                    var bigDaysLabel = new Label
+                    {
+                        Text = $"{daysBlocking}d",
+                        FontSize = 28,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#D32F2F"),
+                        VerticalOptions = LayoutOptions.Center
+                    };
+                    fireRow.Children.Add(bigDaysLabel);
+                    
+                    blockingStack.Children.Add(fireRow);
+                    
+                    // Progress toward unlock
+                    var progressLabel = new Label
+                    {
+                        Text = $"{currentStreak}d / {daysNeeded}d streak",
+                        FontSize = 10,
+                        TextColor = Color.FromArgb("#666"),
+                        HorizontalOptions = LayoutOptions.End
+                    };
+                    blockingStack.Children.Add(progressLabel);
 
-                var statusLabel = new Label
+                    // Status label
+                    var statusLabel = new Label
+                    {
+                        Text = "⛔ BLOCKING",
+                        FontSize = 9,
+                        FontAttributes = FontAttributes.Bold,
+                        HorizontalOptions = LayoutOptions.End,
+                        TextColor = Color.FromArgb("#D32F2F")
+                    };
+                    blockingStack.Children.Add(statusLabel);
+                    
+                    Grid.SetColumn(blockingStack, 1);
+                    itemGrid.Children.Add(blockingStack);
+                }
+                else
                 {
-                    Text = isBlocking ? "⛔ BLOCKING" : "✅ UNLOCKED",
-                    FontSize = 9,
-                    FontAttributes = FontAttributes.Bold,
-                    HorizontalOptions = LayoutOptions.End,
-                    TextColor = isBlocking ? Color.FromArgb("#D32F2F") : Color.FromArgb("#388E3C")
-                };
-                statusStack.Children.Add(statusLabel);
+                    // UNLOCKED: Normal display
+                    var unlockedStack = new VerticalStackLayout 
+                    { 
+                        HorizontalOptions = LayoutOptions.End,
+                        VerticalOptions = LayoutOptions.Center
+                    };
+                    
+                    var streakLabel = new Label
+                    {
+                        Text = $"🔥 {activity.DisplayDayStreak}d",
+                        FontSize = 11,
+                        FontAttributes = FontAttributes.Bold,
+                        HorizontalOptions = LayoutOptions.End,
+                        TextColor = Color.FromArgb("#4CAF50")
+                    };
+                    unlockedStack.Children.Add(streakLabel);
 
-                Grid.SetColumn(statusStack, 1);
-                itemGrid.Children.Add(statusStack);
+                    var statusLabel = new Label
+                    {
+                        Text = "✅ UNLOCKED",
+                        FontSize = 9,
+                        FontAttributes = FontAttributes.Bold,
+                        HorizontalOptions = LayoutOptions.End,
+                        TextColor = Color.FromArgb("#388E3C")
+                    };
+                    unlockedStack.Children.Add(statusLabel);
+                    
+                    Grid.SetColumn(unlockedStack, 1);
+                    itemGrid.Children.Add(unlockedStack);
+                }
 
                 itemFrame.Content = itemGrid;
                 _levelCapsStack.Children.Add(itemFrame);

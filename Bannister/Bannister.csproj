@@ -57,6 +57,7 @@
 		</MauiXaml>
 	</ItemGroup>
 	<ItemGroup>
+	  <Folder Include="Resources\Images\misc\" />
 	  <Folder Include="Security\" />
 	</ItemGroup>
 	<ItemGroup>
