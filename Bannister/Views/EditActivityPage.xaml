@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Bannister.Views.EditActivityPage"
+             Title="Edit Activity"
+             BackgroundColor="White">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="20" MaximumWidthRequest="500">
+
+            <!-- Activity Name -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Activity name" FontAttributes="Bold" />
+                <Entry x:Name="txtActivityName" Placeholder="Enter activity name" />
+            </VerticalStackLayout>
+
+            <!-- Category Picker -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Category (type new or select existing)" FontAttributes="Bold" />
+                <Picker x:Name="pickerCategory" 
+                        Title="Select category" />
+            </VerticalStackLayout>
+
+            <!-- Reward Type Picker -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Reward Type" FontAttributes="Bold" />
+                <Picker x:Name="pickerRewardType" 
+                        Title="Select reward type"
+                        SelectedIndexChanged="OnRewardTypeChanged">
+                    <Picker.ItemsSource>
+                        <x:Array Type="{x:Type x:String}">
+                            <x:String>Fixed EXP (based on level cutoff)</x:String>
+                            <x:String>Percent of Current Level</x:String>
+                        </x:Array>
+                    </Picker.ItemsSource>
+                </Picker>
+            </VerticalStackLayout>
+
+            <!-- Fixed EXP Section -->
+            <VerticalStackLayout x:Name="fixedExpSection" Spacing="8">
+                <Label Text="Meaningful until level (1-100)" FontAttributes="Bold" />
+                <HorizontalStackLayout Spacing="12">
+                    <Entry x:Name="txtMeaningfulLevel" 
+                           Keyboard="Numeric"
+                           Text="20"
+                           WidthRequest="100"
+                           TextChanged="OnMeaningfulLevelChanged" />
+                    <Label x:Name="lblExpPreview" 
+                           Text="→ This activity will give: +40 EXP"
+                           TextColor="#5B63EE"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- Percent of Level Section -->
+            <VerticalStackLayout x:Name="percentExpSection" Spacing="8" IsVisible="False">
+                <Label Text="Percent of current level's EXP" FontAttributes="Bold" />
+                <HorizontalStackLayout Spacing="12">
+                    <Entry x:Name="txtPercentOfLevel" 
+                           Keyboard="Numeric"
+                           Text="1"
+                           WidthRequest="100" />
+                    <Label Text="% (e.g., 1 = 1% of level span)"
+                           TextColor="#666"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                
+                <Label Text="Stop scaling at level (1-100)" FontAttributes="Bold" Margin="0,8,0,0" />
+                <HorizontalStackLayout Spacing="12">
+                    <Entry x:Name="txtPercentCutoff" 
+                           Keyboard="Numeric"
+                           Text="100"
+                           WidthRequest="100" />
+                    <Label Text="(after this level, EXP stays fixed)"
+                           TextColor="#666"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                
+                <Label Text="💡 EXP scales with your level until cutoff, then stays fixed"
+                       FontSize="12"
+                       TextColor="#4CAF50"
+                       FontAttributes="Italic" />
+            </VerticalStackLayout>
+
+            <!-- Streak Tracking -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Streak Tracking" FontAttributes="Bold" />
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkStreakTracked" />
+                    <Label Text="Track consecutive days as streak attempts"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <Label Text="🔥 When enabled, this activity becomes its own category with attempt cards showing day counts"
+                       FontSize="12"
+                       TextColor="#FF9800"
+                       FontAttributes="Italic" />
+            </VerticalStackLayout>
+
+            <!-- Possible Activity -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Activity Status" FontAttributes="Bold" />
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkIsPossible" CheckedChanged="OnIsPossibleChanged" />
+                    <Label Text="Mark as Possible (idea for future)"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <Label Text="💡 Possible activities won't show in normal filters - only under 'Possible' filter"
+                       FontSize="12"
+                       TextColor="#9C27B0"
+                       FontAttributes="Italic" />
+            </VerticalStackLayout>
+
+            <!-- Show Times Completed Badge -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Times Completed Badge" FontAttributes="Bold" />
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkShowTimesCompleted" />
+                    <Label Text="Show times completed badge (✓X)"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <Label Text="💡 Badge shows how many times you've gained EXP from this activity"
+                       FontSize="12"
+                       TextColor="#9C27B0"
+                       FontAttributes="Italic" />
+            </VerticalStackLayout>
+
+            <!-- Habit Target Section -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Habit Target" FontAttributes="Bold" />
+                
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkNoHabitTarget" CheckedChanged="OnNoHabitTargetChanged" />
+                    <Label Text="I don't want this as a habit"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkHasHabitTarget" CheckedChanged="OnHasHabitTargetChanged" />
+                    <Label Text="Set habit target date:"
+                           VerticalOptions="Center" />
+                    <DatePicker x:Name="dateHabitTarget"
+                                IsEnabled="False"
+                                VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                
+                <!-- Quick Target Date Buttons -->
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="+7d" Clicked="OnHabitTarget7Days" 
+                            BackgroundColor="#FFF3E0" TextColor="#E65100"
+                            CornerRadius="6" Padding="12,6" />
+                    <Button Text="+30d" Clicked="OnHabitTarget30Days"
+                            BackgroundColor="#FFF3E0" TextColor="#E65100"
+                            CornerRadius="6" Padding="12,6" />
+                    <Button Text="+90d" Clicked="OnHabitTarget90Days"
+                            BackgroundColor="#FFF3E0" TextColor="#E65100"
+                            CornerRadius="6" Padding="12,6" />
+                    <Button Text="+180d" Clicked="OnHabitTarget180Days"
+                            BackgroundColor="#FFF3E0" TextColor="#E65100"
+                            CornerRadius="6" Padding="12,6" />
+                    <Button Text="+1y" Clicked="OnHabitTarget1Year"
+                            BackgroundColor="#FFF3E0" TextColor="#E65100"
+                            CornerRadius="6" Padding="12,6" />
+                </HorizontalStackLayout>
+                
+                <Label Text="📅 Set a target date by which you want to turn this activity into a regular habit"
+                       FontSize="12"
+                       TextColor="#FF9800"
+                       FontAttributes="Italic" />
+            </VerticalStackLayout>
+
+            <!-- Schedule Section -->
+            <VerticalStackLayout Spacing="12">
+                <Label Text="Schedule (optional)" FontAttributes="Bold" />
+
+                <!-- Start Date/Time -->
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkStartDate" CheckedChanged="OnStartDateChecked" />
+                    <Label Text="Start:" VerticalOptions="Center" />
+                    <DatePicker x:Name="dateStart" 
+                                IsEnabled="False"
+                                VerticalOptions="Center" />
+                    <TimePicker x:Name="timeStart"
+                                Time="08:00:00"
+                                IsEnabled="False"
+                                VerticalOptions="Center" />
+                </HorizontalStackLayout>
+
+                <!-- End Date/Time -->
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkEndDate" CheckedChanged="OnEndDateChecked" />
+                    <Label Text="End:" VerticalOptions="Center" />
+                    <DatePicker x:Name="dateEnd"
+                                IsEnabled="False"
+                                VerticalOptions="Center" />
+                    <TimePicker x:Name="timeEnd"
+                                Time="23:59:00"
+                                IsEnabled="False"
+                                VerticalOptions="Center" />
+                </HorizontalStackLayout>
+
+                <!-- Quick Date Buttons -->
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="+1d" Clicked="OnAdd1Day" 
+                            BackgroundColor="#EEE" TextColor="#333"
+                            CornerRadius="6" Padding="12,6" />
+                    <Button Text="+7d" Clicked="OnAdd7Days"
+                            BackgroundColor="#EEE" TextColor="#333"
+                            CornerRadius="6" Padding="12,6" />
+                    <Button Text="+30d" Clicked="OnAdd30Days"
+                            BackgroundColor="#EEE" TextColor="#333"
+                            CornerRadius="6" Padding="12,6" />
+                    <Button Text="+90d" Clicked="OnAdd90Days"
+                            BackgroundColor="#EEE" TextColor="#333"
+                            CornerRadius="6" Padding="12,6" />
+                    <Button Text="+180d" Clicked="OnAdd180Days"
+                            BackgroundColor="#EEE" TextColor="#333"
+                            CornerRadius="6" Padding="12,6" />
+                    <Button Text="+1y" Clicked="OnAdd1Year"
+                            BackgroundColor="#EEE" TextColor="#333"
+                            CornerRadius="6" Padding="12,6" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- Activity Image -->
+            <VerticalStackLayout Spacing="12">
+                <Label Text="Activity Image" FontAttributes="Bold" />
+
+                <!-- Image Preview -->
+                <Frame BackgroundColor="#F5F5F5" 
+                       Padding="0" 
+                       CornerRadius="8" 
+                       HeightRequest="200"
+                       WidthRequest="200"
+                       BorderColor="Transparent">
+                    <Image x:Name="imgActivityPreview" 
+                           Aspect="AspectFit" />
+                </Frame>
+
+                <!-- Image Actions -->
+                <VerticalStackLayout Spacing="8">
+                    <Button Text="Browse..." 
+                            Clicked="OnBrowseImage"
+                            BackgroundColor="#5B63EE"
+                            TextColor="White"
+                            CornerRadius="8" />
+
+                    <Button Text="Set to Black"
+                            Clicked="OnSetToBlack"
+                            BackgroundColor="#333"
+                            TextColor="White"
+                            CornerRadius="8" />
+
+                    <Button Text="AI Generators ▼"
+                            Clicked="OnAiGenerators"
+                            BackgroundColor="#EEE"
+                            TextColor="#333"
+                            CornerRadius="8" />
+
+                    <Label Text="Or paste image URL:" FontSize="12" />
+                    <Entry x:Name="txtImageUrl" 
+                           Placeholder="https://example.com/image.png" />
+                    <Button Text="Download from URL"
+                            Clicked="OnDownloadFromUrl"
+                            BackgroundColor="#EEE"
+                            TextColor="#333"
+                            CornerRadius="8" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- Action Buttons -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,20,0,0">
+                <Button Text="Save Changes"
+                        Clicked="OnAddActivity"
+                        BackgroundColor="#5B63EE"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="50" />
+
+                <Button Text="Cancel"
+                        Clicked="OnCancel"
+                        Grid.Column="1"
+                        BackgroundColor="#EEE"
+                        TextColor="#333"
+                        CornerRadius="8"
+                        HeightRequest="50" />
+            </Grid>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,32 @@
+2026-04-08 05:32:47: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-04-08 05:32:47: L: Reading State File C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/_gsdata_/_file_state_v4._gs
+2026-04-08 05:32:56: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_file_state_v4._gs
+2026-04-08 05:32:57: Changes: 4, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 9347
+2026-04-08 05:32:57: Left to Right: Copy File: 4 
+2026-04-08 05:32:57: == Sync Started by On Schedule Min=30 Hour=5 
+2026-04-08 05:32:58: ConnectCloned connected to file:///C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister
+2026-04-08 05:32:58: ConnectCloned connected to file:///C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister
+2026-04-08 05:32:58: ConnectCloned connected to file:///C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister
+2026-04-08 05:32:58: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister_open_source
+2026-04-08 05:32:58: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister_open_source
+2026-04-08 05:32:58: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister_open_source
+2026-04-08 05:33:03: Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/v17/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/v17/DocumentLayout.backup.json' (27,377)
+2026-04-08 05:33:03: Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/v17/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/v17/.suo' (158,208)
+2026-04-08 05:33:04: Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/.vs/Bannister/v17/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/.vs/Bannister/v17/DocumentLayout.json' (27,377)
+2026-04-08 05:33:08: Copy Over 'C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister_open_source/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (67,613)
+2026-04-08 05:33:08: Save State File C:/Users/mr big/Dropbox/code/c sharp/projects/open_source/maui/bannister/_gsdata_/_file_state_v4._gs
+2026-04-08 05:33:11: Save State File goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_file_state_v4._gs
+2026-04-08 05:33:12: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/.git/objects/ae/7573d1f4ecce5f318e399ab6e3e22d710e41d0
+2026-04-08 05:33:12: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/.git/objects/d5/43b67ebf155da2ae4e3898a72f7bc0c929a2be
+2026-04-08 05:33:13: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/5456eeab-2a41-4c9e-9681-c8e61dc95030.vsidx
+2026-04-08 05:33:13: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/597a118e-2410-478f-a75e-9e485fa17520.vsidx
+2026-04-08 05:33:14: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/624f377e-269d-487b-a046-fe0447c54814.vsidx
+2026-04-08 05:33:15: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/a0d9850c-0f30-4f51-a770-e1c627721839.vsidx
+2026-04-08 05:33:15: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/ea0abb38-3e1b-46b9-bb5a-5cdb4370ca0a.vsidx
+2026-04-08 05:33:16: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/Bannister/Views/ActivitySelectionPage.cs
+2026-04-08 05:33:16: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/Bannister/Views/EditActivityPage_xaml.cs
+2026-04-08 05:33:17: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/Bannister/Views/ExpLogPage.xaml
+2026-04-08 05:33:18: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_saved_/Bannister/Views/ExpLogPage.xaml.cs
+2026-04-08 05:33:21: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/.git/objects/ae
+2026-04-08 05:33:22: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/.git/objects/d5
+2026-04-08 05:33:23: == Sync Complete. Time: 00:00:25, Speed: 21.58 KB/s, OK: 4, Errors: 0
