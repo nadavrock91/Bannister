@@ -12,6 +12,8 @@ public class StoryPointsPage : ContentPage
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
     private readonly StoryProject _project;
+    private readonly IdeasService? _ideasService;
+    private readonly IdeaLoggerService? _ideaLogger;
 
     private VerticalStackLayout _activeChronologicalStack;
     private VerticalStackLayout _activeMiscStack;
@@ -30,11 +32,13 @@ public class StoryPointsPage : ContentPage
 
     private List<StoryPoint> _points = new();
 
-    public StoryPointsPage(AuthService auth, StoryProductionService storyService, StoryProject project)
+    public StoryPointsPage(AuthService auth, StoryProductionService storyService, StoryProject project, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null)
     {
         _auth = auth;
         _storyService = storyService;
         _project = project;
+        _ideasService = ideasService;
+        _ideaLogger = ideaLogger;
 
         Title = "Story Points";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -229,8 +233,10 @@ public class StoryPointsPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
+            ColumnSpacing = 6,
             Margin = new Thickness(0, 12, 0, 4)
         };
 
@@ -257,6 +263,21 @@ public class StoryPointsPage : ContentPage
         Grid.SetColumn(addBtn, 1);
         headerRow.Children.Add(addBtn);
 
+        var logIdeaBtn = new Button
+        {
+            Text = "💡",
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            TextColor = Color.FromArgb("#F57C00"),
+            FontSize = 14,
+            HeightRequest = 30,
+            WidthRequest = 36,
+            CornerRadius = 6,
+            Padding = 0
+        };
+        logIdeaBtn.Clicked += async (s, e) => await LogIdeaAsync();
+        Grid.SetColumn(logIdeaBtn, 2);
+        headerRow.Children.Add(logIdeaBtn);
+
         return headerRow;
     }
 
@@ -267,8 +288,10 @@ public class StoryPointsPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
+            ColumnSpacing = 6,
             Margin = new Thickness(0, 12, 0, 4)
         };
 
@@ -294,6 +317,21 @@ public class StoryPointsPage : ContentPage
         addBtn.Clicked += async (s, e) => await ShowAddPointOptionsAsync(subcategory);
         Grid.SetColumn(addBtn, 1);
         headerRow.Children.Add(addBtn);
+
+        var logIdeaBtn = new Button
+        {
+            Text = "💡",
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            TextColor = Color.FromArgb("#F57C00"),
+            FontSize = 14,
+            HeightRequest = 30,
+            WidthRequest = 36,
+            CornerRadius = 6,
+            Padding = 0
+        };
+        logIdeaBtn.Clicked += async (s, e) => await LogIdeaAsync();
+        Grid.SetColumn(logIdeaBtn, 2);
+        headerRow.Children.Add(logIdeaBtn);
 
         return headerRow;
     }
@@ -1229,7 +1267,27 @@ public class StoryPointsPage : ContentPage
         if (string.IsNullOrWhiteSpace(text)) return;
 
         await _storyService.AddStoryPointAsync(_project.Id, text.Trim(), category, subcategory);
+
+        // Also log to Ideas under "all_story_points" category
+        if (_ideasService != null)
+        {
+            try
+            {
+                await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, text.Trim(), "all_story_points");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[STORY POINTS] Failed to log idea: {ex.Message}");
+            }
+        }
+
         await LoadPointsAsync();
+    }
+
+    private async Task LogIdeaAsync()
+    {
+        if (_ideaLogger == null) return;
+        await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername);
     }
 
     private async Task EditPointAsync(StoryPoint point)

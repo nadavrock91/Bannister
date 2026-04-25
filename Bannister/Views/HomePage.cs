@@ -37,12 +37,15 @@ public class HomePage : ContentPage
     private Button _btnPrompts;
     private Button _btnIdeas;
     private Button _btnStoryProduction;
+    private Button _btnImageProduction;
     private Button _btnSubActivities;
     private Button _btnTasks;
     private Button _btnLearning;
+    private Button _btnDatabases;
     private Button _btnDragons;
     private Button _btnStreaks;
     private Button _btnCountdowns;
+    private Button _btnCalendar;
     private Grid _loadingOverlay;
 
     public HomePage(AuthService auth, GameService games, DragonService dragons,
@@ -106,74 +109,78 @@ public class HomePage : ContentPage
         };
         mainStack.Children.Add(_lblWelcome);
 
-        // All items in alphabetical order
+        // Build all navigation buttons, then sort alphabetically before adding
+        var navButtons = new List<(string sortKey, Button btn)>();
 
-        // Charts
         _btnCharts = CreateButton("📊 Charts", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
         _btnCharts.Clicked += OnChartsClicked;
-        mainStack.Children.Add(_btnCharts);
+        navButtons.Add(("Charts", _btnCharts));
 
-        // Countdowns
-        _btnCountdowns = CreateButton("⏳ Countdowns (0)", Color.FromArgb("#E1F5FE"), Color.FromArgb("#0277BD"));
-        _btnCountdowns.Clicked += OnCountdownsClicked;
-        mainStack.Children.Add(_btnCountdowns);
-
-        // Conversation Practice
         _btnConversationPractice = CreateButton("💬 Conversation Practice", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3F51B5"));
         _btnConversationPractice.Clicked += OnConversationPracticeClicked;
-        mainStack.Children.Add(_btnConversationPractice);
+        navButtons.Add(("Conversation Practice", _btnConversationPractice));
 
-        // Dragons
+        _btnCountdowns = CreateButton("⏳ Countdowns (0)", Color.FromArgb("#E1F5FE"), Color.FromArgb("#0277BD"));
+        _btnCountdowns.Clicked += OnCountdownsClicked;
+        navButtons.Add(("Countdowns", _btnCountdowns));
+
+        _btnDatabases = CreateButton("🗄️ Databases", Color.FromArgb("#ECEFF1"), Color.FromArgb("#455A64"));
+        _btnDatabases.Clicked += OnDatabasesClicked;
+        navButtons.Add(("Databases", _btnDatabases));
+
         _btnDragons = CreateButton("🐉 Dragons (0)", Colors.White, Color.FromArgb("#5B63EE"));
         _btnDragons.Clicked += OnDragonsClicked;
-        mainStack.Children.Add(_btnDragons);
+        navButtons.Add(("Dragons", _btnDragons));
 
-        // Games
         _btnGames = CreateButton("🎮 Games (0)", Colors.White, Color.FromArgb("#5B63EE"), 56, true);
         _btnGames.Clicked += OnGamesClicked;
-        mainStack.Children.Add(_btnGames);
+        navButtons.Add(("Games", _btnGames));
 
-        // Habits
         _btnNewHabits = CreateButton("🌱 Habits", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
         _btnNewHabits.Clicked += OnNewHabitsClicked;
-        mainStack.Children.Add(_btnNewHabits);
+        navButtons.Add(("Habits", _btnNewHabits));
 
-        // Ideas
         _btnIdeas = CreateButton("💡 Ideas", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57C00"));
         _btnIdeas.Clicked += OnIdeasClicked;
-        mainStack.Children.Add(_btnIdeas);
+        navButtons.Add(("Ideas", _btnIdeas));
 
-        // Learning
+        _btnImageProduction = CreateButton("🎨 Image Production", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C62828"));
+        _btnImageProduction.Clicked += OnImageProductionClicked;
+        navButtons.Add(("Image Production", _btnImageProduction));
+
         _btnLearning = CreateButton("📚 Learning (Books & Videos)", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C2185B"));
         _btnLearning.Clicked += OnLearningClicked;
-        mainStack.Children.Add(_btnLearning);
+        navButtons.Add(("Learning", _btnLearning));
 
-        // Prompts
         _btnPrompts = CreateButton("✨ Prompts", Color.FromArgb("#F3E5F5"), Color.FromArgb("#7B1FA2"));
         _btnPrompts.Clicked += OnPromptsClicked;
-        mainStack.Children.Add(_btnPrompts);
+        navButtons.Add(("Prompts", _btnPrompts));
 
-        // Story Production
         _btnStoryProduction = CreateButton("🎬 Story Production", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57C00"));
         _btnStoryProduction.Clicked += OnStoryProductionClicked;
-        mainStack.Children.Add(_btnStoryProduction);
+        navButtons.Add(("Story Production", _btnStoryProduction));
 
-        // SubActivities
-        _btnSubActivities = CreateButton("🔢 SubActivities", Color.FromArgb("#E0F7FA"), Color.FromArgb("#00838F"));
-        _btnSubActivities.Clicked += OnSubActivitiesClicked;
-        mainStack.Children.Add(_btnSubActivities);
-
-        // Streaks
         _btnStreaks = CreateButton("🔥 Streaks (0 active)", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
         _btnStreaks.Clicked += OnStreaksClicked;
-        mainStack.Children.Add(_btnStreaks);
+        navButtons.Add(("Streaks", _btnStreaks));
 
-        // Tasks
+        _btnSubActivities = CreateButton("🔢 SubActivities", Color.FromArgb("#E0F7FA"), Color.FromArgb("#00838F"));
+        _btnSubActivities.Clicked += OnSubActivitiesClicked;
+        navButtons.Add(("SubActivities", _btnSubActivities));
+
         _btnTasks = CreateButton("📋 Tasks", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
         _btnTasks.Clicked += OnTasksClicked;
-        mainStack.Children.Add(_btnTasks);
+        navButtons.Add(("Tasks", _btnTasks));
 
-        // Logout
+        _btnCalendar = CreateButton("📅 Calendar", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
+        _btnCalendar.Clicked += OnCalendarClicked;
+        navButtons.Add(("Calendar", _btnCalendar));
+
+        // Sort alphabetically and add to layout
+        foreach (var (_, btn) in navButtons.OrderBy(b => b.sortKey, StringComparer.OrdinalIgnoreCase))
+            mainStack.Children.Add(btn);
+
+        // Logout (always last)
         var btnLogout = CreateButton("Logout", Colors.White, Color.FromArgb("#333333"));
         btnLogout.Margin = new Thickness(0, 16, 0, 0);
         btnLogout.Clicked += OnLogoutClicked;
@@ -586,7 +593,20 @@ public class HomePage : ContentPage
 
     private async void OnStoryProductionClicked(object? sender, EventArgs e)
     {
-        var page = new StoryProductionHubPage(_auth, _storyProduction);
+        var page = new StoryProductionHubPage(_auth, _storyProduction, _ideas, _ideaLogger);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnImageProductionClicked(object? sender, EventArgs e)
+    {
+        var service = new ImageProductionService(_db);
+        var page = new ImageProductionPage(_auth, service);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnCalendarClicked(object? sender, EventArgs e)
+    {
+        var page = new CalendarPage(_auth, _taskService, _ideas, _db);
         await Navigation.PushAsync(page);
     }
 
@@ -600,6 +620,11 @@ public class HomePage : ContentPage
     {
         var page = new LearningPage(_auth, _learning, _activities, _games);
         await Navigation.PushAsync(page);
+    }
+
+    private async void OnDatabasesClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("databases");
     }
 
     private async void OnDragonsClicked(object? sender, EventArgs e)

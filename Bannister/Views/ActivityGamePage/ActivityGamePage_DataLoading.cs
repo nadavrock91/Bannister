@@ -848,6 +848,9 @@ public partial class ActivityGamePage
         // Only check once per day per game
         if (lastCheckedDate == today) return;
 
+        // Set the preference IMMEDIATELY to prevent race conditions / double execution
+        Preferences.Set(lastCheckedKey, today);
+
         var brokenStreaks = await _activities.CheckAndBreakMissedStreaksAsync(_auth.CurrentUsername, _game.GameId);
 
         if (brokenStreaks.Count > 0)
@@ -898,7 +901,5 @@ public partial class ActivityGamePage
             // Refresh EXP display
             await RefreshExpAsync();
         }
-
-        Preferences.Set(lastCheckedKey, today);
     }
 }

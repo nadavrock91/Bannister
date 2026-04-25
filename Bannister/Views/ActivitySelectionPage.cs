@@ -319,7 +319,12 @@ public class ActivitySelectionPage : ContentPage
             }
             else
             {
-                _currentActivities = allActivities.Where(a => a.ExpGain > 0 && a.Category != "Negative" && a.IsActive && !a.IsPossible).ToList();
+                // Include streak-tracked activities regardless of active/exp status
+                // This allows activities being tracked for streaks to be added as habits
+                _currentActivities = allActivities.Where(a => 
+                    (a.ExpGain > 0 && a.Category != "Negative" && a.IsActive && !a.IsPossible) ||
+                    (a.IsStreakTracked && a.Category != "Negative")
+                ).ToList();
             }
 
             _activityList.Children.Clear();
@@ -384,7 +389,17 @@ public class ActivitySelectionPage : ContentPage
         // Row 0: Activity name + EXP
         var nameStack = new HorizontalStackLayout { Spacing = 6 };
         
-        if (hasTargetInfo && (activity.DaysSinceHabitTargetSet >= 14 || activity.HabitTargetPostponeCount >= 1))
+        // Show streak indicator for streak-tracked activities
+        if (activity.IsStreakTracked)
+        {
+            nameStack.Children.Add(new Label
+            {
+                Text = "🔥",
+                FontSize = 14,
+                VerticalOptions = LayoutOptions.Center
+            });
+        }
+        else if (hasTargetInfo && (activity.DaysSinceHabitTargetSet >= 14 || activity.HabitTargetPostponeCount >= 1))
         {
             nameStack.Children.Add(new Label
             {
@@ -414,9 +429,14 @@ public class ActivitySelectionPage : ContentPage
         });
         grid.Add(nameStack, 0, 0);
 
+        // Show EXP or streak info
+        string expText = activity.ExpGain != 0 
+            ? $"{activity.ExpGain:+#;-#;0} EXP" 
+            : (activity.IsStreakTracked ? $"🔥{activity.DisplayDayStreak}" : "0 EXP");
+        
         grid.Add(new Label
         {
-            Text = $"{activity.ExpGain:+#;-#;0} EXP",
+            Text = expText,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             TextColor = activity.ExpGain >= 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#F44336"),

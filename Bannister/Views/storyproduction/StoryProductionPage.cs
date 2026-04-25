@@ -7,6 +7,8 @@ public class StoryProductionPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
+    private readonly IdeasService? _ideasService;
+    private readonly IdeaLoggerService? _ideaLogger;
     
     private Picker _projectPicker;
     private Picker _draftPicker;
@@ -41,10 +43,12 @@ public class StoryProductionPage : ContentPage
     private StoryProject? _compareToProject;             // Project being compared against
     private HashSet<int> _changedLineOrders = new();     // Line orders that differ from comparison
 
-    public StoryProductionPage(AuthService auth, StoryProductionService storyService)
+    public StoryProductionPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null)
     {
         _auth = auth;
         _storyService = storyService;
+        _ideasService = ideasService;
+        _ideaLogger = ideaLogger;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -857,7 +861,7 @@ public class StoryProductionPage : ContentPage
             if (originalProject == null) originalProject = _currentProject;
         }
 
-        var page = new StoryPointsPage(_auth, _storyService, originalProject);
+        var page = new StoryPointsPage(_auth, _storyService, originalProject, _ideasService, _ideaLogger);
         await Navigation.PushAsync(page);
     }
 
@@ -2100,7 +2104,8 @@ public class StoryProductionPage : ContentPage
             "📱 Mobile Tasks (work on phone)",
             "💬 For Discussion (story only)",
             "📋 Script Only (narration text)",
-            "🎨 Visuals Only (visual descriptions)");
+            "🎨 Visuals Only (visual descriptions)",
+            "🤖 Convert Any Story to Import Format");
 
         if (string.IsNullOrEmpty(choice) || choice == "Cancel") return;
 
@@ -2118,6 +2123,8 @@ public class StoryProductionPage : ContentPage
             await ExportScriptOnlyAsync();
         else if (choice.StartsWith("🎨"))
             await ExportVisualsOnlyAsync();
+        else if (choice.StartsWith("🤖"))
+            await ExportConvertStoryPromptAsync();
     }
 
     private async Task<List<StoryLine>?> GetLinesForExportAsync()
@@ -2529,6 +2536,49 @@ public class StoryProductionPage : ContentPage
         
         await DisplayAlert("Exported!", 
             $"Mobile tasks for \"{_currentProject.Name}\" copied to clipboard.\n\n{tasks.Count} tasks remaining.", 
+            "OK");
+    }
+
+    private async Task ExportConvertStoryPromptAsync()
+    {
+        // Ask user to paste or type their raw story
+        string? rawStory = await ShowMultiLineInputAsync(
+            "Convert Story",
+            "Paste or write your story in any format.\nA prompt will be generated that you can give to any AI to convert it to the import format.",
+            "",
+            "Once upon a time...\nThe hero walked into the room.\n[visual: dark corridor]\n...");
+
+        if (string.IsNullOrWhiteSpace(rawStory)) return;
+
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine("I have a story/script that I need converted into a specific C# import format for my video production tool.");
+        sb.AppendLine("Below is the raw story. Convert it into the exact format shown, preserving all the content.");
+        sb.AppendLine();
+        sb.AppendLine("=== RAW STORY ===");
+        sb.AppendLine(rawStory);
+        sb.AppendLine("=== END RAW STORY ===");
+        sb.AppendLine();
+        sb.AppendLine(StoryPromptTemplates.GetDraftFormatInstructions());
+        sb.AppendLine();
+        sb.AppendLine("ADDITIONAL INSTRUCTIONS:");
+        sb.AppendLine("- Split the story into logical lines/scenes (one narration segment per line)");
+        sb.AppendLine("- If the story has no explicit visual descriptions, create appropriate ones based on the narration");
+        sb.AppendLine("- Lines with no narration (visual-only moments) should use Script = \"\" (empty string)");
+        sb.AppendLine("- Generate image and video prompts for each line/shot that would work with AI image/video generators");
+        sb.AppendLine("- Keep the original text as close to verbatim as possible for the Script fields");
+        sb.AppendLine("- Number lines sequentially starting at 1");
+        sb.AppendLine("- Output ONLY the code block, no other text");
+
+        await Clipboard.SetTextAsync(sb.ToString());
+
+        await DisplayAlert("Prompt Copied!",
+            "The conversion prompt has been copied to your clipboard.\n\n" +
+            "Steps:\n" +
+            "1. Paste this prompt to any AI (ChatGPT, Claude, etc.)\n" +
+            "2. The AI will output the story in the import format\n" +
+            "3. Copy the AI's output\n" +
+            "4. Use 'Import Draft' → 'Paste from Clipboard' to import",
             "OK");
     }
 

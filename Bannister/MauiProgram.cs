@@ -96,6 +96,8 @@ public static class MauiProgram
         builder.Services.AddTransient<AutoAwardConfirmationPage>();    
         builder.Services.AddTransient<StreakDashboardPage>();
         builder.Services.AddTransient<StreakAttemptsPage>();
+        builder.Services.AddTransient<DatabasesPage>();
+
 
 #if DEBUG
         builder.Logging.AddDebug();

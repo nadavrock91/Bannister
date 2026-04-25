@@ -10,13 +10,17 @@ public class StoryProductionHubPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
+    private readonly IdeasService? _ideasService;
+    private readonly IdeaLoggerService? _ideaLogger;
     
     private Label _statsLabel;
 
-    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService)
+    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null)
     {
         _auth = auth;
         _storyService = storyService;
+        _ideasService = ideasService;
+        _ideaLogger = ideaLogger;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -164,7 +168,7 @@ public class StoryProductionHubPage : ContentPage
 
     private async Task OnDraftsClicked()
     {
-        var page = new StoryProductionPage(_auth, _storyService);
+        var page = new StoryProductionPage(_auth, _storyService, _ideasService, _ideaLogger);
         await Navigation.PushAsync(page);
     }
 

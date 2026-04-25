@@ -18,6 +18,9 @@ public class TaskItem
     public string Notes { get; set; } = "";
     
     public bool IsCompleted { get; set; } = false;
+
+    /// <summary>Whether this task is marked as urgent (shown at top of day view)</summary>
+    public bool IsUrgent { get; set; } = false;
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     

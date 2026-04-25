@@ -28,6 +28,11 @@ public class IdeaItem
     /// </summary>
     [Indexed]
     public string Category { get; set; } = "General";
+
+    /// <summary>
+    /// Optional subcategory within the category
+    /// </summary>
+    public string? Subcategory { get; set; }
     
     /// <summary>
     /// Detailed notes or description
