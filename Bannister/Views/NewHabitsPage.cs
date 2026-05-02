@@ -358,10 +358,54 @@ public class NewHabitsPage : ContentPage
         
         if (missedHabits.Count > 0)
         {
-            await DisplayAlert($"{_frequency} Habits Failed",
-                $"{missedHabits.Count} habit(s) failed because you missed:\n\n" +
-                string.Join("\n", missedHabits.Select(h => $"• {h.HabitName}")),
-                "OK");
+            string habitNames = string.Join("\n", missedHabits.Select(h => $"• {h.HabitName}"));
+            
+            string choice = await DisplayActionSheet(
+                $"{_frequency} Habits Failed",
+                null,  // no cancel - must choose
+                null,  // no destructive
+                "✅ Accept Failures",
+                "📅 That Day Didn't Count (restore all)",
+                "🔄 Forgot to Log (restore all)");
+
+            if (choice == "📅 That Day Didn't Count (restore all)" || 
+                choice == "🔄 Forgot to Log (restore all)")
+            {
+                // Reverse the failures - reactivate each habit
+                foreach (var habit in missedHabits)
+                {
+                    habit.Status = "active";
+                    habit.CompletedAt = null;
+                    // Restore the consecutive days to what they were before the miss
+                    // The miss would have reset to 0, so we restore the previous value
+                    // by setting LastAppliedDate to yesterday (so streak continues)
+                    habit.LastAppliedDate = DateTime.UtcNow.AddDays(-1);
+                    await _newHabits.UpdateHabitAsync(habit);
+                }
+
+                // Restore allowance if it was decremented
+                var allowanceCheck = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername, _frequency);
+                // The failure would have incremented TotalFailed and possibly decremented allowance
+                // Reverse those changes
+                if (allowanceCheck.TotalFailed > 0)
+                {
+                    allowanceCheck.TotalFailed -= missedHabits.Count;
+                    if (allowanceCheck.TotalFailed < 0) allowanceCheck.TotalFailed = 0;
+                    await _newHabits.UpdateAllowanceAsync(allowanceCheck);
+                }
+
+                string reason = choice.Contains("Didn't Count") ? "Day excluded" : "Retroactive log";
+                await DisplayAlert("Habits Restored",
+                    $"{missedHabits.Count} habit(s) restored.\nReason: {reason}",
+                    "OK");
+            }
+            else
+            {
+                // Accept - just show what failed
+                await DisplayAlert("Failures Accepted",
+                    $"{missedHabits.Count} habit(s) failed:\n\n{habitNames}",
+                    "OK");
+            }
         }
 
         // Check for habits ready to graduate (with confirmation)

@@ -4,25 +4,51 @@ using ConversationPractice.Models;
 namespace ConversationPractice.Services;
 
 /// <summary>
-/// Service for managing conversation scenarios and practice sessions
-/// Designed to be standalone - no dependencies on Bannister services
+/// Service for managing conversation scenarios and practice sessions.
+/// Designed to be standalone - no dependencies on Bannister services.
+/// 
+/// SQLCIPHER: Now accepts an optional encryption key. When provided,
+/// the connection uses SQLCipher encryption matching the main Bannister DB.
 /// </summary>
 public class ConversationService
 {
     private readonly string _dbPath;
+    private readonly Func<string?>? _passwordProvider;
     private SQLiteAsyncConnection? _db;
 
-    public ConversationService(string dbPath)
+    /// <summary>
+    /// Create ConversationService with a password provider function.
+    /// The function is called at init time to get the current DB password.
+    /// This avoids capturing the password at registration time (before login).
+    /// </summary>
+    /// <param name="dbPath">Path to the database file</param>
+    /// <param name="passwordProvider">Function that returns the current DB password, or null for unencrypted</param>
+    public ConversationService(string dbPath, Func<string?>? passwordProvider = null)
     {
         _dbPath = dbPath;
+        _passwordProvider = passwordProvider;
     }
 
     private async Task InitAsync()
     {
         if (_db != null) return;
 
-        // Store DateTime as readable ISO8601 strings instead of ticks
-        _db = new SQLiteAsyncConnection(_dbPath, storeDateTimeAsTicks: false);
+        var password = _passwordProvider?.Invoke();
+
+        if (!string.IsNullOrEmpty(password))
+        {
+            // Encrypted connection using SQLCipher
+            var options = new SQLiteConnectionString(
+                _dbPath,
+                storeDateTimeAsTicks: false,
+                key: password);
+            _db = new SQLiteAsyncConnection(options);
+        }
+        else
+        {
+            // Fallback: unencrypted (for backward compat or standalone use)
+            _db = new SQLiteAsyncConnection(_dbPath, storeDateTimeAsTicks: false);
+        }
         
         // Create tables
         await _db.CreateTableAsync<Conversation>();

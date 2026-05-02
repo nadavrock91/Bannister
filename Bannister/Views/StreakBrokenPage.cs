@@ -30,6 +30,7 @@ public class StreakBrokenPage : ContentPage
     private Label _penaltyLabel;
     private Button _acceptButton;
     private Button _dayDidntCountButton;
+    private Button _dayDidntCountWeeklyButton;
     private Button _forgotButton;
     private Frame _levelDownWarning;
     private Label _levelDownLabel;
@@ -246,6 +247,29 @@ public class StreakBrokenPage : ContentPage
             Margin = new Thickness(0, -12, 0, 0)
         });
 
+        // Day didn't count + change to weekly button
+        _dayDidntCountWeeklyButton = new Button
+        {
+            Text = "📅 Didn't Count + Change to Weekly",
+            BackgroundColor = Color.FromArgb("#00897B"),
+            TextColor = Colors.White,
+            FontSize = 16,
+            CornerRadius = 8,
+            HeightRequest = 50
+        };
+        _dayDidntCountWeeklyButton.Clicked += OnDayDidntCountWeeklyClicked;
+        mainStack.Children.Add(_dayDidntCountWeeklyButton);
+
+        // Add explanation
+        mainStack.Children.Add(new Label
+        {
+            Text = "Restore streak + set this activity to only display once a week",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#666"),
+            HorizontalOptions = LayoutOptions.Center,
+            Margin = new Thickness(0, -12, 0, 0)
+        });
+
         // Forgot to click button
         _forgotButton = new Button
         {
@@ -326,11 +350,13 @@ public class StreakBrokenPage : ContentPage
         _isProcessing = !enabled;
         _acceptButton.IsEnabled = enabled;
         _dayDidntCountButton.IsEnabled = enabled;
+        _dayDidntCountWeeklyButton.IsEnabled = enabled;
         _forgotButton.IsEnabled = enabled;
         
         // Visual feedback - dim buttons when disabled
         _acceptButton.Opacity = enabled ? 1.0 : 0.6;
         _dayDidntCountButton.Opacity = enabled ? 1.0 : 0.6;
+        _dayDidntCountWeeklyButton.Opacity = enabled ? 1.0 : 0.6;
         _forgotButton.Opacity = enabled ? 1.0 : 0.6;
     }
 
@@ -464,6 +490,66 @@ public class StreakBrokenPage : ContentPage
                     $"'{activity.Name}' streak of {brokenStreak} days has been restored.\n\nReason: Retroactive log for {missedDate}", 
                     "OK");
             }
+
+            MoveToNext();
+        }
+        finally
+        {
+            SetButtonsEnabled(true);
+        }
+    }
+
+    private async void OnDayDidntCountWeeklyClicked(object sender, EventArgs e)
+    {
+        if (_isProcessing) return;
+        SetButtonsEnabled(false);
+
+        try
+        {
+            var (activity, brokenStreak, _) = _brokenStreaks[_currentIndex];
+
+            // Ask which day of the week
+            string[] days = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+            string[] dayAbbrevs = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+            
+            string picked = await DisplayActionSheet(
+                "Display on which day?",
+                "Cancel",
+                null,
+                days);
+
+            if (string.IsNullOrEmpty(picked) || picked == "Cancel")
+            {
+                SetButtonsEnabled(true);
+                return;
+            }
+
+            int dayIndex = Array.IndexOf(days, picked);
+            string dayAbbrev = dayAbbrevs[dayIndex];
+
+            // 1. Restore the streak (same as "Day Didn't Count")
+            activity.DisplayDayStreak = brokenStreak;
+            activity.LastDisplayDayUsed = DateTime.Now.AddDays(-1);
+            
+            if (activity.HabitType != "None" && activity.LastHabitDate.HasValue)
+            {
+                activity.LastHabitDate = DateTime.Now.AddDays(-1);
+            }
+
+            // 2. Change display days to only the selected day
+            activity.DisplayDaysOfWeek = dayAbbrev;
+            activity.DisplayDayOfMonth = 0; // Clear any day-of-month setting
+
+            await _activities.UpdateActivityAsync(activity);
+
+            // 3. Restore any broken StreakAttempt
+            await RestoreStreakAttemptIfBroken(activity);
+
+            string missedDate = DateTime.Now.AddDays(-1).ToString("MMM dd");
+            await DisplayAlert("Streak Restored + Changed to Weekly",
+                $"'{activity.Name}' streak of {brokenStreak} days restored.\n\n" +
+                $"Now displays only on {picked}s.",
+                "OK");
 
             MoveToNext();
         }

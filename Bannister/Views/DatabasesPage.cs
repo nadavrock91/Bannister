@@ -5,6 +5,7 @@ namespace Bannister.Views;
 
 /// <summary>
 /// Database browser. Two dropdowns + DataGridView with toolbar fixed outside scroll.
+/// SQLCIPHER: Uses the DB password from DatabaseService for encrypted connections.
 /// </summary>
 public class DatabasesPage : ContentPage
 {
@@ -144,7 +145,7 @@ public class DatabasesPage : ContentPage
         {
             var fi = new System.IO.FileInfo(path);
             string sz = fi.Length < 1024 * 1024 ? $"{fi.Length / 1024.0:F0} KB" : $"{fi.Length / (1024.0 * 1024.0):F1} MB";
-            _dbFiles.Add(new DatabaseFileEntry { DisplayName = $"bannister.db ({sz})", FilePath = path, IsMain = true });
+            _dbFiles.Add(new DatabaseFileEntry { DisplayName = $"bannister.db ({sz}) 🔒", FilePath = path, IsMain = true });
         }
 
         foreach (var entry in _dbFiles) _dbPicker.Items.Add(entry.DisplayName);
@@ -165,10 +166,29 @@ public class DatabasesPage : ContentPage
 
         try
         {
-            if (sel.IsMain) { _currentConn = await _db.GetConnectionAsync(); _currentDbPath = sel.FilePath; }
+            if (sel.IsMain)
+            {
+                // Use the main DatabaseService connection (already encrypted)
+                _currentConn = await _db.GetConnectionAsync();
+                _currentDbPath = sel.FilePath;
+            }
             else
             {
-                _currentConn = new SQLiteAsyncConnection(sel.FilePath, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex, storeDateTimeAsTicks: false);
+                // External DB file - try to open with the same encryption key
+                var dbPassword = _db.GetDbPassword();
+                if (!string.IsNullOrEmpty(dbPassword))
+                {
+                    var options = new SQLiteConnectionString(
+                        sel.FilePath,
+                        SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex,
+                        storeDateTimeAsTicks: false,
+                        key: dbPassword);
+                    _currentConn = new SQLiteAsyncConnection(options);
+                }
+                else
+                {
+                    _currentConn = new SQLiteAsyncConnection(sel.FilePath, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex, storeDateTimeAsTicks: false);
+                }
                 _currentDbPath = sel.FilePath;
             }
 

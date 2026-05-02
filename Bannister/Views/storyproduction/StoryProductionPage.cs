@@ -9,6 +9,8 @@ public class StoryProductionPage : ContentPage
     private readonly StoryProductionService _storyService;
     private readonly IdeasService? _ideasService;
     private readonly IdeaLoggerService? _ideaLogger;
+    private readonly SubActivityService? _subActivityService;
+    private FloatingChecklist? _checklist;
     
     private Picker _projectPicker;
     private Picker _draftPicker;
@@ -43,17 +45,25 @@ public class StoryProductionPage : ContentPage
     private StoryProject? _compareToProject;             // Project being compared against
     private HashSet<int> _changedLineOrders = new();     // Line orders that differ from comparison
 
-    public StoryProductionPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null)
+    public StoryProductionPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null)
     {
         _auth = auth;
         _storyService = storyService;
         _ideasService = ideasService;
         _ideaLogger = ideaLogger;
+        _subActivityService = subActivityService;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         
         BuildUI();
+
+        // Attach floating process checklist
+        if (_subActivityService != null)
+        {
+            _checklist = new FloatingChecklist(_auth, _subActivityService);
+            _checklist.AttachTo(this);
+        }
     }
 
     protected override async void OnAppearing()

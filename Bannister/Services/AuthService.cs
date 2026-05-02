@@ -18,13 +18,17 @@ public class AuthService
     public string CurrentUsername => _currentUser?.Username ?? "";
 
     /// <summary>
-    /// Register a new user with secure password hashing
+    /// Register a new user with secure password hashing.
+    /// On first-ever registration (no DB exists yet), this also sets the DB encryption key.
     /// </summary>
     public async Task<bool> RegisterAsync(string username, string password)
     {
         username = username?.Trim().ToLowerInvariant() ?? "";
         if (string.IsNullOrWhiteSpace(username) || username.Length < 3) return false;
         if (string.IsNullOrWhiteSpace(password) || password.Length < 4) return false;
+
+        // Set the DB password so we can open/create the database
+        _db.SetPassword(password);
 
         var conn = await _db.GetConnectionAsync();
         var existing = await conn.Table<User>().Where(x => x.Username == username).FirstOrDefaultAsync();
@@ -47,11 +51,21 @@ public class AuthService
     }
 
     /// <summary>
-    /// Login with automatic migration from legacy insecure hashing
+    /// Login with automatic migration from legacy insecure hashing.
+    /// Sets the database encryption password on successful login.
     /// </summary>
     public async Task<bool> LoginAsync(string username, string password)
     {
         username = username?.Trim().ToLowerInvariant() ?? "";
+
+        // First, check if the DB can be opened with this password
+        bool canOpen = await _db.TryOpenWithPasswordAsync(password);
+        if (!canOpen)
+            return false;
+
+        // Set the password so InitAsync can open the DB
+        _db.SetPassword(password);
+
         var conn = await _db.GetConnectionAsync();
         var user = await conn.Table<User>().Where(x => x.Username == username).FirstOrDefaultAsync();
 
@@ -86,10 +100,16 @@ public class AuthService
         }
 
         if (!isValid)
+        {
+            // Password didn't match the user record - clear DB password
+            _db.SetPassword(null!);
             return false;
+        }
 
         _currentUser = user;
         await SecureStorage.SetAsync("session_user", username);
+        // Save password for session restore
+        await SecureStorage.SetAsync("session_password", password);
         return true;
     }
 
@@ -125,6 +145,7 @@ public class AuthService
     {
         _currentUser = null;
         SecureStorage.Remove("session_user");
+        SecureStorage.Remove("session_password");
     }
 
     public async Task<bool> TryRestoreSessionAsync()
@@ -132,7 +153,13 @@ public class AuthService
         try
         {
             var savedUser = await SecureStorage.GetAsync("session_user");
-            if (string.IsNullOrEmpty(savedUser)) return false;
+            var savedPassword = await SecureStorage.GetAsync("session_password");
+            
+            if (string.IsNullOrEmpty(savedUser) || string.IsNullOrEmpty(savedPassword)) 
+                return false;
+
+            // Set DB password from saved session
+            _db.SetPassword(savedPassword);
 
             var conn = await _db.GetConnectionAsync();
             var user = await conn.Table<User>().Where(x => x.Username == savedUser).FirstOrDefaultAsync();
@@ -147,7 +174,8 @@ public class AuthService
     }
 
     /// <summary>
-    /// Change user password (with proper security)
+    /// Change user password (with proper security).
+    /// Also re-encrypts the database with the new password.
     /// </summary>
     public async Task<bool> ChangePasswordAsync(string currentPassword, string newPassword)
     {
@@ -172,12 +200,19 @@ public class AuthService
 
         await conn.UpdateAsync(user);
         _currentUser = user;
+
+        // Re-encrypt the database with the new password
+        await _db.ChangeDbPasswordAsync(newPassword);
         
+        // Update saved session password
+        await SecureStorage.SetAsync("session_password", newPassword);
+
         return true;
     }
 
     /// <summary>
-    /// Reset password (admin function or forgot password flow)
+    /// Reset password (admin function or forgot password flow).
+    /// Also re-encrypts the database with the new password.
     /// </summary>
     public async Task<bool> ResetPasswordAsync(string username, string newPassword)
     {
@@ -195,6 +230,10 @@ public class AuthService
         user.PasswordSalt = newSalt;
 
         await conn.UpdateAsync(user);
+
+        // Re-encrypt the database with the new password
+        await _db.ChangeDbPasswordAsync(newPassword);
+
         return true;
     }
 }

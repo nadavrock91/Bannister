@@ -63,8 +63,14 @@ public static class MauiProgram
 
 
         // Conversation Practice Module
+        // CHANGED: Uses a password provider that reads from DatabaseService at init time
+        // (after user has logged in and DB password is set)
         var dbPath = Path.Combine(FileSystem.AppDataDirectory, "bannister.db");
-        builder.Services.AddSingleton(new ConversationService(dbPath));
+        builder.Services.AddSingleton<ConversationService>(sp =>
+        {
+            var dbService = sp.GetRequiredService<DatabaseService>();
+            return new ConversationService(dbPath, () => dbService.GetDbPassword());
+        });
 
         // Pages
         builder.Services.AddTransient<LoginPage>();

@@ -1,4 +1,5 @@
 using Bannister.Models;
+using SQLite;
 
 namespace Bannister.Services;
 
@@ -15,7 +16,8 @@ public class BackupService
     }
 
     /// <summary>
-    /// Create an automatic backup by copying the database file
+    /// Create an automatic backup by copying the database file.
+    /// The backup file is a copy of the encrypted .db - same password applies.
     /// </summary>
     public async Task<(bool success, string message)> AutoBackupAsync(string reason = "auto")
     {
@@ -29,7 +31,7 @@ public class BackupService
             string fileName = $"bannister_{reason}_{timestamp}_{iteration}.db";
             string backupPath = Path.Combine(BackupFolder, fileName);
 
-            // Copy the database file (SQLite handles concurrent reads)
+            // Copy the database file (the backup is encrypted with the same password)
             File.Copy(DatabasePath, backupPath, overwrite: true);
             await CleanupOldBackupsAsync(reason, 20);
 
@@ -57,13 +59,14 @@ public class BackupService
             string fileName = $"bannister_backup_{timestamp}_{iteration}.db";
             string backupPath = Path.Combine(BackupFolder, fileName);
 
-            // Copy the database file (SQLite handles concurrent reads)
+            // Copy the database file (encrypted with same password)
             File.Copy(DatabasePath, backupPath, overwrite: true);
 
             string message = $"Database backed up successfully!\n\n" +
                            $"Backup #{iteration}\n" +
                            $"File: {fileName}\n" +
-                           $"Location: {BackupFolder}";
+                           $"Location: {BackupFolder}\n\n" +
+                           $"🔒 Backup is encrypted with your login password.";
 
             return (true, message, backupPath);
         }
@@ -74,8 +77,9 @@ public class BackupService
     }
 
     /// <summary>
-    /// Restore database from a .db file by copying it to the app's database location
-    /// WARNING: App must be restarted after this operation
+    /// Restore database from a .db file by copying it to the app's database location.
+    /// The backup file must be encrypted with the same login password.
+    /// WARNING: App must be restarted after this operation.
     /// </summary>
     public async Task<(bool success, string message)> RestoreFromDbFileAsync(string sourceDbPath)
     {
@@ -90,7 +94,27 @@ public class BackupService
             }
 
             File.Copy(sourceDbPath, DatabasePath, overwrite: false);
-            await Task.CompletedTask;
+
+            // Verify the restored file can be opened with the current password
+            var dbPassword = _db.GetDbPassword();
+            if (!string.IsNullOrEmpty(dbPassword))
+            {
+                try
+                {
+                    var options = new SQLiteConnectionString(DatabasePath, storeDateTimeAsTicks: false, key: dbPassword);
+                    var testConn = new SQLiteAsyncConnection(options);
+                    var count = await testConn.ExecuteScalarAsync<int>("SELECT count(*) FROM sqlite_master");
+                    await testConn.CloseAsync();
+                }
+                catch
+                {
+                    // Password doesn't match - remove the file and report
+                    File.Delete(DatabasePath);
+                    return (false, "Cannot open backup: wrong password.\n\n" +
+                        "The backup was created with a different login password.\n" +
+                        "Log in with the password you used when this backup was created.");
+                }
+            }
 
             return (true, $"Database restored successfully!\n\nFile: {Path.GetFileName(sourceDbPath)}\n\n⚠️ RESTART THE APP to use the restored database.");
         }

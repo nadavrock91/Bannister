@@ -1,0 +1,6 @@
+2026-05-02 18:07:43: -- Analysis Started by Analyze All
+2026-05-02 18:07:43: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-05-02 18:07:43: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-05-02 18:11:45: Changes: 36, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 11817
+2026-05-02 18:11:45: Left to Right: Copy File: 35 Delete File: 1 
+2026-05-02 18:11:45: -- Analysis Complete. Time 00:04:02, Speed: 732 files/s

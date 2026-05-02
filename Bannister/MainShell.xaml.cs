@@ -22,6 +22,7 @@ public partial class MainShell : Shell
         Routing.RegisterRoute("streakattempts", typeof(StreakAttemptsPage));
         Routing.RegisterRoute("habits", typeof(HabitsHomePage));
         Routing.RegisterRoute("newhabits", typeof(NewHabitsPage));
+        Routing.RegisterRoute("databases", typeof(DatabasesPage));
     }
 }
 

@@ -12,6 +12,7 @@ public class IdeasPage : ContentPage
     private readonly AuthService _auth;
     private readonly IdeasService _ideas;
     private readonly IdeaLoggerService _ideaLogger;
+    private readonly DatabaseService _db;
 
     // Header UI
     private Label _headerLabel;
@@ -46,11 +47,12 @@ public class IdeasPage : ContentPage
     private bool _sortDescending = true;
     private DataGridView? _currentDataGrid;
 
-    public IdeasPage(AuthService auth, IdeasService ideas, IdeaLoggerService ideaLogger)
+    public IdeasPage(AuthService auth, IdeasService ideas, IdeaLoggerService ideaLogger, DatabaseService db)
     {
         _auth = auth;
         _ideas = ideas;
         _ideaLogger = ideaLogger;
+        _db = db;
         Title = "Ideas";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -281,14 +283,14 @@ public class IdeasPage : ContentPage
             return;
         }
 
-        var headers = new List<string> { "Id", "Rating", "Title", "Category", "Status", "Starred", "Created" };
+        var headers = new List<string> { "Id", "Rating", "Title", "Category", "Subcategory", "Status", "Starred", "Created" };
         var displayRows = new List<List<string>>();
         var fullRows = new List<List<string>>();
 
         foreach (var idea in ideas)
         {
-            displayRows.Add(new List<string> { idea.Id.ToString(), idea.Rating.ToString(), idea.Title.Length > 50 ? idea.Title.Substring(0, 47) + "..." : idea.Title, idea.Category, idea.StatusText, idea.IsStarred ? "⭐" : "", idea.CreatedAt.ToString("MMM d, yyyy") });
-            fullRows.Add(new List<string> { idea.Id.ToString(), idea.Rating.ToString(), idea.Title, idea.Category, idea.StatusText, idea.IsStarred ? "⭐" : "", idea.CreatedAt.ToString("MMM d, yyyy HH:mm") });
+            displayRows.Add(new List<string> { idea.Id.ToString(), idea.Rating.ToString(), idea.Title.Length > 50 ? idea.Title.Substring(0, 47) + "..." : idea.Title, idea.Category, idea.Subcategory ?? "", idea.StatusText, idea.IsStarred ? "⭐" : "", idea.CreatedAt.ToString("MMM d, yyyy") });
+            fullRows.Add(new List<string> { idea.Id.ToString(), idea.Rating.ToString(), idea.Title, idea.Category, idea.Subcategory ?? "", idea.StatusText, idea.IsStarred ? "⭐" : "", idea.CreatedAt.ToString("MMM d, yyyy HH:mm") });
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
@@ -327,6 +329,7 @@ public class IdeasPage : ContentPage
         {
             case "Title": idea.Title = newValue; break;
             case "Category": idea.Category = newValue; break;
+            case "Subcategory": idea.Subcategory = string.IsNullOrWhiteSpace(newValue) ? null : newValue; break;
             case "Rating":
                 if (int.TryParse(newValue, out int rating)) idea.Rating = Math.Clamp(rating, 0, 100);
                 else return false;
@@ -543,6 +546,12 @@ public class IdeasPage : ContentPage
             if (ratingColumn == "Cancel") return;
             if (ratingColumn == "(No rating column)") ratingColumn = null;
 
+            // Subcategory column (optional)
+            var subOptions = new[] { "(No subcategory column)" }.Concat(colNames).ToArray();
+            var subColumn = await DisplayActionSheet("Subcategory column? (optional)", "Cancel", null, subOptions);
+            if (subColumn == "Cancel") return;
+            if (subColumn == "(No subcategory column)") subColumn = null;
+
             var dupChoice = await DisplayActionSheet("Handle duplicates?", "Cancel", null, "Skip duplicates (recommended)", "Import all including duplicates");
             if (string.IsNullOrEmpty(dupChoice) || dupChoice == "Cancel") return;
             bool skipDuplicates = dupChoice.StartsWith("Skip");
@@ -553,18 +562,21 @@ public class IdeasPage : ContentPage
             HashSet<string> existingTitles = new(StringComparer.OrdinalIgnoreCase);
             if (skipDuplicates) foreach (var ex in await _ideas.GetIdeasAsync(_auth.CurrentUsername)) existingTitles.Add(ex.Title.Trim());
 
-            string summary = $"Import {rowCount} rows from [{selectedTable}]\nText: {textColumn}\nCategory: {targetCategory}\nDate: {dateColumn ?? "(none)"}\nRating: {ratingColumn ?? "(none)"}\nDuplicates: {(skipDuplicates ? "skip" : "allow")}";
+            string summary = $"Import {rowCount} rows from [{selectedTable}]\nText: {textColumn}\nCategory: {targetCategory}\nDate: {dateColumn ?? "(none)"}\nRating: {ratingColumn ?? "(none)"}\nSubcategory: {subColumn ?? "(none)"}\nDuplicates: {(skipDuplicates ? "skip" : "allow")}";
             if (!await DisplayAlert("Confirm Import", summary, "Import", "Cancel")) return;
 
             var selectCols = new List<string> { $"[{textColumn}]" };
             if (dateColumn != null) selectCols.Add($"[{dateColumn}]");
             if (ratingColumn != null) selectCols.Add($"[{ratingColumn}]");
+            if (subColumn != null) selectCols.Add($"[{subColumn}]");
 
             const string SEP = "║";
             var castCols = selectCols.Select(c => $"COALESCE(CAST({c} AS TEXT), '')").ToList();
             var rows = await importConn.QueryAsync<ImportRowResult>($"SELECT {string.Join($" || '{SEP}' || ", castCols)} AS RowData FROM [{selectedTable}]");
 
-            int imported = 0, skipped = 0, duplicates = 0;
+            // Phase 1: Parse all rows in memory (fast)
+            var itemsToInsert = new List<(string text, DateTime createdAt, int rating, string? subcategory)>();
+            int skipped = 0, duplicates = 0;
             string username = _auth.CurrentUsername;
 
             foreach (var row in rows)
@@ -586,14 +598,74 @@ public class IdeasPage : ContentPage
                 int rating = 50;
                 if (ratingColumn != null) { int ri = dateColumn != null ? 2 : 1; if (parts.Length > ri && int.TryParse(parts[ri], out int pr)) rating = Math.Clamp(pr, 0, 100); }
 
-                await _ideas.CreateIdeaAsync(username, text, targetCategory);
-                var allIdeas = await _ideas.GetIdeasByCategoryAsync(username, targetCategory);
-                var justCreated = allIdeas.FirstOrDefault(i => i.Title == text);
-                if (justCreated != null) { justCreated.Rating = rating; justCreated.CreatedAt = createdAt; await _ideas.UpdateIdeaAsync(justCreated); }
+                string? subcategory = null;
+                if (subColumn != null)
+                {
+                    int si = 1;
+                    if (dateColumn != null) si++;
+                    if (ratingColumn != null) si++;
+                    if (parts.Length > si && !string.IsNullOrWhiteSpace(parts[si]))
+                        subcategory = parts[si].Trim();
+                }
 
-                imported++;
+                itemsToInsert.Add((text, createdAt, rating, subcategory));
                 if (skipDuplicates) existingTitles.Add(text);
             }
+
+            if (itemsToInsert.Count == 0)
+            {
+                await DisplayAlert("Nothing to Import", $"Skipped: {skipped}\nDuplicates: {duplicates}", "OK");
+                return;
+            }
+
+            // Phase 2: Batch insert with progress
+            var originalContent = this.Content;
+            var progressWrapper = new Grid();
+            this.Content = progressWrapper;
+            progressWrapper.Children.Add(originalContent);
+
+            var overlay = new Grid { BackgroundColor = Color.FromArgb("#CC000000"), HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
+            var pStack = new VerticalStackLayout { HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center, Spacing = 12 };
+            pStack.Children.Add(new ActivityIndicator { IsRunning = true, Color = Colors.White, HeightRequest = 40, WidthRequest = 40 });
+            var pLabel = new Label { Text = "Importing ideas...", FontSize = 16, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+            var pDetail = new Label { Text = $"0 / {itemsToInsert.Count}", FontSize = 13, TextColor = Color.FromArgb("#BBDEFB"), HorizontalTextAlignment = TextAlignment.Center };
+            pStack.Children.Add(pLabel);
+            pStack.Children.Add(pDetail);
+            overlay.Children.Add(pStack);
+            progressWrapper.Children.Add(overlay);
+
+            int imported = 0;
+            int batchSize = 50;
+            var conn = await _db.GetConnectionAsync();
+
+            for (int i = 0; i < itemsToInsert.Count; i += batchSize)
+            {
+                var batch = itemsToInsert.Skip(i).Take(batchSize).ToList();
+                await conn.RunInTransactionAsync(db =>
+                {
+                    foreach (var (text, createdAt, rating, subcategory) in batch)
+                    {
+                        var idea = new IdeaItem
+                        {
+                            Username = username,
+                            Title = text,
+                            Category = targetCategory,
+                            Rating = rating,
+                            CreatedAt = createdAt,
+                            Subcategory = subcategory
+                        };
+                        db.Insert(idea);
+                    }
+                });
+                imported += batch.Count;
+                pDetail.Text = $"{imported} / {itemsToInsert.Count}";
+                await Task.Yield();
+            }
+
+            // Remove overlay
+            progressWrapper.Children.Remove(overlay);
+            progressWrapper.Children.Remove(originalContent);
+            this.Content = originalContent;
 
             await DisplayAlert("Import Complete", $"Imported: {imported}\nSkipped (empty): {skipped}\nDuplicates skipped: {duplicates}\nCategory: {targetCategory}", "OK");
             await LoadCategoriesAsync();

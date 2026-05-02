@@ -1466,6 +1466,16 @@ public class CalendarDayPage : ContentPage
             btnStack.Children.Add(uncompleteBtn);
         }
 
+        // Edit button
+        var editBtn = new Button
+        {
+            Text = "✏️", FontSize = 14, WidthRequest = 36, HeightRequest = 32,
+            BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 4, Padding = 0
+        };
+        editBtn.Clicked += async (s, e) => await EditTaskAsync(task);
+        btnStack.Children.Add(editBtn);
+
         var deleteBtn = new Button
         {
             Text = "🗑", FontSize = 14, WidthRequest = 36, HeightRequest = 32,
@@ -1485,6 +1495,60 @@ public class CalendarDayPage : ContentPage
         grid.Add(btnStack, 1, 0);
         frame.Content = grid;
         return frame;
+    }
+
+    private async Task EditTaskAsync(TaskItem task)
+    {
+        string originalTitle = task.Title;
+        string originalNotes = task.Notes ?? "";
+
+        // Edit title
+        string? newTitle = await DisplayPromptAsync("Edit Task",
+            "Update task title:", "Save", "Cancel",
+            initialValue: task.Title);
+
+        if (newTitle == null) return; // Cancelled
+
+        // Edit notes
+        string? newNotes = await DisplayPromptAsync("Edit Notes",
+            "Update notes (optional):", "Save", "Skip",
+            initialValue: task.Notes ?? "");
+
+        string finalTitle = newTitle.Trim();
+        string finalNotes = newNotes != null ? newNotes.Trim() : originalNotes;
+
+        bool titleChanged = finalTitle != originalTitle;
+        bool notesChanged = newNotes != null && finalNotes != originalNotes;
+
+        if (!titleChanged && !notesChanged) return; // Nothing changed
+
+        // Create new task with edited values (same date, priority, category, urgent status)
+        var newTask = await _taskService.CreateTaskAsync(
+            _auth.CurrentUsername, finalTitle,
+            task.Category ?? "General", task.Priority,
+            task.DueDate);
+        newTask.IsUrgent = task.IsUrgent;
+        newTask.Notes = string.IsNullOrWhiteSpace(finalNotes) ? null : finalNotes;
+        await _taskService.UpdateTaskAsync(newTask);
+
+        // Archive the original (move to "archived_edited" category, mark completed)
+        task.Category = "archived_edited";
+        task.IsCompleted = true;
+        task.CompletedAt = DateTime.UtcNow;
+        task.Notes = (task.Notes ?? "") + $"\n[Edited {DateTime.Now:MMM d, yyyy HH:mm} → new: \"{finalTitle}\"]";
+        await _taskService.UpdateTaskAsync(task);
+
+        // Log to ideas
+        if (_ideasService != null)
+        {
+            string dateStr = newTask.DueDate.HasValue ? newTask.DueDate.Value.ToString("MMM d") : "no date";
+            string logText = titleChanged
+                ? $"[{dateStr}] Edited: \"{originalTitle}\" → \"{finalTitle}\""
+                : $"[{dateStr}] Notes updated: \"{finalTitle}\"";
+            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, logText, "calendar_tasks"); } catch { }
+        }
+
+        await LoadTasksAsync();
     }
 
     private async Task ShowPostponeAsync(TaskItem task)

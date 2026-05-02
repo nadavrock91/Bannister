@@ -12,15 +12,17 @@ public class StoryProductionHubPage : ContentPage
     private readonly StoryProductionService _storyService;
     private readonly IdeasService? _ideasService;
     private readonly IdeaLoggerService? _ideaLogger;
+    private readonly SubActivityService? _subActivityService;
     
     private Label _statsLabel;
 
-    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null)
+    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null)
     {
         _auth = auth;
         _storyService = storyService;
         _ideasService = ideasService;
         _ideaLogger = ideaLogger;
+        _subActivityService = subActivityService;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -168,7 +170,7 @@ public class StoryProductionHubPage : ContentPage
 
     private async Task OnDraftsClicked()
     {
-        var page = new StoryProductionPage(_auth, _storyService, _ideasService, _ideaLogger);
+        var page = new StoryProductionPage(_auth, _storyService, _ideasService, _ideaLogger, _subActivityService);
         await Navigation.PushAsync(page);
     }
 

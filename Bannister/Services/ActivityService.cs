@@ -9,8 +9,13 @@ namespace Bannister.Services
     public class ActivityService
     {
         private readonly DatabaseService _db;
+        private readonly IdeasService? _ideasService;
 
-        public ActivityService(DatabaseService db) => _db = db;
+        public ActivityService(DatabaseService db, IdeasService? ideasService = null)
+        {
+            _db = db;
+            _ideasService = ideasService;
+        }
 
         public async Task<List<Activity>> GetActivitiesAsync(string username, string game)
         {
@@ -103,6 +108,16 @@ namespace Bannister.Services
                 StartDate = DateTime.Now  // Set creation date
             };
             await conn.InsertAsync(activity);
+
+            // Log to ideas with game name as subcategory
+            if (_ideasService != null)
+                try 
+                { 
+                    var idea = await _ideasService.CreateIdeaAsync(username, $"{name} ({category}, +{expGain} EXP)", "activities"); 
+                    idea.Subcategory = game;
+                    await _ideasService.UpdateIdeaAsync(idea);
+                } catch { }
+
             return activity;
         }
 
@@ -111,6 +126,16 @@ namespace Bannister.Services
             var conn = await _db.GetConnectionAsync();
             activity.IsActive = true;
             await conn.InsertAsync(activity);
+
+            // Log to ideas with game name as subcategory
+            if (_ideasService != null)
+                try 
+                { 
+                    var idea = await _ideasService.CreateIdeaAsync(activity.Username, $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)", "activities"); 
+                    idea.Subcategory = activity.Game;
+                    await _ideasService.UpdateIdeaAsync(idea);
+                } catch { }
+
             return activity;
         }
 

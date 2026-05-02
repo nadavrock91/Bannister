@@ -284,6 +284,14 @@ public class StaleActivitiesConfirmationPage : ContentPage
 
     private async void OnSkipClicked(object? sender, EventArgs e)
     {
+        // Reset StartDate to now for all stale activities so they won't be
+        // flagged again for another 2 months
+        foreach (var activity in _staleActivities)
+        {
+            activity.StartDate = DateTime.Now;
+            await _activityService.UpdateActivityAsync(activity);
+        }
+
         _tcs.TrySetResult(0);
         await Navigation.PopModalAsync();
     }

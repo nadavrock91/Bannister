@@ -46,6 +46,7 @@ public class HomePage : ContentPage
     private Button _btnStreaks;
     private Button _btnCountdowns;
     private Button _btnCalendar;
+    private Button _btnSettings;
     private Grid _loadingOverlay;
 
     public HomePage(AuthService auth, GameService games, DragonService dragons,
@@ -112,6 +113,10 @@ public class HomePage : ContentPage
         // Build all navigation buttons, then sort alphabetically before adding
         var navButtons = new List<(string sortKey, Button btn)>();
 
+        _btnCalendar = CreateButton("📅 Calendar", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
+        _btnCalendar.Clicked += OnCalendarClicked;
+        navButtons.Add(("Calendar", _btnCalendar));
+
         _btnCharts = CreateButton("📊 Charts", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
         _btnCharts.Clicked += OnChartsClicked;
         navButtons.Add(("Charts", _btnCharts));
@@ -156,6 +161,10 @@ public class HomePage : ContentPage
         _btnPrompts.Clicked += OnPromptsClicked;
         navButtons.Add(("Prompts", _btnPrompts));
 
+        _btnSettings = CreateButton("⚙️ Settings", Color.FromArgb("#ECEFF1"), Color.FromArgb("#37474F"));
+        _btnSettings.Clicked += OnSettingsClicked;
+        navButtons.Add(("Settings", _btnSettings));
+
         _btnStoryProduction = CreateButton("🎬 Story Production", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57C00"));
         _btnStoryProduction.Clicked += OnStoryProductionClicked;
         navButtons.Add(("Story Production", _btnStoryProduction));
@@ -171,10 +180,6 @@ public class HomePage : ContentPage
         _btnTasks = CreateButton("📋 Tasks", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
         _btnTasks.Clicked += OnTasksClicked;
         navButtons.Add(("Tasks", _btnTasks));
-
-        _btnCalendar = CreateButton("📅 Calendar", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
-        _btnCalendar.Clicked += OnCalendarClicked;
-        navButtons.Add(("Calendar", _btnCalendar));
 
         // Sort alphabetically and add to layout
         foreach (var (_, btn) in navButtons.OrderBy(b => b.sortKey, StringComparer.OrdinalIgnoreCase))
@@ -296,6 +301,9 @@ public class HomePage : ContentPage
         
         // Check for unfilled daily habit slots (only on Saturday)
         await CheckDailyHabitAllowanceAsync();
+
+        // Check if unencrypted legacy database file still exists
+        await CheckLegacyUnencryptedDbAsync();
     }
 
     private async Task CheckDailyHabitAllowanceAsync()
@@ -525,6 +533,48 @@ public class HomePage : ContentPage
         }
     }
 
+    private async Task CheckLegacyUnencryptedDbAsync()
+    {
+        try
+        {
+            if (!DatabaseService.LegacyUnencryptedFileExists)
+                return;
+
+            // Only prompt once per day
+            string promptKey = $"legacy_db_prompted_{_auth.CurrentUsername}";
+            string? prompted = null;
+            try { prompted = await SecureStorage.GetAsync(promptKey); } catch { }
+            
+            string today = DateTime.Today.ToString("yyyy-MM-dd");
+            if (prompted == today) return;
+
+            bool delete = await DisplayAlert(
+                "🔒 Unencrypted Database Found",
+                "An old unencrypted copy of your database still exists on disk " +
+                "(bannister_unencrypted.db).\n\n" +
+                "Your data has been migrated to an encrypted database. " +
+                "It is recommended to delete the old unencrypted file for security.\n\n" +
+                "Delete the unencrypted copy now?",
+                "Delete It",
+                "Keep For Now");
+
+            try { await SecureStorage.SetAsync(promptKey, today); } catch { }
+
+            if (delete)
+            {
+                bool deleted = DatabaseService.DeleteLegacyUnencryptedFile();
+                if (deleted)
+                    await DisplayAlert("Deleted", "The unencrypted database copy has been removed.", "OK");
+                else
+                    await DisplayAlert("Error", "Could not delete the file. You can manually delete 'bannister_unencrypted.db' from the app data folder.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking legacy DB: {ex.Message}");
+        }
+    }
+
     private async Task CheckExpiredActivitiesAsync()
     {
         try
@@ -587,13 +637,13 @@ public class HomePage : ContentPage
 
     private async void OnIdeasClicked(object? sender, EventArgs e)
     {
-        var page = new IdeasPage(_auth, _ideas, _ideaLogger);
+        var page = new IdeasPage(_auth, _ideas, _ideaLogger, _db);
         await Navigation.PushAsync(page);
     }
 
     private async void OnStoryProductionClicked(object? sender, EventArgs e)
     {
-        var page = new StoryProductionHubPage(_auth, _storyProduction, _ideas, _ideaLogger);
+        var page = new StoryProductionHubPage(_auth, _storyProduction, _ideas, _ideaLogger, _subActivityService);
         await Navigation.PushAsync(page);
     }
 
@@ -640,13 +690,19 @@ public class HomePage : ContentPage
 
     private async void OnTasksClicked(object? sender, EventArgs e)
     {
-        var page = new TasksPage(_auth, _taskService, _challengeService);
+        var page = new TasksPage(_auth, _taskService, _challengeService, _ideas);
         await Navigation.PushAsync(page);
     }
 
     private async void OnCountdownsClicked(object? sender, EventArgs e)
     {
         var page = new CountdownsHomePage(_auth, _countdowns);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnSettingsClicked(object? sender, EventArgs e)
+    {
+        var page = new SettingsPage(_auth, _db, _backup);
         await Navigation.PushAsync(page);
     }
 

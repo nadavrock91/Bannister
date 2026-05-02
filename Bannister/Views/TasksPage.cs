@@ -12,6 +12,7 @@ public class TasksPage : ContentPage
     private readonly AuthService _auth;
     private readonly TaskService _tasks;
     private readonly WeeklyChallengeService _challengeService;
+    private readonly IdeasService? _ideasService;
     
     // UI
     private Label _headerLabel;
@@ -48,11 +49,12 @@ public class TasksPage : ContentPage
     private const double CellWidth = 180;
     private const double CellHeight = 50;
 
-    public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService)
+    public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService, IdeasService? ideasService = null)
     {
         _auth = auth;
         _tasks = tasks;
         _challengeService = challengeService;
+        _ideasService = ideasService;
         
         Title = "Tasks";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -603,6 +605,10 @@ public class TasksPage : ContentPage
         int priority = priorityChoice.Contains("Urgent") ? 0 : priorityChoice.Contains("High") ? 1 : priorityChoice.Contains("Low") ? 3 : 2;
 
         await _tasks.CreateTaskAsync(_auth.CurrentUsername, title.Trim(), category, priority);
+
+        if (_ideasService != null)
+            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[New] {title.Trim()} ({category})", "tasks_ideas"); } catch { }
+
         await LoadCategoriesAsync();
         await RefreshTasksAsync();
     }
@@ -628,12 +634,17 @@ public class TasksPage : ContentPage
     private async void OnEditClicked(object? sender, EventArgs e)
     {
         if (_selectedTask == null) return;
+        string originalTitle = _selectedTask.Title;
         string? t = await DisplayPromptAsync("Edit", "Update task:", "Save", "Cancel", initialValue: _selectedTask.Title);
         if (!string.IsNullOrWhiteSpace(t) && t != _selectedTask.Title)
         {
             _selectedTask.Title = t.Trim();
             await _tasks.UpdateTaskAsync(_selectedTask);
             _detailTitle.Text = _selectedTask.Title;
+
+            if (_ideasService != null)
+                try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[Edited] \"{originalTitle}\" → \"{t.Trim()}\"", "tasks_ideas"); } catch { }
+
             await RefreshTasksAsync();
         }
     }

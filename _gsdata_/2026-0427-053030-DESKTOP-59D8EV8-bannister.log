@@ -1,0 +1,57 @@
+2026-04-27 05:30:30: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-04-27 05:30:30: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-04-27 05:30:33: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-04-27 05:30:34: Changes: 32, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 11741
+2026-04-27 05:30:34: Left to Right: Copy File: 31 Delete File: 1 
+2026-04-27 05:30:34: == Sync Started by On Schedule Min=30 Hour=5 
+2026-04-27 05:30:35: ConnectCloned connected to file:///C:/rock/bannister
+2026-04-27 05:30:35: ConnectCloned connected to file:///C:/rock/bannister
+2026-04-27 05:30:35: ConnectCloned connected to file:///C:/rock/bannister
+2026-04-27 05:30:35: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-04-27 05:30:35: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-04-27 05:30:35: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-04-27 05:30:40: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/apphost.exe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/apphost.exe' (153,088)
+2026-04-27 05:30:40: Copy Over 'C:/rock/bannister/Bannister/Services/IdeaLoggerService.cs' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/Services/IdeaLoggerService.cs' (29,011)
+2026-04-27 05:30:40: > Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' (3,486,720)
+2026-04-27 05:30:40: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.BuildWithSkipAnalyzers' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.BuildWithSkipAnalyzers' (0)
+2026-04-27 05:30:44: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/excluded.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/excluded.layout.resfiles.intermediate' (0)
+2026-04-27 05:30:44: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.pdb' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.pdb' (750,796)
+2026-04-27 05:30:44: < Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' (3,486,720)
+2026-04-27 05:30:44: > Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/intermediatexaml/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/intermediatexaml/Bannister.dll' (3,348,992)
+2026-04-27 05:30:47: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/embed/embed.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/embed/embed.resfiles.intermediate' (27)
+2026-04-27 05:30:47: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/filtered.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/filtered.layout.resfiles.intermediate' (2,300)
+2026-04-27 05:30:48: < Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/intermediatexaml/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/intermediatexaml/Bannister.dll' (3,348,992)
+2026-04-27 05:30:51: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/pri.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/pri.resfiles.intermediate' (386)
+2026-04-27 05:30:51: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Platforms/Windows/App.xaml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Platforms/Windows/App.xaml' (304)
+2026-04-27 05:30:52: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/priconfig.xml.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/priconfig.xml.intermediate' (3,154)
+2026-04-27 05:30:55: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/ref/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/ref/Bannister.dll' (806,400)
+2026-04-27 05:30:55: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/refint/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/refint/Bannister.dll' (806,400)
+2026-04-27 05:30:56: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/resources.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/resources.resfiles.intermediate' (0)
+2026-04-27 05:30:58: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/unfiltered.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/unfiltered.layout.resfiles.intermediate' (2,300)
+2026-04-27 05:30:59: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlC.stamp' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlC.stamp' (0)
+2026-04-27 05:30:59: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' (834)
+2026-04-27 05:30:59: > Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.dll' (3,486,720)
+2026-04-27 05:31:02: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/AppxManifest.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/AppxManifest.xml' (2,821)
+2026-04-27 05:31:02: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppxManifest.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppxManifest.xml' (2,821)
+2026-04-27 05:31:03: < Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.dll' (3,486,720)
+2026-04-27 05:31:06: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.exe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.exe' (153,088)
+2026-04-27 05:31:06: > Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' (3,486,720)
+2026-04-27 05:31:06: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (63,169)
+2026-04-27 05:31:07: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.build.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.build.appxrecipe' (52,724)
+2026-04-27 05:31:09: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.exe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.exe' (153,088)
+2026-04-27 05:31:10: < Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' (3,486,720)
+2026-04-27 05:31:10: Delete File goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/FileContentIndex/9929103f-3a7f-472c-a8bb-86a67a98c0d3.vsidx
+2026-04-27 05:31:11: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.pdb' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.pdb' (750,796)
+2026-04-27 05:31:14: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (6,262)
+2026-04-27 05:31:14: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (47,616)
+2026-04-27 05:31:14: CopyFileSimple: OpenDownload: ERR: Cannot open file C:/rock/bannister/.vs/Bannister/FileContentIndex/cad5bca1-5f6f-4882-a9e8-58cc4cf2f4bc.vsidx: cannot open file 'C:/rock/bannister/.vs/Bannister/FileContentIndex/cad5bca1-5f6f-4882-a9e8-58cc4cf2f4bc.vsidx': The process cannot access the file because it is being used by another process.  (error 32)
+2026-04-27 05:31:14: Connecting to Elevated Local GoodSync Server to complete operation
+2026-04-27 05:31:14: LOCAL C:(127.0.0.1) -> S:127.0.0.1:33333
+2026-04-27 05:31:14: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (6,262)
+2026-04-27 05:31:16: Created Snapshot of Volume 'C:' at '/GLOBALROOT/Device/HarddiskVolumeShadowCopy21', Elevated
+2026-04-27 05:31:16: Open File Snap GetShadow: AbsPath=/GLOBALROOT/Device/HarddiskVolumeShadowCopy21/rock/bannister/.vs/Bannister/FileContentIndex/cad5bca1-5f6f-4882-a9e8-58cc4cf2f4bc.vsidx SnapshotPath=/GLOBALROOT/Device/HarddiskVolumeShadowCopy21 SnapVolume=C:
+2026-04-27 05:31:18: Copy New 'C:/rock/bannister/.vs/Bannister/FileContentIndex/cad5bca1-5f6f-4882-a9e8-58cc4cf2f4bc.vsidx' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/FileContentIndex/cad5bca1-5f6f-4882-a9e8-58cc4cf2f4bc.vsidx' (643,957)
+2026-04-27 05:31:18: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-04-27 05:31:21: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-04-27 05:31:22: Release Snapshot of Volume C:
+2026-04-27 05:31:24: == Sync Complete. Time: 00:00:49, Speed: 397.86 KB/s, OK: 32, Errors: 0

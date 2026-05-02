@@ -195,6 +195,10 @@ public class IdeaLoggerService
             await HandleLinkedCategoriesAsync(page, username, text, rating, linked);
         }
 
+        // Confirm to user
+        if (page != null)
+            await page.DisplayAlert("✅ Idea Logged", $"{(text.Length > 60 ? text.Substring(0, 57) + "..." : text)}\n\nCategory: {category}{(subcategory != null ? $"\nSubcategory: {subcategory}" : "")}", "OK");
+
         return idea;
     }
 
