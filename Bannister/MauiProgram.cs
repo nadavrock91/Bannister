@@ -67,6 +67,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DailyCheckService>();
         builder.Services.AddSingleton<AudioLibraryService>();
         builder.Services.AddSingleton<ActivityGroupingService>();
+        builder.Services.AddSingleton<DailyLoginPromptService>();
 
 
         // Conversation Practice Module

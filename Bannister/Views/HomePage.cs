@@ -27,6 +27,7 @@ public class HomePage : ContentPage
     private readonly ConversationService _conversationService;
     private readonly SubActivityService _subActivityService;
     private readonly AudioLibraryService _audioLibService;
+    private readonly DailyLoginPromptService _dailyLoginPrompts;
     private bool _introChecked = false;
 
     // UI Controls
@@ -56,7 +57,8 @@ public class HomePage : ContentPage
         CountdownService countdowns, LearningService learning, ActivityService activities, PromptService prompts,
         StoryProductionService storyProduction, TaskService taskService, WeeklyChallengeService challengeService,
         IdeasService ideas, IdeaLoggerService ideaLogger, ConversationService conversationService,
-        SubActivityService subActivityService, AudioLibraryService audioLibService)
+        SubActivityService subActivityService, AudioLibraryService audioLibService,
+        DailyLoginPromptService dailyLoginPrompts)
     {
         _auth = auth;
         _games = games;
@@ -78,6 +80,7 @@ public class HomePage : ContentPage
         _conversationService = conversationService;
         _subActivityService = subActivityService;
         _audioLibService = audioLibService;
+        _dailyLoginPrompts = dailyLoginPrompts;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -98,13 +101,45 @@ public class HomePage : ContentPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        var headerGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 12
+        };
+
+        var headerLabel = new Label
         {
             Text = "Home",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            TextColor = Colors.White,
+            VerticalOptions = LayoutOptions.Center
+        };
+        Grid.SetColumn(headerLabel, 0);
+        headerGrid.Children.Add(headerLabel);
+
+        var btnHomeMenu = new Button
+        {
+            Text = "⋮",
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            BackgroundColor = Color.FromArgb("#FBC02D"),
+            TextColor = Colors.White,
+            CornerRadius = 22,
+            WidthRequest = 44,
+            HeightRequest = 44,
+            Padding = new Thickness(0),
+            VerticalOptions = LayoutOptions.Center
+        };
+        btnHomeMenu.Clicked += OnHomeMenuClicked;
+        Grid.SetColumn(btnHomeMenu, 1);
+        headerGrid.Children.Add(btnHomeMenu);
+
+        mainStack.Children.Add(headerGrid);
 
         _lblWelcome = new Label
         {
@@ -275,6 +310,7 @@ public class HomePage : ContentPage
 
         _lblWelcome.Text = $"Welcome, {_auth.CurrentUsername}";
         await LoadDataAsync();
+        await ShowDailyLoginPromptsIfNeededAsync();
 
         if (!_introChecked)
         {
@@ -311,6 +347,30 @@ public class HomePage : ContentPage
 
         // Check if unencrypted legacy database file still exists
         await CheckLegacyUnencryptedDbAsync();
+    }
+
+    private async Task ShowDailyLoginPromptsIfNeededAsync()
+    {
+        string today = DateTime.Today.ToString("yyyy-MM-dd");
+        string shownKey = $"daily_login_prompts_shown_{_auth.CurrentUsername}";
+        string? lastShown = null;
+        try { lastShown = await SecureStorage.GetAsync(shownKey); } catch { }
+
+        if (lastShown == today) return;
+
+        var prompts = await _dailyLoginPrompts.GetPromptsAsync(_auth.CurrentUsername, activeOnly: true);
+        if (prompts.Count == 0)
+        {
+            try { await SecureStorage.SetAsync(shownKey, today); } catch { }
+            return;
+        }
+
+        try { await SecureStorage.SetAsync(shownKey, today); } catch { }
+
+        for (int i = 0; i < prompts.Count; i++)
+        {
+            await DailyLoginPromptDisplayPage.ShowAsync(Navigation, prompts[i], i + 1, prompts.Count);
+        }
     }
 
     private async Task CheckDailyHabitAllowanceAsync()
@@ -709,8 +769,7 @@ public class HomePage : ContentPage
 
     private async void OnSettingsClicked(object? sender, EventArgs e)
     {
-        var page = new SettingsPage(_auth, _db, _backup);
-        await Navigation.PushAsync(page);
+        await NavigateToSettingsAsync();
     }
 
     private async void OnAudioLibraryClicked(object? sender, EventArgs e)
@@ -720,6 +779,52 @@ public class HomePage : ContentPage
     }
 
     private async void OnLogoutClicked(object? sender, EventArgs e)
+    {
+        await LogoutAsync();
+    }
+
+    private async void OnHomeMenuClicked(object? sender, EventArgs e)
+    {
+        string action = await DisplayActionSheet(
+            "Home",
+            "Cancel",
+            null,
+            "Refresh",
+            "Manual Backup",
+            "Daily Login Prompts",
+            "Settings",
+            "Logout");
+
+        if (string.IsNullOrEmpty(action) || action == "Cancel") return;
+
+        switch (action)
+        {
+            case "Refresh":
+                await LoadDataAsync();
+                break;
+            case "Manual Backup":
+                var result = await _backup.ManualBackupAsync();
+                await DisplayAlert(result.success ? "Backup Created" : "Backup Failed", result.message, "OK");
+                break;
+            case "Daily Login Prompts":
+                await Navigation.PushAsync(new DailyLoginPromptsPage(_auth, _dailyLoginPrompts));
+                break;
+            case "Settings":
+                await NavigateToSettingsAsync();
+                break;
+            case "Logout":
+                await LogoutAsync();
+                break;
+        }
+    }
+
+    private async Task NavigateToSettingsAsync()
+    {
+        var page = new SettingsPage(_auth, _db, _backup);
+        await Navigation.PushAsync(page);
+    }
+
+    private async Task LogoutAsync()
     {
         await _backup.AutoBackupAsync("logout");
 
