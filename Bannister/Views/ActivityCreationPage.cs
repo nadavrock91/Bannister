@@ -1053,6 +1053,7 @@ public class ActivityCreationPage : ContentPage
             }
 
             string category = string.IsNullOrWhiteSpace(entryCategory.Text) ? "Misc" : entryCategory.Text.Trim();
+            bool selectedAutoCategory = category.Equals("Auto", StringComparison.OrdinalIgnoreCase);
             bool isPercentType = pickerRewardType.SelectedIndex == 1;
 
             int meaningful = 100;
@@ -1095,7 +1096,7 @@ public class ActivityCreationPage : ContentPage
                 expGain = (isNegativeCategory || isNegativeValue) ? -(meaningful * 2) : (meaningful * 2);
             }
 
-            if (expGain > 0 && !chkNoHabitTarget.IsChecked && !chkHasHabitTarget.IsChecked && !chkStreakTracked.IsChecked)
+            if (expGain > 0 && !selectedAutoCategory && !chkNoHabitTarget.IsChecked && !chkHasHabitTarget.IsChecked && !chkStreakTracked.IsChecked)
             {
                 await DisplayAlert("Habit Target Required", 
                     "Please either:\n• Set a habit target date, or\n• Check 'I don't want this as a habit'", 
@@ -1150,6 +1151,18 @@ public class ActivityCreationPage : ContentPage
                 DisplayDaysOfWeek = _displayDaysSelector.GetDisplayDaysOfWeek(),
                 DisplayDayOfMonth = _displayDaysSelector.GetDisplayDayOfMonth()
             };
+
+            if (selectedAutoCategory && !isStreakContainer)
+            {
+                var autoAwardPage = new SetAutoAwardPage(activity, requireAutoAward: true);
+                await Navigation.PushModalAsync(autoAwardPage);
+
+                bool autoAwardConfigured = await autoAwardPage.WaitForResultAsync();
+                if (!autoAwardConfigured)
+                {
+                    return;
+                }
+            }
 
             if (chkStartDate.IsChecked == true)
             {

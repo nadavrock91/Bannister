@@ -10,6 +10,7 @@ namespace Bannister.Views;
 public class SetAutoAwardPage : ContentPage
 {
     private readonly Activity _activity;
+    private readonly bool _requireAutoAward;
     private TaskCompletionSource<bool>? _completionSource;
 
     private Switch switchAutoAward;
@@ -17,10 +18,20 @@ public class SetAutoAwardPage : ContentPage
     private VerticalStackLayout daysPanel;
     private Dictionary<string, CheckBox> dayCheckBoxes;
 
-    public SetAutoAwardPage(Activity activity)
+    public SetAutoAwardPage(Activity activity, bool requireAutoAward = false)
     {
         _activity = activity;
+        _requireAutoAward = requireAutoAward;
         dayCheckBoxes = new Dictionary<string, CheckBox>();
+
+        if (_requireAutoAward)
+        {
+            _activity.IsAutoAward = true;
+            if (string.IsNullOrWhiteSpace(_activity.AutoAwardFrequency) || _activity.AutoAwardFrequency == "None")
+            {
+                _activity.AutoAwardFrequency = "Daily";
+            }
+        }
 
         Title = "Auto-Award Settings";
         BackgroundColor = Colors.White;
@@ -83,7 +94,8 @@ public class SetAutoAwardPage : ContentPage
         switchAutoAward = new Switch
         {
             OnColor = Color.FromArgb("#4CAF50"),
-            VerticalOptions = LayoutOptions.Center
+            VerticalOptions = LayoutOptions.Center,
+            IsEnabled = !_requireAutoAward
         };
         switchAutoAward.Toggled += OnAutoAwardToggled;
         autoAwardStack.Children.Add(switchAutoAward);
@@ -274,6 +286,12 @@ public class SetAutoAwardPage : ContentPage
     private async void OnSaveClicked(object? sender, EventArgs e)
     {
         _activity.IsAutoAward = switchAutoAward.IsToggled;
+
+        if (_requireAutoAward && !_activity.IsAutoAward)
+        {
+            await DisplayAlert("Auto-Award Required", "Activities created in the Auto category must have auto-award enabled.", "OK");
+            return;
+        }
 
         if (switchAutoAward.IsToggled)
         {
