@@ -349,8 +349,7 @@ public partial class ActivityGamePage
     {
         var options = new List<string>
         {
-            $"Habit Streak: {activity.HabitStreak}",
-            $"Display Day Streak: {activity.DisplayDayStreak}"
+            $"Habit + Display Day Streaks ({activity.HabitStreak}, {activity.DisplayDayStreak})"
         };
 
         if (attemptVM != null)
@@ -370,46 +369,54 @@ public partial class ActivityGamePage
         {
             await EditAttemptDays(attemptVM);
         }
-        else if (action.StartsWith("Habit Streak"))
+        else if (action.StartsWith("Habit + Display Day Streaks"))
         {
-            string result = await DisplayPromptAsync(
+            string? habitResult = await DisplayPromptAsync(
                 "Habit Streak",
                 $"For 7-day graduation.\nCurrent: {activity.HabitStreak}",
+                "Next",
+                "Cancel",
                 initialValue: activity.HabitStreak.ToString(),
                 keyboard: Keyboard.Numeric);
 
-            if (!string.IsNullOrEmpty(result) && int.TryParse(result, out int newStreak) && newStreak >= 0)
-            {
-                activity.HabitStreak = newStreak;
-                await _activities.UpdateActivityAsync(activity);
-                activityVM?.UpdateActivity(activity);
-                await DisplayAlert("Updated", $"Habit streak: {newStreak}", "OK");
-                await RefreshActivitiesAsync();
-            }
-        }
-        else if (action.StartsWith("Display Day Streak"))
-        {
-            string result = await DisplayPromptAsync(
+            if (string.IsNullOrEmpty(habitResult)) return;
+
+            string? displayResult = await DisplayPromptAsync(
                 "Display Day Streak",
                 $"Scheduled days bonus.\nCurrent: {activity.DisplayDayStreak}",
+                "Save Both",
+                "Cancel",
                 initialValue: activity.DisplayDayStreak.ToString(),
                 keyboard: Keyboard.Numeric);
 
-            if (!string.IsNullOrEmpty(result) && int.TryParse(result, out int newStreak) && newStreak >= 0)
+            if (string.IsNullOrEmpty(displayResult)) return;
+
+            if (!int.TryParse(habitResult, out int newHabitStreak) || newHabitStreak < 0 ||
+                !int.TryParse(displayResult, out int newDisplayStreak) || newDisplayStreak < 0)
             {
-                activity.DisplayDayStreak = newStreak;
-                if (newStreak > 0)
-                {
-                    activity.LastDisplayDayUsed = DateTime.UtcNow.Date;
-                }
-                await _activities.UpdateActivityAsync(activity);
-                if (activityVM != null)
-                {
-                    activityVM.DisplayDayStreak = newStreak;
-                }
-                await DisplayAlert("Updated", $"Display day streak: {newStreak}", "OK");
-                await RefreshActivitiesAsync();
+                await DisplayAlert("Invalid", "Please enter whole numbers of 0 or higher.", "OK");
+                return;
             }
+
+            activity.HabitStreak = newHabitStreak;
+            activity.DisplayDayStreak = newDisplayStreak;
+            if (newDisplayStreak > 0)
+            {
+                activity.LastDisplayDayUsed = DateTime.UtcNow.Date;
+            }
+
+            await _activities.UpdateActivityAsync(activity);
+            activityVM?.UpdateActivity(activity);
+
+            if (activityVM != null)
+            {
+                activityVM.DisplayDayStreak = newDisplayStreak;
+            }
+
+            await DisplayAlert("Updated",
+                $"Habit streak: {activity.HabitStreak}\nDisplay day streak: {activity.DisplayDayStreak}",
+                "OK");
+            await RefreshActivitiesAsync();
         }
     }
 
