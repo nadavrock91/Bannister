@@ -1,0 +1,159 @@
+2026-05-04 05:30:33: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-05-04 05:30:33: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-05-04 05:30:35: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-05-04 05:30:37: Changes: 133, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 11862
+2026-05-04 05:30:37: Left to Right: Copy File: 129 Delete File: 4 
+2026-05-04 05:30:37: == Sync Started by On Schedule Min=30 Hour=5 
+2026-05-04 05:30:37: ConnectCloned connected to file:///C:/rock/bannister
+2026-05-04 05:30:37: ConnectCloned connected to file:///C:/rock/bannister
+2026-05-04 05:30:37: ConnectCloned connected to file:///C:/rock/bannister
+2026-05-04 05:30:37: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-05-04 05:30:37: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-05-04 05:30:37: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-05-04 05:30:45: Copy Over 'C:/rock/bannister/Bannister/MainShell.xaml.cs' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/MainShell.xaml.cs' (1,327)
+2026-05-04 05:30:45: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.AssemblyInfo.cs' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.AssemblyInfo.cs' (1,713)
+2026-05-04 05:30:45: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/apphost.exe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/apphost.exe' (153,088)
+2026-05-04 05:30:45: > Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' (3,524,096)
+2026-05-04 05:30:49: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.AssemblyInfoInputs.cache' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.AssemblyInfoInputs.cache' (66)
+2026-05-04 05:30:49: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.BuildWithSkipAnalyzers' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.BuildWithSkipAnalyzers' (0)
+2026-05-04 05:30:49: < Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' (3,524,096)
+2026-05-04 05:30:52: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.pdb' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.pdb' (758,504)
+2026-05-04 05:30:53: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.sourcelink.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.sourcelink.json' (141)
+2026-05-04 05:30:53: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/excluded.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/excluded.layout.resfiles.intermediate' (0)
+2026-05-04 05:30:53: > Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/intermediatexaml/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/intermediatexaml/Bannister.dll' (3,386,368)
+2026-05-04 05:30:56: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/embed/embed.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/embed/embed.resfiles.intermediate' (27)
+2026-05-04 05:30:57: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/filtered.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/filtered.layout.resfiles.intermediate' (2,300)
+2026-05-04 05:30:58: < Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/intermediatexaml/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/intermediatexaml/Bannister.dll' (3,386,368)
+2026-05-04 05:31:01: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/pri.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/pri.resfiles.intermediate' (386)
+2026-05-04 05:31:01: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Platforms/Windows/App.xaml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Platforms/Windows/App.xaml' (304)
+2026-05-04 05:31:02: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/priconfig.xml.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/priconfig.xml.intermediate' (3,154)
+2026-05-04 05:31:04: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/qualifiers.txt.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/qualifiers.txt.intermediate' (184)
+2026-05-04 05:31:05: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/ref/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/ref/Bannister.dll' (809,984)
+2026-05-04 05:31:07: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/refint/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/refint/Bannister.dll' (809,984)
+2026-05-04 05:31:08: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/resources.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/resources.resfiles.intermediate' (0)
+2026-05-04 05:31:09: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/unfiltered.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/unfiltered.layout.resfiles.intermediate' (2,300)
+2026-05-04 05:31:11: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlC.stamp' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlC.stamp' (0)
+2026-05-04 05:31:13: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' (834)
+2026-05-04 05:31:14: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppxManifest.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppxManifest.xml' (2,821)
+2026-05-04 05:31:14: > Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.dll' (3,524,096)
+2026-05-04 05:31:15: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/AppxManifest.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/AppxManifest.xml' (2,821)
+2026-05-04 05:31:16: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.deps.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.deps.json' (44,134)
+2026-05-04 05:31:19: < Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.dll' (3,524,096)
+2026-05-04 05:31:19: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.exe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/Bannister.exe' (153,088)
+2026-05-04 05:31:20: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/resources.pri' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/resources.pri' (140,664)
+2026-05-04 05:31:22: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (70,202)
+2026-05-04 05:31:22: > Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' (3,524,096)
+2026-05-04 05:31:22: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.build.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.build.appxrecipe' (58,561)
+2026-05-04 05:31:24: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.deps.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.deps.json' (44,134)
+2026-05-04 05:31:26: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.exe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.exe' (153,088)
+2026-05-04 05:31:27: < Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.dll' (3,524,096)
+2026-05-04 05:31:28: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.pdb' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.pdb' (758,504)
+2026-05-04 05:31:31: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/resources.pri' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/resources.pri' (140,664)
+2026-05-04 05:31:31: Copy Over 'C:/rock/bannister/Bannister/Services/ActivityService.cs' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/Services/ActivityService.cs' (31,249)
+2026-05-04 05:31:32: Copy Over 'C:/rock/bannister/Bannister/Services/DatabaseService.cs' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/Services/DatabaseService.cs' (24,190)
+2026-05-04 05:31:32: CopyFileSimple: OpenDownload: ERR: Cannot open file C:/rock/bannister/.vs/Bannister/FileContentIndex/b048a569-6877-489d-89ff-d069e08491a2.vsidx: cannot open file 'C:/rock/bannister/.vs/Bannister/FileContentIndex/b048a569-6877-489d-89ff-d069e08491a2.vsidx': The process cannot access the file because it is being used by another process.  (error 32)
+2026-05-04 05:31:32: Creating Snapshot of Volume 'C:' because this file is locked: C:/rock/bannister/.vs/Bannister/FileContentIndex/b048a569-6877-489d-89ff-d069e08491a2.vsidx
+2026-05-04 05:31:32: Connecting to Elevated Local GoodSync Server to complete operation
+2026-05-04 05:31:32: LOCAL C:(127.0.0.1) -> S:127.0.0.1:33333
+2026-05-04 05:31:36: Copy Over 'C:/rock/bannister/Bannister/Views/HomePage.cs' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/Views/HomePage.cs' (26,917)
+2026-05-04 05:31:37: Copy Over 'C:/rock/bannister/.vs/Bannister/DesignTimeBuild/.dtbcache.v2' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/DesignTimeBuild/.dtbcache.v2' (137,051)
+2026-05-04 05:31:37: Delete File goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/FileContentIndex/e2345c97-e2e2-48e2-9874-ac572f2ff343.vsidx
+2026-05-04 05:31:40: Copy Over 'C:/rock/bannister/Bannister/Views/NewHabitsPage.cs' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/Views/NewHabitsPage.cs' (48,692)
+2026-05-04 05:31:41: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.futdcache.v2' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.futdcache.v2' (566)
+2026-05-04 05:31:44: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (56,320)
+2026-05-04 05:31:44: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (9,482)
+2026-05-04 05:31:47: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/HierarchyCache.v1.txt' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/HierarchyCache.v1.txt' (37,691)
+2026-05-04 05:31:48: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (9,482)
+2026-05-04 05:31:50: Delete File goodrive://www.googleapis.com/:personal:/bannister/.vs/ProjectEvaluation/bannister.metadata.v10.bin
+2026-05-04 05:31:51: Copy Over 'C:/rock/bannister/.git/COMMIT_EDITMSG' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/COMMIT_EDITMSG' (689)
+2026-05-04 05:31:51: Delete File goodrive://www.googleapis.com/:personal:/bannister/.vs/ProjectEvaluation/bannister.projects.v10.bin
+2026-05-04 05:31:52: Delete File goodrive://www.googleapis.com/:personal:/bannister/.vs/ProjectEvaluation/bannister.strings.v10.bin
+2026-05-04 05:31:55: Copy Over 'C:/rock/bannister/.git/index' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/index' (28,172)
+2026-05-04 05:31:56: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/03
+2026-05-04 05:31:56: Copy Over 'C:/rock/bannister/.git/logs/HEAD' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/logs/HEAD' (1,812)
+2026-05-04 05:31:58: Copy New 'C:/rock/bannister/.git/objects/00/6e827e37e08b7d73b5a753105236a10214b912' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/00/6e827e37e08b7d73b5a753105236a10214b912' (7,570)
+2026-05-04 05:31:59: Copy New 'C:/rock/bannister/.git/objects/03/a459eb92623692e4a497761fc4fe4d5d087c13' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/03/a459eb92623692e4a497761fc4fe4d5d087c13' (539)
+2026-05-04 05:31:59: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/20
+2026-05-04 05:32:00: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/2e
+2026-05-04 05:32:00: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/22
+2026-05-04 05:32:00: Created Snapshot of Volume 'C:' at '/GLOBALROOT/Device/HarddiskVolumeShadowCopy26', Elevated
+2026-05-04 05:32:00: Open File Snap GetShadow: AbsPath=/GLOBALROOT/Device/HarddiskVolumeShadowCopy26/rock/bannister/.vs/Bannister/FileContentIndex/b048a569-6877-489d-89ff-d069e08491a2.vsidx SnapshotPath=/GLOBALROOT/Device/HarddiskVolumeShadowCopy26 SnapVolume=C:
+2026-05-04 05:32:02: Copy New 'C:/rock/bannister/.git/objects/20/2b11ac37d3fce4f4c1e34a14547833d318ac07' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/20/2b11ac37d3fce4f4c1e34a14547833d318ac07' (487)
+2026-05-04 05:32:03: Copy New 'C:/rock/bannister/.vs/Bannister/FileContentIndex/b048a569-6877-489d-89ff-d069e08491a2.vsidx' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/FileContentIndex/b048a569-6877-489d-89ff-d069e08491a2.vsidx' (649,563)
+2026-05-04 05:32:03: Copy New 'C:/rock/bannister/.git/objects/2e/cae522337c8b9c417d0b1c486e817364de12f3' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/2e/cae522337c8b9c417d0b1c486e817364de12f3' (5,199)
+2026-05-04 05:32:04: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/31
+2026-05-04 05:32:04: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/32
+2026-05-04 05:32:04: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/34
+2026-05-04 05:32:05: Copy New 'C:/rock/bannister/.git/objects/22/1ca70237a9c68ad1eaa71ab0b975b5d5e4fc7d' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/22/1ca70237a9c68ad1eaa71ab0b975b5d5e4fc7d' (574)
+2026-05-04 05:32:07: Copy New 'C:/rock/bannister/.git/objects/32/9560594b79d3c3bebb5f5478887de8648d79d6' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/32/9560594b79d3c3bebb5f5478887de8648d79d6' (549)
+2026-05-04 05:32:07: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/38
+2026-05-04 05:32:07: Copy New 'C:/rock/bannister/.git/objects/31/5fe2ee9a416801fdda4cc5b0c3cf5e03865837' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/31/5fe2ee9a416801fdda4cc5b0c3cf5e03865837' (112)
+2026-05-04 05:32:08: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/39
+2026-05-04 05:32:08: Copy New 'C:/rock/bannister/.git/objects/34/d2638d99457c9dcac1f19d4f3da263a905e8f2' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/34/d2638d99457c9dcac1f19d4f3da263a905e8f2' (1,653)
+2026-05-04 05:32:09: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/3d
+2026-05-04 05:32:10: Copy New 'C:/rock/bannister/.git/objects/38/3cdd11deeb8e6b9eaad9e1f8ce7003e7ea8b7f' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/38/3cdd11deeb8e6b9eaad9e1f8ce7003e7ea8b7f' (1,786)
+2026-05-04 05:32:10: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/40
+2026-05-04 05:32:11: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/4b
+2026-05-04 05:32:12: Copy New 'C:/rock/bannister/.git/objects/39/a7184eec634db58038180b2ea89f8f273ddb4d' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/39/a7184eec634db58038180b2ea89f8f273ddb4d' (229)
+2026-05-04 05:32:12: Copy New 'C:/rock/bannister/.git/objects/3d/7ebc56cc13b05a51d493f815c1e236b9d5a5cc' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/3d/7ebc56cc13b05a51d493f815c1e236b9d5a5cc' (120,511)
+2026-05-04 05:32:13: Copy New 'C:/rock/bannister/.git/objects/40/d26581bfa1bae87cdea35520d2a49b0b126e33' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/40/d26581bfa1bae87cdea35520d2a49b0b126e33' (10,578)
+2026-05-04 05:32:14: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/4d
+2026-05-04 05:32:15: Copy New 'C:/rock/bannister/.git/objects/4b/d983b5bebe767d865f8d692442569cef4e46a1' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/4b/d983b5bebe767d865f8d692442569cef4e46a1' (2,475)
+2026-05-04 05:32:15: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/65
+2026-05-04 05:32:15: Copy New 'C:/rock/bannister/.git/objects/4b/c676a37f32e7e7c225c3b160dcc2729337048a' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/4b/c676a37f32e7e7c225c3b160dcc2729337048a' (2,864)
+2026-05-04 05:32:16: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/6a
+2026-05-04 05:32:17: Copy New 'C:/rock/bannister/.git/objects/4d/3ed97c8bec4c385451dbbc1f80a8b39785477a' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/4d/3ed97c8bec4c385451dbbc1f80a8b39785477a' (17,358)
+2026-05-04 05:32:17: Copy New 'C:/rock/bannister/.git/objects/65/43750783d210fa1676d0e10a0a205948e777a0' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/65/43750783d210fa1676d0e10a0a205948e777a0' (67)
+2026-05-04 05:32:18: Copy New 'C:/rock/bannister/.git/objects/65/94d7eacb985b81c13883c52fe8ea661cdde972' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/65/94d7eacb985b81c13883c52fe8ea661cdde972' (6,676)
+2026-05-04 05:32:18: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/6b
+2026-05-04 05:32:18: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/80
+2026-05-04 05:32:19: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/8c
+2026-05-04 05:32:19: Copy New 'C:/rock/bannister/.git/objects/6a/f94d6e27e7ab1f9190e2b3e3da13630add59de' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/6a/f94d6e27e7ab1f9190e2b3e3da13630add59de' (648)
+2026-05-04 05:32:21: Copy New 'C:/rock/bannister/.git/objects/80/7959f5be9daac9f13cc87bc0599fab5704ca5b' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/80/7959f5be9daac9f13cc87bc0599fab5704ca5b' (765)
+2026-05-04 05:32:22: Copy New 'C:/rock/bannister/.git/objects/8c/18297c72ff6a1b04dc609ddb67bb8f4501ebde' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/8c/18297c72ff6a1b04dc609ddb67bb8f4501ebde' (4,769)
+2026-05-04 05:32:22: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/93
+2026-05-04 05:32:22: Copy New 'C:/rock/bannister/.git/objects/6b/e62f7482cb5dd3aa8df330d98740115c72620f' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/6b/e62f7482cb5dd3aa8df330d98740115c72620f' (2,194)
+2026-05-04 05:32:23: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/9a
+2026-05-04 05:32:23: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/9d
+2026-05-04 05:32:25: Copy New 'C:/rock/bannister/.git/objects/94/8f89f0e87b8c0be727ec411868b296df77832c' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/94/8f89f0e87b8c0be727ec411868b296df77832c' (264)
+2026-05-04 05:32:25: Copy New 'C:/rock/bannister/.git/objects/93/39c32ea6e1b9b5ef1d38f6f6daeb9c3fac36d7' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/93/39c32ea6e1b9b5ef1d38f6f6daeb9c3fac36d7' (7,676)
+2026-05-04 05:32:26: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/a4
+2026-05-04 05:32:26: Copy New 'C:/rock/bannister/.git/objects/9a/7fd5f674fe432616c2d4520cfa300a150205a2' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/9a/7fd5f674fe432616c2d4520cfa300a150205a2' (1,289)
+2026-05-04 05:32:27: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/a7
+2026-05-04 05:32:28: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/aa
+2026-05-04 05:32:28: Copy New 'C:/rock/bannister/.git/objects/9d/35eb73bbb714b995a8d201c10fe80093f364cf' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/9d/35eb73bbb714b995a8d201c10fe80093f364cf' (6,372)
+2026-05-04 05:32:29: Copy New 'C:/rock/bannister/.git/objects/a4/96368b7ea151e7f98507b41eff0bd9d592d05d' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/a4/96368b7ea151e7f98507b41eff0bd9d592d05d' (277)
+2026-05-04 05:32:30: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/ae
+2026-05-04 05:32:30: Copy New 'C:/rock/bannister/.git/objects/a7/c642a3ae8a4a3725ec7f0b5630e541b9333359' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/a7/c642a3ae8a4a3725ec7f0b5630e541b9333359' (377)
+2026-05-04 05:32:31: Copy New 'C:/rock/bannister/.git/objects/aa/a4ac974b57e8d5439915bd382aa0c0ed36b89a' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/aa/a4ac974b57e8d5439915bd382aa0c0ed36b89a' (1,201)
+2026-05-04 05:32:32: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/bb
+2026-05-04 05:32:32: Copy New 'C:/rock/bannister/.git/objects/ac/7f9d28a5903adc745e8a9a6a9e99ff126de4b6' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/ac/7f9d28a5903adc745e8a9a6a9e99ff126de4b6' (4,370)
+2026-05-04 05:32:33: Copy New 'C:/rock/bannister/.git/objects/ae/c1d5da856479b080ab8f7e1a369bd5db9f56e4' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/ae/c1d5da856479b080ab8f7e1a369bd5db9f56e4' (985)
+2026-05-04 05:32:34: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/cb
+2026-05-04 05:32:34: Copy New 'C:/rock/bannister/.git/objects/bb/7a218341bd8d837899c0d597a8c8ba7f99cd6c' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/bb/7a218341bd8d837899c0d597a8c8ba7f99cd6c' (2,272)
+2026-05-04 05:32:34: Copy New 'C:/rock/bannister/.git/objects/c5/e142f02b7cababab67a2ef5023b963425e74b0' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/c5/e142f02b7cababab67a2ef5023b963425e74b0' (3,396)
+2026-05-04 05:32:34: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/d0
+2026-05-04 05:32:35: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/dd
+2026-05-04 05:32:35: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/d3
+2026-05-04 05:32:37: Copy New 'C:/rock/bannister/.git/objects/cb/4b471ef86e07c5ad883fd6ab1aad93b1b343dd' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/cb/4b471ef86e07c5ad883fd6ab1aad93b1b343dd' (320)
+2026-05-04 05:32:37: Copy New 'C:/rock/bannister/.git/objects/d0/843ae1939874ab8661f71fc6e395ad7d848343' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/d0/843ae1939874ab8661f71fc6e395ad7d848343' (7,133)
+2026-05-04 05:32:38: Copy New 'C:/rock/bannister/.git/objects/dd/87a0f002a7e11b9069a63c72c20a1937a6fbcf' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/dd/87a0f002a7e11b9069a63c72c20a1937a6fbcf' (1,064)
+2026-05-04 05:32:39: Copy New 'C:/rock/bannister/.git/objects/d3/3f10100167cabc8d8153497ca54e42b4439efc' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/d3/3f10100167cabc8d8153497ca54e42b4439efc' (41,260)
+2026-05-04 05:32:40: Copy New 'C:/rock/bannister/.git/objects/d3/88a4e7da3445679cd454586ed8a65595856b43' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/d3/88a4e7da3445679cd454586ed8a65595856b43' (9,581)
+2026-05-04 05:32:40: Copy New 'C:/rock/bannister/.git/objects/dd/b3f6a4d8d3c8866d1b833ef62754d4b5ba0c07' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/dd/b3f6a4d8d3c8866d1b833ef62754d4b5ba0c07' (7,017)
+2026-05-04 05:32:40: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/e0
+2026-05-04 05:32:40: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/e2
+2026-05-04 05:32:41: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/e4
+2026-05-04 05:32:41: Create Folder goodrive://www.googleapis.com/:personal:/bannister/.git/objects/e7
+2026-05-04 05:32:43: Copy New 'C:/rock/bannister/.git/objects/e0/54c6dae2c2f05789e370d62682afd079db796b' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/e0/54c6dae2c2f05789e370d62682afd079db796b' (110)
+2026-05-04 05:32:43: Copy New 'C:/rock/bannister/.git/objects/e4/13d96f1c8a03529f496cfe6eb05fd104f46723' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/e4/13d96f1c8a03529f496cfe6eb05fd104f46723' (542)
+2026-05-04 05:32:44: Copy New 'C:/rock/bannister/.git/objects/e2/67f4a27944d0d2e0e2f01d6f59bd9fc1605d3d' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/e2/67f4a27944d0d2e0e2f01d6f59bd9fc1605d3d' (2,667)
+2026-05-04 05:32:46: Copy New 'C:/rock/bannister/.git/objects/e7/0e62d322f1c6d40dd4c6f61f0a65d5044e14dc' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/objects/e7/0e62d322f1c6d40dd4c6f61f0a65d5044e14dc' (9,460)
+2026-05-04 05:32:50: Copy Over 'C:/rock/bannister/.git/logs/refs/heads/main' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/logs/refs/heads/main' (1,812)
+2026-05-04 05:32:50: Copy Over 'C:/rock/bannister/.git/refs/heads/main' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/refs/heads/main' (41)
+2026-05-04 05:32:52: Copy Over 'C:/rock/bannister/.git/refs/remotes/origin/main' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/refs/remotes/origin/main' (41)
+2026-05-04 05:32:56: Copy Over 'C:/rock/bannister/.git/logs/refs/remotes/origin/main' -> 'goodrive://www.googleapis.com/:personal:/bannister/.git/logs/refs/remotes/origin/main' (302)
+2026-05-04 05:32:57: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-05-04 05:32:59: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-05-04 05:32:59: Release Snapshot of Volume C:
+2026-05-04 05:35:16: == Sync Complete. Time: 00:04:39, Speed: 143.35 KB/s, OK: 133, Errors: 0

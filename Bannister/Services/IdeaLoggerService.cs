@@ -15,20 +15,23 @@ public class IdeaLoggerService
 {
     private readonly IdeasService _ideas;
     private readonly DatabaseService _db;
+    private readonly AudioLibraryService? _audioLib;
 
     // Persisted state (loaded from DB on first use)
     private List<string> _favoriteCategories = new();
     private Dictionary<string, List<string>> _linkedCategories = new();
+    private Dictionary<string, string> _audioLinkedCategories = new(); // idea category → audio library category
     private Dictionary<string, List<string>> _subcategories = new(); // category → list of subcategory names
     private bool _loaded = false;
 
     // Session-level only
     private string? _lastUsedCategory = null;
 
-    public IdeaLoggerService(IdeasService ideas, DatabaseService db)
+    public IdeaLoggerService(IdeasService ideas, DatabaseService db, AudioLibraryService? audioLib = null)
     {
         _ideas = ideas;
         _db = db;
+        _audioLib = audioLib;
     }
 
     // Legacy constructor for backward compatibility
@@ -73,6 +76,17 @@ public class IdeaLoggerService
                 string cat = row.Key.Substring(8); // Remove "subcats:" prefix
                 if (!string.IsNullOrEmpty(row.Value))
                     _subcategories[cat] = row.Value.Split("║", StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
+
+            // Load audio-linked categories (stored as "audiolink:{category}" → "audio_category_name")
+            var audioLinkRows = await conn.Table<IdeaLoggerSetting>()
+                .Where(s => s.Username == username && s.Key.StartsWith("audiolink:"))
+                .ToListAsync();
+            foreach (var row in audioLinkRows)
+            {
+                string cat = row.Key.Substring(10); // Remove "audiolink:" prefix
+                if (!string.IsNullOrEmpty(row.Value))
+                    _audioLinkedCategories[cat] = row.Value;
             }
         }
         catch (Exception ex)
@@ -193,6 +207,12 @@ public class IdeaLoggerService
         if (_linkedCategories.TryGetValue(category, out var linked) && linked.Count > 0)
         {
             await HandleLinkedCategoriesAsync(page, username, text, rating, linked);
+        }
+
+        // Check for audio library link
+        if (_audioLinkedCategories.TryGetValue(category, out var audioCategory) && _audioLib != null)
+        {
+            await HandleAudioLinkAsync(page, username, text, audioCategory);
         }
 
         // Confirm to user
@@ -657,13 +677,17 @@ public class IdeaLoggerService
             _linkedCategories[category] = new List<string>();
 
         var currentLinks = _linkedCategories[category];
+        string audioLinkStatus = _audioLinkedCategories.ContainsKey(category)
+            ? $"🔊 Audio Link: {_audioLinkedCategories[category]} (tap to remove)"
+            : "🔊 Link to Audio Library";
 
         string choice = await page.DisplayActionSheet(
             $"Links for \"{category}\"",
             "Done",
             null,
             "➕ Add linked category",
-            currentLinks.Count > 0 ? $"🗑️ Remove link ({currentLinks.Count} linked)" : "📋 No links yet");
+            currentLinks.Count > 0 ? $"🗑️ Remove link ({currentLinks.Count} linked)" : "📋 No links yet",
+            audioLinkStatus);
 
         if (choice == null || choice == "Done") return;
 
@@ -699,6 +723,44 @@ public class IdeaLoggerService
                 await page.DisplayAlert("Removed", $"Link from \"{category}\" → \"{toRemove}\" removed.", "OK");
             }
         }
+        else if (choice.StartsWith("🔊"))
+        {
+            if (_audioLinkedCategories.ContainsKey(category))
+            {
+                // Already linked — remove it
+                bool remove = await page.DisplayAlert("Remove Audio Link",
+                    $"Remove audio library link from \"{category}\" → \"{_audioLinkedCategories[category]}\"?",
+                    "Remove", "Cancel");
+                if (remove)
+                {
+                    _audioLinkedCategories.Remove(category);
+                    await SaveAudioLinkAsync(username, category);
+                    await page.DisplayAlert("Removed", "Audio library link removed.", "OK");
+                }
+            }
+            else
+            {
+                // Set up new audio link — ask for the audio category name
+                string? audioCat = await page.DisplayPromptAsync(
+                    "Audio Library Category",
+                    $"When logging to \"{category}\", also create an audio item in which Audio Library category?",
+                    "Link",
+                    "Cancel",
+                    placeholder: category, // default to same name
+                    initialValue: category);
+
+                if (!string.IsNullOrWhiteSpace(audioCat))
+                {
+                    _audioLinkedCategories[category] = audioCat.Trim();
+                    linkBtn.Text = "🔗✓";
+                    await SaveAudioLinkAsync(username, category);
+                    await page.DisplayAlert("Audio Linked",
+                        $"\"{category}\" → Audio Library: \"{audioCat.Trim()}\"\n\n" +
+                        "When you log an idea to this category, you'll be prompted to also add it to the Audio Library.",
+                        "OK");
+                }
+            }
+        }
     }
 
     private static Page? FindParentPage(Element element)
@@ -706,5 +768,112 @@ public class IdeaLoggerService
         Element? el = element;
         while (el != null) { if (el is Page p) return p; el = el.Parent; }
         return Application.Current?.MainPage;
+    }
+
+    private async Task HandleAudioLinkAsync(Page page, string username, string text, string audioCategory)
+    {
+        if (_audioLib == null) return;
+
+        string choice = await page.DisplayActionSheet(
+            $"Also add to Audio Library ({audioCategory})?",
+            "Skip",
+            null,
+            "📂 Yes + Browse audio file",
+            "🎙️ Yes + Generate Audio",
+            "📝 Yes (no audio yet)");
+
+        if (string.IsNullOrEmpty(choice) || choice == "Skip") return;
+
+        // Create the audio item
+        var audioItem = await _audioLib.CreateAsync(username, text, audioCategory);
+
+        if (choice.StartsWith("📂"))
+        {
+            // Browse for audio file
+            try
+            {
+                var result = await FilePicker.PickAsync(new PickOptions
+                {
+                    PickerTitle = "Select audio file",
+                    FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                    {
+                        { DevicePlatform.WinUI, new[] { ".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac" } },
+                        { DevicePlatform.Android, new[] { "audio/*" } },
+                        { DevicePlatform.iOS, new[] { "public.audio" } }
+                    })
+                });
+
+                if (result != null)
+                {
+                    using var stream = await result.OpenReadAsync();
+                    await _audioLib.AttachAudioFromStreamAsync(audioItem, stream, result.FileName);
+                    await page.DisplayAlert("Added", "Audio item created with audio file.", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                await page.DisplayAlert("Error", $"Failed to attach audio: {ex.Message}", "OK");
+            }
+        }
+        else if (choice.StartsWith("🎙️"))
+        {
+            // Generate TTS audio directly
+#if WINDOWS
+            try
+            {
+                var synth = new Windows.Media.SpeechSynthesis.SpeechSynthesizer();
+                var stream = await synth.SynthesizeTextToStreamAsync(text);
+
+                string tempPath = Path.Combine(Path.GetTempPath(), $"tts_temp_{DateTime.Now.Ticks}.wav");
+                using (var fileStream = File.Create(tempPath))
+                {
+                    var inputStream = stream.AsStreamForRead();
+                    await inputStream.CopyToAsync(fileStream);
+                }
+
+                await _audioLib.MarkAudioAsGeneratedAsync(audioItem, tempPath);
+                try { File.Delete(tempPath); } catch { }
+
+                await page.DisplayAlert("Audio Generated", "TTS audio created and attached.", "OK");
+            }
+            catch (Exception ex)
+            {
+                await page.DisplayAlert("TTS Error", $"Failed to generate: {ex.Message}\n\nText copied to clipboard instead.", "OK");
+                await Clipboard.SetTextAsync(text);
+            }
+#else
+            await Clipboard.SetTextAsync(text);
+            await page.DisplayAlert("Text Copied",
+                "Text copied to clipboard.\nTTS generation only available on Windows.\nAttach audio manually in Audio Library.",
+                "OK");
+#endif
+        }
+        // "📝 Yes (no audio yet)" — item already created, nothing more to do
+    }
+
+    private async Task SaveAudioLinkAsync(string username, string category)
+    {
+        try
+        {
+            var conn = await _db.GetConnectionAsync();
+            string key = $"audiolink:{category}";
+
+            if (_audioLinkedCategories.TryGetValue(category, out var audioCategory))
+            {
+                var existing = await conn.Table<IdeaLoggerSetting>()
+                    .FirstOrDefaultAsync(s => s.Username == username && s.Key == key);
+                if (existing != null) { existing.Value = audioCategory; await conn.UpdateAsync(existing); }
+                else await conn.InsertAsync(new IdeaLoggerSetting { Username = username, Key = key, Value = audioCategory });
+            }
+            else
+            {
+                // Remove the link
+                await conn.ExecuteAsync("DELETE FROM idea_logger_settings WHERE Username = ? AND Key = ?", username, key);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[IDEA LOGGER] Failed to save audio link: {ex.Message}");
+        }
     }
 }

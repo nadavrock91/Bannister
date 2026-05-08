@@ -109,14 +109,9 @@ namespace Bannister.Services
             };
             await conn.InsertAsync(activity);
 
-            // Log to ideas with game name as subcategory
+            // Log to ideas
             if (_ideasService != null)
-                try 
-                { 
-                    var idea = await _ideasService.CreateIdeaAsync(username, $"{name} ({category}, +{expGain} EXP)", "activities"); 
-                    idea.Subcategory = game;
-                    await _ideasService.UpdateIdeaAsync(idea);
-                } catch { }
+                try { await _ideasService.CreateIdeaAsync(username, $"{name} ({category}, +{expGain} EXP)", "activities"); } catch { }
 
             return activity;
         }
@@ -127,14 +122,9 @@ namespace Bannister.Services
             activity.IsActive = true;
             await conn.InsertAsync(activity);
 
-            // Log to ideas with game name as subcategory
+            // Log to ideas
             if (_ideasService != null)
-                try 
-                { 
-                    var idea = await _ideasService.CreateIdeaAsync(activity.Username, $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)", "activities"); 
-                    idea.Subcategory = activity.Game;
-                    await _ideasService.UpdateIdeaAsync(idea);
-                } catch { }
+                try { await _ideasService.CreateIdeaAsync(activity.Username, $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)", "activities"); } catch { }
 
             return activity;
         }
@@ -303,6 +293,35 @@ namespace Bannister.Services
             }
 
             return staleActivities.Count;
+        }
+
+        /// <summary>
+        /// Reset staleness for an activity so it won't be flagged again.
+        /// Updates StartDate to now AND inserts a 0-EXP log entry so both
+        /// "never clicked" and "last clicked too long ago" paths are covered.
+        /// </summary>
+        public async Task ResetStalenessAsync(Activity activity)
+        {
+            var conn = await _db.GetConnectionAsync();
+            
+            // Reset StartDate (covers "never clicked" path)
+            activity.StartDate = DateTime.Now;
+            await UpdateActivityAsync(activity);
+
+            // Insert a 0-EXP marker log (covers "last clicked too long ago" path)
+            var markerLog = new ExpLog
+            {
+                Username = activity.Username,
+                Game = activity.Game,
+                ActivityId = activity.Id,
+                ActivityName = $"{activity.Name} [stale reset]",
+                DeltaExp = 0,
+                TotalExp = 0,
+                LevelBefore = 0,
+                LevelAfter = 0,
+                LoggedAt = DateTime.UtcNow
+            };
+            await conn.InsertAsync(markerLog);
         }
 
         public async Task<List<Activity>> GetActivitiesWithoutImagesAsync(string username, string game)

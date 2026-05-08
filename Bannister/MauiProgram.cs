@@ -58,8 +58,15 @@ public static class MauiProgram
         builder.Services.AddSingleton<TaskService>();
         builder.Services.AddSingleton<WeeklyChallengeService>();
         builder.Services.AddSingleton<IdeasService>();
-        builder.Services.AddSingleton<IdeaLoggerService>();
+        builder.Services.AddSingleton<IdeaLoggerService>(sp =>
+            new IdeaLoggerService(
+                sp.GetRequiredService<IdeasService>(),
+                sp.GetRequiredService<DatabaseService>(),
+                sp.GetRequiredService<AudioLibraryService>()));
         builder.Services.AddSingleton<SubActivityService>();
+        builder.Services.AddSingleton<DailyCheckService>();
+        builder.Services.AddSingleton<AudioLibraryService>();
+        builder.Services.AddSingleton<ActivityGroupingService>();
 
 
         // Conversation Practice Module

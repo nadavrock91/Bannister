@@ -42,7 +42,9 @@ public partial class ActivityGamePage
             // Apply EXP multiple times if multiplier > 1 (just the EXP logging)
             for (int i = 0; i < effectiveMultiplier; i++)
             {
-                await _exp.ApplyExpAsync(_auth.CurrentUsername, _game!.GameId, activityVM.Name, baseExp, activityVM.Id);
+                // In grouping mode, use the activity's own game for EXP
+                string expGameId = _isGroupingMode ? activityVM.Activity.Game : _game!.GameId;
+                await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, activityVM.Name, baseExp, activityVM.Id);
             }
 
             // Process completion ONCE per activity using shared logic
@@ -289,51 +291,55 @@ public partial class ActivityGamePage
     {
         var activity = activityVM.Activity;
         
-        string action = await DisplayActionSheet(
-            "Update Streak",
+        // Ask for Habit Streak first
+        string? habitResult = await DisplayPromptAsync(
+            "Habit Streak",
+            $"For 7-day graduation.\nCurrent: {activity.HabitStreak}",
+            "Next",
             "Cancel",
-            null,
-            $"Habit Streak: {activity.HabitStreak}",
-            $"Display Day Streak: {activity.DisplayDayStreak}"
-        );
+            initialValue: activity.HabitStreak.ToString(),
+            keyboard: Keyboard.Numeric);
 
-        if (string.IsNullOrEmpty(action) || action == "Cancel") return;
+        if (string.IsNullOrEmpty(habitResult)) return;
 
-        if (action.StartsWith("Habit Streak"))
+        // Then ask for Display Day Streak
+        string? displayResult = await DisplayPromptAsync(
+            "Display Day Streak",
+            $"Scheduled days bonus.\nCurrent: {activity.DisplayDayStreak}",
+            "Save Both",
+            "Cancel",
+            initialValue: activity.DisplayDayStreak.ToString(),
+            keyboard: Keyboard.Numeric);
+
+        if (string.IsNullOrEmpty(displayResult)) return;
+
+        // Apply both
+        bool changed = false;
+
+        if (int.TryParse(habitResult, out int newHabitStreak) && newHabitStreak >= 0)
         {
-            string result = await DisplayPromptAsync(
-                "Habit Streak",
-                $"For 7-day graduation.\nCurrent: {activity.HabitStreak}",
-                initialValue: activity.HabitStreak.ToString(),
-                keyboard: Keyboard.Numeric);
-
-            if (!string.IsNullOrEmpty(result) && int.TryParse(result, out int newStreak) && newStreak >= 0)
-            {
-                activity.HabitStreak = newStreak;
-                await _activities.UpdateActivityAsync(activity);
-                activityVM.UpdateActivity(activity);
-                await DisplayAlert("Updated", $"Habit streak: {newStreak}", "OK");
-            }
+            activity.HabitStreak = newHabitStreak;
+            changed = true;
         }
-        else if (action.StartsWith("Display Day Streak"))
-        {
-            string result = await DisplayPromptAsync(
-                "Display Day Streak",
-                $"Scheduled days bonus.\nCurrent: {activity.DisplayDayStreak}",
-                initialValue: activity.DisplayDayStreak.ToString(),
-                keyboard: Keyboard.Numeric);
 
-            if (!string.IsNullOrEmpty(result) && int.TryParse(result, out int newStreak) && newStreak >= 0)
+        if (int.TryParse(displayResult, out int newDisplayStreak) && newDisplayStreak >= 0)
+        {
+            activity.DisplayDayStreak = newDisplayStreak;
+            if (newDisplayStreak > 0)
             {
-                activity.DisplayDayStreak = newStreak;
-                if (newStreak > 0)
-                {
-                    activity.LastDisplayDayUsed = DateTime.UtcNow.Date;
-                }
-                await _activities.UpdateActivityAsync(activity);
-                activityVM.DisplayDayStreak = newStreak;
-                await DisplayAlert("Updated", $"Display day streak: {newStreak}", "OK");
+                activity.LastDisplayDayUsed = DateTime.UtcNow.Date;
             }
+            activityVM.DisplayDayStreak = newDisplayStreak;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await _activities.UpdateActivityAsync(activity);
+            activityVM.UpdateActivity(activity);
+            await DisplayAlert("Updated",
+                $"Habit streak: {activity.HabitStreak}\nDisplay day streak: {activity.DisplayDayStreak}",
+                "OK");
         }
 
         await RefreshActivitiesAsync();
@@ -458,42 +464,72 @@ public partial class ActivityGamePage
 
     private async void OnOptionsClicked(object? sender, EventArgs e)
     {
-        var result = await DisplayActionSheet(
-            "⚙️ Options",
-            "Cancel",
-            null,
-            "📊 View Activity Log",
-            "🔄 Refresh",
-            "✏️ Manual EXP Adjustment",
-            "📁 Change Category (All on Page)",
-            "💡 Set All as Possible (All on Page)",
-            "📤 Export Data");
+        var popup = new OptionsPopupPage();
+        await Navigation.PushModalAsync(popup);
+        
+        string? result = await popup.WaitForResultAsync();
+        
+        if (string.IsNullOrEmpty(result)) return;
 
-        if (result == null || result == "Cancel") return;
-
-        if (result == "📊 View Activity Log")
+        if (result == "View Activity Log")
         {
             OnViewLogClicked(sender, e);
         }
-        else if (result == "🔄 Refresh")
+        else if (result == "Refresh")
         {
             await RefreshActivitiesAsync();
         }
-        else if (result == "✏️ Manual EXP Adjustment")
+        else if (result == "Manual EXP Adjustment")
         {
             await ManualExpAdjustmentAsync();
         }
-        else if (result == "📁 Change Category (All on Page)")
+        else if (result == "Change Category (All on Page)")
         {
             await BulkChangeCategoryAsync();
         }
-        else if (result == "💡 Set All as Possible (All on Page)")
+        else if (result == "Set All as Possible (All on Page)")
         {
             await BulkSetAsPossibleAsync();
         }
-        else if (result == "📤 Export Data")
+        else if (result == "Export Data")
         {
             await DisplayAlert("Export", "Export functionality coming soon.", "OK");
+        }
+        else if (result == "Run SQL (Dev)")
+        {
+            await RunDevSqlAsync();
+        }
+    }
+
+    private async Task RunDevSqlAsync()
+    {
+        var inputPage = new SqlInputPage();
+        await Navigation.PushModalAsync(inputPage);
+        
+        string? sql = await inputPage.WaitForResultAsync();
+
+        if (string.IsNullOrWhiteSpace(sql)) return;
+
+        try
+        {
+            var conn = await _db.GetConnectionAsync();
+            string trimmed = sql.Trim();
+
+            if (trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+            {
+                var queryResult = await conn.ExecuteScalarAsync<string>(trimmed);
+                await DisplayAlert("Result", queryResult?.ToString() ?? "(null)", "OK");
+            }
+            else
+            {
+                int rows = await conn.ExecuteAsync(trimmed);
+                await DisplayAlert("Success", $"Affected {rows} row(s).", "OK");
+                await RefreshActivitiesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("SQL Error", ex.Message, "OK");
         }
     }
 

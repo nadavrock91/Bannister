@@ -13,6 +13,40 @@ public partial class ActivityGamePage
     {
         try
         {
+            // GROUPING MODE: Load activities by grouping instead of game
+            if (_isGroupingMode && _groupingId > 0 && _groupingService != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[LOAD GAME] Grouping mode, GroupingId={_groupingId}");
+
+                _grouping = await _groupingService.GetGroupingAsync(_groupingId);
+                if (_grouping == null)
+                {
+                    await DisplayAlert("Error", "Grouping not found", "OK");
+                    await Shell.Current.GoToAsync("..");
+                    return;
+                }
+
+                Title = _grouping.Name;
+                lblGameTitle.Text = _grouping.Name;
+
+                // In grouping mode we don't have a single game, so skip game-specific checks
+                // (auto-award, escalation, dragon, etc.)
+                // We still need a dummy _game for some code paths
+                _game = new Game { GameId = $"grouping_{_groupingId}", DisplayName = _grouping.Name, Username = _auth.CurrentUsername };
+                _gameId = _game.GameId;
+
+                // In grouping mode, always show all activities (bypass display day filtering)
+                _showAllActivities = true;
+
+                await LoadCategoriesAsync();
+                _currentMetaFilter = "All Activities";
+                metaFilterPicker.SelectedIndex = 0;
+
+                await RefreshActivitiesAsync();
+                return;
+            }
+
+            // NORMAL GAME MODE
             System.Diagnostics.Debug.WriteLine($"[LOAD GAME] Starting LoadGameAsync, GameId='{GameId}'");
             
             if (string.IsNullOrEmpty(GameId))
@@ -89,7 +123,7 @@ public partial class ActivityGamePage
         if (_game == null) return;
 
         string lastCheckedKey = $"ExpiredActivitiesCheck_{_auth.CurrentUsername}_{_game.GameId}";
-        string lastCheckedDate = Preferences.Get(lastCheckedKey, "");
+        string lastCheckedDate = await _dailyChecks.GetAsync(lastCheckedKey);
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
         System.Diagnostics.Debug.WriteLine($"[EXPIRED CHECK] Key='{lastCheckedKey}'");
@@ -101,7 +135,7 @@ public partial class ActivityGamePage
         
         System.Diagnostics.Debug.WriteLine($"[EXPIRED CHECK] Moved {movedCount} activities");
         
-        Preferences.Set(lastCheckedKey, today);
+        await _dailyChecks.SetAsync(lastCheckedKey, today);
         
         if (movedCount > 0 && lastCheckedDate != today)
         {
@@ -121,7 +155,7 @@ public partial class ActivityGamePage
         if (_game == null) return;
 
         string lastCheckedKey = $"StaleActivitiesCheck_{_auth.CurrentUsername}_{_game.GameId}";
-        string lastCheckedDate = Preferences.Get(lastCheckedKey, "");
+        string lastCheckedDate = await _dailyChecks.GetAsync(lastCheckedKey);
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
         // Only check once per day
@@ -140,7 +174,7 @@ public partial class ActivityGamePage
             .Where(a => a.Category != "Stale" && a.Category != "Expired")
             .ToList();
 
-        Preferences.Set(lastCheckedKey, today);
+        await _dailyChecks.SetAsync(lastCheckedKey, today);
 
         if (staleActivities.Count > 0)
         {
@@ -186,11 +220,20 @@ public partial class ActivityGamePage
         }
     }
 
+    private async Task<List<Models.Activity>> GetCurrentActivitiesAsync()
+    {
+        if (_isGroupingMode && _groupingService != null)
+        {
+            return await _groupingService.GetActivitiesInGroupingAsync(_groupingId);
+        }
+        return await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game!.GameId);
+    }
+
     private async Task LoadCategoriesAsync()
     {
         if (_game == null) return;
 
-        var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
+        var allActivities = await GetCurrentActivitiesAsync();
 
         // Group categories case-insensitively, keeping the first occurrence's casing
         _categories = allActivities
@@ -268,7 +311,7 @@ public partial class ActivityGamePage
     {
         if (_game == null) return;
         
-        allActivities ??= await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
+        allActivities ??= await GetCurrentActivitiesAsync();
         
         if (_showAllActivities)
         {
@@ -355,7 +398,7 @@ public partial class ActivityGamePage
             .Where(a => a.TemporaryMultiplier > 1)
             .ToDictionary(a => a.Id, a => a.TemporaryMultiplier);
 
-        var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
+        var allActivities = await GetCurrentActivitiesAsync();
 
         _allActivities = allActivities
             .Select(a => new ActivityGameViewModel(a))
@@ -375,16 +418,32 @@ public partial class ActivityGamePage
         }
 
         // Load last used dates
-        var expLogs = await _db.GetExpLogsForGameAsync(_auth.CurrentUsername, _game.GameId);
-
-        foreach (var activityVM in _allActivities)
+        if (_isGroupingMode)
         {
-            var lastLog = expLogs
-                .Where(log => log.ActivityId == activityVM.Id)
-                .OrderByDescending(log => log.LoggedAt)
-                .FirstOrDefault();
+            // In grouping mode, load exp logs for each activity's own game
+            foreach (var activityVM in _allActivities)
+            {
+                var logs = await _db.GetExpLogsForGameAsync(_auth.CurrentUsername, activityVM.Activity.Game);
+                var lastLog = logs
+                    .Where(log => log.ActivityId == activityVM.Id)
+                    .OrderByDescending(log => log.LoggedAt)
+                    .FirstOrDefault();
+                activityVM.LastUsedDate = lastLog?.LoggedAt;
+            }
+        }
+        else
+        {
+            var expLogs = await _db.GetExpLogsForGameAsync(_auth.CurrentUsername, _game.GameId);
 
-            activityVM.LastUsedDate = lastLog?.LoggedAt;
+            foreach (var activityVM in _allActivities)
+            {
+                var lastLog = expLogs
+                    .Where(log => log.ActivityId == activityVM.Id)
+                    .OrderByDescending(log => log.LoggedAt)
+                    .FirstOrDefault();
+
+                activityVM.LastUsedDate = lastLog?.LoggedAt;
+            }
         }
 
         // Load streak info for streak-tracked activities
@@ -416,15 +475,27 @@ public partial class ActivityGamePage
         }
         else
         {
-            var visibleActivities = await _activities.GetVisibleActivitiesAsync(
-                _auth.CurrentUsername,
-                _game.GameId,
-                _currentLevel,
-                _showAllActivities);
+            if (_isGroupingMode)
+            {
+                // In grouping mode, show all activities from the grouping
+                // (they come from different games, so GetVisibleActivitiesAsync won't work)
+                filtered = _allActivities
+                    .Where(vm => vm.Activity.IsActive)
+                    .Where(vm => vm.Activity.Category != "Expired" && vm.Activity.Category != "Stale")
+                    .ToList();
+            }
+            else
+            {
+                var visibleActivities = await _activities.GetVisibleActivitiesAsync(
+                    _auth.CurrentUsername,
+                    _game.GameId,
+                    _currentLevel,
+                    _showAllActivities);
 
-            filtered = visibleActivities
-                .Select(a => _allActivities.First(vm => vm.Id == a.Id))
-                .ToList();
+                filtered = visibleActivities
+                    .Select(a => _allActivities.First(vm => vm.Id == a.Id))
+                    .ToList();
+            }
         }
 
         // Set current level on all VMs for percent-based EXP calculation
@@ -553,13 +624,13 @@ public partial class ActivityGamePage
             return;
 
         string lastShownKey = $"MissingImagesPopup_LastShown_{_auth.CurrentUsername}";
-        string lastShownDate = Preferences.Get(lastShownKey, "");
+        string lastShownDate = await _dailyChecks.GetAsync(lastShownKey);
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
         if (lastShownDate == today)
             return;
 
-        var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
+        var allActivities = await GetCurrentActivitiesAsync();
         
         // Exclude Possible, Expired, and Stale activities from missing images check
         var missingImages = allActivities
@@ -613,13 +684,13 @@ public partial class ActivityGamePage
             
             if (stillMissing.Count > 0)
             {
-                Preferences.Set(lastShownKey, today);
+                await _dailyChecks.SetAsync(lastShownKey, today);
                 var popup = new ActivitiesMissingImagesPage(_auth, _activities, _game.GameId);
                 await Navigation.PushModalAsync(popup);
             }
             else
             {
-                Preferences.Set(lastShownKey, today);
+                await _dailyChecks.SetAsync(lastShownKey, today);
             }
         }
     }
@@ -787,13 +858,13 @@ public partial class ActivityGamePage
         if (_game == null) return;
 
         string lastCheckedKey = $"HabitTargetCheck_{_auth.CurrentUsername}_{_game.GameId}";
-        string lastCheckedDate = Preferences.Get(lastCheckedKey, "");
+        string lastCheckedDate = await _dailyChecks.GetAsync(lastCheckedKey);
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
         // Only check once per day per game
         if (lastCheckedDate == today) return;
 
-        var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
+        var allActivities = await GetCurrentActivitiesAsync();
         
         // Find activities with expired habit targets
         var expiredTargets = allActivities
@@ -829,7 +900,7 @@ public partial class ActivityGamePage
             }
         }
 
-        Preferences.Set(lastCheckedKey, today);
+        await _dailyChecks.SetAsync(lastCheckedKey, today);
     }
 
     /// <summary>
@@ -842,14 +913,14 @@ public partial class ActivityGamePage
         if (_game == null) return;
 
         string lastCheckedKey = $"BrokenStreakCheck_{_auth.CurrentUsername}_{_game.GameId}";
-        string lastCheckedDate = Preferences.Get(lastCheckedKey, "");
+        string lastCheckedDate = await _dailyChecks.GetAsync(lastCheckedKey);
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
         // Only check once per day per game
         if (lastCheckedDate == today) return;
 
         // Set the preference IMMEDIATELY to prevent race conditions / double execution
-        Preferences.Set(lastCheckedKey, today);
+        await _dailyChecks.SetAsync(lastCheckedKey, today);
 
         var brokenStreaks = await _activities.CheckAndBreakMissedStreaksAsync(_auth.CurrentUsername, _game.GameId);
 

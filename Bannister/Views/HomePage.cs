@@ -26,6 +26,7 @@ public class HomePage : ContentPage
     private readonly IdeaLoggerService _ideaLogger;
     private readonly ConversationService _conversationService;
     private readonly SubActivityService _subActivityService;
+    private readonly AudioLibraryService _audioLibService;
     private bool _introChecked = false;
 
     // UI Controls
@@ -47,6 +48,7 @@ public class HomePage : ContentPage
     private Button _btnCountdowns;
     private Button _btnCalendar;
     private Button _btnSettings;
+    private Button _btnAudioLibrary;
     private Grid _loadingOverlay;
 
     public HomePage(AuthService auth, GameService games, DragonService dragons,
@@ -54,7 +56,7 @@ public class HomePage : ContentPage
         CountdownService countdowns, LearningService learning, ActivityService activities, PromptService prompts,
         StoryProductionService storyProduction, TaskService taskService, WeeklyChallengeService challengeService,
         IdeasService ideas, IdeaLoggerService ideaLogger, ConversationService conversationService,
-        SubActivityService subActivityService)
+        SubActivityService subActivityService, AudioLibraryService audioLibService)
     {
         _auth = auth;
         _games = games;
@@ -75,6 +77,7 @@ public class HomePage : ContentPage
         _ideaLogger = ideaLogger;
         _conversationService = conversationService;
         _subActivityService = subActivityService;
+        _audioLibService = audioLibService;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -180,6 +183,10 @@ public class HomePage : ContentPage
         _btnTasks = CreateButton("📋 Tasks", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
         _btnTasks.Clicked += OnTasksClicked;
         navButtons.Add(("Tasks", _btnTasks));
+
+        _btnAudioLibrary = CreateButton("🔊 Audio Library", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
+        _btnAudioLibrary.Clicked += OnAudioLibraryClicked;
+        navButtons.Add(("Audio Library", _btnAudioLibrary));
 
         // Sort alphabetically and add to layout
         foreach (var (_, btn) in navButtons.OrderBy(b => b.sortKey, StringComparer.OrdinalIgnoreCase))
@@ -703,6 +710,12 @@ public class HomePage : ContentPage
     private async void OnSettingsClicked(object? sender, EventArgs e)
     {
         var page = new SettingsPage(_auth, _db, _backup);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnAudioLibraryClicked(object? sender, EventArgs e)
+    {
+        var page = new AudioLibraryPage(_auth, _audioLibService);
         await Navigation.PushAsync(page);
     }
 

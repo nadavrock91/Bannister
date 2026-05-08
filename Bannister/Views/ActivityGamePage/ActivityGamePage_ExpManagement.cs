@@ -119,7 +119,7 @@ public partial class ActivityGamePage
         if (_game == null) return;
 
         string autoAwardKey = $"AutoAward_LastCheck_{_auth.CurrentUsername}_{_game.GameId}";
-        string lastCheckDate = Preferences.Get(autoAwardKey, "");
+        string lastCheckDate = await _dailyChecks.GetAsync(autoAwardKey);
         string today = DateTime.Now.ToString("yyyy-MM-dd");
 
         // Check if already processed today
@@ -130,7 +130,7 @@ public partial class ActivityGamePage
         }
         
         // Set the preference IMMEDIATELY to prevent any possibility of double execution
-        Preferences.Set(autoAwardKey, today);
+        await _dailyChecks.SetAsync(autoAwardKey, today);
         System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Set preference to {today}");
 
         var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);

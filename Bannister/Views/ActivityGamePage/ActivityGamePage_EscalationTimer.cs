@@ -590,13 +590,13 @@ public partial class ActivityGamePage
         {
             // Check if we've already shown this dialog today
             string shownKey = $"EscalationExpired_Shown_{_auth.CurrentUsername}_{_game.GameId}";
-            string lastShown = Preferences.Get(shownKey, "");
+            string lastShown = await _dailyChecks.GetAsync(shownKey);
             string today = DateTime.UtcNow.ToString("yyyy-MM-dd");
 
             if (lastShown == today)
                 return; // Already handled today
 
-            Preferences.Set(shownKey, today);
+            await _dailyChecks.SetAsync(shownKey, today);
 
             // Show accountability dialog
             bool acceptedLoss = await DisplayAlert(

@@ -12,6 +12,7 @@ namespace Bannister.Views;
 /// Main game page for displaying and managing activities in a gamified interface
 /// </summary>
 [QueryProperty(nameof(GameId), "gameId")]
+[QueryProperty(nameof(GroupingIdStr), "groupingId")]
 public partial class ActivityGamePage : ContentPage
 {
     // Services
@@ -23,9 +24,14 @@ public partial class ActivityGamePage : ContentPage
     private readonly AttemptService _attempts;
     private readonly DatabaseService _db;
     private readonly StreakService _streaks;
+    private readonly DailyCheckService _dailyChecks;
+    private readonly ActivityGroupingService? _groupingService;
 
     // State
     private string _gameId = "";
+    private int _groupingId = 0;
+    private ActivityGrouping? _grouping;
+    private bool _isGroupingMode = false;
     private Game? _game;
     private int _currentLevel = 1;
     private List<ActivityGameViewModel> _allActivities = new();
@@ -75,8 +81,24 @@ public partial class ActivityGamePage : ContentPage
         }
     }
 
+    public string GroupingIdStr
+    {
+        get => _groupingId.ToString();
+        set
+        {
+            if (int.TryParse(value, out int id) && id > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($">>> GroupingId SETTER called with value: '{value}'");
+                _groupingId = id;
+                _isGroupingMode = true;
+            }
+            OnPropertyChanged();
+        }
+    }
+
     public ActivityGamePage(AuthService auth, GameService games, ActivityService activities,
-        ExpService exp, DragonService dragons, AttemptService attempts, DatabaseService db, StreakService streaks)
+        ExpService exp, DragonService dragons, AttemptService attempts, DatabaseService db, StreakService streaks,
+        DailyCheckService dailyChecks, ActivityGroupingService groupingService)
     {
         _auth = auth;
         _games = games;
@@ -86,6 +108,8 @@ public partial class ActivityGamePage : ContentPage
         _attempts = attempts;
         _db = db;
         _streaks = streaks;
+        _dailyChecks = dailyChecks;
+        _groupingService = groupingService;
 
         Title = "Game";
         BackgroundColor = Color.FromArgb("#F5F5F5");

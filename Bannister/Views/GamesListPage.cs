@@ -25,18 +25,22 @@ public class GamesListPage : ContentPage
     private readonly GameService _games;
     private readonly ExpService _exp;
     private readonly DatabaseService _db;
+    private readonly ActivityGroupingService _groupingService;
     private bool _isNavigating = false;
     
     private FlexLayout _gamesGrid;
+    private VerticalStackLayout _groupingsContainer;
     private Grid _loadingOverlay;
     private Button _restoreBtn;
 
-    public GamesListPage(AuthService auth, GameService games, ExpService exp, DatabaseService db)
+    public GamesListPage(AuthService auth, GameService games, ExpService exp, DatabaseService db,
+        ActivityGroupingService groupingService)
     {
         _auth = auth;
         _games = games;
         _exp = exp;
         _db = db;
+        _groupingService = groupingService;
         
         Title = "Games";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -95,6 +99,51 @@ public class GamesListPage : ContentPage
         };
         btnAddGame.Clicked += OnAddGameClicked;
         mainStack.Children.Add(btnAddGame);
+
+        // ===== GROUPINGS SECTION =====
+        mainStack.Children.Add(new BoxView
+        {
+            HeightRequest = 1,
+            Color = Color.FromArgb("#8B8FFF"),
+            Margin = new Thickness(0, 20, 0, 8)
+        });
+
+        var groupingsHeader = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
+        };
+
+        groupingsHeader.Children.Add(new Label
+        {
+            Text = "📂 Groupings",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        var btnAddGrouping = new Button
+        {
+            Text = "+ New",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#283593"),
+            CornerRadius = 6,
+            HeightRequest = 34,
+            FontSize = 13,
+            Padding = new Thickness(12, 0)
+        };
+        btnAddGrouping.Clicked += OnAddGroupingClicked;
+        Grid.SetColumn(btnAddGrouping, 1);
+        groupingsHeader.Children.Add(btnAddGrouping);
+
+        mainStack.Children.Add(groupingsHeader);
+
+        _groupingsContainer = new VerticalStackLayout { Spacing = 8 };
+        mainStack.Children.Add(_groupingsContainer);
 
         // Restore Game button
         _restoreBtn = new Button
@@ -158,6 +207,7 @@ public class GamesListPage : ContentPage
         _loadingOverlay.IsVisible = false;
         
         await LoadGamesAsync();
+        await LoadGroupingsAsync();
     }
 
     private async Task LoadGamesAsync()
@@ -380,6 +430,154 @@ public class GamesListPage : ContentPage
         {
             await _games.CreateGameAsync(_auth.CurrentUsername, name.Trim());
             await LoadGamesAsync();
+        }
+    }
+
+    private async Task LoadGroupingsAsync()
+    {
+        _groupingsContainer.Children.Clear();
+
+        var groupings = await _groupingService.GetGroupingsAsync(_auth.CurrentUsername);
+
+        if (groupings.Count == 0)
+        {
+            _groupingsContainer.Children.Add(new Label
+            {
+                Text = "No groupings yet. Create one to view activities across games.",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#C0C0FF"),
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+            return;
+        }
+
+        foreach (var grouping in groupings)
+        {
+            _groupingsContainer.Children.Add(BuildGroupingCard(grouping));
+        }
+    }
+
+    private Frame BuildGroupingCard(ActivityGrouping grouping)
+    {
+        var frame = new Frame
+        {
+            Padding = new Thickness(16, 12),
+            CornerRadius = 10,
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            BorderColor = Colors.Transparent,
+            HasShadow = true
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 8
+        };
+
+        var nameLabel = new Label
+        {
+            Text = $"{grouping.Name} ({grouping.ActivityCount})",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#283593"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        Grid.SetColumn(nameLabel, 0);
+        grid.Children.Add(nameLabel);
+
+        // 3-dot menu
+        var btnMenu = new Button
+        {
+            Text = "⋮",
+            FontSize = 20,
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#666"),
+            WidthRequest = 36,
+            HeightRequest = 36,
+            Padding = 0,
+            VerticalOptions = LayoutOptions.Center
+        };
+        int capturedId = grouping.Id;
+        string capturedName = grouping.Name;
+        btnMenu.Clicked += async (s, e) => await ShowGroupingMenuAsync(capturedId, capturedName);
+        Grid.SetColumn(btnMenu, 2);
+        grid.Children.Add(btnMenu);
+
+        // Tap to open
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (s, e) =>
+        {
+            if (_isNavigating) return;
+            _isNavigating = true;
+            _loadingOverlay.IsVisible = true;
+            await Shell.Current.GoToAsync($"activitygrid?groupingId={capturedId}");
+        };
+        frame.GestureRecognizers.Add(tap);
+
+        frame.Content = grid;
+        return frame;
+    }
+
+    private async Task ShowGroupingMenuAsync(int groupingId, string name)
+    {
+        string action = await DisplayActionSheet(
+            name,
+            "Cancel",
+            null,
+            "✏️ Rename",
+            "🗑️ Delete");
+
+        if (string.IsNullOrEmpty(action) || action == "Cancel") return;
+
+        if (action == "✏️ Rename")
+        {
+            string? newName = await DisplayPromptAsync(
+                "Rename Grouping",
+                "Enter new name:",
+                "Rename",
+                "Cancel",
+                initialValue: name,
+                maxLength: 100);
+
+            if (!string.IsNullOrWhiteSpace(newName))
+            {
+                await _groupingService.RenameGroupingAsync(groupingId, newName);
+                await LoadGroupingsAsync();
+            }
+        }
+        else if (action == "🗑️ Delete")
+        {
+            bool confirm = await DisplayAlert("Delete Grouping",
+                $"Delete '{name}'?\n\nThis won't delete the activities, just the grouping.",
+                "Delete", "Cancel");
+
+            if (confirm)
+            {
+                await _groupingService.DeleteGroupingAsync(groupingId);
+                await LoadGroupingsAsync();
+            }
+        }
+    }
+
+    private async void OnAddGroupingClicked(object? sender, EventArgs e)
+    {
+        string? name = await DisplayPromptAsync(
+            "New Grouping",
+            "Enter a name:",
+            "Create",
+            "Cancel",
+            placeholder: "e.g., Morning Routine, Most Important",
+            maxLength: 100);
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            await _groupingService.CreateGroupingAsync(_auth.CurrentUsername, name);
+            await LoadGroupingsAsync();
         }
     }
 }

@@ -11,27 +11,26 @@ namespace Bannister.Views;
 /// UPDATE THIS FILE when adding new functionality that should apply to all activity completions.
 /// </summary>
 public partial class ActivityGamePage
-{
-    /// <summary>
-    /// Full activity completion including EXP application.
-    /// Used by streak cards which do everything in a single click.
-    /// 
-    /// This is the SINGLE SOURCE OF TRUTH for activity completion logic.
-    /// </summary>
-    /// <param name="activity">The activity being completed</param>
-    /// <param name="expAmount">Base EXP amount (already multiplied if needed)</param>
-    /// <param name="logDescription">Description for the EXP log entry</param>
-    /// <returns>Total EXP awarded including any bonuses, and bonus details string</returns>
+{/// <summary>
+ /// Full activity completion including EXP application.
+ /// Used by streak cards which do everything in a single click.
+ /// 
+ /// This is the SINGLE SOURCE OF TRUTH for activity completion logic.
+ /// </summary>
+ /// <param name="activity">The activity being completed</param>
+ /// <param name="expAmount">Base EXP amount (already multiplied if needed)</param>
+ /// <param name="logDescription">Description for the EXP log entry</param>
+ /// <returns>Total EXP awarded including any bonuses, and bonus details string</returns>
     private async Task<(int totalExp, string bonusDetails)> ProcessActivityCompletionAsync(
-        Activity activity, 
-        int expAmount, 
+        Activity activity,
+        int expAmount,
         string logDescription)
     {
         // 1. Apply base EXP
         await _exp.ApplyExpAsync(
-            _auth.CurrentUsername, 
-            _game!.GameId, 
-            logDescription, 
+            _auth.CurrentUsername,
+            _game!.GameId,
+            logDescription,
             expAmount,
             activity.Id);
 
@@ -61,9 +60,9 @@ public partial class ActivityGamePage
         if (activity.IsStreakTracked)
         {
             await _streaks.RecordActivityUsageAsync(
-                _auth.CurrentUsername, 
-                _game!.GameId, 
-                activity.Id, 
+                _auth.CurrentUsername,
+                _game!.GameId,
+                activity.Id,
                 activity.Name);
         }
 
@@ -90,10 +89,10 @@ public partial class ActivityGamePage
             if (streakBonus > 0)
             {
                 await _exp.ApplyExpAsync(
-                    _auth.CurrentUsername, 
-                    _game!.GameId, 
-                    $"{activity.Name} (Streak Bonus)", 
-                    streakBonus, 
+                    _auth.CurrentUsername,
+                    _game!.GameId,
+                    $"{activity.Name} (Streak Bonus)",
+                    streakBonus,
                     activity.Id);
                 bonusExp = streakBonus;
                 bonusDetails.Add($"🔥 {activity.Name} streak bonus ({activity.DisplayDayStreak} days): +{streakBonus}");
@@ -112,8 +111,8 @@ public partial class ActivityGamePage
     /// <param name="attemptVM">Optional: the streak attempt VM if applicable</param>
     private async Task ShowUnifiedContextMenu(Activity activity, bool isStreakAttempt = false, StreakAttemptViewModel? attemptVM = null)
     {
-        string notesOption = !string.IsNullOrEmpty(activity.Notes) 
-            ? "📝 Edit Notes" 
+        string notesOption = !string.IsNullOrEmpty(activity.Notes)
+            ? "📝 Edit Notes"
             : "📝 Add Notes";
 
         var options = new List<string>
@@ -146,10 +145,11 @@ public partial class ActivityGamePage
         }
 
         options.Add("📦 Move to Another Game");
+        options.Add("📂 Assign to Grouping");
         options.Add("⏸️ Disable Activity");
         options.Add("🗑️ Remove Activity");
 
-        string title = isStreakAttempt && attemptVM != null 
+        string title = isStreakAttempt && attemptVM != null
             ? $"{activity.Name} - {attemptVM.Name}"
             : activity.Name;
 
@@ -238,6 +238,10 @@ public partial class ActivityGamePage
         {
             await HandleMoveToAnotherGame(activity);
         }
+        else if (action == "📂 Assign to Grouping")
+        {
+            await HandleAssignToGrouping(activity);
+        }
         else if (action == "⏸️ Disable Activity")
         {
             bool confirm = await DisplayAlert(
@@ -245,7 +249,7 @@ public partial class ActivityGamePage
                 $"Disable '{activity.Name}'?\n\nThis will hide the activity (set IsActive = false). You can restore it later from Manage Activities.",
                 "Disable",
                 "Cancel");
-            
+
             if (confirm)
             {
                 await _activities.BlankActivityAsync(activity.Id);
@@ -260,7 +264,7 @@ public partial class ActivityGamePage
                 $"⚠️ Remove '{activity.Name}' completely?\n\nThis will reset ALL data for this activity. This cannot be undone!",
                 "Remove",
                 "Cancel");
-            
+
             if (confirm)
             {
                 bool doubleConfirm = await DisplayAlert(
@@ -268,7 +272,7 @@ public partial class ActivityGamePage
                     $"Really remove '{activity.Name}'? All data will be lost.",
                     "Yes, Remove It",
                     "No, Keep It");
-                
+
                 if (doubleConfirm)
                 {
                     await _activities.ResetActivityToDefaultsAsync(activity.Id);
@@ -285,7 +289,7 @@ public partial class ActivityGamePage
     {
         string result = await DisplayPromptAsync(
             "Applied How Many Times?",
-            isStreakAttempt 
+            isStreakAttempt
                 ? $"Enter number of times '{activity.Name}' was done.\nEach will be processed separately."
                 : $"Enter number of times '{activity.Name}' was done today.\nThis is a one-time multiplier (won't save to activity).",
             "OK",
@@ -306,31 +310,31 @@ public partial class ActivityGamePage
                     {
                         int expAmount = attemptVM.ExpGain * activity.Multiplier;
                         var (earnedExp, _) = await ProcessActivityCompletionAsync(
-                            activity, 
-                            expAmount, 
+                            activity,
+                            expAmount,
                             $"{activity.Name} (Batch {i + 1}/{times})");
                         totalExp += earnedExp;
                     }
-                    
+
                     await RefreshExpAsync();
                     await RefreshActivitiesAsync();
-                    
-                    await DisplayAlert("Applied!", 
-                        $"Recorded {times} times.\n+{totalExp} EXP total.", 
+
+                    await DisplayAlert("Applied!",
+                        $"Recorded {times} times.\n+{totalExp} EXP total.",
                         "OK");
                 }
                 else if (activityVM != null)
                 {
                     // For normal activities, set temporary multiplier
                     activityVM.TemporaryMultiplier = times;
-                    
+
                     if (!activityVM.IsSelected)
                     {
                         activityVM.IsSelected = true;
                     }
-                    
-                    await DisplayAlert("Temporary Multiplier Set", 
-                        $"'{activity.Name}' will be applied {times} times for the next calculation only.\n\nThe activity has been selected for you.", 
+
+                    await DisplayAlert("Temporary Multiplier Set",
+                        $"'{activity.Name}' will be applied {times} times for the next calculation only.\n\nThe activity has been selected for you.",
                         "OK");
                 }
             }
@@ -454,19 +458,19 @@ public partial class ActivityGamePage
         string encodedName = Uri.EscapeDataString(negativeName);
         string encodedImage = Uri.EscapeDataString(activity.ImagePath ?? "");
         string encodedCategory = Uri.EscapeDataString("Negative");
-        
+
         var queryParams = $"addactivity?gameId={_game!.GameId}&prefillName={encodedName}&prefillLevel=-500&prefillImage={encodedImage}&prefillCategory={encodedCategory}&isNegative=true&noHabitTarget=true";
-        
+
         if (activity.StartDate.HasValue)
         {
             queryParams += $"&prefillStartDate={activity.StartDate.Value:o}";
         }
-        
+
         if (activity.EndDate.HasValue)
         {
             queryParams += $"&prefillEndDate={activity.EndDate.Value:o}";
         }
-        
+
         await Shell.Current.GoToAsync(queryParams);
     }
 
@@ -474,16 +478,16 @@ public partial class ActivityGamePage
     {
         // Get all games for this user
         var allGames = await _games.GetGamesAsync(_auth.CurrentUsername);
-        
+
         // Filter out the current game
         var otherGames = allGames.Where(g => g.GameId != _game!.GameId).ToList();
-        
+
         if (otherGames.Count == 0)
         {
             await DisplayAlert("No Other Games", "You don't have any other games to move this activity to.", "OK");
             return;
         }
-        
+
         // Show game selection
         var gameOptions = otherGames.Select(g => $"🎮 {g.DisplayName}").ToArray();
         string selectedGame = await DisplayActionSheet(
@@ -491,14 +495,14 @@ public partial class ActivityGamePage
             "Cancel",
             null,
             gameOptions);
-        
+
         if (string.IsNullOrEmpty(selectedGame) || selectedGame == "Cancel") return;
-        
+
         // Find the selected game
         string selectedGameName = selectedGame.Replace("🎮 ", "");
         var targetGame = otherGames.FirstOrDefault(g => g.DisplayName == selectedGameName);
         if (targetGame == null) return;
-        
+
         // Get categories from the target game
         var targetActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, targetGame.GameId);
         var targetCategories = targetActivities
@@ -507,32 +511,32 @@ public partial class ActivityGamePage
             .Distinct()
             .OrderBy(c => c)
             .ToList();
-        
+
         // Build category options
         var categoryOptions = new List<string>();
-        
+
         // Add option to keep current category
         categoryOptions.Add($"📁 {activity.Category} (keep current)");
-        
+
         // Add existing categories from target game (excluding current)
         foreach (var cat in targetCategories.Where(c => c != activity.Category))
         {
             categoryOptions.Add($"📁 {cat}");
         }
-        
+
         // Add option for new category
         categoryOptions.Add("✏️ Enter new category...");
-        
+
         string selectedCategory = await DisplayActionSheet(
             $"Category in '{targetGame.DisplayName}'?",
             "Cancel",
             null,
             categoryOptions.ToArray());
-        
+
         if (string.IsNullOrEmpty(selectedCategory) || selectedCategory == "Cancel") return;
-        
+
         string targetCategory;
-        
+
         if (selectedCategory.Contains("Enter new category"))
         {
             string newCategory = await DisplayPromptAsync(
@@ -541,7 +545,7 @@ public partial class ActivityGamePage
                 "OK",
                 "Cancel",
                 placeholder: "Category name");
-            
+
             if (string.IsNullOrWhiteSpace(newCategory)) return;
             targetCategory = newCategory.Trim();
         }
@@ -553,7 +557,7 @@ public partial class ActivityGamePage
         {
             targetCategory = selectedCategory.Replace("📁 ", "").Trim();
         }
-        
+
         // Confirm the move
         bool confirm = await DisplayAlert(
             "Move Activity?",
@@ -563,28 +567,28 @@ public partial class ActivityGamePage
             "The activity will be removed from this game.",
             "Move",
             "Cancel");
-        
+
         if (!confirm) return;
-        
+
         // Save current category before moving
         string currentCategoryName = null;
         if (_navigableCategories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _navigableCategories.Count)
         {
             currentCategoryName = _navigableCategories[_currentCategoryIndex];
         }
-        
+
         // Perform the move - update the activity's game and category
         activity.Game = targetGame.GameId;
         activity.Category = targetCategory;
         await _activities.UpdateActivityAsync(activity);
-        
-        await DisplayAlert("Moved!", 
-            $"'{activity.Name}' has been moved to '{targetGame.DisplayName}' in category '{targetCategory}'.", 
+
+        await DisplayAlert("Moved!",
+            $"'{activity.Name}' has been moved to '{targetGame.DisplayName}' in category '{targetCategory}'.",
             "OK");
-        
+
         // Refresh the current view
         await LoadCategoriesAsync();
-        
+
         // Restore the category index if the category still exists
         if (!string.IsNullOrEmpty(currentCategoryName))
         {
@@ -596,8 +600,69 @@ public partial class ActivityGamePage
             }
             // If category no longer exists (was the only activity), stay at index 0
         }
-        
+
         await RefreshActivitiesAsync();
+    }
+
+    private async Task HandleAssignToGrouping(Activity activity)
+    {
+        if (_groupingService == null) return;
+
+        var groupings = await _groupingService.GetGroupingsAsync(_auth.CurrentUsername);
+
+        // Build options showing current membership
+        var options = new List<string>();
+        foreach (var g in groupings)
+        {
+            bool isIn = await _groupingService.IsActivityInGroupingAsync(g.Id, activity.Id);
+            options.Add(isIn ? $"✅ {g.Name} (remove)" : $"➕ {g.Name}");
+        }
+        options.Add("📂 Create New Grouping");
+
+        string? choice = await DisplayActionSheet(
+            $"Groupings for '{activity.Name}'",
+            "Done",
+            null,
+            options.ToArray());
+
+        if (string.IsNullOrEmpty(choice) || choice == "Done") return;
+
+        if (choice == "📂 Create New Grouping")
+        {
+            string? name = await DisplayPromptAsync(
+                "New Grouping",
+                "Enter a name for the grouping:",
+                "Create",
+                "Cancel",
+                placeholder: "e.g., Morning Routine",
+                maxLength: 100);
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                var newGrouping = await _groupingService.CreateGroupingAsync(_auth.CurrentUsername, name);
+                await _groupingService.AddActivityToGroupingAsync(newGrouping.Id, activity.Id);
+                await DisplayAlert("Added", $"'{activity.Name}' added to '{name}'.", "OK");
+            }
+            return;
+        }
+
+        // Find which grouping was selected
+        int selectedIdx = options.IndexOf(choice);
+        if (selectedIdx < 0 || selectedIdx >= groupings.Count) return;
+
+        var selectedGrouping = groupings[selectedIdx];
+        bool currentlyIn = await _groupingService.IsActivityInGroupingAsync(selectedGrouping.Id, activity.Id);
+
+        if (currentlyIn)
+        {
+            await _groupingService.RemoveActivityFromGroupingAsync(selectedGrouping.Id, activity.Id);
+            await DisplayAlert("Removed", $"'{activity.Name}' removed from '{selectedGrouping.Name}'.", "OK");
+        }
+        else
+        {
+            await _groupingService.AddActivityToGroupingAsync(selectedGrouping.Id, activity.Id);
+            await DisplayAlert("Added", $"'{activity.Name}' added to '{selectedGrouping.Name}'.", "OK");
+        }
     }
 
     #endregion
