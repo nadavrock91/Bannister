@@ -278,8 +278,8 @@ public partial class ActivityGamePage
 
         var contentStack = new VerticalStackLayout
         {
-            Padding = 12,
-            Spacing = 4,
+            Padding = new Thickness(10, 12, 10, 8),
+            Spacing = 2,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
         };
@@ -296,21 +296,24 @@ public partial class ActivityGamePage
 
         var daysLabel = new Label
         {
-            Text = attemptVM.DaysDisplay,
-            FontSize = 72,
+            Text = attemptVM.DaysWithTargetDisplay,
+            FontSize = 34,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            LineBreakMode = LineBreakMode.NoWrap,
+            MaxLines = 1,
             TextColor = attemptVM.IsActive ? Color.FromArgb("#FF6D00") : Color.FromArgb("#9E9E9E")
         };
         contentStack.Children.Add(daysLabel);
 
         var daysTextLabel = new Label
         {
-            Text = attemptVM.DaysAchieved == 1 ? "day" : "days",
+            Text = "days in a row",
             FontSize = 16,
             HorizontalOptions = LayoutOptions.Center,
             TextColor = attemptVM.IsActive ? Color.FromArgb("#FF9800") : Color.FromArgb("#BDBDBD"),
-            Margin = new Thickness(0, -8, 0, 0)
+            Margin = new Thickness(0, -2, 0, 0)
         };
         contentStack.Children.Add(daysTextLabel);
 
@@ -470,10 +473,49 @@ public partial class ActivityGamePage
         {
             await DisplayAlert("Day Recorded! 🔥", 
                 $"+{totalExp} EXP{bonusMessage}\n\n" +
-                $"Streak: {updatedAttempt.DaysAchieved} days\n" +
+                $"Streak: {updatedAttempt.DaysAchieved} / {GetStreakTargetDays(activity)} days\n" +
                 $"Display Day Streak: {activity.DisplayDayStreak} days",
                 "Nice!");
+
+            await PromptForNextStreakTargetIfNeededAsync(activity, updatedAttempt);
         }
+    }
+
+    private int GetStreakTargetDays(Activity activity)
+    {
+        return activity.StreakTargetDays > 0 ? activity.StreakTargetDays : 365;
+    }
+
+    private async Task PromptForNextStreakTargetIfNeededAsync(Activity activity, StreakAttempt attempt)
+    {
+        int targetDays = GetStreakTargetDays(activity);
+        if (attempt.DaysAchieved != targetDays)
+        {
+            return;
+        }
+
+        string? result = await DisplayPromptAsync(
+            "Streak Target Reached",
+            $"You reached {targetDays} days in a row.\n\nSet the next target:",
+            "Save",
+            "Cancel",
+            initialValue: Math.Max(targetDays + 1, targetDays * 2).ToString(),
+            keyboard: Keyboard.Numeric);
+
+        if (string.IsNullOrWhiteSpace(result))
+        {
+            return;
+        }
+
+        if (!int.TryParse(result, out int newTargetDays) || newTargetDays <= targetDays)
+        {
+            await DisplayAlert("Invalid Target", $"Enter a number greater than {targetDays}.", "OK");
+            return;
+        }
+
+        activity.StreakTargetDays = newTargetDays;
+        await _activities.UpdateActivityAsync(activity);
+        await RefreshActivitiesAsync();
     }
 
     /// <summary>

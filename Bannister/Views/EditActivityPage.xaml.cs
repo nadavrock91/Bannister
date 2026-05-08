@@ -65,6 +65,8 @@ public partial class EditActivityPage : ContentPage
 
         // Set streak tracking
         chkStreakTracked.IsChecked = _activity.IsStreakTracked;
+        txtStreakTargetDays.Text = (_activity.StreakTargetDays > 0 ? _activity.StreakTargetDays : 365).ToString();
+        txtStreakTargetDays.IsEnabled = _activity.IsStreakTracked;
 
         // Set possible status
         chkIsPossible.IsChecked = _activity.IsPossible;
@@ -256,6 +258,11 @@ public partial class EditActivityPage : ContentPage
     private void OnLevelCapChanged(object sender, CheckedChangedEventArgs e)
     {
         // Could add visual feedback or enable/disable related controls here if needed
+    }
+
+    private void OnStreakTrackedChanged(object sender, CheckedChangedEventArgs e)
+    {
+        txtStreakTargetDays.IsEnabled = e.Value;
     }
 
     private async void OnCategoryPickerChanged(object? sender, EventArgs e)
@@ -567,6 +574,14 @@ public partial class EditActivityPage : ContentPage
         try
         {
             bool newStreakTracked = chkStreakTracked.IsChecked;
+            int streakTargetDays = 365;
+
+            if (newStreakTracked &&
+                (!int.TryParse(txtStreakTargetDays.Text, out streakTargetDays) || streakTargetDays <= 0))
+            {
+                await DisplayAlert("Required", "Please enter a valid streak target greater than 0.", "OK");
+                return;
+            }
 
             // *** HANDLE STREAK CONTAINER CONVERSION ***
             bool convertingToStreak = newStreakTracked && !_wasStreakTracked;
@@ -629,6 +644,7 @@ public partial class EditActivityPage : ContentPage
             _activity.EndDate = endDateTime;
             _activity.IsPossible = chkIsPossible.IsChecked;
             _activity.ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked;
+            _activity.StreakTargetDays = newStreakTracked ? streakTargetDays : 365;
 
             // Only update habit target if not a streak container
             if (!_activity.IsStreakContainer)

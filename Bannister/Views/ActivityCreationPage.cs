@@ -52,6 +52,7 @@ public class ActivityCreationPage : ContentPage
     private Button btnPickImage;
     private Image imgPreview;
     private CheckBox chkStreakTracked;
+    private Entry txtStreakTargetDays;
     private CheckBox chkIsPossible;
     private CheckBox chkShowTimesCompleted;
     private CheckBox chkNoHabitTarget;
@@ -561,6 +562,7 @@ public class ActivityCreationPage : ContentPage
         
         var streakRow = new HorizontalStackLayout { Spacing = 12 };
         chkStreakTracked = new CheckBox();
+        chkStreakTracked.CheckedChanged += (s, e) => txtStreakTargetDays.IsEnabled = e.Value;
         streakRow.Children.Add(chkStreakTracked);
         streakRow.Children.Add(new Label
         {
@@ -568,6 +570,29 @@ public class ActivityCreationPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         });
         streakSection.Children.Add(streakRow);
+
+        var streakTargetRow = new HorizontalStackLayout { Spacing = 12 };
+        streakTargetRow.Children.Add(new Label
+        {
+            Text = "Target days:",
+            VerticalOptions = LayoutOptions.Center
+        });
+        txtStreakTargetDays = new Entry
+        {
+            Text = "365",
+            Keyboard = Keyboard.Numeric,
+            WidthRequest = 100,
+            IsEnabled = false
+        };
+        streakTargetRow.Children.Add(txtStreakTargetDays);
+        streakTargetRow.Children.Add(new Label
+        {
+            Text = "shown as days / target",
+            VerticalOptions = LayoutOptions.Center,
+            TextColor = Color.FromArgb("#666"),
+            FontSize = 12
+        });
+        streakSection.Children.Add(streakTargetRow);
         
         streakSection.Children.Add(new Label
         {
@@ -1108,6 +1133,14 @@ public class ActivityCreationPage : ContentPage
             bool isStreakContainer = chkStreakTracked.IsChecked;
             string activityName = txtName.Text.Trim();
             string originalCategory = category;
+            int streakTargetDays = 365;
+
+            if (isStreakContainer &&
+                (!int.TryParse(txtStreakTargetDays.Text, out streakTargetDays) || streakTargetDays <= 0))
+            {
+                await DisplayAlert("Validation Error", "Please enter a valid streak target greater than 0.", "OK");
+                return;
+            }
 
             if (isStreakContainer)
             {
@@ -1141,6 +1174,7 @@ public class ActivityCreationPage : ContentPage
                 PercentCutoffLevel = percentCutoff,
                 ImagePath = _selectedImageFilename ?? "",
                 IsStreakTracked = chkStreakTracked.IsChecked,
+                StreakTargetDays = isStreakContainer ? streakTargetDays : 365,
                 IsStreakContainer = isStreakContainer,
                 IsPossible = chkIsPossible.IsChecked,
                 ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked,

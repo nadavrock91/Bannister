@@ -48,6 +48,12 @@ public class Activity
     
     // If true, streak auto-increments daily without needing to click the activity
     public bool IsStreakAutoIncrement { get; set; } = false;
+
+    /// <summary>
+    /// Target day count shown on streak attempt cards. When an active attempt reaches this exact count,
+    /// the user is prompted to choose the next target.
+    /// </summary>
+    public int StreakTargetDays { get; set; } = 365;
     
     /// <summary>
     /// If true, this activity is a "streak container" - it becomes a category and 

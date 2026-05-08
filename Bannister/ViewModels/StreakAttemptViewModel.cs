@@ -29,6 +29,8 @@ public class StreakAttemptViewModel : INotifyPropertyChanged
 
     public int DaysAchieved => _attempt.DaysAchieved;
     public string DaysDisplay => _attempt.DaysAchieved.ToString();
+    public int StreakTargetDays => _parentActivity.StreakTargetDays > 0 ? _parentActivity.StreakTargetDays : 365;
+    public string DaysWithTargetDisplay => $"{_attempt.DaysAchieved} / {StreakTargetDays}";
     public bool IsActive => _attempt.IsActive;
     public string Status => _attempt.Status;
     public string DateRange => _attempt.DateRangeDisplay;

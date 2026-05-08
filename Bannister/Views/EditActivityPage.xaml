@@ -86,8 +86,21 @@
             <VerticalStackLayout Spacing="8">
                 <Label Text="Streak Tracking" FontAttributes="Bold" />
                 <HorizontalStackLayout Spacing="12">
-                    <CheckBox x:Name="chkStreakTracked" />
+                    <CheckBox x:Name="chkStreakTracked" CheckedChanged="OnStreakTrackedChanged" />
                     <Label Text="Track consecutive days as streak attempts"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="12">
+                    <Label Text="Target days:"
+                           VerticalOptions="Center" />
+                    <Entry x:Name="txtStreakTargetDays"
+                           Text="365"
+                           Keyboard="Numeric"
+                           WidthRequest="100"
+                           IsEnabled="False" />
+                    <Label Text="shown as days / target"
+                           FontSize="12"
+                           TextColor="#666"
                            VerticalOptions="Center" />
                 </HorizontalStackLayout>
                 <Label Text="🔥 When enabled, this activity becomes its own category with attempt cards showing day counts"

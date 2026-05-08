@@ -388,6 +388,8 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<Attempt>();
             await _db!.CreateTableAsync<StreakAttempt>();
 
+            try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
+
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }
 
