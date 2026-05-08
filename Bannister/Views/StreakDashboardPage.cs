@@ -14,6 +14,7 @@ public class StreakDashboardPage : ContentPage
     private readonly StreakService _streaks;
     private readonly GameService _games;
 
+    private FlexLayout _statsContainer;
     private VerticalStackLayout _activitiesContainer;
     private ScrollView _mainScroll;
     private Dictionary<int, bool> _expandedActivities = new(); // Track which activities are expanded
@@ -96,6 +97,15 @@ public class StreakDashboardPage : ContentPage
             HorizontalOptions = LayoutOptions.Center
         });
 
+        _statsContainer = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Start,
+            Margin = new Thickness(0, 0, 0, 4)
+        };
+        mainStack.Children.Add(_statsContainer);
+
         // Activities list
         _activitiesContainer = new VerticalStackLayout { Spacing = 16 };
         mainStack.Children.Add(_activitiesContainer);
@@ -107,12 +117,13 @@ public class StreakDashboardPage : ContentPage
     private async Task LoadActivitiesAsync()
     {
         _activitiesContainer.Children.Clear();
+        _statsContainer.Children.Clear();
 
         // Get all games
         var allGames = await _games.GetGamesAsync(_auth.CurrentUsername);
         
         // Collect all streak-tracked activities across all games
-        var allTrackedData = new List<(Activity activity, List<StreakAttempt> attempts, string gameName)>();
+        var allTrackedData = new List<(Activity activity, List<StreakAttempt> attempts, List<StreakTargetCompletion> completions, string gameName)>();
 
         foreach (var game in allGames)
         {
@@ -122,7 +133,8 @@ public class StreakDashboardPage : ContentPage
             foreach (var activity in trackedActivities)
             {
                 var attempts = await _streaks.GetStreakAttemptsAsync(_auth.CurrentUsername, game.GameId, activity.Id);
-                allTrackedData.Add((activity, attempts, game.DisplayName));
+                var completions = await _streaks.GetTargetCompletionsAsync(_auth.CurrentUsername, game.GameId, activity.Id);
+                allTrackedData.Add((activity, attempts, completions, game.DisplayName));
             }
         }
 
@@ -140,12 +152,227 @@ public class StreakDashboardPage : ContentPage
             return;
         }
 
+        BuildTargetStatsRow(allTrackedData);
+
         // Sort alphabetically by activity name
         allTrackedData = allTrackedData.OrderBy(x => x.activity.Name).ToList();
 
-        foreach (var (activity, attempts, gameName) in allTrackedData)
+        foreach (var (activity, attempts, _, gameName) in allTrackedData)
         {
             _activitiesContainer.Children.Add(BuildActivitySection(activity, attempts, gameName));
+        }
+    }
+
+    private void BuildTargetStatsRow(List<(Activity activity, List<StreakAttempt> attempts, List<StreakTargetCompletion> completions, string gameName)> allTrackedData)
+    {
+        var activeAttemptIds = allTrackedData
+            .SelectMany(x => x.attempts)
+            .Where(a => a.IsActive)
+            .Select(a => a.Id)
+            .ToHashSet();
+
+        var currentCompletions = allTrackedData
+            .SelectMany(x => x.completions.Select(c => (completion: c, x.activity, x.attempts, x.gameName)))
+            .Where(x => activeAttemptIds.Contains(x.completion.StreakAttemptId))
+            .ToList();
+
+        var targetValues = allTrackedData
+            .Select(x => GetTargetDays(x.activity))
+            .Concat(currentCompletions.Select(x => x.completion.TargetDays))
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+
+        foreach (int targetDays in targetValues)
+        {
+            var completionsForTarget = currentCompletions
+                .Where(x => x.completion.TargetDays == targetDays)
+                .ToList();
+
+            int completed = completionsForTarget.Count;
+            var items = allTrackedData
+                .Where(x => GetTargetDays(x.activity) == targetDays || x.completions.Any(c => c.TargetDays == targetDays))
+                .ToList();
+
+            AddTargetStatCard(targetDays, completed, items);
+        }
+    }
+
+    private void AddTargetStatCard(
+        int targetDays,
+        int completed,
+        List<(Activity activity, List<StreakAttempt> attempts, List<StreakTargetCompletion> completions, string gameName)> items)
+    {
+        var frame = new Frame
+        {
+            Padding = new Thickness(14, 10),
+            CornerRadius = 8,
+            BackgroundColor = Colors.White,
+            BorderColor = completed > 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E0E0E0"),
+            HasShadow = false,
+            WidthRequest = 210,
+            Margin = new Thickness(0, 0, 10, 10)
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 2 };
+        stack.Children.Add(new Label
+        {
+            Text = completed.ToString(),
+            FontSize = 26,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#FF9800"),
+            HorizontalTextAlignment = TextAlignment.Center
+        });
+        stack.Children.Add(new Label
+        {
+            Text = $"{targetDays} in a row completed",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#333"),
+            HorizontalTextAlignment = TextAlignment.Center
+        });
+
+        frame.Content = stack;
+        frame.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await Navigation.PushAsync(
+                new StreakTargetStatHistoryPage(_streaks, _auth.CurrentUsername, targetDays)))
+        });
+        _statsContainer.Children.Add(frame);
+    }
+
+    private static int GetTargetDays(Activity activity)
+    {
+        return activity.StreakTargetDays > 0 ? activity.StreakTargetDays : 365;
+    }
+
+    private async Task ShowTargetStatsHistoryAsync(
+        int targetDays,
+        List<(Activity activity, List<StreakAttempt> attempts, List<StreakTargetCompletion> completions, string gameName)> items)
+    {
+        var activeAttemptIds = items
+            .SelectMany(x => x.attempts)
+            .Where(a => a.IsActive)
+            .Select(a => a.Id)
+            .ToHashSet();
+
+        var orderedItems = items
+            .OrderByDescending(x => x.completions.Count(c => c.TargetDays == targetDays && activeAttemptIds.Contains(c.StreakAttemptId)))
+            .ThenByDescending(x => x.attempts.Where(a => a.IsActive).Select(a => a.DaysAchieved).DefaultIfEmpty(0).Max())
+            .ThenBy(x => x.activity.Name)
+            .ToList();
+
+        var optionMap = new Dictionary<string, (Activity activity, List<StreakAttempt> attempts, List<StreakTargetCompletion> completions, string gameName)>();
+        var options = new List<string>();
+
+        foreach (var item in orderedItems)
+        {
+            var active = item.attempts.FirstOrDefault(a => a.IsActive);
+            int activeCompletions = item.completions.Count(c => c.TargetDays == targetDays && active != null && c.StreakAttemptId == active.Id);
+            int historicalCompletions = item.completions.Count(c => c.TargetDays == targetDays);
+            string status = activeCompletions > 0 ? $"{activeCompletions} current" : "0 current";
+            string activeText = active != null ? $"active {active.DaysAchieved}/{GetTargetDays(item.activity)}" : "no active";
+            string option = $"{status}: {item.activity.Name} ({activeText}, history {historicalCompletions})";
+
+            options.Add(option);
+            optionMap[option] = item;
+        }
+
+        string? selected = await DisplayActionSheet(
+            $"{targetDays} in a row: {orderedItems.Sum(x => x.completions.Count(c => c.TargetDays == targetDays && activeAttemptIds.Contains(c.StreakAttemptId)))} current completions",
+            "Cancel",
+            null,
+            options.ToArray());
+
+        if (string.IsNullOrEmpty(selected) || selected == "Cancel" || !optionMap.TryGetValue(selected, out var selectedItem))
+        {
+            return;
+        }
+
+        await ShowTargetActivityHistoryActionsAsync(targetDays, selectedItem.activity, selectedItem.attempts);
+    }
+
+    private async Task ShowTargetActivityHistoryActionsAsync(int targetDays, Activity activity, List<StreakAttempt> attempts)
+    {
+        var active = attempts.FirstOrDefault(a => a.IsActive);
+        var best = attempts.OrderByDescending(a => a.DaysAchieved).FirstOrDefault();
+        var latest = attempts.OrderByDescending(a => a.AttemptNumber).FirstOrDefault();
+
+        var actions = new List<string>();
+        if (active != null)
+        {
+            actions.Add($"Edit active ({active.DaysAchieved} / {targetDays})");
+            actions.Add("View active history");
+        }
+
+        if (best != null)
+        {
+            actions.Add($"Edit best ({best.DaysAchieved} / {targetDays})");
+            if (!best.IsActive)
+            {
+                actions.Add($"Reactivate best ({best.DaysAchieved} / {targetDays})");
+            }
+            actions.Add("View best history");
+        }
+
+        if (latest != null && latest != active && latest != best)
+        {
+            actions.Add($"Edit latest ({latest.DaysAchieved} / {targetDays})");
+        }
+
+        if (actions.Count == 0)
+        {
+            await DisplayAlert("No History", "This activity does not have any streak attempts yet.", "OK");
+            return;
+        }
+
+        string? action = await DisplayActionSheet(
+            activity.Name,
+            "Cancel",
+            null,
+            actions.Distinct().ToArray());
+
+        if (string.IsNullOrEmpty(action) || action == "Cancel")
+        {
+            return;
+        }
+
+        if (action.StartsWith("Edit active") && active != null)
+        {
+            await EditActiveStreakAsync(active);
+        }
+        else if (action.StartsWith("Edit best") && best != null)
+        {
+            if (best.IsActive)
+            {
+                await EditActiveStreakAsync(best);
+            }
+            else
+            {
+                await EditPastStreakAsync(best);
+            }
+        }
+        else if (action.StartsWith("Reactivate best") && best != null)
+        {
+            await ReactivateStreakAsync(best);
+        }
+        else if (action == "View active history" && active != null)
+        {
+            await ShowStreakHistoryAsync(active);
+        }
+        else if (action == "View best history" && best != null)
+        {
+            await ShowStreakHistoryAsync(best);
+        }
+        else if (action.StartsWith("Edit latest") && latest != null)
+        {
+            if (latest.IsActive)
+            {
+                await EditActiveStreakAsync(latest);
+            }
+            else
+            {
+                await EditPastStreakAsync(latest);
+            }
         }
     }
 

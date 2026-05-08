@@ -502,6 +502,8 @@ public partial class ActivityGamePage
             initialValue: Math.Max(targetDays + 1, targetDays * 2).ToString(),
             keyboard: Keyboard.Numeric);
 
+        await _streaks.LogTargetCompletionAsync(_auth.CurrentUsername, GetActivityGameId(activity), activity, attempt, targetDays);
+
         if (string.IsNullOrWhiteSpace(result))
         {
             return;

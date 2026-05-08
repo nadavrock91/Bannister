@@ -151,9 +151,14 @@ public class StreakService
             else if (daysSinceLastUse > 1)
             {
                 // Streak broken! End this one and start a new one
+                await LogTargetStatResetForAttemptAsync(conn, activeStreak, "reset", "Streak reset after a missed day");
+
                 activeStreak.IsActive = false;
                 activeStreak.EndedAt = activeStreak.LastUsedDate.Value.AddDays(1); // Day after last use
                 await conn.UpdateAsync(activeStreak);
+
+                await LogStreakChangeAsync(activeStreak.Id, activeStreak.DaysAchieved, activeStreak.DaysAchieved, "reset",
+                    "Streak reset after a missed day");
 
                 // Start a new streak
                 await GetOrCreateActiveStreakAsync(username, game, activityId, activityName);
@@ -201,9 +206,14 @@ public class StreakService
                 if (daysSinceLastUse > 1)
                 {
                     // Streak is broken (missed more than 1 day)
+                    await LogTargetStatResetForAttemptAsync(conn, streak, "reset", "Streak reset after missed day check");
+
                     streak.IsActive = false;
                     streak.EndedAt = streak.LastUsedDate.Value.AddDays(1);
                     await conn.UpdateAsync(streak);
+
+                    await LogStreakChangeAsync(streak.Id, streak.DaysAchieved, streak.DaysAchieved, "reset",
+                        "Streak reset after missed day check");
                     
                     System.Diagnostics.Debug.WriteLine($"[STREAK] Broke streak for '{streak.ActivityName}' - {daysSinceLastUse} days since last use");
                 }
@@ -285,9 +295,14 @@ public class StreakService
         
         if (streak != null && streak.IsActive)
         {
+            await LogTargetStatResetForAttemptAsync(conn, streak, "ended", "Streak ended by user");
+
             streak.IsActive = false;
             streak.EndedAt = DateTime.UtcNow;
             await conn.UpdateAsync(streak);
+
+            await LogStreakChangeAsync(streak.Id, streak.DaysAchieved, streak.DaysAchieved, "ended",
+                "Streak ended by user");
         }
     }
 
@@ -306,6 +321,7 @@ public class StreakService
         if (streak == null) return;
         
         int daysBefore = streak.DaysAchieved;
+        var countBeforeByTarget = await GetTargetCountsForAttemptReactivationAsync(conn, streak);
         
         // Reactivate the streak
         streak.IsActive = true;
@@ -320,6 +336,7 @@ public class StreakService
         // Log the reactivation
         await LogStreakChangeAsync(streakId, daysBefore, daysBefore, "reactivated", 
             "Streak reactivated by user");
+        await LogTargetStatReactivationAsync(conn, streak, countBeforeByTarget);
         
         System.Diagnostics.Debug.WriteLine(
             $"[STREAK] Reactivated streak #{streak.AttemptNumber} for activity {streak.ActivityId} " +
@@ -379,6 +396,13 @@ public class StreakService
         // If the deleted streak was active, reactivate the previous one
         if (wasActive)
         {
+            await LogTargetStatResetForAttemptAsync(conn, streak, "deleted", "Active streak attempt deleted");
+        }
+
+        await conn.ExecuteAsync("DELETE FROM streak_target_completions WHERE StreakAttemptId = ?", streakId);
+
+        if (wasActive)
+        {
             // Find the previous attempt (highest attempt number that's not the deleted one)
             var previousAttempt = await conn.Table<StreakAttempt>()
                 .Where(s => s.Username == username && s.Game == game && s.ActivityId == activityId)
@@ -387,10 +411,12 @@ public class StreakService
 
             if (previousAttempt != null)
             {
+                var countBeforeByTarget = await GetTargetCountsForAttemptReactivationAsync(conn, previousAttempt);
                 previousAttempt.IsActive = true;
                 previousAttempt.EndedAt = null; // Clear the end date
                 previousAttempt.LastUsedDate = DateTime.UtcNow.Date; // Set to today so it continues
                 await conn.UpdateAsync(previousAttempt);
+                await LogTargetStatReactivationAsync(conn, previousAttempt, countBeforeByTarget);
                 
                 System.Diagnostics.Debug.WriteLine($"[STREAK] Reactivated attempt #{previousAttempt.AttemptNumber} after deleting #{deletedAttemptNumber}");
             }
@@ -438,6 +464,8 @@ public class StreakService
 
         if (existingActive != null)
         {
+            await LogTargetStatResetForAttemptAsync(conn, existingActive, "ended", "Active streak replaced by new attempt");
+
             existingActive.IsActive = false;
             existingActive.EndedAt = DateTime.UtcNow;
             await conn.UpdateAsync(existingActive);
@@ -530,6 +558,289 @@ public class StreakService
     }
 
     #region Streak Logging
+
+    public async Task LogTargetCompletionAsync(string username, string game, Activity activity, StreakAttempt attempt, int targetDays)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<StreakTargetCompletion>();
+        await conn.CreateTableAsync<StreakTargetStatLog>();
+
+        var existing = await conn.Table<StreakTargetCompletion>()
+            .Where(c => c.Username == username
+                     && c.Game == game
+                     && c.ActivityId == activity.Id
+                     && c.StreakAttemptId == attempt.Id
+                     && c.TargetDays == targetDays)
+            .FirstOrDefaultAsync();
+
+        if (existing != null)
+        {
+            return;
+        }
+
+        int countBefore = await GetCurrentTargetCompletionCountAsync(conn, username, targetDays);
+
+        await conn.InsertAsync(new StreakTargetCompletion
+        {
+            Username = username,
+            Game = game,
+            ActivityId = activity.Id,
+            ActivityName = activity.Name,
+            StreakAttemptId = attempt.Id,
+            TargetDays = targetDays,
+            CompletedAt = DateTime.UtcNow
+        });
+
+        await LogTargetStatChangeAsync(
+            conn,
+            username,
+            targetDays,
+            countBefore,
+            countBefore + 1,
+            "completion",
+            activity.Name,
+            attempt.Id,
+            $"{activity.Name} reached {targetDays} in a row");
+    }
+
+    public async Task<List<StreakTargetCompletion>> GetTargetCompletionsAsync(string username, string game, int activityId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<StreakTargetCompletion>();
+
+        return await conn.Table<StreakTargetCompletion>()
+            .Where(c => c.Username == username && c.Game == game && c.ActivityId == activityId)
+            .OrderByDescending(c => c.CompletedAt)
+            .ToListAsync();
+    }
+
+    public async Task<List<StreakTargetCompletion>> GetTargetCompletionsForAttemptAsync(int streakAttemptId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<StreakTargetCompletion>();
+
+        return await conn.Table<StreakTargetCompletion>()
+            .Where(c => c.StreakAttemptId == streakAttemptId)
+            .OrderByDescending(c => c.CompletedAt)
+            .ToListAsync();
+    }
+
+    public async Task DeleteTargetCompletionAsync(int completionId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<StreakTargetCompletion>();
+        await conn.CreateTableAsync<StreakTargetStatLog>();
+
+        var completion = await conn.Table<StreakTargetCompletion>()
+            .FirstOrDefaultAsync(c => c.Id == completionId);
+
+        if (completion != null)
+        {
+            var attempt = await conn.Table<StreakAttempt>()
+                .FirstOrDefaultAsync(a => a.Id == completion.StreakAttemptId);
+            if (attempt?.IsActive == true)
+            {
+                int countBefore = await GetCurrentTargetCompletionCountAsync(conn, completion.Username, completion.TargetDays);
+                await LogTargetStatChangeAsync(
+                    conn,
+                    completion.Username,
+                    completion.TargetDays,
+                    countBefore,
+                    Math.Max(0, countBefore - 1),
+                    "deleted",
+                    completion.ActivityName,
+                    completion.StreakAttemptId,
+                    "Target completion row deleted");
+            }
+
+            await conn.DeleteAsync(completion);
+        }
+    }
+
+    public async Task<int> GetCurrentTargetCompletionCountAsync(string username, int targetDays)
+    {
+        var conn = await _db.GetConnectionAsync();
+        return await GetCurrentTargetCompletionCountAsync(conn, username, targetDays);
+    }
+
+    public async Task<List<StreakTargetStatLog>> GetTargetStatLogsAsync(string username, int targetDays)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<StreakTargetStatLog>();
+
+        return await conn.Table<StreakTargetStatLog>()
+            .Where(l => l.Username == username && l.TargetDays == targetDays)
+            .OrderByDescending(l => l.LoggedAt)
+            .ToListAsync();
+    }
+
+    public async Task DeleteTargetStatLogAsync(int logId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<StreakTargetStatLog>();
+
+        var log = await conn.Table<StreakTargetStatLog>()
+            .FirstOrDefaultAsync(l => l.Id == logId);
+
+        if (log != null)
+        {
+            await conn.DeleteAsync(log);
+        }
+    }
+
+    public async Task UpdateTargetStatLogAsync(int logId, int countBefore, int countAfter, string? note)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<StreakTargetStatLog>();
+
+        var log = await conn.Table<StreakTargetStatLog>()
+            .FirstOrDefaultAsync(l => l.Id == logId);
+
+        if (log == null)
+        {
+            return;
+        }
+
+        log.CountBefore = countBefore;
+        log.CountAfter = countAfter;
+        log.ChangeType = "manual_edit";
+        log.Note = note;
+        await conn.UpdateAsync(log);
+    }
+
+    private async Task<int> GetCurrentTargetCompletionCountAsync(SQLiteAsyncConnection conn, string username, int targetDays)
+    {
+        await conn.CreateTableAsync<StreakTargetCompletion>();
+
+        var activeAttemptIds = (await conn.Table<StreakAttempt>()
+                .Where(a => a.Username == username && a.IsActive)
+                .ToListAsync())
+            .Select(a => a.Id)
+            .ToHashSet();
+
+        if (activeAttemptIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var completions = await conn.Table<StreakTargetCompletion>()
+            .Where(c => c.Username == username && c.TargetDays == targetDays)
+            .ToListAsync();
+
+        return completions.Count(c => activeAttemptIds.Contains(c.StreakAttemptId));
+    }
+
+    private async Task<Dictionary<int, int>> GetTargetCountsForAttemptReactivationAsync(SQLiteAsyncConnection conn, StreakAttempt attempt)
+    {
+        await conn.CreateTableAsync<StreakTargetCompletion>();
+
+        var completions = await conn.Table<StreakTargetCompletion>()
+            .Where(c => c.StreakAttemptId == attempt.Id)
+            .ToListAsync();
+
+        var counts = new Dictionary<int, int>();
+        foreach (int targetDays in completions.Select(c => c.TargetDays).Distinct())
+        {
+            counts[targetDays] = await GetCurrentTargetCompletionCountAsync(conn, attempt.Username, targetDays);
+        }
+
+        return counts;
+    }
+
+    private async Task LogTargetStatResetForAttemptAsync(SQLiteAsyncConnection conn, StreakAttempt attempt, string changeType, string note)
+    {
+        await conn.CreateTableAsync<StreakTargetCompletion>();
+        await conn.CreateTableAsync<StreakTargetStatLog>();
+
+        var completions = await conn.Table<StreakTargetCompletion>()
+            .Where(c => c.StreakAttemptId == attempt.Id)
+            .ToListAsync();
+
+        foreach (var group in completions.GroupBy(c => c.TargetDays))
+        {
+            int countBefore = await GetCurrentTargetCompletionCountAsync(conn, attempt.Username, group.Key);
+            int countAfter = Math.Max(0, countBefore - group.Count());
+            await LogTargetStatChangeAsync(
+                conn,
+                attempt.Username,
+                group.Key,
+                countBefore,
+                countAfter,
+                changeType,
+                attempt.ActivityName,
+                attempt.Id,
+                note);
+        }
+    }
+
+    private async Task LogTargetStatReactivationAsync(SQLiteAsyncConnection conn, StreakAttempt attempt, Dictionary<int, int> countBeforeByTarget)
+    {
+        await conn.CreateTableAsync<StreakTargetCompletion>();
+        await conn.CreateTableAsync<StreakTargetStatLog>();
+
+        var completions = await conn.Table<StreakTargetCompletion>()
+            .Where(c => c.StreakAttemptId == attempt.Id)
+            .ToListAsync();
+
+        foreach (var group in completions.GroupBy(c => c.TargetDays))
+        {
+            int countBefore = countBeforeByTarget.TryGetValue(group.Key, out var value) ? value : 0;
+            int countAfter = countBefore + group.Count();
+            await LogTargetStatChangeAsync(
+                conn,
+                attempt.Username,
+                group.Key,
+                countBefore,
+                countAfter,
+                "reactivated",
+                attempt.ActivityName,
+                attempt.Id,
+                "Streak attempt reactivated");
+        }
+    }
+
+    private async Task LogTargetStatChangeAsync(
+        SQLiteAsyncConnection conn,
+        string username,
+        int targetDays,
+        int countBefore,
+        int countAfter,
+        string changeType,
+        string activityName,
+        int streakAttemptId,
+        string? note)
+    {
+        if (countBefore == countAfter)
+        {
+            return;
+        }
+
+        await conn.CreateTableAsync<StreakTargetStatLog>();
+        await conn.InsertAsync(new StreakTargetStatLog
+        {
+            Username = username,
+            TargetDays = targetDays,
+            CountBefore = countBefore,
+            CountAfter = countAfter,
+            ChangeType = changeType,
+            ActivityName = activityName,
+            StreakAttemptId = streakAttemptId,
+            Note = note,
+            LoggedAt = DateTime.UtcNow
+        });
+    }
+
+    public async Task DeleteStreakLogAsync(int logId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        var log = await conn.Table<StreakLog>()
+            .FirstOrDefaultAsync(l => l.Id == logId);
+
+        if (log != null)
+        {
+            await conn.DeleteAsync(log);
+        }
+    }
 
     /// <summary>
     /// Log a streak change for history tracking

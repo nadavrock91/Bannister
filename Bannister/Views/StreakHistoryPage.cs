@@ -185,6 +185,24 @@ public class StreakHistoryPage : ContentPage
     {
         _historyContainer.Children.Clear();
 
+        var completions = await _streaks.GetTargetCompletionsForAttemptAsync(_streak.Id);
+        if (completions.Count > 0)
+        {
+            _historyContainer.Children.Add(new Label
+            {
+                Text = "Target Completion Rows",
+                FontSize = 16,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#333"),
+                Margin = new Thickness(0, 0, 0, 4)
+            });
+
+            foreach (var completion in completions)
+            {
+                _historyContainer.Children.Add(BuildTargetCompletionCard(completion));
+            }
+        }
+
         var logs = await _streaks.GetStreakLogsAsync(_streak.Id);
 
         if (logs.Count == 0)
@@ -346,7 +364,114 @@ public class StreakHistoryPage : ContentPage
         Grid.SetColumn(timeStack, 2);
         grid.Children.Add(timeStack);
 
+        if (log.Id > 0)
+        {
+            frame.GestureRecognizers.Add(new TapGestureRecognizer
+            {
+                Command = new Command(async () => await DeleteStreakLogRowAsync(log))
+            });
+        }
+
         frame.Content = grid;
         return frame;
+    }
+
+    private Frame BuildTargetCompletionCard(StreakTargetCompletion completion)
+    {
+        var frame = new Frame
+        {
+            Padding = 12,
+            CornerRadius = 8,
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            BorderColor = Color.FromArgb("#4CAF50"),
+            HasShadow = false
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = 60 },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 12
+        };
+
+        grid.Children.Add(new Label
+        {
+            Text = completion.TargetDays.ToString(),
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#2E7D32"),
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        var details = new VerticalStackLayout { Spacing = 2 };
+        details.Children.Add(new Label
+        {
+            Text = $"{completion.TargetDays} in a row completed",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+        details.Children.Add(new Label
+        {
+            Text = "Tap to delete this stat row",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+        Grid.SetColumn(details, 1);
+        grid.Children.Add(details);
+
+        var timeLabel = new Label
+        {
+            Text = completion.CompletedAtDisplay,
+            FontSize = 12,
+            TextColor = Color.FromArgb("#777"),
+            HorizontalTextAlignment = TextAlignment.End,
+            VerticalOptions = LayoutOptions.Center
+        };
+        Grid.SetColumn(timeLabel, 2);
+        grid.Children.Add(timeLabel);
+
+        frame.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await DeleteTargetCompletionRowAsync(completion))
+        });
+
+        frame.Content = grid;
+        return frame;
+    }
+
+    private async Task DeleteTargetCompletionRowAsync(StreakTargetCompletion completion)
+    {
+        bool confirm = await DisplayAlert(
+            "Delete Stat Row?",
+            $"Delete the {completion.TargetDays} in-a-row completion row?\n\nThis removes it from the dashboard stat.",
+            "Delete",
+            "Cancel");
+
+        if (!confirm) return;
+
+        await _streaks.DeleteTargetCompletionAsync(completion.Id);
+        await LoadHistoryAsync();
+    }
+
+    private async Task DeleteStreakLogRowAsync(StreakLog log)
+    {
+        if (log.Id <= 0) return;
+
+        bool confirm = await DisplayAlert(
+            "Delete History Row?",
+            $"Delete this history row?\n\n{log.ChangeTypeDisplay}: {log.DaysBefore} -> {log.DaysAfter}",
+            "Delete",
+            "Cancel");
+
+        if (!confirm) return;
+
+        await _streaks.DeleteStreakLogAsync(log.Id);
+        await LoadHistoryAsync();
     }
 }

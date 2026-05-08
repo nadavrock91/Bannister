@@ -81,6 +81,8 @@ public class StreakLog
         "auto_increment" => "Auto-increment",
         "manual_edit" => "Manual edit",
         "reset" => "Reset",
+        "ended" => "Ended",
+        "reactivated" => "Reactivated",
         "created" => "Started",
         _ => ChangeType
     };
