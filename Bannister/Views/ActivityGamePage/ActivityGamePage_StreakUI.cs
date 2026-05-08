@@ -10,6 +10,11 @@ namespace Bannister.Views;
 /// </summary>
 public partial class ActivityGamePage
 {
+    private string GetActivityGameId(Activity activity)
+    {
+        return _isGroupingMode ? activity.Game : _game!.GameId;
+    }
+
     /// <summary>
     /// Build the streak container header with activity name and Start New Attempt button.
     /// </summary>
@@ -138,7 +143,7 @@ public partial class ActivityGamePage
         }
         else if (action.Contains("Edit Activity"))
         {
-            var editPage = new EditActivityPage(_auth, _activities, _game!.GameId, streakActivity);
+            var editPage = new EditActivityPage(_auth, _activities, GetActivityGameId(streakActivity), streakActivity);
             await Navigation.PushModalAsync(editPage);
             await RefreshActivitiesAsync();
         }
@@ -149,7 +154,8 @@ public partial class ActivityGamePage
     /// </summary>
     private async Task ConvertToNormalActivity(Activity streakActivity)
     {
-        var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game!.GameId);
+        string streakGameId = GetActivityGameId(streakActivity);
+        var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, streakGameId);
         var categories = allActivities
             .Where(a => !a.IsStreakContainer && a.Id != streakActivity.Id)
             .Select(a => a.Category)
@@ -210,7 +216,7 @@ public partial class ActivityGamePage
                 .Trim();
         }
 
-        var attempts = await _streaks.GetStreakAttemptsAsync(_auth.CurrentUsername, _game.GameId, streakActivity.Id);
+        var attempts = await _streaks.GetStreakAttemptsAsync(_auth.CurrentUsername, streakGameId, streakActivity.Id);
         bool confirm = await DisplayAlert(
             "Convert to Normal Activity?",
             $"This will:\n" +
@@ -455,7 +461,7 @@ public partial class ActivityGamePage
         await RefreshActivitiesAsync();
         await LoadChartDataAsync();
 
-        var updatedAttempt = (await _streaks.GetStreakAttemptsAsync(_auth.CurrentUsername, _game.GameId, activity.Id))
+        var updatedAttempt = (await _streaks.GetStreakAttemptsAsync(_auth.CurrentUsername, GetActivityGameId(activity), activity.Id))
             .FirstOrDefault(a => a.IsActive);
         
         string bonusMessage = !string.IsNullOrEmpty(bonusDetails) ? $"\n{bonusDetails}" : "";
@@ -475,7 +481,8 @@ public partial class ActivityGamePage
     /// </summary>
     private async Task OnStartNewStreakAttemptClicked(Activity streakActivity)
     {
-        var attempts = await _streaks.GetStreakAttemptsAsync(_auth.CurrentUsername, _game!.GameId, streakActivity.Id);
+        string streakGameId = GetActivityGameId(streakActivity);
+        var attempts = await _streaks.GetStreakAttemptsAsync(_auth.CurrentUsername, streakGameId, streakActivity.Id);
         var activeAttempt = attempts.FirstOrDefault(a => a.IsActive);
 
         if (activeAttempt != null)
@@ -491,7 +498,7 @@ public partial class ActivityGamePage
 
         await _streaks.StartNewStreakAsync(
             _auth.CurrentUsername, 
-            _game.GameId, 
+            streakGameId, 
             streakActivity.Id, 
             streakActivity.Name);
 
@@ -509,7 +516,7 @@ public partial class ActivityGamePage
     {
         var attempts = await _streaks.GetStreakAttemptsAsync(
             _auth.CurrentUsername, 
-            _game!.GameId, 
+            GetActivityGameId(streakContainer), 
             streakContainer.Id);
         
         var header = BuildStreakContainerHeader(streakContainer, attempts);
@@ -728,7 +735,7 @@ public partial class ActivityGamePage
 
         var remainingAttempts = await _streaks.GetStreakAttemptsAsync(
             _auth.CurrentUsername, 
-            _game!.GameId, 
+            GetActivityGameId(activity), 
             activity.Id);
         
         int newNumber = 1;
@@ -756,7 +763,7 @@ public partial class ActivityGamePage
 
         // Check if there's already an active streak for this activity
         var allAttempts = await _streaks.GetStreakAttemptsAsync(
-            _auth.CurrentUsername, _game!.GameId, activity.Id);
+            _auth.CurrentUsername, GetActivityGameId(activity), activity.Id);
         var currentActive = allAttempts.FirstOrDefault(a => a.IsActive);
 
         string message;

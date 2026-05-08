@@ -26,10 +26,12 @@ public partial class ActivityGamePage
         int expAmount,
         string logDescription)
     {
+        string activityGameId = GetActivityGameId(activity);
+
         // 1. Apply base EXP
         await _exp.ApplyExpAsync(
             _auth.CurrentUsername,
-            _game!.GameId,
+            activityGameId,
             logDescription,
             expAmount,
             activity.Id);
@@ -61,7 +63,7 @@ public partial class ActivityGamePage
         {
             await _streaks.RecordActivityUsageAsync(
                 _auth.CurrentUsername,
-                _game!.GameId,
+                GetActivityGameId(activity),
                 activity.Id,
                 activity.Name);
         }
@@ -90,7 +92,7 @@ public partial class ActivityGamePage
             {
                 await _exp.ApplyExpAsync(
                     _auth.CurrentUsername,
-                    _game!.GameId,
+                    GetActivityGameId(activity),
                     $"{activity.Name} (Streak Bonus)",
                     streakBonus,
                     activity.Id);

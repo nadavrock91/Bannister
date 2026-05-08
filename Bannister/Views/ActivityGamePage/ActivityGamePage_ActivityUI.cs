@@ -211,10 +211,10 @@ public partial class ActivityGamePage
     {
         var mainStack = new VerticalStackLayout { Spacing = 8 };
 
-        // Check if current category is a streak container
-        if (_categories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _categories.Count)
+        // Check if the currently displayed category is a streak container.
+        if (_navigableCategories.Count > 0 && _currentCategoryIndex >= 0 && _currentCategoryIndex < _navigableCategories.Count)
         {
-            string currentCategory = _categories[_currentCategoryIndex];
+            string currentCategory = _tempNonNavigableCategory ?? _navigableCategories[_currentCategoryIndex];
             var streakContainer = GetStreakContainerForCategory(currentCategory);
             
             if (streakContainer != null)

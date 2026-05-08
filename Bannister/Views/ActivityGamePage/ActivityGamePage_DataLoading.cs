@@ -544,13 +544,19 @@ public partial class ActivityGamePage
 
         try
         {
-            // Get all active streaks for this game
-            var activeStreaks = await _streaks.GetActiveStreaksAsync(_auth.CurrentUsername, _game.GameId);
+            var activeStreaksByGame = new Dictionary<string, List<StreakAttempt>>();
 
             foreach (var activityVM in _allActivities)
             {
                 if (activityVM.Activity.IsStreakTracked)
                 {
+                    string streakGameId = GetActivityGameId(activityVM.Activity);
+                    if (!activeStreaksByGame.TryGetValue(streakGameId, out var activeStreaks))
+                    {
+                        activeStreaks = await _streaks.GetActiveStreaksAsync(_auth.CurrentUsername, streakGameId);
+                        activeStreaksByGame[streakGameId] = activeStreaks;
+                    }
+
                     // Find the active streak for this activity
                     var streak = activeStreaks.FirstOrDefault(s => s.ActivityId == activityVM.Id);
                     
