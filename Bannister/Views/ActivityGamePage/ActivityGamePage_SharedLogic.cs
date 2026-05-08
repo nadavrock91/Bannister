@@ -619,24 +619,10 @@ public partial class ActivityGamePage
 
         var groupings = await _groupingService.GetGroupingsAsync(_auth.CurrentUsername);
 
-        // Build options showing current membership
-        var options = new List<string>();
-        foreach (var g in groupings)
-        {
-            bool isIn = await _groupingService.IsActivityInGroupingAsync(g.Id, activity.Id);
-            options.Add(isIn ? $"✅ {g.Name} (remove)" : $"➕ {g.Name}");
-        }
-        options.Add("📂 Create New Grouping");
+        int? selectedGroupingId = await ShowGroupingSelectionModalAsync(activity, groupings);
+        if (selectedGroupingId == null) return;
 
-        string? choice = await DisplayActionSheet(
-            $"Groupings for '{activity.Name}'",
-            "Done",
-            null,
-            options.ToArray());
-
-        if (string.IsNullOrEmpty(choice) || choice == "Done") return;
-
-        if (choice == "📂 Create New Grouping")
+        if (selectedGroupingId == -1)
         {
             string? name = await DisplayPromptAsync(
                 "New Grouping",
@@ -655,11 +641,9 @@ public partial class ActivityGamePage
             return;
         }
 
-        // Find which grouping was selected
-        int selectedIdx = options.IndexOf(choice);
-        if (selectedIdx < 0 || selectedIdx >= groupings.Count) return;
+        var selectedGrouping = groupings.FirstOrDefault(g => g.Id == selectedGroupingId.Value);
+        if (selectedGrouping == null) return;
 
-        var selectedGrouping = groupings[selectedIdx];
         bool currentlyIn = await _groupingService.IsActivityInGroupingAsync(selectedGrouping.Id, activity.Id);
 
         if (currentlyIn)
@@ -672,6 +656,186 @@ public partial class ActivityGamePage
             await _groupingService.AddActivityToGroupingAsync(selectedGrouping.Id, activity.Id);
             await DisplayAlert("Added", $"'{activity.Name}' added to '{selectedGrouping.Name}'.", "OK");
         }
+    }
+
+    private async Task<int?> ShowGroupingSelectionModalAsync(Activity activity, List<ActivityGrouping> groupings)
+    {
+        var completion = new TaskCompletionSource<int?>();
+        ContentPage? modalPage = null;
+
+        async Task CompleteAsync(int? result)
+        {
+            if (completion.Task.IsCompleted) return;
+
+            completion.SetResult(result);
+            if (modalPage != null)
+            {
+                await Navigation.PopModalAsync();
+            }
+        }
+
+        var listStack = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Padding = new Thickness(0, 4, 0, 0)
+        };
+
+        foreach (var grouping in groupings)
+        {
+            bool isIn = await _groupingService!.IsActivityInGroupingAsync(grouping.Id, activity.Id);
+            listStack.Children.Add(BuildGroupingSelectionRow(
+                isIn ? "✓" : "+",
+                grouping.Name,
+                isIn ? "Tap to remove from this grouping" : "Tap to add to this grouping",
+                isIn ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#F5F5F5"),
+                isIn ? Color.FromArgb("#2E7D32") : Color.FromArgb("#5E35B1"),
+                () => CompleteAsync(grouping.Id)));
+        }
+
+        listStack.Children.Add(BuildGroupingSelectionRow(
+            "+",
+            "Create New Grouping",
+            "Add this activity to a new custom group",
+            Color.FromArgb("#FFF8E1"),
+            Color.FromArgb("#F9A825"),
+            () => CompleteAsync(-1)));
+
+        var doneButton = new Button
+        {
+            Text = "Done",
+            BackgroundColor = Color.FromArgb("#EEEEEE"),
+            TextColor = Colors.Black,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        doneButton.Clicked += async (_, _) => await CompleteAsync(null);
+
+        var content = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Groupings for",
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#666666")
+                },
+                new Label
+                {
+                    Text = activity.Name,
+                    FontSize = 18,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Colors.Black,
+                    LineBreakMode = LineBreakMode.WordWrap
+                },
+                new BoxView
+                {
+                    HeightRequest = 1,
+                    BackgroundColor = Color.FromArgb("#E0E0E0"),
+                    Margin = new Thickness(0, 4)
+                },
+                new ScrollView
+                {
+                    MaximumHeightRequest = 360,
+                    Content = listStack
+                },
+                doneButton
+            }
+        };
+
+        modalPage = new ContentPage
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            Content = new Grid
+            {
+                Padding = new Thickness(24),
+                Children =
+                {
+                    new Frame
+                    {
+                        Padding = 18,
+                        CornerRadius = 8,
+                        HasShadow = true,
+                        BackgroundColor = Colors.White,
+                        BorderColor = Color.FromArgb("#DDDDDD"),
+                        MaximumWidthRequest = 620,
+                        HorizontalOptions = LayoutOptions.Center,
+                        VerticalOptions = LayoutOptions.Center,
+                        Content = content
+                    }
+                }
+            }
+        };
+
+        await Navigation.PushModalAsync(modalPage);
+        return await completion.Task;
+    }
+
+    private static Frame BuildGroupingSelectionRow(
+        string icon,
+        string title,
+        string subtitle,
+        Color backgroundColor,
+        Color iconColor,
+        Func<Task> onTap)
+    {
+        var row = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = 32 },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 10
+        };
+
+        var iconLabel = new Label
+        {
+            Text = icon,
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = iconColor,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center
+        };
+        Grid.SetColumn(iconLabel, 0);
+        row.Children.Add(iconLabel);
+
+        var textStack = new VerticalStackLayout { Spacing = 2 };
+        textStack.Children.Add(new Label
+        {
+            Text = title,
+            FontSize = 14,
+            TextColor = Colors.Black,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        textStack.Children.Add(new Label
+        {
+            Text = subtitle,
+            FontSize = 11,
+            TextColor = Color.FromArgb("#777777"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        Grid.SetColumn(textStack, 1);
+        row.Children.Add(textStack);
+
+        var frame = new Frame
+        {
+            Padding = new Thickness(10, 8),
+            CornerRadius = 8,
+            HasShadow = false,
+            BackgroundColor = backgroundColor,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            Content = row
+        };
+        frame.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await onTap())
+        });
+
+        return frame;
     }
 
     #endregion
