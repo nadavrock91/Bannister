@@ -69,6 +69,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ActivityGroupingService>();
         builder.Services.AddSingleton<DailyLoginPromptService>();
         builder.Services.AddSingleton<MoneyManagementService>();
+        builder.Services.AddSingleton<ListsService>();
 
 
         // Conversation Practice Module
@@ -113,6 +114,7 @@ public static class MauiProgram
         builder.Services.AddTransient<StreakAttemptsPage>();
         builder.Services.AddTransient<DatabasesPage>();
         builder.Services.AddTransient<MoneyManagementPage>();
+        builder.Services.AddTransient<ListsPage>();
 
 
 #if DEBUG
