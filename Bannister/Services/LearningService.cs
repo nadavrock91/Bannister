@@ -279,6 +279,62 @@ public class LearningService
 
     #endregion
 
+    #region Speakers
+
+    public async Task<List<LearningSpeaker>> GetSpeakersAsync(string username)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<LearningSpeaker>();
+
+        var speakers = await conn.Table<LearningSpeaker>()
+            .Where(s => s.Username == username)
+            .ToListAsync();
+
+        return speakers
+            .OrderBy(s => s.LastSearchedAt.HasValue)
+            .ThenBy(s => s.LastSearchedAt ?? DateTime.MinValue)
+            .ThenBy(s => s.Name)
+            .ToList();
+    }
+
+    public async Task<LearningSpeaker> AddSpeakerAsync(string username, string name, string notes = "")
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<LearningSpeaker>();
+
+        var speaker = new LearningSpeaker
+        {
+            Username = username,
+            Name = name.Trim(),
+            Notes = notes.Trim(),
+            CreatedAt = DateTime.Now
+        };
+
+        await conn.InsertAsync(speaker);
+        return speaker;
+    }
+
+    public async Task UpdateSpeakerAsync(LearningSpeaker speaker)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(speaker);
+    }
+
+    public async Task DeleteSpeakerAsync(int speakerId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.DeleteAsync<LearningSpeaker>(speakerId);
+    }
+
+    public async Task MarkSpeakerSearchedAsync(LearningSpeaker speaker)
+    {
+        speaker.LastSearchedAt = DateTime.Now;
+        speaker.SearchCount++;
+        await UpdateSpeakerAsync(speaker);
+    }
+
+    #endregion
+
     #region Stats
 
     /// <summary>

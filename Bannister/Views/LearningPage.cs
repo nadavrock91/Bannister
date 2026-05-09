@@ -178,6 +178,18 @@ public class LearningPage : ContentPage
 
         mainStack.Children.Add(tabGrid);
 
+        var speakersBtn = new Button
+        {
+            Text = "Speakers",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#283593"),
+            FontAttributes = FontAttributes.Bold,
+            CornerRadius = 8,
+            HeightRequest = 42
+        };
+        speakersBtn.Clicked += async (s, e) => await Navigation.PushAsync(new LearningSpeakersPage(_auth, _learning));
+        mainStack.Children.Add(speakersBtn);
+
         // Books Section
         _booksFrame = new Frame
         {
@@ -4131,6 +4143,7 @@ public class LearningPage : ContentPage
                 focus.StreakStartDate = today;
             }
         }
+
         focus.LastCompletedDate = DateTime.Now;
         
         SaveVideoFocusSettings(focus);
@@ -4663,3 +4676,387 @@ public class LearningPage : ContentPage
 
     #endregion
 }
+public class LearningSpeakersPage : ContentPage
+{
+    private readonly AuthService _auth;
+    private readonly LearningService _learning;
+    private VerticalStackLayout _speakersStack;
+
+    public LearningSpeakersPage(AuthService auth, LearningService learning)
+    {
+        _auth = auth;
+        _learning = learning;
+        Title = "Speakers";
+        BackgroundColor = Color.FromArgb("#F5F5F5");
+        BuildUI();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await LoadSpeakersAsync();
+    }
+
+    private void BuildUI()
+    {
+        var mainStack = new VerticalStackLayout
+        {
+            Padding = 16,
+            Spacing = 12
+        };
+
+        var headerRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8
+        };
+
+        headerRow.Add(new Label
+        {
+            Text = "Speakers",
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+
+        var addBtn = new Button
+        {
+            Text = "+ Add",
+            BackgroundColor = Color.FromArgb("#4CAF50"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            Padding = new Thickness(16, 0)
+        };
+        addBtn.Clicked += async (s, e) => await AddSpeakerAsync();
+        headerRow.Add(addBtn, 1, 0);
+
+        var importBtn = new Button
+        {
+            Text = "Import",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            Padding = new Thickness(16, 0)
+        };
+        importBtn.Clicked += async (s, e) => await ImportSpeakersAsync();
+        headerRow.Add(importBtn, 2, 0);
+        mainStack.Children.Add(headerRow);
+
+        _speakersStack = new VerticalStackLayout { Spacing = 8 };
+        mainStack.Children.Add(_speakersStack);
+
+        Content = new ScrollView { Content = mainStack };
+    }
+
+    private async Task LoadSpeakersAsync()
+    {
+        _speakersStack.Children.Clear();
+        var speakers = await _learning.GetSpeakersAsync(_auth.CurrentUsername);
+
+        if (speakers.Count == 0)
+        {
+            _speakersStack.Children.Add(new Label
+            {
+                Text = "No speakers added yet.",
+                FontSize = 14,
+                TextColor = Color.FromArgb("#888"),
+                HorizontalOptions = LayoutOptions.Center,
+                Margin = new Thickness(0, 20)
+            });
+            return;
+        }
+
+        foreach (var speaker in speakers)
+            _speakersStack.Children.Add(BuildSpeakerCard(speaker));
+    }
+
+    private View BuildSpeakerCard(LearningSpeaker speaker)
+    {
+        var frame = new Frame
+        {
+            Padding = 12,
+            CornerRadius = 8,
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            HasShadow = false
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 10
+        };
+
+        var textStack = new VerticalStackLayout { Spacing = 4 };
+        textStack.Children.Add(new Label
+        {
+            Text = speaker.Name,
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#283593"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        textStack.Children.Add(new Label
+        {
+            Text = GetSearchStatusText(speaker),
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        if (!string.IsNullOrWhiteSpace(speaker.Notes))
+        {
+            textStack.Children.Add(new Label
+            {
+                Text = speaker.Notes,
+                FontSize = 12,
+                TextColor = Color.FromArgb("#777"),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+        }
+
+        grid.Add(textStack, 0, 0);
+
+        var buttonStack = new VerticalStackLayout { Spacing = 4 };
+
+        var searchBtn = new Button
+        {
+            Text = "Search",
+            BackgroundColor = Color.FromArgb("#D32F2F"),
+            TextColor = Colors.White,
+            FontSize = 12,
+            WidthRequest = 76,
+            HeightRequest = 32,
+            CornerRadius = 6,
+            Padding = 0
+        };
+        searchBtn.Clicked += async (s, e) => await SearchSpeakerAsync(speaker);
+        buttonStack.Children.Add(searchBtn);
+
+        var menuBtn = new Button
+        {
+            Text = "...",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            FontSize = 12,
+            WidthRequest = 76,
+            HeightRequest = 30,
+            CornerRadius = 6,
+            Padding = 0
+        };
+        menuBtn.Clicked += async (s, e) => await ShowSpeakerMenuAsync(speaker);
+        buttonStack.Children.Add(menuBtn);
+
+        grid.Add(buttonStack, 1, 0);
+        frame.Content = grid;
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (s, e) => await SearchSpeakerAsync(speaker);
+        frame.GestureRecognizers.Add(tap);
+
+        return frame;
+    }
+
+    private async Task AddSpeakerAsync()
+    {
+        string? name = await DisplayPromptAsync("Add Speaker", "Speaker name:", "Add", "Cancel", placeholder: "Name...");
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+
+        string? notes = await DisplayPromptAsync("Notes", "Optional notes:", "Save", "Skip", initialValue: "");
+        await _learning.AddSpeakerAsync(_auth.CurrentUsername, name.Trim(), notes ?? "");
+        await LoadSpeakersAsync();
+    }
+
+    private async Task ImportSpeakersAsync()
+    {
+        string? input = await ShowImportSpeakersPopupAsync();
+        if (string.IsNullOrWhiteSpace(input))
+            return;
+
+        var names = input
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (names.Count == 0)
+            return;
+
+        foreach (var name in names)
+            await _learning.AddSpeakerAsync(_auth.CurrentUsername, name);
+
+        await DisplayAlert("Imported", $"Imported {names.Count} speaker(s).", "OK");
+        await LoadSpeakersAsync();
+    }
+
+    private async Task<string?> ShowImportSpeakersPopupAsync()
+    {
+        var tcs = new TaskCompletionSource<string?>();
+        var originalContent = Content;
+        var wrapper = new Grid();
+        Content = wrapper;
+        wrapper.Children.Add(originalContent);
+
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            Padding = 20
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Colors.Transparent,
+            CornerRadius = 12,
+            Padding = 16,
+            WidthRequest = 520,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 10 };
+        stack.Children.Add(new Label
+        {
+            Text = "Import Speakers",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+        stack.Children.Add(new Label
+        {
+            Text = "Paste a list of speaker names separated by commas.",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var editor = new Editor
+        {
+            Placeholder = "Jordan Peterson, Andrew Huberman, Lex Fridman",
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            MinimumHeightRequest = 160,
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            FontSize = 14
+        };
+        stack.Children.Add(editor);
+
+        var buttons = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(16, 0)
+        };
+        var importBtn = new Button
+        {
+            Text = "Import",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(16, 0)
+        };
+
+        buttons.Children.Add(cancelBtn);
+        buttons.Children.Add(importBtn);
+        stack.Children.Add(buttons);
+
+        card.Content = stack;
+        overlay.Children.Add(card);
+        wrapper.Children.Add(overlay);
+
+        void Close(string? result)
+        {
+            wrapper.Children.Remove(overlay);
+            wrapper.Children.Remove(originalContent);
+            Content = originalContent;
+            tcs.TrySetResult(result);
+        }
+
+        cancelBtn.Clicked += (s, e) => Close(null);
+        importBtn.Clicked += (s, e) => Close(editor.Text);
+
+        await Task.Delay(50);
+        editor.Focus();
+        return await tcs.Task;
+    }
+
+    private async Task SearchSpeakerAsync(LearningSpeaker speaker)
+    {
+        await _learning.MarkSpeakerSearchedAsync(speaker);
+        string url = $"https://www.youtube.com/results?search_query={Uri.EscapeDataString(speaker.Name)}";
+        await Launcher.OpenAsync(new Uri(url));
+        await LoadSpeakersAsync();
+    }
+
+    private async Task ShowSpeakerMenuAsync(LearningSpeaker speaker)
+    {
+        string action = await DisplayActionSheet(speaker.Name, "Cancel", null, "Edit Name", "Edit Notes", "Delete");
+        if (action == "Edit Name")
+        {
+            string? name = await DisplayPromptAsync("Edit Speaker", "Speaker name:", "Save", "Cancel", initialValue: speaker.Name);
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                speaker.Name = name.Trim();
+                await _learning.UpdateSpeakerAsync(speaker);
+                await LoadSpeakersAsync();
+            }
+        }
+        else if (action == "Edit Notes")
+        {
+            string? notes = await DisplayPromptAsync("Edit Notes", "Notes:", "Save", "Cancel", initialValue: speaker.Notes ?? "");
+            if (notes != null)
+            {
+                speaker.Notes = notes.Trim();
+                await _learning.UpdateSpeakerAsync(speaker);
+                await LoadSpeakersAsync();
+            }
+        }
+        else if (action == "Delete")
+        {
+            if (await DisplayAlert("Delete speaker?", $"Delete \"{speaker.Name}\"?", "Delete", "Cancel"))
+            {
+                await _learning.DeleteSpeakerAsync(speaker.Id);
+                await LoadSpeakersAsync();
+            }
+        }
+    }
+
+    private static string GetSearchStatusText(LearningSpeaker speaker)
+    {
+        if (!speaker.LastSearchedAt.HasValue)
+            return "Never searched";
+
+        var elapsed = DateTime.Now - speaker.LastSearchedAt.Value;
+        string ago = FormatElapsed(elapsed);
+        return $"Last searched {ago} ago | {speaker.SearchCount} search(es)";
+    }
+
+    private static string FormatElapsed(TimeSpan elapsed)
+    {
+        if (elapsed.TotalMinutes < 1) return "just now";
+        if (elapsed.TotalHours < 1) return $"{(int)elapsed.TotalMinutes} minute(s)";
+        if (elapsed.TotalDays < 1) return $"{(int)elapsed.TotalHours} hour(s)";
+        if (elapsed.TotalDays < 30) return $"{(int)elapsed.TotalDays} day(s)";
+        if (elapsed.TotalDays < 365) return $"{(int)(elapsed.TotalDays / 30)} month(s)";
+        return $"{(int)(elapsed.TotalDays / 365)} year(s)";
+    }
+}
+
