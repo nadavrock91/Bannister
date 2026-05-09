@@ -17,6 +17,7 @@ public class CalendarPage : ContentPage
     private readonly TaskService _taskService;
     private readonly IdeasService? _ideasService;
     private readonly DatabaseService _db;
+    private readonly LookoutService _lookoutService;
 
     private Label _monthLabel;
     private Grid _calendarGrid;
@@ -32,13 +33,15 @@ public class CalendarPage : ContentPage
     // Task counts keyed by day-of-month
     private Dictionary<int, int> _taskCounts = new();
     private Dictionary<int, int> _completedCounts = new();
+    private Dictionary<int, int> _lookoutCounts = new();
 
-    public CalendarPage(AuthService auth, TaskService taskService, IdeasService? ideasService = null, DatabaseService? db = null)
+    public CalendarPage(AuthService auth, TaskService taskService, IdeasService? ideasService = null, DatabaseService? db = null, LookoutService? lookoutService = null)
     {
         _auth = auth;
         _taskService = taskService;
         _ideasService = ideasService;
-        _db = db;
+        _db = db ?? throw new ArgumentNullException(nameof(db));
+        _lookoutService = lookoutService ?? new LookoutService(_db);
         Title = "Calendar";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -234,6 +237,7 @@ public class CalendarPage : ContentPage
         // Load all tasks and count by due date day
         _taskCounts.Clear();
         _completedCounts.Clear();
+        _lookoutCounts.Clear();
 
         try
         {
@@ -257,6 +261,8 @@ public class CalendarPage : ContentPage
                     _completedCounts[day] = _completedCounts.GetValueOrDefault(day) + 1;
                 }
             }
+
+            _lookoutCounts = await _lookoutService.GetCountsByDayAsync(_auth.CurrentUsername, _year, _month);
         }
         catch { }
 
@@ -292,16 +298,17 @@ public class CalendarPage : ContentPage
 
             int activeTasks = _taskCounts.GetValueOrDefault(day);
             int doneTasks = _completedCounts.GetValueOrDefault(day);
+            int lookouts = _lookoutCounts.GetValueOrDefault(day);
             bool isToday = isCurrentMonth && day == today;
             bool isWeekend = col >= 5;
             bool isPast = isCurrentMonth && day < today;
 
-            var card = BuildDayCard(day, activeTasks, doneTasks, isToday, isWeekend, isPast);
+            var card = BuildDayCard(day, activeTasks, doneTasks, lookouts, isToday, isWeekend, isPast);
             _calendarGrid.Add(card, col, row);
         }
     }
 
-    private Frame BuildDayCard(int day, int activeTasks, int doneTasks, bool isToday, bool isWeekend, bool isPast)
+    private Frame BuildDayCard(int day, int activeTasks, int doneTasks, int lookouts, bool isToday, bool isWeekend, bool isPast)
     {
         Color bg;
         Color border;
@@ -315,6 +322,11 @@ public class CalendarPage : ContentPage
         {
             bg = Color.FromArgb("#FFF8E1");
             border = Color.FromArgb("#FF8F00");
+        }
+        else if (lookouts > 0)
+        {
+            bg = Color.FromArgb("#F3E5F5");
+            border = Color.FromArgb("#6A1B9A");
         }
         else if (doneTasks > 0)
         {
@@ -366,7 +378,18 @@ public class CalendarPage : ContentPage
             });
         }
 
-        if (activeTasks == 0 && doneTasks == 0)
+        if (lookouts > 0)
+        {
+            stack.Children.Add(new Label
+            {
+                Text = $"Lookouts {lookouts}",
+                FontSize = 11,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#6A1B9A")
+            });
+        }
+
+        if (activeTasks == 0 && doneTasks == 0 && lookouts == 0)
         {
             stack.Children.Add(new Label
             {
@@ -389,7 +412,7 @@ public class CalendarPage : ContentPage
     private async Task NavigateToDayAsync(int day)
     {
         var date = new DateTime(_year, _month, day);
-        var page = new CalendarDayPage(_auth, _taskService, date, _ideasService);
+        var page = new CalendarDayPage(_auth, _taskService, date, _ideasService, _lookoutService);
         await Navigation.PushAsync(page);
     }
 
@@ -1519,20 +1542,26 @@ public class CalendarDayPage : ContentPage
     private readonly TaskService _taskService;
     private readonly DateTime _date;
     private readonly IdeasService? _ideasService;
+    private readonly LookoutService _lookoutService;
 
     private VerticalStackLayout _activeStack;
     private VerticalStackLayout _completedStack;
     private VerticalStackLayout _urgentStack;
+    private VerticalStackLayout _lookoutsStack;
     private Label _activeHeader;
     private Label _completedHeader;
     private Label _urgentHeader;
+    private Label _lookoutsHeader;
+    private int _loadTasksVersion;
+    private bool _isAddingLookout;
 
-    public CalendarDayPage(AuthService auth, TaskService taskService, DateTime date, IdeasService? ideasService = null)
+    public CalendarDayPage(AuthService auth, TaskService taskService, DateTime date, IdeasService? ideasService = null, LookoutService? lookoutService = null)
     {
         _auth = auth;
         _taskService = taskService;
         _date = date.Date;
         _ideasService = ideasService;
+        _lookoutService = lookoutService ?? throw new ArgumentNullException(nameof(lookoutService));
         Title = date.ToString("MMM d, yyyy");
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -1589,6 +1618,20 @@ public class CalendarDayPage : ContentPage
         addBtn.Clicked += OnAddTaskClicked;
         actionRow.Children.Add(addBtn);
 
+        var addLookoutBtn = new Button
+        {
+            Text = "+ Add Lookout",
+            FontSize = 13,
+            HeightRequest = 44,
+            BackgroundColor = Color.FromArgb("#6A1B9A"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(16, 0)
+        };
+        ToolTipProperties.SetText(addLookoutBtn, "Add a scenario lookout for this date");
+        addLookoutBtn.Clicked += async (s, e) => await AddLookoutAsync();
+        actionRow.Children.Add(addLookoutBtn);
+
         var moveAllUnplacedBtn = new Button
         {
             Text = "Move all to not yet placed",
@@ -1604,6 +1647,19 @@ public class CalendarDayPage : ContentPage
         actionRow.Children.Add(moveAllUnplacedBtn);
 
         mainStack.Children.Add(actionRow);
+
+        _lookoutsHeader = new Label
+        {
+            Text = "Lookouts (0)",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#6A1B9A"),
+            Margin = new Thickness(0, 8, 0, 4)
+        };
+        mainStack.Children.Add(_lookoutsHeader);
+
+        _lookoutsStack = new VerticalStackLayout { Spacing = 6 };
+        mainStack.Children.Add(_lookoutsStack);
 
         // Urgent tasks (above everything)
         _urgentHeader = new Label
@@ -1644,14 +1700,42 @@ public class CalendarDayPage : ContentPage
 
     private async Task LoadTasksAsync()
     {
+        var loadVersion = ++_loadTasksVersion;
+
         var active = await _taskService.GetActiveTasksAsync(_auth.CurrentUsername);
         var completed = await _taskService.GetCompletedTasksAsync(_auth.CurrentUsername);
 
         var dayActive = active.Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == _date).ToList();
         var dayCompleted = completed.Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == _date).ToList();
+        var lookouts = await _lookoutService.GetForDateAsync(_auth.CurrentUsername, _date);
+
+        if (loadVersion != _loadTasksVersion)
+            return;
 
         var urgent = dayActive.Where(t => t.IsUrgent).ToList();
         var regular = dayActive.Where(t => !t.IsUrgent).ToList();
+
+        var lookoutCards = new List<View>();
+        foreach (var lookout in lookouts)
+        {
+            var card = await BuildLookoutCardAsync(lookout);
+            if (loadVersion != _loadTasksVersion)
+                return;
+
+            lookoutCards.Add(card);
+        }
+
+        _lookoutsHeader.Text = $"Lookouts ({lookouts.Count})";
+        _lookoutsStack.Children.Clear();
+        if (lookouts.Count == 0)
+        {
+            _lookoutsStack.Children.Add(new Label { Text = "No lookouts for this day.", FontSize = 13, TextColor = Color.FromArgb("#999"), Margin = new Thickness(8, 4) });
+        }
+        else
+        {
+            foreach (var card in lookoutCards)
+                _lookoutsStack.Children.Add(card);
+        }
 
         // Urgent section
         _urgentHeader.Text = $"🔴 Urgent ({urgent.Count})";
@@ -1685,6 +1769,243 @@ public class CalendarDayPage : ContentPage
             foreach (var task in dayCompleted)
                 _completedStack.Children.Add(BuildTaskCard(task, true));
         }
+    }
+
+    private async Task<Frame> BuildLookoutCardAsync(LookoutScenario lookout)
+    {
+        var items = await _lookoutService.GetItemsAsync(lookout.Id);
+
+        var frame = new Frame
+        {
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            BorderColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            Padding = 12,
+            HasShadow = false
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8
+        };
+
+        var textStack = new VerticalStackLayout { Spacing = 3 };
+        textStack.Children.Add(new Label
+        {
+            Text = lookout.Title,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#4A148C"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        textStack.Children.Add(new Label
+        {
+            Text = $"{items.Count} list item(s)",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#6A1B9A")
+        });
+        if (!string.IsNullOrWhiteSpace(lookout.Notes))
+        {
+            textStack.Children.Add(new Label
+            {
+                Text = lookout.Notes,
+                FontSize = 11,
+                TextColor = Color.FromArgb("#666"),
+                MaxLines = 2,
+                LineBreakMode = LineBreakMode.TailTruncation
+            });
+        }
+        grid.Add(textStack, 0, 0);
+
+        var buttonStack = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
+
+        var openBtn = new Button
+        {
+            Text = "List",
+            FontSize = 11,
+            WidthRequest = 54,
+            HeightRequest = 30,
+            BackgroundColor = Color.FromArgb("#6A1B9A"),
+            TextColor = Colors.White,
+            CornerRadius = 4,
+            Padding = 0
+        };
+        ToolTipProperties.SetText(openBtn, "Open lookout list");
+        openBtn.Clicked += async (s, e) => await OpenLookoutAsync(lookout);
+        buttonStack.Children.Add(openBtn);
+
+        var dateBtn = new Button
+        {
+            Text = "Date",
+            FontSize = 11,
+            WidthRequest = 54,
+            HeightRequest = 30,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 4,
+            Padding = 0
+        };
+        ToolTipProperties.SetText(dateBtn, "Change lookout display date");
+        dateBtn.Clicked += async (s, e) => await ChangeLookoutDateAsync(lookout);
+        buttonStack.Children.Add(dateBtn);
+
+        var removeBtn = new Button
+        {
+            Text = "Remove",
+            FontSize = 10,
+            WidthRequest = 54,
+            HeightRequest = 30,
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 4,
+            Padding = 0
+        };
+        ToolTipProperties.SetText(removeBtn, "Remove lookout from calendar only");
+        removeBtn.Clicked += async (s, e) => await RemoveLookoutFromCalendarAsync(lookout);
+        buttonStack.Children.Add(removeBtn);
+
+        grid.Add(buttonStack, 1, 0);
+        frame.Content = grid;
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (s, e) => await OpenLookoutAsync(lookout);
+        frame.GestureRecognizers.Add(tap);
+
+        return frame;
+    }
+
+    private async Task AddLookoutAsync()
+    {
+        if (_isAddingLookout)
+            return;
+
+        _isAddingLookout = true;
+        try
+        {
+            string? title = await DisplayPromptAsync(
+                "New Lookout",
+                $"Scenario to watch for on {_date:MMM d, yyyy}:",
+                "Add",
+                "Cancel",
+                placeholder: "Scenario title...");
+
+            if (string.IsNullOrWhiteSpace(title))
+                return;
+
+            string? notes = await DisplayPromptAsync(
+                "Lookout Notes",
+                "Optional notes:",
+                "Save",
+                "Skip",
+                initialValue: "");
+
+            var lookout = await _lookoutService.CreateAsync(_auth.CurrentUsername, title.Trim(), _date, notes ?? "");
+            await OpenLookoutAsync(lookout);
+        }
+        finally
+        {
+            _isAddingLookout = false;
+        }
+    }
+
+    private async Task OpenLookoutAsync(LookoutScenario lookout)
+    {
+        var page = new LookoutScenarioPage(_auth, _lookoutService, lookout);
+        page.Disappearing += async (s, e) => await LoadTasksAsync();
+        await Navigation.PushAsync(page);
+    }
+
+    private async Task ChangeLookoutDateAsync(LookoutScenario lookout)
+    {
+        var date = await ShowLookoutDatePickerAsync(lookout);
+        if (date == null)
+            return;
+
+        lookout.DisplayDate = date.Value.Date;
+        await _lookoutService.UpdateAsync(lookout);
+        await LoadTasksAsync();
+    }
+
+    private async Task<DateTime?> ShowLookoutDatePickerAsync(LookoutScenario lookout)
+    {
+        var tcs = new TaskCompletionSource<DateTime?>();
+        var popup = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 420,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            HasShadow = true
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 10 };
+        stack.Children.Add(new Label { Text = "Change Lookout Date", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#6A1B9A") });
+        stack.Children.Add(new Label { Text = lookout.Title, FontSize = 13, TextColor = Color.FromArgb("#333"), LineBreakMode = LineBreakMode.WordWrap });
+
+        var picker = new DatePicker
+        {
+            Date = lookout.DisplayDate?.Date ?? _date,
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            FontSize = 14
+        };
+        stack.Children.Add(picker);
+
+        var buttons = new HorizontalStackLayout { Spacing = 10, Margin = new Thickness(0, 8, 0, 0) };
+        var saveBtn = new Button { Text = "Save", FontSize = 13, HeightRequest = 38, BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold };
+        var cancelBtn = new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, BackgroundColor = Color.FromArgb("#9E9E9E"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+        buttons.Children.Add(saveBtn);
+        buttons.Children.Add(cancelBtn);
+        stack.Children.Add(buttons);
+
+        card.Content = stack;
+        popup.Children.Add(card);
+
+        var originalContent = Content;
+        var wrapper = new Grid();
+        Content = wrapper;
+        wrapper.Children.Add(originalContent);
+        wrapper.Children.Add(popup);
+
+        void Dismiss()
+        {
+            wrapper.Children.Remove(popup);
+            wrapper.Children.Remove(originalContent);
+            Content = originalContent;
+        }
+
+        saveBtn.Clicked += (s, e) => { Dismiss(); tcs.TrySetResult(picker.Date); };
+        cancelBtn.Clicked += (s, e) => { Dismiss(); tcs.TrySetResult(null); };
+
+        return await tcs.Task;
+    }
+
+    private async Task RemoveLookoutFromCalendarAsync(LookoutScenario lookout)
+    {
+        if (!await DisplayAlert(
+            "Remove from calendar?",
+            $"Remove \"{lookout.Title}\" from this date?\n\nIts list will not be deleted.",
+            "Remove",
+            "Cancel"))
+        {
+            return;
+        }
+
+        await _lookoutService.RemoveFromCalendarAsync(lookout);
+        await LoadTasksAsync();
     }
 
     private Frame BuildTaskCard(TaskItem task, bool isCompleted)
@@ -2110,5 +2431,356 @@ public class CalendarDayPage : ContentPage
             try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[{_date:MMM d}] {title.Trim()}", "calendar_tasks"); } catch { }
 
         await LoadTasksAsync();
+    }
+}
+
+public class LookoutScenarioPage : ContentPage
+{
+    private readonly AuthService _auth;
+    private readonly LookoutService _lookoutService;
+    private readonly LookoutScenario _lookout;
+
+    private Label _dateLabel;
+    private Label _notesLabel;
+    private VerticalStackLayout _itemsStack;
+
+    public LookoutScenarioPage(AuthService auth, LookoutService lookoutService, LookoutScenario lookout)
+    {
+        _auth = auth;
+        _lookoutService = lookoutService;
+        _lookout = lookout;
+        Title = lookout.Title;
+        BackgroundColor = Color.FromArgb("#F5F5F5");
+        BuildUI();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await LoadItemsAsync();
+    }
+
+    private void BuildUI()
+    {
+        var mainStack = new VerticalStackLayout { Padding = 16, Spacing = 12 };
+
+        var header = new Frame
+        {
+            BackgroundColor = Color.FromArgb("#6A1B9A"),
+            BorderColor = Colors.Transparent,
+            CornerRadius = 10,
+            Padding = 16,
+            HasShadow = true
+        };
+
+        var headerStack = new VerticalStackLayout { Spacing = 4 };
+        headerStack.Children.Add(new Label
+        {
+            Text = _lookout.Title,
+            FontSize = 22,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        _dateLabel = new Label { FontSize = 13, TextColor = Color.FromArgb("#E1BEE7") };
+        headerStack.Children.Add(_dateLabel);
+
+        _notesLabel = new Label
+        {
+            FontSize = 13,
+            TextColor = Color.FromArgb("#F3E5F5"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+        headerStack.Children.Add(_notesLabel);
+
+        header.Content = headerStack;
+        mainStack.Children.Add(header);
+
+        var actionRow = new HorizontalStackLayout { Spacing = 10 };
+        var addBtn = new Button
+        {
+            Text = "+ Add List Item",
+            FontSize = 14,
+            HeightRequest = 42,
+            BackgroundColor = Color.FromArgb("#4CAF50"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(16, 0)
+        };
+        addBtn.Clicked += async (s, e) => await AddItemAsync();
+        actionRow.Children.Add(addBtn);
+
+        var editDateBtn = new Button
+        {
+            Text = "Change Date",
+            FontSize = 13,
+            HeightRequest = 42,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            Padding = new Thickness(14, 0)
+        };
+        editDateBtn.Clicked += async (s, e) => await ChangeDateAsync();
+        actionRow.Children.Add(editDateBtn);
+
+        var removeDateBtn = new Button
+        {
+            Text = "Remove From Calendar",
+            FontSize = 13,
+            HeightRequest = 42,
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 8,
+            Padding = new Thickness(14, 0)
+        };
+        removeDateBtn.Clicked += async (s, e) => await RemoveFromCalendarAsync();
+        actionRow.Children.Add(removeDateBtn);
+
+        mainStack.Children.Add(actionRow);
+
+        mainStack.Children.Add(new Label
+        {
+            Text = "Scenario task list",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            Margin = new Thickness(0, 8, 0, 0)
+        });
+
+        _itemsStack = new VerticalStackLayout { Spacing = 6 };
+        mainStack.Children.Add(_itemsStack);
+
+        Content = new ScrollView { Content = mainStack };
+        RefreshHeader();
+    }
+
+    private void RefreshHeader()
+    {
+        _dateLabel.Text = _lookout.DisplayDate.HasValue
+            ? $"Displayed on {_lookout.DisplayDate.Value:dddd, MMM d, yyyy}"
+            : "Not currently displayed on calendar";
+
+        _notesLabel.Text = string.IsNullOrWhiteSpace(_lookout.Notes)
+            ? ""
+            : _lookout.Notes;
+    }
+
+    private async Task LoadItemsAsync()
+    {
+        RefreshHeader();
+        _itemsStack.Children.Clear();
+
+        var items = await _lookoutService.GetItemsAsync(_lookout.Id);
+        if (items.Count == 0)
+        {
+            _itemsStack.Children.Add(new Label
+            {
+                Text = "No list items yet.",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#999"),
+                Margin = new Thickness(8, 4)
+            });
+            return;
+        }
+
+        foreach (var item in items)
+            _itemsStack.Children.Add(BuildItemCard(item));
+    }
+
+    private Frame BuildItemCard(LookoutScenarioItem item)
+    {
+        var frame = new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            CornerRadius = 8,
+            Padding = 12,
+            HasShadow = false
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8
+        };
+
+        var textStack = new VerticalStackLayout { Spacing = 3 };
+        textStack.Children.Add(new Label
+        {
+            Text = item.Title,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        if (!string.IsNullOrWhiteSpace(item.Notes))
+        {
+            textStack.Children.Add(new Label
+            {
+                Text = item.Notes,
+                FontSize = 12,
+                TextColor = Color.FromArgb("#777"),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+        }
+
+        grid.Add(textStack, 0, 0);
+
+        var buttons = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
+        var editBtn = new Button
+        {
+            Text = "Edit",
+            FontSize = 11,
+            WidthRequest = 54,
+            HeightRequest = 30,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 4,
+            Padding = 0
+        };
+        editBtn.Clicked += async (s, e) => await EditItemAsync(item);
+        buttons.Children.Add(editBtn);
+
+        var deleteBtn = new Button
+        {
+            Text = "Delete",
+            FontSize = 10,
+            WidthRequest = 54,
+            HeightRequest = 30,
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 4,
+            Padding = 0
+        };
+        deleteBtn.Clicked += async (s, e) => await DeleteItemAsync(item);
+        buttons.Children.Add(deleteBtn);
+
+        grid.Add(buttons, 1, 0);
+        frame.Content = grid;
+        return frame;
+    }
+
+    private async Task AddItemAsync()
+    {
+        string? title = await DisplayPromptAsync("Add List Item", "Task/action relevant if this scenario happens:", "Add", "Cancel", placeholder: "List item...");
+        if (string.IsNullOrWhiteSpace(title))
+            return;
+
+        string? notes = await DisplayPromptAsync("Item Notes", "Optional notes:", "Save", "Skip", initialValue: "");
+        await _lookoutService.AddItemAsync(_lookout.Id, title.Trim(), notes ?? "");
+        await LoadItemsAsync();
+    }
+
+    private async Task EditItemAsync(LookoutScenarioItem item)
+    {
+        string? title = await DisplayPromptAsync("Edit List Item", "Update title:", "Save", "Cancel", initialValue: item.Title);
+        if (title == null)
+            return;
+
+        string? notes = await DisplayPromptAsync("Edit Notes", "Update notes:", "Save", "Skip", initialValue: item.Notes ?? "");
+        if (string.IsNullOrWhiteSpace(title))
+            return;
+
+        item.Title = title.Trim();
+        if (notes != null)
+            item.Notes = notes.Trim();
+        await _lookoutService.UpdateItemAsync(item);
+        await LoadItemsAsync();
+    }
+
+    private async Task DeleteItemAsync(LookoutScenarioItem item)
+    {
+        if (!await DisplayAlert("Delete list item?", $"Delete \"{item.Title}\"?", "Delete", "Cancel"))
+            return;
+
+        await _lookoutService.DeleteItemAsync(item);
+        await LoadItemsAsync();
+    }
+
+    private async Task ChangeDateAsync()
+    {
+        var date = await ShowDatePickerPopupAsync();
+        if (date == null)
+            return;
+
+        _lookout.DisplayDate = date.Value.Date;
+        await _lookoutService.UpdateAsync(_lookout);
+        await LoadItemsAsync();
+    }
+
+    private async Task<DateTime?> ShowDatePickerPopupAsync()
+    {
+        var tcs = new TaskCompletionSource<DateTime?>();
+        var popup = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 420,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            HasShadow = true
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 10 };
+        stack.Children.Add(new Label { Text = "Change Display Date", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#6A1B9A") });
+        var picker = new DatePicker { Date = _lookout.DisplayDate?.Date ?? DateTime.Today, BackgroundColor = Color.FromArgb("#F3E5F5"), FontSize = 14 };
+        stack.Children.Add(picker);
+
+        var buttons = new HorizontalStackLayout { Spacing = 10, Margin = new Thickness(0, 8, 0, 0) };
+        var saveBtn = new Button { Text = "Save", FontSize = 13, HeightRequest = 38, BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold };
+        var cancelBtn = new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, BackgroundColor = Color.FromArgb("#9E9E9E"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+        buttons.Children.Add(saveBtn);
+        buttons.Children.Add(cancelBtn);
+        stack.Children.Add(buttons);
+
+        card.Content = stack;
+        popup.Children.Add(card);
+
+        var originalContent = Content;
+        var wrapper = new Grid();
+        Content = wrapper;
+        wrapper.Children.Add(originalContent);
+        wrapper.Children.Add(popup);
+
+        void Dismiss()
+        {
+            wrapper.Children.Remove(popup);
+            wrapper.Children.Remove(originalContent);
+            Content = originalContent;
+        }
+
+        saveBtn.Clicked += (s, e) => { Dismiss(); tcs.TrySetResult(picker.Date); };
+        cancelBtn.Clicked += (s, e) => { Dismiss(); tcs.TrySetResult(null); };
+        return await tcs.Task;
+    }
+
+    private async Task RemoveFromCalendarAsync()
+    {
+        if (!await DisplayAlert(
+            "Remove from calendar?",
+            $"Remove \"{_lookout.Title}\" from the calendar?\n\nThe list items will remain.",
+            "Remove",
+            "Cancel"))
+        {
+            return;
+        }
+
+        await _lookoutService.RemoveFromCalendarAsync(_lookout);
+        _lookout.DisplayDate = null;
+        await LoadItemsAsync();
     }
 }
