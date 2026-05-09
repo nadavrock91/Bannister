@@ -1576,7 +1576,9 @@ public class CalendarDayPage : ContentPage
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
 
-        // Add task button
+        // Date actions
+        var actionRow = new HorizontalStackLayout { Spacing = 10 };
+
         var addBtn = new Button
         {
             Text = "+ Add Task", FontSize = 14, HeightRequest = 44,
@@ -1585,7 +1587,23 @@ public class CalendarDayPage : ContentPage
             HorizontalOptions = LayoutOptions.Start
         };
         addBtn.Clicked += OnAddTaskClicked;
-        mainStack.Children.Add(addBtn);
+        actionRow.Children.Add(addBtn);
+
+        var moveAllUnplacedBtn = new Button
+        {
+            Text = "Move all to not yet placed",
+            FontSize = 13,
+            HeightRequest = 44,
+            BackgroundColor = Color.FromArgb("#6A1B9A"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(16, 0)
+        };
+        ToolTipProperties.SetText(moveAllUnplacedBtn, "Move every active task on this date to not yet placed");
+        moveAllUnplacedBtn.Clicked += async (s, e) => await MoveAllActiveTasksToNotYetPlacedAsync();
+        actionRow.Children.Add(moveAllUnplacedBtn);
+
+        mainStack.Children.Add(actionRow);
 
         // Urgent tasks (above everything)
         _urgentHeader = new Label
@@ -1837,6 +1855,38 @@ public class CalendarDayPage : ContentPage
         task.DueDate = null;
         task.Category = NotYetPlacedCategory;
         await _taskService.UpdateTaskAsync(task);
+        await LoadTasksAsync();
+    }
+
+    private async Task MoveAllActiveTasksToNotYetPlacedAsync()
+    {
+        var active = await _taskService.GetActiveTasksAsync(_auth.CurrentUsername);
+        var tasksToMove = active
+            .Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == _date)
+            .ToList();
+
+        if (tasksToMove.Count == 0)
+        {
+            await DisplayAlert("No Tasks", "There are no active tasks on this date to move.", "OK");
+            return;
+        }
+
+        if (!await DisplayAlert(
+            "Move all to not yet placed?",
+            $"Move {tasksToMove.Count} active task(s) from {_date:MMM d, yyyy} to not yet placed?",
+            "Move All",
+            "Cancel"))
+        {
+            return;
+        }
+
+        foreach (var task in tasksToMove)
+        {
+            task.DueDate = null;
+            task.Category = NotYetPlacedCategory;
+            await _taskService.UpdateTaskAsync(task);
+        }
+
         await LoadTasksAsync();
     }
 
