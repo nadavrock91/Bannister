@@ -53,10 +53,11 @@ public class IdeasService
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
         var all = await conn.Table<IdeaItem>()
-            .Where(i => i.Username == username && i.Category == category)
+            .Where(i => i.Username == username)
             .ToListAsync();
         
         return all
+            .Where(i => string.Equals(i.Category, category, StringComparison.OrdinalIgnoreCase))
             .Where(i => i.Status != 3)
             .OrderByDescending(i => i.IsStarred)
             .ThenByDescending(i => i.Priority)
@@ -112,8 +113,10 @@ public class IdeasService
         
         return ideas
             .Select(i => i.Category)
-            .Distinct()
-            .OrderBy(c => c)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .GroupBy(c => c.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(c => c).First())
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
