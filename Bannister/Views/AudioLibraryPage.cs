@@ -14,10 +14,13 @@ public class AudioLibraryPage : ContentPage
     private readonly AudioLibraryService _audioLib;
 
     private Picker _categoryPicker;
-    private VerticalStackLayout _itemsContainer;
+    private VerticalStackLayout _toolbarContainer;
+    private VerticalStackLayout _gridContainer;
     private Label _statsLabel;
+    private Button _actionsButton;
     private List<string> _categories = new();
     private List<AudioItem> _currentItems = new();
+    private AudioItem? _selectedItem;
     private string _selectedCategory = "All";
 
     public AudioLibraryPage(AuthService auth, AudioLibraryService audioLib)
@@ -103,21 +106,52 @@ public class AudioLibraryPage : ContentPage
         };
         filterRow.Children.Add(_categoryPicker);
 
+        _actionsButton = new Button
+        {
+            Text = "⋮ Actions",
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#4527A0"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            HeightRequest = 36,
+            IsEnabled = false
+        };
+        _actionsButton.Clicked += async (s, e) =>
+        {
+            if (_selectedItem != null)
+                await ShowItemActionsAsync(_selectedItem);
+        };
+        filterRow.Children.Add(_actionsButton);
+
         headerStack.Children.Add(filterRow);
 
         Grid.SetRow(headerStack, 0);
         mainGrid.Children.Add(headerStack);
 
-        // ===== Scrollable items list =====
-        var scrollView = new ScrollView();
-        _itemsContainer = new VerticalStackLayout
+        // ===== Data grid: fixed toolbar + scrollable grid, same pattern as DatabasesPage =====
+        var gridArea = new Grid
         {
-            Padding = 16,
-            Spacing = 10
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star)
+            },
+            Padding = new Thickness(16, 4)
         };
-        scrollView.Content = _itemsContainer;
-        Grid.SetRow(scrollView, 1);
-        mainGrid.Children.Add(scrollView);
+
+        _toolbarContainer = new VerticalStackLayout
+        {
+            Padding = new Thickness(0, 0, 0, 4)
+        };
+        gridArea.Add(_toolbarContainer, 0, 0);
+
+        var scrollView = new ScrollView { Orientation = ScrollOrientation.Both };
+        _gridContainer = new VerticalStackLayout { Spacing = 4 };
+        scrollView.Content = _gridContainer;
+        gridArea.Add(scrollView, 0, 1);
+
+        Grid.SetRow(gridArea, 1);
+        mainGrid.Children.Add(gridArea);
 
         // ===== Bottom bar =====
         var bottomBar = new Grid
@@ -193,7 +227,10 @@ public class AudioLibraryPage : ContentPage
 
     private async Task LoadItemsAsync()
     {
-        _itemsContainer.Children.Clear();
+        _toolbarContainer.Children.Clear();
+        _gridContainer.Children.Clear();
+        _selectedItem = null;
+        _actionsButton.IsEnabled = false;
 
         List<AudioItem> items;
         if (_selectedCategory == "All")
@@ -205,7 +242,7 @@ public class AudioLibraryPage : ContentPage
 
         if (items.Count == 0)
         {
-            _itemsContainer.Children.Add(new Label
+            _gridContainer.Children.Add(new Label
             {
                 Text = "No audio items yet.\n\nAdd quotes, anecdotes, or lessons\nusing the buttons below.",
                 FontSize = 16,
@@ -217,32 +254,16 @@ public class AudioLibraryPage : ContentPage
         }
 
         // Build columns and rows for DataGridView
-        var columns = new List<string> { "Text", "Category", "Source", "Audio", "Played", "Fav" };
+        var columns = new List<string> { "Id", "Text", "Category", "Source", "Notes", "Audio", "Played", "Fav", "CreatedAt", "ModifiedAt" };
         var displayRows = new List<List<string>>();
         var fullRows = new List<List<string>>();
 
         foreach (var item in items)
         {
-            var displayRow = new List<string>
-            {
-                item.TextPreview,
-                item.Category,
-                string.IsNullOrEmpty(item.Source) ? "" : item.Source,
-                item.AudioStatusDisplay,
-                item.TimesPlayedDisplay,
-                item.IsFavorite ? "⭐" : "☆"
-            };
-            var fullRow = new List<string>
-            {
-                item.Text,
-                item.Category,
-                item.Source ?? "",
-                item.AudioStatusDisplay,
-                item.TimesPlayed.ToString(),
-                item.IsFavorite ? "true" : "false"
-            };
-            displayRows.Add(displayRow);
+            var fullRow = BuildAudioGridRow(item);
+            var displayRow = fullRow.Select(v => v.Length > 50 ? v.Substring(0, 47) + "..." : v).ToList();
             fullRows.Add(fullRow);
+            displayRows.Add(displayRow);
         }
 
         var dataGrid = DataGridView.Create(columns, displayRows)
@@ -252,51 +273,109 @@ public class AudioLibraryPage : ContentPage
             .WithCellPadding(6)
             .WithFontSize(12, 12)
             .WithFullRows(fullRows)
+            .WithIdColumn("Id")
+            .OnCellTapped((s, e) =>
+            {
+                if (e.RowIndex >= 0 && e.RowIndex < _currentItems.Count)
+                {
+                    _selectedItem = _currentItems[e.RowIndex];
+                    _actionsButton.IsEnabled = true;
+                }
+            })
+            .WithUpdateCallback(UpdateAudioGridCellAsync)
             .Build();
 
-        // Attach row tap handler for actions
-        if (dataGrid.GridView is View gridView)
-        {
-            AttachRowTapHandlers(gridView, items);
-        }
-
-        _itemsContainer.Children.Add(dataGrid.ToolbarView);
-        _itemsContainer.Children.Add(dataGrid.GridView);
+        _toolbarContainer.Children.Add(dataGrid.ToolbarView);
+        _gridContainer.Children.Add(dataGrid.GridView);
     }
 
-    private void AttachRowTapHandlers(View gridView, List<AudioItem> items)
+    private static List<string> BuildAudioGridRow(AudioItem item)
     {
-        // Walk the visual tree to find row grids and attach tap gestures
-        if (gridView is Layout layout)
+        return new List<string>
         {
-            int rowIndex = 0;
-            foreach (var child in layout.Children)
-            {
-                if (child is Grid rowGrid && rowGrid.BackgroundColor != null)
-                {
-                    // Skip header row (has header background color)
-                    bool isHeader = false;
-                    foreach (var cell in rowGrid.Children)
-                    {
-                        if (cell is Label lbl && lbl.FontAttributes == FontAttributes.Bold &&
-                            lbl.TextColor == Colors.White)
-                        {
-                            isHeader = true;
-                            break;
-                        }
-                    }
+            item.Id.ToString(),
+            item.Text,
+            item.Category,
+            item.Source ?? "",
+            item.Notes ?? "",
+            item.AudioStatusDisplay,
+            item.TimesPlayed.ToString(),
+            item.IsFavorite ? "true" : "false",
+            item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
+            item.ModifiedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? ""
+        };
+    }
 
-                    if (!isHeader && rowIndex < items.Count)
-                    {
-                        int capturedIndex = rowIndex;
-                        var tap = new TapGestureRecognizer();
-                        tap.Tapped += async (s, e) => await ShowItemActionsAsync(items[capturedIndex]);
-                        rowGrid.GestureRecognizers.Add(tap);
-                        rowIndex++;
-                    }
-                }
-            }
+    private async Task<bool> UpdateAudioGridCellAsync(string idValue, string columnName, string newValue)
+    {
+        if (!int.TryParse(idValue, out int id))
+            return false;
+
+        var item = _currentItems.FirstOrDefault(i => i.Id == id)
+            ?? (await _audioLib.GetAllAsync(_auth.CurrentUsername)).FirstOrDefault(i => i.Id == id);
+        if (item == null)
+            return false;
+
+        switch (columnName)
+        {
+            case "Text":
+                if (string.IsNullOrWhiteSpace(newValue)) return false;
+                item.Text = newValue.Trim();
+                break;
+            case "Category":
+                item.Category = string.IsNullOrWhiteSpace(newValue) || newValue.Equals("NULL", StringComparison.OrdinalIgnoreCase)
+                    ? "General"
+                    : newValue.Trim();
+                break;
+            case "Source":
+                item.Source = newValue == "NULL" ? "" : newValue.Trim();
+                break;
+            case "Notes":
+                item.Notes = newValue == "NULL" ? "" : newValue;
+                break;
+            case "Played":
+                if (!int.TryParse(newValue, out int timesPlayed) || timesPlayed < 0) return false;
+                item.TimesPlayed = timesPlayed;
+                break;
+            case "Fav":
+                if (!TryParseFavorite(newValue, out bool favorite)) return false;
+                item.IsFavorite = favorite;
+                break;
+            case "Id":
+            case "Audio":
+            case "CreatedAt":
+            case "ModifiedAt":
+            default:
+                return false;
         }
+
+        await _audioLib.UpdateAsync(item);
+
+        if (columnName == "Category")
+            await LoadAsync();
+        else
+            await LoadItemsAsync();
+
+        return true;
+    }
+
+    private static bool TryParseFavorite(string value, out bool favorite)
+    {
+        favorite = false;
+        var normalized = value.Trim().ToLowerInvariant();
+        if (normalized is "true" or "yes" or "y" or "1" or "favorite" or "fav" or "⭐")
+        {
+            favorite = true;
+            return true;
+        }
+
+        if (normalized is "false" or "no" or "n" or "0" or "unfavorite" or "not favorite" or "☆")
+        {
+            favorite = false;
+            return true;
+        }
+
+        return false;
     }
 
     private async Task ShowItemActionsAsync(AudioItem item)
