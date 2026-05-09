@@ -25,6 +25,7 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN ProjectedDays INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FinalClipCount INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN LlmConversationLog TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN ProjectCategory TEXT DEFAULT ''"); } catch { }
     }
 
     public async Task<List<StoryProject>> GetProjectsAsync(string username)
@@ -702,6 +703,7 @@ public class StoryProductionService
             Name = customName ?? sourceProject.Name,
             Description = sourceProject.Description,
             LlmConversationLog = sourceProject.LlmConversationLog,
+            ProjectCategory = sourceProject.ProjectCategory,
             CreatedAt = DateTime.UtcNow,
             Status = "active",
             ParentProjectId = rootId,
@@ -774,6 +776,7 @@ public class StoryProductionService
             Name = customName ?? sourceProject.Name,
             Description = sourceProject.Description,
             LlmConversationLog = sourceProject.LlmConversationLog,
+            ProjectCategory = sourceProject.ProjectCategory,
             CreatedAt = DateTime.UtcNow,
             Status = "active",
             ParentProjectId = rootId,

@@ -13,6 +13,7 @@ public class StoryProductionPage : ContentPage
     private readonly SubActivityService? _subActivityService;
     private FloatingChecklist? _checklist;
     
+    private Picker _projectCategoryPicker;
     private Picker _projectPicker;
     private Picker _draftPicker;
     private Label _draftLabel;
@@ -22,6 +23,7 @@ public class StoryProductionPage : ContentPage
     private Button _deleteDraftBtn;
     private Button _compareToBtn;
     private Button _addProjectBtn;
+    private Button _projectCategoryBtn;
     private VerticalStackLayout _linesContainer;
     private Label _statsLabel;
     private Label _projectionLabel;
@@ -43,10 +45,13 @@ public class StoryProductionPage : ContentPage
     private ScrollView _mainScrollView;
     
     private List<StoryProject> _projects = new();        // Original projects only
+    private List<StoryProject> _allOriginalProjects = new();
     private List<StoryProject> _drafts = new();          // Drafts of current project
     private StoryProject? _currentProject;
     private StoryProject? _compareToProject;             // Project being compared against
     private HashSet<int> _changedLineOrders = new();     // Line orders that differ from comparison
+    private string _selectedProjectCategory = "All";
+    private bool _isLoadingProjectCategories;
 
     public StoryProductionPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null)
     {
@@ -132,6 +137,32 @@ public class StoryProductionPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#666")
         });
+
+        var categoryRow = new HorizontalStackLayout { Spacing = 8 };
+
+        _projectCategoryPicker = new Picker
+        {
+            Title = "Category",
+            WidthRequest = 180,
+            BackgroundColor = Color.FromArgb("#F5F5F5")
+        };
+        _projectCategoryPicker.SelectedIndexChanged += OnProjectCategoryFilterChanged;
+        categoryRow.Children.Add(_projectCategoryPicker);
+
+        _projectCategoryBtn = new Button
+        {
+            Text = "Set Category",
+            BackgroundColor = Color.FromArgb("#E0F7FA"),
+            TextColor = Color.FromArgb("#00838F"),
+            CornerRadius = 8,
+            Padding = new Thickness(12, 8),
+            FontSize = 12,
+            IsVisible = false
+        };
+        _projectCategoryBtn.Clicked += OnSetProjectCategoryClicked;
+        categoryRow.Children.Add(_projectCategoryBtn);
+
+        projectStack.Children.Add(categoryRow);
 
         var pickerRow = new HorizontalStackLayout { Spacing = 8 };
         
@@ -489,7 +520,13 @@ public class StoryProductionPage : ContentPage
             var allProjects = await _storyService.GetProjectsAsync(_auth.CurrentUsername);
             
             // Filter to original projects only (not drafts), but include completed ones
-            _projects = allProjects.Where(p => p.ParentProjectId == null).ToList();
+            _allOriginalProjects = allProjects
+                .Where(p => p.ParentProjectId == null)
+                .OrderBy(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "zzz" : p.ProjectCategory, StringComparer.OrdinalIgnoreCase)
+                .ThenByDescending(p => p.CreatedAt)
+                .ToList();
+            RefreshProjectCategoryPicker();
+            _projects = FilterProjectsBySelectedCategory(_allOriginalProjects);
             System.Diagnostics.Debug.WriteLine($"[STORY] Found {_projects.Count} original projects");
             
             _projectPicker.Items.Clear();
@@ -497,6 +534,8 @@ public class StoryProductionPage : ContentPage
             {
                 // Show status indicator for completed/published projects
                 string name = project.Name;
+                if (!string.IsNullOrWhiteSpace(project.ProjectCategory))
+                    name = $"[{project.ProjectCategory}] {name}";
                 if (project.IsPublished) name += " ✓";
                 else if (project.Status == "completed") name += " (done)";
                 _projectPicker.Items.Add(name);
@@ -541,6 +580,59 @@ public class StoryProductionPage : ContentPage
             _loadingOverlay.IsVisible = false;
         }
         System.Diagnostics.Debug.WriteLine("[STORY] LoadProjectsAsync END");
+    }
+
+    private void RefreshProjectCategoryPicker()
+    {
+        _isLoadingProjectCategories = true;
+        var previous = _selectedProjectCategory;
+
+        var categories = _allOriginalProjects
+            .Select(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim())
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(c => c).First())
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        _projectCategoryPicker.Items.Clear();
+        _projectCategoryPicker.Items.Add("All");
+        foreach (var category in categories)
+            _projectCategoryPicker.Items.Add(category);
+
+        int index = _projectCategoryPicker.Items.IndexOf(previous);
+        if (index < 0)
+        {
+            _selectedProjectCategory = "All";
+            index = 0;
+        }
+
+        _projectCategoryPicker.SelectedIndex = index;
+        _isLoadingProjectCategories = false;
+    }
+
+    private List<StoryProject> FilterProjectsBySelectedCategory(List<StoryProject> projects)
+    {
+        if (_selectedProjectCategory == "All")
+            return projects.ToList();
+
+        if (_selectedProjectCategory == "Uncategorized")
+            return projects.Where(p => string.IsNullOrWhiteSpace(p.ProjectCategory)).ToList();
+
+        return projects
+            .Where(p => string.Equals(p.ProjectCategory?.Trim(), _selectedProjectCategory, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private async void OnProjectCategoryFilterChanged(object? sender, EventArgs e)
+    {
+        if (_isLoadingProjectCategories || _projectCategoryPicker.SelectedIndex < 0)
+            return;
+
+        _selectedProjectCategory = _projectCategoryPicker.Items[_projectCategoryPicker.SelectedIndex];
+        _currentProject = null;
+        _projectPicker.SelectedIndex = -1;
+        HideProjectControls();
+        await LoadProjectsAsync();
     }
 
     private async void OnProjectSelected(object? sender, EventArgs e)
@@ -592,6 +684,80 @@ public class StoryProductionPage : ContentPage
             _loadingOverlay.IsVisible = false;
         }
         System.Diagnostics.Debug.WriteLine("[STORY] OnProjectSelected END");
+    }
+
+    private async void OnSetProjectCategoryClicked(object? sender, EventArgs e)
+    {
+        if (_currentProject == null)
+            return;
+
+        int rootId = _currentProject.ParentProjectId ?? _currentProject.Id;
+        var rootProject = await _storyService.GetProjectByIdAsync(rootId);
+        if (rootProject == null)
+            return;
+
+        var categories = _allOriginalProjects
+            .Select(p => p.ProjectCategory?.Trim() ?? "")
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(c => c).First())
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var options = categories
+            .Where(c => !string.Equals(c, rootProject.ProjectCategory, StringComparison.OrdinalIgnoreCase))
+            .Concat(new[] { "+ New Category", "Uncategorized" })
+            .ToArray();
+
+        string? selected = await DisplayActionSheet(
+            "Project Category",
+            "Cancel",
+            null,
+            options);
+
+        if (string.IsNullOrWhiteSpace(selected) || selected == "Cancel")
+            return;
+
+        string category;
+        if (selected == "+ New Category")
+        {
+            string? newCategory = await DisplayPromptAsync(
+                "New Project Category",
+                "Category name:",
+                "Save",
+                "Cancel",
+                placeholder: "Category...");
+
+            if (string.IsNullOrWhiteSpace(newCategory))
+                return;
+
+            category = newCategory.Trim();
+        }
+        else if (selected == "Uncategorized")
+        {
+            category = "";
+        }
+        else
+        {
+            category = selected.Trim();
+        }
+
+        var family = await _storyService.GetProjectDraftsAsync(rootId);
+        foreach (var project in family)
+        {
+            project.ProjectCategory = category;
+            await _storyService.UpdateProjectAsync(project);
+        }
+
+        if (_currentProject != null)
+            _currentProject.ProjectCategory = category;
+
+        if (!string.IsNullOrWhiteSpace(category) && _selectedProjectCategory != "All")
+            _selectedProjectCategory = category;
+        else if (string.IsNullOrWhiteSpace(category) && _selectedProjectCategory != "All")
+            _selectedProjectCategory = "Uncategorized";
+
+        await LoadProjectsAsync();
     }
 
     private async Task LoadDraftsAsync(int projectId, int? selectDraftId = null)
@@ -1474,6 +1640,7 @@ public class StoryProductionPage : ContentPage
     {
         _insertLineBtn.IsVisible = false;
         _deleteProjectBtn.IsVisible = false;
+        _projectCategoryBtn.IsVisible = false;
         _expandAllBtn.IsVisible = false;
         _conversationLogBtn.IsVisible = false;
         _exportPromptBtn.IsVisible = false;
@@ -1496,6 +1663,7 @@ public class StoryProductionPage : ContentPage
     {
         _insertLineBtn.IsVisible = true;
         _deleteProjectBtn.IsVisible = true;
+        _projectCategoryBtn.IsVisible = true;
         _expandAllBtn.IsVisible = true;
         _conversationLogBtn.IsVisible = true;
         _exportPromptBtn.IsVisible = true;
