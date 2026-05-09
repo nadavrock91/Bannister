@@ -30,6 +30,7 @@ public class StoryProductionPage : ContentPage
     private Button _insertLineBtn;
     private Button _deleteProjectBtn;
     private Button _expandAllBtn;
+    private Button _conversationLogBtn;
     private Button _exportPromptBtn;
     private Button _customPromptsBtn;
     private Button _importDraftBtn;
@@ -329,6 +330,19 @@ public class StoryProductionPage : ContentPage
         };
         _expandAllBtn.Clicked += OnExpandAllClicked;
         linesHeaderStack.Children.Add(_expandAllBtn);
+
+        _conversationLogBtn = new Button
+        {
+            Text = "LLM Log",
+            BackgroundColor = Color.FromArgb("#E0F7FA"),
+            TextColor = Color.FromArgb("#00838F"),
+            CornerRadius = 8,
+            Padding = new Thickness(12, 6),
+            FontSize = 14,
+            IsVisible = false
+        };
+        _conversationLogBtn.Clicked += OnConversationLogClicked;
+        linesHeaderStack.Children.Add(_conversationLogBtn);
 
         _exportPromptBtn = new Button
         {
@@ -890,11 +904,401 @@ public class StoryProductionPage : ContentPage
         await Navigation.PushAsync(page);
     }
 
+    private async void OnConversationLogClicked(object? sender, EventArgs e)
+    {
+        if (_currentProject == null)
+            return;
+
+        bool hasLog = !string.IsNullOrWhiteSpace(_currentProject.LlmConversationLog);
+        var options = hasLog
+            ? new[] { "View Log", "Edit Log", "Replace Log", "Analyze For Ideas" }
+            : new[] { "Add Log" };
+
+        string choice = await DisplayActionSheet(
+            "LLM Conversation Log",
+            "Cancel",
+            null,
+            options);
+
+        if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel")
+            return;
+
+        if (choice == "View Log")
+        {
+            await ShowLongTextPopupAsync("LLM Conversation Log", _currentProject.LlmConversationLog);
+        }
+        else if (choice == "Add Log" || choice == "Edit Log" || choice == "Replace Log")
+        {
+            await EditConversationLogAsync(choice == "Replace Log" ? "" : _currentProject.LlmConversationLog);
+        }
+        else if (choice == "Analyze For Ideas")
+        {
+            await AnalyzeConversationForIdeasAsync();
+        }
+    }
+
+    private async Task EditConversationLogAsync(string initialValue)
+    {
+        if (_currentProject == null)
+            return;
+
+        string? log = await ShowMultiLineInputAsync(
+            "LLM Conversation Log",
+            "Paste or edit the LLM conversation used while creating this project:",
+            initialValue,
+            "Paste the conversation here...");
+
+        if (log == null)
+            return;
+
+        _currentProject.LlmConversationLog = log.Trim();
+        await _storyService.UpdateProjectAsync(_currentProject);
+        await DisplayAlert("Saved", "LLM conversation log saved for this project.", "OK");
+    }
+
+    private async Task ShowLongTextPopupAsync(string title, string text)
+    {
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            VerticalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+
+        var card = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent,
+            WidthRequest = 620,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 12 };
+        stack.Children.Add(new Label
+        {
+            Text = title,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        var editor = new Editor
+        {
+            Text = text,
+            IsReadOnly = true,
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            HeightRequest = 360,
+            AutoSize = EditorAutoSizeOption.Disabled
+        };
+        stack.Children.Add(editor);
+
+        var btnRow = new HorizontalStackLayout
+        {
+            Spacing = 12,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var copyBtn = new Button
+        {
+            Text = "Copy",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            Padding = new Thickness(20, 8)
+        };
+
+        var closeBtn = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(20, 8)
+        };
+
+        copyBtn.Clicked += async (s, e) =>
+        {
+            await Clipboard.SetTextAsync(text);
+            copyBtn.Text = "Copied";
+            await Task.Delay(1000);
+            copyBtn.Text = "Copy";
+        };
+
+        closeBtn.Clicked += (s, e) =>
+        {
+            if (Content is Grid mainGrid)
+                mainGrid.Children.Remove(overlay);
+        };
+
+        btnRow.Children.Add(copyBtn);
+        btnRow.Children.Add(closeBtn);
+        stack.Children.Add(btnRow);
+
+        card.Content = stack;
+        overlay.Children.Add(card);
+
+        if (Content is Grid pageGrid)
+        {
+            Grid.SetRowSpan(overlay, 2);
+            pageGrid.Children.Add(overlay);
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task AnalyzeConversationForIdeasAsync()
+    {
+        if (_currentProject == null || string.IsNullOrWhiteSpace(_currentProject.LlmConversationLog))
+            return;
+
+        if (_ideasService == null)
+        {
+            await DisplayAlert("Ideas Unavailable", "Ideas service is not available on this page.", "OK");
+            return;
+        }
+
+        string prompt = BuildConversationIdeaAnalysisPrompt(_currentProject);
+        string? response = await ShowPromptAndPasteInputAsync(
+            "Analyze Conversation For Ideas",
+            "Copy this prompt to an LLM. Paste the returned IDEA lines below to log them into Ideas.",
+            prompt,
+            "Paste IDEA|Category|Text lines here...");
+
+        if (string.IsNullOrWhiteSpace(response))
+            return;
+
+        var parsed = ParseConversationIdeas(response);
+        if (parsed.Count == 0)
+        {
+            await DisplayAlert("No Ideas Found", "No readable IDEA lines were found. Expected: IDEA|Category|Idea text", "OK");
+            return;
+        }
+
+        bool confirm = await DisplayAlert(
+            "Log Ideas?",
+            $"Log {parsed.Count} idea(s) using the LLM-assigned categories?",
+            "Log",
+            "Cancel");
+
+        if (!confirm)
+            return;
+
+        int logged = 0;
+        foreach (var item in parsed)
+        {
+            if (string.IsNullOrWhiteSpace(item.category) || string.IsNullOrWhiteSpace(item.text))
+                continue;
+
+            await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, item.text.Trim(), item.category.Trim());
+            logged++;
+        }
+
+        await DisplayAlert("Ideas Logged", $"Logged {logged} idea(s).", "OK");
+    }
+
+    private string BuildConversationIdeaAnalysisPrompt(StoryProject project)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Analyze the following LLM conversation from the creation of a story project.");
+        sb.AppendLine();
+        sb.AppendLine("Extract useful reusable ideas and assign each one to the most useful category.");
+        sb.AppendLine("Use whatever categories fit the content, such as Story Ideas, Story Structure Ideas, Magic Ideas, Character Ideas, Visual Ideas, Dialogue Ideas, Worldbuilding Ideas, Production Ideas, Marketing Ideas, or any better category you infer.");
+        sb.AppendLine();
+        sb.AppendLine("Return ONLY lines in this exact format, with no bullets, numbering, markdown, or commentary:");
+        sb.AppendLine("IDEA|Category Name|Idea text");
+        sb.AppendLine();
+        sb.AppendLine("Rules:");
+        sb.AppendLine("- One idea per line.");
+        sb.AppendLine("- Keep categories short and reusable.");
+        sb.AppendLine("- Do not include ratings.");
+        sb.AppendLine("- Do not use the | character inside category names or idea text.");
+        sb.AppendLine("- If no useful ideas exist, return exactly: NO_IDEAS");
+        sb.AppendLine();
+        sb.AppendLine($"Project: {project.Name}");
+        if (!string.IsNullOrWhiteSpace(project.Description))
+            sb.AppendLine($"Description: {project.Description}");
+        sb.AppendLine();
+        sb.AppendLine("Conversation:");
+        sb.AppendLine("<<<");
+        sb.AppendLine(project.LlmConversationLog);
+        sb.AppendLine(">>>");
+        return sb.ToString();
+    }
+
+    private List<(string category, string text)> ParseConversationIdeas(string response)
+    {
+        var result = new List<(string category, string text)>();
+        var lines = response.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+
+        foreach (var raw in lines)
+        {
+            var line = raw.Trim();
+            if (string.IsNullOrWhiteSpace(line) || line.Equals("NO_IDEAS", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!line.StartsWith("IDEA|", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var parts = line.Split('|', 3);
+            if (parts.Length != 3)
+                continue;
+
+            string category = parts[1].Trim();
+            string text = parts[2].Trim();
+            if (!string.IsNullOrWhiteSpace(category) && !string.IsNullOrWhiteSpace(text))
+                result.Add((category, text));
+        }
+
+        return result;
+    }
+
+    private async Task<string?> ShowPromptAndPasteInputAsync(string title, string instructions, string promptText, string pastePlaceholder)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            VerticalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+
+        var card = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent,
+            WidthRequest = 680,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 12 };
+        stack.Children.Add(new Label
+        {
+            Text = title,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+        stack.Children.Add(new Label
+        {
+            Text = instructions,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var promptEditor = new Editor
+        {
+            Text = promptText,
+            IsReadOnly = true,
+            FontSize = 11,
+            FontFamily = "Consolas",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            HeightRequest = 220,
+            AutoSize = EditorAutoSizeOption.Disabled
+        };
+        stack.Children.Add(promptEditor);
+
+        var copyPromptBtn = new Button
+        {
+            Text = "Copy LLM Request",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            Padding = new Thickness(16, 8),
+            HorizontalOptions = LayoutOptions.Start
+        };
+        copyPromptBtn.Clicked += async (s, e) =>
+        {
+            await Clipboard.SetTextAsync(promptText);
+            copyPromptBtn.Text = "Copied";
+            await Task.Delay(1000);
+            copyPromptBtn.Text = "Copy LLM Request";
+        };
+        stack.Children.Add(copyPromptBtn);
+
+        stack.Children.Add(new Label
+        {
+            Text = "Paste LLM response:",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        var pasteEditor = new Editor
+        {
+            Placeholder = pastePlaceholder,
+            FontSize = 12,
+            FontFamily = "Consolas",
+            BackgroundColor = Color.FromArgb("#FFFDE7"),
+            HeightRequest = 160,
+            AutoSize = EditorAutoSizeOption.Disabled
+        };
+        stack.Children.Add(pasteEditor);
+
+        var btnRow = new HorizontalStackLayout
+        {
+            Spacing = 12,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#E0E0E0"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            Padding = new Thickness(20, 8)
+        };
+        var logBtn = new Button
+        {
+            Text = "Log Ideas",
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(20, 8)
+        };
+
+        void Close(string? value)
+        {
+            if (Content is Grid mainGrid)
+                mainGrid.Children.Remove(overlay);
+            tcs.TrySetResult(value);
+        }
+
+        cancelBtn.Clicked += (s, e) => Close(null);
+        logBtn.Clicked += (s, e) => Close(pasteEditor.Text);
+
+        btnRow.Children.Add(cancelBtn);
+        btnRow.Children.Add(logBtn);
+        stack.Children.Add(btnRow);
+
+        card.Content = stack;
+        overlay.Children.Add(card);
+
+        if (Content is Grid pageGrid)
+        {
+            Grid.SetRowSpan(overlay, 2);
+            pageGrid.Children.Add(overlay);
+        }
+
+        return await tcs.Task;
+    }
+
     private void HideProjectControls()
     {
         _insertLineBtn.IsVisible = false;
         _deleteProjectBtn.IsVisible = false;
         _expandAllBtn.IsVisible = false;
+        _conversationLogBtn.IsVisible = false;
         _exportPromptBtn.IsVisible = false;
         _customPromptsBtn.IsVisible = false;
         _importDraftBtn.IsVisible = false;
@@ -916,6 +1320,7 @@ public class StoryProductionPage : ContentPage
         _insertLineBtn.IsVisible = true;
         _deleteProjectBtn.IsVisible = true;
         _expandAllBtn.IsVisible = true;
+        _conversationLogBtn.IsVisible = true;
         _exportPromptBtn.IsVisible = true;
         _customPromptsBtn.IsVisible = true;
         _importDraftBtn.IsVisible = true;
