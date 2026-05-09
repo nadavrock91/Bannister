@@ -18,7 +18,8 @@ public class TasksPage : ContentPage
     private Label _headerLabel;
     private Picker _categoryPicker;
     private Entry _searchEntry;
-    private Grid _dataGrid;
+    private VerticalStackLayout _gridToolbarContainer;
+    private VerticalStackLayout _gridContainer;
     private Frame _detailPanel;
     private Label _detailTitle;
     private Editor _detailNotes;
@@ -43,11 +44,6 @@ public class TasksPage : ContentPage
     private List<TaskItem> _currentTasks = new();
     private string _searchText = "";
     private bool _isLoading = false;
-
-    // Grid config
-    private const int ColumnCount = 4;
-    private const double CellWidth = 180;
-    private const double CellHeight = 50;
 
     public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService, IdeasService? ideasService = null)
     {
@@ -166,18 +162,29 @@ public class TasksPage : ContentPage
             ColumnSpacing = 12
         };
 
-        // Data grid
-        var gridScroll = new ScrollView { Orientation = ScrollOrientation.Both };
-        _dataGrid = new Grid
+        // Data grid, matching DatabasesPage: toolbar fixed above scrollable grid.
+        var gridArea = new Grid
         {
-            ColumnSpacing = 1,
-            RowSpacing = 1,
-            BackgroundColor = Color.FromArgb("#DDD"),
-            Padding = 1
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star)
+            }
         };
-        gridScroll.Content = _dataGrid;
-        Grid.SetColumn(gridScroll, 0);
-        contentGrid.Children.Add(gridScroll);
+
+        _gridToolbarContainer = new VerticalStackLayout
+        {
+            Padding = new Thickness(0, 0, 0, 4)
+        };
+        gridArea.Add(_gridToolbarContainer, 0, 0);
+
+        var gridScroll = new ScrollView { Orientation = ScrollOrientation.Both };
+        _gridContainer = new VerticalStackLayout { Spacing = 4 };
+        gridScroll.Content = _gridContainer;
+        gridArea.Add(gridScroll, 0, 1);
+
+        Grid.SetColumn(gridArea, 0);
+        contentGrid.Children.Add(gridArea);
 
         // Detail panel
         _detailPanel = new Frame
@@ -470,14 +477,12 @@ public class TasksPage : ContentPage
 
     private void BuildDataGrid(List<TaskItem> tasks)
     {
-        _dataGrid.Children.Clear();
-        _dataGrid.RowDefinitions.Clear();
-        _dataGrid.ColumnDefinitions.Clear();
+        _gridToolbarContainer.Children.Clear();
+        _gridContainer.Children.Clear();
 
         if (tasks.Count == 0)
         {
-            _dataGrid.BackgroundColor = Colors.Transparent;
-            _dataGrid.Children.Add(new Label
+            _gridContainer.Children.Add(new Label
             {
                 Text = "No tasks. Click + New to add one.",
                 TextColor = Color.FromArgb("#999"),
@@ -487,25 +492,35 @@ public class TasksPage : ContentPage
             return;
         }
 
-        _dataGrid.BackgroundColor = Color.FromArgb("#DDD");
+        var headers = new List<string> { "Id", "Status", "Title", "Category", "Priority", "DueDate", "Notes", "CreatedAt", "CompletedAt" };
+        var displayRows = new List<List<string>>();
+        var fullRows = new List<List<string>>();
 
-        int cols = ColumnCount;
-        int rows = (int)Math.Ceiling((double)tasks.Count / cols);
-
-        for (int c = 0; c < cols; c++)
-            _dataGrid.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(CellWidth)));
-        for (int r = 0; r < rows; r++)
-            _dataGrid.RowDefinitions.Add(new RowDefinition(new GridLength(CellHeight)));
-
-        for (int i = 0; i < tasks.Count; i++)
+        foreach (var task in tasks)
         {
-            int row = i / cols;
-            int col = i % cols;
-            var cell = BuildCell(tasks[i]);
-            Grid.SetRow(cell, row);
-            Grid.SetColumn(cell, col);
-            _dataGrid.Children.Add(cell);
+            var row = BuildTaskGridRow(task);
+            fullRows.Add(row);
+            displayRows.Add(row.Select(v => v.Length > 50 ? v.Substring(0, 47) + "..." : v).ToList());
         }
+
+        var dataGrid = DataGridView.Create(headers, displayRows)
+            .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
+            .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
+            .WithColumnWidths(60, 220)
+            .WithCellPadding(6)
+            .WithFontSize(12, 12)
+            .WithFullRows(fullRows)
+            .WithIdColumn("Id")
+            .OnCellTapped((s, e) =>
+            {
+                if (e.RowIndex >= 0 && e.RowIndex < _currentTasks.Count)
+                    ShowDetail(_currentTasks[e.RowIndex]);
+            })
+            .WithUpdateCallback(UpdateTaskGridCellAsync)
+            .Build();
+
+        _gridToolbarContainer.Children.Add(dataGrid.ToolbarView);
+        _gridContainer.Children.Add(dataGrid.GridView);
     }
 
     private Frame BuildCell(TaskItem task)
@@ -561,6 +576,119 @@ public class TasksPage : ContentPage
         frame.GestureRecognizers.Add(tap);
 
         return frame;
+    }
+
+    private static List<string> BuildTaskGridRow(TaskItem task)
+    {
+        return new List<string>
+        {
+            task.Id.ToString(),
+            task.IsCompleted ? "Done" : task.IsOverdue ? "Overdue" : task.IsDueToday ? "Today" : "Open",
+            task.Title,
+            task.Category,
+            task.Priority switch { 0 => "Urgent", 1 => "High", 3 => "Low", _ => "Medium" },
+            task.DueDate?.ToString("yyyy-MM-dd") ?? "",
+            task.Notes ?? "",
+            task.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
+            task.CompletedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? ""
+        };
+    }
+
+    private async Task<bool> UpdateTaskGridCellAsync(string idValue, string columnName, string newValue)
+    {
+        if (!int.TryParse(idValue, out int id))
+        {
+            return false;
+        }
+
+        var task = _currentTasks.FirstOrDefault(t => t.Id == id);
+        if (task == null)
+        {
+            task = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
+                .Concat(await _tasks.GetCompletedTasksAsync(_auth.CurrentUsername))
+                .FirstOrDefault(t => t.Id == id);
+        }
+
+        if (task == null)
+        {
+            return false;
+        }
+
+        switch (columnName)
+        {
+            case "Title":
+                if (string.IsNullOrWhiteSpace(newValue)) return false;
+                task.Title = newValue.Trim();
+                break;
+            case "Category":
+                task.Category = string.IsNullOrWhiteSpace(newValue) ? "General" : newValue.Trim();
+                break;
+            case "Priority":
+                task.Priority = ParsePriority(newValue);
+                break;
+            case "DueDate":
+                if (string.IsNullOrWhiteSpace(newValue) || newValue.Equals("NULL", StringComparison.OrdinalIgnoreCase))
+                {
+                    task.DueDate = null;
+                }
+                else if (DateTime.TryParse(newValue, out var dueDate))
+                {
+                    task.DueDate = dueDate.Date;
+                }
+                else
+                {
+                    return false;
+                }
+                break;
+            case "Notes":
+                task.Notes = newValue == "NULL" ? "" : newValue;
+                break;
+            case "Status":
+                if (newValue.Equals("Done", StringComparison.OrdinalIgnoreCase) ||
+                    newValue.Equals("Completed", StringComparison.OrdinalIgnoreCase) ||
+                    newValue.Equals("True", StringComparison.OrdinalIgnoreCase))
+                {
+                    task.IsCompleted = true;
+                    task.CompletedAt ??= DateTime.UtcNow;
+                }
+                else if (newValue.Equals("Open", StringComparison.OrdinalIgnoreCase) ||
+                         newValue.Equals("False", StringComparison.OrdinalIgnoreCase))
+                {
+                    task.IsCompleted = false;
+                    task.CompletedAt = null;
+                }
+                else
+                {
+                    return false;
+                }
+                break;
+            case "CreatedAt":
+            case "CompletedAt":
+                return false;
+            default:
+                return false;
+        }
+
+        await _tasks.UpdateTaskAsync(task);
+        ShowDetail(task);
+        await RefreshChallengeWidgetAsync();
+        return true;
+    }
+
+    private static int ParsePriority(string value)
+    {
+        if (int.TryParse(value, out int numeric))
+        {
+            return Math.Clamp(numeric, 0, 3);
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "urgent" => 0,
+            "high" => 1,
+            "low" => 3,
+            _ => 2
+        };
     }
 
     private void ShowDetail(TaskItem task)
