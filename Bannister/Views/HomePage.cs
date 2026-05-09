@@ -2,6 +2,7 @@ using Bannister.Services;
 using Bannister.Models;
 using ConversationPractice.Services;
 using ConversationPractice.Views;
+using System.Globalization;
 
 namespace Bannister.Views;
 
@@ -689,6 +690,31 @@ public class HomePage : ContentPage
 
     private async void OnGamesClicked(object? sender, EventArgs e)
     {
+        if (await ShouldBlockGamesUntilCalendarVisitAsync())
+        {
+            string action = await DisplayActionSheet(
+                "Visit Calendar First",
+                "Cancel",
+                null,
+                "Open Calendar",
+                "Disable Block And Open Games");
+
+            if (action == "Open Calendar")
+            {
+                await OpenCalendarFromHomeAsync();
+                return;
+            }
+
+            if (action == "Disable Block And Open Games")
+            {
+                await SetCalendarBeforeGamesBlockEnabledAsync(false);
+            }
+            else
+            {
+                return;
+            }
+        }
+
         await Shell.Current.GoToAsync("gameslist");
     }
 
@@ -737,8 +763,7 @@ public class HomePage : ContentPage
 
     private async void OnCalendarClicked(object? sender, EventArgs e)
     {
-        var page = new CalendarPage(_auth, _taskService, _ideas, _db);
-        await Navigation.PushAsync(page);
+        await OpenCalendarFromHomeAsync();
     }
 
     private async void OnSubActivitiesClicked(object? sender, EventArgs e)
@@ -849,6 +874,46 @@ public class HomePage : ContentPage
         var page = new SettingsPage(_auth, _db, _backup);
         await Navigation.PushAsync(page);
     }
+
+    private async Task OpenCalendarFromHomeAsync()
+    {
+        await MarkCalendarVisitedTodayAsync();
+        var page = new CalendarPage(_auth, _taskService, _ideas, _db);
+        await Navigation.PushAsync(page);
+    }
+
+    private async Task<bool> ShouldBlockGamesUntilCalendarVisitAsync()
+    {
+        if (!await GetCalendarBeforeGamesBlockEnabledAsync())
+            return false;
+
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string? lastVisited = null;
+        try { lastVisited = await SecureStorage.GetAsync(GetCalendarVisitedStorageKey()); } catch { }
+        return lastVisited != today;
+    }
+
+    private async Task MarkCalendarVisitedTodayAsync()
+    {
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        try { await SecureStorage.SetAsync(GetCalendarVisitedStorageKey(), today); } catch { }
+    }
+
+    private async Task<bool> GetCalendarBeforeGamesBlockEnabledAsync()
+    {
+        string? value = null;
+        try { value = await SecureStorage.GetAsync(GetCalendarBeforeGamesBlockStorageKey()); } catch { }
+        return value != "false";
+    }
+
+    private async Task SetCalendarBeforeGamesBlockEnabledAsync(bool enabled)
+    {
+        try { await SecureStorage.SetAsync(GetCalendarBeforeGamesBlockStorageKey(), enabled ? "true" : "false"); } catch { }
+    }
+
+    private string GetCalendarVisitedStorageKey() => $"home_calendar_visited_{_auth.CurrentUsername}";
+
+    private string GetCalendarBeforeGamesBlockStorageKey() => $"home_block_games_until_calendar_{_auth.CurrentUsername}";
 
     private async Task LogoutAsync()
     {

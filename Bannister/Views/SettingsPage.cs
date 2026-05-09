@@ -11,6 +11,9 @@ public class SettingsPage : ContentPage
     private readonly AuthService _auth;
     private readonly DatabaseService _db;
     private readonly BackupService _backup;
+    private Switch _calendarBeforeGamesSwitch;
+    private Label _calendarBeforeGamesStatus;
+    private bool _loadingSettings;
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup)
     {
@@ -22,6 +25,12 @@ public class SettingsPage : ContentPage
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
         BuildUI();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await LoadHomeSettingsAsync();
     }
 
     private void BuildUI()
@@ -97,6 +106,75 @@ public class SettingsPage : ContentPage
         accountFrame.Content = accountStack;
         mainStack.Children.Add(accountFrame);
 
+        // Home section
+        var homeFrame = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent
+        };
+
+        var homeStack = new VerticalStackLayout { Spacing = 12 };
+
+        homeStack.Children.Add(new Label
+        {
+            Text = "Home",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        var calendarGateRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+
+        var calendarGateText = new VerticalStackLayout { Spacing = 4 };
+        calendarGateText.Children.Add(new Label
+        {
+            Text = "Require Calendar Before Games",
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+        calendarGateText.Children.Add(new Label
+        {
+            Text = "Blocks Games from Home once per day until Calendar is opened.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+        Grid.SetColumn(calendarGateText, 0);
+        calendarGateRow.Children.Add(calendarGateText);
+
+        _calendarBeforeGamesSwitch = new Switch
+        {
+            IsToggled = true,
+            VerticalOptions = LayoutOptions.Center
+        };
+        _calendarBeforeGamesSwitch.Toggled += OnCalendarBeforeGamesToggled;
+        Grid.SetColumn(_calendarBeforeGamesSwitch, 1);
+        calendarGateRow.Children.Add(_calendarBeforeGamesSwitch);
+
+        homeStack.Children.Add(calendarGateRow);
+
+        _calendarBeforeGamesStatus = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        };
+        homeStack.Children.Add(_calendarBeforeGamesStatus);
+
+        homeFrame.Content = homeStack;
+        mainStack.Children.Add(homeFrame);
+
         // Security section
         var securityFrame = new Frame
         {
@@ -140,4 +218,43 @@ public class SettingsPage : ContentPage
         var page = new ChangePasswordPage(_auth, _db, _backup);
         await Navigation.PushAsync(page);
     }
+
+    private async Task LoadHomeSettingsAsync()
+    {
+        _loadingSettings = true;
+        bool enabled = await GetCalendarBeforeGamesBlockEnabledAsync();
+        _calendarBeforeGamesSwitch.IsToggled = enabled;
+        UpdateCalendarBeforeGamesStatus(enabled);
+        _loadingSettings = false;
+    }
+
+    private async void OnCalendarBeforeGamesToggled(object? sender, ToggledEventArgs e)
+    {
+        if (_loadingSettings)
+            return;
+
+        await SetCalendarBeforeGamesBlockEnabledAsync(e.Value);
+        UpdateCalendarBeforeGamesStatus(e.Value);
+    }
+
+    private void UpdateCalendarBeforeGamesStatus(bool enabled)
+    {
+        _calendarBeforeGamesStatus.Text = enabled
+            ? "Enabled. Games will require a Calendar visit first each day."
+            : "Disabled. Games can be opened directly from Home.";
+    }
+
+    private async Task<bool> GetCalendarBeforeGamesBlockEnabledAsync()
+    {
+        string? value = null;
+        try { value = await SecureStorage.GetAsync(GetCalendarBeforeGamesBlockStorageKey()); } catch { }
+        return value != "false";
+    }
+
+    private async Task SetCalendarBeforeGamesBlockEnabledAsync(bool enabled)
+    {
+        try { await SecureStorage.SetAsync(GetCalendarBeforeGamesBlockStorageKey(), enabled ? "true" : "false"); } catch { }
+    }
+
+    private string GetCalendarBeforeGamesBlockStorageKey() => $"home_block_games_until_calendar_{_auth.CurrentUsername}";
 }

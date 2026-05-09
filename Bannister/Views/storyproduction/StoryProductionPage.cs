@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using System.Text.Json;
 
 namespace Bannister.Views;
 
@@ -30,6 +31,7 @@ public class StoryProductionPage : ContentPage
     private Button _deleteProjectBtn;
     private Button _expandAllBtn;
     private Button _exportPromptBtn;
+    private Button _customPromptsBtn;
     private Button _importDraftBtn;
     private Button _importVisualsBtn;
     private Button _storyPointsBtn;
@@ -340,6 +342,19 @@ public class StoryProductionPage : ContentPage
         };
         _exportPromptBtn.Clicked += OnExportMenuClicked;
         linesHeaderStack.Children.Add(_exportPromptBtn);
+
+        _customPromptsBtn = new Button
+        {
+            Text = "Custom Prompts",
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            TextColor = Color.FromArgb("#F57F17"),
+            CornerRadius = 8,
+            Padding = new Thickness(12, 6),
+            FontSize = 14,
+            IsVisible = false
+        };
+        _customPromptsBtn.Clicked += OnCustomPromptsClicked;
+        linesHeaderStack.Children.Add(_customPromptsBtn);
 
         _importDraftBtn = new Button
         {
@@ -881,6 +896,7 @@ public class StoryProductionPage : ContentPage
         _deleteProjectBtn.IsVisible = false;
         _expandAllBtn.IsVisible = false;
         _exportPromptBtn.IsVisible = false;
+        _customPromptsBtn.IsVisible = false;
         _importDraftBtn.IsVisible = false;
         _importVisualsBtn.IsVisible = false;
         _storyPointsBtn.IsVisible = false;
@@ -901,6 +917,7 @@ public class StoryProductionPage : ContentPage
         _deleteProjectBtn.IsVisible = true;
         _expandAllBtn.IsVisible = true;
         _exportPromptBtn.IsVisible = true;
+        _customPromptsBtn.IsVisible = true;
         _importDraftBtn.IsVisible = true;
         _importVisualsBtn.IsVisible = _drafts.Count > 1; // Only show if there are other drafts to import from
         _storyPointsBtn.IsVisible = true;
@@ -2100,6 +2117,14 @@ public class StoryProductionPage : ContentPage
 
     #region Export
 
+    private class StoryCustomPrompt
+    {
+        public string Title { get; set; } = "";
+        public string Text { get; set; } = "";
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+    }
+
     private async void OnExportMenuClicked(object? sender, EventArgs e)
     {
         if (_currentProject == null) return;
@@ -2136,6 +2161,205 @@ public class StoryProductionPage : ContentPage
         else if (choice.StartsWith("🤖"))
             await ExportConvertStoryPromptAsync();
     }
+
+    private async void OnCustomPromptsClicked(object? sender, EventArgs e)
+    {
+        var prompts = LoadCustomPrompts();
+        var options = new List<string> { "+ Add Custom Prompt" };
+        options.AddRange(prompts.Select(p => p.Title));
+
+        string choice = await DisplayActionSheet(
+            "Custom Prompts",
+            "Cancel",
+            null,
+            options.ToArray());
+
+        if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel")
+            return;
+
+        if (choice == "+ Add Custom Prompt")
+        {
+            await AddCustomPromptAsync();
+            return;
+        }
+
+        var selected = prompts.FirstOrDefault(p => p.Title == choice);
+        if (selected != null)
+            await ShowCustomPromptActionsAsync(selected);
+    }
+
+    private async Task AddCustomPromptAsync()
+    {
+        string? title = await DisplayPromptAsync(
+            "New Custom Prompt",
+            "Title shown in the custom prompt menu:",
+            "Next",
+            "Cancel",
+            placeholder: "Prompt title...");
+
+        if (string.IsNullOrWhiteSpace(title))
+            return;
+
+        string? text = await ShowMultiLineInputAsync(
+            "Custom Prompt",
+            "Prompt text:",
+            "",
+            "Paste or write the custom prompt...");
+
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        var prompts = LoadCustomPrompts();
+        string finalTitle = GetUniqueCustomPromptTitle(prompts, title.Trim());
+        var prompt = new StoryCustomPrompt
+        {
+            Title = finalTitle,
+            Text = text.Trim(),
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+
+        prompts.Add(prompt);
+        SaveCustomPrompts(prompts);
+
+        await DisplayAlert("Saved", $"Custom prompt \"{finalTitle}\" saved.", "OK");
+
+        if (_ideaLogger != null)
+            await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, prompt.Text, "story_custom_prompts");
+    }
+
+    private async Task ShowCustomPromptActionsAsync(StoryCustomPrompt prompt)
+    {
+        string choice = await DisplayActionSheet(
+            prompt.Title,
+            "Cancel",
+            null,
+            "Copy Prompt",
+            "View Prompt",
+            "Edit Prompt",
+            "Delete Prompt",
+            "Log As Idea");
+
+        if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel")
+            return;
+
+        switch (choice)
+        {
+            case "Copy Prompt":
+                await Clipboard.SetTextAsync(prompt.Text);
+                await DisplayAlert("Copied", $"\"{prompt.Title}\" copied to clipboard.", "OK");
+                break;
+            case "View Prompt":
+                await DisplayAlert(prompt.Title, prompt.Text, "OK");
+                break;
+            case "Edit Prompt":
+                await EditCustomPromptAsync(prompt);
+                break;
+            case "Delete Prompt":
+                await DeleteCustomPromptAsync(prompt);
+                break;
+            case "Log As Idea":
+                if (_ideaLogger != null)
+                    await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, prompt.Text, "story_custom_prompts");
+                break;
+        }
+    }
+
+    private async Task EditCustomPromptAsync(StoryCustomPrompt prompt)
+    {
+        string? newTitle = await DisplayPromptAsync(
+            "Edit Custom Prompt",
+            "Title shown in the custom prompt menu:",
+            "Next",
+            "Cancel",
+            initialValue: prompt.Title);
+
+        if (string.IsNullOrWhiteSpace(newTitle))
+            return;
+
+        string? newText = await ShowMultiLineInputAsync(
+            "Edit Custom Prompt",
+            "Prompt text:",
+            prompt.Text,
+            "Prompt text...");
+
+        if (string.IsNullOrWhiteSpace(newText))
+            return;
+
+        var prompts = LoadCustomPrompts();
+        var existing = prompts.FirstOrDefault(p => p.Title == prompt.Title && p.Text == prompt.Text);
+        if (existing == null)
+            return;
+
+        prompts.Remove(existing);
+        existing.Title = GetUniqueCustomPromptTitle(prompts, newTitle.Trim());
+        existing.Text = newText.Trim();
+        existing.UpdatedAt = DateTime.Now;
+        prompts.Add(existing);
+        SaveCustomPrompts(prompts);
+    }
+
+    private async Task DeleteCustomPromptAsync(StoryCustomPrompt prompt)
+    {
+        bool delete = await DisplayAlert(
+            "Delete Custom Prompt?",
+            $"Delete \"{prompt.Title}\"?",
+            "Delete",
+            "Cancel");
+
+        if (!delete)
+            return;
+
+        var prompts = LoadCustomPrompts();
+        var existing = prompts.FirstOrDefault(p => p.Title == prompt.Title && p.Text == prompt.Text);
+        if (existing != null)
+        {
+            prompts.Remove(existing);
+            SaveCustomPrompts(prompts);
+        }
+    }
+
+    private List<StoryCustomPrompt> LoadCustomPrompts()
+    {
+        string json = Preferences.Get(GetCustomPromptsKey(), "");
+        if (string.IsNullOrWhiteSpace(json))
+            return new List<StoryCustomPrompt>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<StoryCustomPrompt>>(json) ?? new List<StoryCustomPrompt>();
+        }
+        catch
+        {
+            return new List<StoryCustomPrompt>();
+        }
+    }
+
+    private void SaveCustomPrompts(List<StoryCustomPrompt> prompts)
+    {
+        var ordered = prompts
+            .Where(p => !string.IsNullOrWhiteSpace(p.Title))
+            .OrderBy(p => p.Title, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        Preferences.Set(GetCustomPromptsKey(), JsonSerializer.Serialize(ordered));
+    }
+
+    private string GetUniqueCustomPromptTitle(List<StoryCustomPrompt> prompts, string title)
+    {
+        string baseTitle = string.IsNullOrWhiteSpace(title) ? "Custom Prompt" : title.Trim();
+        string candidate = baseTitle;
+        int suffix = 2;
+
+        while (prompts.Any(p => string.Equals(p.Title, candidate, StringComparison.OrdinalIgnoreCase)))
+        {
+            candidate = $"{baseTitle} ({suffix})";
+            suffix++;
+        }
+
+        return candidate;
+    }
+
+    private string GetCustomPromptsKey() => $"story_custom_prompts_{_auth.CurrentUsername}";
 
     private async Task<List<StoryLine>?> GetLinesForExportAsync()
     {
