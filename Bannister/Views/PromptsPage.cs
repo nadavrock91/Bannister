@@ -1075,33 +1075,14 @@ public class PromptsPage : ContentPage
 
         await _prompts.AddPromptAsync(prompt);
 
-        // Ask whether to also log to Ideas (with full UI)
-        bool logToIdeas = await DisplayAlert(
-            "Log to Ideas?", 
-            "Also save this prompt as an idea?", 
-            "Yes", "No");
+        var idea = await _ideaLogger.LogIdeaAsync(
+            this,
+            _auth.CurrentUsername,
+            text.Trim(),
+            $"Prompts: {packName.Trim()}");
 
-        if (logToIdeas)
-        {
-            var idea = await _ideaLogger.LogIdeaAsync(
-                this,
-                _auth.CurrentUsername,
-                text.Trim(),
-                $"Prompts: {packName.Trim()}");
-
-            if (idea != null)
-            {
-                await DisplayAlert("Added", "Prompt added and saved to Ideas!", "OK");
-            }
-            else
-            {
-                await DisplayAlert("Added", "Prompt added (idea logging cancelled).", "OK");
-            }
-        }
-        else
-        {
+        if (idea == null)
             await DisplayAlert("Added", "Prompt added successfully!", "OK");
-        }
         
         // Refresh packs in case new one was created
         await LoadPacksAsync();
