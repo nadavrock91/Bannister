@@ -1063,23 +1063,16 @@ public class StoryProductionPage : ContentPage
         }
 
         var promptParts = BuildConversationIdeaAnalysisPrompts(_currentProject);
-        string? response = await ShowPromptAndPasteInputAsync(
+        var parsed = await ShowPromptAndPasteInputAsync(
             "Analyze Conversation For Ideas",
             promptParts.Count == 1
                 ? "Copy this prompt to an LLM. Paste the returned IDEA lines below to log them into Ideas."
-                : $"Copy each request part to an LLM. Paste all returned IDEA lines below to log them into Ideas. Parts: {promptParts.Count}",
+                : $"Copy each request part to an LLM. Paste each response here to queue its ideas, then log all queued ideas once. Parts: {promptParts.Count}",
             promptParts,
             "Paste IDEA|Category|Text lines here...");
 
-        if (string.IsNullOrWhiteSpace(response))
+        if (parsed == null || parsed.Count == 0)
             return;
-
-        var parsed = ParseConversationIdeas(response);
-        if (parsed.Count == 0)
-        {
-            await DisplayAlert("No Ideas Found", "No readable IDEA lines were found. Expected: IDEA|Category|Idea text", "OK");
-            return;
-        }
 
         bool confirm = await DisplayAlert(
             "Log Ideas?",
@@ -1221,10 +1214,12 @@ public class StoryProductionPage : ContentPage
         return result;
     }
 
-    private async Task<string?> ShowPromptAndPasteInputAsync(string title, string instructions, List<string> promptParts, string pastePlaceholder)
+    private async Task<List<(string category, string text)>?> ShowPromptAndPasteInputAsync(string title, string instructions, List<string> promptParts, string pastePlaceholder)
     {
-        var tcs = new TaskCompletionSource<string?>();
+        var tcs = new TaskCompletionSource<List<(string category, string text)>?>();
         int currentPartIndex = 0;
+        var queuedIdeas = new List<(string category, string text)>();
+        var queuedParts = new HashSet<int>();
 
         var overlay = new Grid
         {
@@ -1280,6 +1275,14 @@ public class StoryProductionPage : ContentPage
         };
         stack.Children.Add(partLabel);
 
+        var queueStatusLabel = new Label
+        {
+            Text = "Queued ideas: 0",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        };
+        stack.Children.Add(queueStatusLabel);
+
         var promptButtonRow = new HorizontalStackLayout
         {
             Spacing = 8,
@@ -1320,9 +1323,16 @@ public class StoryProductionPage : ContentPage
         {
             currentPartIndex = Math.Clamp(index, 0, promptParts.Count - 1);
             promptEditor.Text = promptParts[currentPartIndex];
-            partLabel.Text = $"Request part {currentPartIndex + 1} of {promptParts.Count}";
+            string queuedMarker = queuedParts.Contains(currentPartIndex) ? " - response queued" : "";
+            partLabel.Text = $"Request part {currentPartIndex + 1} of {promptParts.Count}{queuedMarker}";
             previousPartBtn.IsEnabled = currentPartIndex > 0;
             nextPartBtn.IsEnabled = currentPartIndex < promptParts.Count - 1;
+        }
+
+        void UpdateQueueStatus()
+        {
+            queueStatusLabel.Text = $"Queued ideas: {queuedIdeas.Count} from {queuedParts.Count}/{promptParts.Count} part(s)";
+            ShowPromptPart(currentPartIndex);
         }
 
         copyPromptBtn.Clicked += async (s, e) =>
@@ -1375,24 +1385,76 @@ public class StoryProductionPage : ContentPage
         };
         var logBtn = new Button
         {
-            Text = "Log Ideas",
+            Text = "Log Queued Ideas",
             BackgroundColor = Color.FromArgb("#7B1FA2"),
             TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(20, 8)
         };
 
-        void Close(string? value)
+        var queueBtn = new Button
+        {
+            Text = "Queue Response + Next",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(20, 8)
+        };
+
+        void Close(List<(string category, string text)>? value)
         {
             if (Content is Grid mainGrid)
                 mainGrid.Children.Remove(overlay);
             tcs.TrySetResult(value);
         }
 
+        bool QueueCurrentResponse()
+        {
+            var parsed = ParseConversationIdeas(pasteEditor.Text ?? "");
+            if (parsed.Count == 0)
+                return false;
+
+            queuedIdeas.AddRange(parsed);
+            queuedParts.Add(currentPartIndex);
+            pasteEditor.Text = "";
+            UpdateQueueStatus();
+            return true;
+        }
+
         cancelBtn.Clicked += (s, e) => Close(null);
-        logBtn.Clicked += (s, e) => Close(pasteEditor.Text);
+        queueBtn.Clicked += async (s, e) =>
+        {
+            if (!QueueCurrentResponse())
+            {
+                await DisplayAlert("No Ideas Found", "No readable IDEA lines were found. Expected: IDEA|Category|Idea text", "OK");
+                return;
+            }
+
+            if (currentPartIndex < promptParts.Count - 1)
+                ShowPromptPart(currentPartIndex + 1);
+        };
+        logBtn.Clicked += async (s, e) =>
+        {
+            if (!string.IsNullOrWhiteSpace(pasteEditor.Text))
+            {
+                if (!QueueCurrentResponse())
+                {
+                    await DisplayAlert("No Ideas Found", "No readable IDEA lines were found in the current paste box.", "OK");
+                    return;
+                }
+            }
+
+            if (queuedIdeas.Count == 0)
+            {
+                await DisplayAlert("Nothing Queued", "Queue at least one LLM response before logging ideas.", "OK");
+                return;
+            }
+
+            Close(queuedIdeas);
+        };
 
         btnRow.Children.Add(cancelBtn);
+        btnRow.Children.Add(queueBtn);
         btnRow.Children.Add(logBtn);
         stack.Children.Add(btnRow);
 
