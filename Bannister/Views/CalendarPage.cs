@@ -11,6 +11,8 @@ namespace Bannister.Views;
 /// </summary>
 public class CalendarPage : ContentPage
 {
+    private const string NotYetPlacedCategory = "not yet placed";
+
     private readonly AuthService _auth;
     private readonly TaskService _taskService;
     private readonly IdeasService? _ideasService;
@@ -18,8 +20,14 @@ public class CalendarPage : ContentPage
 
     private Label _monthLabel;
     private Grid _calendarGrid;
+    private VerticalStackLayout _unplacedToolbarContainer;
+    private VerticalStackLayout _unplacedGridContainer;
+    private Button _placeSelectedTaskButton;
     private int _year;
     private int _month;
+    private List<TaskItem> _unplacedTasks = new();
+    private TaskItem? _selectedUnplacedTask;
+    private int _unplacedGridLoadVersion = 0;
 
     // Task counts keyed by day-of-month
     private Dictionary<int, int> _taskCounts = new();
@@ -156,6 +164,53 @@ public class CalendarPage : ContentPage
 
         mainStack.Children.Add(_calendarGrid);
 
+        var unplacedHeader = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        unplacedHeader.Add(new Label
+        {
+            Text = "Not yet placed calendar tasks",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1565C0"),
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+
+        _placeSelectedTaskButton = new Button
+        {
+            Text = "Move to date",
+            FontSize = 12,
+            HeightRequest = 34,
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            Padding = new Thickness(12, 0),
+            IsEnabled = false
+        };
+        _placeSelectedTaskButton.Clicked += async (s, e) => await MoveSelectedUnplacedTaskToDateAsync();
+        unplacedHeader.Add(_placeSelectedTaskButton, 1, 0);
+        mainStack.Children.Add(unplacedHeader);
+
+        _unplacedToolbarContainer = new VerticalStackLayout { Spacing = 2 };
+        mainStack.Children.Add(_unplacedToolbarContainer);
+
+        var unplacedScroll = new ScrollView
+        {
+            Orientation = ScrollOrientation.Both,
+            MaximumHeightRequest = 320
+        };
+        _unplacedGridContainer = new VerticalStackLayout { Spacing = 4 };
+        unplacedScroll.Content = _unplacedGridContainer;
+        mainStack.Children.Add(unplacedScroll);
+
         Content = new ScrollView { Content = mainStack };
     }
 
@@ -205,6 +260,7 @@ public class CalendarPage : ContentPage
         catch { }
 
         BuildCalendarGrid();
+        await LoadUnplacedTasksGridAsync();
     }
 
     private void BuildCalendarGrid()
@@ -333,8 +389,254 @@ public class CalendarPage : ContentPage
     {
         var date = new DateTime(_year, _month, day);
         var page = new CalendarDayPage(_auth, _taskService, date, _ideasService);
-        page.Disappearing += async (s, e) => await LoadMonthAsync();
         await Navigation.PushAsync(page);
+    }
+
+    private async Task LoadUnplacedTasksGridAsync()
+    {
+        int loadVersion = ++_unplacedGridLoadVersion;
+        _unplacedToolbarContainer.Children.Clear();
+        _unplacedGridContainer.Children.Clear();
+        _selectedUnplacedTask = null;
+        _placeSelectedTaskButton.IsEnabled = false;
+
+        var active = await _taskService.GetActiveTasksAsync(_auth.CurrentUsername);
+        if (loadVersion != _unplacedGridLoadVersion)
+            return;
+
+        _unplacedTasks = active
+            .Where(t => t.Category.Equals(NotYetPlacedCategory, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(t => t.Priority)
+            .ThenBy(t => t.CreatedAt)
+            .ToList();
+
+        _unplacedToolbarContainer.Children.Clear();
+        _unplacedGridContainer.Children.Clear();
+
+        if (_unplacedTasks.Count == 0)
+        {
+            _unplacedGridContainer.Children.Add(new Label
+            {
+                Text = "No not yet placed tasks.",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#888"),
+                Margin = new Thickness(4, 8)
+            });
+            return;
+        }
+
+        var headers = new List<string> { "Id", "Title", "Priority", "Notes", "CreatedAt" };
+        var fullRows = _unplacedTasks.Select(BuildUnplacedTaskGridRow).ToList();
+        var displayRows = fullRows
+            .Select(row => row.Select(v => v.Length > 50 ? v.Substring(0, 47) + "..." : v).ToList())
+            .ToList();
+
+        var dataGrid = DataGridView.Create(headers, displayRows)
+            .WithHeaderStyle(Color.FromArgb("#1565C0"), Colors.White)
+            .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
+            .WithColumnWidths(60, 240)
+            .WithCellPadding(6)
+            .WithFontSize(12, 12)
+            .WithFullRows(fullRows)
+            .WithIdColumn("Id")
+            .OnCellTapped((s, e) =>
+            {
+                if (e.RowIndex >= 0 && e.RowIndex < _unplacedTasks.Count)
+                {
+                    _selectedUnplacedTask = _unplacedTasks[e.RowIndex];
+                    _placeSelectedTaskButton.IsEnabled = true;
+                }
+            })
+            .WithUpdateCallback(UpdateUnplacedTaskGridCellAsync)
+            .Build();
+
+        _unplacedToolbarContainer.Children.Add(dataGrid.ToolbarView);
+        _unplacedGridContainer.Children.Add(dataGrid.GridView);
+    }
+
+    private static List<string> BuildUnplacedTaskGridRow(TaskItem task)
+    {
+        return new List<string>
+        {
+            task.Id.ToString(),
+            task.Title,
+            task.Priority switch { 1 => "High", 3 => "Low", _ => "Medium" },
+            task.Notes ?? "",
+            task.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+        };
+    }
+
+    private async Task<bool> UpdateUnplacedTaskGridCellAsync(string idValue, string columnName, string newValue)
+    {
+        if (!int.TryParse(idValue, out int id))
+            return false;
+
+        var task = _unplacedTasks.FirstOrDefault(t => t.Id == id);
+        if (task == null)
+        {
+            var active = await _taskService.GetActiveTasksAsync(_auth.CurrentUsername);
+            task = active.FirstOrDefault(t => t.Id == id);
+        }
+
+        if (task == null)
+            return false;
+
+        switch (columnName)
+        {
+            case "Title":
+                if (string.IsNullOrWhiteSpace(newValue)) return false;
+                task.Title = newValue.Trim();
+                break;
+            case "Priority":
+                task.Priority = ParseCalendarTaskPriority(newValue);
+                break;
+            case "Notes":
+                task.Notes = newValue == "NULL" ? "" : newValue;
+                break;
+            case "Id":
+            case "CreatedAt":
+            default:
+                return false;
+        }
+
+        await _taskService.UpdateTaskAsync(task);
+        await LoadUnplacedTasksGridAsync();
+        return true;
+    }
+
+    private static int ParseCalendarTaskPriority(string value)
+    {
+        if (int.TryParse(value, out int numeric))
+            return Math.Clamp(numeric, 1, 3);
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "high" => 1,
+            "low" => 3,
+            _ => 2
+        };
+    }
+
+    private async Task MoveSelectedUnplacedTaskToDateAsync()
+    {
+        if (_selectedUnplacedTask == null)
+            return;
+
+        var date = await ShowDatePickerPopupAsync(
+            "Move task to date",
+            _selectedUnplacedTask.Title,
+            new DateTime(_year, _month, Math.Min(DateTime.Today.Day, DateTime.DaysInMonth(_year, _month))));
+        if (date == null)
+            return;
+
+        _selectedUnplacedTask.DueDate = date.Value.Date;
+        if (_selectedUnplacedTask.Category.Equals(NotYetPlacedCategory, StringComparison.OrdinalIgnoreCase))
+            _selectedUnplacedTask.Category = "Imported";
+
+        await _taskService.UpdateTaskAsync(_selectedUnplacedTask);
+        await LoadMonthAsync();
+    }
+
+    private async Task<DateTime?> ShowDatePickerPopupAsync(string title, string taskTitle, DateTime initialDate)
+    {
+        var tcs = new TaskCompletionSource<DateTime?>();
+
+        var popup = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 420,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            HasShadow = true
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 10 };
+        stack.Children.Add(new Label
+        {
+            Text = title,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1565C0")
+        });
+        stack.Children.Add(new Label
+        {
+            Text = taskTitle.Length > 120 ? taskTitle.Substring(0, 117) + "..." : taskTitle,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var datePicker = new DatePicker
+        {
+            Date = initialDate.Date,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            FontSize = 14
+        };
+        stack.Children.Add(datePicker);
+
+        var buttonRow = new HorizontalStackLayout { Spacing = 10, Margin = new Thickness(0, 8, 0, 0) };
+        var moveButton = new Button
+        {
+            Text = "Move",
+            FontSize = 13,
+            HeightRequest = 38,
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            Padding = new Thickness(16, 0),
+            FontAttributes = FontAttributes.Bold
+        };
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            FontSize = 13,
+            HeightRequest = 38,
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            Padding = new Thickness(16, 0)
+        };
+        buttonRow.Children.Add(moveButton);
+        buttonRow.Children.Add(cancelButton);
+        stack.Children.Add(buttonRow);
+
+        card.Content = stack;
+        popup.Children.Add(card);
+
+        var originalContent = Content;
+        var wrapper = new Grid();
+        Content = wrapper;
+        wrapper.Children.Add(originalContent);
+        wrapper.Children.Add(popup);
+
+        void Dismiss()
+        {
+            wrapper.Children.Remove(popup);
+            wrapper.Children.Remove(originalContent);
+            Content = originalContent;
+        }
+
+        moveButton.Clicked += (s, e) =>
+        {
+            Dismiss();
+            tcs.TrySetResult(datePicker.Date);
+        };
+        cancelButton.Clicked += (s, e) =>
+        {
+            Dismiss();
+            tcs.TrySetResult(null);
+        };
+
+        return await tcs.Task;
     }
 
     private async Task AddTaskForDateAsync(DateTime date)
@@ -1210,6 +1512,8 @@ public class CalendarPage : ContentPage
 /// </summary>
 public class CalendarDayPage : ContentPage
 {
+    private const string NotYetPlacedCategory = "not yet placed";
+
     private readonly AuthService _auth;
     private readonly TaskService _taskService;
     private readonly DateTime _date;
@@ -1449,6 +1753,20 @@ public class CalendarDayPage : ContentPage
             };
             postponeBtn.Clicked += async (s, ev) => await ShowPostponeAsync(task);
             btnStack.Children.Add(postponeBtn);
+
+            var unplaceBtn = new Button
+            {
+                Text = "📥",
+                FontSize = 14,
+                WidthRequest = 36,
+                HeightRequest = 32,
+                BackgroundColor = Color.FromArgb("#F3E5F5"),
+                TextColor = Color.FromArgb("#6A1B9A"),
+                CornerRadius = 4,
+                Padding = 0
+            };
+            unplaceBtn.Clicked += async (s, ev) => await MoveTaskToNotYetPlacedAsync(task);
+            btnStack.Children.Add(unplaceBtn);
         }
         else
         {
@@ -1495,6 +1813,23 @@ public class CalendarDayPage : ContentPage
         grid.Add(btnStack, 1, 0);
         frame.Content = grid;
         return frame;
+    }
+
+    private async Task MoveTaskToNotYetPlacedAsync(TaskItem task)
+    {
+        if (!await DisplayAlert(
+            "Move to not yet placed?",
+            $"Remove the date from \"{task.Title}\" and move it to not yet placed?",
+            "Move",
+            "Cancel"))
+        {
+            return;
+        }
+
+        task.DueDate = null;
+        task.Category = NotYetPlacedCategory;
+        await _taskService.UpdateTaskAsync(task);
+        await LoadTasksAsync();
     }
 
     private async Task EditTaskAsync(TaskItem task)
