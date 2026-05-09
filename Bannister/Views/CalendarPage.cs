@@ -21,11 +21,14 @@ public class CalendarPage : ContentPage
 
     private Label _monthLabel;
     private Grid _calendarGrid;
+    private Grid _dowRow;
     private VerticalStackLayout _unplacedToolbarContainer;
     private VerticalStackLayout _unplacedGridContainer;
     private Button _placeSelectedTaskButton;
+    private Button _weekStartButton;
     private int _year;
     private int _month;
+    private bool _weekStartsSunday;
     private List<TaskItem> _unplacedTasks = new();
     private TaskItem? _selectedUnplacedTask;
     private int _unplacedGridLoadVersion = 0;
@@ -55,6 +58,7 @@ public class CalendarPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await LoadCalendarSettingsAsync();
         await LoadMonthAsync();
     }
 
@@ -141,24 +145,30 @@ public class CalendarPage : ContentPage
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(moveBtn, 6, 0);
 
+        _weekStartButton = new Button
+        {
+            Text = "Week: Mon",
+            FontSize = 12,
+            HeightRequest = 38,
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#283593"),
+            CornerRadius = 6,
+            Padding = new Thickness(12, 0)
+        };
+        ToolTipProperties.SetText(_weekStartButton, "Change calendar week display order");
+        _weekStartButton.Clicked += async (s, e) => await ChangeWeekStartAsync();
+        navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        navRow.Add(_weekStartButton, 7, 0);
+
         mainStack.Children.Add(navRow);
 
         // Day-of-week headers
-        var dowRow = new Grid { ColumnSpacing = 4 };
+        _dowRow = new Grid { ColumnSpacing = 4 };
         for (int i = 0; i < 7; i++)
-            dowRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            _dowRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
 
-        string[] dayNames = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
-        for (int i = 0; i < 7; i++)
-        {
-            dowRow.Add(new Label
-            {
-                Text = dayNames[i], FontSize = 11, FontAttributes = FontAttributes.Bold,
-                TextColor = (i >= 5) ? Color.FromArgb("#C62828") : Color.FromArgb("#666"),
-                HorizontalTextAlignment = TextAlignment.Center
-            }, i, 0);
-        }
-        mainStack.Children.Add(dowRow);
+        UpdateDayOfWeekHeaders();
+        mainStack.Children.Add(_dowRow);
 
         // Calendar grid (will be rebuilt each month)
         _calendarGrid = new Grid { ColumnSpacing = 4, RowSpacing = 4 };
@@ -216,6 +226,75 @@ public class CalendarPage : ContentPage
         mainStack.Children.Add(unplacedScroll);
 
         Content = new ScrollView { Content = mainStack };
+    }
+
+    private async Task LoadCalendarSettingsAsync()
+    {
+        string key = GetWeekStartStorageKey();
+        string? value = null;
+        try { value = await SecureStorage.GetAsync(key); } catch { }
+
+        _weekStartsSunday = string.Equals(value, "Sunday", StringComparison.OrdinalIgnoreCase);
+        UpdateWeekStartButton();
+        UpdateDayOfWeekHeaders();
+    }
+
+    private async Task ChangeWeekStartAsync()
+    {
+        string current = _weekStartsSunday ? "Sunday to Saturday" : "Monday to Sunday";
+        string action = await DisplayActionSheet(
+            $"Current: {current}",
+            "Cancel",
+            null,
+            "Monday to Sunday",
+            "Sunday to Saturday");
+
+        if (action == "Sunday to Saturday")
+            _weekStartsSunday = true;
+        else if (action == "Monday to Sunday")
+            _weekStartsSunday = false;
+        else
+            return;
+
+        try { await SecureStorage.SetAsync(GetWeekStartStorageKey(), _weekStartsSunday ? "Sunday" : "Monday"); } catch { }
+
+        UpdateWeekStartButton();
+        UpdateDayOfWeekHeaders();
+        BuildCalendarGrid();
+    }
+
+    private string GetWeekStartStorageKey()
+    {
+        return $"calendar_week_start_{_auth.CurrentUsername}";
+    }
+
+    private void UpdateWeekStartButton()
+    {
+        if (_weekStartButton != null)
+            _weekStartButton.Text = _weekStartsSunday ? "Week: Sun" : "Week: Mon";
+    }
+
+    private void UpdateDayOfWeekHeaders()
+    {
+        if (_dowRow == null)
+            return;
+
+        _dowRow.Children.Clear();
+        string[] dayNames = _weekStartsSunday
+            ? new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" }
+            : new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+
+        for (int i = 0; i < 7; i++)
+        {
+            _dowRow.Add(new Label
+            {
+                Text = dayNames[i],
+                FontSize = 11,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = IsWeekendColumn(i) ? Color.FromArgb("#C62828") : Color.FromArgb("#666"),
+                HorizontalTextAlignment = TextAlignment.Center
+            }, i, 0);
+        }
     }
 
     private void GoToPreviousMonth()
@@ -278,8 +357,9 @@ public class CalendarPage : ContentPage
         var firstDay = new DateTime(_year, _month, 1);
         int daysInMonth = DateTime.DaysInMonth(_year, _month);
 
-        // Monday = 0, Sunday = 6
-        int startOffset = ((int)firstDay.DayOfWeek + 6) % 7;
+        int startOffset = _weekStartsSunday
+            ? (int)firstDay.DayOfWeek
+            : ((int)firstDay.DayOfWeek + 6) % 7;
 
         int totalCells = startOffset + daysInMonth;
         int rows = (int)Math.Ceiling(totalCells / 7.0);
@@ -300,12 +380,17 @@ public class CalendarPage : ContentPage
             int doneTasks = _completedCounts.GetValueOrDefault(day);
             int lookouts = _lookoutCounts.GetValueOrDefault(day);
             bool isToday = isCurrentMonth && day == today;
-            bool isWeekend = col >= 5;
+            bool isWeekend = IsWeekendColumn(col);
             bool isPast = isCurrentMonth && day < today;
 
             var card = BuildDayCard(day, activeTasks, doneTasks, lookouts, isToday, isWeekend, isPast);
             _calendarGrid.Add(card, col, row);
         }
+    }
+
+    private bool IsWeekendColumn(int col)
+    {
+        return _weekStartsSunday ? col == 0 || col == 6 : col >= 5;
     }
 
     private Frame BuildDayCard(int day, int activeTasks, int doneTasks, int lookouts, bool isToday, bool isWeekend, bool isPast)

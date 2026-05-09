@@ -389,6 +389,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<StreakAttempt>();
             await _db!.CreateTableAsync<StreakTargetCompletion>();
             await _db!.CreateTableAsync<StreakTargetStatLog>();
+            await _db!.CreateTableAsync<MonthlyExpense>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
 

@@ -28,6 +28,7 @@ public class HomePage : ContentPage
     private readonly SubActivityService _subActivityService;
     private readonly AudioLibraryService _audioLibService;
     private readonly DailyLoginPromptService _dailyLoginPrompts;
+    private readonly MoneyManagementService _moneyManagement;
     private bool _introChecked = false;
 
     // UI Controls
@@ -50,6 +51,7 @@ public class HomePage : ContentPage
     private Button _btnCalendar;
     private Button _btnSettings;
     private Button _btnAudioLibrary;
+    private Button _btnMoneyManagement;
     private Grid _loadingOverlay;
 
     public HomePage(AuthService auth, GameService games, DragonService dragons,
@@ -58,7 +60,7 @@ public class HomePage : ContentPage
         StoryProductionService storyProduction, TaskService taskService, WeeklyChallengeService challengeService,
         IdeasService ideas, IdeaLoggerService ideaLogger, ConversationService conversationService,
         SubActivityService subActivityService, AudioLibraryService audioLibService,
-        DailyLoginPromptService dailyLoginPrompts)
+        DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement)
     {
         _auth = auth;
         _games = games;
@@ -81,6 +83,7 @@ public class HomePage : ContentPage
         _subActivityService = subActivityService;
         _audioLibService = audioLibService;
         _dailyLoginPrompts = dailyLoginPrompts;
+        _moneyManagement = moneyManagement;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -194,6 +197,10 @@ public class HomePage : ContentPage
         _btnLearning = CreateButton("📚 Learning (Books & Videos)", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C2185B"));
         _btnLearning.Clicked += OnLearningClicked;
         navButtons.Add(("Learning", _btnLearning));
+
+        _btnMoneyManagement = CreateButton("Money Management", Color.FromArgb("#E8F5E9"), Color.FromArgb("#1B5E20"));
+        _btnMoneyManagement.Clicked += OnMoneyManagementClicked;
+        navButtons.Add(("Money Management", _btnMoneyManagement));
 
         _btnPrompts = CreateButton("✨ Prompts", Color.FromArgb("#F3E5F5"), Color.FromArgb("#7B1FA2"));
         _btnPrompts.Clicked += OnPromptsClicked;
@@ -775,6 +782,12 @@ public class HomePage : ContentPage
     private async void OnAudioLibraryClicked(object? sender, EventArgs e)
     {
         var page = new AudioLibraryPage(_auth, _audioLibService);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnMoneyManagementClicked(object? sender, EventArgs e)
+    {
+        var page = new MoneyManagementPage(_auth, _moneyManagement);
         await Navigation.PushAsync(page);
     }
 
