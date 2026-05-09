@@ -1062,11 +1062,13 @@ public class StoryProductionPage : ContentPage
             return;
         }
 
-        string prompt = BuildConversationIdeaAnalysisPrompt(_currentProject);
+        var promptParts = BuildConversationIdeaAnalysisPrompts(_currentProject);
         string? response = await ShowPromptAndPasteInputAsync(
             "Analyze Conversation For Ideas",
-            "Copy this prompt to an LLM. Paste the returned IDEA lines below to log them into Ideas.",
-            prompt,
+            promptParts.Count == 1
+                ? "Copy this prompt to an LLM. Paste the returned IDEA lines below to log them into Ideas."
+                : $"Copy each request part to an LLM. Paste all returned IDEA lines below to log them into Ideas. Parts: {promptParts.Count}",
+            promptParts,
             "Paste IDEA|Category|Text lines here...");
 
         if (string.IsNullOrWhiteSpace(response))
@@ -1101,10 +1103,26 @@ public class StoryProductionPage : ContentPage
         await DisplayAlert("Ideas Logged", $"Logged {logged} idea(s).", "OK");
     }
 
-    private string BuildConversationIdeaAnalysisPrompt(StoryProject project)
+    private List<string> BuildConversationIdeaAnalysisPrompts(StoryProject project)
+    {
+        const int maxConversationCharsPerPart = 12000;
+        var conversationParts = SplitTextForPromptParts(project.LlmConversationLog, maxConversationCharsPerPart);
+        var prompts = new List<string>();
+
+        for (int i = 0; i < conversationParts.Count; i++)
+        {
+            prompts.Add(BuildConversationIdeaAnalysisPrompt(project, conversationParts[i], i + 1, conversationParts.Count));
+        }
+
+        return prompts;
+    }
+
+    private string BuildConversationIdeaAnalysisPrompt(StoryProject project, string conversationPart, int partNumber, int totalParts)
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("Analyze the following LLM conversation from the creation of a story project.");
+        if (totalParts > 1)
+            sb.AppendLine($"This is part {partNumber} of {totalParts}. Analyze only this part and return ideas found in this part.");
         sb.AppendLine();
         sb.AppendLine("Extract useful reusable ideas and assign each one to the most useful category.");
         sb.AppendLine("Use whatever categories fit the content, such as Story Ideas, Story Structure Ideas, Magic Ideas, Character Ideas, Visual Ideas, Dialogue Ideas, Worldbuilding Ideas, Production Ideas, Marketing Ideas, or any better category you infer.");
@@ -1120,14 +1138,60 @@ public class StoryProductionPage : ContentPage
         sb.AppendLine("- If no useful ideas exist, return exactly: NO_IDEAS");
         sb.AppendLine();
         sb.AppendLine($"Project: {project.Name}");
+        if (totalParts > 1)
+            sb.AppendLine($"Conversation part: {partNumber}/{totalParts}");
         if (!string.IsNullOrWhiteSpace(project.Description))
             sb.AppendLine($"Description: {project.Description}");
         sb.AppendLine();
         sb.AppendLine("Conversation:");
         sb.AppendLine("<<<");
-        sb.AppendLine(project.LlmConversationLog);
+        sb.AppendLine(conversationPart);
         sb.AppendLine(">>>");
         return sb.ToString();
+    }
+
+    private List<string> SplitTextForPromptParts(string text, int maxChars)
+    {
+        var normalized = (text ?? "").Replace("\r\n", "\n").Replace('\r', '\n');
+        if (normalized.Length <= maxChars)
+            return new List<string> { normalized };
+
+        var parts = new List<string>();
+        var current = new System.Text.StringBuilder();
+        var blocks = normalized.Split('\n');
+
+        foreach (var block in blocks)
+        {
+            string line = block + "\n";
+            if (line.Length > maxChars)
+            {
+                if (current.Length > 0)
+                {
+                    parts.Add(current.ToString().TrimEnd());
+                    current.Clear();
+                }
+
+                for (int i = 0; i < line.Length; i += maxChars)
+                {
+                    int length = Math.Min(maxChars, line.Length - i);
+                    parts.Add(line.Substring(i, length).TrimEnd());
+                }
+                continue;
+            }
+
+            if (current.Length + line.Length > maxChars && current.Length > 0)
+            {
+                parts.Add(current.ToString().TrimEnd());
+                current.Clear();
+            }
+
+            current.Append(line);
+        }
+
+        if (current.Length > 0)
+            parts.Add(current.ToString().TrimEnd());
+
+        return parts.Count == 0 ? new List<string> { "" } : parts;
     }
 
     private List<(string category, string text)> ParseConversationIdeas(string response)
@@ -1157,9 +1221,10 @@ public class StoryProductionPage : ContentPage
         return result;
     }
 
-    private async Task<string?> ShowPromptAndPasteInputAsync(string title, string instructions, string promptText, string pastePlaceholder)
+    private async Task<string?> ShowPromptAndPasteInputAsync(string title, string instructions, List<string> promptParts, string pastePlaceholder)
     {
         var tcs = new TaskCompletionSource<string?>();
+        int currentPartIndex = 0;
 
         var overlay = new Grid
         {
@@ -1197,7 +1262,7 @@ public class StoryProductionPage : ContentPage
 
         var promptEditor = new Editor
         {
-            Text = promptText,
+            Text = promptParts[currentPartIndex],
             IsReadOnly = true,
             FontSize = 11,
             FontFamily = "Consolas",
@@ -1207,23 +1272,73 @@ public class StoryProductionPage : ContentPage
         };
         stack.Children.Add(promptEditor);
 
+        var partLabel = new Label
+        {
+            Text = promptParts.Count == 1 ? "Request part 1 of 1" : $"Request part 1 of {promptParts.Count}",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        };
+        stack.Children.Add(partLabel);
+
+        var promptButtonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.Start
+        };
+
         var copyPromptBtn = new Button
         {
-            Text = "Copy LLM Request",
+            Text = "Copy Current Part",
             BackgroundColor = Color.FromArgb("#E3F2FD"),
             TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             Padding = new Thickness(16, 8),
             HorizontalOptions = LayoutOptions.Start
         };
+
+        var previousPartBtn = new Button
+        {
+            Text = "Previous",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#455A64"),
+            CornerRadius = 8,
+            Padding = new Thickness(16, 8),
+            IsEnabled = false
+        };
+
+        var nextPartBtn = new Button
+        {
+            Text = "Next",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#455A64"),
+            CornerRadius = 8,
+            Padding = new Thickness(16, 8),
+            IsEnabled = promptParts.Count > 1
+        };
+
+        void ShowPromptPart(int index)
+        {
+            currentPartIndex = Math.Clamp(index, 0, promptParts.Count - 1);
+            promptEditor.Text = promptParts[currentPartIndex];
+            partLabel.Text = $"Request part {currentPartIndex + 1} of {promptParts.Count}";
+            previousPartBtn.IsEnabled = currentPartIndex > 0;
+            nextPartBtn.IsEnabled = currentPartIndex < promptParts.Count - 1;
+        }
+
         copyPromptBtn.Clicked += async (s, e) =>
         {
-            await Clipboard.SetTextAsync(promptText);
+            await Clipboard.SetTextAsync(promptParts[currentPartIndex]);
             copyPromptBtn.Text = "Copied";
             await Task.Delay(1000);
-            copyPromptBtn.Text = "Copy LLM Request";
+            copyPromptBtn.Text = "Copy Current Part";
         };
-        stack.Children.Add(copyPromptBtn);
+        previousPartBtn.Clicked += (s, e) => ShowPromptPart(currentPartIndex - 1);
+        nextPartBtn.Clicked += (s, e) => ShowPromptPart(currentPartIndex + 1);
+
+        promptButtonRow.Children.Add(copyPromptBtn);
+        promptButtonRow.Children.Add(previousPartBtn);
+        promptButtonRow.Children.Add(nextPartBtn);
+        stack.Children.Add(promptButtonRow);
 
         stack.Children.Add(new Label
         {
