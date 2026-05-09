@@ -195,6 +195,7 @@ public class CalendarPage : ContentPage
             Padding = new Thickness(12, 0),
             IsEnabled = false
         };
+        ToolTipProperties.SetText(_placeSelectedTaskButton, "Move the selected not yet placed task to a calendar date");
         _placeSelectedTaskButton.Clicked += async (s, e) => await MoveSelectedUnplacedTaskToDateAsync();
         unplacedHeader.Add(_placeSelectedTaskButton, 1, 0);
         mainStack.Children.Add(unplacedHeader);
@@ -1723,6 +1724,7 @@ public class CalendarDayPage : ContentPage
                 TextColor = Color.FromArgb("#C62828"),
                 CornerRadius = 4, Padding = 0
             };
+            ToolTipProperties.SetText(urgentBtn, task.IsUrgent ? "Remove urgent flag" : "Mark as urgent");
             urgentBtn.Clicked += async (s, e) =>
             {
                 task.IsUrgent = !task.IsUrgent;
@@ -1737,6 +1739,7 @@ public class CalendarDayPage : ContentPage
                 BackgroundColor = Color.FromArgb("#E8F5E9"), TextColor = Color.FromArgb("#2E7D32"),
                 CornerRadius = 4, Padding = 0
             };
+            ToolTipProperties.SetText(completeBtn, "Mark task complete");
             completeBtn.Clicked += async (s, e) =>
             {
                 await _taskService.CompleteTaskAsync(task);
@@ -1751,6 +1754,7 @@ public class CalendarDayPage : ContentPage
                 BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0"),
                 CornerRadius = 4, Padding = 0
             };
+            ToolTipProperties.SetText(postponeBtn, "Move task to a later date");
             postponeBtn.Clicked += async (s, ev) => await ShowPostponeAsync(task);
             btnStack.Children.Add(postponeBtn);
 
@@ -1765,6 +1769,7 @@ public class CalendarDayPage : ContentPage
                 CornerRadius = 4,
                 Padding = 0
             };
+            ToolTipProperties.SetText(unplaceBtn, "Move task to not yet placed and remove its date");
             unplaceBtn.Clicked += async (s, ev) => await MoveTaskToNotYetPlacedAsync(task);
             btnStack.Children.Add(unplaceBtn);
         }
@@ -1776,6 +1781,7 @@ public class CalendarDayPage : ContentPage
                 BackgroundColor = Color.FromArgb("#FFF8E1"), TextColor = Color.FromArgb("#F57F17"),
                 CornerRadius = 4, Padding = 0
             };
+            ToolTipProperties.SetText(uncompleteBtn, "Move task back to active");
             uncompleteBtn.Clicked += async (s, e) =>
             {
                 await _taskService.UncompleteTaskAsync(task);
@@ -1791,6 +1797,7 @@ public class CalendarDayPage : ContentPage
             BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 4, Padding = 0
         };
+        ToolTipProperties.SetText(editBtn, "Edit task title and notes");
         editBtn.Clicked += async (s, e) => await EditTaskAsync(task);
         btnStack.Children.Add(editBtn);
 
@@ -1800,6 +1807,7 @@ public class CalendarDayPage : ContentPage
             BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 4, Padding = 0
         };
+        ToolTipProperties.SetText(deleteBtn, "Delete task");
         deleteBtn.Clicked += async (s, e) =>
         {
             if (await DisplayAlert("Delete?", $"Delete \"{task.Title}\"?", "Delete", "Cancel"))
