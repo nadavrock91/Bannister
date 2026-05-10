@@ -1728,6 +1728,16 @@ public class LearningPage : ContentPage
 
         if (!confirm) return;
 
+        string? destination = await DisplayActionSheet(
+            "Add Video To",
+            "Cancel",
+            null,
+            "To Watch",
+            "Pending");
+
+        if (string.IsNullOrWhiteSpace(destination) || destination == "Cancel")
+            return;
+
         // Check for channel mapping
         string category = GetCategoryForChannel(channelName);
         
@@ -1746,14 +1756,15 @@ public class LearningPage : ContentPage
             Url = url.Trim(),
             VideoId = videoId,
             Creator = channelName,
-            Category = category
+            Category = category,
+            Status = destination == "Pending" ? "PendingWatched" : "NotStarted"
         };
 
         await _learning.AddVideoAsync(video);
         
         if (category != "Unsorted")
         {
-            await DisplayAlert("Added", $"Video added to '{category}'", "OK");
+            await DisplayAlert("Added", $"Video added to '{category}' as {destination}", "OK");
         }
         
         await RefreshVideosAsync();
