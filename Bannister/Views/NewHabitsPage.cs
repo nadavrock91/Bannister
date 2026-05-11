@@ -359,9 +359,16 @@ public class NewHabitsPage : ContentPage
         if (missedHabits.Count > 0)
         {
             string habitNames = string.Join("\n", missedHabits.Select(h => $"• {h.HabitName}"));
+            string habitTitleNames = string.Join(", ", missedHabits.Select(h => h.HabitName));
+            if (habitTitleNames.Length > 120)
+                habitTitleNames = habitTitleNames.Substring(0, 117) + "...";
+
+            string failureTitle = missedHabits.Count == 1
+                ? $"{_frequency} Habit Failed: {habitTitleNames}"
+                : $"{_frequency} Habits Failed: {habitTitleNames}";
             
             string choice = await DisplayActionSheet(
-                $"{_frequency} Habits Failed",
+                failureTitle,
                 null,  // no cancel - must choose
                 null,  // no destructive
                 "✅ Accept Failures",
