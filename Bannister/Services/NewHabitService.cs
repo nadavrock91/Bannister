@@ -210,6 +210,24 @@ public class NewHabitService
         return (!isFilled, active, required);
     }
 
+    public async Task<(bool NeedsAlert, int Active, int Required)> CheckWeeklyHabitAlertAsync(string username)
+    {
+        var allowance = await GetOrCreateAllowanceAsync(username, "Weekly");
+        var activeHabits = await GetActiveHabitsByFrequencyAsync(username, "Weekly");
+
+        bool isFilled = activeHabits.Count >= allowance.CurrentAllowance;
+        return (!isFilled, activeHabits.Count, allowance.CurrentAllowance);
+    }
+
+    public async Task<(bool NeedsAlert, int Active, int Required)> CheckMonthlyHabitAlertAsync(string username)
+    {
+        var allowance = await GetOrCreateAllowanceAsync(username, "Monthly");
+        var activeHabits = await GetActiveHabitsByFrequencyAsync(username, "Monthly");
+
+        bool isFilled = activeHabits.Count >= allowance.CurrentAllowance;
+        return (!isFilled, activeHabits.Count, allowance.CurrentAllowance);
+    }
+
     #endregion
 
     #region Habit CRUD

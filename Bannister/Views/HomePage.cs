@@ -389,6 +389,10 @@ public class HomePage : ContentPage
         // Check for unfilled daily habit slots (only on Saturday)
         await CheckDailyHabitAllowanceAsync();
 
+        // Check for unfilled weekly/monthly habit slots (only on the 1st of the month)
+        await CheckWeeklyHabitAllowanceAsync();
+        await CheckMonthlyHabitAllowanceAsync();
+
         // Check if unencrypted legacy database file still exists
         await CheckLegacyUnencryptedDbAsync();
 
@@ -576,6 +580,88 @@ public class HomePage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error checking daily habit allowance: {ex.Message}");
+        }
+    }
+
+    private async Task CheckWeeklyHabitAllowanceAsync()
+    {
+        try
+        {
+            if (DateTime.Today.Day != 1) return;
+
+            var habitService = Application.Current?.Handler?.MauiContext?.Services
+                .GetService<NewHabitService>();
+
+            if (habitService == null) return;
+
+            var (needsAlert, active, required) = await habitService.CheckWeeklyHabitAlertAsync(_auth.CurrentUsername);
+
+            if (!needsAlert) return;
+
+            string lastPromptKey = $"weekly_habit_allowance_prompt_{_auth.CurrentUsername}";
+            string? lastPrompt = null;
+            try { lastPrompt = await SecureStorage.GetAsync(lastPromptKey); } catch { }
+
+            string thisMonth = DateTime.Today.ToString("yyyy-MM");
+            if (lastPrompt == thisMonth) return;
+
+            bool goToHabits = await DisplayAlert(
+                "Weekly Habit Slots Unfilled",
+                $"You have {active}/{required} weekly habit slots filled this month. Go to Weekly Habits to designate which weekly habits you'll pursue?",
+                "Yes, Go to Weekly Habits",
+                "Later");
+
+            try { await SecureStorage.SetAsync(lastPromptKey, thisMonth); } catch { }
+
+            if (goToHabits)
+            {
+                await Shell.Current.GoToAsync("newhabits?frequency=Weekly");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking weekly habit allowance: {ex.Message}");
+        }
+    }
+
+    private async Task CheckMonthlyHabitAllowanceAsync()
+    {
+        try
+        {
+            if (DateTime.Today.Day != 1) return;
+
+            var habitService = Application.Current?.Handler?.MauiContext?.Services
+                .GetService<NewHabitService>();
+
+            if (habitService == null) return;
+
+            var (needsAlert, active, required) = await habitService.CheckMonthlyHabitAlertAsync(_auth.CurrentUsername);
+
+            if (!needsAlert) return;
+
+            string lastPromptKey = $"monthly_habit_allowance_prompt_{_auth.CurrentUsername}";
+            string? lastPrompt = null;
+            try { lastPrompt = await SecureStorage.GetAsync(lastPromptKey); } catch { }
+
+            string thisMonth = DateTime.Today.ToString("yyyy-MM");
+            if (lastPrompt == thisMonth) return;
+
+            bool goToHabits = await DisplayAlert(
+                "Monthly Habit Slots Unfilled",
+                $"You have {active}/{required} monthly habit slots filled this month. Go to Monthly Habits to designate which monthly habits you'll pursue?",
+                "Yes, Go to Monthly Habits",
+                "Later");
+
+            try { await SecureStorage.SetAsync(lastPromptKey, thisMonth); } catch { }
+
+            if (goToHabits)
+            {
+                await Shell.Current.GoToAsync("newhabits?frequency=Monthly");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking monthly habit allowance: {ex.Message}");
         }
     }
 
