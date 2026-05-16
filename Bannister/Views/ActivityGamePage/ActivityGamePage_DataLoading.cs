@@ -238,7 +238,8 @@ public partial class ActivityGamePage
         // Group categories case-insensitively, keeping the first occurrence's casing
         _categories = allActivities
             .Select(a => a.Category ?? "Misc")
-            .Where(c => !c.Equals("Expired", StringComparison.OrdinalIgnoreCase) 
+            .Where(c => !c.Equals("Auto", StringComparison.OrdinalIgnoreCase)
+                     && !c.Equals("Expired", StringComparison.OrdinalIgnoreCase) 
                      && !c.Equals("Stale", StringComparison.OrdinalIgnoreCase))
             .GroupBy(c => c.ToLowerInvariant())
             .Select(g => g.First()) // Keep first occurrence's casing
@@ -330,7 +331,8 @@ public partial class ActivityGamePage
             // Get unique categories from visible activities
             _navigableCategories = visibleActivities
                 .Select(a => a.Category ?? "Misc")
-                .Where(c => !c.Equals("Expired", StringComparison.OrdinalIgnoreCase) 
+                .Where(c => !c.Equals("Auto", StringComparison.OrdinalIgnoreCase)
+                         && !c.Equals("Expired", StringComparison.OrdinalIgnoreCase) 
                          && !c.Equals("Stale", StringComparison.OrdinalIgnoreCase))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
@@ -466,6 +468,13 @@ public partial class ActivityGamePage
                 .Where(vm => vm.Activity.Category == "Stale")
                 .ToList();
         }
+        else if (_currentMetaFilter == "Auto")
+        {
+            // Show all activities in Auto category
+            filtered = _allActivities
+                .Where(vm => vm.Activity.Category == "Auto")
+                .ToList();
+        }
         else if (_currentMetaFilter == "Missing Image")
         {
             // Show all activities without images across all categories
@@ -481,7 +490,7 @@ public partial class ActivityGamePage
                 // (they come from different games, so GetVisibleActivitiesAsync won't work)
                 filtered = _allActivities
                     .Where(vm => vm.Activity.IsActive)
-                    .Where(vm => vm.Activity.Category != "Expired" && vm.Activity.Category != "Stale")
+                    .Where(vm => vm.Activity.Category != "Auto" && vm.Activity.Category != "Expired" && vm.Activity.Category != "Stale")
                     .ToList();
             }
             else
@@ -504,8 +513,8 @@ public partial class ActivityGamePage
             vm.CurrentLevel = _currentLevel;
         }
 
-        // For "Possible", "Expired", "Stale", and "Missing Image" filters, skip category filtering
-        if (_currentMetaFilter != "Possible" && _currentMetaFilter != "Expired" && _currentMetaFilter != "Stale" && _currentMetaFilter != "Missing Image")
+        // For "Possible", "Auto", "Expired", "Stale", and "Missing Image" filters, skip category filtering
+        if (_currentMetaFilter != "Possible" && _currentMetaFilter != "Auto" && _currentMetaFilter != "Expired" && _currentMetaFilter != "Stale" && _currentMetaFilter != "Missing Image")
         {
             // Determine which category to filter by
             string? categoryToFilter = null;

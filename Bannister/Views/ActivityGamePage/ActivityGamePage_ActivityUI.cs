@@ -136,6 +136,7 @@ public partial class ActivityGamePage
             ItemsSource = new List<string>
             {
                 "All Activities",
+                "Auto",
                 "Has Multiplier",
                 "No Multiplier",
                 "Active Now",

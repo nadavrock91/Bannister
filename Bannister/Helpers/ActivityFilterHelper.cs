@@ -39,6 +39,12 @@ public static class ActivityFilterHelper
             case "Possible":
                 return activities.Where(a => a.Activity.IsPossible).ToList();
 
+            case "Auto":
+                return activities
+                    .Where(a => a.Activity.Category == "Auto")
+                    .OrderBy(a => a.Activity.Name)
+                    .ToList();
+
             case "Expired":
                 // Show expired activities, sorted by EndDate descending (most recently expired first)
                 return activities
@@ -62,8 +68,9 @@ public static class ActivityFilterHelper
 
             case "All Activities":
             default:
-                // Exclude possible, expired, and stale activities from All Activities by default
+                // Exclude possible and meta-only categories from All Activities by default
                 return activities.Where(a => !a.Activity.IsPossible 
+                    && a.Activity.Category != "Auto"
                     && a.Activity.Category != "Expired"
                     && a.Activity.Category != "Stale").ToList();
         }
