@@ -47,6 +47,7 @@ public class HomePage : ContentPage
     private Button _btnConversationPractice;
     private Button _btnPrompts;
     private Button _btnIdeas;
+    private Button _btnImageEdit;
     private Button _btnStoryProduction;
     private Button _btnImageProduction;
     private Button _btnSubActivities;
@@ -210,6 +211,10 @@ public class HomePage : ContentPage
         _btnImageProduction = CreateButton("🎨 Image Production", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C62828"));
         _btnImageProduction.Clicked += OnImageProductionClicked;
         navButtons.Add(("Image Production", _btnImageProduction));
+
+        _btnImageEdit = CreateButton("Image Edit", Color.FromArgb("#E0F7FA"), Color.FromArgb("#006064"));
+        _btnImageEdit.Clicked += OnImageEditClicked;
+        navButtons.Add(("Image Edit", _btnImageEdit));
 
         _btnLearning = CreateButton("📚 Learning (Books & Videos)", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C2185B"));
         _btnLearning.Clicked += OnLearningClicked;
@@ -898,6 +903,11 @@ public class HomePage : ContentPage
         var service = new ImageProductionService(_db);
         var page = new ImageProductionPage(_auth, service);
         await Navigation.PushAsync(page);
+    }
+
+    private async void OnImageEditClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new ImageEditPage());
     }
 
     private async void OnCalendarClicked(object? sender, EventArgs e)
