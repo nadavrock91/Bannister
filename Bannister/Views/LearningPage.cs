@@ -492,6 +492,19 @@ public class LearningPage : ContentPage
         settingsBtn.Clicked += OnVideoSettingsClicked;
         filterRow2.Children.Add(settingsBtn);
 
+        var creatorCountsBtn = new Button
+        {
+            Text = "Creator Counts",
+            BackgroundColor = Color.FromArgb("#607D8B"),
+            TextColor = Colors.White,
+            HeightRequest = 35,
+            CornerRadius = 6,
+            Padding = new Thickness(10, 0),
+            FontSize = 12
+        };
+        creatorCountsBtn.Clicked += async (s, e) => await ShowCreatorMonthlyStatsAsync();
+        filterRow2.Children.Add(creatorCountsBtn);
+
         videosContainer.Children.Add(filterRow2);
 
         // Video Focus Panel
@@ -3241,7 +3254,7 @@ public class LearningPage : ContentPage
         
         if (!focus.IsActive)
         {
-            await DisplayAlert("No Focus", "Set a focus category first to track creator limits.", "OK");
+            await DisplayAlert("No Focus Category", "Enable focus mode first to see creator counts.", "OK");
             return;
         }
         
@@ -3263,7 +3276,7 @@ public class LearningPage : ContentPage
         
         if (creatorCounts.Count == 0)
         {
-            await DisplayAlert("Creator Stats", $"No videos watched in '{focus.Category}' this month yet.", "OK");
+            await DisplayAlert("Creator Counts", "No videos completed in focus category this month.", "OK");
             return;
         }
         
@@ -3274,15 +3287,16 @@ public class LearningPage : ContentPage
         
         contentStack.Children.Add(new Label
         {
-            Text = $"📊 Creator Stats - {DateTime.Now:MMMM yyyy}",
+            Text = "Creator Counts (Focus Category)",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222"),
             HorizontalOptions = LayoutOptions.Center
         });
         
         contentStack.Children.Add(new Label
         {
-            Text = $"Focus: {focus.Category} | Limit: {focus.CreatorMonthlyLimit}/creator",
+            Text = $"Focus: {focus.Category} - Monthly limit: {focus.CreatorMonthlyLimit}",
             FontSize = 12,
             TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
@@ -3296,7 +3310,12 @@ public class LearningPage : ContentPage
         foreach (var item in creatorCounts)
         {
             bool atLimit = item.Count >= focus.CreatorMonthlyLimit;
-            bool nearLimit = item.Count >= focus.CreatorMonthlyLimit - 2;
+            bool nearLimit = !atLimit && item.Count >= Math.Ceiling(focus.CreatorMonthlyLimit * 0.8);
+            var rowColor = atLimit
+                ? Color.FromArgb("#D32F2F")
+                : nearLimit
+                    ? Color.FromArgb("#F57C00")
+                    : Color.FromArgb("#222");
             
             var row = new HorizontalStackLayout { Spacing = 8 };
             
@@ -3309,18 +3328,18 @@ public class LearningPage : ContentPage
             
             row.Children.Add(new Label
             {
-                Text = item.Creator,
+                Text = $"{item.Creator}:",
                 FontSize = 14,
                 VerticalOptions = LayoutOptions.Center,
-                TextColor = atLimit ? Color.FromArgb("#D32F2F") : Colors.Black
+                TextColor = rowColor
             });
             
             row.Children.Add(new Label
             {
-                Text = $"({item.Count}/{focus.CreatorMonthlyLimit})",
+                Text = $"{item.Count}/{focus.CreatorMonthlyLimit}",
                 FontSize = 12,
                 VerticalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb("#666")
+                TextColor = rowColor
             });
             
             if (atLimit)
@@ -3354,7 +3373,8 @@ public class LearningPage : ContentPage
         
         var overlayPage = new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            Title = "Creator Counts",
+            BackgroundColor = Colors.White,
             Content = contentStack
         };
         
