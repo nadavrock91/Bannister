@@ -471,6 +471,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<UserList>();
             await _db!.CreateTableAsync<UserListItem>();
             await _db!.CreateTableAsync<AppliedOperation>();
+            await _db!.CreateTableAsync<PendingActivityIdea>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
 

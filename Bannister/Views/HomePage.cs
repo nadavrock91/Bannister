@@ -34,6 +34,7 @@ public class HomePage : ContentPage
     private readonly MoneyManagementService _moneyManagement;
     private readonly ListsService _listsService;
     private readonly OperationApplierService _applier;
+    private readonly PendingActivityIdeaService _pendingIdeas;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
@@ -70,7 +71,8 @@ public class HomePage : ContentPage
         IdeasService ideas, IdeaLoggerService ideaLogger, ConversationService conversationService,
         SubActivityService subActivityService, AudioLibraryService audioLibService,
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
-        OperationQueueService operationQueue, SyncService sync, OperationApplierService applier)
+        OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
+        PendingActivityIdeaService pendingIdeas)
     {
         _auth = auth;
         _games = games;
@@ -92,6 +94,7 @@ public class HomePage : ContentPage
         _operationQueue = operationQueue;
         _sync = sync;
         _applier = applier;
+        _pendingIdeas = pendingIdeas;
         _conversationService = conversationService;
         _subActivityService = subActivityService;
         _audioLibService = audioLibService;
@@ -425,7 +428,14 @@ public class HomePage : ContentPage
             switch (action)
             {
                 case "Apply now":
-                    await ApplyQueuedOperationsFromHomeAsync(operations);
+                    await Navigation.PushAsync(new QueuedOperationsPage(
+                        _sync,
+                        _applier,
+                        _db,
+                        _auth,
+                        _activities,
+                        _games,
+                        _pendingIdeas));
                     break;
                 case "Don't remind me until...":
                     var selectedDate = await QueueSnoozeDatePage.ShowAsync(Navigation);

@@ -256,6 +256,7 @@ public partial class ActivityGamePage
         };
         btnAdd.Clicked += OnAddActivityClicked;
         stack.Children.Add(btnAdd);
+        AddPendingActivityIdeaControls(stack);
 
         var btnManage = new Button
         {

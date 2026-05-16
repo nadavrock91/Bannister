@@ -14,6 +14,9 @@ public class SyncSettingsPage : ContentPage
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
     private readonly OperationApplierService _applier;
+    private readonly ActivityService _activities;
+    private readonly GameService _games;
+    private readonly PendingActivityIdeaService _pendingIdeas;
 
     private RadioButton _rbMaster;
     private RadioButton _rbSecondary;
@@ -39,13 +42,19 @@ public class SyncSettingsPage : ContentPage
         SyncService sync,
         DatabaseService db,
         AuthService auth,
-        OperationApplierService applier)
+        OperationApplierService applier,
+        ActivityService activities,
+        GameService games,
+        PendingActivityIdeaService pendingIdeas)
     {
         _deviceMode = deviceMode;
         _sync = sync;
         _db = db;
         _auth = auth;
         _applier = applier;
+        _activities = activities;
+        _games = games;
+        _pendingIdeas = pendingIdeas;
 
         Title = "Sync & Devices";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -656,7 +665,14 @@ public class SyncSettingsPage : ContentPage
 
     private async void OnApplyQueuedOperationsClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new QueuedOperationsPage(_sync, _applier, _db));
+        await Navigation.PushAsync(new QueuedOperationsPage(
+            _sync,
+            _applier,
+            _db,
+            _auth,
+            _activities,
+            _games,
+            _pendingIdeas));
     }
 
     private async void OnResetQueueReminderClicked(object? sender, EventArgs e)

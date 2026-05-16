@@ -49,6 +49,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<SyncService>();
         builder.Services.AddSingleton<AuthService>();
         builder.Services.AddSingleton<OperationApplierService>();
+        builder.Services.AddSingleton<PendingActivityIdeaService>();
         builder.Services.AddSingleton<GameService>();
         builder.Services.AddSingleton<ActivityService>();
         builder.Services.AddSingleton<ExpService>();

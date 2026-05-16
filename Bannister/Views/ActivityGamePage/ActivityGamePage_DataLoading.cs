@@ -533,6 +533,7 @@ public partial class ActivityGamePage
         filtered = ActivityFilterHelper.ApplySorting(filtered, sortPicker?.SelectedItem?.ToString() ?? "Last Used (Recent First)");
 
         BuildActivitiesGridWithHeaders(filtered);
+        await RefreshPendingActivityIdeaCountAsync();
     }
 
     /// <summary>

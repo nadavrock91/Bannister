@@ -26,6 +26,8 @@ public partial class ActivityGamePage : ContentPage
     private readonly StreakService _streaks;
     private readonly DailyCheckService _dailyChecks;
     private readonly ActivityGroupingService? _groupingService;
+    private readonly PendingActivityIdeaService _pendingIdeas;
+    private readonly IdeasService _ideas;
 
     // State
     private string _gameId = "";
@@ -69,6 +71,9 @@ public partial class ActivityGamePage : ContentPage
     private Picker metaFilterPicker;
     private Picker sortPicker;
     private ScrollView activitiesCollection;
+    private Button? btnAddPendingActivityIdea;
+    private Button? btnProcessPendingIdeas;
+    private Label? lblPendingActivityIdeas;
 
     public string GameId
     {
@@ -98,7 +103,8 @@ public partial class ActivityGamePage : ContentPage
 
     public ActivityGamePage(AuthService auth, GameService games, ActivityService activities,
         ExpService exp, DragonService dragons, AttemptService attempts, DatabaseService db, StreakService streaks,
-        DailyCheckService dailyChecks, ActivityGroupingService groupingService)
+        DailyCheckService dailyChecks, ActivityGroupingService groupingService,
+        PendingActivityIdeaService pendingIdeas, IdeasService ideas)
     {
         _auth = auth;
         _games = games;
@@ -110,6 +116,8 @@ public partial class ActivityGamePage : ContentPage
         _streaks = streaks;
         _dailyChecks = dailyChecks;
         _groupingService = groupingService;
+        _pendingIdeas = pendingIdeas;
+        _ideas = ideas;
 
         Title = "Game";
         BackgroundColor = Color.FromArgb("#F5F5F5");

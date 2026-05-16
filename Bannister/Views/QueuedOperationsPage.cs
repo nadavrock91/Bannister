@@ -9,6 +9,10 @@ public class QueuedOperationsPage : ContentPage
     private readonly SyncService _sync;
     private readonly OperationApplierService _applier;
     private readonly DatabaseService _db;
+    private readonly AuthService _auth;
+    private readonly ActivityService _activities;
+    private readonly GameService _games;
+    private readonly PendingActivityIdeaService _pendingIdeas;
     private readonly CollectionView _collection;
     private readonly Label _summaryLabel;
     private readonly Label _statusLabel;
@@ -20,11 +24,22 @@ public class QueuedOperationsPage : ContentPage
     private HashSet<string> _alreadyApplied = new();
     private bool _isBusy;
 
-    public QueuedOperationsPage(SyncService sync, OperationApplierService applier, DatabaseService db)
+    public QueuedOperationsPage(
+        SyncService sync,
+        OperationApplierService applier,
+        DatabaseService db,
+        AuthService auth,
+        ActivityService activities,
+        GameService games,
+        PendingActivityIdeaService pendingIdeas)
     {
         _sync = sync;
         _applier = applier;
         _db = db;
+        _auth = auth;
+        _activities = activities;
+        _games = games;
+        _pendingIdeas = pendingIdeas;
 
         Title = "Queued Operations";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -256,7 +271,11 @@ public class QueuedOperationsPage : ContentPage
             {
                 var clear = await _sync.ClearAppliedFromServerAsync(result.UuidsToClear);
                 clearMessage = clear.Success ? "Cleared from server." : clear.Message;
+                if (!clear.Success)
+                    throw new InvalidOperationException(clear.Message);
             }
+
+            Preferences.Default.Remove("queue_prompt_snoozed_until");
 
             await DisplayAlert(
                 "Queued Operations",
@@ -264,6 +283,10 @@ public class QueuedOperationsPage : ContentPage
                 "OK");
 
             await LoadAsync();
+
+            SetBusy(false);
+            if (result.AppliedCount > 0)
+                await PromptToProcessPendingActivityIdeasAsync();
         }
         catch (Exception ex)
         {
@@ -274,6 +297,71 @@ public class QueuedOperationsPage : ContentPage
         finally
         {
             SetBusy(false);
+        }
+    }
+
+    private async Task PromptToProcessPendingActivityIdeasAsync()
+    {
+        var pending = await _pendingIdeas.GetPendingForUserAsync(_auth.CurrentUsername);
+        if (pending.Count == 0)
+            return;
+
+        bool processNow = await DisplayAlert(
+            "Process Pending Activity Ideas",
+            $"You have {pending.Count} pending activity {pending.Count.Plural("idea", "ideas")} across your games. Process them now?",
+            "Process now",
+            "Later");
+
+        if (processNow)
+            await ProcessAllPendingAsync();
+    }
+
+    private async Task ProcessAllPendingAsync()
+    {
+        while (true)
+        {
+            var pending = await _pendingIdeas.GetPendingForUserAsync(_auth.CurrentUsername);
+            if (pending.Count == 0)
+                return;
+
+            var next = pending.First();
+            var action = await PendingActivityIdeaCrossGameProcessPage.ShowAsync(Navigation, next, pending.Count);
+
+            if (action == PendingActivityIdeaProcessAction.Cancel)
+                return;
+
+            if (action == PendingActivityIdeaProcessAction.Skip)
+            {
+                await _pendingIdeas.MarkDismissedAsync(next.Id);
+                continue;
+            }
+
+            var created = await ActivityCreationPage.CreateActivityModalAsync(
+                Navigation,
+                _auth,
+                _activities,
+                _games,
+                next.Game,
+                prefillName: next.ActivityName,
+                prefillCategory: next.ActivityCategory);
+
+            if (created == null)
+                return;
+
+            await _pendingIdeas.MarkConvertedAsync(next.Id);
+
+            var remaining = await _pendingIdeas.GetPendingCountForUserAsync(_auth.CurrentUsername);
+            if (remaining == 0)
+                return;
+
+            bool continueProcessing = await DisplayAlert(
+                "Activity Created",
+                $"Activity created. {remaining} pending {(remaining == 1 ? "idea remains" : "ideas remain")}.\n\nProcess next pending idea?",
+                "Yes",
+                "No");
+
+            if (!continueProcessing)
+                return;
         }
     }
 
@@ -307,6 +395,27 @@ public class QueuedOperationsPage : ContentPage
                 using var doc = JsonDocument.Parse(plaintext);
                 title = ReadString(doc.RootElement, "title") ?? "Untitled idea";
                 category = ReadString(doc.RootElement, "category") ?? "";
+            }
+            catch
+            {
+                title = "[encrypted operation - cannot preview]";
+            }
+        }
+        else if (op.OperationType == "pending_activity_idea_added")
+        {
+            try
+            {
+                var password = _db.GetDbPassword();
+                if (string.IsNullOrEmpty(password))
+                    throw new InvalidOperationException("Not logged in.");
+
+                var plaintext = QueuePayloadCrypto.DecryptPayload(op.PayloadJson, password);
+                using var doc = JsonDocument.Parse(plaintext);
+                var activityName = ReadString(doc.RootElement, "activity_name") ?? "Untitled activity";
+                var game = ReadString(doc.RootElement, "game") ?? "unknown game";
+                var activityCategory = ReadString(doc.RootElement, "activity_category") ?? "";
+                title = $"Pending activity: {activityName} in {game}";
+                category = activityCategory;
             }
             catch
             {
@@ -365,6 +474,154 @@ public class QueuedOperationsPage : ContentPage
         public string Metadata { get; set; } = "";
         public bool IsApplied { get; set; }
         public double Opacity { get; set; } = 1.0;
+    }
+
+    private enum PendingActivityIdeaProcessAction
+    {
+        Create,
+        Skip,
+        Cancel
+    }
+
+    private sealed class PendingActivityIdeaCrossGameProcessPage : ContentPage
+    {
+        private readonly TaskCompletionSource<PendingActivityIdeaProcessAction> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private bool _isCompleting;
+
+        private PendingActivityIdeaCrossGameProcessPage(PendingActivityIdea idea, int count)
+        {
+            Title = "Process Pending Activity Idea";
+            BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
+
+            var createButton = new Button
+            {
+                Text = "Create",
+                BackgroundColor = Color.FromArgb("#5B63EE"),
+                TextColor = Colors.White,
+                CornerRadius = 8,
+                HeightRequest = 44
+            };
+            createButton.Clicked += async (_, _) => await CompleteAsync(PendingActivityIdeaProcessAction.Create);
+
+            var skipButton = new Button
+            {
+                Text = "Skip",
+                BackgroundColor = Color.FromArgb("#FF9800"),
+                TextColor = Colors.White,
+                CornerRadius = 8,
+                HeightRequest = 44
+            };
+            skipButton.Clicked += async (_, _) => await CompleteAsync(PendingActivityIdeaProcessAction.Skip);
+
+            var cancelButton = new Button
+            {
+                Text = "Cancel",
+                BackgroundColor = Color.FromArgb("#777"),
+                TextColor = Colors.White,
+                CornerRadius = 8,
+                HeightRequest = 44
+            };
+            cancelButton.Clicked += async (_, _) => await CompleteAsync(PendingActivityIdeaProcessAction.Cancel);
+
+            var buttonGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Star }
+                },
+                ColumnSpacing = 8,
+                Children =
+                {
+                    createButton.AssignGridColumn(0),
+                    skipButton.AssignGridColumn(1),
+                    cancelButton.AssignGridColumn(2)
+                }
+            };
+
+            Content = new Grid
+            {
+                Padding = 20,
+                Children =
+                {
+                    new Frame
+                    {
+                        BackgroundColor = Colors.White,
+                        BorderColor = Color.FromArgb("#DDD"),
+                        CornerRadius = 10,
+                        HasShadow = true,
+                        Padding = 18,
+                        VerticalOptions = LayoutOptions.Center,
+                        HorizontalOptions = LayoutOptions.Center,
+                        MaximumWidthRequest = 460,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 12,
+                            Children =
+                            {
+                                new Label
+                                {
+                                    Text = "Process Pending Activity Idea",
+                                    FontSize = 20,
+                                    FontAttributes = FontAttributes.Bold,
+                                    TextColor = Color.FromArgb("#222")
+                                },
+                                new Label
+                                {
+                                    Text = $"Pending idea 1 of {count}",
+                                    FontSize = 13,
+                                    FontAttributes = FontAttributes.Bold,
+                                    TextColor = Color.FromArgb("#F57C00")
+                                },
+                                new Label
+                                {
+                                    Text = $"Game: {idea.Game}\nName: {idea.ActivityName}\nCategory: {idea.ActivityCategory}",
+                                    FontSize = 15,
+                                    TextColor = Color.FromArgb("#333"),
+                                    LineBreakMode = LineBreakMode.WordWrap
+                                },
+                                new Label
+                                {
+                                    Text = "Open Activity Creation with these pre-filled?",
+                                    FontSize = 13,
+                                    TextColor = Color.FromArgb("#666"),
+                                    LineBreakMode = LineBreakMode.WordWrap
+                                },
+                                buttonGrid
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        private async Task CompleteAsync(PendingActivityIdeaProcessAction action)
+        {
+            if (_isCompleting)
+                return;
+
+            _isCompleting = true;
+            _completion.TrySetResult(action);
+            await Navigation.PopModalAsync();
+        }
+
+        protected override bool OnBackButtonPressed()
+        {
+            if (_isCompleting)
+                return true;
+
+            _isCompleting = true;
+            _completion.TrySetResult(PendingActivityIdeaProcessAction.Cancel);
+            return base.OnBackButtonPressed();
+        }
+
+        public static async Task<PendingActivityIdeaProcessAction> ShowAsync(INavigation navigation, PendingActivityIdea idea, int count)
+        {
+            var page = new PendingActivityIdeaCrossGameProcessPage(idea, count);
+            await navigation.PushModalAsync(page);
+            return await page._completion.Task;
+        }
     }
 }
 

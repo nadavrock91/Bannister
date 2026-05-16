@@ -23,12 +23,14 @@ public record ApplyBatchResult
 public class OperationApplierService
 {
     private readonly IdeasService _ideas;
+    private readonly PendingActivityIdeaService _pendingIdeas;
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
 
-    public OperationApplierService(IdeasService ideas, DatabaseService db, AuthService auth)
+    public OperationApplierService(IdeasService ideas, PendingActivityIdeaService pendingIdeas, DatabaseService db, AuthService auth)
     {
         _ideas = ideas;
+        _pendingIdeas = pendingIdeas;
         _db = db;
         _auth = auth;
     }
@@ -74,6 +76,11 @@ public class OperationApplierService
             {
                 case "idea_logged":
                     await ApplyIdeaLoggedAsync(op);
+                    await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
+                    return new ApplyResult { Success = true, Uuid = op.Uuid };
+
+                case "pending_activity_idea_added":
+                    await ApplyPendingActivityIdeaAsync(op);
                     await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
                     return new ApplyResult { Success = true, Uuid = op.Uuid };
 
@@ -134,22 +141,7 @@ public class OperationApplierService
 
     private async Task ApplyIdeaLoggedAsync(QueuedOperation op)
     {
-        var password = _db.GetDbPassword();
-        if (string.IsNullOrEmpty(password))
-            throw new InvalidOperationException("Not logged in; cannot decrypt queued operations.");
-
-        string plaintext;
-        try
-        {
-            plaintext = QueuePayloadCrypto.DecryptPayload(op.PayloadJson, password);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException(
-                "Could not decrypt queued operation - wrong password or corrupted payload.",
-                ex);
-        }
-
+        var plaintext = DecryptQueuedPayload(op);
         using var doc = JsonDocument.Parse(plaintext);
         var root = doc.RootElement;
 
@@ -177,6 +169,49 @@ public class OperationApplierService
             isStarred: ReadBool(root, "is_starred", false),
             status: ReadInt(root, "status", 0),
             createdAt: createdAt);
+    }
+
+    private async Task ApplyPendingActivityIdeaAsync(QueuedOperation op)
+    {
+        var plaintext = DecryptQueuedPayload(op);
+        using var doc = JsonDocument.Parse(plaintext);
+        var root = doc.RootElement;
+
+        var username = ReadString(root, "username");
+        if (string.IsNullOrWhiteSpace(username))
+            username = _auth.CurrentUsername;
+
+        var game = ReadString(root, "game");
+        if (string.IsNullOrWhiteSpace(game))
+            throw new InvalidOperationException("Queued pending activity idea is missing a game.");
+
+        var activityName = ReadString(root, "activity_name");
+        if (string.IsNullOrWhiteSpace(activityName))
+            throw new InvalidOperationException("Queued pending activity idea is missing an activity name.");
+
+        var activityCategory = ReadString(root, "activity_category");
+        if (string.IsNullOrWhiteSpace(activityCategory))
+            activityCategory = "Misc";
+
+        await _pendingIdeas.AddAsync(username, game, activityName, activityCategory);
+    }
+
+    private string DecryptQueuedPayload(QueuedOperation op)
+    {
+        var password = _db.GetDbPassword();
+        if (string.IsNullOrEmpty(password))
+            throw new InvalidOperationException("Not logged in; cannot decrypt queued operations.");
+
+        try
+        {
+            return QueuePayloadCrypto.DecryptPayload(op.PayloadJson, password);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                "Could not decrypt queued operation - wrong password or corrupted payload.",
+                ex);
+        }
     }
 
     private static string? ReadString(JsonElement root, string propertyName)
