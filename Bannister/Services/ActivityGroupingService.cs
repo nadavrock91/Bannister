@@ -20,8 +20,8 @@ public class ActivityGroupingService
     {
         if (_initialized) return;
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<ActivityGrouping>();
-        await conn.CreateTableAsync<ActivityGroupingEntry>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<ActivityGrouping>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<ActivityGroupingEntry>();
         _initialized = true;
     }
 

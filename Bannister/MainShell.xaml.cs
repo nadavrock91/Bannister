@@ -23,6 +23,7 @@ public partial class MainShell : Shell
         Routing.RegisterRoute("habits", typeof(HabitsHomePage));
         Routing.RegisterRoute("newhabits", typeof(NewHabitsPage));
         Routing.RegisterRoute("databases", typeof(DatabasesPage));
+        Routing.RegisterRoute("syncsettings", typeof(SyncSettingsPage));
     }
 }
 

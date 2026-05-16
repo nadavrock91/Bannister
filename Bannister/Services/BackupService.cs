@@ -23,6 +23,9 @@ public class BackupService
     {
         try
         {
+            if (_db.IsReadOnly)
+                return (false, "Skipped: device is in read-only mode");
+
             if (!File.Exists(DatabasePath))
                 return (false, "No database to backup");
 

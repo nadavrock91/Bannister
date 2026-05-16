@@ -19,7 +19,7 @@ public class ImageProductionService
     {
         if (_initialized) return;
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<ImageProject>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<ImageProject>();
         _initialized = true;
     }
 

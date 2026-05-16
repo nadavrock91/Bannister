@@ -379,7 +379,7 @@ namespace Bannister.Services
             var conn = await _db.GetConnectionAsync();
             
             // Ensure new columns exist by creating/updating table
-            await conn.CreateTableAsync<Activity>();
+            if (!_db.IsReadOnly) await conn.CreateTableAsync<Activity>();
             
             var allActivities = await conn.Table<Activity>().ToListAsync();
             

@@ -16,9 +16,23 @@ namespace Bannister.Services
     public class DatabaseService
     {
         private SQLiteAsyncConnection? _db;
+        private ISQLiteAsyncConnection? _guardedReadOnlyDb;
         private static readonly object _initLock = new();
         private bool _isInitialized = false;
         private string? _dbPassword;
+        private readonly DeviceModeService _deviceMode;
+
+        public DatabaseService(DeviceModeService deviceMode)
+        {
+            _deviceMode = deviceMode;
+        }
+
+        /// <summary>
+        /// True when this device is in secondary (read-only) mode.
+        /// The SQLite connection itself is opened with SQLiteOpenFlags.ReadOnly,
+        /// so writes will fail at the engine level even if callers ignore this flag.
+        /// </summary>
+        public bool IsReadOnly => _deviceMode.IsReadOnly;
 
         /// <summary>
         /// Get the database file path
@@ -36,7 +50,28 @@ namespace Bannister.Services
         /// </summary>
         public void SetPassword(string password)
         {
+            System.Diagnostics.Debug.WriteLine(
+                $"[Database.SetPassword] Called. value={(string.IsNullOrEmpty(password) ? "(empty/null)" : $"length {password.Length}")}, " +
+                $"wasInitialized={_isInitialized}, connectionType={_db?.GetType().FullName ?? "(null)"}");
             _dbPassword = password;
+        }
+
+        public async Task CloseConnectionAndClearPasswordAsync()
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[Database.ClearPassword] Called. hadPassword={HasPassword}, wasInitialized={_isInitialized}, " +
+                $"connectionType={_db?.GetType().FullName ?? "(null)"}");
+
+            if (_db != null)
+            {
+                await _db.CloseAsync();
+                _db = null;
+                _guardedReadOnlyDb = null;
+            }
+
+            _isInitialized = false;
+            _dbPassword = null;
+            System.Diagnostics.Debug.WriteLine("[Database.ClearPassword] Complete.");
         }
 
         /// <summary>
@@ -88,6 +123,39 @@ namespace Bannister.Services
             if (string.IsNullOrEmpty(_dbPassword))
                 throw new InvalidOperationException("Database password not set. User must log in first.");
 
+            // SECONDARY MODE: do not migrate, do not create tables, do not write anything.
+            // Just open the file read-only. If it doesn't exist, the secondary device hasn't
+            // synced yet — surface a clear error so the caller can prompt for a sync.
+            if (_deviceMode.IsReadOnly)
+            {
+                if (!File.Exists(DatabasePath))
+                {
+                    throw new InvalidOperationException(
+                        "This device is in secondary (read-only) mode but no database has been downloaded yet. " +
+                        "Sync from the master device first.");
+                }
+
+                lock (_initLock)
+                {
+                    if (_isInitialized && _db != null)
+                        return;
+
+                    var roOptions = new SQLiteConnectionString(
+                        DatabasePath,
+                        SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex,
+                        storeDateTimeAsTicks: false,
+                        key: _dbPassword);
+
+                    _db = new SQLiteAsyncConnection(roOptions);
+                }
+
+                _isInitialized = true;
+                System.Diagnostics.Debug.WriteLine("✓ Database opened in READ-ONLY mode (secondary device)");
+                return;
+            }
+
+            // MASTER MODE: full read/write, with migration + schema creation.
+
             // Check if we need to migrate from an unencrypted database
             await MigrateFromUnencryptedAsync();
 
@@ -118,12 +186,19 @@ namespace Bannister.Services
         /// </summary>
         public async Task<bool> TryOpenWithPasswordAsync(string password)
         {
+            System.Diagnostics.Debug.WriteLine($"[Database.TryOpen] START path='{DatabasePath}', exists={File.Exists(DatabasePath)}, currentInitialized={_isInitialized}, currentConnectionType={_db?.GetType().FullName ?? "(null)"}");
             if (!File.Exists(DatabasePath))
+            {
+                System.Diagnostics.Debug.WriteLine("[Database.TryOpen] No database file exists; returning true.");
                 return true; // No DB yet, any password is fine (will create new encrypted DB)
+            }
 
             // Check if the file is unencrypted (pre-migration)
             if (await IsUnencryptedAsync())
+            {
+                System.Diagnostics.Debug.WriteLine("[Database.TryOpen] Database is unencrypted; returning true for migration path.");
                 return true; // Will be migrated on first InitAsync
+            }
 
             try
             {
@@ -136,10 +211,12 @@ namespace Bannister.Services
                 // This will throw if password is wrong
                 var count = await testConn.ExecuteScalarAsync<int>("SELECT count(*) FROM sqlite_master");
                 await testConn.CloseAsync();
+                System.Diagnostics.Debug.WriteLine($"[Database.TryOpen] Success. sqlite_master count={count}.");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[Database.TryOpen] Failed: {ex.GetType().FullName}: {ex.Message}");
                 return false;
             }
         }
@@ -393,6 +470,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<LearningSpeaker>();
             await _db!.CreateTableAsync<UserList>();
             await _db!.CreateTableAsync<UserListItem>();
+            await _db!.CreateTableAsync<AppliedOperation>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
 
@@ -428,10 +506,99 @@ namespace Bannister.Services
 
         #region Public API
 
-        public async Task<SQLiteAsyncConnection> GetConnectionAsync()
+        public async Task<ISQLiteAsyncConnection> GetConnectionAsync()
         {
             await InitAsync();
+
+            if (_deviceMode.IsReadOnly)
+            {
+                _guardedReadOnlyDb ??= new ReadOnlySQLiteAsyncConnection(_db!);
+                return _guardedReadOnlyDb;
+            }
+
             return _db!;
+        }
+
+        /// <summary>
+        /// Ensures a table exists for type T. In master mode, calls CreateTableAsync.
+        /// In secondary (read-only) mode, this is a no-op — the schema is whatever the
+        /// downloaded master DB has, and we cannot (and need not) create tables.
+        ///
+        /// Services that currently do:
+        ///     var conn = await _db.GetConnectionAsync();
+        ///     await conn.CreateTableAsync&lt;Foo&gt;();
+        /// should switch to:
+        ///     await _db.EnsureTableAsync&lt;Foo&gt;();
+        /// </summary>
+        public async Task EnsureTableAsync<T>() where T : new()
+        {
+            await InitAsync();
+            if (_deviceMode.IsReadOnly) return;
+            await _db!.CreateTableAsync<T>();
+        }
+
+        /// <summary>
+        /// Create a consistent snapshot of the database into a temp file using SQLite's
+        /// VACUUM INTO. This is safe to upload even while writes are happening — VACUUM INTO
+        /// uses a read transaction so the resulting file is point-in-time consistent.
+        /// The snapshot is encrypted with the same SQLCipher key as the live database.
+        /// Caller is responsible for deleting the returned file when done.
+        /// </summary>
+        public async Task<string> CreateSnapshotAsync()
+        {
+            await InitAsync();
+
+            string snapshotPath = Path.Combine(
+                FileSystem.CacheDirectory,
+                $"bannister_snapshot_{DateTime.UtcNow.Ticks}.db");
+
+            if (File.Exists(snapshotPath))
+                File.Delete(snapshotPath);
+
+            // VACUUM INTO produces an encrypted target when the source connection
+            // has SQLCipher key set, but the target file itself uses the same key
+            // only if we re-key it. Simpler: VACUUM INTO into an unencrypted file is
+            // not what we want. We want encrypted-with-the-same-key.
+            //
+            // SQLCipher's recommended snapshot pattern: VACUUM INTO produces a file
+            // encrypted with the source DB's current key, because the new file is
+            // written using the same page-level encryption.
+            await _db!.ExecuteAsync($"VACUUM INTO '{EscapeSql(snapshotPath)}'");
+
+            return snapshotPath;
+        }
+
+        /// <summary>
+        /// Replace the current database file with the contents of <paramref name="sourcePath"/>.
+        /// Closes the current connection, copies the file, and leaves the connection closed —
+        /// callers must invoke ReinitializeAsync (or any subsequent GetConnectionAsync) to reopen.
+        ///
+        /// Used by SyncService after downloading a fresh DB from the server.
+        /// </summary>
+        public async Task ReplaceDatabaseFromAsync(string sourcePath)
+        {
+            if (!File.Exists(sourcePath))
+                throw new FileNotFoundException("Source database not found", sourcePath);
+
+            // Close current connection so the file is unlocked
+            if (_db != null)
+            {
+                await _db.CloseAsync();
+                _db = null;
+                _guardedReadOnlyDb = null;
+                _isInitialized = false;
+            }
+
+            // Atomic-ish replace: write to a temp path then move into place
+            string tempPath = DatabasePath + ".incoming";
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+            File.Copy(sourcePath, tempPath, overwrite: true);
+
+            if (File.Exists(DatabasePath))
+                File.Delete(DatabasePath);
+            File.Move(tempPath, DatabasePath);
+
+            System.Diagnostics.Debug.WriteLine("✓ Database file replaced from sync");
         }
 
         #endregion
@@ -442,6 +609,12 @@ namespace Bannister.Services
             string activityName, int expEarned, int levelBefore, int levelAfter)
         {
             await InitAsync();
+
+            if (_deviceMode.IsReadOnly)
+            {
+                ReadOnlyModeNotifier.ShowBlockedWriteMessage();
+                return;
+            }
 
             var expState = await _db!.Table<ExpState>()
                 .Where(x => x.Username == username && x.Game == gameId)
@@ -540,10 +713,17 @@ namespace Bannister.Services
 
         public async Task DeleteDatabaseAsync()
         {
+            if (_deviceMode.IsReadOnly)
+            {
+                ReadOnlyModeNotifier.ShowBlockedWriteMessage();
+                return;
+            }
+
             if (_db != null)
             {
                 await _db.CloseAsync();
                 _db = null;
+                _guardedReadOnlyDb = null;
                 _isInitialized = false;
             }
 
@@ -551,6 +731,22 @@ namespace Bannister.Services
             {
                 File.Delete(DatabasePath);
             }
+
+            _dbPassword = null;
+        }
+
+        public async Task DeleteDatabaseFileForImportRollbackAsync()
+        {
+            if (_db != null)
+            {
+                await _db.CloseAsync();
+                _db = null;
+                _guardedReadOnlyDb = null;
+                _isInitialized = false;
+            }
+
+            if (File.Exists(DatabasePath))
+                File.Delete(DatabasePath);
 
             _dbPassword = null;
         }
@@ -588,6 +784,7 @@ namespace Bannister.Services
             {
                 await _db.CloseAsync();
                 _db = null;
+                _guardedReadOnlyDb = null;
             }
             _isInitialized = false;
             await InitAsync();
@@ -604,6 +801,12 @@ namespace Bannister.Services
                 return false;
 
             await InitAsync();
+
+            if (_deviceMode.IsReadOnly)
+            {
+                ReadOnlyModeNotifier.ShowBlockedWriteMessage();
+                return false;
+            }
 
             try
             {

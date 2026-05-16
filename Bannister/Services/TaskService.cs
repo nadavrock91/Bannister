@@ -17,7 +17,7 @@ public class TaskService
         if (_initialized) return;
         
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<TaskItem>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<TaskItem>();
         _initialized = true;
     }
 

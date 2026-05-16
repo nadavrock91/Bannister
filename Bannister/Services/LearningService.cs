@@ -23,7 +23,7 @@ public class LearningService
     public async Task<List<LearningBook>> GetBooksAsync(string username)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<LearningBook>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningBook>();
         
         return await conn.Table<LearningBook>()
             .Where(b => b.Username == username)
@@ -37,7 +37,7 @@ public class LearningService
     public async Task<List<LearningBook>> GetBooksByStatusAsync(string username, string status)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<LearningBook>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningBook>();
         
         return await conn.Table<LearningBook>()
             .Where(b => b.Username == username && b.Status == status)
@@ -51,7 +51,7 @@ public class LearningService
     public async Task<LearningBook> AddBookAsync(LearningBook book)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<LearningBook>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningBook>();
         
         // Get max sort order
         var existing = await conn.Table<LearningBook>()
@@ -156,7 +156,7 @@ public class LearningService
     public async Task<List<LearningVideo>> GetVideosAsync(string username)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<LearningVideo>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningVideo>();
         
         return await conn.Table<LearningVideo>()
             .Where(v => v.Username == username)
@@ -170,7 +170,7 @@ public class LearningService
     public async Task<List<LearningVideo>> GetVideosByStatusAsync(string username, string status)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<LearningVideo>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningVideo>();
         
         return await conn.Table<LearningVideo>()
             .Where(v => v.Username == username && v.Status == status)
@@ -184,7 +184,7 @@ public class LearningService
     public async Task<LearningVideo> AddVideoAsync(LearningVideo video)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<LearningVideo>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningVideo>();
         
         // Get max sort order
         var existing = await conn.Table<LearningVideo>()
@@ -284,7 +284,7 @@ public class LearningService
     public async Task<List<LearningSpeaker>> GetSpeakersAsync(string username)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<LearningSpeaker>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningSpeaker>();
 
         var speakers = await conn.Table<LearningSpeaker>()
             .Where(s => s.Username == username)
@@ -300,7 +300,7 @@ public class LearningService
     public async Task<LearningSpeaker> AddSpeakerAsync(string username, string name, string notes = "")
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<LearningSpeaker>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningSpeaker>();
 
         var speaker = new LearningSpeaker
         {

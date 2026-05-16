@@ -1,4 +1,3 @@
-﻿
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>net8.0-android;net8.0-windows10.0.19041.0</TargetFrameworks>
@@ -16,8 +15,18 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<Platforms>AnyCPU;x64</Platforms>
+	</PropertyGroup>
+
+	<!-- Platform-specific RuntimeIdentifiers. Without these split out, MSBuild
+	     tries to use 'win-x64' for Android too and fails with
+	     "Unable to determine the Android ABI from the value 'win-x64'". -->
+	<PropertyGroup Condition="$(TargetFramework.Contains('-windows'))">
 		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
 	</PropertyGroup>
+	<PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
+		<RuntimeIdentifiers>android-arm64;android-arm;android-x64;android-x86</RuntimeIdentifiers>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
 		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
@@ -59,7 +68,7 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </None>
 	  <None Update="Views\ExpiredActivitiesPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
+		  <Generator>MSBuild:Compile</Generator>
 	  </None>
 	  <None Update="Views\ExpLogPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>

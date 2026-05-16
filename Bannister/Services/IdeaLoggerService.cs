@@ -48,7 +48,7 @@ public class IdeaLoggerService
         {
             if (_db == null) return;
             var conn = await _db.GetConnectionAsync();
-            await conn.CreateTableAsync<IdeaLoggerSetting>();
+            if (!_db.IsReadOnly) await conn.CreateTableAsync<IdeaLoggerSetting>();
 
             // Load favorites
             var favRow = await conn.Table<IdeaLoggerSetting>()
@@ -198,10 +198,12 @@ public class IdeaLoggerService
         int rating = result.Value.rating;
         _lastUsedCategory = category;
 
-        var idea = await _ideas.CreateIdeaAsync(username, text, category);
+        var idea = _db.IsReadOnly
+            ? await _ideas.CreateIdeaAsync(username, text, category, subcategory: subcategory, rating: rating)
+            : await _ideas.CreateIdeaAsync(username, text, category);
         idea.Rating = rating;
         idea.Subcategory = subcategory;
-        await _ideas.UpdateIdeaAsync(idea);
+        if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(idea);
 
         // Check for linked categories
         if (_linkedCategories.TryGetValue(category, out var linked) && linked.Count > 0)
@@ -232,9 +234,11 @@ public class IdeaLoggerService
         if (!confirm) return null;
 
         _lastUsedCategory = category;
-        var idea = await _ideas.CreateIdeaAsync(username, text.Trim(), category.Trim());
+        var idea = _db.IsReadOnly
+            ? await _ideas.CreateIdeaAsync(username, text.Trim(), category.Trim(), rating: rating)
+            : await _ideas.CreateIdeaAsync(username, text.Trim(), category.Trim());
         idea.Rating = rating;
-        await _ideas.UpdateIdeaAsync(idea);
+        if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(idea);
         return idea;
     }
 
@@ -242,6 +246,34 @@ public class IdeaLoggerService
         Page page, string username, List<string> existingCategories, string? prefillText, string? suggestedCategory)
     {
         var tcs = new TaskCompletionSource<(string text, string category, string? subcategory, int rating)?>();
+        bool isPhone = DeviceInfo.Idiom == DeviceIdiom.Phone ||
+            DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density < 600;
+
+        void StylePhoneEntry(Entry entry)
+        {
+            if (!isPhone) return;
+            entry.TextColor = Color.FromArgb("#222");
+            entry.PlaceholderColor = Color.FromArgb("#999");
+            entry.BackgroundColor = Colors.White;
+            entry.HorizontalOptions = LayoutOptions.Fill;
+        }
+
+        void StylePhoneEditor(Editor editor)
+        {
+            if (!isPhone) return;
+            editor.TextColor = Color.FromArgb("#222");
+            editor.PlaceholderColor = Color.FromArgb("#999");
+            editor.BackgroundColor = Colors.White;
+        }
+
+        void StylePhonePicker(Picker picker)
+        {
+            if (!isPhone) return;
+            picker.TextColor = Color.FromArgb("#222");
+            picker.TitleColor = Color.FromArgb("#999");
+            picker.BackgroundColor = Colors.White;
+            picker.HorizontalOptions = LayoutOptions.Fill;
+        }
 
         // Use a string array as a holder so closures can read/write the selected category
         // [0] = selected category
@@ -269,6 +301,14 @@ public class IdeaLoggerService
             WidthRequest = 480, HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center, HasShadow = true
         };
+        if (isPhone)
+        {
+            card.WidthRequest = -1;
+            card.Margin = new Thickness(12);
+            card.Padding = 16;
+            card.HorizontalOptions = LayoutOptions.Fill;
+            card.VerticalOptions = LayoutOptions.Center;
+        }
 
         var mainStack = new VerticalStackLayout { Spacing = 12 };
 
@@ -285,6 +325,7 @@ public class IdeaLoggerService
             Text = prefillText ?? "", Placeholder = "What's your idea?",
             BackgroundColor = Color.FromArgb("#F5F5F5"), HeightRequest = 100, FontSize = 14
         };
+        StylePhoneEditor(ideaEditor);
         mainStack.Children.Add(ideaEditor);
 
         // ====== FAVORITES DROPDOWN (only if favorites exist) ======
@@ -298,6 +339,7 @@ public class IdeaLoggerService
                 Title = "Quick select favorite...", FontSize = 13,
                 BackgroundColor = Color.FromArgb("#FFF8E1")
             };
+            StylePhonePicker(favPicker);
 
             foreach (var fav in _favoriteCategories)
                 favPicker.Items.Add(fav);
@@ -314,13 +356,17 @@ public class IdeaLoggerService
         // ====== MAIN CATEGORY DROPDOWN ======
         mainStack.Children.Add(new Label { Text = "Category:", FontSize = 12, TextColor = Color.FromArgb("#666") });
 
-        var catRow = new HorizontalStackLayout { Spacing = 8 };
+        Layout catRow = isPhone
+            ? new VerticalStackLayout { Spacing = 8 }
+            : new HorizontalStackLayout { Spacing = 8 };
 
         var categoryPicker = new Picker
         {
             Title = "Select category...", FontSize = 13,
             BackgroundColor = Color.FromArgb("#F5F5F5"), WidthRequest = 220
         };
+        if (isPhone) categoryPicker.WidthRequest = -1;
+        StylePhonePicker(categoryPicker);
 
         foreach (var cat in existingCategories)
             categoryPicker.Items.Add(cat);
@@ -340,6 +386,8 @@ public class IdeaLoggerService
             Placeholder = "New category name", BackgroundColor = Color.FromArgb("#F5F5F5"),
             IsVisible = false, WidthRequest = 160
         };
+        if (isPhone) customEntry.WidthRequest = -1;
+        StylePhoneEntry(customEntry);
 
         var newBtn = new Button
         {
@@ -420,8 +468,12 @@ public class IdeaLoggerService
         var subSection = new VerticalStackLayout { Spacing = 6, IsVisible = false };
         subSection.Children.Add(new Label { Text = "Subcategory (optional):", FontSize = 12, TextColor = Color.FromArgb("#666") });
 
-        var subRow = new HorizontalStackLayout { Spacing = 8 };
+        Layout subRow = isPhone
+            ? new VerticalStackLayout { Spacing = 8 }
+            : new HorizontalStackLayout { Spacing = 8 };
         var subPicker = new Picker { Title = "(none)", FontSize = 13, BackgroundColor = Color.FromArgb("#F5F5F5"), WidthRequest = 180 };
+        if (isPhone) subPicker.WidthRequest = -1;
+        StylePhonePicker(subPicker);
         subPicker.SelectedIndexChanged += (s, e) =>
         {
             if (subPicker.SelectedIndex > 0) // index 0 = "(none)"
@@ -436,6 +488,8 @@ public class IdeaLoggerService
         subSection.Children.Add(subRow);
 
         var newSubEntry = new Entry { Placeholder = "New subcategory name", BackgroundColor = Color.FromArgb("#F5F5F5"), IsVisible = false, WidthRequest = 180 };
+        if (isPhone) newSubEntry.WidthRequest = -1;
+        StylePhoneEntry(newSubEntry);
         subSection.Children.Add(newSubEntry);
 
         newSubBtn.Clicked += async (s, e) =>
@@ -535,7 +589,9 @@ public class IdeaLoggerService
 
         int selectedRating = 50;
         Button? selectedRatingBtn = null;
-        var ratingFlow = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start };
+        Layout ratingFlow = isPhone
+            ? new HorizontalStackLayout { Spacing = 4 }
+            : new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start };
         var ratingButtons = new List<Button>();
 
         Color GetRatingColor(int r, bool sel) => !sel ? Color.FromArgb("#E0E0E0") : r >= 70 ? Color.FromArgb("#4CAF50") : r >= 40 ? Color.FromArgb("#FF9800") : Color.FromArgb("#9E9E9E");
@@ -564,6 +620,7 @@ public class IdeaLoggerService
         }
 
         var customRating = new Entry { Placeholder = "Custom", Keyboard = Keyboard.Numeric, BackgroundColor = Color.FromArgb("#F5F5F5"), WidthRequest = 60, HeightRequest = 32 };
+        StylePhoneEntry(customRating);
         customRating.TextChanged += (s, e) =>
         {
             if (int.TryParse(e.NewTextValue, out int c) && c >= 0 && c <= 100)
@@ -574,19 +631,57 @@ public class IdeaLoggerService
             }
         };
         ratingFlow.Children.Add(customRating);
-        mainStack.Children.Add(ratingFlow);
+        if (isPhone)
+        {
+            mainStack.Children.Add(new ScrollView
+            {
+                Orientation = ScrollOrientation.Horizontal,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Always,
+                Content = ratingFlow
+            });
+        }
+        else
+        {
+            mainStack.Children.Add(ratingFlow);
+        }
 
         // ====== ACTION BUTTONS ======
-        var btnRow = new HorizontalStackLayout { Spacing = 12, HorizontalOptions = LayoutOptions.End, Margin = new Thickness(0, 8, 0, 0) };
-
         var cancelBtn = new Button { Text = "Cancel", BackgroundColor = Color.FromArgb("#9E9E9E"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(20, 10) };
         var saveBtn = new Button { Text = "💾 Save Idea", BackgroundColor = Color.FromArgb("#4CAF50"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(20, 10), FontAttributes = FontAttributes.Bold };
 
-        btnRow.Children.Add(cancelBtn);
-        btnRow.Children.Add(saveBtn);
-        mainStack.Children.Add(btnRow);
+        if (isPhone)
+        {
+            saveBtn.Text = "Save Idea";
+            cancelBtn.HeightRequest = 44;
+            saveBtn.HeightRequest = 44;
+            cancelBtn.Padding = new Thickness(8, 0);
+            saveBtn.Padding = new Thickness(8, 0);
 
-        card.Content = mainStack;
+            var btnGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Star)
+                },
+                ColumnSpacing = 8,
+                Margin = new Thickness(0, 8, 0, 0)
+            };
+            btnGrid.Add(cancelBtn, 0, 0);
+            btnGrid.Add(saveBtn, 1, 0);
+            mainStack.Children.Add(btnGrid);
+        }
+        else
+        {
+            var btnRow = new HorizontalStackLayout { Spacing = 12, HorizontalOptions = LayoutOptions.End, Margin = new Thickness(0, 8, 0, 0) };
+            btnRow.Children.Add(cancelBtn);
+            btnRow.Children.Add(saveBtn);
+            mainStack.Children.Add(btnRow);
+        }
+
+        card.Content = isPhone
+            ? new ScrollView { Content = mainStack, VerticalScrollBarVisibility = ScrollBarVisibility.Always }
+            : mainStack;
         popup.Children.Add(card);
 
         // ====== ATTACH TO PAGE ======
@@ -657,9 +752,11 @@ public class IdeaLoggerService
         {
             try
             {
-                var linkedIdea = await _ideas.CreateIdeaAsync(username, text, cat);
+                var linkedIdea = _db.IsReadOnly
+                    ? await _ideas.CreateIdeaAsync(username, text, cat, rating: rating)
+                    : await _ideas.CreateIdeaAsync(username, text, cat);
                 linkedIdea.Rating = rating;
-                await _ideas.UpdateIdeaAsync(linkedIdea);
+                if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(linkedIdea);
             }
             catch (Exception ex)
             {

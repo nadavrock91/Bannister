@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Bannister.Services;
 using System.Security.Cryptography;
 
 
@@ -14,13 +13,17 @@ namespace Bannister.Views
     {
         private readonly AuthService _auth;
         private readonly DatabaseService _db;
+        private readonly DeviceModeService _deviceMode;
+        private readonly SyncService _sync;
         private bool _isRegistering = false;
 
-        public LoginPage(AuthService auth, DatabaseService db)
+        public LoginPage(AuthService auth, DatabaseService db, DeviceModeService deviceMode, SyncService sync)
         {
             InitializeComponent();
             _auth = auth;
             _db = db;
+            _deviceMode = deviceMode;
+            _sync = sync;
             LoadSavedCredentials();
 
 #if DEBUG
@@ -227,12 +230,20 @@ namespace Bannister.Views
                 if (success)
                 {
                     await SaveOrClearCredentials(username, password);
-                    await _auth.LoginAsync(username, password);
+                    bool loggedIn = await _auth.LoginAsync(username, password);
+                    if (!loggedIn)
+                    {
+                        ShowError("Account was created, but login failed. Try logging in again.");
+                        return;
+                    }
+
                     await Shell.Current.GoToAsync("//home");
                 }
                 else
                 {
-                    ShowError("Username already exists");
+                    ShowError(string.IsNullOrWhiteSpace(_auth.LastRegisterError)
+                        ? "Registration failed"
+                        : _auth.LastRegisterError);
                 }
             }
             else
@@ -246,6 +257,137 @@ namespace Bannister.Views
                 else
                     ShowError("Invalid username or password");
             }
+        }
+
+        private async void OnImportFromSyncClicked(object sender, EventArgs e)
+        {
+            var page = new ImportFromSyncPage(_deviceMode.ServerUrl);
+            await Navigation.PushModalAsync(page);
+            var request = await page.Result;
+            if (request == null) return;
+
+            await ImportFromSyncAsync(request);
+        }
+
+        private async Task ImportFromSyncAsync(ImportFromSyncRequest request)
+        {
+            var oldMode = _deviceMode.CurrentMode;
+            var oldServerUrl = _deviceMode.ServerUrl;
+            var (oldSyncUser, oldSyncHash) = await _deviceMode.GetSyncCredentialsAsync();
+            string? rollbackPath = null;
+            bool completed = false;
+
+            try
+            {
+                SetImportUiBusy(true);
+                ShowStatus("Preparing import...");
+
+                if (File.Exists(DatabaseService.DatabasePath))
+                {
+                    rollbackPath = Path.Combine(FileSystem.CacheDirectory, $"bannister_import_rollback_{DateTime.UtcNow.Ticks}.db");
+                    File.Copy(DatabaseService.DatabasePath, rollbackPath, overwrite: true);
+                }
+
+                _deviceMode.ServerUrl = request.ServerUrl;
+                await _deviceMode.SetSyncCredentialsAsync(request.SyncUsername, request.SyncPassword);
+
+                ShowStatus("Downloading database...");
+                var download = await _sync.DownloadAsync();
+                if (!download.Success)
+                    throw new InvalidOperationException(download.Message);
+
+                ShowStatus("Verifying password...");
+                if (!await _db.TryOpenWithPasswordAsync(request.BannisterPassword))
+                {
+                    throw new InvalidOperationException(
+                        "Could not open the downloaded database. Make sure the login password matches what you used on the master device.");
+                }
+
+                _db.SetPassword(request.BannisterPassword);
+                if (_deviceMode.CurrentMode != DeviceModeService.Mode.Master)
+                    _deviceMode.SetMode(DeviceModeService.Mode.Master);
+
+                await _db.ReinitializeAsync();
+
+                ShowStatus("Preparing local login...");
+                if (!await _auth.EnsureImportedUserAsync(request.BannisterUsername, request.BannisterPassword))
+                {
+                    throw new InvalidOperationException(
+                        "The downloaded database opened, but the local user could not be verified. Make sure the Bannister username and login password match the master device.");
+                }
+
+                if (!await _auth.LoginAsync(request.BannisterUsername, request.BannisterPassword))
+                    throw new InvalidOperationException("Imported database verified, but local login failed.");
+
+                _deviceMode.SetMode(DeviceModeService.Mode.Secondary);
+                await _db.ReinitializeAsync();
+
+                completed = true;
+                ShowStatus("Import complete.");
+                await DisplayAlert("Import Complete", "Database imported. This device is now in Secondary Device Mode.", "OK");
+                await Shell.Current.GoToAsync("//home");
+            }
+            catch (Exception ex)
+            {
+                ShowStatus("Import failed.");
+                await RollBackImportAsync(rollbackPath, oldMode, oldServerUrl, oldSyncUser, oldSyncHash);
+                await DisplayAlert("Import Failed", ex.Message, "OK");
+            }
+            finally
+            {
+                if (rollbackPath != null && File.Exists(rollbackPath))
+                {
+                    try { File.Delete(rollbackPath); } catch { }
+                }
+
+                if (!completed)
+                    SetImportUiBusy(false);
+            }
+        }
+
+        private async Task RollBackImportAsync(
+            string? rollbackPath,
+            DeviceModeService.Mode oldMode,
+            string oldServerUrl,
+            string oldSyncUser,
+            string oldSyncHash)
+        {
+            try
+            {
+                _deviceMode.SetMode(oldMode);
+                _deviceMode.ServerUrl = oldServerUrl;
+
+                if (!string.IsNullOrWhiteSpace(oldSyncUser) && !string.IsNullOrWhiteSpace(oldSyncHash))
+                    await _deviceMode.SetSyncCredentialHashAsync(oldSyncUser, oldSyncHash);
+                else
+                    _deviceMode.ClearSyncCredentials();
+
+                if (rollbackPath != null && File.Exists(rollbackPath))
+                    await _db.ReplaceDatabaseFromAsync(rollbackPath);
+                else
+                    await _db.DeleteDatabaseFileForImportRollbackAsync();
+            }
+            catch (Exception rollbackEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"Import rollback failed: {rollbackEx.Message}");
+            }
+        }
+
+        private void SetImportUiBusy(bool isBusy)
+        {
+            btnLogin.IsEnabled = !isBusy;
+            btnToggle.IsEnabled = !isBusy;
+            btnImportFromSync.IsEnabled = !isBusy;
+            txtUsername.IsEnabled = !isBusy;
+            txtPassword.IsEnabled = !isBusy;
+            chkRemember.IsEnabled = !isBusy;
+        }
+
+        private void ShowStatus(string message)
+        {
+            lblError.Text = message;
+            lblError.TextColor = Color.FromArgb("#5B63EE");
+            lblError.IsVisible = true;
         }
 
         private async void OnTestDevClicked(object sender, EventArgs e)
@@ -270,7 +412,12 @@ namespace Bannister.Views
             await SaveOrClearCredentials(username, password);
 
             // Login and navigate
-            await _auth.LoginAsync(username, password);
+            if (!await _auth.LoginAsync(username, password))
+            {
+                ShowError("DEV login failed after register");
+                return;
+            }
+
             await Shell.Current.GoToAsync("//home");
         }
 
@@ -315,6 +462,7 @@ namespace Bannister.Views
         private void ShowError(string message)
         {
             lblError.Text = message;
+            lblError.TextColor = Colors.Red;
             lblError.IsVisible = true;
         }
 

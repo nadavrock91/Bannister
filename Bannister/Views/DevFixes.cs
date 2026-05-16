@@ -15,19 +15,30 @@ namespace Bannister.Helpers
         /// </summary>
         public static async Task RunCurrentFix(DatabaseService db, AuthService auth)
         {
-            // FIX: Clear LastMeaningfulEscalation so escalation timer works properly
-            // This is needed because the old code was auto-setting it to "now" every time
-            // which kept resetting the timer to 30 days.
-            // After this fix runs, users will need to manually click "Start" to begin tracking.
+
             
             try
             {
-                var conn = await db.GetConnectionAsync();
-                
-                // Clear LastMeaningfulEscalation for all games
-                await conn.ExecuteAsync("UPDATE games SET LastMeaningfulEscalation = NULL");
-                
-                System.Diagnostics.Debug.WriteLine("✓ DevFix: Cleared LastMeaningfulEscalation for all games");
+                // ===== FORCE MASTER MODE =====
+                // Diagnostic for broken login: clear the device_mode preference
+                // and any stale sync credentials so this device behaves like a
+                // fresh master install. Does NOT touch the database file or
+                // the users table.
+
+                string before = Preferences.Default.Get("device_mode", "(unset)");
+                System.Diagnostics.Debug.WriteLine($"[DevFix] device_mode before: {before}");
+
+                Preferences.Default.Set("device_mode", "Master");
+
+                string after = Preferences.Default.Get("device_mode", "(unset)");
+                System.Diagnostics.Debug.WriteLine($"[DevFix] device_mode after:  {after}");
+
+                // Clear last sync timestamp too (cosmetic)
+                Preferences.Default.Set("sync_last_utc", 0L);
+
+                System.Diagnostics.Debug.WriteLine("[DevFix] ✓ Forced device mode to Master");
+
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {

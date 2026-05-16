@@ -15,7 +15,7 @@ public class SubActivityService
     private async Task EnsureTableAsync()
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<SubActivity>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<SubActivity>();
     }
 
     public async Task<List<SubActivity>> GetActiveAsync(string username)

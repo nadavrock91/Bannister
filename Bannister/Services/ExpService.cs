@@ -22,6 +22,8 @@ namespace Bannister.Services
 
             if (existing == null)
             {
+                if (_db.IsReadOnly) return; // skip on secondary devices; downstream reads handle missing state
+
                 // Calculate total EXP from historical exp_log entries
                 var logs = await conn.Table<ExpLog>()
                     .Where(x => x.Username == username && x.Game == game)

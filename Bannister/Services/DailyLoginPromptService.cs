@@ -17,7 +17,7 @@ public class DailyLoginPromptService
         if (_initialized) return;
 
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<DailyLoginPrompt>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<DailyLoginPrompt>();
         _initialized = true;
     }
 

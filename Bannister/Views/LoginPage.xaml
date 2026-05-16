@@ -31,8 +31,17 @@
 
                     <Label x:Name="lblTitle" Text="Welcome Back" FontSize="18" FontAttributes="Bold" />
 
-                    <Entry x:Name="txtUsername" Placeholder="Username" />
-                    <Entry x:Name="txtPassword" Placeholder="Password" IsPassword="True" />
+                    <Entry x:Name="txtUsername"
+                           Placeholder="Username"
+                           TextColor="#222"
+                           PlaceholderColor="#999"
+                           BackgroundColor="#FFFFFF" />
+                    <Entry x:Name="txtPassword"
+                           Placeholder="Password"
+                           IsPassword="True"
+                           TextColor="#222"
+                           PlaceholderColor="#999"
+                           BackgroundColor="#FFFFFF" />
 
                     <HorizontalStackLayout Spacing="8">
                         <CheckBox x:Name="chkRemember" Color="#6200EE" />
@@ -46,6 +55,10 @@
 
                     <Button x:Name="btnToggle" Text="Need an account?" Clicked="OnToggleClicked"
                             BackgroundColor="Transparent" TextColor="#6200EE" />
+
+                    <Button x:Name="btnImportFromSync" Text="Import from Another Device" Clicked="OnImportFromSyncClicked"
+                            BackgroundColor="#F3F0FF" TextColor="#4B3FBF" BorderColor="#D6D0FF" BorderWidth="1"
+                            CornerRadius="8" HeightRequest="42" FontSize="13" />
 
                     <Button x:Name="btnTestDev" Text="TEST (DEV)" Clicked="OnTestDevClicked"
                             BackgroundColor="White" TextColor="#333" BorderColor="#CCC" BorderWidth="1" CornerRadius="8" HeightRequest="48" IsVisible="False" />

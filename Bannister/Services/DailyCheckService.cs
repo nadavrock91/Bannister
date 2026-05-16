@@ -21,7 +21,7 @@ public class DailyCheckService
     {
         if (_initialized) return;
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<DailyCheck>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<DailyCheck>();
         _initialized = true;
     }
 
@@ -44,6 +44,7 @@ public class DailyCheckService
     public async Task SetAsync(string key, string date)
     {
         await EnsureInitializedAsync();
+        if (_db.IsReadOnly) return; // silently skip on secondary devices
         var conn = await _db.GetConnectionAsync();
         var entry = await conn.Table<DailyCheck>()
             .Where(d => d.Key == key)

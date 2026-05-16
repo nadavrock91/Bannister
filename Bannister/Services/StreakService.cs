@@ -562,8 +562,8 @@ public class StreakService
     public async Task LogTargetCompletionAsync(string username, string game, Activity activity, StreakAttempt attempt, int targetDays)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<StreakTargetCompletion>();
-        await conn.CreateTableAsync<StreakTargetStatLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetCompletion>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetStatLog>();
 
         var existing = await conn.Table<StreakTargetCompletion>()
             .Where(c => c.Username == username
@@ -606,7 +606,7 @@ public class StreakService
     public async Task<List<StreakTargetCompletion>> GetTargetCompletionsAsync(string username, string game, int activityId)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<StreakTargetCompletion>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetCompletion>();
 
         return await conn.Table<StreakTargetCompletion>()
             .Where(c => c.Username == username && c.Game == game && c.ActivityId == activityId)
@@ -617,7 +617,7 @@ public class StreakService
     public async Task<List<StreakTargetCompletion>> GetTargetCompletionsForAttemptAsync(int streakAttemptId)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<StreakTargetCompletion>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetCompletion>();
 
         return await conn.Table<StreakTargetCompletion>()
             .Where(c => c.StreakAttemptId == streakAttemptId)
@@ -628,8 +628,8 @@ public class StreakService
     public async Task DeleteTargetCompletionAsync(int completionId)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<StreakTargetCompletion>();
-        await conn.CreateTableAsync<StreakTargetStatLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetCompletion>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetStatLog>();
 
         var completion = await conn.Table<StreakTargetCompletion>()
             .FirstOrDefaultAsync(c => c.Id == completionId);
@@ -666,7 +666,7 @@ public class StreakService
     public async Task<List<StreakTargetStatLog>> GetTargetStatLogsAsync(string username, int targetDays)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<StreakTargetStatLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetStatLog>();
 
         return await conn.Table<StreakTargetStatLog>()
             .Where(l => l.Username == username && l.TargetDays == targetDays)
@@ -677,7 +677,7 @@ public class StreakService
     public async Task DeleteTargetStatLogAsync(int logId)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<StreakTargetStatLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetStatLog>();
 
         var log = await conn.Table<StreakTargetStatLog>()
             .FirstOrDefaultAsync(l => l.Id == logId);
@@ -691,7 +691,7 @@ public class StreakService
     public async Task UpdateTargetStatLogAsync(int logId, int countBefore, int countAfter, string? note)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<StreakTargetStatLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetStatLog>();
 
         var log = await conn.Table<StreakTargetStatLog>()
             .FirstOrDefaultAsync(l => l.Id == logId);
@@ -708,9 +708,9 @@ public class StreakService
         await conn.UpdateAsync(log);
     }
 
-    private async Task<int> GetCurrentTargetCompletionCountAsync(SQLiteAsyncConnection conn, string username, int targetDays)
+    private async Task<int> GetCurrentTargetCompletionCountAsync(ISQLiteAsyncConnection conn, string username, int targetDays)
     {
-        await conn.CreateTableAsync<StreakTargetCompletion>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetCompletion>();
 
         var activeAttemptIds = (await conn.Table<StreakAttempt>()
                 .Where(a => a.Username == username && a.IsActive)
@@ -730,9 +730,9 @@ public class StreakService
         return completions.Count(c => activeAttemptIds.Contains(c.StreakAttemptId));
     }
 
-    private async Task<Dictionary<int, int>> GetTargetCountsForAttemptReactivationAsync(SQLiteAsyncConnection conn, StreakAttempt attempt)
+    private async Task<Dictionary<int, int>> GetTargetCountsForAttemptReactivationAsync(ISQLiteAsyncConnection conn, StreakAttempt attempt)
     {
-        await conn.CreateTableAsync<StreakTargetCompletion>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetCompletion>();
 
         var completions = await conn.Table<StreakTargetCompletion>()
             .Where(c => c.StreakAttemptId == attempt.Id)
@@ -747,10 +747,10 @@ public class StreakService
         return counts;
     }
 
-    private async Task LogTargetStatResetForAttemptAsync(SQLiteAsyncConnection conn, StreakAttempt attempt, string changeType, string note)
+    private async Task LogTargetStatResetForAttemptAsync(ISQLiteAsyncConnection conn, StreakAttempt attempt, string changeType, string note)
     {
-        await conn.CreateTableAsync<StreakTargetCompletion>();
-        await conn.CreateTableAsync<StreakTargetStatLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetCompletion>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetStatLog>();
 
         var completions = await conn.Table<StreakTargetCompletion>()
             .Where(c => c.StreakAttemptId == attempt.Id)
@@ -773,10 +773,10 @@ public class StreakService
         }
     }
 
-    private async Task LogTargetStatReactivationAsync(SQLiteAsyncConnection conn, StreakAttempt attempt, Dictionary<int, int> countBeforeByTarget)
+    private async Task LogTargetStatReactivationAsync(ISQLiteAsyncConnection conn, StreakAttempt attempt, Dictionary<int, int> countBeforeByTarget)
     {
-        await conn.CreateTableAsync<StreakTargetCompletion>();
-        await conn.CreateTableAsync<StreakTargetStatLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetCompletion>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetStatLog>();
 
         var completions = await conn.Table<StreakTargetCompletion>()
             .Where(c => c.StreakAttemptId == attempt.Id)
@@ -800,7 +800,7 @@ public class StreakService
     }
 
     private async Task LogTargetStatChangeAsync(
-        SQLiteAsyncConnection conn,
+        ISQLiteAsyncConnection conn,
         string username,
         int targetDays,
         int countBefore,
@@ -815,7 +815,7 @@ public class StreakService
             return;
         }
 
-        await conn.CreateTableAsync<StreakTargetStatLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetStatLog>();
         await conn.InsertAsync(new StreakTargetStatLog
         {
             Username = username,
@@ -850,7 +850,7 @@ public class StreakService
         var conn = await _db.GetConnectionAsync();
         
         // Ensure the table exists
-        await conn.CreateTableAsync<StreakLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakLog>();
         
         var log = new StreakLog
         {
@@ -874,7 +874,7 @@ public class StreakService
         var conn = await _db.GetConnectionAsync();
         
         // Ensure the table exists
-        await conn.CreateTableAsync<StreakLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakLog>();
         
         return await conn.Table<StreakLog>()
             .Where(l => l.StreakAttemptId == streakAttemptId)
@@ -890,7 +890,7 @@ public class StreakService
         var conn = await _db.GetConnectionAsync();
         
         // Ensure the table exists
-        await conn.CreateTableAsync<StreakLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakLog>();
         
         return await conn.Table<StreakLog>()
             .Where(l => l.StreakAttemptId == streakAttemptId 

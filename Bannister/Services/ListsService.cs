@@ -17,8 +17,8 @@ public class ListsService
         if (_initialized) return;
 
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<UserList>();
-        await conn.CreateTableAsync<UserListItem>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<UserList>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<UserListItem>();
         _initialized = true;
     }
 

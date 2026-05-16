@@ -17,8 +17,8 @@ public class LookoutService
         if (_initialized) return;
 
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<LookoutScenario>();
-        await conn.CreateTableAsync<LookoutScenarioItem>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LookoutScenario>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<LookoutScenarioItem>();
         _initialized = true;
     }
 

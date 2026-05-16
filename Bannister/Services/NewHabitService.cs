@@ -18,7 +18,7 @@ public class NewHabitService
     public async Task<HabitAllowance> GetOrCreateAllowanceAsync(string username, string frequency = "Daily")
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<HabitAllowance>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<HabitAllowance>();
         
         var allowance = await conn.Table<HabitAllowance>()
             .Where(a => a.Username == username && a.Frequency == frequency)
@@ -217,7 +217,7 @@ public class NewHabitService
     public async Task<List<NewHabit>> GetAllActiveHabitsAsync(string username)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<NewHabit>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
         
         return await conn.Table<NewHabit>()
             .Where(h => h.Username == username && h.Status == "active")
@@ -227,7 +227,7 @@ public class NewHabitService
     public async Task<List<NewHabit>> GetActiveHabitsAsync(string username, string game)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<NewHabit>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
         
         return await conn.Table<NewHabit>()
             .Where(h => h.Username == username && h.Game == game && h.Status == "active")
@@ -237,7 +237,7 @@ public class NewHabitService
     public async Task<List<NewHabit>> GetActiveHabitsByFrequencyAsync(string username, string frequency)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<NewHabit>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
         
         return await conn.Table<NewHabit>()
             .Where(h => h.Username == username && h.Frequency == frequency && h.Status == "active")
@@ -247,7 +247,7 @@ public class NewHabitService
     public async Task<List<NewHabit>> GetAllGraduatedHabitsAsync(string username)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<NewHabit>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
         
         return await conn.Table<NewHabit>()
             .Where(h => h.Username == username && h.Status == "graduated")
@@ -258,7 +258,7 @@ public class NewHabitService
     public async Task<List<NewHabit>> GetGraduatedHabitsAsync(string username, string game)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<NewHabit>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
         
         return await conn.Table<NewHabit>()
             .Where(h => h.Username == username && h.Game == game && h.Status == "graduated")
@@ -269,7 +269,7 @@ public class NewHabitService
     public async Task<List<NewHabit>> GetFailedHabitsAsync(string username, string game)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<NewHabit>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
         
         return await conn.Table<NewHabit>()
             .Where(h => h.Username == username && h.Game == game && h.Status == "failed")
@@ -294,7 +294,7 @@ public class NewHabitService
     public async Task<List<NewHabit>> GetAllPendingHabitsAsync(string username)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<NewHabit>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
         
         return await conn.Table<NewHabit>()
             .Where(h => h.Username == username && h.Status == "pending")
@@ -310,7 +310,7 @@ public class NewHabitService
         int negativeActivityId)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<NewHabit>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
 
         // Get max pending order
         var pendingHabits = await GetAllPendingHabitsAsync(username);
@@ -531,7 +531,7 @@ public class NewHabitService
     public async Task<NewHabit?> RecordHabitDoneAsync(int positiveActivityId)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<NewHabit>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
         
         var habit = await conn.Table<NewHabit>()
             .Where(h => h.PositiveActivityId == positiveActivityId && h.Status == "active")

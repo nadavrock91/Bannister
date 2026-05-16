@@ -16,8 +16,8 @@ public class CountdownService
     private async Task InitializeAsync()
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<Countdown>();
-        await conn.CreateTableAsync<CountdownHistory>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<Countdown>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<CountdownHistory>();
     }
     
     public async Task<List<Countdown>> GetCountdownsAsync(string username)

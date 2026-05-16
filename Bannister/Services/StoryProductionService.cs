@@ -14,8 +14,10 @@ public class StoryProductionService
 
     #region Projects
 
-    private async Task EnsureProjectTableAsync(SQLiteAsyncConnection conn)
+    private async Task EnsureProjectTableAsync(ISQLiteAsyncConnection conn)
     {
+        if (_db.IsReadOnly) return;
+
         await conn.CreateTableAsync<StoryProject>();
         
         // Migrate: add publication columns if they don't exist
@@ -162,8 +164,10 @@ public class StoryProductionService
 
     #region Lines
 
-    private async Task EnsureStoryLineTableAsync(SQLiteAsyncConnection conn)
+    private async Task EnsureStoryLineTableAsync(ISQLiteAsyncConnection conn)
     {
+        if (_db.IsReadOnly) return;
+
         await conn.CreateTableAsync<StoryLine>();
         
         // Migrate: add new columns if they don't exist
@@ -238,7 +242,7 @@ public class StoryProductionService
     public async Task<StoryLine> InsertLineBeforeAsync(int projectId, int beforeOrder, string lineText, string visualDescription, bool isSilent)
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<StoryLine>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StoryLine>();
         
         // Shift all lines at or after beforeOrder up by 1
         await conn.ExecuteAsync(
@@ -1238,7 +1242,7 @@ public class StoryProductionService
     private async Task EnsureTaskLogTableAsync()
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<ProductionTaskLog>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<ProductionTaskLog>();
         
         // Migrate: add new columns if they don't exist
         try { await conn.ExecuteAsync("ALTER TABLE production_task_logs ADD COLUMN LineText TEXT DEFAULT ''"); } catch { }
@@ -1421,8 +1425,8 @@ public class StoryProductionService
     private async Task EnsureStoryPointsTableAsync()
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<StoryPoint>();
-        await conn.CreateTableAsync<StoryPointVersion>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StoryPoint>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StoryPointVersion>();
         
         // Migrate: add Version column if it doesn't exist
         try { await conn.ExecuteAsync("ALTER TABLE story_points ADD COLUMN Version INTEGER DEFAULT 1"); } catch { }

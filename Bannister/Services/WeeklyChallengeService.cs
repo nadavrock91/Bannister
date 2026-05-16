@@ -19,8 +19,8 @@ public class WeeklyChallengeService
         if (_initialized) return;
         
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<WeeklyChallenge>();
-        await conn.CreateTableAsync<WeeklyCommitment>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<WeeklyChallenge>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<WeeklyCommitment>();
         _initialized = true;
     }
 

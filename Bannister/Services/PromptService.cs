@@ -26,8 +26,8 @@ public class PromptService
     public async Task InitializeAsync()
     {
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<PromptItem>();
-        await conn.CreateTableAsync<PromptGroup>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<PromptItem>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<PromptGroup>();
         
         // Check if we need to seed
         var count = await conn.Table<PromptItem>().CountAsync();

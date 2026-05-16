@@ -41,8 +41,14 @@ public static class MauiProgram
 
 
         // Services
+        // NOTE: DeviceModeService must be registered before DatabaseService — DatabaseService
+        // takes it as a constructor dependency to decide between master and secondary modes.
+        builder.Services.AddSingleton<DeviceModeService>();
+        builder.Services.AddSingleton<OperationQueueService>();
         builder.Services.AddSingleton<DatabaseService>();
+        builder.Services.AddSingleton<SyncService>();
         builder.Services.AddSingleton<AuthService>();
+        builder.Services.AddSingleton<OperationApplierService>();
         builder.Services.AddSingleton<GameService>();
         builder.Services.AddSingleton<ActivityService>();
         builder.Services.AddSingleton<ExpService>();
@@ -115,6 +121,7 @@ public static class MauiProgram
         builder.Services.AddTransient<DatabasesPage>();
         builder.Services.AddTransient<MoneyManagementPage>();
         builder.Services.AddTransient<ListsPage>();
+        builder.Services.AddTransient<SyncSettingsPage>();
 
 
 #if DEBUG

@@ -25,13 +25,18 @@ public class HomePage : ContentPage
     private readonly WeeklyChallengeService _challengeService;
     private readonly IdeasService _ideas;
     private readonly IdeaLoggerService _ideaLogger;
+    private readonly OperationQueueService _operationQueue;
+    private readonly SyncService _sync;
     private readonly ConversationService _conversationService;
     private readonly SubActivityService _subActivityService;
     private readonly AudioLibraryService _audioLibService;
     private readonly DailyLoginPromptService _dailyLoginPrompts;
     private readonly MoneyManagementService _moneyManagement;
     private readonly ListsService _listsService;
+    private readonly OperationApplierService _applier;
     private bool _introChecked = false;
+    private bool _queueCheckCompleted = false;
+    private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
 
     // UI Controls
     private Label _lblWelcome;
@@ -56,6 +61,7 @@ public class HomePage : ContentPage
     private Button _btnMoneyManagement;
     private Button _btnLists;
     private Grid _loadingOverlay;
+    private Label _loadingOverlayLabel;
 
     public HomePage(AuthService auth, GameService games, DragonService dragons,
         BackupService backup, AttemptService attempts, StreakService streaks, DatabaseService db, ExpService exp,
@@ -63,7 +69,8 @@ public class HomePage : ContentPage
         StoryProductionService storyProduction, TaskService taskService, WeeklyChallengeService challengeService,
         IdeasService ideas, IdeaLoggerService ideaLogger, ConversationService conversationService,
         SubActivityService subActivityService, AudioLibraryService audioLibService,
-        DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService)
+        DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
+        OperationQueueService operationQueue, SyncService sync, OperationApplierService applier)
     {
         _auth = auth;
         _games = games;
@@ -82,6 +89,9 @@ public class HomePage : ContentPage
         _challengeService = challengeService;
         _ideas = ideas;
         _ideaLogger = ideaLogger;
+        _operationQueue = operationQueue;
+        _sync = sync;
+        _applier = applier;
         _conversationService = conversationService;
         _subActivityService = subActivityService;
         _audioLibService = audioLibService;
@@ -255,7 +265,7 @@ public class HomePage : ContentPage
         _loadingOverlay = new Grid
         {
             IsVisible = false,
-            BackgroundColor = Color.FromArgb("#80000000"),
+            BackgroundColor = Color.FromRgba(0, 0, 0, 0.6),
             InputTransparent = false
         };
 
@@ -269,20 +279,31 @@ public class HomePage : ContentPage
         loadingStack.Children.Add(new ActivityIndicator
         {
             IsRunning = true,
-            Color = Colors.White,
+            Color = Color.FromArgb("#5B63EE"),
             WidthRequest = 50,
             HeightRequest = 50
         });
 
-        loadingStack.Children.Add(new Label
+        _loadingOverlayLabel = new Label
         {
             Text = "Loading...",
-            TextColor = Colors.White,
+            TextColor = Color.FromArgb("#333"),
             FontSize = 16,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        };
+        loadingStack.Children.Add(_loadingOverlayLabel);
 
-        _loadingOverlay.Children.Add(loadingStack);
+        _loadingOverlay.Children.Add(new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 24,
+            WidthRequest = 280,
+            HasShadow = true,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
+            Content = loadingStack
+        });
         mainGrid.Children.Add(_loadingOverlay);
 
         Content = mainGrid;
@@ -362,6 +383,114 @@ public class HomePage : ContentPage
 
         // Check if unencrypted legacy database file still exists
         await CheckLegacyUnencryptedDbAsync();
+
+        _ = CheckQueuedOperationsPromptAsync();
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        return _loadingOverlay.IsVisible || base.OnBackButtonPressed();
+    }
+
+    private async Task CheckQueuedOperationsPromptAsync()
+    {
+        if (_db.IsReadOnly) return;
+        if (_queueCheckCompleted) return;
+        if (IsQueuePromptSnoozed()) return;
+
+        _queueCheckCompleted = true;
+
+        List<QueuedOperation> operations;
+        try
+        {
+            operations = await _sync.DownloadQueueAsync();
+        }
+        catch
+        {
+            return;
+        }
+
+        if (operations.Count == 0) return;
+
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            var action = await DisplayActionSheet(
+                $"Apply {operations.Count} queued operations?",
+                null,
+                null,
+                "Apply now",
+                "Remind me later",
+                "Don't remind me until...");
+
+            switch (action)
+            {
+                case "Apply now":
+                    await ApplyQueuedOperationsFromHomeAsync(operations);
+                    break;
+                case "Don't remind me until...":
+                    var selectedDate = await QueueSnoozeDatePage.ShowAsync(Navigation);
+                    if (selectedDate.HasValue)
+                    {
+                        Preferences.Default.Set(
+                            QueuePromptSnoozedUntilKey,
+                            selectedDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                    }
+                    break;
+            }
+        });
+    }
+
+    private static bool IsQueuePromptSnoozed()
+    {
+        if (!Preferences.Default.ContainsKey(QueuePromptSnoozedUntilKey))
+            return false;
+
+        var raw = Preferences.Default.Get(QueuePromptSnoozedUntilKey, "");
+        return DateTime.TryParseExact(
+                raw,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var snoozeDate) &&
+            DateTime.Today < snoozeDate;
+    }
+
+    private async Task ApplyQueuedOperationsFromHomeAsync(List<QueuedOperation> operations)
+    {
+        try
+        {
+            ShowHomeOverlay("Applying queued operations...");
+            var result = await _applier.ApplyAllAsync(operations);
+
+            _loadingOverlayLabel.Text = "Clearing server...";
+            var clearResult = await _sync.ClearAppliedFromServerAsync(result.UuidsToClear);
+            if (!clearResult.Success)
+                throw new InvalidOperationException(clearResult.Message);
+
+            Preferences.Default.Remove(QueuePromptSnoozedUntilKey);
+            HideHomeOverlay();
+
+            await DisplayAlert(
+                "Queue Applied",
+                $"Applied {result.AppliedCount}, skipped {result.SkippedCount} (already applied), failed {result.FailedCount}. Cleared from server.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            HideHomeOverlay();
+            await DisplayAlert("Apply Failed", ex.Message, "OK");
+        }
+    }
+
+    private void ShowHomeOverlay(string status)
+    {
+        _loadingOverlayLabel.Text = status;
+        _loadingOverlay.IsVisible = true;
+    }
+
+    private void HideHomeOverlay()
+    {
+        _loadingOverlay.IsVisible = false;
     }
 
     private async Task ShowDailyLoginPromptsIfNeededAsync()
@@ -744,7 +873,7 @@ public class HomePage : ContentPage
 
     private async void OnIdeasClicked(object? sender, EventArgs e)
     {
-        var page = new IdeasPage(_auth, _ideas, _ideaLogger, _db);
+        var page = new IdeasPage(_auth, _ideas, _ideaLogger, _db, _operationQueue, _sync);
         await Navigation.PushAsync(page);
     }
 
@@ -923,5 +1052,113 @@ public class HomePage : ContentPage
 
         // RESET STACK — ANDROID REQUIRED
         await Shell.Current.GoToAsync("//login");
+    }
+
+    private sealed class QueueSnoozeDatePage : ContentPage
+    {
+        private readonly TaskCompletionSource<DateTime?> _completion = new();
+        private readonly DatePicker _datePicker;
+
+        private QueueSnoozeDatePage()
+        {
+            Title = "Queue Reminder";
+            BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
+
+            _datePicker = new DatePicker
+            {
+                Date = DateTime.Today.AddDays(7),
+                MinimumDate = DateTime.Today.AddDays(1),
+                MaximumDate = DateTime.Today.AddDays(90),
+                TextColor = Color.FromArgb("#222"),
+                BackgroundColor = Colors.White,
+                HorizontalOptions = LayoutOptions.Fill
+            };
+
+            var okButton = new Button
+            {
+                Text = "OK",
+                BackgroundColor = Color.FromArgb("#5B63EE"),
+                TextColor = Colors.White,
+                CornerRadius = 8,
+                HeightRequest = 44
+            };
+            okButton.Clicked += async (_, _) =>
+            {
+                _completion.TrySetResult(_datePicker.Date);
+                await Navigation.PopModalAsync();
+            };
+
+            var cancelButton = new Button
+            {
+                Text = "Cancel",
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#333"),
+                CornerRadius = 8,
+                HeightRequest = 44
+            };
+            cancelButton.Clicked += async (_, _) =>
+            {
+                _completion.TrySetResult(null);
+                await Navigation.PopModalAsync();
+            };
+
+            var buttonGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Star }
+                },
+                ColumnSpacing = 10
+            };
+            buttonGrid.Add(cancelButton, 0, 0);
+            buttonGrid.Add(okButton, 1, 0);
+
+            Content = new Grid
+            {
+                Padding = 24,
+                Children =
+                {
+                    new Frame
+                    {
+                        BackgroundColor = Colors.White,
+                        CornerRadius = 12,
+                        Padding = 20,
+                        HasShadow = true,
+                        VerticalOptions = LayoutOptions.Center,
+                        HorizontalOptions = LayoutOptions.Fill,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 16,
+                            Children =
+                            {
+                                new Label
+                                {
+                                    Text = "Don't remind me until",
+                                    FontSize = 20,
+                                    FontAttributes = FontAttributes.Bold,
+                                    TextColor = Color.FromArgb("#333")
+                                },
+                                _datePicker,
+                                buttonGrid
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        protected override bool OnBackButtonPressed()
+        {
+            _completion.TrySetResult(null);
+            return base.OnBackButtonPressed();
+        }
+
+        public static async Task<DateTime?> ShowAsync(INavigation navigation)
+        {
+            var page = new QueueSnoozeDatePage();
+            await navigation.PushModalAsync(page);
+            return await page._completion.Task;
+        }
     }
 }

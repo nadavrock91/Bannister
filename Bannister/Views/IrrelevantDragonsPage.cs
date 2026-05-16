@@ -678,7 +678,7 @@ public class IrrelevantDragonsPage : ContentPage
         await conn.InsertAsync(attempt);
     }
 
-    private async Task<SQLite.SQLiteAsyncConnection> GetConnectionAsync()
+    private async Task<SQLite.ISQLiteAsyncConnection> GetConnectionAsync()
     {
         // Access the database connection through a workaround
         // This assumes DatabaseService is registered and available

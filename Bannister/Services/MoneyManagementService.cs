@@ -19,7 +19,7 @@ public class MoneyManagementService
         if (_initialized) return;
 
         var conn = await _db.GetConnectionAsync();
-        await conn.CreateTableAsync<MonthlyExpense>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<MonthlyExpense>();
         _initialized = true;
     }
 

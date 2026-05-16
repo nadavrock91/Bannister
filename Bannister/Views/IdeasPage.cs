@@ -1,6 +1,8 @@
 using Bannister.Models;
 using Bannister.Services;
+using CommunityToolkit.Maui.Behaviors;
 using SQLite;
+using System.Globalization;
 
 namespace Bannister.Views;
 
@@ -13,6 +15,8 @@ public class IdeasPage : ContentPage
     private readonly IdeasService _ideas;
     private readonly IdeaLoggerService _ideaLogger;
     private readonly DatabaseService _db;
+    private readonly OperationQueueService _queue;
+    private readonly SyncService _sync;
 
     // Header UI
     private Label _headerLabel;
@@ -21,6 +25,8 @@ public class IdeasPage : ContentPage
     private Button _showArchivedBtn;
     private Button _sortDateBtn;
     private Button _sortRatingBtn;
+    private Label _pendingSyncLabel;
+    private Button _syncQueuedIdeasBtn;
 
     // Grid area
     private VerticalStackLayout _toolbarContainer;
@@ -38,7 +44,7 @@ public class IdeasPage : ContentPage
 
     // State
     private List<string> _categories = new();
-    private string _selectedCategory = "All";
+    private string _selectedCategory = "";
     private bool _showingArchived = false;
     private IdeaItem? _selectedIdea = null;
     private List<IdeaItem> _currentIdeas = new();
@@ -46,16 +52,24 @@ public class IdeasPage : ContentPage
     private string _sortColumn = "Date";
     private bool _sortDescending = true;
     private DataGridView? _currentDataGrid;
+    private bool _isPhoneLayout;
+    private CollectionView? _phoneIdeasView;
+    private Label? _phoneEmptyLabel;
+    private bool _loadingCategories;
 
-    public IdeasPage(AuthService auth, IdeasService ideas, IdeaLoggerService ideaLogger, DatabaseService db)
+    public IdeasPage(AuthService auth, IdeasService ideas, IdeaLoggerService ideaLogger, DatabaseService db, OperationQueueService queue, SyncService sync)
     {
         _auth = auth;
         _ideas = ideas;
         _ideaLogger = ideaLogger;
         _db = db;
+        _queue = queue;
+        _sync = sync;
         Title = "Ideas";
         BackgroundColor = Color.FromArgb("#F5F5F5");
-        BuildUI();
+        _isPhoneLayout = DeviceInfo.Idiom == DeviceIdiom.Phone || DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density < 600;
+        if (_isPhoneLayout) BuildPhoneUI();
+        else BuildUI();
     }
 
     protected override async void OnAppearing()
@@ -63,6 +77,7 @@ public class IdeasPage : ContentPage
         base.OnAppearing();
         await LoadCategoriesAsync();
         await RefreshIdeasAsync();
+        await RefreshPendingSyncCountAsync();
     }
 
     private void BuildUI()
@@ -83,6 +98,29 @@ public class IdeasPage : ContentPage
         headerRow.Children.Add(new Label { Text = "💡", FontSize = 20, VerticalOptions = LayoutOptions.Center });
         _headerLabel = new Label { Text = "0 ideas", FontSize = 14, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center };
         headerRow.Children.Add(_headerLabel);
+
+        _pendingSyncLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#F57C00"),
+            VerticalOptions = LayoutOptions.Center,
+            IsVisible = false
+        };
+        headerRow.Children.Add(_pendingSyncLabel);
+
+        _syncQueuedIdeasBtn = new Button
+        {
+            Text = "Sync queued ideas",
+            BackgroundColor = Color.FromArgb("#F57C00"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            HeightRequest = 36,
+            Padding = new Thickness(10, 0),
+            IsVisible = false
+        };
+        _syncQueuedIdeasBtn.Clicked += OnSyncQueuedIdeasClicked;
+        headerRow.Children.Add(_syncQueuedIdeasBtn);
 
         _categoryPicker = new Picker { Title = "Category", BackgroundColor = Colors.White, WidthRequest = 130 };
         _categoryPicker.SelectedIndexChanged += OnCategoryChanged;
@@ -137,6 +175,241 @@ public class IdeasPage : ContentPage
 
         mainGrid.Add(contentGrid, 0, 2);
         Content = mainGrid;
+    }
+
+    private void BuildPhoneUI()
+    {
+        var root = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star)
+            }
+        };
+
+        var header = new VerticalStackLayout
+        {
+            Padding = new Thickness(14, 12, 14, 8),
+            Spacing = 10,
+            BackgroundColor = Colors.White
+        };
+
+        var titleRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 10
+        };
+
+        _headerLabel = new Label
+        {
+            Text = "0 ideas",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        titleRow.Add(_headerLabel, 0, 0);
+
+        var addBtn = new Button
+        {
+            Text = "+ New",
+            BackgroundColor = Color.FromArgb("#4CAF50"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42,
+            Padding = new Thickness(16, 0),
+            FontAttributes = FontAttributes.Bold
+        };
+        addBtn.Clicked += OnAddIdeaClicked;
+        titleRow.Add(addBtn, 1, 0);
+        header.Children.Add(titleRow);
+
+        _pendingSyncLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#F57C00"),
+            IsVisible = false
+        };
+        header.Children.Add(_pendingSyncLabel);
+
+        _syncQueuedIdeasBtn = new Button
+        {
+            Text = "Sync queued ideas",
+            BackgroundColor = Color.FromArgb("#F57C00"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42,
+            FontAttributes = FontAttributes.Bold,
+            IsVisible = false
+        };
+        _syncQueuedIdeasBtn.Clicked += OnSyncQueuedIdeasClicked;
+        header.Children.Add(_syncQueuedIdeasBtn);
+
+        _categoryPicker = new Picker
+        {
+            Title = "Category",
+            TextColor = Color.FromArgb("#222"),
+            TitleColor = Color.FromArgb("#999"),
+            BackgroundColor = Colors.White
+        };
+        _categoryPicker.SelectedIndexChanged += OnCategoryChanged;
+        header.Children.Add(_categoryPicker);
+
+        _searchEntry = new Entry
+        {
+            Placeholder = "Search ideas...",
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            BackgroundColor = Colors.White,
+            FontSize = 14
+        };
+        _searchEntry.TextChanged += OnSearchChanged;
+        header.Children.Add(_searchEntry);
+
+        var controlsRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8
+        };
+
+        _sortDateBtn = new Button
+        {
+            Text = "Date",
+            BackgroundColor = Color.FromArgb("#2196F3"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        _sortDateBtn.Clicked += OnSortDateClicked;
+        controlsRow.Add(_sortDateBtn, 0, 0);
+
+        _sortRatingBtn = new Button
+        {
+            Text = "Rating",
+            BackgroundColor = Color.FromArgb("#757575"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        _sortRatingBtn.Clicked += OnSortRatingClicked;
+        controlsRow.Add(_sortRatingBtn, 1, 0);
+
+        _showArchivedBtn = new Button
+        {
+            Text = "Archive",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            Padding = new Thickness(12, 0),
+            FontSize = 13
+        };
+        _showArchivedBtn.Clicked += OnShowArchivedClicked;
+        controlsRow.Add(_showArchivedBtn, 2, 0);
+        header.Children.Add(controlsRow);
+
+        var importBtn = new Button
+        {
+            Text = "Import",
+            BackgroundColor = Color.FromArgb("#795548"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        importBtn.Clicked += OnImportClicked;
+        header.Children.Add(importBtn);
+
+        _phoneEmptyLabel = new Label
+        {
+            Text = "Select a category to view ideas.",
+            TextColor = Color.FromArgb("#777"),
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(20)
+        };
+
+        _phoneIdeasView = new CollectionView
+        {
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            SelectionMode = SelectionMode.Single,
+            ItemTemplate = new DataTemplate(CreatePhoneIdeaCard),
+            EmptyView = _phoneEmptyLabel
+        };
+        _phoneIdeasView.SelectionChanged += OnPhoneIdeaSelected;
+
+        root.Add(header, 0, 0);
+        root.Add(_phoneIdeasView, 0, 1);
+        Content = root;
+    }
+
+    private View CreatePhoneIdeaCard()
+    {
+        var card = new Frame
+        {
+            Margin = new Thickness(12, 8),
+            Padding = 14,
+            CornerRadius = 8,
+            HasShadow = false,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            BackgroundColor = Colors.White
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 8 };
+
+        var title = new Label
+        {
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222"),
+            LineBreakMode = LineBreakMode.TailTruncation,
+            MaxLines = 2
+        };
+        title.SetBinding(Label.TextProperty, nameof(IdeaItem.Title));
+        stack.Children.Add(title);
+
+        var meta = new Label
+        {
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+        meta.SetBinding(Label.TextProperty, new Binding(".", converter: new PhoneIdeaMetaConverter()));
+        stack.Children.Add(meta);
+
+        var detail = new Label
+        {
+            FontSize = 12,
+            TextColor = Color.FromArgb("#888"),
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+        detail.SetBinding(Label.TextProperty, new Binding(".", converter: new PhoneIdeaDetailConverter()));
+        stack.Children.Add(detail);
+
+        var touch = new TouchBehavior
+        {
+            LongPressDuration = 500,
+            LongPressCommand = new Command<IdeaItem>(async idea => await ShowPhoneActionMenuAsync(idea))
+        };
+        touch.SetBinding(TouchBehavior.LongPressCommandParameterProperty, ".");
+        card.Behaviors.Add(touch);
+
+        card.Content = stack;
+        return card;
     }
 
     private void BuildDetailPanel()
@@ -217,13 +490,35 @@ public class IdeasPage : ContentPage
 
     private async Task LoadCategoriesAsync()
     {
+        _loadingCategories = true;
+        var previousCategory = _selectedCategory;
         _categories = await _ideas.GetCategoriesAsync(_auth.CurrentUsername);
         _categoryPicker.Items.Clear();
         _categoryPicker.Items.Add("All");
         _categoryPicker.Items.Add("⭐ Starred");
         foreach (var cat in _categories) _categoryPicker.Items.Add(cat);
-        _categoryPicker.SelectedIndex = -1;
-        _selectedCategory = "";
+        if (!string.IsNullOrEmpty(previousCategory))
+        {
+            var selectedIndex = -1;
+            for (var i = 0; i < _categoryPicker.Items.Count; i++)
+            {
+                if (string.Equals(_categoryPicker.Items[i], previousCategory, StringComparison.OrdinalIgnoreCase))
+                {
+                    selectedIndex = i;
+                    break;
+                }
+            }
+
+            _categoryPicker.SelectedIndex = selectedIndex;
+            _selectedCategory = selectedIndex >= 0 ? previousCategory : "";
+        }
+        else
+        {
+            _categoryPicker.SelectedIndex = -1;
+            _selectedCategory = "";
+        }
+
+        _loadingCategories = false;
     }
 
     private async Task RefreshIdeasAsync()
@@ -258,11 +553,25 @@ public class IdeasPage : ContentPage
         if (_selectedCategory != "All")
             _headerLabel.Text = _showingArchived ? $"{ideas.Count} archived" : $"{ideas.Count} in {_selectedCategory} ({total} total)";
 
+        if (_isPhoneLayout)
+        {
+            BuildPhoneIdeasList(ideas);
+            return;
+        }
+
         BuildDataGrid(ideas);
     }
 
     private void ShowCategoryPrompt()
     {
+        if (_isPhoneLayout)
+        {
+            if (_phoneEmptyLabel != null)
+                _phoneEmptyLabel.Text = "Select a category to view ideas.";
+            _phoneIdeasView!.ItemsSource = Array.Empty<IdeaItem>();
+            return;
+        }
+
         _toolbarContainer.Children.Clear();
         _gridContainer.Children.Clear();
 
@@ -270,6 +579,41 @@ public class IdeasPage : ContentPage
         promptStack.Children.Add(new Label { Text = "📁", FontSize = 48, HorizontalOptions = LayoutOptions.Center });
         promptStack.Children.Add(new Label { Text = "Select a category from the dropdown above", FontSize = 14, TextColor = Color.FromArgb("#666"), HorizontalOptions = LayoutOptions.Center });
         _gridContainer.Children.Add(promptStack);
+    }
+
+    private void BuildPhoneIdeasList(List<IdeaItem> ideas)
+    {
+        if (_phoneIdeasView == null) return;
+        if (_phoneEmptyLabel != null)
+            _phoneEmptyLabel.Text = "No ideas in this category.";
+        _phoneIdeasView.ItemsSource = ideas;
+        _phoneIdeasView.SelectedItem = null;
+    }
+
+    private async Task RefreshPendingSyncCountAsync()
+    {
+        var count = await _queue.GetPendingCountAsync();
+        _pendingSyncLabel.Text = $"{count} {(count == 1 ? "idea" : "ideas")} pending sync";
+        _pendingSyncLabel.IsVisible = count > 0;
+        _syncQueuedIdeasBtn.IsVisible = _db.IsReadOnly && count > 0;
+        _syncQueuedIdeasBtn.IsEnabled = _syncQueuedIdeasBtn.IsVisible;
+    }
+
+    private async void OnSyncQueuedIdeasClicked(object? sender, EventArgs e)
+    {
+        _syncQueuedIdeasBtn.IsEnabled = false;
+        _pendingSyncLabel.Text = "Syncing...";
+        _pendingSyncLabel.IsVisible = true;
+
+        try
+        {
+            var result = await _sync.UploadQueueAsync();
+            await DisplayAlert("Sync", result.Message, "OK");
+        }
+        finally
+        {
+            await RefreshPendingSyncCountAsync();
+        }
     }
 
     private void BuildDataGrid(List<IdeaItem> ideas)
@@ -319,6 +663,13 @@ public class IdeasPage : ContentPage
         ShowDetail(_currentIdeas[e.RowIndex]);
     }
 
+    private void OnPhoneIdeaSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not IdeaItem idea) return;
+        if (_phoneIdeasView != null) _phoneIdeasView.SelectedItem = null;
+        ShowDetail(idea);
+    }
+
     private async Task<bool> UpdateIdeaFieldAsync(string idValue, string columnName, string newValue)
     {
         if (!int.TryParse(idValue, out int id)) return false;
@@ -347,6 +698,12 @@ public class IdeasPage : ContentPage
 
     private void ShowDetail(IdeaItem idea)
     {
+        if (_isPhoneLayout)
+        {
+            _ = ShowPhoneDetailModalAsync(idea);
+            return;
+        }
+
         _selectedIdea = idea;
         _detailPanel.IsVisible = true;
         _detailTitle.Text = idea.Title;
@@ -360,6 +717,220 @@ public class IdeasPage : ContentPage
         if (idea.Priority > 0) meta += $" • P{idea.Priority}";
         meta += $" • {idea.StatusText}\nCreated: {idea.CreatedAt:MMM d, yyyy}";
         _detailMeta.Text = meta;
+    }
+
+    private async Task ShowPhoneDetailModalAsync(IdeaItem idea)
+    {
+        _selectedIdea = idea;
+
+        var notes = new Editor
+        {
+            Text = idea.Notes ?? "",
+            Placeholder = "Notes...",
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            BackgroundColor = Colors.White,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            MinimumHeightRequest = 160
+        };
+
+        var page = new ContentPage
+        {
+            Title = "Idea Details",
+            BackgroundColor = Color.FromArgb("#F5F5F5")
+        };
+
+        var stack = new VerticalStackLayout
+        {
+            Padding = 18,
+            Spacing = 14
+        };
+
+        stack.Children.Add(new Label
+        {
+            Text = idea.Title,
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        stack.Children.Add(new Label
+        {
+            Text = $"{idea.Category}  |  Rating {idea.Rating}  |  {idea.CreatedAt:MMM d, yyyy}",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        stack.Children.Add(notes);
+
+        var actionGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8,
+            RowSpacing = 8
+        };
+
+        var editBtn = PhoneActionButton("Edit", "#2196F3");
+        editBtn.Clicked += async (_, _) =>
+        {
+            string? t = await DisplayPromptAsync("Edit", "Update idea:", "Save", "Cancel", initialValue: idea.Title);
+            if (!string.IsNullOrWhiteSpace(t) && t != idea.Title)
+            {
+                idea.Title = t.Trim();
+                await _ideas.UpdateIdeaAsync(idea);
+                await RefreshIdeasAsync();
+                await page.Navigation.PopModalAsync();
+            }
+        };
+        actionGrid.Add(editBtn, 0, 0);
+
+        var starBtn = PhoneActionButton(idea.IsStarred ? "Unstar" : "Star", "#FFC107");
+        starBtn.Clicked += async (_, _) =>
+        {
+            await _ideas.ToggleStarAsync(idea.Id);
+            idea.IsStarred = !idea.IsStarred;
+            await RefreshIdeasAsync();
+            await page.Navigation.PopModalAsync();
+        };
+        actionGrid.Add(starBtn, 1, 0);
+
+        var moveBtn = PhoneActionButton("Move", "#9C27B0");
+        moveBtn.Clicked += async (_, _) =>
+        {
+            var opts = _categories.Where(c => c != idea.Category).Concat(new[] { "+ New" }).ToArray();
+            var cat = await DisplayActionSheet("Move to", "Cancel", null, opts);
+            if (cat == "+ New") cat = await DisplayPromptAsync("New Category", "Name:");
+            if (!string.IsNullOrWhiteSpace(cat) && cat != "Cancel")
+            {
+                idea.Category = cat.Trim();
+                await _ideas.UpdateIdeaAsync(idea);
+                await LoadCategoriesAsync();
+                await RefreshIdeasAsync();
+                await page.Navigation.PopModalAsync();
+            }
+        };
+        actionGrid.Add(moveBtn, 0, 1);
+
+        var doneBtn = PhoneActionButton(idea.Status == 2 ? "Reopen" : "Done", "#4CAF50");
+        doneBtn.Clicked += async (_, _) =>
+        {
+            if (idea.Status == 2) { idea.Status = 0; idea.CompletedAt = null; }
+            else { idea.Status = 2; idea.CompletedAt = DateTime.Now; }
+            await _ideas.UpdateIdeaAsync(idea);
+            await RefreshIdeasAsync();
+            await page.Navigation.PopModalAsync();
+        };
+        actionGrid.Add(doneBtn, 1, 1);
+
+        var archiveBtn = PhoneActionButton(idea.Status == 3 ? "Restore" : "Archive", "#757575");
+        archiveBtn.Clicked += async (_, _) =>
+        {
+            if (idea.Status == 3) await _ideas.RestoreIdeaAsync(idea.Id);
+            else await _ideas.ArchiveIdeaAsync(idea.Id);
+            await RefreshIdeasAsync();
+            await page.Navigation.PopModalAsync();
+        };
+        actionGrid.Add(archiveBtn, 0, 2);
+
+        var deleteBtn = PhoneActionButton("Delete", "#F44336");
+        deleteBtn.Clicked += async (_, _) =>
+        {
+            if (await DisplayAlert("Delete?", "Permanently delete?", "Delete", "Cancel"))
+            {
+                await _ideas.DeleteIdeaAsync(idea.Id);
+                await RefreshIdeasAsync();
+                await page.Navigation.PopModalAsync();
+            }
+        };
+        actionGrid.Add(deleteBtn, 1, 2);
+
+        stack.Children.Add(actionGrid);
+
+        var saveCloseBtn = new Button
+        {
+            Text = "Save & Close",
+            BackgroundColor = Color.FromArgb("#FF9800"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 48
+        };
+        saveCloseBtn.Clicked += async (_, _) =>
+        {
+            if (_selectedIdea != null)
+            {
+                _selectedIdea.Notes = notes.Text;
+                await _ideas.UpdateIdeaAsync(_selectedIdea);
+                await RefreshIdeasAsync();
+            }
+            await page.Navigation.PopModalAsync();
+        };
+        stack.Children.Add(saveCloseBtn);
+
+        var closeBtn = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#666")
+        };
+        closeBtn.Clicked += async (_, _) => await page.Navigation.PopModalAsync();
+        stack.Children.Add(closeBtn);
+
+        page.Content = new ScrollView { Content = stack };
+        await Navigation.PushModalAsync(page);
+    }
+
+    private Button PhoneActionButton(string text, string color) => new()
+    {
+        Text = text,
+        BackgroundColor = Color.FromArgb(color),
+        TextColor = Colors.White,
+        CornerRadius = 8,
+        HeightRequest = 42,
+        FontSize = 13
+    };
+
+    private async Task ShowPhoneActionMenuAsync(IdeaItem? idea)
+    {
+        if (idea == null) return;
+        _selectedIdea = idea;
+
+        var choice = await DisplayActionSheet("Idea Actions", "Cancel", null, "Edit", idea.IsStarred ? "Unstar" : "Star", "Delete");
+        switch (choice)
+        {
+            case "Edit":
+                string? t = await DisplayPromptAsync("Edit", "Update idea:", "Save", "Cancel", initialValue: idea.Title);
+                if (!string.IsNullOrWhiteSpace(t) && t != idea.Title)
+                {
+                    idea.Title = t.Trim();
+                    await _ideas.UpdateIdeaAsync(idea);
+                    await RefreshIdeasAsync();
+                }
+                break;
+            case "Star":
+            case "Unstar":
+                await _ideas.ToggleStarAsync(idea.Id);
+                idea.IsStarred = !idea.IsStarred;
+                await RefreshIdeasAsync();
+                break;
+            case "Delete":
+                if (await DisplayAlert("Delete?", "Permanently delete?", "Delete", "Cancel"))
+                {
+                    await _ideas.DeleteIdeaAsync(idea.Id);
+                    await RefreshIdeasAsync();
+                }
+                break;
+        }
     }
 
     private void UpdateRatingButtonSelection(int rating)
@@ -397,6 +968,7 @@ public class IdeasPage : ContentPage
 
     private async void OnCategoryChanged(object? sender, EventArgs e)
     {
+        if (_loadingCategories) return;
         if (_categoryPicker.SelectedIndex < 0) return;
         _selectedCategory = _categoryPicker.Items[_categoryPicker.SelectedIndex] as string ?? "All";
         _showingArchived = false; _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
@@ -422,7 +994,7 @@ public class IdeasPage : ContentPage
     {
         string? cat = (_selectedCategory == "All" || _selectedCategory == "⭐ Starred" || string.IsNullOrEmpty(_selectedCategory)) ? null : _selectedCategory;
         var idea = await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, null, cat);
-        if (idea != null) { await LoadCategoriesAsync(); await RefreshIdeasAsync(); }
+        if (idea != null) { await LoadCategoriesAsync(); await RefreshIdeasAsync(); await RefreshPendingSyncCountAsync(); }
     }
 
     private async void OnEditClicked(object? sender, EventArgs e)
@@ -679,6 +1251,32 @@ public class IdeasPage : ContentPage
     private class ImportTableInfo { public string Name { get; set; } = ""; }
     private class ImportColumnInfo { public string Name { get; set; } = ""; public string Type { get; set; } = ""; }
     private class ImportRowResult { public string RowData { get; set; } = ""; }
+
+    private class PhoneIdeaMetaConverter : IValueConverter
+    {
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        {
+            if (value is not IdeaItem idea) return "";
+            return $"{idea.Category}  |  Rating {idea.Rating}  |  {idea.CreatedAt:MMM d, yyyy}";
+        }
+
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+    }
+
+    private class PhoneIdeaDetailConverter : IValueConverter
+    {
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        {
+            if (value is not IdeaItem idea) return "";
+            var parts = new List<string>();
+            if (idea.IsStarred) parts.Add("Starred");
+            if (!string.IsNullOrWhiteSpace(idea.StatusText)) parts.Add(idea.StatusText);
+            if (!string.IsNullOrWhiteSpace(idea.Subcategory)) parts.Add(idea.Subcategory);
+            return string.Join("  |  ", parts);
+        }
+
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+    }
 
     #endregion
 }

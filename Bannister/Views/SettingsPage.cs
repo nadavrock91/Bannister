@@ -175,6 +175,50 @@ public class SettingsPage : ContentPage
         homeFrame.Content = homeStack;
         mainStack.Children.Add(homeFrame);
 
+        // Sync & Devices section
+        var syncFrame = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent
+        };
+
+        var syncStack = new VerticalStackLayout { Spacing = 12 };
+
+        syncStack.Children.Add(new Label
+        {
+            Text = "Sync & Devices",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        syncStack.Children.Add(new Label
+        {
+            Text = "Run Bannister on multiple devices with one as master (read/write) and others " +
+                   "as secondary (read-only). The database is uploaded as an encrypted file.",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666"),
+            LineHeight = 1.4
+        });
+
+        var btnSyncSettings = new Button
+        {
+            Text = "🔄 Sync & Devices",
+            BackgroundColor = Color.FromArgb("#5B63EE"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 48,
+            FontSize = 16
+        };
+        btnSyncSettings.Clicked += OnSyncSettingsClicked;
+        syncStack.Children.Add(btnSyncSettings);
+
+        syncFrame.Content = syncStack;
+        mainStack.Children.Add(syncFrame);
+
         // Security section
         var securityFrame = new Frame
         {
@@ -217,6 +261,11 @@ public class SettingsPage : ContentPage
     {
         var page = new ChangePasswordPage(_auth, _db, _backup);
         await Navigation.PushAsync(page);
+    }
+
+    private async void OnSyncSettingsClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("syncsettings");
     }
 
     private async Task LoadHomeSettingsAsync()

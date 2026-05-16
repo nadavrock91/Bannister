@@ -146,6 +146,8 @@ namespace Bannister.Services
         /// </summary>
         public async Task RecordGameVisitAsync(string username, string gameId)
         {
+            if (_db.IsReadOnly) return; // silently skip on secondary devices
+
             var game = await GetGameAsync(username, gameId);
             if (game != null)
             {

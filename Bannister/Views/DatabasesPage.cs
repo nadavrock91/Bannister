@@ -20,7 +20,7 @@ public class DatabasesPage : ContentPage
     private Grid _paginationBar;
 
     private List<DatabaseFileEntry> _dbFiles = new();
-    private SQLiteAsyncConnection? _currentConn;
+    private ISQLiteAsyncConnection? _currentConn;
     private string _currentDbPath = "";
     private string _currentTableName = "";
     private List<string> _columns = new();
