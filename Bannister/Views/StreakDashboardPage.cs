@@ -245,6 +245,17 @@ public class StreakDashboardPage : ContentPage
         return activity.StreakTargetDays > 0 ? activity.StreakTargetDays : 365;
     }
 
+    private static int GetAttemptDisplayDays(Activity activity, StreakAttempt attempt)
+    {
+        if (activity.ShowStreakAsDaysSinceStarted && attempt.StartedAt.HasValue)
+        {
+            var startDate = attempt.StartedAt.Value.ToLocalTime().Date;
+            return Math.Max(0, (DateTime.Today - startDate).Days);
+        }
+
+        return attempt.DaysAchieved;
+    }
+
     private async Task ShowTargetStatsHistoryAsync(
         int targetDays,
         List<(Activity activity, List<StreakAttempt> attempts, List<StreakTargetCompletion> completions, string gameName)> items)
@@ -270,7 +281,7 @@ public class StreakDashboardPage : ContentPage
             int activeCompletions = item.completions.Count(c => c.TargetDays == targetDays && active != null && c.StreakAttemptId == active.Id);
             int historicalCompletions = item.completions.Count(c => c.TargetDays == targetDays);
             string status = activeCompletions > 0 ? $"{activeCompletions} current" : "0 current";
-            string activeText = active != null ? $"active {active.DaysAchieved}/{GetTargetDays(item.activity)}" : "no active";
+            string activeText = active != null ? $"active {GetAttemptDisplayDays(item.activity, active)}/{GetTargetDays(item.activity)}" : "no active";
             string option = $"{status}: {item.activity.Name} ({activeText}, history {historicalCompletions})";
 
             options.Add(option);
@@ -423,7 +434,7 @@ public class StreakDashboardPage : ContentPage
         {
             foreach (var attempt in sortedAttempts)
             {
-                attemptsContainer.Children.Add(BuildAttemptCard(attempt, sortedAttempts.Count));
+                attemptsContainer.Children.Add(BuildAttemptCard(activity, attempt, sortedAttempts.Count));
             }
         }
 
@@ -503,7 +514,7 @@ public class StreakDashboardPage : ContentPage
 
             streakRow.Children.Add(new Label
             {
-                Text = activeStreak.DaysAchieved.ToString(),
+                Text = GetAttemptDisplayDays(activity, activeStreak).ToString(),
                 FontSize = 24,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#FF9800"),
@@ -512,7 +523,7 @@ public class StreakDashboardPage : ContentPage
 
             streakRow.Children.Add(new Label
             {
-                Text = activeStreak.DaysAchieved == 1 ? "day" : "days",
+                Text = GetAttemptDisplayDays(activity, activeStreak) == 1 ? "day" : "days",
                 FontSize = 14,
                 TextColor = Color.FromArgb("#666"),
                 VerticalOptions = LayoutOptions.Center
@@ -571,7 +582,7 @@ public class StreakDashboardPage : ContentPage
             var bestStreak = sortedAttempts.OrderByDescending(a => a.DaysAchieved).First();
             headerStack.Children.Add(new Label
             {
-                Text = $"Best: {bestStreak.DaysAchieved} days (Attempt #{bestStreak.AttemptNumber})",
+                Text = $"Best: {GetAttemptDisplayDays(activity, bestStreak)} days (Attempt #{bestStreak.AttemptNumber})",
                 FontSize = 12,
                 TextColor = Color.FromArgb("#666"),
                 Margin = new Thickness(40, 0, 0, 0)
@@ -656,9 +667,10 @@ public class StreakDashboardPage : ContentPage
         return container;
     }
 
-    private Frame BuildAttemptCard(StreakAttempt attempt, int totalAttempts)
+    private Frame BuildAttemptCard(Activity activity, StreakAttempt attempt, int totalAttempts)
     {
         var isActive = attempt.IsActive;
+        int displayDays = GetAttemptDisplayDays(activity, attempt);
         var borderColor = isActive ? Color.FromArgb("#4CAF50") : Color.FromArgb("#BDBDBD");
         var bgColor = isActive ? Color.FromArgb("#C8E6C9") : Color.FromArgb("#FAFAFA");
 
@@ -693,7 +705,7 @@ public class StreakDashboardPage : ContentPage
         // Days achieved (big)
         stack.Children.Add(new Label
         {
-            Text = attempt.DaysAchieved.ToString(),
+            Text = displayDays.ToString(),
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             TextColor = isActive ? Color.FromArgb("#FF9800") : Color.FromArgb("#333"),
@@ -703,7 +715,7 @@ public class StreakDashboardPage : ContentPage
         // "days" label
         stack.Children.Add(new Label
         {
-            Text = attempt.DaysAchieved == 1 ? "day" : "days",
+            Text = displayDays == 1 ? "day" : "days",
             FontSize = 11,
             TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center

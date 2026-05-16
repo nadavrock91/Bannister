@@ -125,6 +125,7 @@ public class StreakAttemptsPage : ContentPage
     private Frame BuildAttemptCard(StreakAttempt attempt)
     {
         var isActive = attempt.IsActive;
+        int displayDays = GetAttemptDisplayDays(attempt);
         var borderColor = isActive ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E0E0E0");
         var bgColor = isActive ? Color.FromArgb("#E8F5E9") : Colors.White;
 
@@ -166,7 +167,7 @@ public class StreakAttemptsPage : ContentPage
 
         daysRow.Children.Add(new Label
         {
-            Text = attempt.DaysAchieved.ToString(),
+            Text = displayDays.ToString(),
             FontSize = 36,
             FontAttributes = FontAttributes.Bold,
             TextColor = isActive ? Color.FromArgb("#FF9800") : Color.FromArgb("#666"),
@@ -175,7 +176,7 @@ public class StreakAttemptsPage : ContentPage
 
         daysRow.Children.Add(new Label
         {
-            Text = attempt.DaysAchieved == 1 ? "day" : "days",
+            Text = displayDays == 1 ? "day" : "days",
             FontSize = 16,
             TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.End,
@@ -235,7 +236,7 @@ public class StreakAttemptsPage : ContentPage
     {
         bool confirm = await DisplayAlert(
             "End Streak?",
-            $"End this streak at {attempt.DaysAchieved} days?",
+            $"End this streak at {GetAttemptDisplayDays(attempt)} days?",
             "End",
             "Cancel");
 
@@ -244,5 +245,16 @@ public class StreakAttemptsPage : ContentPage
             await _streaks.EndStreakAsync(attempt.Id);
             await LoadAttemptsAsync();
         }
+    }
+
+    private int GetAttemptDisplayDays(StreakAttempt attempt)
+    {
+        if (_activity.ShowStreakAsDaysSinceStarted && attempt.StartedAt.HasValue)
+        {
+            var startDate = attempt.StartedAt.Value.ToLocalTime().Date;
+            return Math.Max(0, (DateTime.Today - startDate).Days);
+        }
+
+        return attempt.DaysAchieved;
     }
 }

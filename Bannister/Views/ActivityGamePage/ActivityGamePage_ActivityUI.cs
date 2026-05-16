@@ -505,9 +505,8 @@ public partial class ActivityGamePage
                 string penaltyWarning = potentialPenalty < 0 
                     ? $"\n\n⚠️ If broken: {potentialPenalty} EXP penalty" 
                     : "";
-                int displayValue = activity.Activity.GetDisplayStreakValue();
                 await Application.Current.MainPage.DisplayAlert("Display Day Streak", 
-                    $"🔥 {displayValue} scheduled days in a row!\n\n" +
+                    $"🔥 {activity.DisplayDayStreak} scheduled days in a row!\n\n" +
                     $"Next milestone: {nextMilestone}{penaltyWarning}", "OK");
             };
             displayStreakFrame.GestureRecognizers.Add(displayStreakTapGesture);

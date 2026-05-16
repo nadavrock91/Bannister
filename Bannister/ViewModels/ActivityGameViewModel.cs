@@ -192,7 +192,7 @@ public class ActivityGameViewModel : INotifyPropertyChanged
         get
         {
             if (_optOutDisplayDayStreak || _displayDayStreak == 0) return "";
-            return $"📅{_activity.GetDisplayStreakValue()}";
+            return $"📅{_displayDayStreak}";
         }
     }
 

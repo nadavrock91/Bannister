@@ -336,21 +336,8 @@ public class Activity
         {
             if (OptOutDisplayDayStreak || DisplayDayStreak == 0)
                 return "";
-            return $"🔥{GetDisplayStreakValue()}";
+            return $"🔥{DisplayDayStreak}";
         }
-    }
-
-    [Ignore]
-    public int DisplayStreakValue => GetDisplayStreakValue();
-
-    public int GetDisplayStreakValue()
-    {
-        if (ShowStreakAsDaysSinceStarted && CurrentStreakStartedAt.HasValue)
-        {
-            return Math.Max(1, (DateTime.Today - CurrentStreakStartedAt.Value.Date).Days + 1);
-        }
-
-        return DisplayDayStreak;
     }
     
     /// <summary>

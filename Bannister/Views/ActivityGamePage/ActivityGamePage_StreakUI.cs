@@ -439,7 +439,7 @@ public partial class ActivityGamePage
         if (attempt.LastUsedDate.HasValue && attempt.LastUsedDate.Value.Date == today)
         {
             await DisplayAlert("Already Recorded", 
-                $"You've already recorded today.\n\nCurrent streak: {attempt.DaysAchieved} days",
+                $"You've already recorded today.\n\nCurrent streak: {attemptVM.DisplayDaysAchieved} days",
                 "OK");
             return;
         }
@@ -471,9 +471,10 @@ public partial class ActivityGamePage
         
         if (updatedAttempt != null)
         {
+            int displayDays = GetAttemptDisplayDays(activity, updatedAttempt);
             await DisplayAlert("Day Recorded! 🔥", 
                 $"+{totalExp} EXP{bonusMessage}\n\n" +
-                $"Streak: {updatedAttempt.DaysAchieved} / {GetStreakTargetDays(activity)} days\n" +
+                $"Streak: {displayDays} / {GetStreakTargetDays(activity)} days\n" +
                 $"Display Day Streak: {activity.DisplayDayStreak} days",
                 "Nice!");
 
@@ -484,6 +485,17 @@ public partial class ActivityGamePage
     private int GetStreakTargetDays(Activity activity)
     {
         return activity.StreakTargetDays > 0 ? activity.StreakTargetDays : 365;
+    }
+
+    private int GetAttemptDisplayDays(Activity activity, StreakAttempt attempt)
+    {
+        if (activity.ShowStreakAsDaysSinceStarted && attempt.StartedAt.HasValue)
+        {
+            var startDate = attempt.StartedAt.Value.ToLocalTime().Date;
+            return Math.Max(0, (DateTime.Today - startDate).Days);
+        }
+
+        return attempt.DaysAchieved;
     }
 
     private async Task PromptForNextStreakTargetIfNeededAsync(Activity activity, StreakAttempt attempt)

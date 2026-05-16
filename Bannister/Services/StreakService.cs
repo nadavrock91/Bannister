@@ -93,7 +93,7 @@ public class StreakService
             IsActive = true,
             StartedAt = DateTime.UtcNow,
             LastUsedDate = DateTime.UtcNow.Date,
-            DaysAchieved = 1
+            DaysAchieved = 0
         };
 
         await conn.InsertAsync(newStreak);

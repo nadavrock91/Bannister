@@ -432,7 +432,7 @@ public class ActivitySelectionPage : ContentPage
         // Show EXP or streak info
         string expText = activity.ExpGain != 0 
             ? $"{activity.ExpGain:+#;-#;0} EXP" 
-            : (activity.IsStreakTracked ? $"🔥{activity.GetDisplayStreakValue()}" : "0 EXP");
+            : (activity.IsStreakTracked ? $"🔥{activity.DisplayDayStreak}" : "0 EXP");
         
         grid.Add(new Label
         {
