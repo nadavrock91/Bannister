@@ -67,6 +67,7 @@ public partial class EditActivityPage : ContentPage
         chkStreakTracked.IsChecked = _activity.IsStreakTracked;
         txtStreakTargetDays.Text = (_activity.StreakTargetDays > 0 ? _activity.StreakTargetDays : 365).ToString();
         txtStreakTargetDays.IsEnabled = _activity.IsStreakTracked;
+        chkShowStreakAsDaysSinceStarted.IsChecked = _activity.ShowStreakAsDaysSinceStarted;
 
         // Set possible status
         chkIsPossible.IsChecked = _activity.IsPossible;
@@ -644,6 +645,7 @@ public partial class EditActivityPage : ContentPage
             _activity.EndDate = endDateTime;
             _activity.IsPossible = chkIsPossible.IsChecked;
             _activity.ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked;
+            _activity.ShowStreakAsDaysSinceStarted = chkShowStreakAsDaysSinceStarted.IsChecked;
             _activity.StreakTargetDays = newStreakTracked ? streakTargetDays : 365;
 
             // Only update habit target if not a streak container

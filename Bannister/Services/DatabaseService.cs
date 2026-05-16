@@ -474,6 +474,8 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<PendingActivityIdea>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN ShowStreakAsDaysSinceStarted INTEGER DEFAULT 0"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN CurrentStreakStartedAt TEXT"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

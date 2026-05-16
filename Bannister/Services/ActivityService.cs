@@ -454,6 +454,7 @@ namespace Bannister.Services
                 activity.HabitStreak = 0;
                 activity.HabitType = "None";
                 activity.StreakStartDate = null;
+                activity.CurrentStreakStartedAt = null;
                 activity.TimesCompleted = 0;
                 activity.Notes = "";
                 activity.DisplayDaysOfWeek = "";
@@ -463,6 +464,7 @@ namespace Bannister.Services
                 activity.HabitTargetDate = null;
                 activity.HabitTargetFirstSet = null;
                 activity.ShowTimesCompletedBadge = false;
+                activity.ShowStreakAsDaysSinceStarted = false;
                 
                 await UpdateActivityAsync(activity);
                 System.Diagnostics.Debug.WriteLine($"[ACTIVITY] Reset activity {activityId} (was: {oldName}) to defaults");
@@ -590,6 +592,7 @@ namespace Bannister.Services
             else
             {
                 activity.DisplayDayStreak = 1; // Start new streak
+                activity.CurrentStreakStartedAt = today;
             }
             
             activity.LastDisplayDayUsed = today;
@@ -648,6 +651,7 @@ namespace Bannister.Services
                             processedActivityIds.Add(activity.Id);
                             
                             activity.DisplayDayStreak = 0;
+                            activity.CurrentStreakStartedAt = null;
                             await UpdateActivityAsync(activity);
                             break;
                         }

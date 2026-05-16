@@ -55,6 +55,7 @@ public class ActivityCreationPage : ContentPage
     private Entry txtStreakTargetDays;
     private CheckBox chkIsPossible;
     private CheckBox chkShowTimesCompleted;
+    private CheckBox chkShowStreakAsDaysSinceStarted;
     private CheckBox chkNoHabitTarget;
     private CheckBox chkHasHabitTarget;
     private DatePicker dateHabitTarget;
@@ -601,6 +602,17 @@ public class ActivityCreationPage : ContentPage
             TextColor = Color.FromArgb("#FF9800"),
             FontAttributes = FontAttributes.Italic
         });
+
+        var showStreakAsDaysRow = new HorizontalStackLayout { Spacing = 12 };
+        chkShowStreakAsDaysSinceStarted = new CheckBox();
+        showStreakAsDaysRow.Children.Add(chkShowStreakAsDaysSinceStarted);
+        showStreakAsDaysRow.Children.Add(new Label
+        {
+            Text = "Show streak as days since started",
+            VerticalOptions = LayoutOptions.Center
+        });
+        streakSection.Children.Add(showStreakAsDaysRow);
+
         mainStack.Children.Add(streakSection);
 
         // Activity Status (Possible)
@@ -1178,6 +1190,7 @@ public class ActivityCreationPage : ContentPage
                 IsStreakContainer = isStreakContainer,
                 IsPossible = chkIsPossible.IsChecked,
                 ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked,
+                ShowStreakAsDaysSinceStarted = chkShowStreakAsDaysSinceStarted.IsChecked,
                 NoHabitTarget = isStreakContainer ? true : chkNoHabitTarget.IsChecked, // Streak containers don't need habit targets
                 HabitTargetDate = (!isStreakContainer && chkHasHabitTarget.IsChecked) ? dateHabitTarget.Date : null,
                 HabitTargetFirstSet = (!isStreakContainer && chkHasHabitTarget.IsChecked) ? DateTime.Now : null,

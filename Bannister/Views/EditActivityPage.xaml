@@ -103,6 +103,11 @@
                            TextColor="#666"
                            VerticalOptions="Center" />
                 </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkShowStreakAsDaysSinceStarted" />
+                    <Label Text="Show streak as days since started"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
                 <Label Text="🔥 When enabled, this activity becomes its own category with attempt cards showing day counts"
                        FontSize="12"
                        TextColor="#FF9800"

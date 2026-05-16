@@ -258,6 +258,17 @@ public class Activity
     /// Resets if a scheduled day is missed.
     /// </summary>
     public int DisplayDayStreak { get; set; } = 0;
+
+    /// <summary>
+    /// If true, display the current display-day streak as calendar days since it started.
+    /// The underlying DisplayDayStreak value still counts completions/scheduled days.
+    /// </summary>
+    public bool ShowStreakAsDaysSinceStarted { get; set; } = false;
+
+    /// <summary>
+    /// Date when the current display-day streak started. Used only for alternate display.
+    /// </summary>
+    public DateTime? CurrentStreakStartedAt { get; set; }
     
     /// <summary>
     /// Last date (scheduled display day) when activity was used.
@@ -325,8 +336,21 @@ public class Activity
         {
             if (OptOutDisplayDayStreak || DisplayDayStreak == 0)
                 return "";
-            return $"🔥{DisplayDayStreak}";
+            return $"🔥{GetDisplayStreakValue()}";
         }
+    }
+
+    [Ignore]
+    public int DisplayStreakValue => GetDisplayStreakValue();
+
+    public int GetDisplayStreakValue()
+    {
+        if (ShowStreakAsDaysSinceStarted && CurrentStreakStartedAt.HasValue)
+        {
+            return Math.Max(1, (DateTime.Today - CurrentStreakStartedAt.Value.Date).Days + 1);
+        }
+
+        return DisplayDayStreak;
     }
     
     /// <summary>
