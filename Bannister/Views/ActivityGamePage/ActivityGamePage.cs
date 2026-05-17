@@ -43,6 +43,7 @@ public partial class ActivityGamePage : ContentPage
     private string? _tempNonNavigableCategory = null;  // Temporarily selected category from dropdown that has no activities today
     private string _currentMetaFilter = "All Activities";
     private bool _isInitialLoad = true; // Track if page has been loaded already
+    private bool _isLoadInProgress = false;
     private bool _showAllActivities = false; // When true, bypass display day filtering
     private Button btnShowAll;
 
@@ -156,11 +157,23 @@ public partial class ActivityGamePage : ContentPage
         {
             // Only do full load on first appearance
             // When returning from modal pages (like SetMultiplier), skip reload
-            if (_isInitialLoad)
+            if (_isInitialLoad && !_isLoadInProgress)
             {
-                await LoadGameAsync();
-                InjectConversationButtonIfNeeded();
-                _isInitialLoad = false; // Mark as loaded
+                _isLoadInProgress = true;
+                try
+                {
+                    await LoadGameAsync();
+                    InjectConversationButtonIfNeeded();
+                    _isInitialLoad = false; // Mark as loaded
+                }
+                finally
+                {
+                    _isLoadInProgress = false;
+                }
+            }
+            else if (_isLoadInProgress)
+            {
+                return;
             }
             else
             {

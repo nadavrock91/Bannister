@@ -129,6 +129,9 @@ public partial class ActivityGamePage
         System.Diagnostics.Debug.WriteLine($"[EXPIRED CHECK] Key='{lastCheckedKey}'");
         System.Diagnostics.Debug.WriteLine($"[EXPIRED CHECK] Last checked: '{lastCheckedDate}', Today: '{today}'");
 
+        // Only check once per day
+        if (lastCheckedDate == today) return;
+
         System.Diagnostics.Debug.WriteLine($"[EXPIRED CHECK] Calling AutoMoveExpiredActivitiesAsync for user='{_auth.CurrentUsername}', game='{_game.GameId}'");
         
         int movedCount = await _activities.AutoMoveExpiredActivitiesAsync(_auth.CurrentUsername, _game.GameId);
