@@ -454,9 +454,9 @@ public partial class ActivityGamePage
 
     private void OnSelectAllClicked(object? sender, EventArgs e)
     {
-        if (_allActivities == null) return;
+        if (_currentlyVisibleActivities == null) return;
         
-        foreach (var activity in _allActivities)
+        foreach (var activity in _currentlyVisibleActivities)
         {
             activity.IsSelected = true;
         }

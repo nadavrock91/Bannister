@@ -297,11 +297,8 @@ public class Activity
         {
             var today = DateTime.Now;
             
-            // Check day of month restriction first
-            if (DisplayDayOfMonth > 0)
-            {
-                return today.Day == DisplayDayOfMonth;
-            }
+            if (DisplayDayOfMonth > 0 && today.Day != DisplayDayOfMonth)
+                return false;
             
             // Check day of week restriction
             if (!string.IsNullOrEmpty(DisplayDaysOfWeek))
@@ -318,10 +315,10 @@ public class Activity
                     DayOfWeek.Saturday => "Sat",
                     _ => ""
                 };
-                return allowedDays.Contains(todayAbbrev);
+                if (!allowedDays.Contains(todayAbbrev))
+                    return false;
             }
             
-            // No restrictions - show every day
             return true;
         }
     }
@@ -345,11 +342,8 @@ public class Activity
     /// </summary>
     public bool IsScheduledDisplayDay(DateTime date)
     {
-        // Check day of month restriction first
-        if (DisplayDayOfMonth > 0)
-        {
-            return date.Day == DisplayDayOfMonth;
-        }
+        if (DisplayDayOfMonth > 0 && date.Day != DisplayDayOfMonth)
+            return false;
         
         // Check day of week restriction
         if (!string.IsNullOrEmpty(DisplayDaysOfWeek))
@@ -366,10 +360,10 @@ public class Activity
                 DayOfWeek.Saturday => "Sat",
                 _ => ""
             };
-            return allowedDays.Contains(dayAbbrev);
+            if (!allowedDays.Contains(dayAbbrev))
+                return false;
         }
         
-        // No restrictions - every day is scheduled
         return true;
     }
     

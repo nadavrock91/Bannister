@@ -31,7 +31,7 @@ public partial class ActivityGamePage
         stack.Children.Add(activitiesPanel);
 
         scrollView.Content = stack;
-        Content = scrollView;
+        SetPageContentWithBusyOverlay(scrollView);
     }
 
     private Frame BuildDragonCardCollapsed()
@@ -181,6 +181,8 @@ public partial class ActivityGamePage
         };
         btnClear.Clicked += OnClearSelectionClicked;
         stack.Children.Add(btnClear);
+
+        AddSetDisplayDaysButton(stack);
 
         var btnAdd = new Button
         {

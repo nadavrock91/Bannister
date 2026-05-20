@@ -1,0 +1,12 @@
+2026-05-18 21:27:12: -- Analysis Started by User Command
+2026-05-18 21:27:12: Deleted abandoned lock file at C:/rock/bannister
+2026-05-18 21:27:12: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-05-18 21:27:14: Deleted abandoned lock file at goodrive://www.googleapis.com/:personal:/bannister
+2026-05-18 21:27:14: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-05-18 21:27:14: Not using/deleting cached state file, because remote state file has changed since last Sync:
+State file: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+name= folder=0 link=0 file=1 attrs=0 size=211929 mod-time=2026-05-18 06:09:01 cre-time=2025-08-21 20:21:34 ab=0 ckt=1 cks=0AB38DD292B31FB52BF279D67DD7926B dsply= cmnt= != 
+name= folder=0 link=0 file=1 attrs=0 size=175314 mod-time=2026-05-13 05:30:50 cre-time=2025-08-21 20:21:34 ab=0 ckt=0 cks=A1D3A0655405CC48A717FAF4BE000ADB dsply= cmnt=
+2026-05-18 21:27:16: Changes: 9,957, Conflicts: 0, CopyTime: 0, FixState: 3, Errors: 0, All: 20186
+2026-05-18 21:27:16: Left to Right: Copy File: 9957 
+2026-05-18 21:27:16: -- Analysis Complete. Time 00:00:04, Speed: 3,291 files/s

@@ -543,6 +543,7 @@ public partial class ActivityGamePage
         // Apply meta filter (All Activities, Has Multiplier, etc.)
         filtered = ActivityFilterHelper.ApplyMetaFilter(filtered, _currentMetaFilter);
         filtered = ActivityFilterHelper.ApplySorting(filtered, sortPicker?.SelectedItem?.ToString() ?? "Last Used (Recent First)");
+        _currentlyVisibleActivities = filtered.ToList();
 
         BuildActivitiesGridWithHeaders(filtered);
         await RefreshPendingActivityIdeaCountAsync();

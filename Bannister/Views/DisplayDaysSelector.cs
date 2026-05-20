@@ -142,7 +142,7 @@ public class DisplayDaysSelector
         
         dayOfMonthStack.Children.Add(new Label
         {
-            Text = "OR show only on day of month:",
+            Text = "Also show on day of month:",
             VerticalOptions = LayoutOptions.Center,
             TextColor = Color.FromArgb("#666")
         });
@@ -172,12 +172,6 @@ public class DisplayDaysSelector
         PickerDayOfMonth.SelectedIndexChanged += (s, e) =>
         {
             _isDayOfMonthMode = PickerDayOfMonth.SelectedIndex > 0;
-            
-            // If day of month is selected, uncheck all day-of-week boxes
-            if (_isDayOfMonthMode)
-            {
-                SetAllDays(false);
-            }
         };
         
         dayOfMonthStack.Children.Add(PickerDayOfMonth);
@@ -186,7 +180,7 @@ public class DisplayDaysSelector
         // Info label
         Container.Children.Add(new Label
         {
-            Text = "💡 Leave all unchecked to show every day. Day-of-month overrides day-of-week.",
+            Text = "💡 Leave all weekdays unchecked to show every day. Weekdays and day-of-month can be used together.",
             FontSize = 11,
             TextColor = Color.FromArgb("#9C27B0"),
             FontAttributes = FontAttributes.Italic
@@ -205,16 +199,6 @@ public class DisplayDaysSelector
         {
             IsChecked = true, // Default all days selected
             HorizontalOptions = LayoutOptions.Center
-        };
-        
-        // When a day checkbox is checked, clear day-of-month selection
-        checkbox.CheckedChanged += (s, e) =>
-        {
-            if (e.Value && _isDayOfMonthMode)
-            {
-                PickerDayOfMonth.SelectedIndex = 0;
-                _isDayOfMonthMode = false;
-            }
         };
         
         stack.Children.Add(checkbox);
@@ -241,12 +225,6 @@ public class DisplayDaysSelector
         ChkThursday.IsChecked = isChecked;
         ChkFriday.IsChecked = isChecked;
         ChkSaturday.IsChecked = isChecked;
-        
-        if (isChecked)
-        {
-            PickerDayOfMonth.SelectedIndex = 0;
-            _isDayOfMonthMode = false;
-        }
     }
     
     private void SetWeekdays()
@@ -258,9 +236,6 @@ public class DisplayDaysSelector
         ChkThursday.IsChecked = true;
         ChkFriday.IsChecked = true;
         ChkSaturday.IsChecked = false;
-        
-        PickerDayOfMonth.SelectedIndex = 0;
-        _isDayOfMonthMode = false;
     }
     
     private void SetWeekends()
@@ -272,21 +247,14 @@ public class DisplayDaysSelector
         ChkThursday.IsChecked = false;
         ChkFriday.IsChecked = false;
         ChkSaturday.IsChecked = true;
-        
-        PickerDayOfMonth.SelectedIndex = 0;
-        _isDayOfMonthMode = false;
     }
     
     /// <summary>
     /// Get the comma-separated string of selected days of week
-    /// Returns empty string if all days selected or day-of-month mode
+    /// Returns empty string if all days or no days are selected.
     /// </summary>
     public string GetDisplayDaysOfWeek()
     {
-        // If day of month is selected, return empty (day of month takes precedence)
-        if (PickerDayOfMonth.SelectedIndex > 0)
-            return "";
-        
         var days = new List<string>();
         
         if (ChkSunday.IsChecked) days.Add("Sun");
@@ -324,16 +292,11 @@ public class DisplayDaysSelector
     /// </summary>
     public void LoadFromActivity(string displayDaysOfWeek, int displayDayOfMonth)
     {
-        // First, check if day of month is set
-        if (displayDayOfMonth > 0 && displayDayOfMonth <= 31)
-        {
-            SetAllDays(false);
-            PickerDayOfMonth.SelectedIndex = displayDayOfMonth;
-            _isDayOfMonthMode = true;
-            return;
-        }
+        PickerDayOfMonth.SelectedIndex = displayDayOfMonth > 0 && displayDayOfMonth <= 31
+            ? displayDayOfMonth
+            : 0;
+        _isDayOfMonthMode = PickerDayOfMonth.SelectedIndex > 0;
         
-        // Otherwise, check day of week
         if (string.IsNullOrEmpty(displayDaysOfWeek))
         {
             // Empty means all days
@@ -350,8 +313,5 @@ public class DisplayDaysSelector
             ChkFriday.IsChecked = days.Contains("Fri");
             ChkSaturday.IsChecked = days.Contains("Sat");
         }
-        
-        PickerDayOfMonth.SelectedIndex = 0;
-        _isDayOfMonthMode = false;
     }
 }

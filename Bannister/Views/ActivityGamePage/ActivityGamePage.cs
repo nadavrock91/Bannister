@@ -37,6 +37,7 @@ public partial class ActivityGamePage : ContentPage
     private Game? _game;
     private int _currentLevel = 1;
     private List<ActivityGameViewModel> _allActivities = new();
+    private List<ActivityGameViewModel> _currentlyVisibleActivities = new();
     private List<string> _categories = new();  // All categories (for dropdown)
     private List<string> _navigableCategories = new();  // Categories with activities showing today (for arrows)
     private int _currentCategoryIndex = 0;
@@ -75,6 +76,9 @@ public partial class ActivityGamePage : ContentPage
     private Button? btnAddPendingActivityIdea;
     private Button? btnProcessPendingIdeas;
     private Label? lblPendingActivityIdeas;
+    private Button? btnSetDisplayDays;
+    private Grid? _busyOverlay;
+    private Label? _busyOverlayLabel;
 
     public string GameId
     {

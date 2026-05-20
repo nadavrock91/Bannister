@@ -37,7 +37,7 @@ public partial class ActivityGamePage
         Grid.SetColumn(rightPanel, 2);
         mainGrid.Children.Add(rightPanel);
 
-        Content = mainGrid;
+        SetPageContentWithBusyOverlay(mainGrid);
     }
 
     private Grid BuildLeftPanel()
@@ -245,6 +245,8 @@ public partial class ActivityGamePage
         };
         btnClear.Clicked += OnClearSelectionClicked;
         stack.Children.Add(btnClear);
+
+        AddSetDisplayDaysButton(stack);
 
         var btnAdd = new Button
         {
