@@ -21,6 +21,7 @@ public class HomePage : ContentPage
     private readonly ActivityService _activities;
     private readonly PromptService _prompts;
     private readonly StoryProductionService _storyProduction;
+    private readonly MusicProductionService _musicProduction;
     private readonly TaskService _taskService;
     private readonly WeeklyChallengeService _challengeService;
     private readonly IdeasService _ideas;
@@ -49,6 +50,7 @@ public class HomePage : ContentPage
     private Button _btnIdeas;
     private Button _btnImageEdit;
     private Button _btnStoryProduction;
+    private Button _btnMusicProduction;
     private Button _btnImageProduction;
     private Button _btnSubActivities;
     private Button _btnTasks;
@@ -68,7 +70,7 @@ public class HomePage : ContentPage
     public HomePage(AuthService auth, GameService games, DragonService dragons,
         BackupService backup, AttemptService attempts, StreakService streaks, DatabaseService db, ExpService exp,
         CountdownService countdowns, LearningService learning, ActivityService activities, PromptService prompts,
-        StoryProductionService storyProduction, TaskService taskService, WeeklyChallengeService challengeService,
+        StoryProductionService storyProduction, MusicProductionService musicProduction, TaskService taskService, WeeklyChallengeService challengeService,
         IdeasService ideas, IdeaLoggerService ideaLogger, ConversationService conversationService,
         SubActivityService subActivityService, AudioLibraryService audioLibService,
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
@@ -88,6 +90,7 @@ public class HomePage : ContentPage
         _activities = activities;
         _prompts = prompts;
         _storyProduction = storyProduction;
+        _musicProduction = musicProduction;
         _taskService = taskService;
         _challengeService = challengeService;
         _ideas = ideas;
@@ -227,6 +230,10 @@ public class HomePage : ContentPage
         _btnMoneyManagement = CreateButton("Money Management", Color.FromArgb("#E8F5E9"), Color.FromArgb("#1B5E20"));
         _btnMoneyManagement.Clicked += OnMoneyManagementClicked;
         navButtons.Add(("Money Management", _btnMoneyManagement));
+
+        _btnMusicProduction = CreateButton("Music Production", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3949AB"));
+        _btnMusicProduction.Clicked += OnMusicProductionClicked;
+        navButtons.Add(("Music Production", _btnMusicProduction));
 
         _btnPrompts = CreateButton("✨ Prompts", Color.FromArgb("#F3E5F5"), Color.FromArgb("#7B1FA2"));
         _btnPrompts.Clicked += OnPromptsClicked;
@@ -817,6 +824,12 @@ public class HomePage : ContentPage
             _btnStoryProduction.Text = "🎬 Story Production";
         }
         
+        var musicProjects = await _musicProduction.GetActiveProjectsAsync(_auth.CurrentUsername);
+        var originalMusicProjects = musicProjects.Where(p => p.ParentProjectId == null).ToList();
+        _btnMusicProduction.Text = originalMusicProjects.Count > 0
+            ? $"Music Production ({originalMusicProjects.Count} projects)"
+            : "Music Production";
+
         // Update tasks button with count
         var (activeTasks, overdueTasks, dueTodayTasks, urgentTasks) = await _taskService.GetStatsAsync(_auth.CurrentUsername);
         if (urgentTasks > 0)
@@ -981,6 +994,12 @@ public class HomePage : ContentPage
     private async void OnStoryProductionClicked(object? sender, EventArgs e)
     {
         var page = new StoryProductionHubPage(_auth, _storyProduction, _ideas, _ideaLogger, _subActivityService);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnMusicProductionClicked(object? sender, EventArgs e)
+    {
+        var page = new MusicProductionHubPage(_auth, _musicProduction, _db);
         await Navigation.PushAsync(page);
     }
 

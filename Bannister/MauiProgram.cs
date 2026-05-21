@@ -62,6 +62,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<LearningService>();
         builder.Services.AddSingleton<PromptService>();
         builder.Services.AddSingleton<StoryProductionService>();
+        builder.Services.AddSingleton<MusicProductionService>();
         builder.Services.AddSingleton<TaskService>();
         builder.Services.AddSingleton<WeeklyChallengeService>();
         builder.Services.AddSingleton<IdeasService>();
@@ -111,6 +112,8 @@ public static class MauiProgram
         builder.Services.AddTransient<PromptsPage>();
         builder.Services.AddTransient<PromptsEditPage>();
         builder.Services.AddTransient<StoryProductionPage>();
+        builder.Services.AddTransient<MusicProductionHubPage>();
+        builder.Services.AddTransient<MusicForStoriesPage>();
         builder.Services.AddTransient<ImageEditPage>();
 
         // Conversation Practice Pages
