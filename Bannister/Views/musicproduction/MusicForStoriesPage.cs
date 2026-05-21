@@ -1163,7 +1163,11 @@ public class MusicForStoriesPage : ContentPage
         if (!IsMaster || _currentProject == null) return;
 
         const string prompt =
-            "Transcribe this audio file and produce a timestamped narration script. For each line or natural phrase break, give me: Timestamp (start - end), precise to the second (or finer for short beats). NARRATION: exactly what is said, word for word. Mark pauses, breaths, or silences explicitly (e.g. [pause 2s], [breath], [silent 3s]). Break a new line at every natural pause, sentence end, or shift in delivery. Account for every second of the audio, including any silence at the start, between lines, or at the end. Do not summarize, paraphrase, or skip anything.";
+            "Transcribe this audio file and produce a timestamped narration script. For each line or natural phrase break, give me:\n" +
+            "Timestamp (start – end) — precise to the second (or finer if needed for short beats).\n" +
+            "NARRATION: Exactly what is said, word for word. Mark pauses, breaths, or silences explicitly (e.g. [pause 2s], [breath], [silent 3s]).\n" +
+            "Break a new line at every natural pause, sentence end, or shift in delivery. Account for every second of the audio's runtime (~2:58 total) — including any silence at the start, between lines, or at the end. Do not summarize, paraphrase, or skip anything.\n" +
+            "At the end, give the total runtime and confirm full coverage.";
 
         await CopyPlanningPromptAsync(
             prompt,
