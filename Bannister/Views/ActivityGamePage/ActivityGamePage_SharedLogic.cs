@@ -65,7 +65,8 @@ public partial class ActivityGamePage
                 _auth.CurrentUsername,
                 GetActivityGameId(activity),
                 activity.Id,
-                activity.Name);
+                activity.Name,
+                activity);
         }
 
         // 2. Record habit completion if this activity has habit tracking

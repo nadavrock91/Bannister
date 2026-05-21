@@ -489,12 +489,6 @@ public partial class ActivityGamePage
 
     private int GetAttemptDisplayDays(Activity activity, StreakAttempt attempt)
     {
-        if (activity.ShowStreakAsDaysSinceStarted && attempt.StartedAt.HasValue)
-        {
-            var startDate = attempt.StartedAt.Value.ToLocalTime().Date;
-            return Math.Max(0, (DateTime.Today - startDate).Days);
-        }
-
         return attempt.DaysAchieved;
     }
 

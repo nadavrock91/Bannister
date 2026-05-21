@@ -28,19 +28,7 @@ public class StreakAttemptViewModel : INotifyPropertyChanged
     public string Category => _parentActivity.Name;
 
     public int DaysAchieved => _attempt.DaysAchieved;
-    public int DisplayDaysAchieved
-    {
-        get
-        {
-            if (_parentActivity.ShowStreakAsDaysSinceStarted && _attempt.StartedAt.HasValue)
-            {
-                var startDate = _attempt.StartedAt.Value.ToLocalTime().Date;
-                return Math.Max(0, (DateTime.Today - startDate).Days);
-            }
-
-            return _attempt.DaysAchieved;
-        }
-    }
+    public int DisplayDaysAchieved => _attempt.DaysAchieved;
     public string DaysDisplay => DisplayDaysAchieved.ToString();
     public int StreakTargetDays => _parentActivity.StreakTargetDays > 0 ? _parentActivity.StreakTargetDays : 365;
     public string DaysWithTargetDisplay => $"{DisplayDaysAchieved} / {StreakTargetDays}";

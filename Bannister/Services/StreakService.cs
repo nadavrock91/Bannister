@@ -108,7 +108,7 @@ public class StreakService
     /// Record activity usage and update streak
     /// Called when an activity is used (EXP awarded)
     /// </summary>
-    public async Task RecordActivityUsageAsync(string username, string game, int activityId, string activityName)
+    public async Task RecordActivityUsageAsync(string username, string game, int activityId, string activityName, Activity? activity = null)
     {
         var conn = await _db.GetConnectionAsync();
         
@@ -141,7 +141,7 @@ public class StreakService
             {
                 // Consecutive day! Extend the streak
                 int daysBefore = activeStreak.DaysAchieved;
-                activeStreak.DaysAchieved++;
+                activeStreak.DaysAchieved = GetNextDaysAchieved(activeStreak, activity);
                 activeStreak.LastUsedDate = today;
                 await conn.UpdateAsync(activeStreak);
                 
@@ -168,9 +168,23 @@ public class StreakService
         else
         {
             // First use, update last used date
+            int daysBefore = activeStreak.DaysAchieved;
+            activeStreak.DaysAchieved = GetNextDaysAchieved(activeStreak, activity);
             activeStreak.LastUsedDate = today;
             await conn.UpdateAsync(activeStreak);
+            await LogStreakChangeAsync(activeStreak.Id, daysBefore, activeStreak.DaysAchieved, "increment");
         }
+    }
+
+    private static int GetNextDaysAchieved(StreakAttempt streak, Activity? activity)
+    {
+        if (activity?.ShowStreakAsDaysSinceStarted == true && streak.StartedAt.HasValue)
+        {
+            var startDate = streak.StartedAt.Value.ToLocalTime().Date;
+            return Math.Max(0, (DateTime.Today - startDate).Days);
+        }
+
+        return streak.DaysAchieved + 1;
     }
 
     /// <summary>
@@ -268,7 +282,7 @@ public class StreakService
 
             // Increment the streak
             int daysBefore = streak.DaysAchieved;
-            streak.DaysAchieved++;
+            streak.DaysAchieved = GetNextDaysAchieved(streak, activity);
             streak.LastUsedDate = today;
             await conn.UpdateAsync(streak);
             
