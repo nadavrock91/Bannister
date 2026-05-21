@@ -32,6 +32,8 @@ public class MusicForStoriesPage : ContentPage
     private Button _newCueButton = null!;
     private Button _generatePlanButton = null!;
     private Button _addCardButton = null!;
+    private Grid _loadingOverlay = null!;
+    private Label _loadingOverlayLabel = null!;
 
     private List<MusicProject> _projects = new();
     private List<MusicProject> _drafts = new();
@@ -73,15 +75,10 @@ public class MusicForStoriesPage : ContentPage
 
     private void BuildUI()
     {
-        var pageGrid = new Grid
+        var pageStack = new VerticalStackLayout
         {
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Star)
-            },
-            Padding = 16,
-            RowSpacing = 10
+            Spacing = 10,
+            Padding = 16
         };
 
         var topFrame = new Frame
@@ -269,15 +266,69 @@ public class MusicForStoriesPage : ContentPage
         topStack.Children.Add(cardHeaderRow);
 
         topFrame.Content = topStack;
-        Grid.SetRow(topFrame, 0);
-        pageGrid.Children.Add(topFrame);
+        pageStack.Children.Add(topFrame);
 
         _linesContainer = new VerticalStackLayout { Spacing = 10 };
-        var scroll = new ScrollView { Content = _linesContainer };
-        Grid.SetRow(scroll, 1);
-        pageGrid.Children.Add(scroll);
+        pageStack.Children.Add(_linesContainer);
 
-        Content = pageGrid;
+        var scroll = new ScrollView { Content = pageStack };
+        _loadingOverlayLabel = new Label
+        {
+            Text = "",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333333"),
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+
+        _loadingOverlay = new Grid
+        {
+            IsVisible = false,
+            InputTransparent = false,
+            Children =
+            {
+                new BoxView
+                {
+                    Color = Colors.Black,
+                    Opacity = 0.6
+                },
+                new Frame
+                {
+                    BackgroundColor = Colors.White,
+                    CornerRadius = 12,
+                    Padding = 24,
+                    HasShadow = true,
+                    WidthRequest = 300,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    Content = new VerticalStackLayout
+                    {
+                        Spacing = 14,
+                        Children =
+                        {
+                            new ActivityIndicator
+                            {
+                                IsRunning = true,
+                                Color = Color.FromArgb("#5B63EE"),
+                                WidthRequest = 36,
+                                HeightRequest = 36,
+                                HorizontalOptions = LayoutOptions.Center
+                            },
+                            _loadingOverlayLabel
+                        }
+                    }
+                }
+            }
+        };
+
+        Content = new Grid
+        {
+            Children =
+            {
+                scroll,
+                _loadingOverlay
+            }
+        };
     }
 
     private async Task LoadProjectsAsync(int? selectProjectId = null)
@@ -435,6 +486,15 @@ public class MusicForStoriesPage : ContentPage
         _addCardButton.IsVisible = IsMaster;
     }
 
+    private void SetLoadingBusy(bool isBusy, string statusText = "")
+    {
+        if (_loadingOverlay == null || _loadingOverlayLabel == null)
+            return;
+
+        _loadingOverlayLabel.Text = statusText;
+        _loadingOverlay.IsVisible = isBusy;
+    }
+
     private async Task LoadLinesAsync()
     {
         _linesContainer.Children.Clear();
@@ -469,10 +529,29 @@ public class MusicForStoriesPage : ContentPage
             return;
         }
 
-        foreach (var line in lines)
+        SetLoadingBusy(true, $"Loading card 0 of {lines.Count}...");
+        await Task.Yield();
+
+        try
         {
-            bool isChanged = _changedLineOrders.Contains(line.LineOrder);
-            _linesContainer.Children.Add(CreateLineCard(line, lines.Count, isChanged));
+            for (int i = 0; i < lines.Count; i++)
+            {
+                SetLoadingBusy(true, $"Loading card {i + 1} of {lines.Count}...");
+
+                var line = lines[i];
+                bool isChanged = _changedLineOrders.Contains(line.LineOrder);
+                _linesContainer.Children.Add(CreateLineCard(line, lines.Count, isChanged));
+
+                if ((i + 1) % 5 == 0 || i == lines.Count - 1)
+                {
+                    await Task.Yield();
+                    await Task.Delay(1);
+                }
+            }
+        }
+        finally
+        {
+            SetLoadingBusy(false);
         }
     }
 
