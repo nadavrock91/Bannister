@@ -51,6 +51,14 @@ public class MusicProductionService
         try { await conn.ExecuteAsync("ALTER TABLE music_lines ADD COLUMN AssignedCueId INTEGER"); } catch { }
     }
 
+    private async Task EnsurePromptTemplateTableAsync(ISQLiteAsyncConnection conn)
+    {
+        if (_db.IsReadOnly) return;
+
+        await conn.CreateTableAsync<MusicPromptTemplate>();
+        try { await conn.ExecuteAsync("ALTER TABLE music_prompt_templates ADD COLUMN IsTimestamped INTEGER DEFAULT 0"); } catch { }
+    }
+
     private static bool IsMissingTable(SQLiteException ex)
     {
         return ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase);
@@ -132,6 +140,66 @@ public class MusicProductionService
 
         root.GeneralMusicDescription = text ?? "";
         await UpdateProjectAsync(root);
+    }
+
+    public async Task<List<MusicPromptTemplate>> GetPromptTemplatesAsync(string username)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await EnsurePromptTemplateTableAsync(conn);
+
+        try
+        {
+            return await conn.Table<MusicPromptTemplate>()
+                .Where(t => t.Username == username)
+                .OrderBy(t => t.Name)
+                .ToListAsync();
+        }
+        catch (SQLiteException ex) when (IsMissingTable(ex))
+        {
+            return new List<MusicPromptTemplate>();
+        }
+    }
+
+    public async Task<MusicPromptTemplate> AddPromptTemplateAsync(
+        string username,
+        string name,
+        string templateText,
+        bool isTimestamped)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsurePromptTemplateTableAsync(conn);
+
+        var template = new MusicPromptTemplate
+        {
+            Username = username,
+            Name = name,
+            TemplateText = templateText,
+            IsTimestamped = isTimestamped,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await conn.InsertAsync(template);
+        return template;
+    }
+
+    public async Task UpdatePromptTemplateAsync(MusicPromptTemplate template)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsurePromptTemplateTableAsync(conn);
+        await conn.UpdateAsync(template);
+    }
+
+    public async Task DeletePromptTemplateAsync(int templateId)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsurePromptTemplateTableAsync(conn);
+        await conn.DeleteAsync<MusicPromptTemplate>(templateId);
     }
 
     public async Task<MusicProject> CreateProjectAsync(string username, string name, string category = "", string description = "")

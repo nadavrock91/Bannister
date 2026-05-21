@@ -33,6 +33,11 @@ public class MusicForStoriesPage : ContentPage
     private Button _pasteDescriptionButton = null!;
     private Button _askPromptOptionsButton = null!;
     private Button _writeOwnPromptButton = null!;
+    private Button _saveWorkingPromptTemplateButton = null!;
+    private Button _pasteNewTemplateButton = null!;
+    private Picker _templatePicker = null!;
+    private Button _buildTemplatePromptButton = null!;
+    private Button _manageTemplatesButton = null!;
     private Button _addCardButton = null!;
     private Grid _loadingOverlay = null!;
     private Label _loadingOverlayLabel = null!;
@@ -40,9 +45,11 @@ public class MusicForStoriesPage : ContentPage
     private List<MusicProject> _projects = new();
     private List<MusicProject> _drafts = new();
     private List<MusicLine> _currentLines = new();
+    private List<MusicPromptTemplate> _promptTemplates = new();
     private MusicProject? _currentProject;
     private MusicProject? _compareToProject;
     private HashSet<int> _changedLineOrders = new();
+    private bool? _pendingTemplateIsTimestamped;
     private bool _isLoadingProjects;
     private bool _isLoadingDrafts;
 
@@ -365,6 +372,34 @@ public class MusicForStoriesPage : ContentPage
         }
         stack.Children.Add(stageTwoButtons);
 
+        var templateSaveButtons = new HorizontalStackLayout { Spacing = 8 };
+        _saveWorkingPromptTemplateButton = ActionButton("Save a Working Prompt as Template", Color.FromArgb("#E0F2F1"), Color.FromArgb("#00695C"));
+        _saveWorkingPromptTemplateButton.Clicked += OnSaveWorkingPromptTemplateClicked;
+        _pasteNewTemplateButton = ActionButton("Paste New Template", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _pasteNewTemplateButton.Clicked += OnPasteNewTemplateClicked;
+        templateSaveButtons.Children.Add(_saveWorkingPromptTemplateButton);
+        templateSaveButtons.Children.Add(_pasteNewTemplateButton);
+        stack.Children.Add(templateSaveButtons);
+
+        var templateUseRow = new HorizontalStackLayout { Spacing = 8 };
+        _templatePicker = new Picker
+        {
+            Title = "Use saved template...",
+            WidthRequest = 260,
+            TextColor = Color.FromArgb("#222"),
+            BackgroundColor = Colors.White
+        };
+        templateUseRow.Children.Add(_templatePicker);
+
+        _buildTemplatePromptButton = ActionButton("Build Prompt from Template", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+        _buildTemplatePromptButton.Clicked += OnBuildTemplatePromptClicked;
+        templateUseRow.Children.Add(_buildTemplatePromptButton);
+
+        _manageTemplatesButton = ActionButton("Manage Templates", Color.FromArgb("#ECEFF1"), Color.FromArgb("#333"));
+        _manageTemplatesButton.Clicked += OnManageTemplatesClicked;
+        templateUseRow.Children.Add(_manageTemplatesButton);
+        stack.Children.Add(templateUseRow);
+
         return new Frame
         {
             Padding = 12,
@@ -532,6 +567,10 @@ public class MusicForStoriesPage : ContentPage
         _pasteDescriptionButton.IsVisible = IsMaster;
         _askPromptOptionsButton.IsVisible = IsMaster;
         _writeOwnPromptButton.IsVisible = IsMaster;
+        _saveWorkingPromptTemplateButton.IsVisible = IsMaster;
+        _pasteNewTemplateButton.IsVisible = IsMaster;
+        _buildTemplatePromptButton.IsVisible = IsMaster;
+        _manageTemplatesButton.IsVisible = IsMaster;
         _addCardButton.IsVisible = IsMaster;
     }
 
@@ -563,6 +602,7 @@ public class MusicForStoriesPage : ContentPage
 
         UpdateDraftControls();
         await RefreshMusicPlanningAsync();
+        await RefreshPromptTemplatesAsync();
 
         string categoryText = string.IsNullOrWhiteSpace(_currentProject.ProjectCategory)
             ? ""
@@ -894,6 +934,32 @@ public class MusicForStoriesPage : ContentPage
             : description.Trim();
     }
 
+    private async Task RefreshPromptTemplatesAsync(int? selectTemplateId = null)
+    {
+        if (_templatePicker == null) return;
+
+        _promptTemplates = await _musicService.GetPromptTemplatesAsync(_auth.CurrentUsername);
+        _templatePicker.Items.Clear();
+
+        foreach (var template in _promptTemplates)
+        {
+            var label = template.IsTimestamped
+                ? $"{template.Name} (timestamped)"
+                : template.Name;
+            _templatePicker.Items.Add(label);
+        }
+
+        if (selectTemplateId.HasValue)
+        {
+            int index = _promptTemplates.FindIndex(t => t.Id == selectTemplateId.Value);
+            _templatePicker.SelectedIndex = index;
+        }
+        else if (_templatePicker.SelectedIndex >= _promptTemplates.Count)
+        {
+            _templatePicker.SelectedIndex = -1;
+        }
+    }
+
     private async Task<string> BuildCurrentScriptTextAsync()
     {
         if (_currentProject == null) return "";
@@ -1047,6 +1113,278 @@ public class MusicForStoriesPage : ContentPage
             prompt,
             "Prompt Copied",
             "Paste this into your LLM to refine your music-generation prompt.");
+    }
+
+    private async void OnSaveWorkingPromptTemplateClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        string? workingPrompt = await ShowMultiLineInputAsync(
+            "Save Working Prompt",
+            "Paste a Suno/ElevenLabs prompt that worked. A meta-prompt will be copied so your LLM can generalize it into a reusable template.",
+            "",
+            "Paste the working music prompt here...");
+        if (string.IsNullOrWhiteSpace(workingPrompt)) return;
+
+        string? timestampChoice = await DisplayActionSheet(
+            "Does this prompt use timestamps?",
+            "Cancel",
+            null,
+            "No",
+            "Yes");
+        if (timestampChoice == null || timestampChoice == "Cancel") return;
+
+        bool isTimestamped = timestampChoice == "Yes";
+        _pendingTemplateIsTimestamped = isTimestamped;
+
+        var metaPrompt = BuildTemplateExtractionPrompt(workingPrompt.Trim(), isTimestamped);
+        await CopyPlanningPromptAsync(
+            metaPrompt,
+            "Template Extraction Prompt Copied",
+            "Paste this into your LLM. Copy the generalized template it returns, then use Paste New Template to save it.");
+    }
+
+    private static string BuildTemplateExtractionPrompt(string workingPrompt, bool isTimestamped)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("I have a music-generation prompt that worked well for Suno/ElevenLabs.");
+        sb.AppendLine("Generalize it into a reusable, script-agnostic template for future short-video soundtracks.");
+        sb.AppendLine();
+        sb.AppendLine("Preserve the structural DNA of the original prompt:");
+        sb.AppendLine("- Keep its instrumentation choices and mood vocabulary");
+        sb.AppendLine("- Preserve any immediate hook / no slow build-up instruction if present");
+        sb.AppendLine("- Preserve cyclical or recurring-motif structure if present");
+        sb.AppendLine("- Preserve any darker-each-time-it-returns idea if present");
+        sb.AppendLine("- Preserve any unresolved or specific ending instruction if present");
+        sb.AppendLine();
+        sb.AppendLine("Remove story-specific content: specific characters, objects, places, and plot beats.");
+        sb.AppendLine("Replace the place where the story drives the music with the literal placeholder {SCRIPT}.");
+        sb.AppendLine("Use {DESCRIPTION} where a general music description would help.");
+
+        if (isTimestamped)
+        {
+            sb.AppendLine("This is a TIMESTAMPED template. Preserve the timestamped-progression structure conceptually.");
+            sb.AppendLine("Express the time-mapped section as an instruction to map the music's emotional progression onto provided timestamps using the literal placeholder {TIMESTAMPS}.");
+            sb.AppendLine("The template must be ready for a future pipeline that fills {SCRIPT}, {DESCRIPTION}, and {TIMESTAMPS}.");
+        }
+        else
+        {
+            sb.AppendLine("This is a NON-timestamped template. Given {SCRIPT} and optionally {DESCRIPTION}, it should be a ready music-generation prompt that tells the generator to follow the script's emotional arc.");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Output ONLY the template text with placeholders. No commentary, no analysis, no Markdown wrapper.");
+        sb.AppendLine();
+        sb.AppendLine("WORKING PROMPT TO GENERALIZE:");
+        sb.AppendLine(workingPrompt);
+        return sb.ToString();
+    }
+
+    private async void OnPasteNewTemplateClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster) return;
+
+        bool isTimestamped = _pendingTemplateIsTimestamped ?? await DisplayAlert(
+            "Timestamped Template?",
+            "Does this template use timestamps?",
+            "Yes",
+            "No");
+
+        string? templateText = await ShowPasteDialogAsync(
+            "Paste New Template",
+            "Paste the generalized template returned by your LLM:",
+            "Use the following script to shape the music's emotional arc:\n{SCRIPT}",
+            "Save");
+        if (string.IsNullOrWhiteSpace(templateText)) return;
+
+        string? name = await DisplayPromptAsync(
+            "Template Name",
+            "Name this prompt template:",
+            "Save",
+            "Cancel",
+            placeholder: "Dark cyclical piano bed");
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var template = await _musicService.AddPromptTemplateAsync(
+            _auth.CurrentUsername,
+            name.Trim(),
+            templateText.Trim(),
+            isTimestamped);
+        _pendingTemplateIsTimestamped = null;
+
+        await RefreshPromptTemplatesAsync(template.Id);
+        await DisplayAlert("Template Saved", $"Saved \"{template.Name}\".", "OK");
+    }
+
+    private async void OnBuildTemplatePromptClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        if (_templatePicker.SelectedIndex < 0 || _templatePicker.SelectedIndex >= _promptTemplates.Count)
+        {
+            await DisplayAlert("No Template", "Select a saved template first.", "OK");
+            return;
+        }
+
+        var template = _promptTemplates[_templatePicker.SelectedIndex];
+        if (template.IsTimestamped)
+        {
+            await DisplayAlert(
+                "Not Available Yet",
+                "Timestamped templates need the transcription step (coming soon) - not available yet.",
+                "OK");
+            return;
+        }
+
+        var script = await BuildCurrentScriptTextAsync();
+        if (string.IsNullOrWhiteSpace(script))
+        {
+            await DisplayAlert("No Script", "Add script lines to the current draft before building a prompt from a template.", "OK");
+            return;
+        }
+
+        var description = await GetGeneralMusicDescriptionTextAsync();
+        var prompt = ReplaceTemplateToken(template.TemplateText, "{SCRIPT}", script);
+        prompt = ReplaceTemplateToken(prompt, "{DESCRIPTION}", description);
+
+        if (!ContainsToken(template.TemplateText, "{SCRIPT}"))
+        {
+            prompt += "\n\nSCRIPT:\n" + script;
+        }
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Prompt Copied",
+            "The ready music-generation prompt was copied. Paste it into Suno or ElevenLabs.");
+    }
+
+    private static bool ContainsToken(string text, string token)
+    {
+        return (text ?? "").IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string ReplaceTemplateToken(string text, string token, string replacement)
+    {
+        return System.Text.RegularExpressions.Regex.Replace(
+            text ?? "",
+            System.Text.RegularExpressions.Regex.Escape(token),
+            replacement ?? "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    }
+
+    private async void OnManageTemplatesClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster) return;
+        await ShowManageTemplatesOverlayAsync();
+    }
+
+    private async Task ShowManageTemplatesOverlayAsync()
+    {
+        await RefreshPromptTemplatesAsync();
+
+        var overlay = CreateOverlay();
+        var card = CreateOverlayCard(width: 640, height: 560);
+        var stack = new VerticalStackLayout { Spacing = 12 };
+
+        stack.Children.Add(new Label
+        {
+            Text = "Manage Music Prompt Templates",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        var listStack = new VerticalStackLayout { Spacing = 8 };
+        BuildTemplateManagementRows(listStack, overlay);
+
+        stack.Children.Add(new ScrollView
+        {
+            HeightRequest = 410,
+            Content = listStack
+        });
+
+        var closeButton = ActionButton("Close", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
+        closeButton.HorizontalOptions = LayoutOptions.End;
+        closeButton.Clicked += (s, e) => RemoveOverlay(overlay);
+        stack.Children.Add(closeButton);
+
+        card.Content = stack;
+        overlay.Children.Add(card);
+        AddOverlay(overlay);
+    }
+
+    private void BuildTemplateManagementRows(VerticalStackLayout listStack, Grid overlay)
+    {
+        listStack.Children.Clear();
+
+        if (_promptTemplates.Count == 0)
+        {
+            listStack.Children.Add(InfoLabel("No saved templates yet."));
+            return;
+        }
+
+        foreach (var template in _promptTemplates)
+        {
+            var row = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 8,
+                Padding = 8,
+                BackgroundColor = Color.FromArgb("#FAFAFA")
+            };
+
+            var name = new Label
+            {
+                Text = template.IsTimestamped ? $"{template.Name} (timestamped)" : template.Name,
+                TextColor = Color.FromArgb("#333"),
+                VerticalOptions = LayoutOptions.Center,
+                LineBreakMode = LineBreakMode.TailTruncation
+            };
+            row.Children.Add(name);
+
+            var rename = SmallButton("Rename", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+            rename.Clicked += async (s, e) =>
+            {
+                string? newName = await DisplayPromptAsync(
+                    "Rename Template",
+                    "Template name:",
+                    "Save",
+                    "Cancel",
+                    initialValue: template.Name);
+                if (string.IsNullOrWhiteSpace(newName)) return;
+
+                template.Name = newName.Trim();
+                await _musicService.UpdatePromptTemplateAsync(template);
+                await RefreshPromptTemplatesAsync(template.Id);
+                BuildTemplateManagementRows(listStack, overlay);
+            };
+            Grid.SetColumn(rename, 1);
+            row.Children.Add(rename);
+
+            var delete = SmallButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+            delete.Clicked += async (s, e) =>
+            {
+                bool confirm = await DisplayAlert(
+                    "Delete Template",
+                    $"Delete \"{template.Name}\"?",
+                    "Delete",
+                    "Cancel");
+                if (!confirm) return;
+
+                await _musicService.DeletePromptTemplateAsync(template.Id);
+                await RefreshPromptTemplatesAsync();
+                BuildTemplateManagementRows(listStack, overlay);
+            };
+            Grid.SetColumn(delete, 2);
+            row.Children.Add(delete);
+
+            listStack.Children.Add(row);
+        }
     }
 
     private async void OnExportMusicStateClicked(object? sender, EventArgs e)

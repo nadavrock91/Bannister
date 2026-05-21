@@ -140,3 +140,21 @@ public class MusicCue
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+[Table("music_prompt_templates")]
+public class MusicPromptTemplate
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+
+    [Indexed]
+    public string Username { get; set; } = "";
+
+    public string Name { get; set; } = "";
+
+    public string TemplateText { get; set; } = "";
+
+    public bool IsTimestamped { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
