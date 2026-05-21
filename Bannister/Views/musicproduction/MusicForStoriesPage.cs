@@ -963,6 +963,11 @@ public class MusicForStoriesPage : ContentPage
             generate.Clicked += async (s, e) => await GenerateCuePromptAsync(cue);
             actions.Children.Add(generate);
 
+            var refine = SmallButton("Refine", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
+            refine.Margin = new Thickness(0, 0, 6, 4);
+            refine.Clicked += async (s, e) => await RefineCuePromptAsync(cue);
+            actions.Children.Add(refine);
+
             var variation = SmallButton("+ Variation", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57F17"));
             variation.Margin = new Thickness(0, 0, 6, 4);
             variation.Clicked += async (s, e) => await CreateVariationAsync(cue);
@@ -1091,6 +1096,86 @@ public class MusicForStoriesPage : ContentPage
             "Prompt Copied",
             "Cue prompt copied to clipboard.\n\nPaste it into Suno or ElevenLabs, generate an approximately 30-second music block, iterate until it works, then mark the cue Status = Works.",
             "OK");
+        await LoadLinesAsync();
+    }
+
+    private async Task RefineCuePromptAsync(MusicCue cue)
+    {
+        string? choice = await DisplayActionSheet(
+            "Refine Prompt",
+            "Cancel",
+            null,
+            "Describe what's wrong",
+            "Paste refined prompt");
+
+        if (choice == "Describe what's wrong")
+            await CreateCueRefinementPromptAsync(cue);
+        else if (choice == "Paste refined prompt")
+            await PasteRefinedCuePromptAsync(cue);
+    }
+
+    private async Task CreateCueRefinementPromptAsync(MusicCue cue)
+    {
+        string? feedback = await ShowMultiLineInputAsync(
+            "Refine Cue Prompt",
+            "Describe what is not working with the generated music.",
+            "",
+            "Too generic, piano feels lifeless, needs darker low end...");
+
+        if (string.IsNullOrWhiteSpace(feedback)) return;
+
+        var parent = cue.ParentCueId.HasValue ? _cues.FirstOrDefault(c => c.Id == cue.ParentCueId.Value) : null;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("This is a prompt-refinement task for an AI music generator such as Suno or ElevenLabs.");
+        sb.AppendLine("The prompt is for a roughly 30-second loopable instrumental cue in a short video soundtrack.");
+        sb.AppendLine("The current prompt produced unsatisfying results. Rewrite it into a better, more specific music-generation prompt.");
+        sb.AppendLine();
+        sb.AppendLine("CUE DETAILS:");
+        sb.AppendLine($"Label: {cue.Label}");
+        sb.AppendLine($"Role: {(cue.IsPrimaryDNA || !cue.ParentCueId.HasValue ? "Primary DNA cue" : $"Variation of {parent?.Label ?? "parent cue"}")}");
+        sb.AppendLine($"Variation Type: {ToDisplayLabel(cue.VariationType)}");
+        sb.AppendLine($"Mood: {cue.Mood}");
+        sb.AppendLine($"Pulse: {cue.Pulse}");
+        sb.AppendLine($"Motif: {cue.Motif}");
+        sb.AppendLine($"Energy Level: {cue.EnergyLevel}");
+        sb.AppendLine($"Must Loop: {cue.MustLoop}");
+        sb.AppendLine($"Must Sit Under Narration: {cue.MustSitUnderNarration}");
+        sb.AppendLine($"Duration Seconds: {Math.Max(1, cue.DurationSeconds)}");
+        if (!string.IsNullOrWhiteSpace(cue.Notes))
+            sb.AppendLine($"Notes: {cue.Notes}");
+        sb.AppendLine();
+        sb.AppendLine("CURRENT GENERATED PROMPT:");
+        sb.AppendLine(string.IsNullOrWhiteSpace(cue.GeneratedPrompt) ? BuildCuePrompt(cue) : cue.GeneratedPrompt);
+        sb.AppendLine();
+        sb.AppendLine("USER FEEDBACK ABOUT WHAT ISN'T WORKING:");
+        sb.AppendLine(feedback.Trim());
+        sb.AppendLine();
+        sb.AppendLine("Rewrite the music-generation prompt.");
+        sb.AppendLine("Output ONLY the improved prompt text, with no commentary.");
+        sb.AppendLine("Keep it concise enough for Suno/ElevenLabs.");
+        sb.AppendLine("Be specific about instrumentation, texture, tempo feel, and emotional intent.");
+        sb.AppendLine("Preserve loopability, narration-safe mixing, and the approximate target duration.");
+
+        await Clipboard.SetTextAsync(sb.ToString());
+        await DisplayAlert(
+            "Refinement Prompt Copied",
+            "Paste this into your LLM, copy the improved prompt it returns, then use Refine -> Paste refined prompt on this cue to save it.",
+            "OK");
+    }
+
+    private async Task PasteRefinedCuePromptAsync(MusicCue cue)
+    {
+        string? refinedPrompt = await ShowPasteDialogAsync(
+            "Paste Refined Prompt",
+            "Paste the improved Suno/ElevenLabs prompt returned by your LLM:",
+            "Paste the improved music-generation prompt here...",
+            "Save");
+
+        if (string.IsNullOrWhiteSpace(refinedPrompt)) return;
+
+        cue.GeneratedPrompt = refinedPrompt.Trim();
+        await _musicService.UpdateCueAsync(cue);
+        await DisplayAlert("Prompt Saved", "The refined prompt was saved to this cue.", "OK");
         await LoadLinesAsync();
     }
 
@@ -1397,6 +1482,16 @@ public class MusicForStoriesPage : ContentPage
 
             if (string.IsNullOrWhiteSpace(draftName)) return;
 
+            string? cueMode = await DisplayActionSheet(
+                "How should cues be prepared?",
+                "Cancel",
+                null,
+                "DNA first (recommended)",
+                "Build all cues now");
+            if (string.IsNullOrWhiteSpace(cueMode) || cueMode == "Cancel") return;
+
+            bool generatePromptsForAllCues = cueMode == "Build all cues now";
+
             bool setAsLatest = await DisplayAlert(
                 "Set as Latest?",
                 $"Set \"{draftName}\" as the latest working draft?\n\nThis will open by default when you return to this project.",
@@ -1408,15 +1503,21 @@ public class MusicForStoriesPage : ContentPage
                 _auth.CurrentUsername,
                 importResult,
                 draftName.Trim(),
-                setAsLatest);
+                setAsLatest,
+                generatePromptsForAllCues);
 
             int rootId = newDraft.ParentProjectId ?? newDraft.Id;
             await LoadDraftsAsync(rootId, newDraft.Id);
             await LoadLinesAsync();
 
+            string modeMessage = cueCount == 0
+                ? "No cues were included in the import."
+                : generatePromptsForAllCues
+                ? "All cue prompts were generated."
+                : "DNA cue prompt generated - refine and confirm it works, then generate the variations.";
             await DisplayAlert(
                 "Draft Imported!",
-                $"Created \"{draftName}\" with {importResult.Lines.Count} lines and {cueCount} cues." + (setAsLatest ? "\n\nSet as latest." : ""),
+                $"Created \"{draftName}\" with {importResult.Lines.Count} lines and {cueCount} cues.\n\n{modeMessage}" + (setAsLatest ? "\n\nSet as latest." : ""),
                 "OK");
         }
         catch (Exception ex)
@@ -1597,7 +1698,11 @@ public class MusicForStoriesPage : ContentPage
         return await tcs.Task;
     }
 
-    private async Task<string?> ShowPasteDialogAsync()
+    private async Task<string?> ShowPasteDialogAsync(
+        string title = "Paste AI Response",
+        string message = "Paste the C# code block from the AI:",
+        string placeholder = "// NARRATION\nlines[1].Script = \"...\";\nlines[1].Visual = \"...\";",
+        string acceptText = "Import")
     {
         var tcs = new TaskCompletionSource<string?>();
 
@@ -1607,7 +1712,7 @@ public class MusicForStoriesPage : ContentPage
 
         stack.Children.Add(new Label
         {
-            Text = "Paste AI Response",
+            Text = title,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#333")
@@ -1615,14 +1720,14 @@ public class MusicForStoriesPage : ContentPage
 
         stack.Children.Add(new Label
         {
-            Text = "Paste the C# code block from the AI:",
+            Text = message,
             FontSize = 13,
             TextColor = Color.FromArgb("#666")
         });
 
         var editor = new Editor
         {
-            Placeholder = "// NARRATION\nlines[1].Script = \"...\";\nlines[1].Visual = \"...\";",
+            Placeholder = placeholder,
             HeightRequest = 320,
             FontSize = 13,
             FontFamily = "Consolas",
@@ -1640,7 +1745,7 @@ public class MusicForStoriesPage : ContentPage
         };
 
         var cancelBtn = ActionButton("Cancel", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
-        var importBtn = ActionButton("Import", Color.FromArgb("#4CAF50"), Colors.White);
+        var importBtn = ActionButton(acceptText, Color.FromArgb("#4CAF50"), Colors.White);
 
         cancelBtn.Clicked += (s, e) =>
         {

@@ -365,7 +365,8 @@ public class MusicProductionService
         string username,
         MusicImportResult importResult,
         string? customName = null,
-        bool setAsLatest = false)
+        bool setAsLatest = false,
+        bool generatePromptsForAllCues = true)
     {
         EnsureWritable();
 
@@ -466,8 +467,18 @@ public class MusicProductionService
             await conn.UpdateAsync(cue);
         }
 
+        if (cueByName.Count > 0 && !cueByName.Values.Any(c => c.IsPrimaryDNA))
+        {
+            var firstRootCue = cueByName.Values.FirstOrDefault(c => !c.ParentCueId.HasValue) ?? cueByName.Values.First();
+            firstRootCue.IsPrimaryDNA = true;
+            await conn.UpdateAsync(firstRootCue);
+        }
+
         foreach (var cue in cueByName.Values)
         {
+            if (!generatePromptsForAllCues && !cue.IsPrimaryDNA)
+                continue;
+
             var layers = importResult.Lines
                 .Where(l => string.Equals(l.CueName, cue.Label, StringComparison.OrdinalIgnoreCase))
                 .SelectMany(l => SplitImportCsv(l.LayerNotes))
