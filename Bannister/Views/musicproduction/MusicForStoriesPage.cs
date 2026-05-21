@@ -1237,11 +1237,10 @@ public class MusicForStoriesPage : ContentPage
         sb.AppendLine(MusicPromptTemplates.GetDraftFormatInstructions());
         sb.AppendLine();
         sb.AppendLine("ADDITIONAL INSTRUCTIONS:");
-        sb.AppendLine("- Split the story into logical lines/scenes/beats");
-        sb.AppendLine("- If the story has no explicit visual descriptions, create appropriate ones based on the narration");
-        sb.AppendLine("- Lines with no narration should use Script = \"\" (empty string)");
-        sb.AppendLine("- Keep the original narration as close to verbatim as possible for the Script fields");
-        sb.AppendLine("- Number lines sequentially starting at 1");
+        sb.AppendLine("- Fill the full music plan, not only Script and Visual");
+        sb.AppendLine("- Reuse a small set of cue names across many lines so the soundtrack is built from modular ~30-second blocks");
+        sb.AppendLine("- Aim for 4-8 unique cues total unless the story truly requires fewer or more");
+        sb.AppendLine("- Define each unique cue in the cue[] block");
         sb.AppendLine("- Output ONLY the code block, no other text");
 
         await Clipboard.SetTextAsync(sb.ToString());
@@ -1251,7 +1250,7 @@ public class MusicForStoriesPage : ContentPage
             "The conversion prompt has been copied to your clipboard.\n\n" +
             "Steps:\n" +
             "1. Paste this prompt to any AI (ChatGPT, Claude, etc.)\n" +
-            "2. The AI will output the story in the import format\n" +
+            "2. The AI will output the full music plan in the import format\n" +
             "3. Copy the AI's output\n" +
             "4. Use Import -> Paste from Clipboard to import",
             "OK");
@@ -1296,12 +1295,13 @@ public class MusicForStoriesPage : ContentPage
 
         try
         {
-            var importedLines = _musicService.ParseMusicImport(content);
-            if (importedLines.Count == 0)
+            var importResult = _musicService.ParseMusicImport(content);
+            int cueCount = CountUniqueCueNames(importResult);
+            if (importResult.Lines.Count == 0)
             {
                 await DisplayAlert(
                     "No Lines Found",
-                    "Could not parse any lines.\n\nExpected format:\nlines[1].Script = \"text\";\nlines[1].Visual = \"text\";",
+                    "Could not parse any lines.\n\nExpected format:\nlines[1].Script = \"text\";\nlines[1].Visual = \"text\";\nlines[1].Emotion = \"tension\";\nlines[1].Cue = \"Main DNA\";",
                     "OK");
                 return;
             }
@@ -1310,7 +1310,7 @@ public class MusicForStoriesPage : ContentPage
             string defaultName = $"Draft v{nextVersion} (AI)";
             string? draftName = await DisplayPromptAsync(
                 "Name This Draft",
-                $"Found {importedLines.Count} lines.\nEdit the name or click Save:",
+                $"Found {importResult.Lines.Count} lines and {cueCount} cues.\nEdit the name or click Save:",
                 accept: "Save",
                 cancel: "Cancel",
                 initialValue: defaultName,
@@ -1327,7 +1327,7 @@ public class MusicForStoriesPage : ContentPage
             var newDraft = await _musicService.CreateDraftFromImportAsync(
                 _currentProject.Id,
                 _auth.CurrentUsername,
-                importedLines,
+                importResult,
                 draftName.Trim(),
                 setAsLatest);
 
@@ -1337,7 +1337,7 @@ public class MusicForStoriesPage : ContentPage
 
             await DisplayAlert(
                 "Draft Imported!",
-                $"Created \"{draftName}\" with {importedLines.Count} lines." + (setAsLatest ? "\n\nSet as latest." : ""),
+                $"Created \"{draftName}\" with {importResult.Lines.Count} lines and {cueCount} cues." + (setAsLatest ? "\n\nSet as latest." : ""),
                 "OK");
         }
         catch (Exception ex)
@@ -1345,6 +1345,17 @@ public class MusicForStoriesPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"[MUSIC] Import error: {ex.Message}");
             await DisplayAlert("Import Error", $"Failed to import: {ex.Message}", "OK");
         }
+    }
+
+    private static int CountUniqueCueNames(MusicImportResult importResult)
+    {
+        var names = new HashSet<string>(importResult.Cues.Keys, StringComparer.OrdinalIgnoreCase);
+        foreach (var line in importResult.Lines)
+        {
+            if (!string.IsNullOrWhiteSpace(line.CueName))
+                names.Add(line.CueName.Trim());
+        }
+        return names.Count;
     }
 
     private async void OnSetLatestClicked(object? sender, EventArgs e)

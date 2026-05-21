@@ -55,6 +55,21 @@ public class MusicProductionService
         if (_db.IsReadOnly) return;
 
         await conn.CreateTableAsync<MusicCue>();
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN Label TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN IsPrimaryDNA INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN ParentCueId INTEGER"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN VariationType TEXT DEFAULT 'Original'"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN Mood TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN Pulse TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN Motif TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN EnergyLevel TEXT DEFAULT 'Medium'"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN MustLoop INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN MustSitUnderNarration INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN GeneratedPrompt TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN Status TEXT DEFAULT 'NotGenerated'"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN ReuseFlag TEXT DEFAULT 'Reusable'"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN Notes TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_cues ADD COLUMN DurationSeconds INTEGER DEFAULT 30"); } catch { }
     }
 
     private static bool IsMissingTable(SQLiteException ex)
@@ -348,7 +363,7 @@ public class MusicProductionService
     public async Task<MusicProject> CreateDraftFromImportAsync(
         int sourceProjectId,
         string username,
-        List<ImportedMusicLine> importedLines,
+        MusicImportResult importResult,
         string? customName = null,
         bool setAsLatest = false)
     {
@@ -364,6 +379,7 @@ public class MusicProductionService
         var conn = await _db.GetConnectionAsync();
         await EnsureProjectTableAsync(conn);
         await EnsureLineTableAsync(conn);
+        await EnsureCueTableAsync(conn);
 
         if (setAsLatest)
         {
@@ -389,9 +405,88 @@ public class MusicProductionService
 
         await conn.InsertAsync(draftProject);
 
-        for (int i = 0; i < importedLines.Count; i++)
+        var cueNames = new List<string>();
+        foreach (var line in importResult.Lines)
         {
-            var imported = importedLines[i];
+            if (!string.IsNullOrWhiteSpace(line.CueName) &&
+                !cueNames.Any(c => string.Equals(c, line.CueName, StringComparison.OrdinalIgnoreCase)))
+            {
+                cueNames.Add(line.CueName.Trim());
+            }
+        }
+
+        foreach (var cueName in importResult.Cues.Keys)
+        {
+            if (!cueNames.Any(c => string.Equals(c, cueName, StringComparison.OrdinalIgnoreCase)))
+                cueNames.Add(cueName);
+        }
+
+        var cueByName = new Dictionary<string, MusicCue>(StringComparer.OrdinalIgnoreCase);
+        foreach (var cueName in cueNames)
+        {
+            importResult.Cues.TryGetValue(cueName, out var definition);
+            var cue = new MusicCue
+            {
+                ProjectId = draftProject.Id,
+                Label = cueName,
+                IsPrimaryDNA = definition?.IsPrimaryDNA ?? false,
+                VariationType = NormalizeOption(definition?.VariationType, new[] { "Original", "AddLayers", "DarkRemix", "RemovePercussion", "ExposePiano", "IncreaseBassDrone", "Custom" }, "Original"),
+                Mood = definition?.Mood ?? "",
+                Pulse = definition?.Pulse ?? "",
+                Motif = definition?.Motif ?? "",
+                EnergyLevel = NormalizeOption(definition?.EnergyLevel, new[] { "Low", "Medium", "High" }, "Medium"),
+                MustLoop = definition?.MustLoop ?? false,
+                MustSitUnderNarration = definition?.MustSitUnderNarration ?? false,
+                Status = "NotGenerated",
+                ReuseFlag = "Reusable",
+                Notes = definition?.Notes ?? "",
+                DurationSeconds = definition?.DurationSeconds > 0 ? definition.DurationSeconds : 30,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await conn.InsertAsync(cue);
+            cueByName[cueName] = cue;
+        }
+
+        if (cueByName.Count > 0 && !cueByName.Values.Any(c => c.IsPrimaryDNA))
+        {
+            var firstCue = cueByName.Values.First();
+            firstCue.IsPrimaryDNA = true;
+            await conn.UpdateAsync(firstCue);
+        }
+
+        foreach (var kvp in importResult.Cues)
+        {
+            if (string.IsNullOrWhiteSpace(kvp.Value.VariationOf)) continue;
+            if (!cueByName.TryGetValue(kvp.Key, out var cue)) continue;
+            if (!cueByName.TryGetValue(kvp.Value.VariationOf, out var parent)) continue;
+
+            cue.ParentCueId = parent.Id;
+            cue.IsPrimaryDNA = false;
+            await conn.UpdateAsync(cue);
+        }
+
+        foreach (var cue in cueByName.Values)
+        {
+            var layers = importResult.Lines
+                .Where(l => string.Equals(l.CueName, cue.Label, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(l => SplitImportCsv(l.LayerNotes))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            var parentLabel = cue.ParentCueId.HasValue
+                ? cueByName.Values.FirstOrDefault(c => c.Id == cue.ParentCueId.Value)?.Label
+                : null;
+            cue.GeneratedPrompt = BuildGeneratedCuePrompt(cue, parentLabel, layers);
+            await conn.UpdateAsync(cue);
+        }
+
+        for (int i = 0; i < importResult.Lines.Count; i++)
+        {
+            var imported = importResult.Lines[i];
+            int? assignedCueId = !string.IsNullOrWhiteSpace(imported.CueName) &&
+                                 cueByName.TryGetValue(imported.CueName.Trim(), out var assignedCue)
+                ? assignedCue.Id
+                : null;
+
             var line = new MusicLine
             {
                 ProjectId = draftProject.Id,
@@ -399,11 +494,11 @@ public class MusicProductionService
                 Music = "",
                 Script = imported.Script ?? "",
                 Visuals = imported.Visual ?? "",
-                TargetEmotion = "",
-                RhythmIntent = "",
-                LayerNotes = "",
-                SectionDecision = "",
-                AssignedCueId = null,
+                TargetEmotion = imported.TargetEmotion ?? "",
+                RhythmIntent = NormalizeOption(imported.RhythmIntent, new[] { "Repetitive", "Evolving", "Shifting" }, ""),
+                LayerNotes = NormalizeLayers(imported.LayerNotes),
+                SectionDecision = NormalizeOption(imported.SectionDecision, new[] { "UseOriginalCue", "Variation", "Intensified", "Stripped", "NewCue", "Silence", "Callback" }, ""),
+                AssignedCueId = assignedCueId,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -576,9 +671,10 @@ public class MusicProductionService
         }
     }
 
-    public List<ImportedMusicLine> ParseMusicImport(string content)
+    public MusicImportResult ParseMusicImport(string content)
     {
-        var result = new Dictionary<int, ImportedMusicLine>();
+        var lines = new Dictionary<int, ImportedMusicLine>();
+        var cues = new Dictionary<string, ImportedMusicCue>(StringComparer.OrdinalIgnoreCase);
         content = NormalizeImportContent(content);
 
         foreach (var rawLine in content.Split('\n'))
@@ -586,27 +682,69 @@ public class MusicProductionService
             var trimmed = rawLine.Trim();
             var lowerTrimmed = trimmed.ToLowerInvariant();
 
-            if (!lowerTrimmed.Contains("lines[") || !lowerTrimmed.Contains("]."))
-                continue;
+            if (lowerTrimmed.Contains("lines[") && lowerTrimmed.Contains("]."))
+            {
+                int? lineNum = ExtractLineNumber(trimmed);
+                if (lineNum == null) continue;
 
-            int? lineNum = ExtractLineNumber(trimmed);
-            if (lineNum == null) continue;
+                if (!lines.ContainsKey(lineNum.Value))
+                    lines[lineNum.Value] = new ImportedMusicLine();
 
-            if (!result.ContainsKey(lineNum.Value))
-                result[lineNum.Value] = new ImportedMusicLine();
+                var imported = lines[lineNum.Value];
+                if (lowerTrimmed.Contains(".script"))
+                    imported.Script = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".visual"))
+                    imported.Visual = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".emotion"))
+                    imported.TargetEmotion = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".rhythm"))
+                    imported.RhythmIntent = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".layers"))
+                    imported.LayerNotes = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".decision"))
+                    imported.SectionDecision = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".cue"))
+                    imported.CueName = ExtractQuotedValue(trimmed);
+            }
+            else if (lowerTrimmed.Contains("cue[") && lowerTrimmed.Contains("]."))
+            {
+                string? cueName = ExtractCueName(trimmed);
+                if (string.IsNullOrWhiteSpace(cueName)) continue;
 
-            var imported = result[lineNum.Value];
-            if (lowerTrimmed.Contains(".script"))
-                imported.Script = ExtractQuotedValue(trimmed);
-            else if (lowerTrimmed.Contains(".visual"))
-                imported.Visual = ExtractQuotedValue(trimmed);
+                if (!cues.ContainsKey(cueName))
+                    cues[cueName] = new ImportedMusicCue { Label = cueName };
+
+                var cue = cues[cueName];
+                if (lowerTrimmed.Contains(".mood"))
+                    cue.Mood = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".pulse"))
+                    cue.Pulse = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".motif"))
+                    cue.Motif = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".energy"))
+                    cue.EnergyLevel = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".isprimarydna"))
+                    cue.IsPrimaryDNA = ExtractBoolValue(trimmed);
+                else if (lowerTrimmed.Contains(".mustloop"))
+                    cue.MustLoop = ExtractBoolValue(trimmed);
+                else if (lowerTrimmed.Contains(".mustsitundernarration"))
+                    cue.MustSitUnderNarration = ExtractBoolValue(trimmed);
+                else if (lowerTrimmed.Contains(".variationof"))
+                    cue.VariationOf = ExtractQuotedValue(trimmed);
+                else if (lowerTrimmed.Contains(".variationtype"))
+                    cue.VariationType = ExtractQuotedValue(trimmed);
+            }
         }
 
-        return result
-            .OrderBy(kvp => kvp.Key)
-            .Select(kvp => kvp.Value)
-            .Where(l => !string.IsNullOrEmpty(l.Script) || !string.IsNullOrEmpty(l.Visual))
-            .ToList();
+        return new MusicImportResult
+        {
+            Lines = lines
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => kvp.Value)
+                .Where(l => !string.IsNullOrEmpty(l.Script) || !string.IsNullOrEmpty(l.Visual))
+                .ToList(),
+            Cues = cues
+        };
     }
 
     private static string NormalizeImportContent(string content)
@@ -637,6 +775,21 @@ public class MusicProductionService
 
         var numStr = line.Substring(numStart, numEnd - numStart);
         return int.TryParse(numStr, out int num) ? num : null;
+    }
+
+    private static string? ExtractCueName(string line)
+    {
+        var lowerLine = line.ToLowerInvariant();
+        int startIdx = lowerLine.IndexOf("cue[", StringComparison.Ordinal);
+        if (startIdx < 0) return null;
+
+        int firstQuote = line.IndexOf('"', startIdx);
+        if (firstQuote < 0) return null;
+
+        int secondQuote = line.IndexOf('"', firstQuote + 1);
+        if (secondQuote < 0) return null;
+
+        return line.Substring(firstQuote + 1, secondQuote - firstQuote - 1).Trim();
     }
 
     private static string ExtractQuotedValue(string line)
@@ -686,6 +839,71 @@ public class MusicProductionService
         }
 
         return sb.ToString();
+    }
+
+    private static bool ExtractBoolValue(string line)
+    {
+        int eqIdx = line.IndexOf('=');
+        if (eqIdx < 0) return false;
+
+        var value = line.Substring(eqIdx + 1).Trim().TrimEnd(';').Trim().Trim('"');
+        return bool.TryParse(value, out var parsed) && parsed;
+    }
+
+    private static string NormalizeOption(string? value, string[] allowed, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return fallback;
+        var compact = value.Replace(" ", "").Replace("-", "").Trim();
+        return allowed.FirstOrDefault(a => string.Equals(a, compact, StringComparison.OrdinalIgnoreCase) ||
+                                           string.Equals(a, value.Trim(), StringComparison.OrdinalIgnoreCase))
+               ?? fallback;
+    }
+
+    private static string NormalizeLayers(string? value)
+    {
+        var allowed = new HashSet<string>(new[] { "piano", "percussion", "drone", "strings", "bass", "silence" }, StringComparer.OrdinalIgnoreCase);
+        return string.Join(",", SplitImportCsv(value).Where(allowed.Contains));
+    }
+
+    private static IEnumerable<string> SplitImportCsv(string? value)
+    {
+        return (value ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static string BuildGeneratedCuePrompt(MusicCue cue, string? parentLabel, IEnumerable<string> layers)
+    {
+        if (cue.IsPrimaryDNA || !cue.ParentCueId.HasValue)
+        {
+            var layerText = string.Join(", ", layers.Where(l => !string.IsNullOrWhiteSpace(l)).Distinct(StringComparer.OrdinalIgnoreCase));
+            var parts = new List<string>
+            {
+                $"Instrumental, {cue.Mood}, {cue.EnergyLevel} energy.",
+                cue.Pulse,
+                $"Main motif: {cue.Motif}.",
+                cue.MustLoop ? "Must loop cleanly without becoming repetitive." : "",
+                cue.MustSitUnderNarration ? "Must sit under spoken narration without competing." : "",
+                $"Approximately {Math.Max(1, cue.DurationSeconds)} seconds.",
+                string.IsNullOrWhiteSpace(layerText) ? "Layers: general cinematic music bed." : $"Layers: {layerText}."
+            };
+            return string.Join(" ", parts.Where(p => !string.IsNullOrWhiteSpace(p))).Trim();
+        }
+
+        return $"Variation of the main theme '{parentLabel ?? "parent cue"}'. Keep the core motif recognizable. {VariationInstruction(cue.VariationType)} Same tempo and key feel as the original. Approximately {Math.Max(1, cue.DurationSeconds)} seconds." +
+               (string.IsNullOrWhiteSpace(cue.Notes) ? "" : $" Notes: {cue.Notes}");
+    }
+
+    private static string VariationInstruction(string variationType)
+    {
+        return variationType switch
+        {
+            "AddLayers" => "Add instrumental layers.",
+            "DarkRemix" => "Create a darker, tenser reinterpretation.",
+            "RemovePercussion" => "Remove percussion.",
+            "ExposePiano" => "Strip down to expose the piano motif.",
+            "IncreaseBassDrone" => "Increase bass and drone presence.",
+            "Custom" => "Follow the custom notes.",
+            _ => "Keep the original cue identity."
+        };
     }
 
     public async Task<List<MusicCue>> GetCuesAsync(int projectId)
@@ -807,8 +1025,35 @@ public class MusicProductionService
     }
 }
 
+public class MusicImportResult
+{
+    public List<ImportedMusicLine> Lines { get; set; } = new();
+    public Dictionary<string, ImportedMusicCue> Cues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
 public class ImportedMusicLine
 {
     public string? Script { get; set; }
     public string? Visual { get; set; }
+    public string? TargetEmotion { get; set; }
+    public string? RhythmIntent { get; set; }
+    public string? LayerNotes { get; set; }
+    public string? SectionDecision { get; set; }
+    public string? CueName { get; set; }
+}
+
+public class ImportedMusicCue
+{
+    public string Label { get; set; } = "";
+    public string? Mood { get; set; }
+    public string? Pulse { get; set; }
+    public string? Motif { get; set; }
+    public string? EnergyLevel { get; set; }
+    public bool IsPrimaryDNA { get; set; }
+    public bool MustLoop { get; set; }
+    public bool MustSitUnderNarration { get; set; }
+    public string? VariationOf { get; set; }
+    public string? VariationType { get; set; }
+    public string? Notes { get; set; }
+    public int DurationSeconds { get; set; } = 30;
 }
