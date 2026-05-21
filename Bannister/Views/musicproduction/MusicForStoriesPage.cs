@@ -1173,7 +1173,14 @@ public class MusicForStoriesPage : ContentPage
         }
 
         sb.AppendLine();
-        sb.AppendLine("Output ONLY the template text with placeholders. No commentary, no analysis, no Markdown wrapper.");
+        sb.AppendLine("Output EXACTLY this structure and nothing else:");
+        sb.AppendLine("TEMPLATE_NAME: <a short descriptive name for this template>");
+        sb.AppendLine("TEMPLATE:");
+        sb.AppendLine("<the full generalized template text with {SCRIPT}, optionally {DESCRIPTION}, and {TIMESTAMPS} if timestamped>");
+        sb.AppendLine();
+        sb.AppendLine("Put the suggested name only on the TEMPLATE_NAME line.");
+        sb.AppendLine("Put the full reusable template body after the TEMPLATE: line.");
+        sb.AppendLine("No commentary, no analysis, no Markdown wrapper, and no text outside this structure.");
         sb.AppendLine();
         sb.AppendLine("WORKING PROMPT TO GENERALIZE:");
         sb.AppendLine(workingPrompt);
@@ -1193,27 +1200,61 @@ public class MusicForStoriesPage : ContentPage
         string? templateText = await ShowPasteDialogAsync(
             "Paste New Template",
             "Paste the generalized template returned by your LLM:",
-            "Use the following script to shape the music's emotional arc:\n{SCRIPT}",
+            "TEMPLATE_NAME: Dark cyclical piano bed\nTEMPLATE:\nUse the following script to shape the music's emotional arc:\n{SCRIPT}",
             "Save");
         if (string.IsNullOrWhiteSpace(templateText)) return;
 
+        var parsedTemplate = ParseTemplatePaste(templateText);
         string? name = await DisplayPromptAsync(
             "Template Name",
             "Name this prompt template:",
             "Save",
             "Cancel",
+            initialValue: parsedTemplate.SuggestedName,
             placeholder: "Dark cyclical piano bed");
-        if (string.IsNullOrWhiteSpace(name)) return;
+        if (name == null)
+        {
+            await DisplayAlert("Template Not Saved", "Template not saved.", "OK");
+            return;
+        }
+
+        string finalName = string.IsNullOrWhiteSpace(name)
+            ? $"Untitled Template {DateTime.Now:yyyy-MM-dd HHmm}"
+            : name.Trim();
 
         var template = await _musicService.AddPromptTemplateAsync(
             _auth.CurrentUsername,
-            name.Trim(),
-            templateText.Trim(),
+            finalName,
+            parsedTemplate.TemplateBody,
             isTimestamped);
         _pendingTemplateIsTimestamped = null;
 
         await RefreshPromptTemplatesAsync(template.Id);
         await DisplayAlert("Template Saved", $"Saved \"{template.Name}\".", "OK");
+    }
+
+    private static (string SuggestedName, string TemplateBody) ParseTemplatePaste(string rawText)
+    {
+        string text = rawText?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(text))
+            return ("", "");
+
+        var nameMatch = System.Text.RegularExpressions.Regex.Match(
+            text,
+            @"(?im)^\s*TEMPLATE_NAME\s*:\s*(.+?)\s*$");
+        var templateMatch = System.Text.RegularExpressions.Regex.Match(
+            text,
+            @"(?im)^\s*TEMPLATE\s*:\s*$");
+
+        if (!nameMatch.Success && !templateMatch.Success)
+            return ("", text);
+
+        string suggestedName = nameMatch.Success ? nameMatch.Groups[1].Value.Trim() : "";
+        string body = templateMatch.Success
+            ? text[(templateMatch.Index + templateMatch.Length)..].Trim()
+            : text;
+
+        return (suggestedName, body);
     }
 
     private async void OnBuildTemplatePromptClicked(object? sender, EventArgs e)
