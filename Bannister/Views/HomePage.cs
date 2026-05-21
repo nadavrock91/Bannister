@@ -999,7 +999,7 @@ public class HomePage : ContentPage
 
     private async void OnMusicProductionClicked(object? sender, EventArgs e)
     {
-        var page = new MusicProductionHubPage(_auth, _musicProduction, _db);
+        var page = new MusicProductionHubPage(_auth, _musicProduction, _db, _ideas);
         await Navigation.PushAsync(page);
     }
 

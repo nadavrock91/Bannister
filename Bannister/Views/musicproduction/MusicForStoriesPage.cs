@@ -9,6 +9,7 @@ public class MusicForStoriesPage : ContentPage
     private readonly AuthService _auth;
     private readonly MusicProductionService _musicService;
     private readonly DatabaseService _db;
+    private readonly IdeasService _ideas;
 
     private Picker _projectPicker = null!;
     private Picker _draftPicker = null!;
@@ -55,11 +56,12 @@ public class MusicForStoriesPage : ContentPage
 
     private bool IsMaster => !_db.IsReadOnly;
 
-    public MusicForStoriesPage(AuthService auth, MusicProductionService musicService, DatabaseService db)
+    public MusicForStoriesPage(AuthService auth, MusicProductionService musicService, DatabaseService db, IdeasService ideas)
     {
         _auth = auth;
         _musicService = musicService;
         _db = db;
+        _ideas = ideas;
 
         Title = "Music for Stories";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -1229,8 +1231,21 @@ public class MusicForStoriesPage : ContentPage
             isTimestamped);
         _pendingTemplateIsTimestamped = null;
 
+        try
+        {
+            await _ideas.CreateIdeaAsync(
+                _auth.CurrentUsername,
+                template.Name,
+                "Music Prompt Templates",
+                notes: template.TemplateText);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to log music prompt template as idea: {ex}");
+        }
+
         await RefreshPromptTemplatesAsync(template.Id);
-        await DisplayAlert("Template Saved", $"Saved \"{template.Name}\".", "OK");
+        await DisplayAlert("Template Saved", $"Saved \"{template.Name}\" and logged it to Ideas.", "OK");
     }
 
     private static (string SuggestedName, string TemplateBody) ParseTemplatePaste(string rawText)

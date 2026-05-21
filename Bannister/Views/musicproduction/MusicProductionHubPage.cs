@@ -7,12 +7,14 @@ public class MusicProductionHubPage : ContentPage
     private readonly AuthService _auth;
     private readonly MusicProductionService _musicService;
     private readonly DatabaseService _db;
+    private readonly IdeasService _ideas;
 
-    public MusicProductionHubPage(AuthService auth, MusicProductionService musicService, DatabaseService db)
+    public MusicProductionHubPage(AuthService auth, MusicProductionService musicService, DatabaseService db, IdeasService ideas)
     {
         _auth = auth;
         _musicService = musicService;
         _db = db;
+        _ideas = ideas;
 
         Title = "Music Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -115,6 +117,6 @@ public class MusicProductionHubPage : ContentPage
 
     private async void OnMusicForStoriesClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new MusicForStoriesPage(_auth, _musicService, _db));
+        await Navigation.PushAsync(new MusicForStoriesPage(_auth, _musicService, _db, _ideas));
     }
 }
