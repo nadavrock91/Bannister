@@ -321,6 +321,69 @@ public class MusicProductionService
         return draftProject;
     }
 
+    public async Task<MusicProject> CreateDraftFromImportAsync(
+        int sourceProjectId,
+        string username,
+        List<ImportedMusicLine> importedLines,
+        string? customName = null,
+        bool setAsLatest = false)
+    {
+        EnsureWritable();
+
+        var sourceProject = await GetProjectByIdAsync(sourceProjectId);
+        if (sourceProject == null)
+            throw new ArgumentException("Source project not found");
+
+        int rootId = sourceProject.ParentProjectId ?? sourceProject.Id;
+        int nextVersion = await GetNextDraftVersionAsync(sourceProjectId);
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureProjectTableAsync(conn);
+        await EnsureLineTableAsync(conn);
+
+        if (setAsLatest)
+        {
+            await conn.ExecuteAsync(
+                "UPDATE music_projects SET IsLatest = 0 WHERE Id = ? OR ParentProjectId = ?",
+                rootId, rootId);
+        }
+
+        var draftProject = new MusicProject
+        {
+            Username = username,
+            Name = customName ?? sourceProject.Name,
+            Description = sourceProject.Description,
+            MusicConversationLog = sourceProject.MusicConversationLog,
+            ProjectCategory = sourceProject.ProjectCategory,
+            CreatedAt = DateTime.UtcNow,
+            Status = "active",
+            ParentProjectId = rootId,
+            DraftVersion = nextVersion,
+            DraftSource = "ai-import",
+            IsLatest = setAsLatest
+        };
+
+        await conn.InsertAsync(draftProject);
+
+        for (int i = 0; i < importedLines.Count; i++)
+        {
+            var imported = importedLines[i];
+            var line = new MusicLine
+            {
+                ProjectId = draftProject.Id,
+                LineOrder = i + 1,
+                Music = "",
+                Script = imported.Script ?? "",
+                Visuals = imported.Visual ?? "",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await conn.InsertAsync(line);
+        }
+
+        return draftProject;
+    }
+
     public async Task RenameDraftAsync(int projectId, string newName)
     {
         EnsureWritable();
@@ -479,4 +542,122 @@ public class MusicProductionService
             await conn.UpdateAsync(lines[i]);
         }
     }
+
+    public List<ImportedMusicLine> ParseMusicImport(string content)
+    {
+        var result = new Dictionary<int, ImportedMusicLine>();
+        content = NormalizeImportContent(content);
+
+        foreach (var rawLine in content.Split('\n'))
+        {
+            var trimmed = rawLine.Trim();
+            var lowerTrimmed = trimmed.ToLowerInvariant();
+
+            if (!lowerTrimmed.Contains("lines[") || !lowerTrimmed.Contains("]."))
+                continue;
+
+            int? lineNum = ExtractLineNumber(trimmed);
+            if (lineNum == null) continue;
+
+            if (!result.ContainsKey(lineNum.Value))
+                result[lineNum.Value] = new ImportedMusicLine();
+
+            var imported = result[lineNum.Value];
+            if (lowerTrimmed.Contains(".script"))
+                imported.Script = ExtractQuotedValue(trimmed);
+            else if (lowerTrimmed.Contains(".visual"))
+                imported.Visual = ExtractQuotedValue(trimmed);
+        }
+
+        return result
+            .OrderBy(kvp => kvp.Key)
+            .Select(kvp => kvp.Value)
+            .Where(l => !string.IsNullOrEmpty(l.Script) || !string.IsNullOrEmpty(l.Visual))
+            .ToList();
+    }
+
+    private static string NormalizeImportContent(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return content;
+
+        content = content.Replace('\u201C', '"');
+        content = content.Replace('\u201D', '"');
+        content = content.Replace('\u2018', '\'');
+        content = content.Replace('\u2019', '\'');
+        content = content.Replace('\u00A0', ' ');
+        content = content.Replace('\u2007', ' ');
+        content = content.Replace('\u202F', ' ');
+        content = content.Replace("\r\n", "\n").Replace("\r", "\n");
+
+        return content;
+    }
+
+    private static int? ExtractLineNumber(string line)
+    {
+        var lowerLine = line.ToLowerInvariant();
+        int startIdx = lowerLine.IndexOf("lines[", StringComparison.Ordinal);
+        if (startIdx < 0) return null;
+
+        int numStart = startIdx + 6;
+        int numEnd = line.IndexOf(']', numStart);
+        if (numEnd < 0) return null;
+
+        var numStr = line.Substring(numStart, numEnd - numStart);
+        return int.TryParse(numStr, out int num) ? num : null;
+    }
+
+    private static string ExtractQuotedValue(string line)
+    {
+        int eqIdx = line.IndexOf('=');
+        if (eqIdx < 0) return "";
+
+        int firstQuote = line.IndexOf('"', eqIdx);
+        if (firstQuote < 0) return "";
+
+        int pos = firstQuote + 1;
+        var sb = new System.Text.StringBuilder();
+
+        while (pos < line.Length)
+        {
+            char c = line[pos];
+
+            if (c == '\\' && pos + 1 < line.Length)
+            {
+                char next = line[pos + 1];
+                if (next == '"')
+                {
+                    sb.Append('"');
+                    pos += 2;
+                    continue;
+                }
+
+                if (next == 'n')
+                {
+                    sb.Append('\n');
+                    pos += 2;
+                    continue;
+                }
+
+                if (next == '\\')
+                {
+                    sb.Append('\\');
+                    pos += 2;
+                    continue;
+                }
+            }
+
+            if (c == '"') break;
+
+            sb.Append(c);
+            pos++;
+        }
+
+        return sb.ToString();
+    }
+}
+
+public class ImportedMusicLine
+{
+    public string? Script { get; set; }
+    public string? Visual { get; set; }
 }

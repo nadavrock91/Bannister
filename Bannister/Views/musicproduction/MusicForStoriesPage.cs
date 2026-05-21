@@ -23,6 +23,8 @@ public class MusicForStoriesPage : ContentPage
     private Button _setLatestButton = null!;
     private Button _compareButton = null!;
     private Button _deleteDraftButton = null!;
+    private Button _exportPromptButton = null!;
+    private Button _importButton = null!;
     private Button _addCardButton = null!;
 
     private List<MusicProject> _projects = new();
@@ -172,6 +174,18 @@ public class MusicForStoriesPage : ContentPage
         draftRow.Children.Add(_deleteDraftButton);
 
         topStack.Children.Add(draftRow);
+
+        var importExportRow = new HorizontalStackLayout { Spacing = 8 };
+        _exportPromptButton = ActionButton("Export Prompt", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+        _exportPromptButton.IsVisible = false;
+        _exportPromptButton.Clicked += OnExportPromptClicked;
+        importExportRow.Children.Add(_exportPromptButton);
+
+        _importButton = ActionButton("Import", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _importButton.IsVisible = false;
+        _importButton.Clicked += OnImportClicked;
+        importExportRow.Children.Add(_importButton);
+        topStack.Children.Add(importExportRow);
 
         _currentDraftLabel = new Label
         {
@@ -328,6 +342,8 @@ public class MusicForStoriesPage : ContentPage
             _setLatestButton.IsVisible = false;
             _compareButton.IsVisible = false;
             _deleteDraftButton.IsVisible = false;
+            _exportPromptButton.IsVisible = false;
+            _importButton.IsVisible = false;
             _addCardButton.IsVisible = false;
             return;
         }
@@ -353,6 +369,8 @@ public class MusicForStoriesPage : ContentPage
         _deleteDraftButton.IsVisible = IsMaster && isDraft;
         _setLatestButton.IsVisible = IsMaster && _drafts.Count > 1 && !_currentProject.IsLatest;
         _compareButton.IsVisible = IsMaster && _drafts.Count > 1;
+        _exportPromptButton.IsVisible = IsMaster;
+        _importButton.IsVisible = IsMaster;
         _addCardButton.IsVisible = IsMaster;
     }
 
@@ -618,6 +636,156 @@ public class MusicForStoriesPage : ContentPage
         await LoadLinesAsync();
     }
 
+    private async void OnExportPromptClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster) return;
+        if (_currentProject == null)
+        {
+            await DisplayAlert("No Project", "Select or create a music project first.", "OK");
+            return;
+        }
+
+        string? choice = await DisplayActionSheet(
+            "Export Options",
+            "Cancel",
+            null,
+            "Convert Story Idea to Import Format");
+
+        if (choice == "Convert Story Idea to Import Format")
+            await ExportConvertStoryPromptAsync();
+    }
+
+    private async Task ExportConvertStoryPromptAsync()
+    {
+        string? rawStory = await ShowMultiLineInputAsync(
+            "Convert Story Idea",
+            "Paste or write your story idea/script in any format.\nA prompt will be generated that you can give to any AI to convert it to the import format.",
+            "",
+            "Opening scene...\nNarration...\nVisual beat...");
+
+        if (string.IsNullOrWhiteSpace(rawStory)) return;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("I have a story/script that I need converted into a specific C# import format for my Music for Stories tool.");
+        sb.AppendLine("Below is the raw story. Convert it into the exact format shown, preserving all the content.");
+        sb.AppendLine();
+        sb.AppendLine("=== RAW STORY ===");
+        sb.AppendLine(rawStory);
+        sb.AppendLine("=== END RAW STORY ===");
+        sb.AppendLine();
+        sb.AppendLine(MusicPromptTemplates.GetDraftFormatInstructions());
+        sb.AppendLine();
+        sb.AppendLine("ADDITIONAL INSTRUCTIONS:");
+        sb.AppendLine("- Split the story into logical lines/scenes/beats");
+        sb.AppendLine("- If the story has no explicit visual descriptions, create appropriate ones based on the narration");
+        sb.AppendLine("- Lines with no narration should use Script = \"\" (empty string)");
+        sb.AppendLine("- Keep the original narration as close to verbatim as possible for the Script fields");
+        sb.AppendLine("- Number lines sequentially starting at 1");
+        sb.AppendLine("- Output ONLY the code block, no other text");
+
+        await Clipboard.SetTextAsync(sb.ToString());
+
+        await DisplayAlert(
+            "Prompt Copied!",
+            "The conversion prompt has been copied to your clipboard.\n\n" +
+            "Steps:\n" +
+            "1. Paste this prompt to any AI (ChatGPT, Claude, etc.)\n" +
+            "2. The AI will output the story in the import format\n" +
+            "3. Copy the AI's output\n" +
+            "4. Use Import -> Paste from Clipboard to import",
+            "OK");
+    }
+
+    private async void OnImportClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster) return;
+        if (_currentProject == null)
+        {
+            await DisplayAlert("No Project", "Select or create a music project first.", "OK");
+            return;
+        }
+
+        string? choice = await DisplayActionSheet(
+            "Import Draft",
+            "Cancel",
+            null,
+            "Paste from Clipboard");
+
+        if (choice != "Paste from Clipboard") return;
+
+        string? content = await ShowPasteDialogAsync();
+        if (content == null) return;
+
+        await ProcessImportContentAsync(content);
+    }
+
+    private async Task ProcessImportContentAsync(string content)
+    {
+        if (_currentProject == null)
+        {
+            await DisplayAlert("No Project", "Select or create a music project first.", "OK");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            await DisplayAlert("Empty", "No content to import.", "OK");
+            return;
+        }
+
+        try
+        {
+            var importedLines = _musicService.ParseMusicImport(content);
+            if (importedLines.Count == 0)
+            {
+                await DisplayAlert(
+                    "No Lines Found",
+                    "Could not parse any lines.\n\nExpected format:\nlines[1].Script = \"text\";\nlines[1].Visual = \"text\";",
+                    "OK");
+                return;
+            }
+
+            int nextVersion = await _musicService.GetNextDraftVersionAsync(_currentProject.Id);
+            string defaultName = $"Draft v{nextVersion} (AI)";
+            string? draftName = await DisplayPromptAsync(
+                "Name This Draft",
+                $"Found {importedLines.Count} lines.\nEdit the name or click Save:",
+                accept: "Save",
+                cancel: "Cancel",
+                initialValue: defaultName,
+                placeholder: "Draft name");
+
+            if (string.IsNullOrWhiteSpace(draftName)) return;
+
+            bool setAsLatest = await DisplayAlert(
+                "Set as Latest?",
+                $"Set \"{draftName}\" as the latest working draft?\n\nThis will open by default when you return to this project.",
+                "Yes, Set as Latest",
+                "No");
+
+            var newDraft = await _musicService.CreateDraftFromImportAsync(
+                _currentProject.Id,
+                _auth.CurrentUsername,
+                importedLines,
+                draftName.Trim(),
+                setAsLatest);
+
+            int rootId = newDraft.ParentProjectId ?? newDraft.Id;
+            await LoadDraftsAsync(rootId, newDraft.Id);
+            await LoadLinesAsync();
+
+            await DisplayAlert(
+                "Draft Imported!",
+                $"Created \"{draftName}\" with {importedLines.Count} lines." + (setAsLatest ? "\n\nSet as latest." : ""),
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MUSIC] Import error: {ex.Message}");
+            await DisplayAlert("Import Error", $"Failed to import: {ex.Message}", "OK");
+        }
+    }
+
     private async void OnSetLatestClicked(object? sender, EventArgs e)
     {
         if (!IsMaster || _currentProject == null) return;
@@ -707,6 +875,185 @@ public class MusicForStoriesPage : ContentPage
 
         await _musicService.DeleteLineAsync(line.Id);
         await LoadLinesAsync();
+    }
+
+    private async Task<string?> ShowMultiLineInputAsync(string title, string message, string initialValue, string placeholder)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+
+        var overlay = CreateOverlay();
+        var card = CreateOverlayCard(width: 520);
+        var stack = new VerticalStackLayout { Spacing = 12 };
+
+        stack.Children.Add(new Label
+        {
+            Text = title,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        stack.Children.Add(new Label
+        {
+            Text = message,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var editor = new Editor
+        {
+            Text = initialValue ?? "",
+            Placeholder = placeholder,
+            HeightRequest = 180,
+            FontSize = 14,
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            AutoSize = EditorAutoSizeOption.Disabled
+        };
+        stack.Children.Add(editor);
+
+        var btnRow = new HorizontalStackLayout
+        {
+            Spacing = 12,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var cancelBtn = ActionButton("Cancel", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
+        var okBtn = ActionButton("OK", Color.FromArgb("#3949AB"), Colors.White);
+
+        cancelBtn.Clicked += (s, e) =>
+        {
+            RemoveOverlay(overlay);
+            tcs.TrySetResult(null);
+        };
+
+        okBtn.Clicked += (s, e) =>
+        {
+            RemoveOverlay(overlay);
+            tcs.TrySetResult(editor.Text);
+        };
+
+        btnRow.Children.Add(cancelBtn);
+        btnRow.Children.Add(okBtn);
+        stack.Children.Add(btnRow);
+
+        card.Content = stack;
+        overlay.Children.Add(card);
+        AddOverlay(overlay);
+        editor.Focus();
+
+        return await tcs.Task;
+    }
+
+    private async Task<string?> ShowPasteDialogAsync()
+    {
+        var tcs = new TaskCompletionSource<string?>();
+
+        var overlay = CreateOverlay();
+        var card = CreateOverlayCard(width: 600, height: 500);
+        var stack = new VerticalStackLayout { Spacing = 12 };
+
+        stack.Children.Add(new Label
+        {
+            Text = "Paste AI Response",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        stack.Children.Add(new Label
+        {
+            Text = "Paste the C# code block from the AI:",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var editor = new Editor
+        {
+            Placeholder = "// NARRATION\nlines[1].Script = \"...\";\nlines[1].Visual = \"...\";",
+            HeightRequest = 320,
+            FontSize = 13,
+            FontFamily = "Consolas",
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            AutoSize = EditorAutoSizeOption.Disabled
+        };
+        stack.Children.Add(editor);
+
+        var btnRow = new HorizontalStackLayout
+        {
+            Spacing = 12,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var cancelBtn = ActionButton("Cancel", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
+        var importBtn = ActionButton("Import", Color.FromArgb("#4CAF50"), Colors.White);
+
+        cancelBtn.Clicked += (s, e) =>
+        {
+            RemoveOverlay(overlay);
+            tcs.TrySetResult(null);
+        };
+
+        importBtn.Clicked += (s, e) =>
+        {
+            RemoveOverlay(overlay);
+            tcs.TrySetResult(editor.Text);
+        };
+
+        btnRow.Children.Add(cancelBtn);
+        btnRow.Children.Add(importBtn);
+        stack.Children.Add(btnRow);
+
+        card.Content = stack;
+        overlay.Children.Add(card);
+        AddOverlay(overlay);
+        editor.Focus();
+
+        return await tcs.Task;
+    }
+
+    private static Grid CreateOverlay()
+    {
+        return new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            VerticalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+    }
+
+    private static Frame CreateOverlayCard(double width, double? height = null)
+    {
+        return new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent,
+            WidthRequest = width,
+            HeightRequest = height ?? -1,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center
+        };
+    }
+
+    private void AddOverlay(Grid overlay)
+    {
+        if (Content is Grid pageGrid)
+        {
+            Grid.SetRowSpan(overlay, 2);
+            pageGrid.Children.Add(overlay);
+        }
+    }
+
+    private void RemoveOverlay(Grid overlay)
+    {
+        if (Content is Grid pageGrid)
+            pageGrid.Children.Remove(overlay);
     }
 
     private void ClearCurrentProject(string message)
