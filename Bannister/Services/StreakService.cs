@@ -639,6 +639,18 @@ public class StreakService
             .ToListAsync();
     }
 
+    public async Task<bool> HasTargetCompletionAsync(int streakAttemptId, int targetDays)
+    {
+        var conn = await _db.GetConnectionAsync();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<StreakTargetCompletion>();
+
+        var existing = await conn.Table<StreakTargetCompletion>()
+            .Where(c => c.StreakAttemptId == streakAttemptId && c.TargetDays == targetDays)
+            .FirstOrDefaultAsync();
+
+        return existing != null;
+    }
+
     public async Task DeleteTargetCompletionAsync(int completionId)
     {
         var conn = await _db.GetConnectionAsync();

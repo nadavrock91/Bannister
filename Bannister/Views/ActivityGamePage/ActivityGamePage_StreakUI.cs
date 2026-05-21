@@ -495,7 +495,12 @@ public partial class ActivityGamePage
     private async Task PromptForNextStreakTargetIfNeededAsync(Activity activity, StreakAttempt attempt)
     {
         int targetDays = GetStreakTargetDays(activity);
-        if (attempt.DaysAchieved != targetDays)
+        if (attempt.DaysAchieved < targetDays)
+        {
+            return;
+        }
+
+        if (await _streaks.HasTargetCompletionAsync(attempt.Id, targetDays))
         {
             return;
         }
