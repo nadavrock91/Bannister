@@ -24,6 +24,7 @@ public class MusicProductionService
 
         await conn.CreateTableAsync<MusicProject>();
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN MusicConversationLog TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN GeneralMusicDescription TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN ProjectCategory TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN IsPublished INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN PublishedAt TEXT"); } catch { }
@@ -106,6 +107,31 @@ public class MusicProductionService
         {
             return null;
         }
+    }
+
+    private async Task<MusicProject?> GetRootProjectAsync(int projectId)
+    {
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return null;
+        if (project.ParentProjectId == null) return project;
+        return await GetProjectByIdAsync(project.ParentProjectId.Value);
+    }
+
+    public async Task<string> GetGeneralMusicDescriptionAsync(int projectId)
+    {
+        var root = await GetRootProjectAsync(projectId);
+        return root?.GeneralMusicDescription ?? "";
+    }
+
+    public async Task SetGeneralMusicDescriptionAsync(int projectId, string text)
+    {
+        EnsureWritable();
+
+        var root = await GetRootProjectAsync(projectId);
+        if (root == null) return;
+
+        root.GeneralMusicDescription = text ?? "";
+        await UpdateProjectAsync(root);
     }
 
     public async Task<MusicProject> CreateProjectAsync(string username, string name, string category = "", string description = "")

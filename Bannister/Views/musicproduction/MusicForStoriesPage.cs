@@ -26,6 +26,13 @@ public class MusicForStoriesPage : ContentPage
     private Button _exportPromptButton = null!;
     private Button _exportMusicStateButton = null!;
     private Button _importButton = null!;
+    private Frame _musicPlanningFrame = null!;
+    private Label _generalMusicDescriptionLabel = null!;
+    private Button _askDescriptionButton = null!;
+    private Button _writeOwnDescriptionButton = null!;
+    private Button _pasteDescriptionButton = null!;
+    private Button _askPromptOptionsButton = null!;
+    private Button _writeOwnPromptButton = null!;
     private Button _addCardButton = null!;
     private Grid _loadingOverlay = null!;
     private Label _loadingOverlayLabel = null!;
@@ -191,6 +198,9 @@ public class MusicForStoriesPage : ContentPage
         importExportRow.Children.Add(_importButton);
         topStack.Children.Add(importExportRow);
 
+        _musicPlanningFrame = BuildMusicPlanningSection();
+        topStack.Children.Add(_musicPlanningFrame);
+
         _currentDraftLabel = new Label
         {
             FontSize = 13,
@@ -280,6 +290,90 @@ public class MusicForStoriesPage : ContentPage
                 scroll,
                 _loadingOverlay
             }
+        };
+    }
+
+    private Frame BuildMusicPlanningSection()
+    {
+        var stack = new VerticalStackLayout { Spacing = 12 };
+        stack.Children.Add(new Label
+        {
+            Text = "Music Planning",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        stack.Children.Add(new Label
+        {
+            Text = "Stage 1 - General Music Description",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#3949AB")
+        });
+
+        _generalMusicDescriptionLabel = new Label
+        {
+            Text = "No general music description yet.",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+        stack.Children.Add(new Border
+        {
+            Stroke = Color.FromArgb("#DDD"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 6 },
+            Padding = 10,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            Content = _generalMusicDescriptionLabel
+        });
+
+        var stageOneButtons = new HorizontalStackLayout { Spacing = 8 };
+
+        _askDescriptionButton = ActionButton("Ask AI for Description", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+        _askDescriptionButton.Clicked += OnAskAiForDescriptionClicked;
+        _writeOwnDescriptionButton = ActionButton("Write My Own", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3F51B5"));
+        _writeOwnDescriptionButton.Clicked += OnWriteOwnDescriptionClicked;
+        _pasteDescriptionButton = ActionButton("Paste Description", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _pasteDescriptionButton.Clicked += OnPasteDescriptionClicked;
+
+        foreach (var button in new[] { _askDescriptionButton, _writeOwnDescriptionButton, _pasteDescriptionButton })
+        {
+            stageOneButtons.Children.Add(button);
+        }
+        stack.Children.Add(stageOneButtons);
+
+        stack.Children.Add(new Label
+        {
+            Text = "Stage 2 - How to Prompt for the Music",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#3949AB")
+        });
+
+        var stageTwoButtons = new HorizontalStackLayout { Spacing = 8 };
+
+        _askPromptOptionsButton = ActionButton("Ask AI for 10 Prompt Options", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57F17"));
+        _askPromptOptionsButton.Clicked += OnAskPromptOptionsClicked;
+        _writeOwnPromptButton = ActionButton("Write My Own Music Prompt", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
+        _writeOwnPromptButton.Clicked += OnWriteOwnPromptClicked;
+
+        foreach (var button in new[] { _askPromptOptionsButton, _writeOwnPromptButton })
+        {
+            stageTwoButtons.Children.Add(button);
+        }
+        stack.Children.Add(stageTwoButtons);
+
+        return new Frame
+        {
+            Padding = 12,
+            CornerRadius = 10,
+            BackgroundColor = Color.FromArgb("#F8F9FF"),
+            BorderColor = Color.FromArgb("#DDE2FF"),
+            HasShadow = false,
+            IsVisible = false,
+            Content = stack
         };
     }
 
@@ -403,6 +497,7 @@ public class MusicForStoriesPage : ContentPage
             _exportPromptButton.IsVisible = false;
             _exportMusicStateButton.IsVisible = false;
             _importButton.IsVisible = false;
+            _musicPlanningFrame.IsVisible = false;
             _addCardButton.IsVisible = false;
             return;
         }
@@ -431,6 +526,12 @@ public class MusicForStoriesPage : ContentPage
         _exportPromptButton.IsVisible = IsMaster;
         _exportMusicStateButton.IsVisible = IsMaster;
         _importButton.IsVisible = IsMaster;
+        _musicPlanningFrame.IsVisible = true;
+        _askDescriptionButton.IsVisible = IsMaster;
+        _writeOwnDescriptionButton.IsVisible = IsMaster;
+        _pasteDescriptionButton.IsVisible = IsMaster;
+        _askPromptOptionsButton.IsVisible = IsMaster;
+        _writeOwnPromptButton.IsVisible = IsMaster;
         _addCardButton.IsVisible = IsMaster;
     }
 
@@ -461,6 +562,7 @@ public class MusicForStoriesPage : ContentPage
             _changedLineOrders = await _musicService.GetChangedLineOrdersAsync(_currentProject.Id, _compareToProject.Id);
 
         UpdateDraftControls();
+        await RefreshMusicPlanningAsync();
 
         string categoryText = string.IsNullOrWhiteSpace(_currentProject.ProjectCategory)
             ? ""
@@ -782,6 +884,171 @@ public class MusicForStoriesPage : ContentPage
             "OK");
     }
 
+    private async Task RefreshMusicPlanningAsync()
+    {
+        if (_currentProject == null || _generalMusicDescriptionLabel == null) return;
+
+        var description = await _musicService.GetGeneralMusicDescriptionAsync(_currentProject.Id);
+        _generalMusicDescriptionLabel.Text = string.IsNullOrWhiteSpace(description)
+            ? "No general music description yet."
+            : description.Trim();
+    }
+
+    private async Task<string> BuildCurrentScriptTextAsync()
+    {
+        if (_currentProject == null) return "";
+
+        var lines = _currentLines.Count > 0
+            ? _currentLines
+            : await _musicService.GetLinesAsync(_currentProject.Id);
+
+        return string.Join(Environment.NewLine, lines
+            .OrderBy(l => l.LineOrder)
+            .Select(l => l.Script?.Trim() ?? "")
+            .Where(s => !string.IsNullOrWhiteSpace(s)));
+    }
+
+    private async Task<string> GetGeneralMusicDescriptionTextAsync()
+    {
+        if (_currentProject == null) return "";
+        return (await _musicService.GetGeneralMusicDescriptionAsync(_currentProject.Id)).Trim();
+    }
+
+    private async Task CopyPlanningPromptAsync(string prompt, string title, string message)
+    {
+        await Clipboard.SetTextAsync(prompt);
+        await DisplayAlert(title, message, "OK");
+    }
+
+    private async void OnAskAiForDescriptionClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        var script = await BuildCurrentScriptTextAsync();
+        if (string.IsNullOrWhiteSpace(script))
+        {
+            await DisplayAlert("No Script", "Add script lines to the current draft before asking for a music description.", "OK");
+            return;
+        }
+
+        var prompt =
+            "I am planning music for a short-video soundtrack.\n" +
+            "Read the script below and write a general music description for the whole piece.\n" +
+            "Focus on mood, instrumentation, overall feel, pacing, and how the music should support the story.\n" +
+            "Output only the description as prose.\n\n" +
+            "SCRIPT:\n" +
+            script;
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Prompt Copied",
+            "Paste this into your LLM. Copy its answer, then use Paste Description to save it to this project.");
+    }
+
+    private async void OnWriteOwnDescriptionClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        string? userText = await ShowMultiLineInputAsync(
+            "Write Music Direction",
+            "Describe, in your own words, what kind of music you want. A wrapper prompt will be copied for your LLM to refine it against the script.",
+            "",
+            "I want the music to feel...");
+        if (string.IsNullOrWhiteSpace(userText)) return;
+
+        var script = await BuildCurrentScriptTextAsync();
+        var prompt =
+            "I am planning music for a short-video soundtrack.\n" +
+            "The user described the music they want. Refine their words into a clear general music description for this project.\n" +
+            "Output only the refined description as prose.\n\n" +
+            "USER MUSIC DIRECTION:\n" +
+            userText.Trim() + "\n\n" +
+            "SCRIPT:\n" +
+            script;
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Prompt Copied",
+            "Paste this into your LLM. Copy its refined description, then use Paste Description to save it.");
+    }
+
+    private async void OnPasteDescriptionClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        string? description = await ShowPasteDialogAsync(
+            "Paste Description",
+            "Paste the general music description returned by your LLM:",
+            "A sparse, tense soundtrack built around...",
+            "Save");
+        if (string.IsNullOrWhiteSpace(description)) return;
+
+        await _musicService.SetGeneralMusicDescriptionAsync(_currentProject.Id, description.Trim());
+        await RefreshMusicPlanningAsync();
+        await DisplayAlert("Description Saved", "The general music description was saved to the project.", "OK");
+    }
+
+    private async void OnAskPromptOptionsClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        var description = await GetGeneralMusicDescriptionTextAsync();
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            await DisplayAlert("Description Needed", "Do Stage 1 first: save a general music description before asking for prompt options.", "OK");
+            return;
+        }
+
+        var script = await BuildCurrentScriptTextAsync();
+        var prompt =
+            "I am planning prompts for an AI music generator such as Suno or ElevenLabs for a short-video soundtrack.\n" +
+            "Using the script and general music description below, produce 10 distinct, numbered, ready-to-use music-generation prompt options.\n" +
+            "Output only the 10 numbered prompts.\n\n" +
+            "GENERAL MUSIC DESCRIPTION:\n" +
+            description + "\n\n" +
+            "SCRIPT:\n" +
+            script;
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Prompt Copied",
+            "Paste this into your LLM to get 10 ready-to-use music prompt options.");
+    }
+
+    private async void OnWriteOwnPromptClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        string? userPrompt = await ShowMultiLineInputAsync(
+            "Write Music Prompt",
+            "Write the music prompt you want in your own words. A wrapper prompt will be copied for your LLM to refine it.",
+            "",
+            "Make a short instrumental prompt that...");
+        if (string.IsNullOrWhiteSpace(userPrompt)) return;
+
+        var description = await GetGeneralMusicDescriptionTextAsync();
+        var script = await BuildCurrentScriptTextAsync();
+        var prompt =
+            "I am preparing an AI music-generation prompt for Suno or ElevenLabs for a short-video soundtrack.\n" +
+            "Refine the user's draft into a clear, ready-to-use music-generation prompt.\n" +
+            "Output only the improved prompt text, with no commentary.\n\n" +
+            "USER'S DRAFT MUSIC PROMPT:\n" +
+            userPrompt.Trim() + "\n\n";
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            prompt += "GENERAL MUSIC DESCRIPTION:\n" +
+                description + "\n\n";
+        }
+
+        prompt += "SCRIPT:\n" + script;
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Prompt Copied",
+            "Paste this into your LLM to refine your music-generation prompt.");
+    }
+
     private async void OnExportMusicStateClicked(object? sender, EventArgs e)
     {
         if (!IsMaster) return;
@@ -792,11 +1059,15 @@ public class MusicForStoriesPage : ContentPage
         }
 
         var lines = await _musicService.GetLinesAsync(_currentProject.Id);
+        var generalDescription = await _musicService.GetGeneralMusicDescriptionAsync(_currentProject.Id);
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"MUSIC STATE DISCUSSION - {_currentProject.Name}");
         sb.AppendLine();
         sb.AppendLine("This is a short-video soundtrack in progress. I want to discuss and refine how the Music column supports the Script and Visuals across the full draft.");
         sb.AppendLine("Please review the whole sequence and help me improve the music direction, continuity, emotional arc, and reusable ideas.");
+        sb.AppendLine();
+        sb.AppendLine("GENERAL MUSIC DESCRIPTION:");
+        sb.AppendLine(string.IsNullOrWhiteSpace(generalDescription) ? "(none yet)" : generalDescription.Trim());
         sb.AppendLine();
 
         foreach (var line in lines.OrderBy(l => l.LineOrder))

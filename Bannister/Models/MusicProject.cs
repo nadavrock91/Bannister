@@ -17,6 +17,8 @@ public class MusicProject
 
     public string MusicConversationLog { get; set; } = "";
 
+    public string GeneralMusicDescription { get; set; } = "";
+
     public string ProjectCategory { get; set; } = "";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
