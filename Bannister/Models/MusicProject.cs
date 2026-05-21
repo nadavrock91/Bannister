@@ -82,7 +82,59 @@ public class MusicLine
 
     public string ProductionNotes { get; set; } = "";
 
+    public string TargetEmotion { get; set; } = "";
+
+    public string RhythmIntent { get; set; } = "";
+
+    public string LayerNotes { get; set; } = "";
+
+    public string SectionDecision { get; set; } = "";
+
+    public int? AssignedCueId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? ModifiedAt { get; set; }
+}
+
+[Table("music_cues")]
+public class MusicCue
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+
+    [Indexed]
+    public int ProjectId { get; set; }
+
+    public string Label { get; set; } = "";
+
+    public bool IsPrimaryDNA { get; set; }
+
+    public int? ParentCueId { get; set; }
+
+    public string VariationType { get; set; } = "Original";
+
+    public string Mood { get; set; } = "";
+
+    public string Pulse { get; set; } = "";
+
+    public string Motif { get; set; } = "";
+
+    public string EnergyLevel { get; set; } = "Medium";
+
+    public bool MustLoop { get; set; }
+
+    public bool MustSitUnderNarration { get; set; }
+
+    public string GeneratedPrompt { get; set; } = "";
+
+    public string Status { get; set; } = "NotGenerated";
+
+    public string ReuseFlag { get; set; } = "Reusable";
+
+    public string Notes { get; set; } = "";
+
+    public int DurationSeconds { get; set; } = 30;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

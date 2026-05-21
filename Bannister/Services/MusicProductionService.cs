@@ -43,6 +43,18 @@ public class MusicProductionService
 
         await conn.CreateTableAsync<MusicLine>();
         try { await conn.ExecuteAsync("ALTER TABLE music_lines ADD COLUMN ProductionNotes TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_lines ADD COLUMN TargetEmotion TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_lines ADD COLUMN RhythmIntent TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_lines ADD COLUMN LayerNotes TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_lines ADD COLUMN SectionDecision TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_lines ADD COLUMN AssignedCueId INTEGER"); } catch { }
+    }
+
+    private async Task EnsureCueTableAsync(ISQLiteAsyncConnection conn)
+    {
+        if (_db.IsReadOnly) return;
+
+        await conn.CreateTableAsync<MusicCue>();
     }
 
     private static bool IsMissingTable(SQLiteException ex)
@@ -140,6 +152,7 @@ public class MusicProductionService
         var conn = await _db.GetConnectionAsync();
         await EnsureProjectTableAsync(conn);
         await EnsureLineTableAsync(conn);
+        await EnsureCueTableAsync(conn);
         var project = await GetProjectByIdAsync(projectId);
         if (project == null) return;
 
@@ -149,6 +162,7 @@ public class MusicProductionService
         foreach (var draft in family)
         {
             await conn.ExecuteAsync("DELETE FROM music_lines WHERE ProjectId = ?", draft.Id);
+            await conn.ExecuteAsync("DELETE FROM music_cues WHERE ProjectId = ?", draft.Id);
             await conn.DeleteAsync(draft);
         }
     }
@@ -252,7 +266,12 @@ public class MusicProductionService
 
             if (IsDifferent(line.Music, compareLine.Music) ||
                 IsDifferent(line.Script, compareLine.Script) ||
-                IsDifferent(line.Visuals, compareLine.Visuals))
+                IsDifferent(line.Visuals, compareLine.Visuals) ||
+                IsDifferent(line.TargetEmotion, compareLine.TargetEmotion) ||
+                IsDifferent(line.RhythmIntent, compareLine.RhythmIntent) ||
+                IsDifferent(line.LayerNotes, compareLine.LayerNotes) ||
+                IsDifferent(line.SectionDecision, compareLine.SectionDecision) ||
+                line.AssignedCueId != compareLine.AssignedCueId)
             {
                 changed.Add(line.LineOrder);
             }
@@ -313,6 +332,11 @@ public class MusicProductionService
                 Script = sourceLine.Script,
                 Visuals = sourceLine.Visuals,
                 ProductionNotes = sourceLine.ProductionNotes,
+                TargetEmotion = sourceLine.TargetEmotion,
+                RhythmIntent = sourceLine.RhythmIntent,
+                LayerNotes = sourceLine.LayerNotes,
+                SectionDecision = sourceLine.SectionDecision,
+                AssignedCueId = null,
                 CreatedAt = DateTime.UtcNow
             };
             await conn.InsertAsync(newLine);
@@ -375,6 +399,11 @@ public class MusicProductionService
                 Music = "",
                 Script = imported.Script ?? "",
                 Visuals = imported.Visual ?? "",
+                TargetEmotion = "",
+                RhythmIntent = "",
+                LayerNotes = "",
+                SectionDecision = "",
+                AssignedCueId = null,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -404,7 +433,9 @@ public class MusicProductionService
 
         var conn = await _db.GetConnectionAsync();
         await EnsureLineTableAsync(conn);
+        await EnsureCueTableAsync(conn);
         await conn.ExecuteAsync("DELETE FROM music_lines WHERE ProjectId = ?", projectId);
+        await conn.ExecuteAsync("DELETE FROM music_cues WHERE ProjectId = ?", projectId);
         await conn.DeleteAsync(project);
     }
 
@@ -460,6 +491,8 @@ public class MusicProductionService
             Music = music,
             Script = script,
             Visuals = visuals,
+            RhythmIntent = "",
+            SectionDecision = "",
             CreatedAt = DateTime.UtcNow
         };
 
@@ -653,6 +686,124 @@ public class MusicProductionService
         }
 
         return sb.ToString();
+    }
+
+    public async Task<List<MusicCue>> GetCuesAsync(int projectId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await EnsureCueTableAsync(conn);
+
+        try
+        {
+            return await conn.Table<MusicCue>()
+                .Where(c => c.ProjectId == projectId)
+                .OrderBy(c => c.Id)
+                .ToListAsync();
+        }
+        catch (SQLiteException ex) when (IsMissingTable(ex))
+        {
+            return new List<MusicCue>();
+        }
+    }
+
+    public async Task<MusicCue?> GetCueByIdAsync(int cueId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await EnsureCueTableAsync(conn);
+
+        try
+        {
+            return await conn.Table<MusicCue>()
+                .Where(c => c.Id == cueId)
+                .FirstOrDefaultAsync();
+        }
+        catch (SQLiteException ex) when (IsMissingTable(ex))
+        {
+            return null;
+        }
+    }
+
+    public async Task<MusicCue> AddCueAsync(int projectId, string label, bool isPrimaryDNA = false)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureCueTableAsync(conn);
+
+        var existing = await GetCuesAsync(projectId);
+        var cue = new MusicCue
+        {
+            ProjectId = projectId,
+            Label = label,
+            IsPrimaryDNA = isPrimaryDNA || existing.Count == 0,
+            VariationType = "Original",
+            EnergyLevel = "Medium",
+            Status = "NotGenerated",
+            ReuseFlag = "Reusable",
+            DurationSeconds = 30,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await conn.InsertAsync(cue);
+        return cue;
+    }
+
+    public async Task<MusicCue> CreateVariationCueAsync(int parentCueId, string variationType, string label)
+    {
+        EnsureWritable();
+
+        var parent = await GetCueByIdAsync(parentCueId);
+        if (parent == null)
+            throw new ArgumentException("Parent cue not found");
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureCueTableAsync(conn);
+
+        var cue = new MusicCue
+        {
+            ProjectId = parent.ProjectId,
+            Label = label,
+            IsPrimaryDNA = false,
+            ParentCueId = parent.Id,
+            VariationType = variationType,
+            Mood = parent.Mood,
+            Pulse = parent.Pulse,
+            Motif = parent.Motif,
+            EnergyLevel = parent.EnergyLevel,
+            MustLoop = parent.MustLoop,
+            MustSitUnderNarration = parent.MustSitUnderNarration,
+            Status = "NotGenerated",
+            ReuseFlag = "Reusable",
+            DurationSeconds = parent.DurationSeconds <= 0 ? 30 : parent.DurationSeconds,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await conn.InsertAsync(cue);
+        return cue;
+    }
+
+    public async Task UpdateCueAsync(MusicCue cue)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureCueTableAsync(conn);
+        await conn.UpdateAsync(cue);
+    }
+
+    public async Task DeleteCueAsync(int cueId)
+    {
+        EnsureWritable();
+
+        var cue = await GetCueByIdAsync(cueId);
+        if (cue == null) return;
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureCueTableAsync(conn);
+        await EnsureLineTableAsync(conn);
+        await conn.ExecuteAsync("UPDATE music_lines SET AssignedCueId = NULL WHERE AssignedCueId = ?", cueId);
+        await conn.ExecuteAsync("UPDATE music_cues SET ParentCueId = NULL WHERE ParentCueId = ?", cueId);
+        await conn.DeleteAsync(cue);
     }
 }
 
