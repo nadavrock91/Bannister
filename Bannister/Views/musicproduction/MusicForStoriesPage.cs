@@ -34,6 +34,9 @@ public class MusicForStoriesPage : ContentPage
     private Button _pasteDescriptionButton = null!;
     private Button _askPromptOptionsButton = null!;
     private Button _writeOwnPromptButton = null!;
+    private Label _timestampStatusLabel = null!;
+    private Button _getTranscriptionPromptButton = null!;
+    private Button _pasteTimestampsButton = null!;
     private Button _saveWorkingPromptTemplateButton = null!;
     private Button _pasteNewTemplateButton = null!;
     private Picker _templatePicker = null!;
@@ -361,6 +364,31 @@ public class MusicForStoriesPage : ContentPage
             TextColor = Color.FromArgb("#3949AB")
         });
 
+        stack.Children.Add(new Label
+        {
+            Text = "Timestamps",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#555")
+        });
+
+        _timestampStatusLabel = new Label
+        {
+            Text = "Timestamps: none yet",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        };
+        stack.Children.Add(_timestampStatusLabel);
+
+        var timestampButtons = new HorizontalStackLayout { Spacing = 8 };
+        _getTranscriptionPromptButton = ActionButton("Get Transcription Prompt", Color.FromArgb("#E0F7FA"), Color.FromArgb("#006064"));
+        _getTranscriptionPromptButton.Clicked += OnGetTranscriptionPromptClicked;
+        _pasteTimestampsButton = ActionButton("Paste Timestamps", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _pasteTimestampsButton.Clicked += OnPasteTimestampsClicked;
+        timestampButtons.Children.Add(_getTranscriptionPromptButton);
+        timestampButtons.Children.Add(_pasteTimestampsButton);
+        stack.Children.Add(timestampButtons);
+
         var stageTwoButtons = new HorizontalStackLayout { Spacing = 8 };
 
         _askPromptOptionsButton = ActionButton("Ask AI for 10 Prompt Options", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57F17"));
@@ -569,6 +597,8 @@ public class MusicForStoriesPage : ContentPage
         _pasteDescriptionButton.IsVisible = IsMaster;
         _askPromptOptionsButton.IsVisible = IsMaster;
         _writeOwnPromptButton.IsVisible = IsMaster;
+        _getTranscriptionPromptButton.IsVisible = IsMaster;
+        _pasteTimestampsButton.IsVisible = IsMaster;
         _saveWorkingPromptTemplateButton.IsVisible = IsMaster;
         _pasteNewTemplateButton.IsVisible = IsMaster;
         _buildTemplatePromptButton.IsVisible = IsMaster;
@@ -934,6 +964,17 @@ public class MusicForStoriesPage : ContentPage
         _generalMusicDescriptionLabel.Text = string.IsNullOrWhiteSpace(description)
             ? "No general music description yet."
             : description.Trim();
+
+        if (_timestampStatusLabel != null)
+        {
+            var timestampedNarration = await _musicService.GetTimestampedNarrationAsync(_currentProject.Id);
+            _timestampStatusLabel.Text = string.IsNullOrWhiteSpace(timestampedNarration)
+                ? "Timestamps: none yet"
+                : "Timestamps: saved";
+            _timestampStatusLabel.TextColor = string.IsNullOrWhiteSpace(timestampedNarration)
+                ? Color.FromArgb("#666")
+                : Color.FromArgb("#2E7D32");
+        }
     }
 
     private async Task RefreshPromptTemplatesAsync(int? selectTemplateId = null)
@@ -1117,6 +1158,36 @@ public class MusicForStoriesPage : ContentPage
             "Paste this into your LLM to refine your music-generation prompt.");
     }
 
+    private async void OnGetTranscriptionPromptClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        const string prompt =
+            "Transcribe this audio file and produce a timestamped narration script. For each line or natural phrase break, give me: Timestamp (start - end), precise to the second (or finer for short beats). NARRATION: exactly what is said, word for word. Mark pauses, breaths, or silences explicitly (e.g. [pause 2s], [breath], [silent 3s]). Break a new line at every natural pause, sentence end, or shift in delivery. Account for every second of the audio, including any silence at the start, between lines, or at the end. Do not summarize, paraphrase, or skip anything.";
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Transcription Prompt Copied",
+            "Take this prompt plus your narration audio to an audio-capable LLM. Copy the timestamped narration it returns, then use Paste Timestamps to save it to this draft.");
+    }
+
+    private async void OnPasteTimestampsClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        string? timestamps = await ShowPasteDialogAsync(
+            "Paste Timestamps",
+            "Paste the timestamped narration returned by your audio-capable LLM. This saves to the current draft only.",
+            "00:00 - 00:03 NARRATION: ...\n00:03 - 00:05 NARRATION: [pause 2s]",
+            "Save");
+        if (string.IsNullOrWhiteSpace(timestamps)) return;
+
+        await _musicService.SetTimestampedNarrationAsync(_currentProject.Id, timestamps.Trim());
+        _currentProject = await _musicService.GetProjectByIdAsync(_currentProject.Id) ?? _currentProject;
+        await RefreshMusicPlanningAsync();
+        await DisplayAlert("Timestamps Saved", "The timestamped narration was saved to this draft.", "OK");
+    }
+
     private async void OnSaveWorkingPromptTemplateClicked(object? sender, EventArgs e)
     {
         if (!IsMaster || _currentProject == null) return;
@@ -1283,15 +1354,6 @@ public class MusicForStoriesPage : ContentPage
         }
 
         var template = _promptTemplates[_templatePicker.SelectedIndex];
-        if (template.IsTimestamped)
-        {
-            await DisplayAlert(
-                "Not Available Yet",
-                "Timestamped templates need the transcription step (coming soon) - not available yet.",
-                "OK");
-            return;
-        }
-
         var script = await BuildCurrentScriptTextAsync();
         if (string.IsNullOrWhiteSpace(script))
         {
@@ -1300,6 +1362,27 @@ public class MusicForStoriesPage : ContentPage
         }
 
         var description = await GetGeneralMusicDescriptionTextAsync();
+
+        if (template.IsTimestamped)
+        {
+            var timestamps = await _musicService.GetTimestampedNarrationAsync(_currentProject.Id);
+            if (string.IsNullOrWhiteSpace(timestamps))
+            {
+                await DisplayAlert(
+                    "Timestamps Needed",
+                    "Do the transcription step first: use Get Transcription Prompt with your narration audio, then Paste Timestamps to save the result to this draft.",
+                    "OK");
+                return;
+            }
+
+            var metaPrompt = BuildTimestampedTemplateMetaPrompt(template, script, description, timestamps.Trim());
+            await CopyPlanningPromptAsync(
+                metaPrompt,
+                "Timestamped Meta-Prompt Copied",
+                "Paste this into your LLM. Copy the final timestamped music prompt it returns, then use that in Suno or ElevenLabs.");
+            return;
+        }
+
         var prompt = ReplaceTemplateToken(template.TemplateText, "{SCRIPT}", script);
         prompt = ReplaceTemplateToken(prompt, "{DESCRIPTION}", description);
 
@@ -1312,6 +1395,32 @@ public class MusicForStoriesPage : ContentPage
             prompt,
             "Prompt Copied",
             "The ready music-generation prompt was copied. Paste it into Suno or ElevenLabs.");
+    }
+
+    private static string BuildTimestampedTemplateMetaPrompt(
+        MusicPromptTemplate template,
+        string script,
+        string description,
+        string timestamps)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Produce a final timestamped music-generation prompt for Suno or ElevenLabs for a short-video soundtrack.");
+        sb.AppendLine("Use the template's structural DNA, but map it onto the real narration time ranges below.");
+        sb.AppendLine("The template may contain {SCRIPT}, {DESCRIPTION}, and {TIMESTAMPS}; those placeholders correspond to the labeled sections provided here.");
+        sb.AppendLine("Infer the total duration from the last timestamp. Output ONLY the final ready-to-use timestamped music-generation prompt, with no commentary.");
+        sb.AppendLine();
+        sb.AppendLine("TEMPLATE:");
+        sb.AppendLine(template.TemplateText?.Trim() ?? "");
+        sb.AppendLine();
+        sb.AppendLine("SCRIPT:");
+        sb.AppendLine(script?.Trim() ?? "");
+        sb.AppendLine();
+        sb.AppendLine("GENERAL MUSIC DESCRIPTION:");
+        sb.AppendLine(string.IsNullOrWhiteSpace(description) ? "(none provided)" : description.Trim());
+        sb.AppendLine();
+        sb.AppendLine("TIMESTAMPS:");
+        sb.AppendLine(timestamps?.Trim() ?? "");
+        return sb.ToString();
     }
 
     private static bool ContainsToken(string text, string token)

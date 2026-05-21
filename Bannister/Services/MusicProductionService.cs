@@ -25,6 +25,7 @@ public class MusicProductionService
         await conn.CreateTableAsync<MusicProject>();
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN MusicConversationLog TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN GeneralMusicDescription TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN TimestampedNarration TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN ProjectCategory TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN IsPublished INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN PublishedAt TEXT"); } catch { }
@@ -140,6 +141,23 @@ public class MusicProductionService
 
         root.GeneralMusicDescription = text ?? "";
         await UpdateProjectAsync(root);
+    }
+
+    public async Task<string> GetTimestampedNarrationAsync(int draftProjectId)
+    {
+        var project = await GetProjectByIdAsync(draftProjectId);
+        return project?.TimestampedNarration ?? "";
+    }
+
+    public async Task SetTimestampedNarrationAsync(int draftProjectId, string text)
+    {
+        EnsureWritable();
+
+        var project = await GetProjectByIdAsync(draftProjectId);
+        if (project == null) return;
+
+        project.TimestampedNarration = text ?? "";
+        await UpdateProjectAsync(project);
     }
 
     public async Task<List<MusicPromptTemplate>> GetPromptTemplatesAsync(string username)
@@ -390,6 +408,7 @@ public class MusicProductionService
             Name = customName ?? sourceProject.Name,
             Description = sourceProject.Description,
             MusicConversationLog = sourceProject.MusicConversationLog,
+            TimestampedNarration = sourceProject.TimestampedNarration,
             ProjectCategory = sourceProject.ProjectCategory,
             CreatedAt = DateTime.UtcNow,
             Status = "active",
