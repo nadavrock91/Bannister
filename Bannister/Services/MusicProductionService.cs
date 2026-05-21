@@ -30,6 +30,11 @@ public class MusicProductionService
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN ProjectedClipCount INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN ProjectedDays INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN FinalClipCount INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN ParentProjectId INTEGER"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN DraftVersion INTEGER DEFAULT 1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN DraftSource TEXT DEFAULT 'manual'"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN IsLatest INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_projects ADD COLUMN CompareToProjectId INTEGER"); } catch { }
     }
 
     private async Task EnsureLineTableAsync(ISQLiteAsyncConnection conn)
@@ -133,9 +138,211 @@ public class MusicProductionService
         EnsureWritable();
 
         var conn = await _db.GetConnectionAsync();
+        await EnsureProjectTableAsync(conn);
+        await EnsureLineTableAsync(conn);
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return;
+
+        int rootId = project.ParentProjectId ?? project.Id;
+        var family = await GetProjectDraftsAsync(rootId);
+
+        foreach (var draft in family)
+        {
+            await conn.ExecuteAsync("DELETE FROM music_lines WHERE ProjectId = ?", draft.Id);
+            await conn.DeleteAsync(draft);
+        }
+    }
+
+    public async Task<List<MusicProject>> GetProjectDraftsAsync(int projectId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await EnsureProjectTableAsync(conn);
+
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return new List<MusicProject>();
+
+        int rootId = project.ParentProjectId ?? project.Id;
+
+        try
+        {
+            var allProjects = await conn.Table<MusicProject>().ToListAsync();
+            return allProjects
+                .Where(p => p.Id == rootId || p.ParentProjectId == rootId)
+                .OrderBy(p => p.DraftVersion)
+                .ToList();
+        }
+        catch (SQLiteException ex) when (IsMissingTable(ex))
+        {
+            return new List<MusicProject>();
+        }
+    }
+
+    public async Task<int> GetNextDraftVersionAsync(int projectId)
+    {
+        var drafts = await GetProjectDraftsAsync(projectId);
+        return drafts.Count > 0 ? drafts.Max(d => d.DraftVersion) + 1 : 2;
+    }
+
+    public async Task SetAsLatestAsync(int projectId)
+    {
+        EnsureWritable();
+
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return;
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureProjectTableAsync(conn);
+
+        int rootId = project.ParentProjectId ?? project.Id;
+        await conn.ExecuteAsync(
+            "UPDATE music_projects SET IsLatest = 0 WHERE Id = ? OR ParentProjectId = ?",
+            rootId, rootId);
+
+        project.IsLatest = true;
+        await conn.UpdateAsync(project);
+    }
+
+    public async Task<MusicProject?> GetLatestDraftAsync(int projectId)
+    {
+        var drafts = await GetProjectDraftsAsync(projectId);
+        if (drafts.Count == 0) return null;
+
+        return drafts.FirstOrDefault(d => d.IsLatest) ?? drafts.First();
+    }
+
+    public async Task SetCompareToAsync(int projectId, int? compareToProjectId)
+    {
+        EnsureWritable();
+
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return;
+
+        project.CompareToProjectId = compareToProjectId;
+        await UpdateProjectAsync(project);
+    }
+
+    public async Task<MusicProject?> GetComparisonProjectAsync(MusicProject? project)
+    {
+        if (project == null) return null;
+
+        if (project.CompareToProjectId.HasValue)
+            return await GetProjectByIdAsync(project.CompareToProjectId.Value);
+
+        var drafts = await GetProjectDraftsAsync(project.Id);
+        int currentIndex = drafts.FindIndex(d => d.Id == project.Id);
+        if (currentIndex <= 0) return null;
+
+        return drafts[currentIndex - 1];
+    }
+
+    public async Task<HashSet<int>> GetChangedLineOrdersAsync(int projectId, int compareToProjectId)
+    {
+        var changed = new HashSet<int>();
+        var currentLines = await GetLinesAsync(projectId);
+        var compareLines = await GetLinesAsync(compareToProjectId);
+        var compareLookup = compareLines.ToDictionary(l => l.LineOrder);
+
+        foreach (var line in currentLines)
+        {
+            if (!compareLookup.TryGetValue(line.LineOrder, out var compareLine))
+            {
+                changed.Add(line.LineOrder);
+                continue;
+            }
+
+            if (IsDifferent(line.Music, compareLine.Music) ||
+                IsDifferent(line.Script, compareLine.Script) ||
+                IsDifferent(line.Visuals, compareLine.Visuals))
+            {
+                changed.Add(line.LineOrder);
+            }
+        }
+
+        return changed;
+    }
+
+    private static bool IsDifferent(string a, string b)
+    {
+        return !string.Equals(a ?? "", b ?? "", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public async Task<MusicProject> CreateDraftVersionAsync(int sourceProjectId, string? customName = null)
+    {
+        EnsureWritable();
+
+        var sourceProject = await GetProjectByIdAsync(sourceProjectId);
+        if (sourceProject == null)
+            throw new ArgumentException("Source project not found");
+
+        int rootId = sourceProject.ParentProjectId ?? sourceProject.Id;
+        int nextVersion = await GetNextDraftVersionAsync(sourceProjectId);
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureProjectTableAsync(conn);
+        await EnsureLineTableAsync(conn);
+
+        await conn.ExecuteAsync(
+            "UPDATE music_projects SET IsLatest = 0 WHERE Id = ? OR ParentProjectId = ?",
+            rootId, rootId);
+
+        var draftProject = new MusicProject
+        {
+            Username = sourceProject.Username,
+            Name = customName ?? sourceProject.Name,
+            Description = sourceProject.Description,
+            MusicConversationLog = sourceProject.MusicConversationLog,
+            ProjectCategory = sourceProject.ProjectCategory,
+            CreatedAt = DateTime.UtcNow,
+            Status = "active",
+            ParentProjectId = rootId,
+            DraftVersion = nextVersion,
+            DraftSource = "duplicate",
+            IsLatest = true
+        };
+
+        await conn.InsertAsync(draftProject);
+
+        var sourceLines = await GetLinesAsync(sourceProjectId);
+        foreach (var sourceLine in sourceLines)
+        {
+            var newLine = new MusicLine
+            {
+                ProjectId = draftProject.Id,
+                LineOrder = sourceLine.LineOrder,
+                Music = sourceLine.Music,
+                Script = sourceLine.Script,
+                Visuals = sourceLine.Visuals,
+                ProductionNotes = sourceLine.ProductionNotes,
+                CreatedAt = DateTime.UtcNow
+            };
+            await conn.InsertAsync(newLine);
+        }
+
+        return draftProject;
+    }
+
+    public async Task RenameDraftAsync(int projectId, string newName)
+    {
+        EnsureWritable();
+
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null || project.DraftVersion <= 1) return;
+
+        project.Name = newName;
+        await UpdateProjectAsync(project);
+    }
+
+    public async Task DeleteDraftAsync(int projectId)
+    {
+        EnsureWritable();
+
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null || project.ParentProjectId == null) return;
+
+        var conn = await _db.GetConnectionAsync();
         await EnsureLineTableAsync(conn);
         await conn.ExecuteAsync("DELETE FROM music_lines WHERE ProjectId = ?", projectId);
-        await conn.DeleteAsync<MusicProject>(projectId);
+        await conn.DeleteAsync(project);
     }
 
     public async Task<List<MusicLine>> GetLinesAsync(int projectId)
