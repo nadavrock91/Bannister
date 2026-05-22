@@ -459,6 +459,7 @@ namespace Bannister.Services
                 activity.DisplayDaysOfWeek = "";
                 activity.DisplayDayOfMonth = 0;
                 activity.DisplayDayStreak = 0;
+                activity.AutoSuggestThreshold = 30;
                 activity.LastDisplayDayUsed = null;
                 activity.HabitTargetDate = null;
                 activity.HabitTargetFirstSet = null;
@@ -590,6 +591,10 @@ namespace Bannister.Services
             }
             else
             {
+                if (activity.DisplayDayStreak > 0)
+                {
+                    activity.AutoSuggestThreshold = 30;
+                }
                 activity.DisplayDayStreak = 1; // Start new streak
             }
             
@@ -649,6 +654,7 @@ namespace Bannister.Services
                             processedActivityIds.Add(activity.Id);
                             
                             activity.DisplayDayStreak = 0;
+                            activity.AutoSuggestThreshold = 30;
                             await UpdateActivityAsync(activity);
                             break;
                         }

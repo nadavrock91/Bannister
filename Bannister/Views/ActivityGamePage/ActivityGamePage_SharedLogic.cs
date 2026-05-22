@@ -407,6 +407,10 @@ public partial class ActivityGamePage
             {
                 activity.LastDisplayDayUsed = DateTime.UtcNow.Date;
             }
+            else
+            {
+                activity.AutoSuggestThreshold = 30;
+            }
 
             await _activities.UpdateActivityAsync(activity);
             activityVM?.UpdateActivity(activity);

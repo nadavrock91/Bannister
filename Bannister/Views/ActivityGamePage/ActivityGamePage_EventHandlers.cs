@@ -88,6 +88,7 @@ public partial class ActivityGamePage
 
             string signPrefix = totalExp >= 0 ? "+" : "";
             await DisplayAlert("EXP Applied", $"Total: {signPrefix}{totalExp} EXP\n\n⚠️ You're in negative EXP territory!\nCurrent Total: {totalExpValue:N0}\n\n{string.Join("\n", details)}", "OK");
+            await PromptForAutoAwardSuggestionsAsync();
             return;
         }
 
@@ -117,6 +118,114 @@ public partial class ActivityGamePage
         string sign2 = totalExp >= 0 ? "+" : "";
         string levelUpMsg = leveledUp ? $"\n\n🎉 LEVEL UP! Now Level {levelAfter}!" : "";
         await DisplayAlert("EXP Applied", $"Total: {sign2}{totalExp} EXP{levelUpMsg}\n\n{string.Join("\n", details)}", "OK");
+        await PromptForAutoAwardSuggestionsAsync();
+    }
+
+    private async Task PromptForAutoAwardSuggestionsAsync()
+    {
+        if (_db.IsReadOnly || _allActivities == null || _allActivities.Count == 0)
+            return;
+
+        var candidates = _allActivities
+            .Select(vm => vm.Activity)
+            .Where(activity =>
+            {
+                int threshold = activity.AutoSuggestThreshold <= 0 ? 30 : activity.AutoSuggestThreshold;
+                return activity.IsActive
+                    && !activity.IsAutoAward
+                    && activity.DisplayDayStreak >= threshold;
+            })
+            .OrderBy(activity => activity.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (candidates.Count == 0)
+            return;
+
+        bool changed = false;
+
+        foreach (var activity in candidates)
+        {
+            int threshold = activity.AutoSuggestThreshold <= 0 ? 30 : activity.AutoSuggestThreshold;
+            string action = await DisplayActionSheet(
+                $"{activity.Name}\nDisplay Day Streak {activity.DisplayDayStreak} has reached the auto-suggestion threshold ({threshold}). Turn on auto EXP reward?",
+                "Skip",
+                null,
+                "Set to Auto",
+                "Postpone");
+
+            if (action == "Set to Auto")
+            {
+                activity.IsAutoAward = true;
+                if (string.IsNullOrWhiteSpace(activity.AutoAwardFrequency) || activity.AutoAwardFrequency == "None")
+                {
+                    activity.AutoAwardFrequency = "Daily";
+                }
+                if (activity.AutoAwardFrequency != "Weekly")
+                {
+                    activity.AutoAwardDays = "";
+                }
+                activity.Category = "Auto";
+
+                await _activities.UpdateActivityAsync(activity);
+                changed = true;
+            }
+            else if (action == "Postpone")
+            {
+                int? postponedThreshold = await ChooseAutoSuggestThresholdAsync(activity);
+                if (postponedThreshold.HasValue)
+                {
+                    activity.AutoSuggestThreshold = postponedThreshold.Value;
+                    await _activities.UpdateActivityAsync(activity);
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed)
+        {
+            await LoadCategoriesAsync();
+            await RefreshActivitiesAsync();
+        }
+    }
+
+    private async Task<int?> ChooseAutoSuggestThresholdAsync(Activity activity)
+    {
+        string choice = await DisplayActionSheet(
+            "Postpone Auto Suggestion",
+            "Cancel",
+            null,
+            "60",
+            "90",
+            "180",
+            "365",
+            "Manual");
+
+        if (string.IsNullOrEmpty(choice) || choice == "Cancel")
+            return null;
+
+        if (choice == "Manual")
+        {
+            string? manual = await DisplayPromptAsync(
+                "Manual Threshold",
+                $"Enter the Display Day Streak threshold for '{activity.Name}'.",
+                "Save",
+                "Cancel",
+                initialValue: Math.Max(activity.AutoSuggestThreshold, 30).ToString(),
+                keyboard: Keyboard.Numeric);
+
+            if (string.IsNullOrWhiteSpace(manual))
+                return null;
+
+            if (!int.TryParse(manual.Trim(), out int manualThreshold) || manualThreshold < 1)
+            {
+                await DisplayAlert("Invalid", "Enter a whole number greater than 0.", "OK");
+                return null;
+            }
+
+            return manualThreshold;
+        }
+
+        return int.TryParse(choice, out int threshold) ? threshold : null;
     }
 
     /// <summary>
@@ -328,6 +437,10 @@ public partial class ActivityGamePage
             if (newDisplayStreak > 0)
             {
                 activity.LastDisplayDayUsed = DateTime.UtcNow.Date;
+            }
+            else
+            {
+                activity.AutoSuggestThreshold = 30;
             }
             activityVM.DisplayDayStreak = newDisplayStreak;
             changed = true;

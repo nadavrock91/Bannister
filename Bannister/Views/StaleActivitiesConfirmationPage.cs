@@ -260,11 +260,10 @@ public class StaleActivitiesConfirmationPage : ContentPage
             .Where(a => _activitySwitches.ContainsKey(a.Id) && _activitySwitches[a.Id].IsToggled)
             .ToList();
 
-        if (selectedActivities.Count == 0)
-        {
-            await DisplayAlert("None Selected", "No activities selected to move.", "OK");
-            return;
-        }
+        var selectedIds = selectedActivities.Select(a => a.Id).ToHashSet();
+        var keptActivities = _staleActivities
+            .Where(a => !selectedIds.Contains(a.Id))
+            .ToList();
 
         foreach (var activity in selectedActivities)
         {
@@ -272,11 +271,27 @@ public class StaleActivitiesConfirmationPage : ContentPage
             await _activityService.UpdateActivityAsync(activity);
         }
 
-        await DisplayAlert(
-            "Done",
-            $"Moved {selectedActivities.Count} activity(ies) to 'Stale' category.\n\n" +
-            "Use the 'Stale' filter to view them.",
-            "OK");
+        foreach (var activity in keptActivities)
+        {
+            await _activityService.ResetStalenessAsync(activity);
+        }
+
+        if (selectedActivities.Count == 0)
+        {
+            await DisplayAlert(
+                "Done",
+                "No activities were moved to 'Stale'. All prompted activities were kept active and their stale counters were reset.",
+                "OK");
+        }
+        else
+        {
+            await DisplayAlert(
+                "Done",
+                $"Moved {selectedActivities.Count} activity(ies) to 'Stale' category.\n" +
+                $"Kept {keptActivities.Count} active and reset their stale counters.\n\n" +
+                "Use the 'Stale' filter to view moved activities.",
+                "OK");
+        }
 
         _tcs.TrySetResult(selectedActivities.Count);
         await Navigation.PopModalAsync();

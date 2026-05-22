@@ -105,6 +105,8 @@ public class Activity
     
     public DateTime? LastAutoAwarded { get; set; }  // Last time it was auto-awarded
 
+    public int AutoSuggestThreshold { get; set; } = 30;
+
     // Habit Tracking (for building habits through repetition)
     public string HabitType { get; set; } = "None";  // "None", "Daily", "Weekly", "Monthly"
     
