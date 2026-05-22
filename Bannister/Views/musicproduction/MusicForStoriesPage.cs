@@ -41,6 +41,7 @@ public class MusicForStoriesPage : ContentPage
     private Label _motifDescriptionStatusLabel = null!;
     private Button _describeMotifBlockButton = null!;
     private Button _pasteMotifDescriptionButton = null!;
+    private Button _buildFullSoundtrackPromptButton = null!;
     private Button _saveWorkingPromptTemplateButton = null!;
     private Button _pasteNewTemplateButton = null!;
     private Picker _templatePicker = null!;
@@ -421,8 +422,11 @@ public class MusicForStoriesPage : ContentPage
         _describeMotifBlockButton.Clicked += OnDescribeMotifBlockClicked;
         _pasteMotifDescriptionButton = ActionButton("Paste Motif Description", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
         _pasteMotifDescriptionButton.Clicked += OnPasteMotifDescriptionClicked;
+        _buildFullSoundtrackPromptButton = ActionButton("Build Full Soundtrack Prompt", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
+        _buildFullSoundtrackPromptButton.Clicked += OnBuildFullSoundtrackPromptClicked;
         motifDescriptionButtons.Children.Add(_describeMotifBlockButton);
         motifDescriptionButtons.Children.Add(_pasteMotifDescriptionButton);
+        motifDescriptionButtons.Children.Add(_buildFullSoundtrackPromptButton);
         stack.Children.Add(motifDescriptionButtons);
 
         var templateSaveButtons = new HorizontalStackLayout { Spacing = 8 };
@@ -588,6 +592,7 @@ public class MusicForStoriesPage : ContentPage
             _musicPlanningFrame.IsVisible = false;
             _describeMotifBlockButton.IsVisible = false;
             _pasteMotifDescriptionButton.IsVisible = false;
+            _buildFullSoundtrackPromptButton.IsVisible = false;
             _addCardButton.IsVisible = false;
             return;
         }
@@ -627,6 +632,7 @@ public class MusicForStoriesPage : ContentPage
         _pasteTimestampsButton.IsVisible = IsMaster;
         _describeMotifBlockButton.IsVisible = IsMaster;
         _pasteMotifDescriptionButton.IsVisible = IsMaster;
+        _buildFullSoundtrackPromptButton.IsVisible = IsMaster;
         _saveWorkingPromptTemplateButton.IsVisible = IsMaster;
         _pasteNewTemplateButton.IsVisible = IsMaster;
         _buildTemplatePromptButton.IsVisible = IsMaster;
@@ -1234,6 +1240,52 @@ public class MusicForStoriesPage : ContentPage
         _currentProject = await _musicService.GetProjectByIdAsync(_currentProject.Id) ?? _currentProject;
         await RefreshMusicPlanningAsync();
         await DisplayAlert("Motif Description Saved", "The motif description was saved to this draft.", "OK");
+    }
+
+    private async void OnBuildFullSoundtrackPromptClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        var motifDescription = await _musicService.GetMotifDescriptionAsync(_currentProject.Id);
+        if (string.IsNullOrWhiteSpace(motifDescription))
+        {
+            await DisplayAlert(
+                "Motif Description Needed",
+                "Describe the motif block first (Describe Motif Block -> Paste Motif Description) so the soundtrack can be built around it.",
+                "OK");
+            return;
+        }
+
+        var script = await BuildCurrentScriptTextAsync();
+        if (string.IsNullOrWhiteSpace(script))
+        {
+            await DisplayAlert("No Script", "Add script lines to the current draft before building a full soundtrack prompt.", "OK");
+            return;
+        }
+
+        var description = await GetGeneralMusicDescriptionTextAsync();
+        var timestamps = await _musicService.GetTimestampedNarrationAsync(_currentProject.Id);
+        var prompt =
+            "I am preparing a prompt for an AI music generator such as Suno or ElevenLabs.\n" +
+            "Produce ONE final, complete, ready-to-paste music-generation prompt for the ENTIRE soundtrack of this short-video story.\n" +
+            "Do not produce a list, alternatives, or options.\n\n" +
+            "Use the provided MOTIF DESCRIPTION as the soundtrack's main recurring motif. Build the whole piece around it: open on it, return to it, and transform it as the story demands while keeping its established musical identity consistent, including instrumentation, tonal/key feel, and mood.\n" +
+            "Follow the emotional arc of the SCRIPT and map the music's progression onto the provided TIMESTAMPS with section-by-section mood, intensity, and instrumentation shifts aligned to the time ranges. Infer the total duration from the last timestamp when timestamps are provided.\n" +
+            "Honor the GENERAL MUSIC DESCRIPTION's overall direction.\n" +
+            "Output ONLY the final soundtrack prompt, with no commentary.\n\n" +
+            "MOTIF DESCRIPTION:\n" +
+            motifDescription.Trim() + "\n\n" +
+            "GENERAL MUSIC DESCRIPTION:\n" +
+            (string.IsNullOrWhiteSpace(description) ? "(none provided)" : description) + "\n\n" +
+            "SCRIPT:\n" +
+            script + "\n\n" +
+            "TIMESTAMPS:\n" +
+            (string.IsNullOrWhiteSpace(timestamps) ? "(no timestamps saved)" : timestamps.Trim());
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Full Soundtrack Meta-Prompt Copied",
+            "Paste this into your LLM to get a full-soundtrack prompt built around your motif. Copy its output into Suno or ElevenLabs.");
     }
 
     private async void OnWriteOwnPromptClicked(object? sender, EventArgs e)
