@@ -13,16 +13,18 @@ public class StoryProductionHubPage : ContentPage
     private readonly IdeasService? _ideasService;
     private readonly IdeaLoggerService? _ideaLogger;
     private readonly SubActivityService? _subActivityService;
+    private readonly CustomPromptService? _customPrompts;
     
     private Label _statsLabel;
 
-    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null)
+    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null)
     {
         _auth = auth;
         _storyService = storyService;
         _ideasService = ideasService;
         _ideaLogger = ideaLogger;
         _subActivityService = subActivityService;
+        _customPrompts = customPrompts;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -170,7 +172,7 @@ public class StoryProductionHubPage : ContentPage
 
     private async Task OnDraftsClicked()
     {
-        var page = new StoryProductionPage(_auth, _storyService, _ideasService, _ideaLogger, _subActivityService);
+        var page = new StoryProductionPage(_auth, _storyService, _ideasService, _ideaLogger, _subActivityService, _customPrompts);
         await Navigation.PushAsync(page);
     }
 

@@ -10,6 +10,7 @@ public class MusicForStoriesPage : ContentPage
     private readonly MusicProductionService _musicService;
     private readonly DatabaseService _db;
     private readonly IdeasService _ideas;
+    private readonly CustomPromptService _customPrompts;
 
     private Picker _projectPicker = null!;
     private Picker _draftPicker = null!;
@@ -25,6 +26,7 @@ public class MusicForStoriesPage : ContentPage
     private Button _compareButton = null!;
     private Button _deleteDraftButton = null!;
     private Button _exportPromptButton = null!;
+    private Button _customPromptsButton = null!;
     private Button _exportMusicStateButton = null!;
     private Button _importButton = null!;
     private Frame _musicPlanningFrame = null!;
@@ -65,12 +67,13 @@ public class MusicForStoriesPage : ContentPage
 
     private bool IsMaster => !_db.IsReadOnly;
 
-    public MusicForStoriesPage(AuthService auth, MusicProductionService musicService, DatabaseService db, IdeasService ideas)
+    public MusicForStoriesPage(AuthService auth, MusicProductionService musicService, DatabaseService db, IdeasService ideas, CustomPromptService customPrompts)
     {
         _auth = auth;
         _musicService = musicService;
         _db = db;
         _ideas = ideas;
+        _customPrompts = customPrompts;
 
         Title = "Music for Stories";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -204,6 +207,11 @@ public class MusicForStoriesPage : ContentPage
         _exportPromptButton.IsVisible = false;
         _exportPromptButton.Clicked += OnExportPromptClicked;
         importExportRow.Children.Add(_exportPromptButton);
+
+        _customPromptsButton = ActionButton("Custom Prompts", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57F17"));
+        _customPromptsButton.IsVisible = false;
+        _customPromptsButton.Clicked += OnCustomPromptsClicked;
+        importExportRow.Children.Add(_customPromptsButton);
 
         _exportMusicStateButton = ActionButton("Export Music State", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
         _exportMusicStateButton.IsVisible = false;
@@ -591,6 +599,7 @@ public class MusicForStoriesPage : ContentPage
             _compareButton.IsVisible = false;
             _deleteDraftButton.IsVisible = false;
             _exportPromptButton.IsVisible = false;
+            _customPromptsButton.IsVisible = false;
             _exportMusicStateButton.IsVisible = false;
             _importButton.IsVisible = false;
             _musicPlanningFrame.IsVisible = false;
@@ -624,6 +633,7 @@ public class MusicForStoriesPage : ContentPage
         _setLatestButton.IsVisible = IsMaster && _drafts.Count > 1 && !_currentProject.IsLatest;
         _compareButton.IsVisible = IsMaster && _drafts.Count > 1;
         _exportPromptButton.IsVisible = IsMaster;
+        _customPromptsButton.IsVisible = IsMaster;
         _exportMusicStateButton.IsVisible = IsMaster;
         _importButton.IsVisible = IsMaster;
         _musicPlanningFrame.IsVisible = true;
@@ -956,6 +966,158 @@ public class MusicForStoriesPage : ContentPage
 
         if (choice == "Convert Story Idea to Import Format")
             await ExportConvertStoryPromptAsync();
+    }
+
+    private async void OnCustomPromptsClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster) return;
+
+        var prompts = await LoadCustomPromptsAsync();
+        var options = new List<string> { "+ Add Custom Prompt" };
+        options.AddRange(prompts.Select(p => p.Title));
+
+        string? choice = await DisplayActionSheet(
+            "Custom Prompts",
+            "Cancel",
+            null,
+            options.ToArray());
+
+        if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel")
+            return;
+
+        if (choice == "+ Add Custom Prompt")
+        {
+            await AddCustomPromptAsync();
+            return;
+        }
+
+        var selected = prompts.FirstOrDefault(p => p.Title == choice);
+        if (selected != null)
+            await ShowCustomPromptActionsAsync(selected);
+    }
+
+    private async Task AddCustomPromptAsync()
+    {
+        string? title = await DisplayPromptAsync(
+            "New Custom Prompt",
+            "Title shown in the custom prompt menu:",
+            "Next",
+            "Cancel",
+            placeholder: "Prompt title...");
+
+        if (string.IsNullOrWhiteSpace(title))
+            return;
+
+        string? text = await ShowMultiLineInputAsync(
+            "Custom Prompt",
+            "Prompt text:",
+            "",
+            "Paste or write the custom prompt...");
+
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        var prompts = await LoadCustomPromptsAsync();
+        string finalTitle = GetUniqueCustomPromptTitle(prompts, title.Trim());
+        var prompt = await _customPrompts.AddCustomPromptAsync(_auth.CurrentUsername, "music", finalTitle, text.Trim());
+
+        await DisplayAlert("Saved", $"Custom prompt \"{finalTitle}\" saved.", "OK");
+        await _ideas.CreateIdeaAsync(_auth.CurrentUsername, prompt.Text, "music_custom_prompts", fullIdea: prompt.Text);
+    }
+
+    private async Task ShowCustomPromptActionsAsync(CustomPromptItem prompt)
+    {
+        string? choice = await DisplayActionSheet(
+            prompt.Title,
+            "Cancel",
+            null,
+            "Copy Prompt",
+            "View Prompt",
+            "Edit Prompt",
+            "Delete Prompt",
+            "Log As Idea");
+
+        if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel")
+            return;
+
+        switch (choice)
+        {
+            case "Copy Prompt":
+                await Clipboard.SetTextAsync(prompt.Text);
+                await DisplayAlert("Copied", $"\"{prompt.Title}\" copied to clipboard.", "OK");
+                break;
+            case "View Prompt":
+                await DisplayAlert(prompt.Title, prompt.Text, "OK");
+                break;
+            case "Edit Prompt":
+                await EditCustomPromptAsync(prompt);
+                break;
+            case "Delete Prompt":
+                await DeleteCustomPromptAsync(prompt);
+                break;
+            case "Log As Idea":
+                await _ideas.CreateIdeaAsync(_auth.CurrentUsername, prompt.Text, "music_custom_prompts", fullIdea: prompt.Text);
+                break;
+        }
+    }
+
+    private async Task EditCustomPromptAsync(CustomPromptItem prompt)
+    {
+        string? newTitle = await DisplayPromptAsync(
+            "Edit Custom Prompt",
+            "Title shown in the custom prompt menu:",
+            "Next",
+            "Cancel",
+            initialValue: prompt.Title);
+
+        if (string.IsNullOrWhiteSpace(newTitle))
+            return;
+
+        string? newText = await ShowMultiLineInputAsync(
+            "Edit Custom Prompt",
+            "Prompt text:",
+            prompt.Text,
+            "Prompt text...");
+
+        if (string.IsNullOrWhiteSpace(newText))
+            return;
+
+        var prompts = await LoadCustomPromptsAsync();
+        prompt.Title = GetUniqueCustomPromptTitle(prompts.Where(p => p.Id != prompt.Id).ToList(), newTitle.Trim());
+        prompt.Text = newText.Trim();
+        await _customPrompts.UpdateCustomPromptAsync(prompt);
+    }
+
+    private async Task DeleteCustomPromptAsync(CustomPromptItem prompt)
+    {
+        bool delete = await DisplayAlert(
+            "Delete Custom Prompt?",
+            $"Delete \"{prompt.Title}\"?",
+            "Delete",
+            "Cancel");
+
+        if (!delete)
+            return;
+
+        await _customPrompts.DeleteCustomPromptAsync(prompt.Id);
+    }
+
+    private Task<List<CustomPromptItem>> LoadCustomPromptsAsync() =>
+        _customPrompts.GetCustomPromptsAsync(_auth.CurrentUsername, "music");
+
+    private static string GetUniqueCustomPromptTitle(List<CustomPromptItem> prompts, string title)
+    {
+        string baseTitle = string.IsNullOrWhiteSpace(title) ? "Custom Prompt" : title.Trim();
+        string candidate = baseTitle;
+        int suffix = 2;
+
+        while (prompts.Any(p => string.Equals(p.Title, candidate, StringComparison.OrdinalIgnoreCase)))
+        {
+            candidate = $"{baseTitle} ({suffix})";
+            suffix++;
+        }
+
+        return candidate;
     }
 
     private async Task ExportConvertStoryPromptAsync()

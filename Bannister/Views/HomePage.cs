@@ -22,6 +22,7 @@ public class HomePage : ContentPage
     private readonly PromptService _prompts;
     private readonly StoryProductionService _storyProduction;
     private readonly MusicProductionService _musicProduction;
+    private readonly CustomPromptService _customPrompts;
     private readonly TaskService _taskService;
     private readonly WeeklyChallengeService _challengeService;
     private readonly IdeasService _ideas;
@@ -75,7 +76,7 @@ public class HomePage : ContentPage
         SubActivityService subActivityService, AudioLibraryService audioLibService,
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
-        PendingActivityIdeaService pendingIdeas)
+        PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts)
     {
         _auth = auth;
         _games = games;
@@ -91,6 +92,7 @@ public class HomePage : ContentPage
         _prompts = prompts;
         _storyProduction = storyProduction;
         _musicProduction = musicProduction;
+        _customPrompts = customPrompts;
         _taskService = taskService;
         _challengeService = challengeService;
         _ideas = ideas;
@@ -993,13 +995,13 @@ public class HomePage : ContentPage
 
     private async void OnStoryProductionClicked(object? sender, EventArgs e)
     {
-        var page = new StoryProductionHubPage(_auth, _storyProduction, _ideas, _ideaLogger, _subActivityService);
+        var page = new StoryProductionHubPage(_auth, _storyProduction, _ideas, _ideaLogger, _subActivityService, _customPrompts);
         await Navigation.PushAsync(page);
     }
 
     private async void OnMusicProductionClicked(object? sender, EventArgs e)
     {
-        var page = new MusicProductionHubPage(_auth, _musicProduction, _db, _ideas);
+        var page = new MusicProductionHubPage(_auth, _musicProduction, _db, _ideas, _customPrompts);
         await Navigation.PushAsync(page);
     }
 

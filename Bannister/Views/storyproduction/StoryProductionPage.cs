@@ -11,6 +11,7 @@ public class StoryProductionPage : ContentPage
     private readonly IdeasService? _ideasService;
     private readonly IdeaLoggerService? _ideaLogger;
     private readonly SubActivityService? _subActivityService;
+    private readonly CustomPromptService? _customPrompts;
     private FloatingChecklist? _checklist;
     
     private Picker _projectCategoryPicker;
@@ -53,13 +54,14 @@ public class StoryProductionPage : ContentPage
     private string _selectedProjectCategory = "All";
     private bool _isLoadingProjectCategories;
 
-    public StoryProductionPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null)
+    public StoryProductionPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null)
     {
         _auth = auth;
         _storyService = storyService;
         _ideasService = ideasService;
         _ideaLogger = ideaLogger;
         _subActivityService = subActivityService;
+        _customPrompts = customPrompts;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -2914,7 +2916,9 @@ public class StoryProductionPage : ContentPage
 
     private async void OnCustomPromptsClicked(object? sender, EventArgs e)
     {
-        var prompts = LoadCustomPrompts();
+        if (_customPrompts == null) return;
+
+        var prompts = await LoadCustomPromptsAsync();
         var options = new List<string> { "+ Add Custom Prompt" };
         options.AddRange(prompts.Select(p => p.Title));
 
@@ -2940,6 +2944,8 @@ public class StoryProductionPage : ContentPage
 
     private async Task AddCustomPromptAsync()
     {
+        if (_customPrompts == null) return;
+
         string? title = await DisplayPromptAsync(
             "New Custom Prompt",
             "Title shown in the custom prompt menu:",
@@ -2959,18 +2965,9 @@ public class StoryProductionPage : ContentPage
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        var prompts = LoadCustomPrompts();
+        var prompts = await LoadCustomPromptsAsync();
         string finalTitle = GetUniqueCustomPromptTitle(prompts, title.Trim());
-        var prompt = new StoryCustomPrompt
-        {
-            Title = finalTitle,
-            Text = text.Trim(),
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
-        };
-
-        prompts.Add(prompt);
-        SaveCustomPrompts(prompts);
+        var prompt = await _customPrompts.AddCustomPromptAsync(_auth.CurrentUsername, "story", finalTitle, text.Trim());
 
         await DisplayAlert("Saved", $"Custom prompt \"{finalTitle}\" saved.", "OK");
 
@@ -2978,7 +2975,7 @@ public class StoryProductionPage : ContentPage
             await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, prompt.Text, "story_custom_prompts");
     }
 
-    private async Task ShowCustomPromptActionsAsync(StoryCustomPrompt prompt)
+    private async Task ShowCustomPromptActionsAsync(CustomPromptItem prompt)
     {
         string choice = await DisplayActionSheet(
             prompt.Title,
@@ -3015,8 +3012,10 @@ public class StoryProductionPage : ContentPage
         }
     }
 
-    private async Task EditCustomPromptAsync(StoryCustomPrompt prompt)
+    private async Task EditCustomPromptAsync(CustomPromptItem prompt)
     {
+        if (_customPrompts == null) return;
+
         string? newTitle = await DisplayPromptAsync(
             "Edit Custom Prompt",
             "Title shown in the custom prompt menu:",
@@ -3036,21 +3035,16 @@ public class StoryProductionPage : ContentPage
         if (string.IsNullOrWhiteSpace(newText))
             return;
 
-        var prompts = LoadCustomPrompts();
-        var existing = prompts.FirstOrDefault(p => p.Title == prompt.Title && p.Text == prompt.Text);
-        if (existing == null)
-            return;
-
-        prompts.Remove(existing);
-        existing.Title = GetUniqueCustomPromptTitle(prompts, newTitle.Trim());
-        existing.Text = newText.Trim();
-        existing.UpdatedAt = DateTime.Now;
-        prompts.Add(existing);
-        SaveCustomPrompts(prompts);
+        var prompts = await LoadCustomPromptsAsync();
+        prompt.Title = GetUniqueCustomPromptTitle(prompts.Where(p => p.Id != prompt.Id).ToList(), newTitle.Trim());
+        prompt.Text = newText.Trim();
+        await _customPrompts.UpdateCustomPromptAsync(prompt);
     }
 
-    private async Task DeleteCustomPromptAsync(StoryCustomPrompt prompt)
+    private async Task DeleteCustomPromptAsync(CustomPromptItem prompt)
     {
+        if (_customPrompts == null) return;
+
         bool delete = await DisplayAlert(
             "Delete Custom Prompt?",
             $"Delete \"{prompt.Title}\"?",
@@ -3060,16 +3054,42 @@ public class StoryProductionPage : ContentPage
         if (!delete)
             return;
 
-        var prompts = LoadCustomPrompts();
-        var existing = prompts.FirstOrDefault(p => p.Title == prompt.Title && p.Text == prompt.Text);
-        if (existing != null)
+        await _customPrompts.DeleteCustomPromptAsync(prompt.Id);
+    }
+
+    private async Task<List<CustomPromptItem>> LoadCustomPromptsAsync()
+    {
+        if (_customPrompts == null)
+            return new List<CustomPromptItem>();
+
+        await MigrateCustomPromptsFromPreferencesAsync();
+        return await _customPrompts.GetCustomPromptsAsync(_auth.CurrentUsername, "story");
+    }
+
+    private async Task MigrateCustomPromptsFromPreferencesAsync()
+    {
+        if (_customPrompts == null || _customPrompts.IsReadOnly)
+            return;
+
+        var existing = await _customPrompts.GetCustomPromptsAsync(_auth.CurrentUsername, "story");
+        if (existing.Count > 0)
+            return;
+
+        var legacyPrompts = LoadLegacyCustomPromptsFromPreferences();
+        foreach (var prompt in legacyPrompts.Where(p => !string.IsNullOrWhiteSpace(p.Title)))
         {
-            prompts.Remove(existing);
-            SaveCustomPrompts(prompts);
+            var item = await _customPrompts.AddCustomPromptAsync(
+                _auth.CurrentUsername,
+                "story",
+                prompt.Title.Trim(),
+                prompt.Text?.Trim() ?? "");
+            item.CreatedAt = prompt.CreatedAt;
+            item.UpdatedAt = prompt.UpdatedAt;
+            await _customPrompts.UpdateCustomPromptAsync(item);
         }
     }
 
-    private List<StoryCustomPrompt> LoadCustomPrompts()
+    private List<StoryCustomPrompt> LoadLegacyCustomPromptsFromPreferences()
     {
         string json = Preferences.Get(GetCustomPromptsKey(), "");
         if (string.IsNullOrWhiteSpace(json))
@@ -3085,16 +3105,7 @@ public class StoryProductionPage : ContentPage
         }
     }
 
-    private void SaveCustomPrompts(List<StoryCustomPrompt> prompts)
-    {
-        var ordered = prompts
-            .Where(p => !string.IsNullOrWhiteSpace(p.Title))
-            .OrderBy(p => p.Title, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        Preferences.Set(GetCustomPromptsKey(), JsonSerializer.Serialize(ordered));
-    }
-
-    private string GetUniqueCustomPromptTitle(List<StoryCustomPrompt> prompts, string title)
+    private string GetUniqueCustomPromptTitle(List<CustomPromptItem> prompts, string title)
     {
         string baseTitle = string.IsNullOrWhiteSpace(title) ? "Custom Prompt" : title.Trim();
         string candidate = baseTitle;
