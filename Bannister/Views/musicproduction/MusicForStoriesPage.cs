@@ -48,6 +48,7 @@ public class MusicForStoriesPage : ContentPage
     private Button _planRemixStitchButton = null!;
     private Button _saveWorkingPromptTemplateButton = null!;
     private Button _pasteNewTemplateButton = null!;
+    private Button _suggestTemplatesButton = null!;
     private Picker _templatePicker = null!;
     private Label _templateScoreLabel = null!;
     private Button _markTemplateSuccessButton = null!;
@@ -458,8 +459,11 @@ public class MusicForStoriesPage : ContentPage
         _saveWorkingPromptTemplateButton.Clicked += OnSaveWorkingPromptTemplateClicked;
         _pasteNewTemplateButton = ActionButton("Paste New Template", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
         _pasteNewTemplateButton.Clicked += OnPasteNewTemplateClicked;
+        _suggestTemplatesButton = ActionButton("Suggest Templates to Try", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
+        _suggestTemplatesButton.Clicked += OnSuggestTemplatesClicked;
         templateSaveButtons.Children.Add(_saveWorkingPromptTemplateButton);
         templateSaveButtons.Children.Add(_pasteNewTemplateButton);
+        templateSaveButtons.Children.Add(_suggestTemplatesButton);
         stack.Children.Add(templateSaveButtons);
 
         var templateUseRow = new HorizontalStackLayout { Spacing = 8 };
@@ -643,6 +647,7 @@ public class MusicForStoriesPage : ContentPage
             _buildFullSoundtrackPromptButton.IsVisible = false;
             _planRemixStitchButton.IsVisible = false;
             _addCardButton.IsVisible = false;
+            _suggestTemplatesButton.IsVisible = false;
             _templateScoreLabel.IsVisible = false;
             _markTemplateSuccessButton.IsVisible = false;
             _markTemplateFailButton.IsVisible = false;
@@ -691,6 +696,7 @@ public class MusicForStoriesPage : ContentPage
         _planRemixStitchButton.IsVisible = IsMaster;
         _saveWorkingPromptTemplateButton.IsVisible = IsMaster;
         _pasteNewTemplateButton.IsVisible = IsMaster;
+        _suggestTemplatesButton.IsVisible = IsMaster;
         _buildTemplatePromptButton.IsVisible = IsMaster;
         _manageTemplatesButton.IsVisible = IsMaster;
         _addCardButton.IsVisible = IsMaster;
@@ -1671,6 +1677,104 @@ public class MusicForStoriesPage : ContentPage
             prompt,
             "Remix Stitch Plan Copied",
             "Paste this into your LLM to get a placement plan and Suno remix prompts. Use them to place the motif and generate connecting pieces in your music software.");
+    }
+
+    private async void OnSuggestTemplatesClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        var timestamps = await _musicService.GetTimestampedNarrationAsync(_currentProject.Id);
+        if (string.IsNullOrWhiteSpace(timestamps))
+        {
+            await DisplayAlert(
+                "Timestamps Needed",
+                "Add timestamps first (Get Transcription Prompt -> Paste Timestamps).",
+                "OK");
+            return;
+        }
+
+        var templates = await _musicService.GetPromptTemplatesAsync(_auth.CurrentUsername);
+        if (templates.Count == 0)
+        {
+            await DisplayAlert("No Templates", "No templates saved yet.", "OK");
+            return;
+        }
+
+        string? rangeText = await DisplayPromptAsync(
+            "Suggest Templates",
+            "Enter how many templates to randomly sample, as min-max.",
+            "Build",
+            "Cancel",
+            initialValue: "5-10");
+        if (rangeText == null) return;
+
+        var (min, max) = ParseTemplateSuggestionRange(rangeText);
+        int available = templates.Count;
+        var random = new Random();
+        int selectionCount;
+        if (available <= min)
+        {
+            selectionCount = available;
+        }
+        else
+        {
+            int cappedMin = Math.Min(min, available);
+            int cappedMax = Math.Min(max, available);
+            selectionCount = random.Next(cappedMin, cappedMax + 1);
+        }
+
+        var selectedTemplates = templates
+            .OrderBy(_ => random.Next())
+            .Take(selectionCount)
+            .ToList();
+
+        var prompt = BuildTemplateSuggestionPrompt(selectedTemplates, timestamps.Trim());
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Template Ranking Prompt Copied",
+            "Paste this into your LLM to get a best-to-worst ranking of which template to try next for this story.");
+    }
+
+    private static (int Min, int Max) ParseTemplateSuggestionRange(string rangeText)
+    {
+        var matches = System.Text.RegularExpressions.Regex.Matches(rangeText ?? "", @"\d+");
+        if (matches.Count < 2)
+            return (5, 10);
+
+        if (!int.TryParse(matches[0].Value, out int min) || !int.TryParse(matches[1].Value, out int max))
+            return (5, 10);
+
+        if (max < min)
+            (min, max) = (max, min);
+
+        min = Math.Max(1, min);
+        max = Math.Max(min, max);
+        return (min, max);
+    }
+
+    private static string BuildTemplateSuggestionPrompt(List<MusicPromptTemplate> templates, string timestamps)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("The user is choosing which music-prompt template to try next for THIS short-video story's soundtrack.");
+        sb.AppendLine($"Below are {templates.Count} candidate templates and the story's timestamped narration.");
+        sb.AppendLine("Rank the candidate templates from BEST to WORST fit for creating this story's composition.");
+        sb.AppendLine("Position 1 is the best template to try first.");
+        sb.AppendLine("Consider how well each template's musical approach suits the story told by the timestamps.");
+        sb.AppendLine("Output only a numbered ranked list, best first. Each item must include the template name and a one-line reason why it ranks there. No other commentary.");
+        sb.AppendLine();
+        sb.AppendLine("CANDIDATE TEMPLATES:");
+        for (int i = 0; i < templates.Count; i++)
+        {
+            var template = templates[i];
+            sb.AppendLine($"--- TEMPLATE {i + 1}: {template.Name} ---");
+            sb.AppendLine(template.TemplateText ?? "");
+            sb.AppendLine($"--- END TEMPLATE {i + 1} ---");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("TIMESTAMPS:");
+        sb.AppendLine(timestamps);
+        return sb.ToString();
     }
 
     private async void OnWriteOwnPromptClicked(object? sender, EventArgs e)
