@@ -42,6 +42,7 @@ public class MusicForStoriesPage : ContentPage
     private Button _describeMotifBlockButton = null!;
     private Button _pasteMotifDescriptionButton = null!;
     private Button _buildFullSoundtrackPromptButton = null!;
+    private Button _planRemixStitchButton = null!;
     private Button _saveWorkingPromptTemplateButton = null!;
     private Button _pasteNewTemplateButton = null!;
     private Picker _templatePicker = null!;
@@ -424,9 +425,12 @@ public class MusicForStoriesPage : ContentPage
         _pasteMotifDescriptionButton.Clicked += OnPasteMotifDescriptionClicked;
         _buildFullSoundtrackPromptButton = ActionButton("Build Full Soundtrack Prompt", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
         _buildFullSoundtrackPromptButton.Clicked += OnBuildFullSoundtrackPromptClicked;
+        _planRemixStitchButton = ActionButton("Plan Remix and Stitch", Color.FromArgb("#E8EAF6"), Color.FromArgb("#303F9F"));
+        _planRemixStitchButton.Clicked += OnPlanRemixStitchClicked;
         motifDescriptionButtons.Children.Add(_describeMotifBlockButton);
         motifDescriptionButtons.Children.Add(_pasteMotifDescriptionButton);
         motifDescriptionButtons.Children.Add(_buildFullSoundtrackPromptButton);
+        motifDescriptionButtons.Children.Add(_planRemixStitchButton);
         stack.Children.Add(motifDescriptionButtons);
 
         var templateSaveButtons = new HorizontalStackLayout { Spacing = 8 };
@@ -593,6 +597,7 @@ public class MusicForStoriesPage : ContentPage
             _describeMotifBlockButton.IsVisible = false;
             _pasteMotifDescriptionButton.IsVisible = false;
             _buildFullSoundtrackPromptButton.IsVisible = false;
+            _planRemixStitchButton.IsVisible = false;
             _addCardButton.IsVisible = false;
             return;
         }
@@ -633,6 +638,7 @@ public class MusicForStoriesPage : ContentPage
         _describeMotifBlockButton.IsVisible = IsMaster;
         _pasteMotifDescriptionButton.IsVisible = IsMaster;
         _buildFullSoundtrackPromptButton.IsVisible = IsMaster;
+        _planRemixStitchButton.IsVisible = IsMaster;
         _saveWorkingPromptTemplateButton.IsVisible = IsMaster;
         _pasteNewTemplateButton.IsVisible = IsMaster;
         _buildTemplatePromptButton.IsVisible = IsMaster;
@@ -1283,6 +1289,55 @@ public class MusicForStoriesPage : ContentPage
             prompt,
             "Full Soundtrack Meta-Prompt Copied",
             "Paste this into your LLM to get a full-soundtrack prompt built around your motif. Copy its output into Suno or ElevenLabs.");
+    }
+
+    private async void OnPlanRemixStitchClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        var motifDescription = await _musicService.GetMotifDescriptionAsync(_currentProject.Id);
+        if (string.IsNullOrWhiteSpace(motifDescription))
+        {
+            await DisplayAlert(
+                "Motif Description Needed",
+                "Describe the motif block first (Describe Motif Block -> Paste Motif Description).",
+                "OK");
+            return;
+        }
+
+        var timestamps = await _musicService.GetTimestampedNarrationAsync(_currentProject.Id);
+        if (string.IsNullOrWhiteSpace(timestamps))
+        {
+            await DisplayAlert(
+                "Timestamps Needed",
+                "Add timestamps first (Get Transcription Prompt -> Paste Timestamps).",
+                "OK");
+            return;
+        }
+
+        var prompt =
+            "You are planning a remix-and-stitch assembly for a short-video soundtrack.\n" +
+            "The user already HAS a real main motif audio block, described in MOTIF DESCRIPTION, and will assemble the final soundtrack in audio software by placing copies or cuts of this motif and generating connecting pieces through Suno's remix feature.\n" +
+            "You are NOT writing one music-generation prompt. Produce a PLACEMENT PLAN plus Suno remix prompts for the connecting gaps.\n\n" +
+            "Read the motif's length and internal structure from MOTIF DESCRIPTION. Its structure-by-timestamp indicates how long the motif is and what happens inside it.\n" +
+            "Plan against the story timeline in TIMESTAMPS. The last timestamp gives the total duration.\n\n" +
+            "First, produce a PLACEMENT PLAN across the timestamped story. Specify where the actual motif audio should be placed, using time ranges and story beats from TIMESTAMPS.\n" +
+            "For each placement, specify how to cut the motif: trims, which portion to use, loops, shortened versions, or whether to use the full motif, plus the target time region and target length. The motif does not have to be used in full every time.\n" +
+            "Tie each placement to the narration moment it supports, such as a full opening statement, a trimmed darker return, a sparse short version, or a tender ending.\n\n" +
+            "Second, identify every gap between motif placements that needs connecting material.\n" +
+            "For EACH gap, produce a self-contained SUNO REMIX PROMPT under 1000 characters. Each remix prompt must explain how to remix or extend the motif into connecting music for that specific gap while matching the motif's established instrumentation, key/tonal feel, tempo, and mood so the stitched soundtrack feels continuous.\n\n" +
+            "Lay out the answer clearly with the placement plan first, then the connecting remix prompts. Label each placement and each gap with its time region.\n" +
+            "Keep every Suno remix prompt under 1000 characters.\n" +
+            "Output the plan and the prompts only, with no extra commentary.\n\n" +
+            "MOTIF DESCRIPTION:\n" +
+            motifDescription.Trim() + "\n\n" +
+            "TIMESTAMPS:\n" +
+            timestamps.Trim();
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Remix Stitch Plan Copied",
+            "Paste this into your LLM to get a placement plan and Suno remix prompts. Use them to place the motif and generate connecting pieces in your music software.");
     }
 
     private async void OnWriteOwnPromptClicked(object? sender, EventArgs e)
