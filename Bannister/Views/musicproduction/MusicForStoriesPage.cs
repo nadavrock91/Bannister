@@ -49,6 +49,7 @@ public class MusicForStoriesPage : ContentPage
     private Button _saveWorkingPromptTemplateButton = null!;
     private Button _pasteNewTemplateButton = null!;
     private Button _suggestTemplatesButton = null!;
+    private Button _getTemplateIdeasButton = null!;
     private Picker _templatePicker = null!;
     private Label _templateScoreLabel = null!;
     private Button _markTemplateSuccessButton = null!;
@@ -461,9 +462,12 @@ public class MusicForStoriesPage : ContentPage
         _pasteNewTemplateButton.Clicked += OnPasteNewTemplateClicked;
         _suggestTemplatesButton = ActionButton("Suggest Templates to Try", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
         _suggestTemplatesButton.Clicked += OnSuggestTemplatesClicked;
+        _getTemplateIdeasButton = ActionButton("Get 100 Template Ideas", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
+        _getTemplateIdeasButton.Clicked += OnGetTemplateIdeasClicked;
         templateSaveButtons.Children.Add(_saveWorkingPromptTemplateButton);
         templateSaveButtons.Children.Add(_pasteNewTemplateButton);
         templateSaveButtons.Children.Add(_suggestTemplatesButton);
+        templateSaveButtons.Children.Add(_getTemplateIdeasButton);
         stack.Children.Add(templateSaveButtons);
 
         var templateUseRow = new HorizontalStackLayout { Spacing = 8 };
@@ -648,6 +652,7 @@ public class MusicForStoriesPage : ContentPage
             _planRemixStitchButton.IsVisible = false;
             _addCardButton.IsVisible = false;
             _suggestTemplatesButton.IsVisible = false;
+            _getTemplateIdeasButton.IsVisible = false;
             _templateScoreLabel.IsVisible = false;
             _markTemplateSuccessButton.IsVisible = false;
             _markTemplateFailButton.IsVisible = false;
@@ -697,6 +702,7 @@ public class MusicForStoriesPage : ContentPage
         _saveWorkingPromptTemplateButton.IsVisible = IsMaster;
         _pasteNewTemplateButton.IsVisible = IsMaster;
         _suggestTemplatesButton.IsVisible = IsMaster;
+        _getTemplateIdeasButton.IsVisible = IsMaster;
         _buildTemplatePromptButton.IsVisible = IsMaster;
         _manageTemplatesButton.IsVisible = IsMaster;
         _addCardButton.IsVisible = IsMaster;
@@ -1775,6 +1781,24 @@ public class MusicForStoriesPage : ContentPage
         sb.AppendLine("TIMESTAMPS:");
         sb.AppendLine(timestamps);
         return sb.ToString();
+    }
+
+    private async void OnGetTemplateIdeasClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster) return;
+
+        const string prompt =
+            "Generate 100 diverse, short music-direction ideas for short-video soundtracks.\n" +
+            "These are NOT tied to any specific story. Do not use story context, timestamps, narration, or any existing project details.\n" +
+            "Each idea should be a brief seed concept the user could later expand into a full AI music-generation prompt.\n" +
+            "Make the set broadly varied across mood, instrumentation, rhythm, genre, sound palette, texture, intensity, and production approach.\n" +
+            "Each idea must be only one or two lines long.\n" +
+            "Output ONLY the 100 numbered short ideas, with no introduction, commentary, headings, or closing text.";
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Template Ideas Prompt Copied",
+            "Paste this into your LLM to get 100 short music-direction ideas to draw on.");
     }
 
     private async void OnWriteOwnPromptClicked(object? sender, EventArgs e)
