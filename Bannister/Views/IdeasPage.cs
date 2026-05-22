@@ -633,7 +633,7 @@ public class IdeasPage : ContentPage
             return;
         }
 
-        var headers = new List<string> { "Id", "Rating", "Title", "Full Idea", "Category", "Subcategory", "Status", "Starred", "Created" };
+        var headers = new List<string> { "Id", "Rating", "Title", "Full Idea", "Notes", "Category", "Subcategory", "Status", "Starred", "Created" };
         var displayRows = new List<List<string>>();
         var fullRows = new List<List<string>>();
 
@@ -646,8 +646,11 @@ public class IdeasPage : ContentPage
         for (int i = 0; i < ideas.Count; i++)
         {
             string fullIdea = ideas[i].FullIdea ?? "";
+            string notes = ideas[i].Notes ?? "";
             displayRows[i].Insert(3, fullIdea.Length > 80 ? fullIdea.Substring(0, 77) + "..." : fullIdea);
             fullRows[i].Insert(3, fullIdea);
+            displayRows[i].Insert(4, notes.Length > 80 ? notes.Substring(0, 77) + "..." : notes);
+            fullRows[i].Insert(4, notes);
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
@@ -693,6 +696,7 @@ public class IdeasPage : ContentPage
         {
             case "Title": idea.Title = newValue; break;
             case "Full Idea": idea.FullIdea = newValue; break;
+            case "Notes": idea.Notes = newValue; break;
             case "Category": idea.Category = newValue; break;
             case "Subcategory": idea.Subcategory = string.IsNullOrWhiteSpace(newValue) ? null : newValue; break;
             case "Rating":
