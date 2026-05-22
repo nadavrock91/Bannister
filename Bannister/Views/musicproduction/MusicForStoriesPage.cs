@@ -1256,31 +1256,28 @@ public class MusicForStoriesPage : ContentPage
             return;
         }
 
-        var script = await BuildCurrentScriptTextAsync();
-        if (string.IsNullOrWhiteSpace(script))
+        var timestamps = await _musicService.GetTimestampedNarrationAsync(_currentProject.Id);
+        if (string.IsNullOrWhiteSpace(timestamps))
         {
-            await DisplayAlert("No Script", "Add script lines to the current draft before building a full soundtrack prompt.", "OK");
+            await DisplayAlert(
+                "Timestamps Needed",
+                "Add timestamps first (Get Transcription Prompt -> Paste Timestamps) so the soundtrack can be mapped to the narration and timing.",
+                "OK");
             return;
         }
 
-        var description = await GetGeneralMusicDescriptionTextAsync();
-        var timestamps = await _musicService.GetTimestampedNarrationAsync(_currentProject.Id);
         var prompt =
             "I am preparing a prompt for an AI music generator such as Suno or ElevenLabs.\n" +
             "Produce ONE final, complete, ready-to-paste music-generation prompt for the ENTIRE soundtrack of this short-video story.\n" +
             "Do not produce a list, alternatives, or options.\n\n" +
-            "Use the provided MOTIF DESCRIPTION as the soundtrack's main recurring motif. Build the whole piece around it: open on it, return to it, and transform it as the story demands while keeping its established musical identity consistent, including instrumentation, tonal/key feel, and mood.\n" +
-            "Follow the emotional arc of the SCRIPT and map the music's progression onto the provided TIMESTAMPS with section-by-section mood, intensity, and instrumentation shifts aligned to the time ranges. Infer the total duration from the last timestamp when timestamps are provided.\n" +
-            "Honor the GENERAL MUSIC DESCRIPTION's overall direction.\n" +
+            "Build the whole piece around the provided MOTIF DESCRIPTION as the single main recurring motif and the ONLY source of musical identity, including instrumentation, key/tonal feel, tempo, and mood. Do not introduce instrumentation or stylistic elements that are not implied by the motif description; keep the established identity consistent.\n" +
+            "Map the soundtrack's progression onto the provided TIMESTAMPS section by section. Let the motif transform darker, fuller, sparser, tender, or otherwise as each timestamp's narration demands, while always remaining recognizably the same motif. Infer total duration from the last timestamp.\n" +
+            "Open on the motif, return to it, transform it as the timestamped narration demands, and end as the final timestamp implies.\n" +
             "Output ONLY the final soundtrack prompt, with no commentary.\n\n" +
             "MOTIF DESCRIPTION:\n" +
             motifDescription.Trim() + "\n\n" +
-            "GENERAL MUSIC DESCRIPTION:\n" +
-            (string.IsNullOrWhiteSpace(description) ? "(none provided)" : description) + "\n\n" +
-            "SCRIPT:\n" +
-            script + "\n\n" +
             "TIMESTAMPS:\n" +
-            (string.IsNullOrWhiteSpace(timestamps) ? "(no timestamps saved)" : timestamps.Trim());
+            timestamps.Trim();
 
         await CopyPlanningPromptAsync(
             prompt,
