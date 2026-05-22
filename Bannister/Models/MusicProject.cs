@@ -158,6 +158,8 @@ public class MusicPromptTemplate
 
     public string TemplateText { get; set; } = "";
 
+    public string Category { get; set; } = "";
+
     public bool IsTimestamped { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

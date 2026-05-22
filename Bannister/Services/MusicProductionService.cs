@@ -59,6 +59,7 @@ public class MusicProductionService
 
         await conn.CreateTableAsync<MusicPromptTemplate>();
         try { await conn.ExecuteAsync("ALTER TABLE music_prompt_templates ADD COLUMN IsTimestamped INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_prompt_templates ADD COLUMN Category TEXT DEFAULT ''"); } catch { }
     }
 
     private static bool IsMissingTable(SQLiteException ex)
@@ -196,11 +197,27 @@ public class MusicProductionService
         }
     }
 
+    public async Task<List<string>> GetPromptTemplateCategoriesAsync(string username)
+    {
+        var templates = await GetPromptTemplatesAsync(username);
+        var categories = templates
+            .Select(t => NormalizePromptTemplateCategory(t.Category))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (!categories.Any(c => string.Equals(c, "General", StringComparison.OrdinalIgnoreCase)))
+            categories.Insert(0, "General");
+
+        return categories;
+    }
+
     public async Task<MusicPromptTemplate> AddPromptTemplateAsync(
         string username,
         string name,
         string templateText,
-        bool isTimestamped)
+        bool isTimestamped,
+        string category = "")
     {
         EnsureWritable();
 
@@ -212,6 +229,7 @@ public class MusicProductionService
             Username = username,
             Name = name,
             TemplateText = templateText,
+            Category = NormalizePromptTemplateCategory(category) == "General" ? "" : category.Trim(),
             IsTimestamped = isTimestamped,
             CreatedAt = DateTime.UtcNow
         };
@@ -237,6 +255,9 @@ public class MusicProductionService
         await EnsurePromptTemplateTableAsync(conn);
         await conn.DeleteAsync<MusicPromptTemplate>(templateId);
     }
+
+    public static string NormalizePromptTemplateCategory(string? category) =>
+        string.IsNullOrWhiteSpace(category) ? "General" : category.Trim();
 
     public async Task<MusicProject> CreateProjectAsync(string username, string name, string category = "", string description = "")
     {

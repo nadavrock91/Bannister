@@ -1199,9 +1199,10 @@ public class MusicForStoriesPage : ContentPage
 
         foreach (var template in _promptTemplates)
         {
+            var category = GetTemplateCategoryDisplay(template);
             var label = template.IsTimestamped
-                ? $"{template.Name} (timestamped)"
-                : template.Name;
+                ? $"[{category}] {template.Name} (timestamped)"
+                : $"[{category}] {template.Name}";
             _templatePicker.Items.Add(label);
         }
 
@@ -1846,6 +1847,8 @@ public class MusicForStoriesPage : ContentPage
         var overlay = CreateOverlay();
         var card = CreateOverlayCard(width: 640, height: 560);
         var stack = new VerticalStackLayout { Spacing = 12 };
+        string selectedCategory = "All";
+        bool updatingCategoryPicker = false;
 
         stack.Children.Add(new Label
         {
@@ -1855,12 +1858,39 @@ public class MusicForStoriesPage : ContentPage
             TextColor = Color.FromArgb("#333")
         });
 
+        var categoryPicker = new Picker
+        {
+            Title = "Category",
+            TextColor = Color.FromArgb("#222"),
+            BackgroundColor = Colors.White,
+            WidthRequest = 260
+        };
+        stack.Children.Add(categoryPicker);
+
         var listStack = new VerticalStackLayout { Spacing = 8 };
-        BuildTemplateManagementRows(listStack, overlay);
+
+        async Task RebuildAsync()
+        {
+            await RefreshPromptTemplatesAsync();
+            await PopulateTemplateCategoryPickerAsync(categoryPicker, selectedCategory, value =>
+            {
+                updatingCategoryPicker = value;
+            });
+            BuildTemplateManagementRows(listStack, overlay, selectedCategory, RebuildAsync);
+        }
+
+        categoryPicker.SelectedIndexChanged += (s, e) =>
+        {
+            if (updatingCategoryPicker) return;
+            selectedCategory = categoryPicker.SelectedItem?.ToString() ?? "All";
+            BuildTemplateManagementRows(listStack, overlay, selectedCategory, RebuildAsync);
+        };
+
+        await RebuildAsync();
 
         stack.Children.Add(new ScrollView
         {
-            HeightRequest = 410,
+            HeightRequest = 370,
             Content = listStack
         });
 
@@ -1874,23 +1904,52 @@ public class MusicForStoriesPage : ContentPage
         AddOverlay(overlay);
     }
 
-    private void BuildTemplateManagementRows(VerticalStackLayout listStack, Grid overlay)
+    private async Task PopulateTemplateCategoryPickerAsync(Picker picker, string selectedCategory, Action<bool> setUpdating)
+    {
+        setUpdating(true);
+        var categories = await _musicService.GetPromptTemplateCategoriesAsync(_auth.CurrentUsername);
+        var options = new List<string> { "All" };
+        options.AddRange(categories);
+
+        picker.Items.Clear();
+        foreach (var option in options)
+            picker.Items.Add(option);
+
+        int index = options.FindIndex(c => string.Equals(c, selectedCategory, StringComparison.OrdinalIgnoreCase));
+        picker.SelectedIndex = index >= 0 ? index : 0;
+        setUpdating(false);
+    }
+
+    private void BuildTemplateManagementRows(
+        VerticalStackLayout listStack,
+        Grid overlay,
+        string selectedCategory,
+        Func<Task> refreshRowsAsync)
     {
         listStack.Children.Clear();
 
-        if (_promptTemplates.Count == 0)
+        var visibleTemplates = selectedCategory == "All"
+            ? _promptTemplates
+            : _promptTemplates
+                .Where(t => string.Equals(GetTemplateCategoryDisplay(t), selectedCategory, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+        if (visibleTemplates.Count == 0)
         {
-            listStack.Children.Add(InfoLabel("No saved templates yet."));
+            listStack.Children.Add(InfoLabel(_promptTemplates.Count == 0
+                ? "No saved templates yet."
+                : $"No templates in {selectedCategory}."));
             return;
         }
 
-        foreach (var template in _promptTemplates)
+        foreach (var template in visibleTemplates)
         {
             var row = new Grid
             {
                 ColumnDefinitions =
                 {
                     new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto),
                     new ColumnDefinition(GridLength.Auto),
                     new ColumnDefinition(GridLength.Auto)
                 },
@@ -1901,7 +1960,9 @@ public class MusicForStoriesPage : ContentPage
 
             var name = new Label
             {
-                Text = template.IsTimestamped ? $"{template.Name} (timestamped)" : template.Name,
+                Text = template.IsTimestamped
+                    ? $"[{GetTemplateCategoryDisplay(template)}] {template.Name} (timestamped)"
+                    : $"[{GetTemplateCategoryDisplay(template)}] {template.Name}",
                 TextColor = Color.FromArgb("#333"),
                 VerticalOptions = LayoutOptions.Center,
                 LineBreakMode = LineBreakMode.TailTruncation
@@ -1922,10 +1983,19 @@ public class MusicForStoriesPage : ContentPage
                 template.Name = newName.Trim();
                 await _musicService.UpdatePromptTemplateAsync(template);
                 await RefreshPromptTemplatesAsync(template.Id);
-                BuildTemplateManagementRows(listStack, overlay);
+                await refreshRowsAsync();
             };
             Grid.SetColumn(rename, 1);
             row.Children.Add(rename);
+
+            var category = SmallButton("Change Category", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+            category.Clicked += async (s, e) =>
+            {
+                await ChangeTemplateCategoryAsync(template);
+                await refreshRowsAsync();
+            };
+            Grid.SetColumn(category, 2);
+            row.Children.Add(category);
 
             var delete = SmallButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
             delete.Clicked += async (s, e) =>
@@ -1939,14 +2009,53 @@ public class MusicForStoriesPage : ContentPage
 
                 await _musicService.DeletePromptTemplateAsync(template.Id);
                 await RefreshPromptTemplatesAsync();
-                BuildTemplateManagementRows(listStack, overlay);
+                await refreshRowsAsync();
             };
-            Grid.SetColumn(delete, 2);
+            Grid.SetColumn(delete, 3);
             row.Children.Add(delete);
 
             listStack.Children.Add(row);
         }
     }
+
+    private async Task ChangeTemplateCategoryAsync(MusicPromptTemplate template)
+    {
+        var categories = await _musicService.GetPromptTemplateCategoriesAsync(_auth.CurrentUsername);
+        var options = new List<string> { "+ New Category" };
+        options.AddRange(categories);
+
+        string? choice = await DisplayActionSheet(
+            $"Change Category: {template.Name}",
+            "Cancel",
+            null,
+            options.ToArray());
+
+        if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel")
+            return;
+
+        string category = choice;
+        if (choice == "+ New Category")
+        {
+            string? newCategory = await DisplayPromptAsync(
+                "New Template Category",
+                "Category name:",
+                "Save",
+                "Cancel",
+                placeholder: "Category name");
+            if (string.IsNullOrWhiteSpace(newCategory))
+                return;
+
+            category = newCategory.Trim();
+        }
+
+        template.Category = string.Equals(category, "General", StringComparison.OrdinalIgnoreCase)
+            ? ""
+            : category.Trim();
+        await _musicService.UpdatePromptTemplateAsync(template);
+    }
+
+    private static string GetTemplateCategoryDisplay(MusicPromptTemplate template) =>
+        MusicProductionService.NormalizePromptTemplateCategory(template.Category);
 
     private async void OnExportMusicStateClicked(object? sender, EventArgs e)
     {
