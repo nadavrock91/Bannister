@@ -34,6 +34,7 @@ public class HomePage : ContentPage
     private readonly AudioLibraryService _audioLibService;
     private readonly DailyLoginPromptService _dailyLoginPrompts;
     private readonly MoneyManagementService _moneyManagement;
+    private readonly DesignationService _designationService;
     private readonly ListsService _listsService;
     private readonly OperationApplierService _applier;
     private readonly PendingActivityIdeaService _pendingIdeas;
@@ -57,6 +58,7 @@ public class HomePage : ContentPage
     private Button _btnTasks;
     private Button _btnLearning;
     private Button _btnDatabases;
+    private Button _btnDesignations;
     private Button _btnDragons;
     private Button _btnStreaks;
     private Button _btnCountdowns;
@@ -76,7 +78,7 @@ public class HomePage : ContentPage
         SubActivityService subActivityService, AudioLibraryService audioLibService,
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
-        PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts)
+        PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService)
     {
         _auth = auth;
         _games = games;
@@ -106,6 +108,7 @@ public class HomePage : ContentPage
         _audioLibService = audioLibService;
         _dailyLoginPrompts = dailyLoginPrompts;
         _moneyManagement = moneyManagement;
+        _designationService = designationService;
         _listsService = listsService;
 
         Title = "Bannister";
@@ -196,6 +199,10 @@ public class HomePage : ContentPage
         _btnDatabases = CreateButton("🗄️ Databases", Color.FromArgb("#ECEFF1"), Color.FromArgb("#455A64"));
         _btnDatabases.Clicked += OnDatabasesClicked;
         navButtons.Add(("Databases", _btnDatabases));
+
+        _btnDesignations = CreateButton("Designations", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
+        _btnDesignations.Clicked += OnDesignationsClicked;
+        navButtons.Add(("Designations", _btnDesignations));
 
         _btnDragons = CreateButton("🐉 Dragons (0)", Colors.White, Color.FromArgb("#5B63EE"));
         _btnDragons.Clicked += OnDragonsClicked;
@@ -1037,6 +1044,12 @@ public class HomePage : ContentPage
     private async void OnDatabasesClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("databases");
+    }
+
+    private async void OnDesignationsClicked(object? sender, EventArgs e)
+    {
+        var page = new DesignationsPage(_auth, _designationService);
+        await Navigation.PushAsync(page);
     }
 
     private async void OnDragonsClicked(object? sender, EventArgs e)

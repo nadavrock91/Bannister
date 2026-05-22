@@ -1429,6 +1429,9 @@ public class LearningPage : ContentPage
             var pendingBtn = CreateHoverButton("👀", "#9C27B0", "#7B1FA2", 11, "Mark as Pending Watched");
             pendingBtn.Clicked += async (s, e) =>
             {
+                if (!await EnsureCanSetVideoPendingAsync(video))
+                    return;
+
                 video.Status = "PendingWatched";
                 await _learning.UpdateVideoAsync(video);
                 await RefreshVideosAsync();
@@ -1574,6 +1577,9 @@ public class LearningPage : ContentPage
             // Move to PendingWatched if not already watched
             if (video.Status != "Completed" && video.Status != "PendingWatched" && video.Status != "ReadSummary")
             {
+                if (!await EnsureCanSetVideoPendingAsync(video))
+                    return;
+
                 video.Status = "PendingWatched";
                 await _learning.UpdateVideoAsync(video);
                 await RefreshVideosAsync();
@@ -1637,6 +1643,9 @@ public class LearningPage : ContentPage
         }
         else if (result == "👀 Mark as Pending Watched")
         {
+            if (!await EnsureCanSetVideoPendingAsync(video))
+                return;
+
             video.Status = "PendingWatched";
             await _learning.UpdateVideoAsync(video);
         }
@@ -1760,6 +1769,9 @@ public class LearningPage : ContentPage
             category = await ShowNewVideoCategorizeFlowAsync(channelName);
             if (category == null) return; // User cancelled
         }
+
+        if (destination == "Pending" && !await EnsureCanSetVideoPendingAsync(channelName, category))
+            return;
         
         // Create the video
         var video = new LearningVideo
@@ -3445,6 +3457,30 @@ public class LearningPage : ContentPage
         int count = await GetCreatorMonthlyWatchCountAsync(creator, category);
         
         return count >= focus.CreatorMonthlyLimit;
+    }
+
+    private async Task<bool> EnsureCanSetVideoPendingAsync(LearningVideo video)
+    {
+        return await EnsureCanSetVideoPendingAsync(video.Creator, video.Category ?? "Unsorted");
+    }
+
+    private async Task<bool> EnsureCanSetVideoPendingAsync(string? creator, string? category)
+    {
+        var focus = GetVideoFocusSettings();
+        var normalizedCategory = category ?? "Unsorted";
+
+        if (!focus.IsActive || normalizedCategory != focus.Category)
+            return true;
+
+        if (!await CheckCreatorLimitAsync(creator, focus.Category))
+            return true;
+
+        var count = await GetCreatorMonthlyWatchCountAsync(creator, focus.Category);
+        await DisplayAlert(
+            "Channel Locked",
+            $"This channel has reached its monthly watch limit and is locked. You cannot set its videos to pending.\n\nChannel: {creator ?? "Unknown"}\nMonthly limit: {focus.CreatorMonthlyLimit}\nWatched this month: {count}",
+            "OK");
+        return false;
     }
     
     /// <summary>

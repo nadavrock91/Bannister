@@ -78,6 +78,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ActivityGroupingService>();
         builder.Services.AddSingleton<DailyLoginPromptService>();
         builder.Services.AddSingleton<MoneyManagementService>();
+        builder.Services.AddSingleton<DesignationService>();
         builder.Services.AddSingleton<ListsService>();
 
 
@@ -125,6 +126,7 @@ public static class MauiProgram
         builder.Services.AddTransient<StreakDashboardPage>();
         builder.Services.AddTransient<StreakAttemptsPage>();
         builder.Services.AddTransient<DatabasesPage>();
+        builder.Services.AddTransient<DesignationsPage>();
         builder.Services.AddTransient<MoneyManagementHubPage>();
         builder.Services.AddTransient<MoneyManagementPage>();
         builder.Services.AddTransient<AssetsPage>();
