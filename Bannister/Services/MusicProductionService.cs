@@ -64,6 +64,13 @@ public class MusicProductionService
         try { await conn.ExecuteAsync("ALTER TABLE music_prompt_templates ADD COLUMN FailCount INTEGER DEFAULT 0"); } catch { }
     }
 
+    private async Task EnsureGuidingInstructionTableAsync(ISQLiteAsyncConnection conn)
+    {
+        if (_db.IsReadOnly) return;
+
+        await conn.CreateTableAsync<GuidingInstruction>();
+    }
+
     private static bool IsMissingTable(SQLiteException ex)
     {
         return ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase);
@@ -292,6 +299,61 @@ public class MusicProductionService
 
     public static string NormalizePromptTemplateCategory(string? category) =>
         string.IsNullOrWhiteSpace(category) ? "General" : category.Trim();
+
+    public async Task<List<GuidingInstruction>> GetGuidingInstructionsAsync(string username)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await EnsureGuidingInstructionTableAsync(conn);
+
+        try
+        {
+            return await conn.Table<GuidingInstruction>()
+                .Where(i => i.Username == username)
+                .OrderBy(i => i.Text)
+                .ToListAsync();
+        }
+        catch (SQLiteException ex) when (IsMissingTable(ex))
+        {
+            return new List<GuidingInstruction>();
+        }
+    }
+
+    public async Task<GuidingInstruction> AddGuidingInstructionAsync(string username, string text)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureGuidingInstructionTableAsync(conn);
+
+        var item = new GuidingInstruction
+        {
+            Username = username,
+            Text = text.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await conn.InsertAsync(item);
+        return item;
+    }
+
+    public async Task UpdateGuidingInstructionAsync(GuidingInstruction item)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureGuidingInstructionTableAsync(conn);
+        item.Text = item.Text?.Trim() ?? "";
+        await conn.UpdateAsync(item);
+    }
+
+    public async Task DeleteGuidingInstructionAsync(int id)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsureGuidingInstructionTableAsync(conn);
+        await conn.DeleteAsync<GuidingInstruction>(id);
+    }
 
     public async Task<MusicProject> CreateProjectAsync(string username, string name, string category = "", string description = "")
     {

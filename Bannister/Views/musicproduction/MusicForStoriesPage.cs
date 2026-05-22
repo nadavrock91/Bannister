@@ -50,6 +50,8 @@ public class MusicForStoriesPage : ContentPage
     private Button _pasteNewTemplateButton = null!;
     private Button _suggestTemplatesButton = null!;
     private Button _getTemplateIdeasButton = null!;
+    private Button _manageGuidingInstructionsButton = null!;
+    private Button _expandIdeaToPromptButton = null!;
     private Picker _templatePicker = null!;
     private Label _templateScoreLabel = null!;
     private Button _markTemplateSuccessButton = null!;
@@ -470,6 +472,15 @@ public class MusicForStoriesPage : ContentPage
         templateSaveButtons.Children.Add(_getTemplateIdeasButton);
         stack.Children.Add(templateSaveButtons);
 
+        var guidingInstructionButtons = new HorizontalStackLayout { Spacing = 8 };
+        _manageGuidingInstructionsButton = ActionButton("Manage Guiding Instructions", Color.FromArgb("#E0F7FA"), Color.FromArgb("#006064"));
+        _manageGuidingInstructionsButton.Clicked += OnManageGuidingInstructionsClicked;
+        _expandIdeaToPromptButton = ActionButton("Expand Idea to Prompt", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
+        _expandIdeaToPromptButton.Clicked += OnExpandIdeaToPromptClicked;
+        guidingInstructionButtons.Children.Add(_manageGuidingInstructionsButton);
+        guidingInstructionButtons.Children.Add(_expandIdeaToPromptButton);
+        stack.Children.Add(guidingInstructionButtons);
+
         var templateUseRow = new HorizontalStackLayout { Spacing = 8 };
         _templatePicker = new Picker
         {
@@ -653,6 +664,8 @@ public class MusicForStoriesPage : ContentPage
             _addCardButton.IsVisible = false;
             _suggestTemplatesButton.IsVisible = false;
             _getTemplateIdeasButton.IsVisible = false;
+            _manageGuidingInstructionsButton.IsVisible = false;
+            _expandIdeaToPromptButton.IsVisible = false;
             _templateScoreLabel.IsVisible = false;
             _markTemplateSuccessButton.IsVisible = false;
             _markTemplateFailButton.IsVisible = false;
@@ -703,6 +716,8 @@ public class MusicForStoriesPage : ContentPage
         _pasteNewTemplateButton.IsVisible = IsMaster;
         _suggestTemplatesButton.IsVisible = IsMaster;
         _getTemplateIdeasButton.IsVisible = IsMaster;
+        _manageGuidingInstructionsButton.IsVisible = IsMaster;
+        _expandIdeaToPromptButton.IsVisible = IsMaster;
         _buildTemplatePromptButton.IsVisible = IsMaster;
         _manageTemplatesButton.IsVisible = IsMaster;
         _addCardButton.IsVisible = IsMaster;
@@ -1799,6 +1814,319 @@ public class MusicForStoriesPage : ContentPage
             prompt,
             "Template Ideas Prompt Copied",
             "Paste this into your LLM to get 100 short music-direction ideas to draw on.");
+    }
+
+    private async void OnManageGuidingInstructionsClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster) return;
+        await ShowManageGuidingInstructionsOverlayAsync();
+    }
+
+    private async Task ShowManageGuidingInstructionsOverlayAsync()
+    {
+        var overlay = CreateOverlay();
+        var card = CreateOverlayCard(width: 640, height: 560);
+        var stack = new VerticalStackLayout { Spacing = 12 };
+
+        stack.Children.Add(new Label
+        {
+            Text = "Manage Guiding Instructions",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        var listStack = new VerticalStackLayout { Spacing = 8 };
+
+        async Task RebuildAsync()
+        {
+            var instructions = await _musicService.GetGuidingInstructionsAsync(_auth.CurrentUsername);
+            BuildGuidingInstructionRows(listStack, instructions, RebuildAsync);
+        }
+
+        var addButton = ActionButton("+ Add Instruction", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        addButton.Clicked += async (s, e) =>
+        {
+            string? text = await ShowMultiLineInputAsync(
+                "Add Guiding Instruction",
+                "Add a short reusable constraint, such as No vocals or Immediate hook, no slow build-up.",
+                "",
+                "No vocals");
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            await _musicService.AddGuidingInstructionAsync(_auth.CurrentUsername, text.Trim());
+            await RebuildAsync();
+        };
+        stack.Children.Add(addButton);
+
+        await RebuildAsync();
+
+        stack.Children.Add(new ScrollView
+        {
+            HeightRequest = 360,
+            Content = listStack
+        });
+
+        var closeButton = ActionButton("Close", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
+        closeButton.HorizontalOptions = LayoutOptions.End;
+        closeButton.Clicked += (s, e) => RemoveOverlay(overlay);
+        stack.Children.Add(closeButton);
+
+        card.Content = stack;
+        overlay.Children.Add(card);
+        AddOverlay(overlay);
+    }
+
+    private void BuildGuidingInstructionRows(
+        VerticalStackLayout listStack,
+        List<GuidingInstruction> instructions,
+        Func<Task> refreshRowsAsync)
+    {
+        listStack.Children.Clear();
+
+        if (instructions.Count == 0)
+        {
+            listStack.Children.Add(InfoLabel("No guiding instructions yet."));
+            return;
+        }
+
+        foreach (var instruction in instructions)
+        {
+            var row = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 8,
+                Padding = 8,
+                BackgroundColor = Color.FromArgb("#FAFAFA")
+            };
+
+            var text = new Label
+            {
+                Text = instruction.Text,
+                TextColor = Color.FromArgb("#333"),
+                VerticalOptions = LayoutOptions.Center,
+                LineBreakMode = LineBreakMode.TailTruncation
+            };
+            row.Children.Add(text);
+
+            var edit = SmallButton("Edit", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+            edit.Clicked += async (s, e) =>
+            {
+                string? newText = await ShowMultiLineInputAsync(
+                    "Edit Guiding Instruction",
+                    "Update the reusable constraint.",
+                    instruction.Text,
+                    "No vocals");
+                if (string.IsNullOrWhiteSpace(newText)) return;
+
+                instruction.Text = newText.Trim();
+                await _musicService.UpdateGuidingInstructionAsync(instruction);
+                await refreshRowsAsync();
+            };
+            Grid.SetColumn(edit, 1);
+            row.Children.Add(edit);
+
+            var delete = SmallButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+            delete.Clicked += async (s, e) =>
+            {
+                bool confirm = await DisplayAlert(
+                    "Delete Instruction",
+                    $"Delete \"{instruction.Text}\"?",
+                    "Delete",
+                    "Cancel");
+                if (!confirm) return;
+
+                await _musicService.DeleteGuidingInstructionAsync(instruction.Id);
+                await refreshRowsAsync();
+            };
+            Grid.SetColumn(delete, 2);
+            row.Children.Add(delete);
+
+            listStack.Children.Add(row);
+        }
+    }
+
+    private async void OnExpandIdeaToPromptClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        var timestamps = await _musicService.GetTimestampedNarrationAsync(_currentProject.Id);
+        if (string.IsNullOrWhiteSpace(timestamps))
+        {
+            await DisplayAlert(
+                "Timestamps Needed",
+                "Add timestamps first (Get Transcription Prompt -> Paste Timestamps).",
+                "OK");
+            return;
+        }
+
+        string? seedIdea = await ShowMultiLineInputAsync(
+            "Expand Idea to Prompt",
+            "Paste the seed idea or short idea list you want to expand into one full music-generation prompt.",
+            "",
+            "Immediate hook with tense pulsing strings and low percussion...");
+        if (string.IsNullOrWhiteSpace(seedIdea)) return;
+
+        var savedInstructions = await _musicService.GetGuidingInstructionsAsync(_auth.CurrentUsername);
+        var instructions = await ShowGuidingInstructionSelectionOverlayAsync(savedInstructions);
+        if (instructions == null) return;
+
+        var prompt = BuildExpandIdeaMetaPrompt(seedIdea.Trim(), instructions, timestamps.Trim());
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Expand Idea Prompt Copied",
+            "Paste this into your LLM to get a full ElevenLabs prompt built from your idea.");
+    }
+
+    private async Task<List<string>?> ShowGuidingInstructionSelectionOverlayAsync(List<GuidingInstruction> savedInstructions)
+    {
+        var tcs = new TaskCompletionSource<List<string>?>();
+        var overlay = CreateOverlay();
+        var card = CreateOverlayCard(width: 640, height: 620);
+        var stack = new VerticalStackLayout { Spacing = 12 };
+
+        stack.Children.Add(new Label
+        {
+            Text = "Choose Guiding Instructions",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        stack.Children.Add(new Label
+        {
+            Text = "Tick the reusable constraints to apply. Add one-off instructions below if needed.",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var checkboxes = new List<(GuidingInstruction Instruction, CheckBox CheckBox)>();
+        var instructionStack = new VerticalStackLayout { Spacing = 6 };
+
+        if (savedInstructions.Count == 0)
+        {
+            instructionStack.Children.Add(InfoLabel("No saved instructions yet - add some via Manage Guiding Instructions, or type one-off instructions below."));
+        }
+        else
+        {
+            foreach (var instruction in savedInstructions)
+            {
+                var row = new HorizontalStackLayout { Spacing = 8 };
+                var checkbox = new CheckBox
+                {
+                    VerticalOptions = LayoutOptions.Center
+                };
+                checkboxes.Add((instruction, checkbox));
+                row.Children.Add(checkbox);
+                row.Children.Add(new Label
+                {
+                    Text = instruction.Text,
+                    TextColor = Color.FromArgb("#333"),
+                    VerticalOptions = LayoutOptions.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
+                });
+                instructionStack.Children.Add(row);
+            }
+        }
+
+        stack.Children.Add(new ScrollView
+        {
+            HeightRequest = 240,
+            Content = instructionStack
+        });
+
+        stack.Children.Add(new Label
+        {
+            Text = "One-off instructions",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var oneOffEditor = new Editor
+        {
+            Placeholder = "Optional constraints for this prompt only...",
+            HeightRequest = 110,
+            FontSize = 14,
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            AutoSize = EditorAutoSizeOption.Disabled
+        };
+        stack.Children.Add(oneOffEditor);
+
+        var btnRow = new HorizontalStackLayout
+        {
+            Spacing = 12,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var cancelButton = ActionButton("Cancel", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
+        cancelButton.Clicked += (s, e) =>
+        {
+            RemoveOverlay(overlay);
+            tcs.TrySetResult(null);
+        };
+
+        var buildButton = ActionButton("Build Prompt", Color.FromArgb("#3949AB"), Colors.White);
+        buildButton.Clicked += (s, e) =>
+        {
+            var selected = checkboxes
+                .Where(x => x.CheckBox.IsChecked)
+                .Select(x => x.Instruction.Text.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
+
+            string oneOff = oneOffEditor.Text?.Trim() ?? "";
+            if (!string.IsNullOrWhiteSpace(oneOff))
+                selected.Add(oneOff);
+
+            RemoveOverlay(overlay);
+            tcs.TrySetResult(selected);
+        };
+
+        btnRow.Children.Add(cancelButton);
+        btnRow.Children.Add(buildButton);
+        stack.Children.Add(btnRow);
+
+        card.Content = stack;
+        overlay.Children.Add(card);
+        AddOverlay(overlay);
+
+        return await tcs.Task;
+    }
+
+    private static string BuildExpandIdeaMetaPrompt(string seedIdea, List<string> instructions, string timestamps)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Produce ONE final, complete, ready-to-paste ElevenLabs/Suno music-generation prompt for the ENTIRE soundtrack of this short-video story.");
+        sb.AppendLine("Use the SEED IDEA as the core creative direction.");
+        sb.AppendLine("Map the music onto the provided TIMESTAMPS section by section, aligning mood, intensity, instrumentation, pacing, and transitions to the time ranges.");
+        sb.AppendLine("Infer the total duration from the last timestamp.");
+        sb.AppendLine("Apply the GUIDING INSTRUCTIONS as hard constraints the final prompt must honor.");
+        sb.AppendLine("Output ONLY the final prompt, with no commentary.");
+        sb.AppendLine();
+        sb.AppendLine("SEED IDEA:");
+        sb.AppendLine(seedIdea);
+        sb.AppendLine();
+        sb.AppendLine("GUIDING INSTRUCTIONS:");
+        if (instructions.Count == 0)
+        {
+            sb.AppendLine("(none)");
+        }
+        else
+        {
+            foreach (var instruction in instructions)
+                sb.AppendLine("- " + instruction);
+        }
+        sb.AppendLine();
+        sb.AppendLine("TIMESTAMPS:");
+        sb.AppendLine(timestamps);
+        return sb.ToString();
     }
 
     private async void OnWriteOwnPromptClicked(object? sender, EventArgs e)

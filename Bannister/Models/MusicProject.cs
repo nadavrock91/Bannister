@@ -168,3 +168,17 @@ public class MusicPromptTemplate
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+[Table("guiding_instructions")]
+public class GuidingInstruction
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+
+    [Indexed]
+    public string Username { get; set; } = "";
+
+    public string Text { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
