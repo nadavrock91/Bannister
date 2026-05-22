@@ -162,5 +162,9 @@ public class MusicPromptTemplate
 
     public bool IsTimestamped { get; set; }
 
+    public int SuccessCount { get; set; }
+
+    public int FailCount { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

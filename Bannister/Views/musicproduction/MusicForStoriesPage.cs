@@ -49,6 +49,9 @@ public class MusicForStoriesPage : ContentPage
     private Button _saveWorkingPromptTemplateButton = null!;
     private Button _pasteNewTemplateButton = null!;
     private Picker _templatePicker = null!;
+    private Label _templateScoreLabel = null!;
+    private Button _markTemplateSuccessButton = null!;
+    private Button _markTemplateFailButton = null!;
     private Button _buildTemplatePromptButton = null!;
     private Button _manageTemplatesButton = null!;
     private Button _addCardButton = null!;
@@ -467,6 +470,7 @@ public class MusicForStoriesPage : ContentPage
             TextColor = Color.FromArgb("#222"),
             BackgroundColor = Colors.White
         };
+        _templatePicker.SelectedIndexChanged += (s, e) => UpdateSelectedTemplateScoreDisplay();
         templateUseRow.Children.Add(_templatePicker);
 
         _buildTemplatePromptButton = ActionButton("Build Prompt from Template", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
@@ -477,6 +481,27 @@ public class MusicForStoriesPage : ContentPage
         _manageTemplatesButton.Clicked += OnManageTemplatesClicked;
         templateUseRow.Children.Add(_manageTemplatesButton);
         stack.Children.Add(templateUseRow);
+
+        var templateScoreRow = new HorizontalStackLayout { Spacing = 8 };
+        _templateScoreLabel = new Label
+        {
+            TextColor = Color.FromArgb("#444"),
+            VerticalOptions = LayoutOptions.Center,
+            IsVisible = false
+        };
+        templateScoreRow.Children.Add(_templateScoreLabel);
+
+        _markTemplateSuccessButton = SmallButton("✓ Success", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _markTemplateSuccessButton.Clicked += OnMarkSelectedTemplateSuccessClicked;
+        _markTemplateSuccessButton.IsVisible = false;
+        templateScoreRow.Children.Add(_markTemplateSuccessButton);
+
+        _markTemplateFailButton = SmallButton("✗ Fail", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+        _markTemplateFailButton.Clicked += OnMarkSelectedTemplateFailClicked;
+        _markTemplateFailButton.IsVisible = false;
+        templateScoreRow.Children.Add(_markTemplateFailButton);
+
+        stack.Children.Add(templateScoreRow);
 
         return new Frame
         {
@@ -618,6 +643,9 @@ public class MusicForStoriesPage : ContentPage
             _buildFullSoundtrackPromptButton.IsVisible = false;
             _planRemixStitchButton.IsVisible = false;
             _addCardButton.IsVisible = false;
+            _templateScoreLabel.IsVisible = false;
+            _markTemplateSuccessButton.IsVisible = false;
+            _markTemplateFailButton.IsVisible = false;
             return;
         }
 
@@ -666,6 +694,7 @@ public class MusicForStoriesPage : ContentPage
         _buildTemplatePromptButton.IsVisible = IsMaster;
         _manageTemplatesButton.IsVisible = IsMaster;
         _addCardButton.IsVisible = IsMaster;
+        UpdateSelectedTemplateScoreDisplay();
     }
 
     private void SetLoadingBusy(bool isBusy, string statusText = "")
@@ -1287,6 +1316,75 @@ public class MusicForStoriesPage : ContentPage
         {
             _templatePicker.SelectedIndex = -1;
         }
+
+        UpdateSelectedTemplateScoreDisplay();
+    }
+
+    private static string FormatTemplateScore(MusicPromptTemplate template)
+    {
+        int total = template.SuccessCount + template.FailCount;
+        if (total <= 0) return "no uses yet";
+
+        int pct = (int)Math.Round(template.SuccessCount * 100.0 / total);
+        return $"{template.SuccessCount}✓ / {template.FailCount}✗ ({pct}%)";
+    }
+
+    private MusicPromptTemplate? GetSelectedPromptTemplate()
+    {
+        if (_templatePicker.SelectedIndex < 0 || _templatePicker.SelectedIndex >= _promptTemplates.Count)
+            return null;
+
+        return _promptTemplates[_templatePicker.SelectedIndex];
+    }
+
+    private void UpdateSelectedTemplateScoreDisplay()
+    {
+        if (_templateScoreLabel == null || _markTemplateSuccessButton == null || _markTemplateFailButton == null)
+            return;
+
+        var template = GetSelectedPromptTemplate();
+        bool hasTemplate = template != null;
+        _templateScoreLabel.IsVisible = hasTemplate;
+        _markTemplateSuccessButton.IsVisible = hasTemplate && IsMaster;
+        _markTemplateFailButton.IsVisible = hasTemplate && IsMaster;
+
+        if (template != null)
+            _templateScoreLabel.Text = "Template score: " + FormatTemplateScore(template);
+    }
+
+    private void ApplyUpdatedTemplate(MusicPromptTemplate updated)
+    {
+        int index = _promptTemplates.FindIndex(t => t.Id == updated.Id);
+        if (index >= 0)
+            _promptTemplates[index] = updated;
+    }
+
+    private async void OnMarkSelectedTemplateSuccessClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster) return;
+
+        var template = GetSelectedPromptTemplate();
+        if (template == null) return;
+
+        var updated = await _musicService.MarkTemplateSuccessAsync(template.Id);
+        if (updated == null) return;
+
+        ApplyUpdatedTemplate(updated);
+        UpdateSelectedTemplateScoreDisplay();
+    }
+
+    private async void OnMarkSelectedTemplateFailClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster) return;
+
+        var template = GetSelectedPromptTemplate();
+        if (template == null) return;
+
+        var updated = await _musicService.MarkTemplateFailAsync(template.Id);
+        if (updated == null) return;
+
+        ApplyUpdatedTemplate(updated);
+        UpdateSelectedTemplateScoreDisplay();
     }
 
     private async Task<string> BuildCurrentScriptTextAsync()
@@ -1764,11 +1862,19 @@ public class MusicForStoriesPage : ContentPage
             ? $"Untitled Template {DateTime.Now:yyyy-MM-dd HHmm}"
             : name.Trim();
 
+        string category = await PickTemplateCategoryAsync(
+            "Template Category",
+            defaultToGeneralOnCancel: true) ?? "General";
+
+        var existingTemplates = await _musicService.GetPromptTemplatesAsync(_auth.CurrentUsername);
+        string uniqueName = GetUniqueTemplateName(existingTemplates, finalName);
+
         var template = await _musicService.AddPromptTemplateAsync(
             _auth.CurrentUsername,
-            finalName,
+            uniqueName,
             parsedTemplate.TemplateBody,
-            isTimestamped);
+            isTimestamped,
+            category);
         _pendingTemplateIsTimestamped = null;
 
         try
@@ -2023,6 +2129,8 @@ public class MusicForStoriesPage : ContentPage
                     new ColumnDefinition(GridLength.Star),
                     new ColumnDefinition(GridLength.Auto),
                     new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto),
                     new ColumnDefinition(GridLength.Auto)
                 },
                 ColumnSpacing = 8,
@@ -2030,16 +2138,47 @@ public class MusicForStoriesPage : ContentPage
                 BackgroundColor = Color.FromArgb("#FAFAFA")
             };
 
+            var nameStack = new VerticalStackLayout { Spacing = 2 };
             var name = new Label
             {
                 Text = template.IsTimestamped
                     ? $"[{GetTemplateCategoryDisplay(template)}] {template.Name} (timestamped)"
                     : $"[{GetTemplateCategoryDisplay(template)}] {template.Name}",
                 TextColor = Color.FromArgb("#333"),
-                VerticalOptions = LayoutOptions.Center,
                 LineBreakMode = LineBreakMode.TailTruncation
             };
-            row.Children.Add(name);
+            nameStack.Children.Add(name);
+
+            nameStack.Children.Add(new Label
+            {
+                Text = "Score: " + FormatTemplateScore(template),
+                FontSize = 12,
+                TextColor = Color.FromArgb("#666"),
+                LineBreakMode = LineBreakMode.TailTruncation
+            });
+            row.Children.Add(nameStack);
+
+            var markSuccess = SmallButton("Mark ✓", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+            markSuccess.Clicked += async (s, e) =>
+            {
+                var updated = await _musicService.MarkTemplateSuccessAsync(template.Id);
+                if (updated != null)
+                    ApplyUpdatedTemplate(updated);
+                await refreshRowsAsync();
+            };
+            Grid.SetColumn(markSuccess, 1);
+            row.Children.Add(markSuccess);
+
+            var markFail = SmallButton("Mark ✗", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+            markFail.Clicked += async (s, e) =>
+            {
+                var updated = await _musicService.MarkTemplateFailAsync(template.Id);
+                if (updated != null)
+                    ApplyUpdatedTemplate(updated);
+                await refreshRowsAsync();
+            };
+            Grid.SetColumn(markFail, 2);
+            row.Children.Add(markFail);
 
             var rename = SmallButton("Rename", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
             rename.Clicked += async (s, e) =>
@@ -2057,7 +2196,7 @@ public class MusicForStoriesPage : ContentPage
                 await RefreshPromptTemplatesAsync(template.Id);
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(rename, 1);
+            Grid.SetColumn(rename, 3);
             row.Children.Add(rename);
 
             var category = SmallButton("Change Category", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
@@ -2066,7 +2205,7 @@ public class MusicForStoriesPage : ContentPage
                 await ChangeTemplateCategoryAsync(template);
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(category, 2);
+            Grid.SetColumn(category, 4);
             row.Children.Add(category);
 
             var delete = SmallButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
@@ -2083,7 +2222,7 @@ public class MusicForStoriesPage : ContentPage
                 await RefreshPromptTemplatesAsync();
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(delete, 3);
+            Grid.SetColumn(delete, 5);
             row.Children.Add(delete);
 
             listStack.Children.Add(row);
@@ -2092,20 +2231,34 @@ public class MusicForStoriesPage : ContentPage
 
     private async Task ChangeTemplateCategoryAsync(MusicPromptTemplate template)
     {
+        string? category = await PickTemplateCategoryAsync(
+            $"Change Category: {template.Name}",
+            defaultToGeneralOnCancel: false);
+
+        if (category == null)
+            return;
+
+        template.Category = string.Equals(category, "General", StringComparison.OrdinalIgnoreCase)
+            ? ""
+            : category.Trim();
+        await _musicService.UpdatePromptTemplateAsync(template);
+    }
+
+    private async Task<string?> PickTemplateCategoryAsync(string title, bool defaultToGeneralOnCancel)
+    {
         var categories = await _musicService.GetPromptTemplateCategoriesAsync(_auth.CurrentUsername);
         var options = new List<string> { "+ New Category" };
         options.AddRange(categories);
 
         string? choice = await DisplayActionSheet(
-            $"Change Category: {template.Name}",
+            title,
             "Cancel",
             null,
             options.ToArray());
 
         if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel")
-            return;
+            return defaultToGeneralOnCancel ? "General" : null;
 
-        string category = choice;
         if (choice == "+ New Category")
         {
             string? newCategory = await DisplayPromptAsync(
@@ -2115,15 +2268,27 @@ public class MusicForStoriesPage : ContentPage
                 "Cancel",
                 placeholder: "Category name");
             if (string.IsNullOrWhiteSpace(newCategory))
-                return;
+                return defaultToGeneralOnCancel ? "General" : null;
 
-            category = newCategory.Trim();
+            return newCategory.Trim();
         }
 
-        template.Category = string.Equals(category, "General", StringComparison.OrdinalIgnoreCase)
-            ? ""
-            : category.Trim();
-        await _musicService.UpdatePromptTemplateAsync(template);
+        return choice.Trim();
+    }
+
+    private static string GetUniqueTemplateName(List<MusicPromptTemplate> templates, string name)
+    {
+        string baseName = string.IsNullOrWhiteSpace(name) ? "Template" : name.Trim();
+        string candidate = baseName;
+        int suffix = 2;
+
+        while (templates.Any(t => string.Equals(t.Name, candidate, StringComparison.OrdinalIgnoreCase)))
+        {
+            candidate = $"{baseName} ({suffix})";
+            suffix++;
+        }
+
+        return candidate;
     }
 
     private static string GetTemplateCategoryDisplay(MusicPromptTemplate template) =>

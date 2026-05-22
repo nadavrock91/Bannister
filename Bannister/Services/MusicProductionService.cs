@@ -60,6 +60,8 @@ public class MusicProductionService
         await conn.CreateTableAsync<MusicPromptTemplate>();
         try { await conn.ExecuteAsync("ALTER TABLE music_prompt_templates ADD COLUMN IsTimestamped INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE music_prompt_templates ADD COLUMN Category TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_prompt_templates ADD COLUMN SuccessCount INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE music_prompt_templates ADD COLUMN FailCount INTEGER DEFAULT 0"); } catch { }
     }
 
     private static bool IsMissingTable(SQLiteException ex)
@@ -254,6 +256,38 @@ public class MusicProductionService
         var conn = await _db.GetConnectionAsync();
         await EnsurePromptTemplateTableAsync(conn);
         await conn.DeleteAsync<MusicPromptTemplate>(templateId);
+    }
+
+    public async Task<MusicPromptTemplate?> MarkTemplateSuccessAsync(int templateId)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsurePromptTemplateTableAsync(conn);
+        var template = await conn.Table<MusicPromptTemplate>()
+            .Where(t => t.Id == templateId)
+            .FirstOrDefaultAsync();
+        if (template == null) return null;
+
+        template.SuccessCount++;
+        await conn.UpdateAsync(template);
+        return template;
+    }
+
+    public async Task<MusicPromptTemplate?> MarkTemplateFailAsync(int templateId)
+    {
+        EnsureWritable();
+
+        var conn = await _db.GetConnectionAsync();
+        await EnsurePromptTemplateTableAsync(conn);
+        var template = await conn.Table<MusicPromptTemplate>()
+            .Where(t => t.Id == templateId)
+            .FirstOrDefaultAsync();
+        if (template == null) return null;
+
+        template.FailCount++;
+        await conn.UpdateAsync(template);
+        return template;
     }
 
     public static string NormalizePromptTemplateCategory(string? category) =>
