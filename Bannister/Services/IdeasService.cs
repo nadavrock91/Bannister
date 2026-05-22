@@ -22,7 +22,11 @@ public class IdeasService
         if (_initialized) return;
         
         var conn = await _db.GetConnectionAsync();
-        if (!_db.IsReadOnly) await conn.CreateTableAsync<IdeaItem>();
+        if (!_db.IsReadOnly)
+        {
+            await conn.CreateTableAsync<IdeaItem>();
+            try { await conn.ExecuteAsync("ALTER TABLE ideas ADD COLUMN FullIdea TEXT DEFAULT ''"); } catch { }
+        }
         _initialized = true;
     }
 
@@ -127,7 +131,8 @@ public class IdeasService
         int rating = 50,
         bool isStarred = false,
         int status = 0,
-        DateTime? createdAt = null)
+        DateTime? createdAt = null,
+        string? fullIdea = null)
     {
         if (_db.IsReadOnly)
         {
@@ -137,6 +142,7 @@ public class IdeasService
                 Username = username,
                 Title = title.Trim(),
                 Category = category.Trim(),
+                FullIdea = fullIdea ?? "",
                 Notes = notes?.Trim(),
                 Subcategory = string.IsNullOrWhiteSpace(subcategory) ? null : subcategory.Trim(),
                 Rating = Math.Clamp(rating, 0, 100),
@@ -150,6 +156,7 @@ public class IdeasService
                 username = queuedIdea.Username,
                 title = queuedIdea.Title,
                 category = queuedIdea.Category,
+                full_idea = queuedIdea.FullIdea,
                 subcategory = queuedIdea.Subcategory,
                 rating = queuedIdea.Rating,
                 notes = queuedIdea.Notes,
@@ -168,6 +175,7 @@ public class IdeasService
             Username = username,
             Title = title.Trim(),
             Category = category.Trim(),
+            FullIdea = fullIdea ?? "",
             Subcategory = string.IsNullOrWhiteSpace(subcategory) ? null : subcategory.Trim(),
             Notes = notes?.Trim(),
             Rating = Math.Clamp(rating, 0, 100),

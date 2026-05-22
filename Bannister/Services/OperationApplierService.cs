@@ -168,7 +168,8 @@ public class OperationApplierService
             rating: ReadInt(root, "rating", 50),
             isStarred: ReadBool(root, "is_starred", false),
             status: ReadInt(root, "status", 0),
-            createdAt: createdAt);
+            createdAt: createdAt,
+            fullIdea: ReadString(root, "full_idea"));
     }
 
     private async Task ApplyPendingActivityIdeaAsync(QueuedOperation op)

@@ -22,6 +22,11 @@ public class IdeaItem
     /// The main idea text/title
     /// </summary>
     public string Title { get; set; } = "";
+
+    /// <summary>
+    /// Full idea text or long-form artifact content
+    /// </summary>
+    public string FullIdea { get; set; } = "";
     
     /// <summary>
     /// Category for organizing ideas (e.g., "Video Ideas", "App Features", "Business")

@@ -1210,7 +1210,7 @@ public class MusicForStoriesPage : ContentPage
                 _auth.CurrentUsername,
                 "Music prompt " + DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
                 "Music Prompts",
-                notes: trimmedWorkingPrompt);
+                fullIdea: trimmedWorkingPrompt);
         }
         catch (Exception ex)
         {
@@ -1326,7 +1326,7 @@ public class MusicForStoriesPage : ContentPage
                 _auth.CurrentUsername,
                 template.Name,
                 "Music Prompt Templates",
-                notes: template.TemplateText);
+                fullIdea: template.TemplateText);
         }
         catch (Exception ex)
         {

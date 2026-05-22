@@ -35,6 +35,7 @@ public class IdeasPage : ContentPage
     // Detail panel
     private Frame _detailPanel;
     private Label _detailTitle;
+    private Editor _detailFullIdea;
     private Editor _detailContent;
     private Label _detailMeta;
     private FlexLayout _ratingButtonsContainer;
@@ -435,6 +436,11 @@ public class IdeasPage : ContentPage
         _detailMeta = new Label { FontSize = 10, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap };
         detailStack.Children.Add(_detailMeta);
 
+        detailStack.Children.Add(new Label { Text = "Full Idea", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666") });
+        _detailFullIdea = new Editor { Placeholder = "Full idea...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 150, FontSize = 12, IsReadOnly = true };
+        detailStack.Children.Add(_detailFullIdea);
+
+        detailStack.Children.Add(new Label { Text = "Notes", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666") });
         _detailContent = new Editor { Placeholder = "Notes...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 150, FontSize = 12 };
         _detailContent.Unfocused += OnDetailContentSave;
         detailStack.Children.Add(_detailContent);
@@ -541,7 +547,7 @@ public class IdeasPage : ContentPage
         else ideas = await _ideas.GetIdeasByCategoryAsync(_auth.CurrentUsername, _selectedCategory);
 
         if (!string.IsNullOrEmpty(_searchText))
-            ideas = ideas.Where(i => i.Title.ToLower().Contains(_searchText) || (i.Notes?.ToLower().Contains(_searchText) ?? false) || i.Category.ToLower().Contains(_searchText)).ToList();
+            ideas = ideas.Where(i => i.Title.ToLower().Contains(_searchText) || (i.FullIdea ?? "").ToLower().Contains(_searchText) || (i.Notes?.ToLower().Contains(_searchText) ?? false) || i.Category.ToLower().Contains(_searchText)).ToList();
 
         ideas = _sortColumn switch
         {
@@ -627,7 +633,7 @@ public class IdeasPage : ContentPage
             return;
         }
 
-        var headers = new List<string> { "Id", "Rating", "Title", "Category", "Subcategory", "Status", "Starred", "Created" };
+        var headers = new List<string> { "Id", "Rating", "Title", "Full Idea", "Category", "Subcategory", "Status", "Starred", "Created" };
         var displayRows = new List<List<string>>();
         var fullRows = new List<List<string>>();
 
@@ -635,6 +641,13 @@ public class IdeasPage : ContentPage
         {
             displayRows.Add(new List<string> { idea.Id.ToString(), idea.Rating.ToString(), idea.Title.Length > 50 ? idea.Title.Substring(0, 47) + "..." : idea.Title, idea.Category, idea.Subcategory ?? "", idea.StatusText, idea.IsStarred ? "⭐" : "", idea.CreatedAt.ToString("MMM d, yyyy") });
             fullRows.Add(new List<string> { idea.Id.ToString(), idea.Rating.ToString(), idea.Title, idea.Category, idea.Subcategory ?? "", idea.StatusText, idea.IsStarred ? "⭐" : "", idea.CreatedAt.ToString("MMM d, yyyy HH:mm") });
+        }
+
+        for (int i = 0; i < ideas.Count; i++)
+        {
+            string fullIdea = ideas[i].FullIdea ?? "";
+            displayRows[i].Insert(3, fullIdea.Length > 80 ? fullIdea.Substring(0, 77) + "..." : fullIdea);
+            fullRows[i].Insert(3, fullIdea);
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
@@ -679,6 +692,7 @@ public class IdeasPage : ContentPage
         switch (columnName)
         {
             case "Title": idea.Title = newValue; break;
+            case "Full Idea": idea.FullIdea = newValue; break;
             case "Category": idea.Category = newValue; break;
             case "Subcategory": idea.Subcategory = string.IsNullOrWhiteSpace(newValue) ? null : newValue; break;
             case "Rating":
@@ -707,6 +721,7 @@ public class IdeasPage : ContentPage
         _selectedIdea = idea;
         _detailPanel.IsVisible = true;
         _detailTitle.Text = idea.Title;
+        _detailFullIdea.Text = idea.FullIdea ?? "";
         _detailContent.Text = idea.Notes ?? "";
         UpdateRatingButtonSelection(idea.Rating);
         _ratingLabel.Text = idea.Rating.ToString();
@@ -759,6 +774,35 @@ public class IdeasPage : ContentPage
         {
             Text = $"{idea.Category}  |  Rating {idea.Rating}  |  {idea.CreatedAt:MMM d, yyyy}",
             FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        if (!string.IsNullOrWhiteSpace(idea.FullIdea))
+        {
+            stack.Children.Add(new Label
+            {
+                Text = "Full Idea",
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#666")
+            });
+
+            stack.Children.Add(new Editor
+            {
+                Text = idea.FullIdea,
+                TextColor = Color.FromArgb("#222"),
+                BackgroundColor = Colors.White,
+                IsReadOnly = true,
+                AutoSize = EditorAutoSizeOption.TextChanges,
+                MinimumHeightRequest = 160
+            });
+        }
+
+        stack.Children.Add(new Label
+        {
+            Text = "Notes",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#666")
         });
 
