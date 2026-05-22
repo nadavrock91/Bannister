@@ -1273,7 +1273,7 @@ public class StoryPointsPage : ContentPage
         {
             try
             {
-                await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, text.Trim(), "all_story_points");
+                await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, text.Trim(), "all_story_points", fullIdea: text.Trim());
             }
             catch (Exception ex)
             {

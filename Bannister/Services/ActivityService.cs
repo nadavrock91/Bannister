@@ -111,7 +111,7 @@ namespace Bannister.Services
 
             // Log to ideas
             if (_ideasService != null)
-                try { await _ideasService.CreateIdeaAsync(username, $"{name} ({category}, +{expGain} EXP)", "activities"); } catch { }
+                try { await _ideasService.CreateIdeaAsync(username, $"{name} ({category}, +{expGain} EXP)", "activities", fullIdea: $"{name} ({category}, +{expGain} EXP)"); } catch { }
 
             return activity;
         }
@@ -124,7 +124,7 @@ namespace Bannister.Services
 
             // Log to ideas
             if (_ideasService != null)
-                try { await _ideasService.CreateIdeaAsync(activity.Username, $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)", "activities"); } catch { }
+                try { await _ideasService.CreateIdeaAsync(activity.Username, $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)", "activities", fullIdea: $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)"); } catch { }
 
             return activity;
         }

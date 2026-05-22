@@ -199,8 +199,8 @@ public class IdeaLoggerService
         _lastUsedCategory = category;
 
         var idea = _db.IsReadOnly
-            ? await _ideas.CreateIdeaAsync(username, text, category, subcategory: subcategory, rating: rating)
-            : await _ideas.CreateIdeaAsync(username, text, category);
+            ? await _ideas.CreateIdeaAsync(username, text, category, subcategory: subcategory, rating: rating, fullIdea: text)
+            : await _ideas.CreateIdeaAsync(username, text, category, fullIdea: text);
         idea.Rating = rating;
         idea.Subcategory = subcategory;
         if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(idea);
@@ -235,8 +235,8 @@ public class IdeaLoggerService
 
         _lastUsedCategory = category;
         var idea = _db.IsReadOnly
-            ? await _ideas.CreateIdeaAsync(username, text.Trim(), category.Trim(), rating: rating)
-            : await _ideas.CreateIdeaAsync(username, text.Trim(), category.Trim());
+            ? await _ideas.CreateIdeaAsync(username, text.Trim(), category.Trim(), rating: rating, fullIdea: text.Trim())
+            : await _ideas.CreateIdeaAsync(username, text.Trim(), category.Trim(), fullIdea: text.Trim());
         idea.Rating = rating;
         if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(idea);
         return idea;
@@ -753,8 +753,8 @@ public class IdeaLoggerService
             try
             {
                 var linkedIdea = _db.IsReadOnly
-                    ? await _ideas.CreateIdeaAsync(username, text, cat, rating: rating)
-                    : await _ideas.CreateIdeaAsync(username, text, cat);
+                    ? await _ideas.CreateIdeaAsync(username, text, cat, rating: rating, fullIdea: text)
+                    : await _ideas.CreateIdeaAsync(username, text, cat, fullIdea: text);
                 linkedIdea.Rating = rating;
                 if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(linkedIdea);
             }

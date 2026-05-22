@@ -94,7 +94,7 @@ public partial class ActivityGamePage
 
         try
         {
-            await _ideas.CreateIdeaAsync(_auth.CurrentUsername, result.Value.ActivityName, "activities");
+            await _ideas.CreateIdeaAsync(_auth.CurrentUsername, result.Value.ActivityName, "activities", fullIdea: result.Value.ActivityName);
         }
         catch (Exception ex)
         {

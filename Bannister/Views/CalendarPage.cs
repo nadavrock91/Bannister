@@ -786,7 +786,7 @@ public class CalendarPage : ContentPage
 
         // Log to ideas
         if (_ideasService != null)
-            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[{date:MMM d}] {title.Trim()}", "calendar_tasks"); } catch { }
+            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[{date:MMM d}] {title.Trim()}", "calendar_tasks", fullIdea: $"[{date:MMM d}] {title.Trim()}"); } catch { }
 
         await LoadMonthAsync();
     }
@@ -1012,6 +1012,7 @@ public class CalendarPage : ContentPage
                             {
                                 Username = username,
                                 Title = text,
+                                FullIdea = text,
                                 Category = cat,
                                 CreatedAt = DateTime.Now
                             };
@@ -2344,7 +2345,7 @@ public class CalendarDayPage : ContentPage
             string logText = titleChanged
                 ? $"[{dateStr}] Edited: \"{originalTitle}\" → \"{finalTitle}\""
                 : $"[{dateStr}] Notes updated: \"{finalTitle}\"";
-            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, logText, "calendar_tasks"); } catch { }
+            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, logText, "calendar_tasks", fullIdea: logText); } catch { }
         }
 
         await LoadTasksAsync();
@@ -2513,7 +2514,7 @@ public class CalendarDayPage : ContentPage
 
         // Log to ideas
         if (_ideasService != null)
-            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[{_date:MMM d}] {title.Trim()}", "calendar_tasks"); } catch { }
+            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[{_date:MMM d}] {title.Trim()}", "calendar_tasks", fullIdea: $"[{_date:MMM d}] {title.Trim()}"); } catch { }
 
         await LoadTasksAsync();
     }

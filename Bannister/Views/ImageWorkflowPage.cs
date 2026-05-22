@@ -438,7 +438,7 @@ public class ImageWorkflowPage : ContentPage
             try { svc = Application.Current?.Handler?.MauiContext?.Services?.GetService<IdeasService>(); } catch { }
             if (svc != null)
             {
-                try { await svc.CreateIdeaAsync(_project.Username, t, GetCategory()); } catch { }
+                try { await svc.CreateIdeaAsync(_project.Username, t, GetCategory(), fullIdea: t); } catch { }
             }
 
             await LockIdeaAsync(t);
@@ -710,7 +710,7 @@ public class ImageWorkflowPage : ContentPage
         try { svc = Application.Current?.Handler?.MauiContext?.Services?.GetService<IdeasService>(); } catch { }
         if (svc == null) { await DisplayAlert("Error", "Could not access Ideas service.", "OK"); return; }
         int n = 0;
-        foreach (var t in ideas) { try { await svc.CreateIdeaAsync(_project.Username, t, cat); n++; } catch { } }
+        foreach (var t in ideas) { try { await svc.CreateIdeaAsync(_project.Username, t, cat, fullIdea: t); n++; } catch { } }
         await DisplayAlert("Imported!", $"{n} ideas imported to \"{cat}\".", "OK");
         _step1Content.IsVisible = false; _step1Arrow.Text = "▶";
         _step2Content.IsVisible = true; _step2Arrow.Text = "▼";

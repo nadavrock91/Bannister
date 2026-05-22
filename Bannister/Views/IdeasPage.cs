@@ -1269,6 +1269,7 @@ public class IdeasPage : ContentPage
                         {
                             Username = username,
                             Title = text,
+                            FullIdea = text,
                             Category = targetCategory,
                             Rating = rating,
                             CreatedAt = createdAt,

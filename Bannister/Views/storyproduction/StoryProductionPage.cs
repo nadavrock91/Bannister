@@ -1255,7 +1255,7 @@ public class StoryProductionPage : ContentPage
             if (string.IsNullOrWhiteSpace(item.category) || string.IsNullOrWhiteSpace(item.text))
                 continue;
 
-            await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, item.text.Trim(), item.category.Trim());
+            await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, item.text.Trim(), item.category.Trim(), fullIdea: item.text.Trim());
             logged++;
         }
 

@@ -735,7 +735,7 @@ public class TasksPage : ContentPage
         await _tasks.CreateTaskAsync(_auth.CurrentUsername, title.Trim(), category, priority);
 
         if (_ideasService != null)
-            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[New] {title.Trim()} ({category})", "tasks_ideas"); } catch { }
+            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[New] {title.Trim()} ({category})", "tasks_ideas", fullIdea: $"[New] {title.Trim()} ({category})"); } catch { }
 
         await LoadCategoriesAsync();
         await RefreshTasksAsync();
@@ -771,7 +771,7 @@ public class TasksPage : ContentPage
             _detailTitle.Text = _selectedTask.Title;
 
             if (_ideasService != null)
-                try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[Edited] \"{originalTitle}\" → \"{t.Trim()}\"", "tasks_ideas"); } catch { }
+                try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[Edited] \"{originalTitle}\" → \"{t.Trim()}\"", "tasks_ideas", fullIdea: $"[Edited] \"{originalTitle}\" → \"{t.Trim()}\""); } catch { }
 
             await RefreshTasksAsync();
         }
