@@ -189,18 +189,19 @@ public class IdeaLoggerService
         var existingCategories = await _ideas.GetCategoriesAsync(username);
         var result = await ShowIdeaPopupAsync(page, username, existingCategories, prefillText, suggestedCategory);
 
-        if (result == null || string.IsNullOrWhiteSpace(result.Value.text))
+        if (result == null || string.IsNullOrWhiteSpace(result.Value.title) || string.IsNullOrWhiteSpace(result.Value.fullIdea))
             return null;
 
         string category = result.Value.category.Trim();
         string? subcategory = result.Value.subcategory;
-        string text = result.Value.text.Trim();
+        string title = result.Value.title.Trim();
+        string fullIdea = result.Value.fullIdea.Trim();
         int rating = result.Value.rating;
         _lastUsedCategory = category;
 
         var idea = _db.IsReadOnly
-            ? await _ideas.CreateIdeaAsync(username, text, category, subcategory: subcategory, rating: rating, fullIdea: text)
-            : await _ideas.CreateIdeaAsync(username, text, category, fullIdea: text);
+            ? await _ideas.CreateIdeaAsync(username, title, category, subcategory: subcategory, rating: rating, fullIdea: fullIdea)
+            : await _ideas.CreateIdeaAsync(username, title, category, fullIdea: fullIdea);
         idea.Rating = rating;
         idea.Subcategory = subcategory;
         if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(idea);
@@ -208,18 +209,18 @@ public class IdeaLoggerService
         // Check for linked categories
         if (_linkedCategories.TryGetValue(category, out var linked) && linked.Count > 0)
         {
-            await HandleLinkedCategoriesAsync(page, username, text, rating, linked);
+            await HandleLinkedCategoriesAsync(page, username, title, fullIdea, rating, linked);
         }
 
         // Check for audio library link
         if (_audioLinkedCategories.TryGetValue(category, out var audioCategory) && _audioLib != null)
         {
-            await HandleAudioLinkAsync(page, username, text, audioCategory);
+            await HandleAudioLinkAsync(page, username, title, audioCategory);
         }
 
         // Confirm to user
         if (page != null)
-            await page.DisplayAlert("✅ Idea Logged", $"{(text.Length > 60 ? text.Substring(0, 57) + "..." : text)}\n\nCategory: {category}{(subcategory != null ? $"\nSubcategory: {subcategory}" : "")}", "OK");
+            await page.DisplayAlert("✅ Idea Logged", $"{(title.Length > 60 ? title.Substring(0, 57) + "..." : title)}\n\nCategory: {category}{(subcategory != null ? $"\nSubcategory: {subcategory}" : "")}", "OK");
 
         return idea;
     }
@@ -242,10 +243,10 @@ public class IdeaLoggerService
         return idea;
     }
 
-    private async Task<(string text, string category, string? subcategory, int rating)?> ShowIdeaPopupAsync(
+    private async Task<(string title, string fullIdea, string category, string? subcategory, int rating)?> ShowIdeaPopupAsync(
         Page page, string username, List<string> existingCategories, string? prefillText, string? suggestedCategory)
     {
-        var tcs = new TaskCompletionSource<(string text, string category, string? subcategory, int rating)?>();
+        var tcs = new TaskCompletionSource<(string title, string fullIdea, string category, string? subcategory, int rating)?>();
         bool isPhone = DeviceInfo.Idiom == DeviceIdiom.Phone ||
             DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density < 600;
 
@@ -318,15 +319,24 @@ public class IdeaLoggerService
             Text = "💡 Log Idea", FontSize = 20, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333")
         });
 
-        // Idea text
-        mainStack.Children.Add(new Label { Text = "Idea:", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        var ideaEditor = new Editor
+        // Idea title and full text
+        mainStack.Children.Add(new Label { Text = "Title:", FontSize = 12, TextColor = Color.FromArgb("#666") });
+        var titleEntry = new Entry
         {
-            Text = prefillText ?? "", Placeholder = "What's your idea?",
+            Text = prefillText ?? "", Placeholder = "Idea title",
+            BackgroundColor = Color.FromArgb("#F5F5F5"), FontSize = 14
+        };
+        StylePhoneEntry(titleEntry);
+        mainStack.Children.Add(titleEntry);
+
+        mainStack.Children.Add(new Label { Text = "Full Idea:", FontSize = 12, TextColor = Color.FromArgb("#666") });
+        var fullIdeaEditor = new Editor
+        {
+            Text = prefillText ?? "", Placeholder = "Write the full idea...",
             BackgroundColor = Color.FromArgb("#F5F5F5"), HeightRequest = 100, FontSize = 14
         };
-        StylePhoneEditor(ideaEditor);
-        mainStack.Children.Add(ideaEditor);
+        StylePhoneEditor(fullIdeaEditor);
+        mainStack.Children.Add(fullIdeaEditor);
 
         // ====== FAVORITES DROPDOWN (only if favorites exist) ======
         Picker? favPicker = null;
@@ -692,7 +702,21 @@ public class IdeaLoggerService
         }
 
         void Cancel(Grid container) { container.Children.Remove(popup); tcs.TrySetResult(null); }
-        void Save(Grid container) { container.Children.Remove(popup); tcs.TrySetResult((ideaEditor.Text ?? "", holder[0], string.IsNullOrWhiteSpace(subHolder[0]) ? null : subHolder[0], selectedRating)); }
+        async Task SaveAsync(Grid container)
+        {
+            string title = titleEntry.Text?.Trim() ?? "";
+            string fullIdea = fullIdeaEditor.Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(fullIdea))
+            {
+                Page? parentPage = FindParentPage(saveBtn);
+                if (parentPage != null)
+                    await parentPage.DisplayAlert("Required Fields", "Title and Full Idea are both required.", "OK");
+                return;
+            }
+
+            container.Children.Remove(popup);
+            tcs.TrySetResult((title, fullIdea, holder[0], string.IsNullOrWhiteSpace(subHolder[0]) ? null : subHolder[0], selectedRating));
+        }
 
         if (contentPage.Content is Grid pageGrid)
         {
@@ -700,8 +724,8 @@ public class IdeaLoggerService
                 Grid.SetRowSpan(popup, pageGrid.RowDefinitions.Count);
             pageGrid.Children.Add(popup);
             cancelBtn.Clicked += (s, e) => Cancel(pageGrid);
-            saveBtn.Clicked += (s, e) => Save(pageGrid);
-            ideaEditor.Focus();
+            saveBtn.Clicked += async (s, e) => await SaveAsync(pageGrid);
+            titleEntry.Focus();
         }
         else
         {
@@ -710,8 +734,8 @@ public class IdeaLoggerService
             wrapper.Children.Add(popup);
             contentPage.Content = wrapper;
             cancelBtn.Clicked += (s, e) => Cancel(wrapper);
-            saveBtn.Clicked += (s, e) => Save(wrapper);
-            ideaEditor.Focus();
+            saveBtn.Clicked += async (s, e) => await SaveAsync(wrapper);
+            titleEntry.Focus();
         }
 
         return await tcs.Task;
@@ -719,7 +743,7 @@ public class IdeaLoggerService
 
     // ====== LINKED CATEGORIES ======
 
-    private async Task HandleLinkedCategoriesAsync(Page page, string username, string text, int rating, List<string> linkedCategories)
+    private async Task HandleLinkedCategoriesAsync(Page page, string username, string title, string fullIdea, int rating, List<string> linkedCategories)
     {
         string linkedList = string.Join(", ", linkedCategories);
         string choice = await page.DisplayActionSheet(
@@ -753,8 +777,8 @@ public class IdeaLoggerService
             try
             {
                 var linkedIdea = _db.IsReadOnly
-                    ? await _ideas.CreateIdeaAsync(username, text, cat, rating: rating, fullIdea: text)
-                    : await _ideas.CreateIdeaAsync(username, text, cat, fullIdea: text);
+                    ? await _ideas.CreateIdeaAsync(username, title, cat, rating: rating, fullIdea: fullIdea)
+                    : await _ideas.CreateIdeaAsync(username, title, cat, fullIdea: fullIdea);
                 linkedIdea.Rating = rating;
                 if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(linkedIdea);
             }
