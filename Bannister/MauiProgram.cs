@@ -125,6 +125,7 @@ public static class MauiProgram
         builder.Services.AddTransient<StreakDashboardPage>();
         builder.Services.AddTransient<StreakAttemptsPage>();
         builder.Services.AddTransient<DatabasesPage>();
+        builder.Services.AddTransient<MoneyManagementHubPage>();
         builder.Services.AddTransient<MoneyManagementPage>();
         builder.Services.AddTransient<ListsPage>();
         builder.Services.AddTransient<SyncSettingsPage>();

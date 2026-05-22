@@ -1075,7 +1075,7 @@ public class HomePage : ContentPage
 
     private async void OnMoneyManagementClicked(object? sender, EventArgs e)
     {
-        var page = new MoneyManagementPage(_auth, _moneyManagement);
+        var page = new MoneyManagementHubPage(_auth, _moneyManagement);
         await Navigation.PushAsync(page);
     }
 
