@@ -180,5 +180,7 @@ public class GuidingInstruction
 
     public string Text { get; set; } = "";
 
+    public bool IsDefaultOn { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

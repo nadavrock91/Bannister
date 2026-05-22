@@ -1898,6 +1898,7 @@ public class MusicForStoriesPage : ContentPage
                 {
                     new ColumnDefinition(GridLength.Star),
                     new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto),
                     new ColumnDefinition(GridLength.Auto)
                 },
                 ColumnSpacing = 8,
@@ -1914,6 +1915,19 @@ public class MusicForStoriesPage : ContentPage
             };
             row.Children.Add(text);
 
+            var defaultToggle = SmallButton(
+                instruction.IsDefaultOn ? "Default On" : "Default Off",
+                instruction.IsDefaultOn ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#ECEFF1"),
+                instruction.IsDefaultOn ? Color.FromArgb("#2E7D32") : Color.FromArgb("#333"));
+            defaultToggle.Clicked += async (s, e) =>
+            {
+                instruction.IsDefaultOn = !instruction.IsDefaultOn;
+                await _musicService.UpdateGuidingInstructionAsync(instruction);
+                await refreshRowsAsync();
+            };
+            Grid.SetColumn(defaultToggle, 1);
+            row.Children.Add(defaultToggle);
+
             var edit = SmallButton("Edit", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
             edit.Clicked += async (s, e) =>
             {
@@ -1928,7 +1942,7 @@ public class MusicForStoriesPage : ContentPage
                 await _musicService.UpdateGuidingInstructionAsync(instruction);
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(edit, 1);
+            Grid.SetColumn(edit, 2);
             row.Children.Add(edit);
 
             var delete = SmallButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
@@ -1944,7 +1958,7 @@ public class MusicForStoriesPage : ContentPage
                 await _musicService.DeleteGuidingInstructionAsync(instruction.Id);
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(delete, 2);
+            Grid.SetColumn(delete, 3);
             row.Children.Add(delete);
 
             listStack.Children.Add(row);
@@ -2019,6 +2033,7 @@ public class MusicForStoriesPage : ContentPage
                 var row = new HorizontalStackLayout { Spacing = 8 };
                 var checkbox = new CheckBox
                 {
+                    IsChecked = instruction.IsDefaultOn,
                     VerticalOptions = LayoutOptions.Center
                 };
                 checkboxes.Add((instruction, checkbox));

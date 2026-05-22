@@ -69,6 +69,7 @@ public class MusicProductionService
         if (_db.IsReadOnly) return;
 
         await conn.CreateTableAsync<GuidingInstruction>();
+        try { await conn.ExecuteAsync("ALTER TABLE guiding_instructions ADD COLUMN IsDefaultOn INTEGER DEFAULT 0"); } catch { }
     }
 
     private static bool IsMissingTable(SQLiteException ex)
