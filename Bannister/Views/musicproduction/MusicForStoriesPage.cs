@@ -33,10 +33,14 @@ public class MusicForStoriesPage : ContentPage
     private Button _writeOwnDescriptionButton = null!;
     private Button _pasteDescriptionButton = null!;
     private Button _askPromptOptionsButton = null!;
+    private Button _askMotifBlockPromptsButton = null!;
     private Button _writeOwnPromptButton = null!;
     private Label _timestampStatusLabel = null!;
     private Button _getTranscriptionPromptButton = null!;
     private Button _pasteTimestampsButton = null!;
+    private Label _motifDescriptionStatusLabel = null!;
+    private Button _describeMotifBlockButton = null!;
+    private Button _pasteMotifDescriptionButton = null!;
     private Button _saveWorkingPromptTemplateButton = null!;
     private Button _pasteNewTemplateButton = null!;
     private Picker _templatePicker = null!;
@@ -393,14 +397,33 @@ public class MusicForStoriesPage : ContentPage
 
         _askPromptOptionsButton = ActionButton("Ask AI for 10 Prompt Options", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57F17"));
         _askPromptOptionsButton.Clicked += OnAskPromptOptionsClicked;
+        _askMotifBlockPromptsButton = ActionButton("Main Motif", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
+        _askMotifBlockPromptsButton.Clicked += OnAskMotifBlockPromptsClicked;
         _writeOwnPromptButton = ActionButton("Write My Own Music Prompt", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
         _writeOwnPromptButton.Clicked += OnWriteOwnPromptClicked;
 
-        foreach (var button in new[] { _askPromptOptionsButton, _writeOwnPromptButton })
+        foreach (var button in new[] { _askPromptOptionsButton, _askMotifBlockPromptsButton, _writeOwnPromptButton })
         {
             stageTwoButtons.Children.Add(button);
         }
         stack.Children.Add(stageTwoButtons);
+
+        _motifDescriptionStatusLabel = new Label
+        {
+            Text = "Motif description: none yet",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        };
+        stack.Children.Add(_motifDescriptionStatusLabel);
+
+        var motifDescriptionButtons = new HorizontalStackLayout { Spacing = 8 };
+        _describeMotifBlockButton = ActionButton("Describe Motif Block", Color.FromArgb("#E0F7FA"), Color.FromArgb("#006064"));
+        _describeMotifBlockButton.Clicked += OnDescribeMotifBlockClicked;
+        _pasteMotifDescriptionButton = ActionButton("Paste Motif Description", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _pasteMotifDescriptionButton.Clicked += OnPasteMotifDescriptionClicked;
+        motifDescriptionButtons.Children.Add(_describeMotifBlockButton);
+        motifDescriptionButtons.Children.Add(_pasteMotifDescriptionButton);
+        stack.Children.Add(motifDescriptionButtons);
 
         var templateSaveButtons = new HorizontalStackLayout { Spacing = 8 };
         _saveWorkingPromptTemplateButton = ActionButton("Save a Working Prompt as Template", Color.FromArgb("#E0F2F1"), Color.FromArgb("#00695C"));
@@ -563,6 +586,8 @@ public class MusicForStoriesPage : ContentPage
             _exportMusicStateButton.IsVisible = false;
             _importButton.IsVisible = false;
             _musicPlanningFrame.IsVisible = false;
+            _describeMotifBlockButton.IsVisible = false;
+            _pasteMotifDescriptionButton.IsVisible = false;
             _addCardButton.IsVisible = false;
             return;
         }
@@ -596,9 +621,12 @@ public class MusicForStoriesPage : ContentPage
         _writeOwnDescriptionButton.IsVisible = IsMaster;
         _pasteDescriptionButton.IsVisible = IsMaster;
         _askPromptOptionsButton.IsVisible = IsMaster;
+        _askMotifBlockPromptsButton.IsVisible = IsMaster;
         _writeOwnPromptButton.IsVisible = IsMaster;
         _getTranscriptionPromptButton.IsVisible = IsMaster;
         _pasteTimestampsButton.IsVisible = IsMaster;
+        _describeMotifBlockButton.IsVisible = IsMaster;
+        _pasteMotifDescriptionButton.IsVisible = IsMaster;
         _saveWorkingPromptTemplateButton.IsVisible = IsMaster;
         _pasteNewTemplateButton.IsVisible = IsMaster;
         _buildTemplatePromptButton.IsVisible = IsMaster;
@@ -975,6 +1003,17 @@ public class MusicForStoriesPage : ContentPage
                 ? Color.FromArgb("#666")
                 : Color.FromArgb("#2E7D32");
         }
+
+        if (_motifDescriptionStatusLabel != null)
+        {
+            var motifDescription = await _musicService.GetMotifDescriptionAsync(_currentProject.Id);
+            _motifDescriptionStatusLabel.Text = string.IsNullOrWhiteSpace(motifDescription)
+                ? "Motif description: none yet"
+                : "Motif description: saved";
+            _motifDescriptionStatusLabel.TextColor = string.IsNullOrWhiteSpace(motifDescription)
+                ? Color.FromArgb("#666")
+                : Color.FromArgb("#2E7D32");
+        }
     }
 
     private async Task RefreshPromptTemplatesAsync(int? selectTemplateId = null)
@@ -1122,6 +1161,79 @@ public class MusicForStoriesPage : ContentPage
             prompt,
             "Prompt Copied",
             "Paste this into your LLM to get 10 ready-to-use music prompt options.");
+    }
+
+    private async void OnAskMotifBlockPromptsClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        var script = await BuildCurrentScriptTextAsync();
+        if (string.IsNullOrWhiteSpace(script))
+        {
+            await DisplayAlert("No Script", "Add script lines to the current draft before asking for motif block prompt options.", "OK");
+            return;
+        }
+
+        var description = await GetGeneralMusicDescriptionTextAsync();
+        var timestamps = await _musicService.GetTimestampedNarrationAsync(_currentProject.Id);
+        var prompt =
+            "I am planning prompts for an AI music generator such as Suno or ElevenLabs for a short-video soundtrack.\n" +
+            "Produce 10 distinct, numbered, ready-to-use ElevenLabs/Suno prompt options for generating ONLY the soundtrack's MAIN MOTIF.\n" +
+            "The main motif is the foundational, recurring musical idea the rest of the soundtrack will be built from.\n" +
+            "This is just the motif as a focused standalone block, not the whole timestamped soundtrack or full emotional arc.\n" +
+            "Leave the exact length to your own judgment; do not specify a duration.\n" +
+            "Use the general music description, script, and timestamps only as context for the motif's emotional character and fit.\n" +
+            "Output ONLY the 10 numbered prompts. Each numbered item must be a complete ready-to-paste ElevenLabs/Suno prompt for the motif block, with no commentary.\n\n" +
+            "GENERAL MUSIC DESCRIPTION:\n" +
+            (string.IsNullOrWhiteSpace(description) ? "(none provided)" : description) + "\n\n" +
+            "SCRIPT:\n" +
+            script + "\n\n" +
+            "TIMESTAMPS:\n" +
+            (string.IsNullOrWhiteSpace(timestamps) ? "(no timestamps saved)" : timestamps.Trim());
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Motif Prompt Copied",
+            "Paste this into your LLM to get 10 ready-to-use main motif block prompt options.");
+    }
+
+    private async void OnDescribeMotifBlockClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        const string prompt =
+            "Analyze the provided main motif audio block for a short-video soundtrack.\n" +
+            "Output a detailed musical description only, with no commentary about the task.\n\n" +
+            "Include these sections:\n" +
+            "1. Overall mood and emotional color.\n" +
+            "2. Musical identity: key or tonal center if detectable, tempo/BPM if detectable, rhythmic feel, groove, and pacing.\n" +
+            "3. Instrumentation and sound palette: lead instruments, supporting textures, synth/acoustic qualities, percussion, bass, ambience, and production character.\n" +
+            "4. Structure by timestamp: section-by-section description of what changes over the motif block, using timestamps from the audio.\n" +
+            "5. Best suited for: what kind of story moment, emotional use, or soundtrack role this motif supports.\n" +
+            "6. Best-description summary: a concise paragraph that captures the motif's reusable musical identity.\n\n" +
+            "Analyze the provided audio directly and output only the detailed description.";
+
+        await CopyPlanningPromptAsync(
+            prompt,
+            "Motif Description Prompt Copied",
+            "Take this prompt plus your motif audio block to an audio-capable LLM. Copy the analysis it returns, then use Paste Motif Description to store it on this draft.");
+    }
+
+    private async void OnPasteMotifDescriptionClicked(object? sender, EventArgs e)
+    {
+        if (!IsMaster || _currentProject == null) return;
+
+        string? description = await ShowPasteDialogAsync(
+            "Paste Motif Description",
+            "Paste the detailed motif-block description returned by your audio-capable LLM. This saves to the current draft only.",
+            "Overall mood and emotional color...\nMusical identity...\nStructure by timestamp...",
+            "Save");
+        if (string.IsNullOrWhiteSpace(description)) return;
+
+        await _musicService.SetMotifDescriptionAsync(_currentProject.Id, description.Trim());
+        _currentProject = await _musicService.GetProjectByIdAsync(_currentProject.Id) ?? _currentProject;
+        await RefreshMusicPlanningAsync();
+        await DisplayAlert("Motif Description Saved", "The motif description was saved to this draft.", "OK");
     }
 
     private async void OnWriteOwnPromptClicked(object? sender, EventArgs e)

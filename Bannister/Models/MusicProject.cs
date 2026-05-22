@@ -21,6 +21,8 @@ public class MusicProject
 
     public string TimestampedNarration { get; set; } = "";
 
+    public string MotifDescription { get; set; } = "";
+
     public string ProjectCategory { get; set; } = "";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
