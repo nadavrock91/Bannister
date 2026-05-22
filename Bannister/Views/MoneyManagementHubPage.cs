@@ -49,6 +49,13 @@ public class MoneyManagementHubPage : ContentPage
             Color.FromArgb("#1B5E20"),
             OnMonthlyExpensesClicked));
 
+        stack.Children.Add(CreateHubCard(
+            "Assets",
+            "Track assets, units, and total worth.",
+            Color.FromArgb("#E3F2FD"),
+            Color.FromArgb("#0D47A1"),
+            OnAssetsClicked));
+
         scroll.Content = stack;
         Content = scroll;
     }
@@ -114,5 +121,10 @@ public class MoneyManagementHubPage : ContentPage
     private async void OnMonthlyExpensesClicked(object? sender, EventArgs e)
     {
         await Navigation.PushAsync(new MoneyManagementPage(_auth, _moneyManagement));
+    }
+
+    private async void OnAssetsClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new AssetsPage(_auth, _moneyManagement));
     }
 }

@@ -127,6 +127,7 @@ public static class MauiProgram
         builder.Services.AddTransient<DatabasesPage>();
         builder.Services.AddTransient<MoneyManagementHubPage>();
         builder.Services.AddTransient<MoneyManagementPage>();
+        builder.Services.AddTransient<AssetsPage>();
         builder.Services.AddTransient<ListsPage>();
         builder.Services.AddTransient<SyncSettingsPage>();
 

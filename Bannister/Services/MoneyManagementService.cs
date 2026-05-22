@@ -9,9 +9,17 @@ public class MoneyManagementService
     private readonly DatabaseService _db;
     private bool _initialized;
 
+    public bool IsReadOnly => _db.IsReadOnly;
+
     public MoneyManagementService(DatabaseService db)
     {
         _db = db;
+    }
+
+    private void EnsureWritable()
+    {
+        if (_db.IsReadOnly)
+            throw new InvalidOperationException("Money management changes are only available on the master device.");
     }
 
     private async Task EnsureInitializedAsync()
@@ -20,6 +28,7 @@ public class MoneyManagementService
 
         var conn = await _db.GetConnectionAsync();
         if (!_db.IsReadOnly) await conn.CreateTableAsync<MonthlyExpense>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<AssetItem>();
         _initialized = true;
     }
 
@@ -117,6 +126,109 @@ public class MoneyManagementService
             .Sum(e => e.Amount);
     }
 
+    public async Task<List<AssetItem>> GetAssetsAsync(string username)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        List<AssetItem> rows;
+        try
+        {
+            rows = await conn.Table<AssetItem>()
+                .Where(a => a.Username == username)
+                .ToListAsync();
+        }
+        catch (SQLiteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+        {
+            return new List<AssetItem>();
+        }
+
+        return rows
+            .OrderBy(a => a.Name)
+            .ThenBy(a => a.Id)
+            .ToList();
+    }
+
+    public async Task<AssetItem> AddAssetAsync(string username, string name, double units, double valuePerUnit, string notes)
+    {
+        EnsureWritable();
+        await EnsureInitializedAsync();
+
+        var asset = new AssetItem
+        {
+            Username = username,
+            Name = name.Trim(),
+            Units = units,
+            ValuePerUnit = valuePerUnit,
+            Notes = notes.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var conn = await _db.GetConnectionAsync();
+        await conn.InsertAsync(asset);
+        return asset;
+    }
+
+    public async Task UpdateAssetAsync(AssetItem item)
+    {
+        EnsureWritable();
+        await EnsureInitializedAsync();
+        item.Name = item.Name.Trim();
+        item.Notes = item.Notes?.Trim() ?? "";
+
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(item);
+    }
+
+    public async Task DeleteAssetAsync(int id)
+    {
+        EnsureWritable();
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        await conn.DeleteAsync<AssetItem>(id);
+    }
+
+    public async Task<bool> UpdateAssetCellAsync(string username, string idValue, string columnName, string newValue)
+    {
+        EnsureWritable();
+        await EnsureInitializedAsync();
+        if (!int.TryParse(idValue, out int id))
+            return false;
+
+        var conn = await _db.GetConnectionAsync();
+        var asset = await conn.FindAsync<AssetItem>(id);
+        if (asset == null || !string.Equals(asset.Username, username, StringComparison.Ordinal))
+            return false;
+
+        switch (columnName)
+        {
+            case "Name":
+                if (string.IsNullOrWhiteSpace(newValue)) return false;
+                asset.Name = newValue.Trim();
+                break;
+            case "Units":
+                if (!TryParseDouble(newValue, out double units)) return false;
+                asset.Units = units;
+                break;
+            case "Value/Unit":
+                if (!TryParseDouble(newValue, out double valuePerUnit)) return false;
+                asset.ValuePerUnit = valuePerUnit;
+                break;
+            case "Notes":
+                asset.Notes = newValue.Trim();
+                break;
+            default:
+                return false;
+        }
+
+        await conn.UpdateAsync(asset);
+        return true;
+    }
+
+    public double SumAssets(IEnumerable<AssetItem> assets)
+    {
+        return assets.Sum(a => a.Units * a.ValuePerUnit);
+    }
+
     private static bool TryParseAmount(string value, out decimal amount)
     {
         var cleaned = value.Trim().Replace("$", "", StringComparison.Ordinal).Replace(",", "", StringComparison.Ordinal);
@@ -141,5 +253,12 @@ public class MoneyManagementService
 
         result = false;
         return false;
+    }
+
+    private static bool TryParseDouble(string value, out double result)
+    {
+        var cleaned = value.Trim().Replace("$", "", StringComparison.Ordinal).Replace(",", "", StringComparison.Ordinal);
+        return double.TryParse(cleaned, NumberStyles.Number | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out result)
+            || double.TryParse(cleaned, NumberStyles.Currency, CultureInfo.CurrentCulture, out result);
     }
 }
