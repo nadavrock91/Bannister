@@ -1203,6 +1203,20 @@ public class MusicForStoriesPage : ContentPage
             "Paste the working music prompt here...");
         if (string.IsNullOrWhiteSpace(workingPrompt)) return;
 
+        string trimmedWorkingPrompt = workingPrompt.Trim();
+        try
+        {
+            await _ideas.CreateIdeaAsync(
+                _auth.CurrentUsername,
+                "Music prompt " + DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+                "Music Prompts",
+                notes: trimmedWorkingPrompt);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("Failed to log working music prompt as idea: " + ex);
+        }
+
         string? timestampChoice = await DisplayActionSheet(
             "Does this prompt use timestamps?",
             "Cancel",
@@ -1214,7 +1228,7 @@ public class MusicForStoriesPage : ContentPage
         bool isTimestamped = timestampChoice == "Yes";
         _pendingTemplateIsTimestamped = isTimestamped;
 
-        var metaPrompt = BuildTemplateExtractionPrompt(workingPrompt.Trim(), isTimestamped);
+        var metaPrompt = BuildTemplateExtractionPrompt(trimmedWorkingPrompt, isTimestamped);
         await CopyPlanningPromptAsync(
             metaPrompt,
             "Template Extraction Prompt Copied",
