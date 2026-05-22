@@ -17,6 +17,7 @@ public class MusicForStoriesPage : ContentPage
     private Label _currentDraftLabel = null!;
     private Label _statusLabel = null!;
     private VerticalStackLayout _linesContainer = null!;
+    private Button _cardsToggleButton = null!;
     private Button _newProjectButton = null!;
     private Button _projectSettingsButton = null!;
     private Button _deleteProjectButton = null!;
@@ -64,6 +65,8 @@ public class MusicForStoriesPage : ContentPage
     private bool? _pendingTemplateIsTimestamped;
     private bool _isLoadingProjects;
     private bool _isLoadingDrafts;
+    private bool _cardsExpanded;
+    private bool _cardsBuilt;
 
     private bool IsMaster => !_db.IsReadOnly;
 
@@ -250,6 +253,12 @@ public class MusicForStoriesPage : ContentPage
         _addCardButton = ActionButton("+ Add Card", Color.FromArgb("#3949AB"), Colors.White);
         _addCardButton.IsVisible = false;
         _addCardButton.Clicked += OnAddCardClicked;
+
+        _cardsToggleButton = ActionButton("Expand Cards (0)", Color.FromArgb("#ECEFF1"), Color.FromArgb("#333"));
+        _cardsToggleButton.IsVisible = false;
+        _cardsToggleButton.Clicked += OnCardsToggleClicked;
+        cardHeaderRow.Children.Add(_cardsToggleButton);
+
         cardHeaderRow.Children.Add(_addCardButton);
         topStack.Children.Add(cardHeaderRow);
 
@@ -603,6 +612,7 @@ public class MusicForStoriesPage : ContentPage
             _exportMusicStateButton.IsVisible = false;
             _importButton.IsVisible = false;
             _musicPlanningFrame.IsVisible = false;
+            _cardsToggleButton.IsVisible = false;
             _describeMotifBlockButton.IsVisible = false;
             _pasteMotifDescriptionButton.IsVisible = false;
             _buildFullSoundtrackPromptButton.IsVisible = false;
@@ -637,6 +647,8 @@ public class MusicForStoriesPage : ContentPage
         _exportMusicStateButton.IsVisible = IsMaster;
         _importButton.IsVisible = IsMaster;
         _musicPlanningFrame.IsVisible = true;
+        _cardsToggleButton.IsVisible = true;
+        UpdateCardsToggleButton();
         _askDescriptionButton.IsVisible = IsMaster;
         _writeOwnDescriptionButton.IsVisible = IsMaster;
         _pasteDescriptionButton.IsVisible = IsMaster;
@@ -667,16 +679,18 @@ public class MusicForStoriesPage : ContentPage
 
     private async Task LoadLinesAsync()
     {
-        _linesContainer.Children.Clear();
+        ResetCardsRegion(clearBuiltCards: true);
         _changedLineOrders.Clear();
-        _compareToProject = await _musicService.GetComparisonProjectAsync(_currentProject);
+        _compareToProject = null;
 
         if (_currentProject == null)
         {
-            _linesContainer.Children.Add(InfoLabel("Choose a project to begin."));
+            _currentLines.Clear();
+            UpdateCardsToggleButton();
             return;
         }
 
+        _compareToProject = await _musicService.GetComparisonProjectAsync(_currentProject);
         var lines = await _musicService.GetLinesAsync(_currentProject.Id);
         _currentLines = lines;
         if (_compareToProject != null)
@@ -691,26 +705,84 @@ public class MusicForStoriesPage : ContentPage
             : $" - {_currentProject.ProjectCategory}";
         _statusLabel.Text = $"{lines.Count} card{(lines.Count == 1 ? "" : "s")}{categoryText}";
 
-        if (lines.Count == 0)
+        UpdateCardsToggleButton();
+    }
+
+    private void ResetCardsRegion(bool clearBuiltCards)
+    {
+        if (clearBuiltCards)
+            _linesContainer.Children.Clear();
+
+        _linesContainer.IsVisible = false;
+        _cardsExpanded = false;
+        _cardsBuilt = !clearBuiltCards && _cardsBuilt;
+        UpdateCardsToggleButton();
+    }
+
+    private void UpdateCardsToggleButton()
+    {
+        if (_cardsToggleButton == null) return;
+
+        int count = _currentLines?.Count ?? 0;
+        _cardsToggleButton.Text = _cardsExpanded ? "Collapse Cards" : $"Expand Cards ({count})";
+    }
+
+    private async void OnCardsToggleClicked(object? sender, EventArgs e)
+    {
+        if (_cardsExpanded)
+        {
+            _linesContainer.IsVisible = false;
+            _cardsExpanded = false;
+            UpdateCardsToggleButton();
+            return;
+        }
+
+        await ExpandCardsAsync();
+    }
+
+    private async Task ExpandCardsAsync()
+    {
+        if (_currentProject == null) return;
+
+        if (_cardsBuilt)
+        {
+            _linesContainer.IsVisible = true;
+            _cardsExpanded = true;
+            UpdateCardsToggleButton();
+            return;
+        }
+
+        await BuildCurrentCardsAsync();
+        _linesContainer.IsVisible = true;
+        _cardsExpanded = true;
+        _cardsBuilt = true;
+        UpdateCardsToggleButton();
+    }
+
+    private async Task BuildCurrentCardsAsync()
+    {
+        _linesContainer.Children.Clear();
+
+        if (_currentLines.Count == 0)
         {
             _linesContainer.Children.Add(InfoLabel(IsMaster ? "No cards yet. Add one to start." : "No cards in this draft."));
             return;
         }
 
-        SetLoadingBusy(true, $"Loading card 0 of {lines.Count}...");
+        SetLoadingBusy(true, $"Loading card 0 of {_currentLines.Count}...");
         await Task.Yield();
 
         try
         {
-            for (int i = 0; i < lines.Count; i++)
+            for (int i = 0; i < _currentLines.Count; i++)
             {
-                SetLoadingBusy(true, $"Loading card {i + 1} of {lines.Count}...");
+                SetLoadingBusy(true, $"Loading card {i + 1} of {_currentLines.Count}...");
 
-                var line = lines[i];
+                var line = _currentLines[i];
                 bool isChanged = _changedLineOrders.Contains(line.LineOrder);
-                _linesContainer.Children.Add(CreateLineCard(line, lines.Count, isChanged));
+                _linesContainer.Children.Add(CreateLineCard(line, _currentLines.Count, isChanged));
 
-                if ((i + 1) % 5 == 0 || i == lines.Count - 1)
+                if ((i + 1) % 5 == 0 || i == _currentLines.Count - 1)
                 {
                     await Task.Yield();
                     await Task.Delay(1);
@@ -762,7 +834,7 @@ public class MusicForStoriesPage : ContentPage
             upButton.Clicked += async (s, e) =>
             {
                 await _musicService.MoveLineUpAsync(line.Id);
-                await LoadLinesAsync();
+                await ReloadLinesAndExpandCardsAsync();
             };
             actionRow.Children.Add(upButton);
 
@@ -771,7 +843,7 @@ public class MusicForStoriesPage : ContentPage
             downButton.Clicked += async (s, e) =>
             {
                 await _musicService.MoveLineDownAsync(line.Id);
-                await LoadLinesAsync();
+                await ReloadLinesAndExpandCardsAsync();
             };
             actionRow.Children.Add(downButton);
 
@@ -818,7 +890,7 @@ public class MusicForStoriesPage : ContentPage
                 line.Script = GetEditorText(scriptEditor);
                 line.Visuals = GetEditorText(visualsEditor);
                 await _musicService.UpdateLineAsync(line);
-                await LoadLinesAsync();
+                await ReloadLinesAndExpandCardsAsync();
             };
             stack.Children.Add(saveButton);
         }
@@ -2261,7 +2333,7 @@ public class MusicForStoriesPage : ContentPage
         if (!IsMaster || _currentProject == null) return;
 
         await _musicService.AddLineAsync(_currentProject.Id);
-        await LoadLinesAsync();
+        await ReloadLinesAndExpandCardsAsync();
     }
 
     private async Task DeleteLineAsync(MusicLine line)
@@ -2272,7 +2344,13 @@ public class MusicForStoriesPage : ContentPage
         if (!delete) return;
 
         await _musicService.DeleteLineAsync(line.Id);
+        await ReloadLinesAndExpandCardsAsync();
+    }
+
+    private async Task ReloadLinesAndExpandCardsAsync()
+    {
         await LoadLinesAsync();
+        await ExpandCardsAsync();
     }
 
     private async Task<string?> ShowMultiLineInputAsync(string title, string message, string initialValue, string placeholder)
