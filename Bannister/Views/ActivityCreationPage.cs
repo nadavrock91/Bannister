@@ -202,7 +202,7 @@ public class ActivityCreationPage : ContentPage
                     txtName.Text = _prefillName;
                 
                 if (!string.IsNullOrEmpty(_prefillLevel) && int.TryParse(_prefillLevel, out int level))
-                    txtMeaningful.Text = Math.Abs(level).ToString();
+                    txtMeaningful.Text = _isNegative ? (-Math.Abs(level)).ToString() : Math.Abs(level).ToString();
                 
                 if (!string.IsNullOrEmpty(_prefillCategory))
                     entryCategory.Text = _prefillCategory;
