@@ -146,12 +146,11 @@ public partial class ActivityGamePage
         foreach (var activity in candidates)
         {
             int threshold = activity.AutoSuggestThreshold <= 0 ? 30 : activity.AutoSuggestThreshold;
-            string action = await DisplayActionSheet(
-                $"{activity.Name}\nDisplay Day Streak {activity.DisplayDayStreak} has reached the auto-suggestion threshold ({threshold}). Turn on auto EXP reward?",
-                "Skip",
-                null,
-                "Set to Auto",
-                "Postpone");
+            string? action = await AutoAwardSuggestionPromptPage.ShowAsync(
+                Navigation,
+                activity.Name,
+                activity.DisplayDayStreak,
+                threshold);
 
             if (action == "Set to Auto")
             {
@@ -183,49 +182,49 @@ public partial class ActivityGamePage
 
         if (changed)
         {
+            int previousCategoryIndex = _currentCategoryIndex;
+            string? previousTempCategory = _tempNonNavigableCategory;
+
             await LoadCategoriesAsync();
+            RestoreCategoryPageAfterPromptRefresh(previousCategoryIndex, previousTempCategory);
             await RefreshActivitiesAsync();
         }
     }
 
     private async Task<int?> ChooseAutoSuggestThresholdAsync(Activity activity)
     {
-        string choice = await DisplayActionSheet(
-            "Postpone Auto Suggestion",
-            "Cancel",
-            null,
-            "60",
-            "90",
-            "180",
-            "365",
-            "Manual");
+        return await AutoAwardPostponePromptPage.ShowAsync(
+            Navigation,
+            activity.Name,
+            Math.Max(activity.AutoSuggestThreshold, 30));
+    }
 
-        if (string.IsNullOrEmpty(choice) || choice == "Cancel")
-            return null;
-
-        if (choice == "Manual")
+    private void RestoreCategoryPageAfterPromptRefresh(int previousCategoryIndex, string? previousTempCategory)
+    {
+        categoryPicker.SelectedIndexChanged -= OnCategoryChanged;
+        try
         {
-            string? manual = await DisplayPromptAsync(
-                "Manual Threshold",
-                $"Enter the Display Day Streak threshold for '{activity.Name}'.",
-                "Save",
-                "Cancel",
-                initialValue: Math.Max(activity.AutoSuggestThreshold, 30).ToString(),
-                keyboard: Keyboard.Numeric);
-
-            if (string.IsNullOrWhiteSpace(manual))
-                return null;
-
-            if (!int.TryParse(manual.Trim(), out int manualThreshold) || manualThreshold < 1)
+            if (!string.IsNullOrWhiteSpace(previousTempCategory) &&
+                _categories.Any(c => string.Equals(c, previousTempCategory, StringComparison.OrdinalIgnoreCase)))
             {
-                await DisplayAlert("Invalid", "Enter a whole number greater than 0.", "OK");
-                return null;
+                _tempNonNavigableCategory = previousTempCategory;
+                _currentCategoryIndex = _navigableCategories.Count > 0
+                    ? Math.Clamp(previousCategoryIndex, 0, _navigableCategories.Count - 1)
+                    : 0;
+                UpdateCategoryDisplay();
+                return;
             }
 
-            return manualThreshold;
+            _tempNonNavigableCategory = null;
+            _currentCategoryIndex = _navigableCategories.Count > 0
+                ? Math.Clamp(previousCategoryIndex, 0, _navigableCategories.Count - 1)
+                : 0;
+            UpdateCategoryDisplay();
         }
-
-        return int.TryParse(choice, out int threshold) ? threshold : null;
+        finally
+        {
+            categoryPicker.SelectedIndexChanged += OnCategoryChanged;
+        }
     }
 
     /// <summary>
@@ -817,5 +816,390 @@ public partial class ActivityGamePage
         
         string sign = amount > 0 ? "+" : "";
         await DisplayAlert("EXP Adjusted", $"{sign}{amount} EXP applied.\n\nReason: {description}", "OK");
+    }
+}
+
+internal class AutoAwardSuggestionPromptPage : ContentPage
+{
+    private readonly TaskCompletionSource<string?> _completion = new();
+    private readonly string _activityName;
+    private readonly int _streak;
+    private readonly int _threshold;
+
+    private AutoAwardSuggestionPromptPage(string activityName, int streak, int threshold)
+    {
+        _activityName = activityName;
+        _streak = streak;
+        _threshold = threshold;
+        BackgroundColor = Color.FromArgb("#80000000");
+        BuildUI();
+    }
+
+    public static async Task<string?> ShowAsync(INavigation navigation, string activityName, int streak, int threshold)
+    {
+        var page = new AutoAwardSuggestionPromptPage(activityName, streak, threshold);
+        await navigation.PushModalAsync(page);
+        return await page._completion.Task;
+    }
+
+    private void BuildUI()
+    {
+        var backdrop = new Grid
+        {
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+        var backdropTap = new TapGestureRecognizer();
+        backdropTap.Tapped += (s, e) => Close(null);
+        backdrop.GestureRecognizers.Add(backdropTap);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 16,
+            Padding = 0,
+            HasShadow = true,
+            WidthRequest = 420,
+            MaximumWidthRequest = 520,
+            MaximumHeightRequest = 620,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(20)
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 0 };
+
+        stack.Children.Add(new Label
+        {
+            Text = "Auto EXP Reward?",
+            FontSize = 22,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333333"),
+            Padding = new Thickness(22, 20, 22, 8)
+        });
+
+        stack.Children.Add(new BoxView
+        {
+            HeightRequest = 1,
+            Color = Color.FromArgb("#E0E0E0")
+        });
+
+        var contentStack = new VerticalStackLayout
+        {
+            Spacing = 14,
+            Padding = new Thickness(22, 18)
+        };
+
+        contentStack.Children.Add(new Label
+        {
+            Text = _activityName,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222222"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        contentStack.Children.Add(new Label
+        {
+            Text = $"This activity's Display Day Streak is {_streak}, which has reached the auto-suggestion threshold ({_threshold}). Turn on auto EXP reward?",
+            FontSize = 15,
+            TextColor = Color.FromArgb("#555555"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        stack.Children.Add(new ScrollView { Content = contentStack });
+
+        stack.Children.Add(new BoxView
+        {
+            HeightRequest = 1,
+            Color = Color.FromArgb("#E0E0E0")
+        });
+
+        var buttonStack = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Padding = new Thickness(22, 16, 22, 22)
+        };
+
+        buttonStack.Children.Add(BuildButton("Set to Auto", Color.FromArgb("#4CAF50"), Colors.White, "Set to Auto"));
+        buttonStack.Children.Add(BuildButton("Postpone", Color.FromArgb("#FBC02D"), Color.FromArgb("#333333"), "Postpone"));
+        buttonStack.Children.Add(BuildButton("Skip", Color.FromArgb("#EEEEEE"), Color.FromArgb("#555555"), null));
+
+        stack.Children.Add(buttonStack);
+
+        card.Content = stack;
+
+        var root = new Grid();
+        root.Children.Add(backdrop);
+        root.Children.Add(card);
+        Content = root;
+    }
+
+    private Button BuildButton(string text, Color background, Color textColor, string? result)
+    {
+        var button = new Button
+        {
+            Text = text,
+            BackgroundColor = background,
+            TextColor = textColor,
+            CornerRadius = 8,
+            HeightRequest = 46,
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold
+        };
+        button.Clicked += (s, e) => Close(result);
+        return button;
+    }
+
+    private async void Close(string? result)
+    {
+        if (!_completion.TrySetResult(result))
+            return;
+
+        await Navigation.PopModalAsync(animated: false);
+    }
+
+    protected override void OnDisappearing()
+    {
+        _completion.TrySetResult(null);
+        base.OnDisappearing();
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        Close(null);
+        return true;
+    }
+}
+
+internal class AutoAwardPostponePromptPage : ContentPage
+{
+    private readonly TaskCompletionSource<int?> _completion = new();
+    private readonly string _activityName;
+    private readonly int _initialThreshold;
+    private Entry? _manualEntry;
+
+    private AutoAwardPostponePromptPage(string activityName, int initialThreshold)
+    {
+        _activityName = activityName;
+        _initialThreshold = initialThreshold;
+        BackgroundColor = Color.FromArgb("#80000000");
+        BuildUI();
+    }
+
+    public static async Task<int?> ShowAsync(INavigation navigation, string activityName, int initialThreshold)
+    {
+        var page = new AutoAwardPostponePromptPage(activityName, initialThreshold);
+        await navigation.PushModalAsync(page);
+        return await page._completion.Task;
+    }
+
+    private void BuildUI()
+    {
+        var backdrop = new Grid
+        {
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+        var backdropTap = new TapGestureRecognizer();
+        backdropTap.Tapped += (s, e) => Close(null);
+        backdrop.GestureRecognizers.Add(backdropTap);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 16,
+            Padding = 0,
+            HasShadow = true,
+            WidthRequest = 420,
+            MaximumWidthRequest = 520,
+            MaximumHeightRequest = 680,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(20)
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 0 };
+
+        stack.Children.Add(new Label
+        {
+            Text = "Postpone Auto Suggestion",
+            FontSize = 22,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333333"),
+            Padding = new Thickness(22, 20, 22, 8)
+        });
+
+        stack.Children.Add(new BoxView
+        {
+            HeightRequest = 1,
+            Color = Color.FromArgb("#E0E0E0")
+        });
+
+        var contentStack = new VerticalStackLayout
+        {
+            Spacing = 12,
+            Padding = new Thickness(22, 18)
+        };
+
+        contentStack.Children.Add(new Label
+        {
+            Text = _activityName,
+            FontSize = 17,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222222"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        contentStack.Children.Add(new Label
+        {
+            Text = "Choose the Display Day Streak threshold when this activity should be suggested again.",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#555555"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var fixedGrid = new Grid
+        {
+            ColumnSpacing = 8,
+            RowSpacing = 8,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            }
+        };
+
+        int[] thresholds = { 60, 90, 180, 365 };
+        for (int i = 0; i < thresholds.Length; i++)
+        {
+            var button = BuildThresholdButton(thresholds[i]);
+            Grid.SetColumn(button, i % 2);
+            Grid.SetRow(button, i / 2);
+            fixedGrid.Children.Add(button);
+        }
+
+        contentStack.Children.Add(fixedGrid);
+
+        contentStack.Children.Add(new Label
+        {
+            Text = "Manual threshold",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333333"),
+            Margin = new Thickness(0, 8, 0, 0)
+        });
+
+        var manualRow = new Grid
+        {
+            ColumnSpacing = 8,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
+        };
+
+        _manualEntry = new Entry
+        {
+            Text = _initialThreshold.ToString(),
+            Keyboard = Keyboard.Numeric,
+            Placeholder = "Threshold",
+            BackgroundColor = Color.FromArgb("#F7F7F7")
+        };
+        Grid.SetColumn(_manualEntry, 0);
+        manualRow.Children.Add(_manualEntry);
+
+        var saveManual = new Button
+        {
+            Text = "Save",
+            BackgroundColor = Color.FromArgb("#4CAF50"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontAttributes = FontAttributes.Bold
+        };
+        saveManual.Clicked += OnManualSaveClicked;
+        Grid.SetColumn(saveManual, 1);
+        manualRow.Children.Add(saveManual);
+
+        contentStack.Children.Add(manualRow);
+
+        stack.Children.Add(new ScrollView { Content = contentStack });
+
+        stack.Children.Add(new BoxView
+        {
+            HeightRequest = 1,
+            Color = Color.FromArgb("#E0E0E0")
+        });
+
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#EEEEEE"),
+            TextColor = Color.FromArgb("#555555"),
+            CornerRadius = 8,
+            HeightRequest = 46,
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            Margin = new Thickness(22, 16, 22, 22)
+        };
+        cancelButton.Clicked += (s, e) => Close(null);
+        stack.Children.Add(cancelButton);
+
+        card.Content = stack;
+
+        var root = new Grid();
+        root.Children.Add(backdrop);
+        root.Children.Add(card);
+        Content = root;
+    }
+
+    private Button BuildThresholdButton(int threshold)
+    {
+        var button = new Button
+        {
+            Text = threshold.ToString(),
+            BackgroundColor = Color.FromArgb("#FBC02D"),
+            TextColor = Color.FromArgb("#333333"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold
+        };
+        button.Clicked += (s, e) => Close(threshold);
+        return button;
+    }
+
+    private async void OnManualSaveClicked(object? sender, EventArgs e)
+    {
+        if (_manualEntry == null ||
+            !int.TryParse((_manualEntry.Text ?? "").Trim(), out int threshold) ||
+            threshold < 1)
+        {
+            await DisplayAlert("Invalid", "Enter a whole number greater than 0.", "OK");
+            return;
+        }
+
+        Close(threshold);
+    }
+
+    private async void Close(int? result)
+    {
+        if (!_completion.TrySetResult(result))
+            return;
+
+        await Navigation.PopModalAsync(animated: false);
+    }
+
+    protected override void OnDisappearing()
+    {
+        _completion.TrySetResult(null);
+        base.OnDisappearing();
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        Close(null);
+        return true;
     }
 }
