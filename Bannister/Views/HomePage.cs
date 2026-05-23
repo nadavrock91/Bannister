@@ -40,6 +40,9 @@ public class HomePage : ContentPage
     private readonly PendingActivityIdeaService _pendingIdeas;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
+    private bool _expiredActivitiesPromptChecked = false;
+    private bool _dailyHabitAllowancePromptChecked = false;
+    private bool _weeklyCommitmentsPromptChecked = false;
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
 
     // UI Controls
@@ -554,6 +557,9 @@ public class HomePage : ContentPage
 
     private async Task CheckDailyHabitAllowanceAsync()
     {
+        if (_dailyHabitAllowancePromptChecked) return;
+        _dailyHabitAllowancePromptChecked = true;
+
         try
         {
             // Only check on Saturday (last day to fill before week resets on Sunday)
@@ -683,6 +689,9 @@ public class HomePage : ContentPage
 
     private async Task CheckWeeklyCommitmentsAsync()
     {
+        if (_weeklyCommitmentsPromptChecked) return;
+        _weeklyCommitmentsPromptChecked = true;
+
         try
         {
             // Only check on Saturday (last day to designate before Sunday reset)
@@ -911,6 +920,9 @@ public class HomePage : ContentPage
 
     private async Task CheckExpiredActivitiesAsync()
     {
+        if (_expiredActivitiesPromptChecked) return;
+        _expiredActivitiesPromptChecked = true;
+
         try
         {
             var activityService = Application.Current?.Handler?.MauiContext?.Services
