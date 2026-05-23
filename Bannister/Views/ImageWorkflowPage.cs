@@ -736,7 +736,7 @@ public class ImageWorkflowPage : ContentPage
             cg.Add(badge, 0, 0);
             string dt = idea.Title.Length > 120 ? idea.Title.Substring(0, 117) + "..." : idea.Title;
             cg.Add(new Label { Text = dt, FontSize = 12, TextColor = Color.FromArgb("#333"), LineBreakMode = LineBreakMode.WordWrap, VerticalOptions = LayoutOptions.Center }, 1, 0);
-            string ft = idea.Title;
+            string ft = !string.IsNullOrWhiteSpace(idea.FullIdea) ? idea.FullIdea.Trim() : idea.Title;
             var sb = new Button { Text = "Select", FontSize = 11, HeightRequest = 30, BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(10, 0), VerticalOptions = LayoutOptions.Center };
             sb.Clicked += async (s, e) => await LockIdeaAsync(ft);
             cg.Add(sb, 2, 0);

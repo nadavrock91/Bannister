@@ -215,7 +215,7 @@ public class IdeaLoggerService
         // Check for audio library link
         if (_audioLinkedCategories.TryGetValue(category, out var audioCategory) && _audioLib != null)
         {
-            await HandleAudioLinkAsync(page, username, title, audioCategory);
+            await HandleAudioLinkAsync(page, username, GetIdeaContentText(fullIdea, title), audioCategory);
         }
 
         // Confirm to user
@@ -970,6 +970,13 @@ public class IdeaLoggerService
 #endif
         }
         // "📝 Yes (no audio yet)" — item already created, nothing more to do
+    }
+
+    private static string GetIdeaContentText(string? fullIdea, string title)
+    {
+        return !string.IsNullOrWhiteSpace(fullIdea)
+            ? fullIdea.Trim()
+            : title.Trim();
     }
 
     private async Task SaveAudioLinkAsync(string username, string category)

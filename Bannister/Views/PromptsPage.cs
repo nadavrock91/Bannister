@@ -588,7 +588,10 @@ public class PromptsPage : ContentPage
                         sb.AppendLine();
                         foreach (var idea in randomIdeas)
                         {
-                            sb.AppendLine($"- {idea.Title}");
+                            var ideaText = !string.IsNullOrWhiteSpace(idea.FullIdea)
+                                ? idea.FullIdea.Trim()
+                                : idea.Title;
+                            sb.AppendLine($"- {ideaText}");
                         }
                     }
                 }
