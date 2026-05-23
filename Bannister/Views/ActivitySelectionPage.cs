@@ -24,6 +24,9 @@ public class ActivitySelectionPage : ContentPage
     private List<Activity> _currentActivities = new();
     private string? _selectedGameId = null;
     private string _searchText = "";
+    private bool _isInitializing;
+    private bool _updatingCategoryPicker;
+    private const int MaxRenderedActivities = 100;
 
     public ActivitySelectionPage(ActivityService activities, GameService games, string username, string title, bool negativeOnly = false, bool includeAllStatuses = false)
     {
@@ -175,10 +178,25 @@ public class ActivitySelectionPage : ContentPage
         Content = mainGrid;
     }
 
-    private void OnSearchTextChanged(object? sender, TextChangedEventArgs e)
+    private async void OnSearchTextChanged(object? sender, TextChangedEventArgs e)
     {
         _searchText = e.NewTextValue?.Trim() ?? "";
-        DisplayFilteredActivities();
+        await LoadActivitiesAsync();
+    }
+
+    private bool ShouldLoadActivities() =>
+        _selectedGameId != null || _searchText.Length >= 2;
+
+    private void ShowSelectionHint()
+    {
+        _activityList.Children.Clear();
+        _activityList.Children.Add(new Label
+        {
+            Text = "Search by activity name or pick a game to show activities.",
+            TextColor = Color.FromArgb("#666"),
+            HorizontalTextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 20)
+        });
     }
 
     private void DisplayFilteredActivities()
@@ -222,7 +240,21 @@ public class ActivitySelectionPage : ContentPage
             .ThenBy(a => a.Name)
             .ToList();
 
-        foreach (var activity in sorted)
+        var shown = sorted.Take(MaxRenderedActivities).ToList();
+
+        if (sorted.Count > MaxRenderedActivities)
+        {
+            _activityList.Children.Add(new Label
+            {
+                Text = $"Showing first {MaxRenderedActivities} of {sorted.Count}. Search or filter more to narrow results.",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#666"),
+                HorizontalTextAlignment = TextAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 4)
+            });
+        }
+
+        foreach (var activity in shown)
         {
             _activityList.Children.Add(CreateActivityCard(activity));
         }
@@ -243,19 +275,24 @@ public class ActivitySelectionPage : ContentPage
         
         var gameOptions = new List<string> { "All Games" };
         gameOptions.AddRange(_allGames.Select(g => g.DisplayName));
+        _isInitializing = true;
         _gamePicker.ItemsSource = gameOptions;
         _gamePicker.SelectedIndex = 0;
-
-        await LoadActivitiesAsync();
+        _isInitializing = false;
+        ShowSelectionHint();
     }
 
     private async void OnGameFilterChanged(object? sender, EventArgs e)
     {
+        if (_isInitializing) return;
+
         if (_gamePicker.SelectedIndex <= 0)
         {
             _selectedGameId = null;
+            _updatingCategoryPicker = true;
             _categoryPicker.IsEnabled = false;
             _categoryPicker.ItemsSource = null;
+            _updatingCategoryPicker = false;
         }
         else
         {
@@ -267,9 +304,11 @@ public class ActivitySelectionPage : ContentPage
             
             var categoryOptions = new List<string> { "All Categories" };
             categoryOptions.AddRange(categories);
+            _updatingCategoryPicker = true;
             _categoryPicker.ItemsSource = categoryOptions;
             _categoryPicker.SelectedIndex = 0;
             _categoryPicker.IsEnabled = true;
+            _updatingCategoryPicker = false;
         }
 
         await LoadActivitiesAsync();
@@ -277,12 +316,20 @@ public class ActivitySelectionPage : ContentPage
 
     private async void OnCategoryFilterChanged(object? sender, EventArgs e)
     {
+        if (_updatingCategoryPicker) return;
         await LoadActivitiesAsync();
     }
 
     private async Task LoadActivitiesAsync()
     {
         _activityList.Children.Clear();
+        if (!ShouldLoadActivities())
+        {
+            _currentActivities.Clear();
+            ShowSelectionHint();
+            return;
+        }
+
         _activityList.Children.Add(new ActivityIndicator { IsRunning = true, Color = Color.FromArgb("#5B63EE") });
 
         try
