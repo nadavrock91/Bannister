@@ -12,10 +12,16 @@ public class SubActivityService
         _db = db;
     }
 
+    public bool IsReadOnly => _db.IsReadOnly;
+
     private async Task EnsureTableAsync()
     {
         var conn = await _db.GetConnectionAsync();
-        if (!_db.IsReadOnly) await conn.CreateTableAsync<SubActivity>();
+        if (!_db.IsReadOnly)
+        {
+            await conn.CreateTableAsync<SubActivity>();
+            try { await conn.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN PromptDailyOnHome INTEGER DEFAULT 0"); } catch { }
+        }
     }
 
     public async Task<List<SubActivity>> GetActiveAsync(string username)
@@ -30,7 +36,7 @@ public class SubActivityService
         // Check for daily resets
         foreach (var item in items)
         {
-            if (item.ResetMode == "daily" && NeedsReset(item))
+            if (!_db.IsReadOnly && item.ResetMode == "daily" && NeedsReset(item))
             {
                 await ResetStepsAsync(item);
             }
@@ -47,6 +53,20 @@ public class SubActivityService
             .Where(s => s.Username == username && s.IsArchived)
             .OrderBy(s => s.Name)
             .ToListAsync();
+    }
+
+    public async Task<List<SubActivity>> GetDailyPromptProcessesAsync(string username)
+    {
+        var items = await GetActiveAsync(username);
+        return items
+            .Where(item => item.PromptDailyOnHome)
+            .Where(item =>
+            {
+                var steps = GetSteps(item);
+                return steps.Count > 0 && !steps.All(s => s.Done);
+            })
+            .OrderBy(item => item.Name)
+            .ToList();
     }
 
     public async Task<SubActivity?> GetByIdAsync(int id)
@@ -291,6 +311,22 @@ public class SubActivityService
         item.TotalCompletions++;
         item.CompletionsSinceLastAddition++;
         await UpdateAsync(item);
+    }
+
+    public async Task CompleteAllStepsAsync(SubActivity item)
+    {
+        if (_db.IsReadOnly) return;
+
+        var steps = GetSteps(item);
+        if (steps.Count == 0 || steps.All(s => s.Done)) return;
+
+        foreach (var step in steps)
+        {
+            step.Done = true;
+        }
+
+        item.StepsJson = JsonSerializer.Serialize(steps);
+        await MarkCompletedAsync(item);
     }
 
     #endregion

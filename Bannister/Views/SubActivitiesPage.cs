@@ -576,6 +576,7 @@ public class SubActivitiesPage : ContentPage
             null,
             "✏️ Rename",
             $"☀️ Reset Mode: {(item.ResetMode == "daily" ? "Daily → Manual" : "Manual → Daily")}",
+            $"Daily Home Prompt: {(item.PromptDailyOnHome ? "On -> Off" : "Off -> On")}",
             $"🔒 Addition Mode: {(item.AdditionMode == "unlimited" ? "Unlimited → Locked" : "Locked → Unlimited")}",
             "📊 Stats",
             "📦 Archive",
@@ -596,6 +597,18 @@ public class SubActivitiesPage : ContentPage
         else if (action.StartsWith("☀️"))
         {
             item.ResetMode = item.ResetMode == "daily" ? "manual" : "daily";
+            await _subActivityService.UpdateAsync(item);
+            await LoadDataAsync();
+        }
+        else if (action.StartsWith("Daily Home Prompt:"))
+        {
+            if (_subActivityService.IsReadOnly)
+            {
+                await DisplayAlert("Read Only", "Daily Home Prompt can only be changed on the master device.", "OK");
+                return;
+            }
+
+            item.PromptDailyOnHome = !item.PromptDailyOnHome;
             await _subActivityService.UpdateAsync(item);
             await LoadDataAsync();
         }

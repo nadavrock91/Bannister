@@ -62,6 +62,8 @@ public class SubActivity
     /// Last date steps were reset (for daily mode)
     /// </summary>
     public DateTime? LastResetDate { get; set; }
+
+    public bool PromptDailyOnHome { get; set; } = false;
     
     public bool IsArchived { get; set; } = false;
     

@@ -43,6 +43,7 @@ public class HomePage : ContentPage
     private bool _expiredActivitiesPromptChecked = false;
     private bool _dailyHabitAllowancePromptChecked = false;
     private bool _weeklyCommitmentsPromptChecked = false;
+    private bool _subActivityDailyPromptChecked = false;
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
 
     // UI Controls
@@ -374,6 +375,7 @@ public class HomePage : ContentPage
         _lblWelcome.Text = $"Welcome, {_auth.CurrentUsername}";
         await LoadDataAsync();
         await ShowDailyLoginPromptsIfNeededAsync();
+        await CheckSubActivityDailyPromptAsync();
 
         if (!_introChecked)
         {
@@ -552,6 +554,48 @@ public class HomePage : ContentPage
         for (int i = 0; i < prompts.Count; i++)
         {
             await DailyLoginPromptDisplayPage.ShowAsync(Navigation, prompts[i], i + 1, prompts.Count);
+        }
+    }
+
+    private async Task CheckSubActivityDailyPromptAsync()
+    {
+        if (_subActivityDailyPromptChecked) return;
+        _subActivityDailyPromptChecked = true;
+
+        try
+        {
+            if (_db.IsReadOnly) return;
+
+            string today = DateTime.Today.ToString("yyyy-MM-dd");
+            string lastPromptKey = $"subactivity_daily_prompt_{_auth.CurrentUsername}";
+            string? lastPrompt = null;
+            try { lastPrompt = await SecureStorage.GetAsync(lastPromptKey); } catch { }
+
+            if (lastPrompt == today) return;
+
+            var processes = await _subActivityService.GetDailyPromptProcessesAsync(_auth.CurrentUsername);
+            if (processes.Count == 0) return;
+
+            foreach (var process in processes)
+            {
+                string action = await DisplayActionSheet(
+                    $"Did you complete all sub-activities for \"{process.Name}\"?",
+                    "Cancel",
+                    null,
+                    "Mark All Done",
+                    "Not Yet");
+
+                if (action == "Mark All Done")
+                {
+                    await _subActivityService.CompleteAllStepsAsync(process);
+                }
+            }
+
+            try { await SecureStorage.SetAsync(lastPromptKey, today); } catch { }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking sub-activity daily prompts: {ex.Message}");
         }
     }
 
