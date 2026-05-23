@@ -126,6 +126,8 @@ public partial class ActivityGamePage
         if (_db.IsReadOnly || _allActivities == null || _allActivities.Count == 0)
             return;
 
+        var activeStreakAttemptActivityIds = await GetActiveStreakAttemptActivityIdsAsync();
+
         var candidates = _allActivities
             .Select(vm => vm.Activity)
             .Where(activity =>
@@ -133,6 +135,7 @@ public partial class ActivityGamePage
                 int threshold = activity.AutoSuggestThreshold <= 0 ? 30 : activity.AutoSuggestThreshold;
                 return activity.IsActive
                     && !activity.IsAutoAward
+                    && !activeStreakAttemptActivityIds.Contains(activity.Id)
                     && activity.DisplayDayStreak >= threshold;
             })
             .OrderBy(activity => activity.Name, StringComparer.OrdinalIgnoreCase)
@@ -189,6 +192,42 @@ public partial class ActivityGamePage
             RestoreCategoryPageAfterPromptRefresh(previousCategoryIndex, previousTempCategory);
             await RefreshActivitiesAsync();
         }
+    }
+
+    private async Task<HashSet<int>> GetActiveStreakAttemptActivityIdsAsync()
+    {
+        var activityIds = new HashSet<int>();
+
+        if (_allActivities == null || _allActivities.Count == 0)
+            return activityIds;
+
+        try
+        {
+            var activeStreaksByGame = new Dictionary<string, List<StreakAttempt>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var activityVM in _allActivities)
+            {
+                var activity = activityVM.Activity;
+                if (!activity.IsStreakTracked)
+                    continue;
+
+                string streakGameId = GetActivityGameId(activity);
+                if (!activeStreaksByGame.TryGetValue(streakGameId, out var activeStreaks))
+                {
+                    activeStreaks = await _streaks.GetActiveStreaksAsync(_auth.CurrentUsername, streakGameId);
+                    activeStreaksByGame[streakGameId] = activeStreaks;
+                }
+
+                if (activeStreaks.Any(streak => streak.ActivityId == activity.Id))
+                    activityIds.Add(activity.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ERROR loading active streak attempts for auto-award suggestions: {ex.Message}");
+        }
+
+        return activityIds;
     }
 
     private async Task<int?> ChooseAutoSuggestThresholdAsync(Activity activity)

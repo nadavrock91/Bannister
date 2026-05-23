@@ -48,7 +48,7 @@ public class LearningPage : ContentPage
     private Picker _statusPicker;
     private string _selectedCategory = "All";
     private string _selectedChannel = "All";
-    private string _selectedStatus = "To Watch";
+    private string _selectedStatus = "Pending";
     private bool _isUpdatingPicker = false;
     
     // Pagination
@@ -94,14 +94,32 @@ public class LearningPage : ContentPage
         // Ensure Learning game exists (but don't auto-create activities)
         await EnsureLearningGameExistsAsync();
         
-        // Set default category filter to focus category if one is active
-        var focus = GetVideoFocusSettings();
-        if (focus.IsActive && !string.IsNullOrEmpty(focus.Category))
-        {
-            _selectedCategory = focus.Category;
-        }
+        ApplyVideoOpenDefaults();
         
         await RefreshDataAsync();
+    }
+
+    private void ApplyVideoOpenDefaults()
+    {
+        _selectedCategory = "All";
+        _selectedChannel = "All";
+        _selectedStatus = "Pending";
+        _currentVideoPage = 0;
+
+        _isUpdatingPicker = true;
+        try
+        {
+            if (_statusPicker != null)
+            {
+                var pendingIndex = _statusPicker.Items.IndexOf("Pending");
+                if (pendingIndex >= 0)
+                    _statusPicker.SelectedIndex = pendingIndex;
+            }
+        }
+        finally
+        {
+            _isUpdatingPicker = false;
+        }
     }
     
     /// <summary>
@@ -455,7 +473,7 @@ public class LearningPage : ContentPage
 
         _statusPicker = new Picker
         {
-            Title = "To Watch",
+            Title = "Pending",
             WidthRequest = 120,
             BackgroundColor = Colors.White
         };
@@ -466,7 +484,7 @@ public class LearningPage : ContentPage
         _statusPicker.Items.Add("Pending");
         _statusPicker.Items.Add("Read Summary");
         _statusPicker.Items.Add("Watched");
-        _statusPicker.SelectedIndex = 1; // Default to "To Watch"
+        _statusPicker.SelectedIndex = 4; // Default to "Pending"
         _statusPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_isUpdatingPicker) return;
