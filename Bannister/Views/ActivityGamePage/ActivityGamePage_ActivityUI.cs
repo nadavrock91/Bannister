@@ -263,7 +263,9 @@ public partial class ActivityGamePage
                     Text = currentSection,
                     FontSize = 16,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#3F51B5"),
+                    TextColor = currentSection == "Activities That Don't Display Every Day"
+                        ? Color.FromArgb("#C62828")
+                        : Color.FromArgb("#3F51B5"),
                     HorizontalOptions = LayoutOptions.Center
                 };
                 headerFrame.Content = headerLabel;

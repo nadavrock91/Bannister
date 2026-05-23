@@ -116,10 +116,27 @@ public static class ActivityFilterHelper
         System.Diagnostics.Debug.WriteLine($"\n=== SORTING BY LAST USED ===");
         System.Diagnostics.Debug.WriteLine($"Total activities to sort: {activities.Count}");
 
+        var nonDailyDueToday = activities
+            .Where(a => a.Activity.ShouldDisplayToday &&
+                        (!string.IsNullOrEmpty(a.Activity.DisplayDaysOfWeek) || a.Activity.DisplayDayOfMonth > 0))
+            .OrderBy(a => a.LastUsedDate.HasValue)
+            .ThenByDescending(a => a.LastUsedDate)
+            .ThenBy(a => a.Name)
+            .ToList();
+
+        if (nonDailyDueToday.Count > 0)
+        {
+            System.Diagnostics.Debug.WriteLine($"  NON-DAILY DUE TODAY: {nonDailyDueToday.Count} activities");
+            nonDailyDueToday[0].SectionHeader = "Activities That Don't Display Every Day";
+            sorted.AddRange(nonDailyDueToday);
+        }
+
+        var nonDailyDueTodayIds = nonDailyDueToday.Select(a => a.Id).ToHashSet();
+
         // ========== HABITS SECTION (TOP PRIORITY) ==========
         // Daily Habits (7+ consecutive days)
         var dailyHabits = activities
-            .Where(a => a.Activity.HabitType == "Daily" && a.Activity.IsHabit)
+            .Where(a => !nonDailyDueTodayIds.Contains(a.Id) && a.Activity.HabitType == "Daily" && a.Activity.IsHabit)
             .OrderByDescending(a => a.Activity.HabitStreak)
             .ToList();
         if (dailyHabits.Count > 0)
@@ -131,7 +148,7 @@ public static class ActivityFilterHelper
 
         // Weekly Habits (4+ consecutive weeks)
         var weeklyHabits = activities
-            .Where(a => a.Activity.HabitType == "Weekly" && a.Activity.IsHabit)
+            .Where(a => !nonDailyDueTodayIds.Contains(a.Id) && a.Activity.HabitType == "Weekly" && a.Activity.IsHabit)
             .OrderByDescending(a => a.Activity.HabitStreak)
             .ToList();
         if (weeklyHabits.Count > 0)
@@ -143,7 +160,7 @@ public static class ActivityFilterHelper
 
         // Monthly Habits (3+ consecutive months)
         var monthlyHabits = activities
-            .Where(a => a.Activity.HabitType == "Monthly" && a.Activity.IsHabit)
+            .Where(a => !nonDailyDueTodayIds.Contains(a.Id) && a.Activity.HabitType == "Monthly" && a.Activity.IsHabit)
             .OrderByDescending(a => a.Activity.HabitStreak)
             .ToList();
         if (monthlyHabits.Count > 0)
@@ -155,7 +172,7 @@ public static class ActivityFilterHelper
 
         // Building Habits (in progress, not yet achieved habit status)
         var buildingHabits = activities
-            .Where(a => a.Activity.HabitType != "None" && !a.Activity.IsHabit && a.Activity.HabitStreak > 0)
+            .Where(a => !nonDailyDueTodayIds.Contains(a.Id) && a.Activity.HabitType != "None" && !a.Activity.IsHabit && a.Activity.HabitStreak > 0)
             .OrderByDescending(a => a.Activity.HabitProgress)
             .ToList();
         if (buildingHabits.Count > 0)
@@ -173,6 +190,7 @@ public static class ActivityFilterHelper
         // NEWLY ADDED - Never clicked AND created within 7 days
         var newlyAdded = activities
             .Where(a => !habitActivityIds.Contains(a.Id) &&
+                        !nonDailyDueTodayIds.Contains(a.Id) &&
                         !a.LastUsedDate.HasValue && 
                         a.StartDate.HasValue && 
                         (now - a.StartDate.Value).TotalDays < 8)
@@ -189,6 +207,7 @@ public static class ActivityFilterHelper
         // Within 7 days - Recent
         var last7Days = activities
             .Where(a => !habitActivityIds.Contains(a.Id) &&
+                       !nonDailyDueTodayIds.Contains(a.Id) &&
                        a.LastUsedDate.HasValue && (now - a.LastUsedDate.Value).TotalDays <= 7)
             .OrderByDescending(a => a.LastUsedDate)
             .ToList();
@@ -201,6 +220,7 @@ public static class ActivityFilterHelper
         // 7-30 days - Clicked a week ago
         var last30Days = activities
             .Where(a => !habitActivityIds.Contains(a.Id) &&
+                       !nonDailyDueTodayIds.Contains(a.Id) &&
                        a.LastUsedDate.HasValue && 
                        (now - a.LastUsedDate.Value).TotalDays > 7 && 
                        (now - a.LastUsedDate.Value).TotalDays <= 30)
@@ -215,6 +235,7 @@ public static class ActivityFilterHelper
         // 30-60 days - Clicked a month ago
         var last60Days = activities
             .Where(a => !habitActivityIds.Contains(a.Id) &&
+                       !nonDailyDueTodayIds.Contains(a.Id) &&
                        a.LastUsedDate.HasValue && 
                        (now - a.LastUsedDate.Value).TotalDays > 30 && 
                        (now - a.LastUsedDate.Value).TotalDays <= 60)
@@ -229,6 +250,7 @@ public static class ActivityFilterHelper
         // 60+ days - Over 2 months ago
         var over60Days = activities
             .Where(a => !habitActivityIds.Contains(a.Id) &&
+                       !nonDailyDueTodayIds.Contains(a.Id) &&
                        a.LastUsedDate.HasValue && (now - a.LastUsedDate.Value).TotalDays > 60)
             .OrderByDescending(a => a.LastUsedDate)
             .ToList();
@@ -241,6 +263,7 @@ public static class ActivityFilterHelper
         // Never clicked (excluding newly added ones already shown above)
         var neverClicked = activities
             .Where(a => !habitActivityIds.Contains(a.Id) &&
+                       !nonDailyDueTodayIds.Contains(a.Id) &&
                        !a.LastUsedDate.HasValue && 
                        (!a.StartDate.HasValue || (now - a.StartDate.Value).TotalDays > 7))
             .OrderBy(a => a.Name)
