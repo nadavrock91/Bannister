@@ -97,7 +97,15 @@ public class IdeasPage : ContentPage
         // ====== ROW 0: Header ======
         var headerRow = new HorizontalStackLayout { Spacing = 12 };
         headerRow.Children.Add(new Label { Text = "💡", FontSize = 20, VerticalOptions = LayoutOptions.Center });
-        _headerLabel = new Label { Text = "0 ideas", FontSize = 14, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center };
+        _headerLabel = new Label
+        {
+            Text = "0 ideas",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#666"),
+            VerticalOptions = LayoutOptions.Center,
+            WidthRequest = 230,
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
         headerRow.Children.Add(_headerLabel);
 
         _pendingSyncLabel = new Label
