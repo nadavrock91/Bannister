@@ -2497,7 +2497,9 @@ public class MusicForStoriesPage : ContentPage
         var card = CreateOverlayCard(width: 640, height: 560);
         var stack = new VerticalStackLayout { Spacing = 12 };
         string selectedCategory = "All";
+        string selectedSort = "Name";
         bool updatingCategoryPicker = false;
+        bool updatingSortPicker = false;
 
         stack.Children.Add(new Label
         {
@@ -2507,6 +2509,12 @@ public class MusicForStoriesPage : ContentPage
             TextColor = Color.FromArgb("#333")
         });
 
+        var controlsRow = new HorizontalStackLayout
+        {
+            Spacing = 12,
+            VerticalOptions = LayoutOptions.Center
+        };
+
         var categoryPicker = new Picker
         {
             Title = "Category",
@@ -2514,7 +2522,23 @@ public class MusicForStoriesPage : ContentPage
             BackgroundColor = Colors.White,
             WidthRequest = 260
         };
-        stack.Children.Add(categoryPicker);
+        controlsRow.Children.Add(categoryPicker);
+
+        var sortPicker = new Picker
+        {
+            Title = "Sort",
+            TextColor = Color.FromArgb("#222"),
+            BackgroundColor = Colors.White,
+            WidthRequest = 180
+        };
+        sortPicker.Items.Add("Name");
+        sortPicker.Items.Add("Success %");
+        sortPicker.Items.Add("Most Successes");
+        sortPicker.Items.Add("Most Fails");
+        sortPicker.SelectedIndex = 0;
+        controlsRow.Children.Add(sortPicker);
+
+        stack.Children.Add(controlsRow);
 
         var listStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -2525,14 +2549,21 @@ public class MusicForStoriesPage : ContentPage
             {
                 updatingCategoryPicker = value;
             });
-            BuildTemplateManagementRows(listStack, overlay, selectedCategory, RebuildAsync);
+            BuildTemplateManagementRows(listStack, overlay, selectedCategory, selectedSort, RebuildAsync);
         }
 
         categoryPicker.SelectedIndexChanged += (s, e) =>
         {
             if (updatingCategoryPicker) return;
             selectedCategory = categoryPicker.SelectedItem?.ToString() ?? "All";
-            BuildTemplateManagementRows(listStack, overlay, selectedCategory, RebuildAsync);
+            BuildTemplateManagementRows(listStack, overlay, selectedCategory, selectedSort, RebuildAsync);
+        };
+
+        sortPicker.SelectedIndexChanged += (s, e) =>
+        {
+            if (updatingSortPicker) return;
+            selectedSort = sortPicker.SelectedItem?.ToString() ?? "Name";
+            BuildTemplateManagementRows(listStack, overlay, selectedCategory, selectedSort, RebuildAsync);
         };
 
         await RebuildAsync();
@@ -2573,15 +2604,17 @@ public class MusicForStoriesPage : ContentPage
         VerticalStackLayout listStack,
         Grid overlay,
         string selectedCategory,
+        string selectedSort,
         Func<Task> refreshRowsAsync)
     {
         listStack.Children.Clear();
 
-        var visibleTemplates = selectedCategory == "All"
+        var filteredTemplates = selectedCategory == "All"
             ? _promptTemplates
             : _promptTemplates
                 .Where(t => string.Equals(GetTemplateCategoryDisplay(t), selectedCategory, StringComparison.OrdinalIgnoreCase))
                 .ToList();
+        var visibleTemplates = SortTemplateManagementRows(filteredTemplates, selectedSort).ToList();
 
         if (visibleTemplates.Count == 0)
         {
@@ -2591,6 +2624,8 @@ public class MusicForStoriesPage : ContentPage
             return;
         }
 
+        listStack.Children.Add(BuildTemplateManagementHeaderRow());
+
         foreach (var template in visibleTemplates)
         {
             var row = new Grid
@@ -2598,6 +2633,9 @@ public class MusicForStoriesPage : ContentPage
                 ColumnDefinitions =
                 {
                     new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(new GridLength(42)),
+                    new ColumnDefinition(new GridLength(42)),
+                    new ColumnDefinition(new GridLength(54)),
                     new ColumnDefinition(GridLength.Auto),
                     new ColumnDefinition(GridLength.Auto),
                     new ColumnDefinition(GridLength.Auto),
@@ -2609,7 +2647,6 @@ public class MusicForStoriesPage : ContentPage
                 BackgroundColor = Color.FromArgb("#FAFAFA")
             };
 
-            var nameStack = new VerticalStackLayout { Spacing = 2 };
             var name = new Label
             {
                 Text = template.IsTimestamped
@@ -2618,16 +2655,10 @@ public class MusicForStoriesPage : ContentPage
                 TextColor = Color.FromArgb("#333"),
                 LineBreakMode = LineBreakMode.TailTruncation
             };
-            nameStack.Children.Add(name);
-
-            nameStack.Children.Add(new Label
-            {
-                Text = "Score: " + FormatTemplateScore(template),
-                FontSize = 12,
-                TextColor = Color.FromArgb("#666"),
-                LineBreakMode = LineBreakMode.TailTruncation
-            });
-            row.Children.Add(nameStack);
+            row.Children.Add(name);
+            row.Add(BuildTemplateScoreCell(template.SuccessCount.ToString(), Color.FromArgb("#2E7D32")), 1, 0);
+            row.Add(BuildTemplateScoreCell(template.FailCount.ToString(), Color.FromArgb("#C62828")), 2, 0);
+            row.Add(BuildTemplateScoreCell(FormatTemplateSuccessPercent(template), Color.FromArgb("#333")), 3, 0);
 
             var markSuccess = SmallButton("Mark ✓", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
             markSuccess.Clicked += async (s, e) =>
@@ -2637,7 +2668,7 @@ public class MusicForStoriesPage : ContentPage
                     ApplyUpdatedTemplate(updated);
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(markSuccess, 1);
+            Grid.SetColumn(markSuccess, 4);
             row.Children.Add(markSuccess);
 
             var markFail = SmallButton("Mark ✗", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
@@ -2648,7 +2679,7 @@ public class MusicForStoriesPage : ContentPage
                     ApplyUpdatedTemplate(updated);
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(markFail, 2);
+            Grid.SetColumn(markFail, 5);
             row.Children.Add(markFail);
 
             var rename = SmallButton("Rename", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
@@ -2667,7 +2698,7 @@ public class MusicForStoriesPage : ContentPage
                 await RefreshPromptTemplatesAsync(template.Id);
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(rename, 3);
+            Grid.SetColumn(rename, 6);
             row.Children.Add(rename);
 
             var category = SmallButton("Change Category", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
@@ -2676,7 +2707,7 @@ public class MusicForStoriesPage : ContentPage
                 await ChangeTemplateCategoryAsync(template);
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(category, 4);
+            Grid.SetColumn(category, 7);
             row.Children.Add(category);
 
             var delete = SmallButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
@@ -2693,11 +2724,97 @@ public class MusicForStoriesPage : ContentPage
                 await RefreshPromptTemplatesAsync();
                 await refreshRowsAsync();
             };
-            Grid.SetColumn(delete, 5);
+            Grid.SetColumn(delete, 8);
             row.Children.Add(delete);
 
             listStack.Children.Add(row);
         }
+    }
+
+    private static IEnumerable<MusicPromptTemplate> SortTemplateManagementRows(IEnumerable<MusicPromptTemplate> templates, string selectedSort)
+    {
+        return selectedSort switch
+        {
+            "Success %" => templates
+                .OrderBy(t => t.SuccessCount + t.FailCount == 0)
+                .ThenByDescending(GetTemplateSuccessPercentValue)
+                .ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase),
+            "Most Successes" => templates
+                .OrderByDescending(t => t.SuccessCount)
+                .ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase),
+            "Most Fails" => templates
+                .OrderByDescending(t => t.FailCount)
+                .ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase),
+            _ => templates.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+        };
+    }
+
+    private static double GetTemplateSuccessPercentValue(MusicPromptTemplate template)
+    {
+        int total = template.SuccessCount + template.FailCount;
+        return total <= 0 ? -1 : template.SuccessCount * 100.0 / total;
+    }
+
+    private static string FormatTemplateSuccessPercent(MusicPromptTemplate template)
+    {
+        int total = template.SuccessCount + template.FailCount;
+        if (total <= 0) return "-";
+
+        return $"{(int)Math.Round(template.SuccessCount * 100.0 / total)}%";
+    }
+
+    private static Grid BuildTemplateManagementHeaderRow()
+    {
+        var header = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(new GridLength(42)),
+                new ColumnDefinition(new GridLength(42)),
+                new ColumnDefinition(new GridLength(54)),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8,
+            Padding = new Thickness(8, 4),
+            BackgroundColor = Color.FromArgb("#FFF3E0")
+        };
+
+        header.Add(BuildTemplateHeaderCell("Name", TextAlignment.Start), 0, 0);
+        header.Add(BuildTemplateHeaderCell("\u2713", TextAlignment.Center), 1, 0);
+        header.Add(BuildTemplateHeaderCell("\u2717", TextAlignment.Center), 2, 0);
+        header.Add(BuildTemplateHeaderCell("%", TextAlignment.Center), 3, 0);
+        return header;
+    }
+
+    private static Label BuildTemplateHeaderCell(string text, TextAlignment alignment)
+    {
+        return new Label
+        {
+            Text = text,
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#5D4037"),
+            HorizontalTextAlignment = alignment,
+            VerticalTextAlignment = TextAlignment.Center
+        };
+    }
+
+    private static Label BuildTemplateScoreCell(string text, Color color)
+    {
+        return new Label
+        {
+            Text = text,
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = color,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center
+        };
     }
 
     private async Task ChangeTemplateCategoryAsync(MusicPromptTemplate template)
