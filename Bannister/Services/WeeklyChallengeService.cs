@@ -269,6 +269,30 @@ public class WeeklyChallengeService
         await conn.UpdateAsync(challenge);
     }
 
+    public async Task SetSuccessStreakAsync(string username, int streak)
+    {
+        if (_db.IsReadOnly) return;
+
+        var challenge = await GetActiveChallengeAsync(username);
+        if (challenge == null) return;
+
+        challenge.SuccessStreak = Math.Max(0, streak);
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(challenge);
+    }
+
+    public async Task SetCurrentAllowanceAsync(string username, int allowance)
+    {
+        if (_db.IsReadOnly) return;
+
+        var challenge = await GetActiveChallengeAsync(username);
+        if (challenge == null) return;
+
+        challenge.CurrentAllowance = Math.Max(1, allowance);
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(challenge);
+    }
+
     /// <summary>
     /// Get completed challenges
     /// </summary>

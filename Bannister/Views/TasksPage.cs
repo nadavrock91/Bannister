@@ -834,7 +834,7 @@ public class TasksPage : ContentPage
 
     #region Weekly Challenge
 
-    private async Task RefreshChallengeWidgetAsync()
+    private async Task RefreshChallengeWidgetAsync(bool processWeekEnd = true)
     {
         var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
 
@@ -845,9 +845,12 @@ public class TasksPage : ContentPage
             return;
         }
 
-        await _challengeService.ProcessWeekEndAsync(_auth.CurrentUsername);
-        challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
-        if (challenge == null) return;
+        if (processWeekEnd)
+        {
+            await _challengeService.ProcessWeekEndAsync(_auth.CurrentUsername);
+            challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+            if (challenge == null) return;
+        }
 
         _challengeFrame.IsVisible = true;
         _startChallengeBtn.IsVisible = false;
@@ -1008,7 +1011,7 @@ public class TasksPage : ContentPage
 
     private async void OnChallengeSettingsClicked(object? sender, EventArgs e)
     {
-        string action = await DisplayActionSheet("Challenge Settings", "Cancel", "End Challenge", "View Stats");
+        string action = await DisplayActionSheet("Challenge Settings", "Cancel", "End Challenge", "View Stats", "Edit Streak", "Edit Allowance");
 
         if (action == "End Challenge")
         {
@@ -1030,6 +1033,44 @@ public class TasksPage : ContentPage
                     $"Streak: {challenge.SuccessStreak} weeks",
                     "OK");
             }
+        }
+        else if (action == "Edit Streak")
+        {
+            var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+            if (challenge == null) return;
+
+            string? streakText = await DisplayPromptAsync(
+                "Edit Streak",
+                "Set the focus streak (weeks).",
+                "Save",
+                "Cancel",
+                initialValue: challenge.SuccessStreak.ToString(),
+                keyboard: Keyboard.Numeric);
+
+            if (string.IsNullOrWhiteSpace(streakText)) return;
+            if (!int.TryParse(streakText.Trim(), out int streak)) return;
+
+            await _challengeService.SetSuccessStreakAsync(_auth.CurrentUsername, streak);
+            await RefreshChallengeWidgetAsync(processWeekEnd: false);
+        }
+        else if (action == "Edit Allowance")
+        {
+            var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+            if (challenge == null) return;
+
+            string? allowanceText = await DisplayPromptAsync(
+                "Edit Allowance",
+                "Set the weekly task allowance.",
+                "Save",
+                "Cancel",
+                initialValue: challenge.CurrentAllowance.ToString(),
+                keyboard: Keyboard.Numeric);
+
+            if (string.IsNullOrWhiteSpace(allowanceText)) return;
+            if (!int.TryParse(allowanceText.Trim(), out int allowance)) return;
+
+            await _challengeService.SetCurrentAllowanceAsync(_auth.CurrentUsername, allowance);
+            await RefreshChallengeWidgetAsync(processWeekEnd: false);
         }
     }
 
