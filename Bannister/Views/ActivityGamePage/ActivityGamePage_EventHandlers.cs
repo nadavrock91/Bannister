@@ -883,10 +883,12 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
 
     private void BuildUI()
     {
-        var backdrop = new Grid
+        var backdrop = new BoxView
         {
+            Color = Colors.Transparent,
             HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill
+            VerticalOptions = LayoutOptions.Fill,
+            ZIndex = 0
         };
         var backdropTap = new TapGestureRecognizer();
         backdropTap.Tapped += (s, e) => Close(null);
@@ -903,7 +905,8 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             MaximumHeightRequest = 620,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
-            Margin = new Thickness(20)
+            Margin = new Thickness(20),
+            ZIndex = 1
         };
 
         var stack = new VerticalStackLayout { Spacing = 0 };
@@ -995,7 +998,14 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
         if (!_completion.TrySetResult(result))
             return;
 
-        await Navigation.PopModalAsync(animated: false);
+        try
+        {
+            await Navigation.PopModalAsync(animated: false);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("Failed to close auto-award suggestion prompt: " + ex);
+        }
     }
 
     protected override void OnDisappearing()
@@ -1035,10 +1045,12 @@ internal class AutoAwardPostponePromptPage : ContentPage
 
     private void BuildUI()
     {
-        var backdrop = new Grid
+        var backdrop = new BoxView
         {
+            Color = Colors.Transparent,
             HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill
+            VerticalOptions = LayoutOptions.Fill,
+            ZIndex = 0
         };
         var backdropTap = new TapGestureRecognizer();
         backdropTap.Tapped += (s, e) => Close(null);
@@ -1055,7 +1067,8 @@ internal class AutoAwardPostponePromptPage : ContentPage
             MaximumHeightRequest = 680,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
-            Margin = new Thickness(20)
+            Margin = new Thickness(20),
+            ZIndex = 1
         };
 
         var stack = new VerticalStackLayout { Spacing = 0 };
@@ -1227,7 +1240,14 @@ internal class AutoAwardPostponePromptPage : ContentPage
         if (!_completion.TrySetResult(result))
             return;
 
-        await Navigation.PopModalAsync(animated: false);
+        try
+        {
+            await Navigation.PopModalAsync(animated: false);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("Failed to close auto-award postpone prompt: " + ex);
+        }
     }
 
     protected override void OnDisappearing()
