@@ -864,6 +864,7 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
     private readonly string _activityName;
     private readonly int _streak;
     private readonly int _threshold;
+    private bool _isClosing;
 
     private AutoAwardSuggestionPromptPage(string activityName, int streak, int threshold)
     {
@@ -883,17 +884,6 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
 
     private void BuildUI()
     {
-        var backdrop = new BoxView
-        {
-            Color = Colors.Transparent,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill,
-            ZIndex = 0
-        };
-        var backdropTap = new TapGestureRecognizer();
-        backdropTap.Tapped += (s, e) => Close(null);
-        backdrop.GestureRecognizers.Add(backdropTap);
-
         var card = new Frame
         {
             BackgroundColor = Colors.White,
@@ -905,26 +895,39 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             MaximumHeightRequest = 620,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
-            Margin = new Thickness(20),
-            ZIndex = 1
+            Margin = new Thickness(20)
         };
 
-        var stack = new VerticalStackLayout { Spacing = 0 };
+        var stack = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
+            }
+        };
 
-        stack.Children.Add(new Label
+        var titleLabel = new Label
         {
             Text = "Auto EXP Reward?",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#333333"),
             Padding = new Thickness(22, 20, 22, 8)
-        });
+        };
+        Grid.SetRow(titleLabel, 0);
+        stack.Children.Add(titleLabel);
 
-        stack.Children.Add(new BoxView
+        var topDivider = new BoxView
         {
             HeightRequest = 1,
             Color = Color.FromArgb("#E0E0E0")
-        });
+        };
+        Grid.SetRow(topDivider, 1);
+        stack.Children.Add(topDivider);
 
         var contentStack = new VerticalStackLayout
         {
@@ -949,13 +952,17 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             LineBreakMode = LineBreakMode.WordWrap
         });
 
-        stack.Children.Add(new ScrollView { Content = contentStack });
+        var contentScroll = new ScrollView { Content = contentStack };
+        Grid.SetRow(contentScroll, 2);
+        stack.Children.Add(contentScroll);
 
-        stack.Children.Add(new BoxView
+        var bottomDivider = new BoxView
         {
             HeightRequest = 1,
             Color = Color.FromArgb("#E0E0E0")
-        });
+        };
+        Grid.SetRow(bottomDivider, 3);
+        stack.Children.Add(bottomDivider);
 
         var buttonStack = new VerticalStackLayout
         {
@@ -967,12 +974,12 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
         buttonStack.Children.Add(BuildButton("Postpone", Color.FromArgb("#FBC02D"), Color.FromArgb("#333333"), "Postpone"));
         buttonStack.Children.Add(BuildButton("Skip", Color.FromArgb("#EEEEEE"), Color.FromArgb("#555555"), null));
 
+        Grid.SetRow(buttonStack, 4);
         stack.Children.Add(buttonStack);
 
         card.Content = stack;
 
         var root = new Grid();
-        root.Children.Add(backdrop);
         root.Children.Add(card);
         Content = root;
     }
@@ -989,34 +996,49 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             FontSize = 15,
             FontAttributes = FontAttributes.Bold
         };
-        button.Clicked += (s, e) => Close(result);
+        button.Clicked += (s, e) =>
+        {
+            System.Diagnostics.Debug.WriteLine($"auto-award button clicked: {result ?? "Skip"}");
+            _ = CloseAsync(result);
+        };
         return button;
     }
 
-    private async void Close(string? result)
+    private async Task CloseAsync(string? result)
     {
-        if (!_completion.TrySetResult(result))
+        if (_isClosing)
             return;
+
+        _isClosing = true;
+        System.Diagnostics.Debug.WriteLine($"auto-award close requested: {result ?? "null"}");
 
         try
         {
+            System.Diagnostics.Debug.WriteLine("auto-award close before PopModalAsync");
             await Navigation.PopModalAsync(animated: false);
+            System.Diagnostics.Debug.WriteLine("auto-award close after PopModalAsync");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine("Failed to close auto-award suggestion prompt: " + ex);
         }
+
+        bool completed = _completion.TrySetResult(result);
+        System.Diagnostics.Debug.WriteLine($"auto-award close TrySetResult: {completed}");
     }
 
     protected override void OnDisappearing()
     {
-        _completion.TrySetResult(null);
+        System.Diagnostics.Debug.WriteLine("auto-award suggestion prompt disappearing");
+        if (!_isClosing)
+            _completion.TrySetResult(null);
         base.OnDisappearing();
     }
 
     protected override bool OnBackButtonPressed()
     {
-        Close(null);
+        System.Diagnostics.Debug.WriteLine("auto-award suggestion back button pressed");
+        _ = CloseAsync(null);
         return true;
     }
 }
@@ -1027,6 +1049,7 @@ internal class AutoAwardPostponePromptPage : ContentPage
     private readonly string _activityName;
     private readonly int _initialThreshold;
     private Entry? _manualEntry;
+    private bool _isClosing;
 
     private AutoAwardPostponePromptPage(string activityName, int initialThreshold)
     {
@@ -1045,17 +1068,6 @@ internal class AutoAwardPostponePromptPage : ContentPage
 
     private void BuildUI()
     {
-        var backdrop = new BoxView
-        {
-            Color = Colors.Transparent,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill,
-            ZIndex = 0
-        };
-        var backdropTap = new TapGestureRecognizer();
-        backdropTap.Tapped += (s, e) => Close(null);
-        backdrop.GestureRecognizers.Add(backdropTap);
-
         var card = new Frame
         {
             BackgroundColor = Colors.White,
@@ -1067,26 +1079,39 @@ internal class AutoAwardPostponePromptPage : ContentPage
             MaximumHeightRequest = 680,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
-            Margin = new Thickness(20),
-            ZIndex = 1
+            Margin = new Thickness(20)
         };
 
-        var stack = new VerticalStackLayout { Spacing = 0 };
+        var stack = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
+            }
+        };
 
-        stack.Children.Add(new Label
+        var titleLabel = new Label
         {
             Text = "Postpone Auto Suggestion",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#333333"),
             Padding = new Thickness(22, 20, 22, 8)
-        });
+        };
+        Grid.SetRow(titleLabel, 0);
+        stack.Children.Add(titleLabel);
 
-        stack.Children.Add(new BoxView
+        var topDivider = new BoxView
         {
             HeightRequest = 1,
             Color = Color.FromArgb("#E0E0E0")
-        });
+        };
+        Grid.SetRow(topDivider, 1);
+        stack.Children.Add(topDivider);
 
         var contentStack = new VerticalStackLayout
         {
@@ -1176,13 +1201,17 @@ internal class AutoAwardPostponePromptPage : ContentPage
 
         contentStack.Children.Add(manualRow);
 
-        stack.Children.Add(new ScrollView { Content = contentStack });
+        var contentScroll = new ScrollView { Content = contentStack };
+        Grid.SetRow(contentScroll, 2);
+        stack.Children.Add(contentScroll);
 
-        stack.Children.Add(new BoxView
+        var bottomDivider = new BoxView
         {
             HeightRequest = 1,
             Color = Color.FromArgb("#E0E0E0")
-        });
+        };
+        Grid.SetRow(bottomDivider, 3);
+        stack.Children.Add(bottomDivider);
 
         var cancelButton = new Button
         {
@@ -1195,13 +1224,17 @@ internal class AutoAwardPostponePromptPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(22, 16, 22, 22)
         };
-        cancelButton.Clicked += (s, e) => Close(null);
+        cancelButton.Clicked += (s, e) =>
+        {
+            System.Diagnostics.Debug.WriteLine("auto-award postpone cancel clicked");
+            _ = CloseAsync(null);
+        };
+        Grid.SetRow(cancelButton, 4);
         stack.Children.Add(cancelButton);
 
         card.Content = stack;
 
         var root = new Grid();
-        root.Children.Add(backdrop);
         root.Children.Add(card);
         Content = root;
     }
@@ -1218,7 +1251,11 @@ internal class AutoAwardPostponePromptPage : ContentPage
             FontSize = 15,
             FontAttributes = FontAttributes.Bold
         };
-        button.Clicked += (s, e) => Close(threshold);
+        button.Clicked += (s, e) =>
+        {
+            System.Diagnostics.Debug.WriteLine($"auto-award postpone threshold clicked: {threshold}");
+            _ = CloseAsync(threshold);
+        };
         return button;
     }
 
@@ -1232,33 +1269,45 @@ internal class AutoAwardPostponePromptPage : ContentPage
             return;
         }
 
-        Close(threshold);
+        System.Diagnostics.Debug.WriteLine($"auto-award postpone manual save clicked: {threshold}");
+        await CloseAsync(threshold);
     }
 
-    private async void Close(int? result)
+    private async Task CloseAsync(int? result)
     {
-        if (!_completion.TrySetResult(result))
+        if (_isClosing)
             return;
+
+        _isClosing = true;
+        System.Diagnostics.Debug.WriteLine($"auto-award postpone close requested: {result?.ToString() ?? "null"}");
 
         try
         {
+            System.Diagnostics.Debug.WriteLine("auto-award postpone close before PopModalAsync");
             await Navigation.PopModalAsync(animated: false);
+            System.Diagnostics.Debug.WriteLine("auto-award postpone close after PopModalAsync");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine("Failed to close auto-award postpone prompt: " + ex);
         }
+
+        bool completed = _completion.TrySetResult(result);
+        System.Diagnostics.Debug.WriteLine($"auto-award postpone close TrySetResult: {completed}");
     }
 
     protected override void OnDisappearing()
     {
-        _completion.TrySetResult(null);
+        System.Diagnostics.Debug.WriteLine("auto-award postpone prompt disappearing");
+        if (!_isClosing)
+            _completion.TrySetResult(null);
         base.OnDisappearing();
     }
 
     protected override bool OnBackButtonPressed()
     {
-        Close(null);
+        System.Diagnostics.Debug.WriteLine("auto-award postpone back button pressed");
+        _ = CloseAsync(null);
         return true;
     }
 }
