@@ -1,0 +1,8 @@
+2026-05-25 08:08:57: == Sync Started by User Command
+2026-05-25 08:08:59: Start only 1 threads, limited by tasks to run
+2026-05-25 08:08:59: > Copy New 'C:/rock/bannister/Bannister/obj/Debug/net8.0-android/android/bin/com.bannister.app.apk.0ec52479' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/Debug/net8.0-android/android/bin/com.bannister.app.apk.0ec52479' (27,700,300)
+2026-05-25 08:08:59: < Copy New 'C:/rock/bannister/Bannister/obj/Debug/net8.0-android/android/bin/com.bannister.app.apk.0ec52479' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/Debug/net8.0-android/android/bin/com.bannister.app.apk.0ec52479' (27,700,300)
+- ERROR: Copying file: Cannot open file C:/rock/bannister/Bannister/obj/Debug/net8.0-android/android/bin/com.bannister.app.apk.0ec52479: cannot open file 'C:/rock/bannister/Bannister/obj/Debug/net8.0-android/android/bin/com.bannister.app.apk.0ec52479': The system cannot find the file specified.  (error 2)
+2026-05-25 08:08:59: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-05-25 08:09:01: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-05-25 08:09:03: == Sync Complete. Time: 00:00:04, Speed: 0.00/s, OK: 0, Errors: 1

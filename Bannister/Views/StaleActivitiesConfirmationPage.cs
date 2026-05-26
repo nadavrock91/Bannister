@@ -13,6 +13,9 @@ public class StaleActivitiesConfirmationPage : ContentPage
     private readonly List<Activity> _staleActivities;
     private readonly ActivityService _activityService;
     private readonly Dictionary<int, Switch> _activitySwitches;
+    private readonly Dictionary<int, Frame> _activityFrames;
+    private readonly Dictionary<int, Label> _activityCheckLabels;
+    private readonly HashSet<int> _selectedActivityIds;
     private readonly TaskCompletionSource<int> _tcs;
 
     public StaleActivitiesConfirmationPage(
@@ -22,6 +25,9 @@ public class StaleActivitiesConfirmationPage : ContentPage
         _staleActivities = staleActivities;
         _activityService = activityService;
         _activitySwitches = new Dictionary<int, Switch>();
+        _activityFrames = new Dictionary<int, Frame>();
+        _activityCheckLabels = new Dictionary<int, Label>();
+        _selectedActivityIds = staleActivities.Select(a => a.Id).ToHashSet();
         _tcs = new TaskCompletionSource<int>();
 
         Title = "Stale Activities";
@@ -175,10 +181,11 @@ public class StaleActivitiesConfirmationPage : ContentPage
         {
             Padding = 12,
             CornerRadius = 10,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#DDD"),
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            BorderColor = Color.FromArgb("#1976D2"),
             HasShadow = true
         };
+        _activityFrames[activity.Id] = frame;
 
         var grid = new Grid
         {
@@ -200,6 +207,7 @@ public class StaleActivitiesConfirmationPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         _activitySwitches[activity.Id] = toggle;
+        toggle.Toggled += (_, e) => SetActivitySelected(activity.Id, e.Value);
         grid.Add(toggle, 0, 0);
 
         // Activity info
@@ -231,33 +239,82 @@ public class StaleActivitiesConfirmationPage : ContentPage
 
         grid.Add(infoStack, 1, 0);
 
-        // EXP value
+        var rightStack = new VerticalStackLayout
+        {
+            Spacing = 4,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var checkLabel = new Label
+        {
+            Text = "✓",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1976D2"),
+            HorizontalOptions = LayoutOptions.End
+        };
+        _activityCheckLabels[activity.Id] = checkLabel;
+        rightStack.Children.Add(checkLabel);
+
         var expLabel = new Label
         {
             Text = activity.ExpGain >= 0 ? $"+{activity.ExpGain}" : $"{activity.ExpGain}",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             TextColor = activity.ExpGain >= 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#F44336"),
-            VerticalOptions = LayoutOptions.Center
+            HorizontalOptions = LayoutOptions.End
         };
-        grid.Add(expLabel, 2, 0);
+        rightStack.Children.Add(expLabel);
+        grid.Add(rightStack, 2, 0);
 
         frame.Content = grid;
+        var tapGesture = new TapGestureRecognizer();
+        tapGesture.Tapped += (_, _) => SetActivitySelected(activity.Id, !_selectedActivityIds.Contains(activity.Id));
+        frame.GestureRecognizers.Add(tapGesture);
         return frame;
     }
 
     private void SetAllSwitches(bool value)
     {
-        foreach (var toggle in _activitySwitches.Values)
+        foreach (var id in _staleActivities.Select(a => a.Id))
         {
-            toggle.IsToggled = value;
+            SetActivitySelected(id, value);
+        }
+    }
+
+    private void SetActivitySelected(int activityId, bool isSelected)
+    {
+        if (isSelected)
+        {
+            _selectedActivityIds.Add(activityId);
+        }
+        else
+        {
+            _selectedActivityIds.Remove(activityId);
+        }
+
+        if (_activitySwitches.TryGetValue(activityId, out var toggle) && toggle.IsToggled != isSelected)
+        {
+            toggle.IsToggled = isSelected;
+        }
+
+        if (_activityFrames.TryGetValue(activityId, out var frame))
+        {
+            frame.BackgroundColor = isSelected ? Color.FromArgb("#E3F2FD") : Colors.White;
+            frame.BorderColor = isSelected ? Color.FromArgb("#1976D2") : Color.FromArgb("#DDD");
+        }
+
+        if (_activityCheckLabels.TryGetValue(activityId, out var checkLabel))
+        {
+            checkLabel.IsVisible = isSelected;
         }
     }
 
     private async void OnMoveClicked(object? sender, EventArgs e)
     {
         var selectedActivities = _staleActivities
-            .Where(a => _activitySwitches.ContainsKey(a.Id) && _activitySwitches[a.Id].IsToggled)
+            .Where(a => _selectedActivityIds.Contains(a.Id))
             .ToList();
 
         var selectedIds = selectedActivities.Select(a => a.Id).ToHashSet();
