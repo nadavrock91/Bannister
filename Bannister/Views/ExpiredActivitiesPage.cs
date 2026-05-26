@@ -9,7 +9,7 @@ public class ExpiredActivitiesPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
-    private ExpiredActivityViewModel? _selectedViewModel;
+    private readonly HashSet<int> _selectedActivityIds = new();
     private List<ExpiredActivityViewModel> _viewModels = new();
     private CollectionView _expiredList;
 
@@ -26,14 +26,24 @@ public class ExpiredActivitiesPage : ContentPage
 
     private void BuildUI()
     {
-        var mainStack = new VerticalStackLayout
+        var rootGrid = new Grid
         {
-            Padding = 20,
-            Spacing = 20
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Star }
+            },
+            BackgroundColor = Color.FromArgb("#F5F7FC")
         };
 
-        // Header
-        mainStack.Children.Add(new Label
+        var topStack = new VerticalStackLayout
+        {
+            Padding = 20,
+            Spacing = 16,
+            BackgroundColor = Color.FromArgb("#F5F7FC")
+        };
+
+        topStack.Children.Add(new Label
         {
             Text = "Expired Activities",
             FontSize = 24,
@@ -42,10 +52,9 @@ public class ExpiredActivitiesPage : ContentPage
             HorizontalOptions = LayoutOptions.Center
         });
 
-        // Instructions
-        mainStack.Children.Add(new Label
+        topStack.Children.Add(new Label
         {
-            Text = "The following activities have expired. For each activity, choose to:\n• Postpone - Set a new end date\n• Move to Expired - Activity moves to 'Expired' category",
+            Text = "The following activities have expired. For each activity, choose to:\n\u2022 Postpone - Set a new end date\n\u2022 Move to Expired - Activity moves to 'Expired' category",
             FontSize = 14,
             TextColor = Color.FromArgb("#5A6273"),
             HorizontalOptions = LayoutOptions.Center,
@@ -53,117 +62,6 @@ public class ExpiredActivitiesPage : ContentPage
             MaximumWidthRequest = 500
         });
 
-        // Collection view for expired activities
-        _expiredList = new CollectionView
-        {
-            SelectionMode = SelectionMode.Single
-        };
-        _expiredList.SelectionChanged += OnSelectionChanged;
-
-        _expiredList.ItemTemplate = new DataTemplate(() =>
-        {
-            // Use Border for better binding support
-            var border = new Border
-            {
-                Padding = 15,
-                Margin = new Thickness(0, 0, 0, 10),
-                StrokeShape = new RoundRectangle { CornerRadius = 12 },
-                StrokeThickness = 2,
-                Shadow = new Shadow
-                {
-                    Brush = Colors.Black,
-                    Offset = new Point(2, 2),
-                    Radius = 4,
-                    Opacity = 0.2f
-                }
-            };
-            border.SetBinding(Border.BackgroundColorProperty, nameof(ExpiredActivityViewModel.BackgroundColor));
-            border.SetBinding(Border.StrokeProperty, nameof(ExpiredActivityViewModel.BorderBrush));
-
-            var grid = new Grid
-            {
-                RowDefinitions =
-                {
-                    new RowDefinition { Height = GridLength.Auto },
-                    new RowDefinition { Height = GridLength.Auto },
-                    new RowDefinition { Height = GridLength.Auto },
-                    new RowDefinition { Height = GridLength.Auto }
-                },
-                ColumnSpacing = 10,
-                RowSpacing = 5
-            };
-
-            // Row 0: Selection indicator + Name
-            var nameRow = new HorizontalStackLayout { Spacing = 8 };
-            
-            var checkLabel = new Label
-            {
-                Text = "✓",
-                FontSize = 16,
-                VerticalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb("#1976D2")
-            };
-            checkLabel.SetBinding(Label.IsVisibleProperty, nameof(ExpiredActivityViewModel.IsSelected));
-            nameRow.Children.Add(checkLabel);
-            
-            var nameLabel = new Label
-            {
-                FontSize = 16,
-                FontAttributes = FontAttributes.Bold
-            };
-            nameLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Name));
-            nameLabel.SetBinding(Label.TextColorProperty, nameof(ExpiredActivityViewModel.NameColor));
-            nameRow.Children.Add(nameLabel);
-            
-            Grid.SetRow(nameRow, 0);
-            grid.Children.Add(nameRow);
-
-            // Row 1: Game
-            var gameLabel = new Label
-            {
-                FontSize = 14,
-                TextColor = Color.FromArgb("#F57C00")
-            };
-            gameLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Game), stringFormat: "Game: {0}");
-            Grid.SetRow(gameLabel, 1);
-            grid.Children.Add(gameLabel);
-
-            // Row 2: Category
-            var categoryLabel = new Label
-            {
-                FontSize = 14,
-                TextColor = Color.FromArgb("#FF9800")
-            };
-            categoryLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Category), stringFormat: "Category: {0}");
-            Grid.SetRow(categoryLabel, 2);
-            grid.Children.Add(categoryLabel);
-
-            // Row 3: End date
-            var endDateLabel = new Label
-            {
-                FontSize = 12,
-                TextColor = Color.FromArgb("#999")
-            };
-            endDateLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.EndDateDisplay));
-            Grid.SetRow(endDateLabel, 3);
-            grid.Children.Add(endDateLabel);
-
-            border.Content = grid;
-            return border;
-        });
-
-        _expiredList.EmptyView = new Label
-        {
-            Text = "No expired activities!",
-            FontSize = 16,
-            TextColor = Color.FromArgb("#999"),
-            Padding = 40,
-            HorizontalOptions = LayoutOptions.Center
-        };
-
-        mainStack.Children.Add(_expiredList);
-
-        // Button row: Postpone + Move to Expired
         var buttonRow = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -196,9 +94,14 @@ public class ExpiredActivitiesPage : ContentPage
         expireBtn.Clicked += OnExpireClicked;
         buttonRow.Children.Add(expireBtn);
 
-        mainStack.Children.Add(buttonRow);
+        topStack.Children.Add(buttonRow);
 
-        // Expire All button
+        var secondaryButtonRow = new HorizontalStackLayout
+        {
+            Spacing = 10,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
         var expireAllBtn = new Button
         {
             Text = "Expire All",
@@ -207,24 +110,141 @@ public class ExpiredActivitiesPage : ContentPage
             BorderColor = Color.FromArgb("#999"),
             BorderWidth = 1,
             CornerRadius = 8,
+            WidthRequest = 150,
             HeightRequest = 45
         };
         expireAllBtn.Clicked += OnExpireAllClicked;
-        mainStack.Children.Add(expireAllBtn);
+        secondaryButtonRow.Children.Add(expireAllBtn);
 
-        // Done button
         var doneBtn = new Button
         {
             Text = "Done",
             BackgroundColor = Color.FromArgb("#EEE"),
             TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
+            WidthRequest = 150,
             HeightRequest = 45
         };
         doneBtn.Clicked += OnDoneClicked;
-        mainStack.Children.Add(doneBtn);
+        secondaryButtonRow.Children.Add(doneBtn);
 
-        Content = new ScrollView { Content = mainStack };
+        topStack.Children.Add(secondaryButtonRow);
+        rootGrid.Add(topStack, 0, 0);
+
+        _expiredList = new CollectionView
+        {
+            SelectionMode = SelectionMode.None,
+            Margin = new Thickness(20, 0, 20, 20)
+        };
+
+        _expiredList.ItemTemplate = new DataTemplate(() =>
+        {
+            var border = new Border
+            {
+                Padding = 15,
+                Margin = new Thickness(0, 0, 0, 10),
+                StrokeShape = new RoundRectangle { CornerRadius = 12 },
+                StrokeThickness = 2,
+                Shadow = new Shadow
+                {
+                    Brush = Colors.Black,
+                    Offset = new Point(2, 2),
+                    Radius = 4,
+                    Opacity = 0.2f
+                }
+            };
+            border.SetBinding(Border.BackgroundColorProperty, nameof(ExpiredActivityViewModel.BackgroundColor));
+            border.SetBinding(Border.StrokeProperty, nameof(ExpiredActivityViewModel.BorderBrush));
+
+            var tapGesture = new TapGestureRecognizer();
+            tapGesture.Tapped += (s, e) =>
+            {
+                if (s is Border { BindingContext: ExpiredActivityViewModel vm })
+                {
+                    ToggleSelection(vm);
+                }
+            };
+            border.GestureRecognizers.Add(tapGesture);
+
+            var grid = new Grid
+            {
+                RowDefinitions =
+                {
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = GridLength.Auto },
+                    new RowDefinition { Height = GridLength.Auto }
+                },
+                ColumnSpacing = 10,
+                RowSpacing = 5
+            };
+
+            var nameRow = new HorizontalStackLayout { Spacing = 8 };
+            
+            var checkLabel = new Label
+            {
+                Text = "\u2713",
+                FontSize = 16,
+                VerticalOptions = LayoutOptions.Center,
+                TextColor = Color.FromArgb("#1976D2")
+            };
+            checkLabel.SetBinding(Label.IsVisibleProperty, nameof(ExpiredActivityViewModel.IsSelected));
+            nameRow.Children.Add(checkLabel);
+            
+            var nameLabel = new Label
+            {
+                FontSize = 16,
+                FontAttributes = FontAttributes.Bold
+            };
+            nameLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Name));
+            nameLabel.SetBinding(Label.TextColorProperty, nameof(ExpiredActivityViewModel.NameColor));
+            nameRow.Children.Add(nameLabel);
+            
+            Grid.SetRow(nameRow, 0);
+            grid.Children.Add(nameRow);
+
+            var gameLabel = new Label
+            {
+                FontSize = 14,
+                TextColor = Color.FromArgb("#F57C00")
+            };
+            gameLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Game), stringFormat: "Game: {0}");
+            Grid.SetRow(gameLabel, 1);
+            grid.Children.Add(gameLabel);
+
+            var categoryLabel = new Label
+            {
+                FontSize = 14,
+                TextColor = Color.FromArgb("#FF9800")
+            };
+            categoryLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Category), stringFormat: "Category: {0}");
+            Grid.SetRow(categoryLabel, 2);
+            grid.Children.Add(categoryLabel);
+
+            var endDateLabel = new Label
+            {
+                FontSize = 12,
+                TextColor = Color.FromArgb("#999")
+            };
+            endDateLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.EndDateDisplay));
+            Grid.SetRow(endDateLabel, 3);
+            grid.Children.Add(endDateLabel);
+
+            border.Content = grid;
+            return border;
+        });
+
+        _expiredList.EmptyView = new Label
+        {
+            Text = "No expired activities!",
+            FontSize = 16,
+            TextColor = Color.FromArgb("#999"),
+            Padding = 40,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        rootGrid.Add(_expiredList, 0, 1);
+        Content = rootGrid;
     }
 
     protected override async void OnAppearing()
@@ -244,46 +264,45 @@ public class ExpiredActivitiesPage : ContentPage
         }
         
         _viewModels = expired.Select(a => new ExpiredActivityViewModel(a)).ToList();
-        _selectedViewModel = null;
+        _selectedActivityIds.Clear();
         _expiredList.ItemsSource = _viewModels;
     }
 
-    private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private void ToggleSelection(ExpiredActivityViewModel vm)
     {
-        // Deselect previous
-        if (_selectedViewModel != null)
+        vm.IsSelected = !vm.IsSelected;
+        if (vm.IsSelected)
         {
-            _selectedViewModel.IsSelected = false;
-        }
-        
-        // Select new
-        if (e.CurrentSelection.FirstOrDefault() is ExpiredActivityViewModel vm)
-        {
-            vm.IsSelected = true;
-            _selectedViewModel = vm;
+            _selectedActivityIds.Add(vm.Activity.Id);
         }
         else
         {
-            _selectedViewModel = null;
+            _selectedActivityIds.Remove(vm.Activity.Id);
         }
     }
 
     private async void OnPostponeClicked(object? sender, EventArgs e)
     {
-        if (_selectedViewModel == null)
+        var selectedViewModels = GetSelectedViewModels();
+        if (selectedViewModels.Count == 0)
         {
-            await DisplayAlert("No Selection", "Please select an activity first.", "OK");
+            await DisplayAlert("No Selection", "Please select at least one activity first.", "OK");
             return;
         }
 
-        var activity = _selectedViewModel.Activity;
+        var promptName = selectedViewModels.Count == 1
+            ? selectedViewModels[0].Activity.Name
+            : $"{selectedViewModels.Count} selected activities";
         
         // Show custom date picker modal
-        var newDate = await ShowPostponeDatePickerAsync(activity.Name);
+        var newDate = await ShowPostponeDatePickerAsync(promptName);
         
         if (newDate.HasValue)
         {
-            await _activities.PostponeActivityAsync(activity.Id, newDate.Value);
+            foreach (var vm in selectedViewModels)
+            {
+                await _activities.PostponeActivityAsync(vm.Activity.Id, newDate.Value);
+            }
             await LoadExpiredAsync();
         }
     }
@@ -518,15 +537,25 @@ public class ExpiredActivitiesPage : ContentPage
 
     private async void OnExpireClicked(object? sender, EventArgs e)
     {
-        if (_selectedViewModel == null)
+        var selectedViewModels = GetSelectedViewModels();
+        if (selectedViewModels.Count == 0)
         {
-            await DisplayAlert("No Selection", "Please select an activity first.", "OK");
+            await DisplayAlert("No Selection", "Please select at least one activity first.", "OK");
             return;
         }
 
-        await _activities.MoveToExpiredAsync(_selectedViewModel.Activity.Id);
-        _selectedViewModel = null;
+        foreach (var vm in selectedViewModels)
+        {
+            await _activities.MoveToExpiredAsync(vm.Activity.Id);
+        }
         await LoadExpiredAsync();
+    }
+
+    private List<ExpiredActivityViewModel> GetSelectedViewModels()
+    {
+        return _viewModels
+            .Where(vm => _selectedActivityIds.Contains(vm.Activity.Id))
+            .ToList();
     }
 
     private async void OnExpireAllClicked(object? sender, EventArgs e)
