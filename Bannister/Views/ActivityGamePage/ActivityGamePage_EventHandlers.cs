@@ -176,7 +176,8 @@ public partial class ActivityGamePage
                 int? postponedThreshold = await ChooseAutoSuggestThresholdAsync(activity);
                 if (postponedThreshold.HasValue)
                 {
-                    activity.AutoSuggestThreshold = postponedThreshold.Value;
+                    int currentStreak = Math.Max(0, activity.DisplayDayStreak);
+                    activity.AutoSuggestThreshold = currentStreak + postponedThreshold.Value;
                     await _activities.UpdateActivityAsync(activity);
                     changed = true;
                 }
@@ -1130,7 +1131,7 @@ internal class AutoAwardPostponePromptPage : ContentPage
 
         contentStack.Children.Add(new Label
         {
-            Text = "Choose the Display Day Streak threshold when this activity should be suggested again.",
+            Text = "Postpone the suggestion. Choose how many more days from now before this activity is suggested again.",
             FontSize = 14,
             TextColor = Color.FromArgb("#555555"),
             LineBreakMode = LineBreakMode.WordWrap
@@ -1160,7 +1161,7 @@ internal class AutoAwardPostponePromptPage : ContentPage
 
         contentStack.Children.Add(new Label
         {
-            Text = "Manual threshold",
+            Text = "Manual (days from now)",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#333333"),
