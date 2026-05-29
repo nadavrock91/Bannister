@@ -47,7 +47,7 @@ public class LearningVideo
     public int SortOrder { get; set; }
     
     /// <summary>
-    /// Status: NotStarted, InProgress, Completed
+    /// Status: NotStarted, InProgress, PendingWatched, TopPicks, ReadSummary, Completed
     /// </summary>
     public string Status { get; set; } = "NotStarted";
     

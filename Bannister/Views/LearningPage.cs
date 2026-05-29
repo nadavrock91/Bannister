@@ -482,6 +482,7 @@ public class LearningPage : ContentPage
         _statusPicker.Items.Add("Locked");
         _statusPicker.Items.Add("Watching");
         _statusPicker.Items.Add("Pending");
+        _statusPicker.Items.Add("Top Picks");
         _statusPicker.Items.Add("Read Summary");
         _statusPicker.Items.Add("Watched");
         _statusPicker.SelectedIndex = 4; // Default to "Pending"
@@ -1033,6 +1034,7 @@ public class LearningPage : ContentPage
             {
                 "Watching" => videos.Where(v => v.Status == "InProgress"),
                 "Pending" => videos.Where(v => v.Status == "PendingWatched"),
+                "Top Picks" => videos.Where(v => v.Status == "TopPicks"),
                 "Read Summary" => videos.Where(v => v.Status == "ReadSummary"),
                 "Watched" => videos.Where(v => v.Status == "Completed"),
                 _ => videos
@@ -1202,11 +1204,13 @@ public class LearningPage : ContentPage
                 ? Color.FromArgb("#FFEBEE")  // Red tint - locked
                 : video.Status == "Completed" 
                     ? Color.FromArgb("#E8F5E9")  // Green - watched
-                    : video.Status == "ReadSummary"
-                        ? Color.FromArgb("#E3F2FD")  // Blue - read summary
-                        : video.Status == "PendingWatched"
-                            ? Color.FromArgb("#F3E5F5")  // Purple - pending watched
-                            : Colors.White,
+                    : video.Status == "TopPicks"
+                        ? Color.FromArgb("#FFF8E1")  // Gold - top picks
+                        : video.Status == "ReadSummary"
+                            ? Color.FromArgb("#E3F2FD")  // Blue - read summary
+                            : video.Status == "PendingWatched"
+                                ? Color.FromArgb("#F3E5F5")  // Purple - pending watched
+                                : Colors.White,
             HasShadow = true,
             BorderColor = isCreatorLocked && video.Status == "NotStarted" 
                 ? Color.FromArgb("#EF5350") 
@@ -1374,12 +1378,14 @@ public class LearningPage : ContentPage
         var statusLabel = new Label
         {
             Text = video.Status == "Completed" ? "✅ Watched" 
+                 : video.Status == "TopPicks" ? "⭐ Top Picks"
                  : video.Status == "ReadSummary" ? "📖 Read Summary"
                  : video.Status == "PendingWatched" ? "👀 Pending"
                  : video.Status == "InProgress" ? "▶️ Watching" 
                  : "🎬 To Watch",
             FontSize = 10,
             TextColor = video.Status == "Completed" ? Color.FromArgb("#4CAF50")
+                      : video.Status == "TopPicks" ? Color.FromArgb("#F9A825")
                       : video.Status == "ReadSummary" ? Color.FromArgb("#2196F3")
                       : video.Status == "PendingWatched" ? Color.FromArgb("#9C27B0")
                       : video.Status == "InProgress" ? Color.FromArgb("#FF9800")
@@ -1455,6 +1461,20 @@ public class LearningPage : ContentPage
                 await RefreshVideosAsync();
             };
             row1.Children.Add(pendingBtn);
+        }
+
+        // Mark as top pick button (only if not already top pick or watched)
+        if (video.Status != "TopPicks" && video.Status != "Completed")
+        {
+            var topPicksBtn = CreateHoverButton("⭐", "#F9A825", "#F57F17", 11, "Mark as Top Picks");
+            topPicksBtn.Clicked += async (s, e) =>
+            {
+                video.Status = "TopPicks";
+                video.CompletedAt = null;
+                await _learning.UpdateVideoAsync(video);
+                await RefreshVideosAsync();
+            };
+            row1.Children.Add(topPicksBtn);
         }
 
         buttonStack.Children.Add(row1);
@@ -1593,7 +1613,7 @@ public class LearningPage : ContentPage
             await Launcher.OpenAsync(new Uri(url));
             
             // Move to PendingWatched if not already watched
-            if (video.Status != "Completed" && video.Status != "PendingWatched" && video.Status != "ReadSummary")
+            if (video.Status != "Completed" && video.Status != "PendingWatched" && video.Status != "ReadSummary" && video.Status != "TopPicks")
             {
                 if (!await EnsureCanSetVideoPendingAsync(video))
                     return;
@@ -1626,6 +1646,8 @@ public class LearningPage : ContentPage
             options.Add("📖 Mark as Read Summary");
         if (video.Status != "PendingWatched" && video.Status != "Completed" && video.Status != "ReadSummary")
             options.Add("👀 Mark as Pending Watched");
+        if (video.Status != "TopPicks" && video.Status != "Completed")
+            options.Add("⭐ Mark as Top Picks");
         if (video.Status != "InProgress")
             options.Add("🔄 Mark as Watching");
         if (video.Status != "NotStarted")
@@ -1665,6 +1687,12 @@ public class LearningPage : ContentPage
                 return;
 
             video.Status = "PendingWatched";
+            await _learning.UpdateVideoAsync(video);
+        }
+        else if (result == "⭐ Mark as Top Picks")
+        {
+            video.Status = "TopPicks";
+            video.CompletedAt = null;
             await _learning.UpdateVideoAsync(video);
         }
         else if (result == "🔄 Mark as Watching")
@@ -1773,7 +1801,8 @@ public class LearningPage : ContentPage
             "Cancel",
             null,
             "To Watch",
-            "Pending");
+            "Pending",
+            "Top Picks");
 
         if (string.IsNullOrWhiteSpace(destination) || destination == "Cancel")
             return;
@@ -1800,7 +1829,9 @@ public class LearningPage : ContentPage
             VideoId = videoId,
             Creator = channelName,
             Category = category,
-            Status = destination == "Pending" ? "PendingWatched" : "NotStarted"
+            Status = destination == "Pending" ? "PendingWatched"
+                : destination == "Top Picks" ? "TopPicks"
+                : "NotStarted"
         };
 
         await _learning.AddVideoAsync(video);
