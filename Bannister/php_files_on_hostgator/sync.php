@@ -23,7 +23,7 @@ if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
 
 $STORAGE_ROOT     = '/home1/nadavrock/bannister_data';
 $USERS_FILE       = $STORAGE_ROOT . '/users.json';
-$MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+$MAX_UPLOAD_BYTES = 512 * 1024 * 1024;
 $MAX_QUEUE_BYTES  = 5 * 1024 * 1024;
 $KEEP_BACKUPS     = 3;
 

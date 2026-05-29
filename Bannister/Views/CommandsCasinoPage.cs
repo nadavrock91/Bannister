@@ -18,7 +18,8 @@ public class CommandsCasinoPage : ContentPage
     private Label _selectedChipLabel = new();
     private Label _clockLabel = new();
     private Label _startHintLabel = new();
-    private Label _sessionCountdownLabel = new();
+    private Label _sessionHalfCountdownLabel = new();
+    private Label _sessionDeadlineCountdownLabel = new();
     private Label _sessionCommandLabel = new();
     private Editor _commandEditor = new();
     private Button _startButton = new();
@@ -237,13 +238,33 @@ public class CommandsCasinoPage : ContentPage
 
     private Grid BuildSessionPanel()
     {
-        _sessionCountdownLabel = new Label
+        _sessionHalfCountdownLabel = new Label
         {
-            FontSize = 34,
+            FontSize = 28,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#F9A825"),
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+
+        _sessionDeadlineCountdownLabel = new Label
+        {
+            FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#C62828"),
             HorizontalTextAlignment = TextAlignment.Center
         };
+
+        var countdownGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 12
+        };
+        countdownGrid.Add(_sessionHalfCountdownLabel, 0, 0);
+        countdownGrid.Add(_sessionDeadlineCountdownLabel, 1, 0);
 
         _sessionCommandLabel = new Label
         {
@@ -284,7 +305,7 @@ public class CommandsCasinoPage : ContentPage
                                 TextColor = Color.FromArgb("#6D4C41")
                             },
                             _sessionCommandLabel,
-                            _sessionCountdownLabel,
+                            countdownGrid,
                             cancelButton
                         }
                     }
@@ -594,12 +615,15 @@ public class CommandsCasinoPage : ContentPage
             token.ThrowIfCancellationRequested();
 
             int elapsed = (int)Math.Floor((DateTime.UtcNow - startedAt).TotalSeconds);
-            int remaining = Math.Max(0, deadlineSeconds - elapsed);
-            _sessionCountdownLabel.Text = $"{remaining}s remaining";
+            int halfRemaining = Math.Max(0, halfAt - elapsed);
+            int deadlineRemaining = Math.Max(0, deadlineSeconds - elapsed);
+            _sessionHalfCountdownLabel.Text = $"⚡ HALF: {halfRemaining}s";
+            _sessionDeadlineCountdownLabel.Text = $"DEADLINE: {deadlineRemaining}s";
 
             if (!halfShown && elapsed >= halfAt)
             {
                 halfShown = true;
+                await TriggerSessionAlertAsync(CasinoAlertKind.Half);
                 MainThread.BeginInvokeOnMainThread(async () =>
                     await DisplayAlert("Half time", "Halfway there - keep going!", "OK"));
             }
@@ -610,6 +634,7 @@ public class CommandsCasinoPage : ContentPage
             await Task.Delay(250, token);
         }
 
+        await TriggerSessionAlertAsync(CasinoAlertKind.Deadline);
         bool? completed = await DeadlinePromptPage.ShowAsync(Navigation, command);
         if (completed == true)
         {
@@ -630,6 +655,54 @@ public class CommandsCasinoPage : ContentPage
     {
         if (!_sessionActive) return;
         _sessionCts?.Cancel();
+    }
+
+    private async Task TriggerSessionAlertAsync(CasinoAlertKind kind)
+    {
+        try
+        {
+            var duration = kind == CasinoAlertKind.Half
+                ? TimeSpan.FromMilliseconds(200)
+                : TimeSpan.FromMilliseconds(500);
+
+            Vibration.Default.Vibrate(duration);
+        }
+        catch
+        {
+            // Vibration can be unavailable or disabled; the visual prompts still run.
+        }
+
+        try
+        {
+            await PlaySessionAlertSoundAsync(kind);
+        }
+        catch
+        {
+            // Sound is best-effort and must not interrupt the casino session flow.
+        }
+    }
+
+    private static Task PlaySessionAlertSoundAsync(CasinoAlertKind kind)
+    {
+#if ANDROID
+        var ringtoneType = kind == CasinoAlertKind.Half
+            ? Android.Media.RingtoneType.Notification
+            : Android.Media.RingtoneType.Alarm;
+        var uri = Android.Media.RingtoneManager.GetDefaultUri(ringtoneType);
+        var ringtone = Android.Media.RingtoneManager.GetRingtone(Android.App.Application.Context, uri);
+        ringtone?.Play();
+#elif WINDOWS
+        if (kind == CasinoAlertKind.Half)
+        {
+            Console.Beep(880, 180);
+        }
+        else
+        {
+            Console.Beep(660, 220);
+            Console.Beep(440, 260);
+        }
+#endif
+        return Task.CompletedTask;
     }
 
     private async Task ShowManagementOverlayAsync(string title, List<(int id, string text)> rows, Func<int, Task> deleteAsync)
@@ -755,6 +828,12 @@ public class CommandsCasinoPage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(text)) return "";
         return text.Length <= max ? text : text[..Math.Max(0, max - 3)] + "...";
+    }
+
+    private enum CasinoAlertKind
+    {
+        Half,
+        Deadline
     }
 
     private sealed class DeadlinePromptPage : ContentPage
