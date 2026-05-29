@@ -682,27 +682,46 @@ public class CommandsCasinoPage : ContentPage
         }
     }
 
-    private static Task PlaySessionAlertSoundAsync(CasinoAlertKind kind)
+    private static async Task PlaySessionAlertSoundAsync(CasinoAlertKind kind)
     {
 #if ANDROID
-        var ringtoneType = kind == CasinoAlertKind.Half
-            ? Android.Media.RingtoneType.Notification
-            : Android.Media.RingtoneType.Alarm;
-        var uri = Android.Media.RingtoneManager.GetDefaultUri(ringtoneType);
-        var ringtone = Android.Media.RingtoneManager.GetRingtone(Android.App.Application.Context, uri);
-        ringtone?.Play();
+        var toneGenerator = new Android.Media.ToneGenerator(Android.Media.Stream.Notification, kind == CasinoAlertKind.Half ? 60 : 90);
+        try
+        {
+            if (kind == CasinoAlertKind.Half)
+            {
+                toneGenerator.StartTone(Android.Media.Tone.PropBeep, 150);
+                await Task.Delay(180);
+            }
+            else
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    toneGenerator.StartTone(Android.Media.Tone.PropBeep, 150);
+                    await Task.Delay(i == 2 ? 170 : 250);
+                }
+            }
+        }
+        finally
+        {
+            toneGenerator.Release();
+            toneGenerator.Dispose();
+        }
 #elif WINDOWS
         if (kind == CasinoAlertKind.Half)
         {
-            Console.Beep(880, 180);
+            Console.Beep(800, 150);
         }
         else
         {
-            Console.Beep(660, 220);
-            Console.Beep(440, 260);
+            for (int i = 0; i < 3; i++)
+            {
+                Console.Beep(800, 120);
+                if (i < 2)
+                    await Task.Delay(100);
+            }
         }
 #endif
-        return Task.CompletedTask;
     }
 
     private async Task ShowManagementOverlayAsync(string title, List<(int id, string text)> rows, Func<int, Task> deleteAsync)
