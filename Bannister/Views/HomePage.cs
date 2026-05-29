@@ -36,6 +36,7 @@ public class HomePage : ContentPage
     private readonly MoneyManagementService _moneyManagement;
     private readonly DesignationService _designationService;
     private readonly ListsService _listsService;
+    private readonly CommandsCasinoService _commandsCasino;
     private readonly OperationApplierService _applier;
     private readonly PendingActivityIdeaService _pendingIdeas;
     private bool _introChecked = false;
@@ -51,6 +52,7 @@ public class HomePage : ContentPage
     private Button _btnGames;
     private Button _btnNewHabits;
     private Button _btnCharts;
+    private Button _btnCommandsCasino;
     private Button _btnConversationPractice;
     private Button _btnPrompts;
     private Button _btnIdeas;
@@ -82,7 +84,8 @@ public class HomePage : ContentPage
         SubActivityService subActivityService, AudioLibraryService audioLibService,
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
-        PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService)
+        PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
+        CommandsCasinoService commandsCasino)
     {
         _auth = auth;
         _games = games;
@@ -114,6 +117,7 @@ public class HomePage : ContentPage
         _moneyManagement = moneyManagement;
         _designationService = designationService;
         _listsService = listsService;
+        _commandsCasino = commandsCasino;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -191,6 +195,10 @@ public class HomePage : ContentPage
         _btnCharts = CreateButton("📊 Charts", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
         _btnCharts.Clicked += OnChartsClicked;
         navButtons.Add(("Charts", _btnCharts));
+
+        _btnCommandsCasino = CreateButton("Commands Casino", Color.FromArgb("#FFF3E0"), Color.FromArgb("#BF360C"));
+        _btnCommandsCasino.Clicked += OnCommandsCasinoClicked;
+        navButtons.Add(("Commands Casino", _btnCommandsCasino));
 
         _btnConversationPractice = CreateButton("💬 Conversation Practice", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3F51B5"));
         _btnConversationPractice.Clicked += OnConversationPracticeClicked;
@@ -1041,6 +1049,12 @@ public class HomePage : ContentPage
     {
         // Navigate to Conversation Practice scenarios page
         var page = new ConversationListPage(_conversationService, _auth.CurrentUsername);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnCommandsCasinoClicked(object? sender, EventArgs e)
+    {
+        var page = new CommandsCasinoPage(_auth, _commandsCasino);
         await Navigation.PushAsync(page);
     }
 
