@@ -33,6 +33,10 @@ public class CommandsCasinoPage : ContentPage
     private int _selectedDeadlineSeconds = 30;
     private bool _sessionActive;
     private CancellationTokenSource? _sessionCts;
+#if ANDROID
+    private Android.Media.Ringtone? _activeSessionRingtone;
+    private CancellationTokenSource? _activeSessionRingtoneStopCts;
+#endif
 
     public CommandsCasinoPage(AuthService auth, CommandsCasinoService casino)
     {
@@ -54,6 +58,7 @@ public class CommandsCasinoPage : ContentPage
     {
         base.OnDisappearing();
         CancelSession();
+        StopActiveSessionRingtone();
     }
 
     private void BuildUI()
@@ -595,6 +600,7 @@ public class CommandsCasinoPage : ContentPage
         }
         finally
         {
+            StopActiveSessionRingtone();
             _sessionCts?.Dispose();
             _sessionCts = null;
             _sessionActive = false;
@@ -635,7 +641,16 @@ public class CommandsCasinoPage : ContentPage
         }
 
         await TriggerSessionAlertAsync(CasinoAlertKind.Deadline);
-        bool? completed = await DeadlinePromptPage.ShowAsync(Navigation, command);
+        bool? completed;
+        try
+        {
+            completed = await DeadlinePromptPage.ShowAsync(Navigation, command);
+        }
+        finally
+        {
+            StopActiveSessionRingtone();
+        }
+
         if (completed == true)
         {
             await DisplayAlert("Chip kept", $"{chip.Name} stays in your stack.", "OK");
@@ -653,6 +668,7 @@ public class CommandsCasinoPage : ContentPage
 
     private void CancelSession()
     {
+        StopActiveSessionRingtone();
         if (!_sessionActive) return;
         _sessionCts?.Cancel();
     }
@@ -682,31 +698,25 @@ public class CommandsCasinoPage : ContentPage
         }
     }
 
-    private static async Task PlaySessionAlertSoundAsync(CasinoAlertKind kind)
+    private async Task PlaySessionAlertSoundAsync(CasinoAlertKind kind)
     {
 #if ANDROID
-        var toneGenerator = new Android.Media.ToneGenerator(Android.Media.Stream.Notification, kind == CasinoAlertKind.Half ? 60 : 90);
-        try
-        {
-            if (kind == CasinoAlertKind.Half)
-            {
-                toneGenerator.StartTone(Android.Media.Tone.PropBeep, 150);
-                await Task.Delay(180);
-            }
-            else
-            {
-                for (int i = 0; i < 3; i++)
-                {
-                    toneGenerator.StartTone(Android.Media.Tone.PropBeep, 150);
-                    await Task.Delay(i == 2 ? 170 : 250);
-                }
-            }
-        }
-        finally
-        {
-            toneGenerator.Release();
-            toneGenerator.Dispose();
-        }
+        StopActiveSessionRingtone();
+
+        var ringtoneType = kind == CasinoAlertKind.Half
+            ? Android.Media.RingtoneType.Notification
+            : Android.Media.RingtoneType.Alarm;
+        var uri = Android.Media.RingtoneManager.GetDefaultUri(ringtoneType);
+        var ringtone = Android.Media.RingtoneManager.GetRingtone(Android.App.Application.Context, uri);
+        if (ringtone == null)
+            return;
+
+        _activeSessionRingtone = ringtone;
+        ringtone.Play();
+
+        ScheduleActiveSessionRingtoneStop(kind == CasinoAlertKind.Half
+            ? TimeSpan.FromSeconds(2)
+            : TimeSpan.FromSeconds(15));
 #elif WINDOWS
         if (kind == CasinoAlertKind.Half)
         {
@@ -721,6 +731,52 @@ public class CommandsCasinoPage : ContentPage
                     await Task.Delay(100);
             }
         }
+#endif
+    }
+
+    private void StopActiveSessionRingtone()
+    {
+#if ANDROID
+        try
+        {
+            _activeSessionRingtoneStopCts?.Cancel();
+            _activeSessionRingtoneStopCts?.Dispose();
+            _activeSessionRingtoneStopCts = null;
+
+            _activeSessionRingtone?.Stop();
+            _activeSessionRingtone?.Dispose();
+            _activeSessionRingtone = null;
+        }
+        catch
+        {
+            _activeSessionRingtone = null;
+        }
+#endif
+    }
+
+    private void ScheduleActiveSessionRingtoneStop(TimeSpan delay)
+    {
+#if ANDROID
+        _activeSessionRingtoneStopCts?.Cancel();
+        _activeSessionRingtoneStopCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _activeSessionRingtoneStopCts = cts;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delay, cts.Token);
+                if (!cts.IsCancellationRequested)
+                    MainThread.BeginInvokeOnMainThread(StopActiveSessionRingtone);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch
+            {
+            }
+        });
 #endif
     }
 
