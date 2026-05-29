@@ -3787,8 +3787,8 @@ public class LearningPage : ContentPage
                 Category = category
             };
 
-            await _learning.AddVideoAsync(video);
-            importedVideos.Add(video);
+            var importedVideo = await _learning.AddVideoAsync(video);
+            importedVideos.Add(importedVideo);
         }
 
         _videosStack.Children.Remove(loadingLabel);
@@ -3797,6 +3797,8 @@ public class LearningPage : ContentPage
             ? $"Imported {importedVideos.Count} videos!\n({autoMapped} auto-categorized by channel)"
             : $"Successfully imported {importedVideos.Count} videos!";
         await DisplayAlert("Imported", message, "OK");
+
+        await PromptImportedTopPicksAsync(importedVideos);
 
         // Only ask to categorize if there are unsorted videos
         var unsortedVideos = importedVideos.Where(v => v.Category == "Unsorted").ToList();
@@ -3815,6 +3817,200 @@ public class LearningPage : ContentPage
         }
         
         await RefreshVideosAsync();
+    }
+
+    private async Task PromptImportedTopPicksAsync(List<LearningVideo> importedVideos)
+    {
+        if (importedVideos.Count == 0)
+        {
+            return;
+        }
+
+        List<LearningVideo> selectedVideos;
+        if (importedVideos.Count == 1)
+        {
+            var video = importedVideos[0];
+            string title = string.IsNullOrWhiteSpace(video.Title) ? "Imported video" : video.Title;
+            string? action = await DisplayActionSheet(
+                $"{title}\n\nMark as Top Picks?",
+                "No",
+                null,
+                "Yes");
+
+            if (action != "Yes")
+            {
+                return;
+            }
+
+            selectedVideos = new List<LearningVideo> { video };
+        }
+        else
+        {
+            selectedVideos = await ShowImportedTopPicksSelectionAsync(importedVideos);
+            if (selectedVideos.Count == 0)
+            {
+                return;
+            }
+        }
+
+        foreach (var video in selectedVideos)
+        {
+            video.Status = "TopPicks";
+            video.CompletedAt = null;
+            await _learning.UpdateVideoAsync(video);
+        }
+    }
+
+    private async Task<List<LearningVideo>> ShowImportedTopPicksSelectionAsync(List<LearningVideo> importedVideos)
+    {
+        var tcs = new TaskCompletionSource<List<LearningVideo>?>();
+        var selectedByVideo = new Dictionary<LearningVideo, CheckBox>();
+        bool isClosing = false;
+
+        var rows = new VerticalStackLayout
+        {
+            Spacing = 8
+        };
+
+        foreach (var video in importedVideos)
+        {
+            var checkBox = new CheckBox
+            {
+                IsChecked = false,
+                InputTransparent = true,
+                VerticalOptions = LayoutOptions.Center
+            };
+
+            var titleLabel = new Label
+            {
+                Text = string.IsNullOrWhiteSpace(video.Title) ? "Imported video" : video.Title,
+                FontSize = 14,
+                TextColor = Color.FromArgb("#263238"),
+                LineBreakMode = LineBreakMode.WordWrap,
+                VerticalOptions = LayoutOptions.Center
+            };
+
+            var row = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = GridLength.Star }
+                },
+                Padding = new Thickness(8),
+                BackgroundColor = Color.FromArgb("#F7F8FA")
+            };
+
+            row.Children.Add(checkBox);
+            Grid.SetColumn(titleLabel, 1);
+            row.Children.Add(titleLabel);
+
+            row.GestureRecognizers.Add(new TapGestureRecognizer
+            {
+                Command = new Command(() => checkBox.IsChecked = !checkBox.IsChecked)
+            });
+
+            selectedByVideo[video] = checkBox;
+            rows.Children.Add(row);
+        }
+
+        var markButton = new Button
+        {
+            Text = "Mark Selected as Top Picks",
+            BackgroundColor = Color.FromArgb("#F9A825"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(16, 0)
+        };
+
+        var skipButton = new Button
+        {
+            Text = "Skip",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(16, 0)
+        };
+
+        var card = new Frame
+        {
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            Padding = 20,
+            HasShadow = true,
+            WidthRequest = 560,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Top Picks from Import?",
+                        FontSize = 20,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#333")
+                    },
+                    new Label
+                    {
+                        Text = "Select any videos you want to mark as Top Picks.",
+                        FontSize = 13,
+                        TextColor = Color.FromArgb("#666"),
+                        LineBreakMode = LineBreakMode.WordWrap
+                    },
+                    new ScrollView
+                    {
+                        HeightRequest = 420,
+                        Content = rows
+                    },
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 12,
+                        HorizontalOptions = LayoutOptions.End,
+                        Children = { skipButton, markButton }
+                    }
+                }
+            }
+        };
+
+        var overlayPage = new ContentPage
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            Content = new Grid
+            {
+                Padding = 24,
+                Children = { card }
+            }
+        };
+
+        async Task CloseAsync(List<LearningVideo>? result)
+        {
+            if (isClosing)
+            {
+                return;
+            }
+
+            isClosing = true;
+            await Navigation.PopModalAsync(false);
+            tcs.TrySetResult(result);
+        }
+
+        markButton.Clicked += async (s, e) =>
+        {
+            var selected = selectedByVideo
+                .Where(pair => pair.Value.IsChecked)
+                .Select(pair => pair.Key)
+                .ToList();
+
+            await CloseAsync(selected);
+        };
+
+        skipButton.Clicked += async (s, e) => await CloseAsync(null);
+
+        await Navigation.PushModalAsync(overlayPage, false);
+        return await tcs.Task ?? new List<LearningVideo>();
     }
 
     /// <summary>
