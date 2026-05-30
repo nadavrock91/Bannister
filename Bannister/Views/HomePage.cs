@@ -39,6 +39,7 @@ public class HomePage : ContentPage
     private readonly CommandsCasinoService _commandsCasino;
     private readonly RoutineService _routineService;
     private readonly DeadlineService _deadlineService;
+    private readonly AllowanceService _allowanceService;
     private readonly OperationApplierService _applier;
     private readonly PendingActivityIdeaService _pendingIdeas;
     private bool _introChecked = false;
@@ -55,6 +56,7 @@ public class HomePage : ContentPage
     private Button _btnGames;
     private Button _btnNewHabits;
     private Button _btnCharts;
+    private Button _btnAllowances;
     private Button _btnCommandsCasino;
     private Button _btnConversationPractice;
     private Button _btnPrompts;
@@ -89,7 +91,8 @@ public class HomePage : ContentPage
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
-        CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService)
+        CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
+        AllowanceService allowanceService)
     {
         _auth = auth;
         _games = games;
@@ -124,6 +127,7 @@ public class HomePage : ContentPage
         _commandsCasino = commandsCasino;
         _routineService = routineService;
         _deadlineService = deadlineService;
+        _allowanceService = allowanceService;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -193,6 +197,10 @@ public class HomePage : ContentPage
 
         // Build all navigation buttons, then sort alphabetically before adding
         var navButtons = new List<(string sortKey, Button btn)>();
+
+        _btnAllowances = CreateButton("Allowances", Color.FromArgb("#E0F2F1"), Color.FromArgb("#00695C"));
+        _btnAllowances.Clicked += OnAllowancesClicked;
+        navButtons.Add(("Allowances", _btnAllowances));
 
         _btnCalendar = CreateButton("📅 Calendar", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
         _btnCalendar.Clicked += OnCalendarClicked;
@@ -1165,6 +1173,12 @@ public class HomePage : ContentPage
     private async void OnDatabasesClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("databases");
+    }
+
+    private async void OnAllowancesClicked(object? sender, EventArgs e)
+    {
+        var page = new AllowancesPage(_auth, _allowanceService);
+        await Navigation.PushAsync(page);
     }
 
     private async void OnDeadlinesClicked(object? sender, EventArgs e)

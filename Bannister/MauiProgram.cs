@@ -82,6 +82,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<CommandsCasinoService>();
         builder.Services.AddSingleton<RoutineService>();
         builder.Services.AddSingleton<DeadlineService>();
+        builder.Services.AddSingleton<AllowanceService>();
         builder.Services.AddSingleton<ListsService>();
 
 
@@ -134,6 +135,7 @@ public static class MauiProgram
         builder.Services.AddTransient<RoutinesPage>();
         builder.Services.AddTransient<DeadlinesHubPage>();
         builder.Services.AddTransient<DeadlinesPage>();
+        builder.Services.AddTransient<AllowancesPage>();
         builder.Services.AddTransient<MoneyManagementHubPage>();
         builder.Services.AddTransient<MoneyManagementPage>();
         builder.Services.AddTransient<AssetsPage>();
