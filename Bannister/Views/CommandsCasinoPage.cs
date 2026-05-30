@@ -483,15 +483,20 @@ public class CommandsCasinoPage : ContentPage
             return;
         }
 
-        var row = new HorizontalStackLayout
+        var row = new FlexLayout
         {
-            Spacing = 8
+            Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Start,
+            HorizontalOptions = LayoutOptions.Fill
         };
 
         foreach (var chip in visibleChips)
         {
             bool selected = _selectedChip?.Id == chip.Id;
             var button = SmallButton(chip.Name, selected ? Color.FromArgb("#F9A825") : Color.FromArgb("#EFE1CF"), Color.FromArgb("#3D2B1F"));
+            button.Margin = new Thickness(0, 0, 8, 8);
             button.Clicked += (_, _) =>
             {
                 _selectedChip = chip;
