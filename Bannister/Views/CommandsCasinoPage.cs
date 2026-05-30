@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace Bannister.Views;
@@ -648,6 +649,7 @@ public class CommandsCasinoPage : ContentPage
         }
         finally
         {
+            Debug.WriteLine("CommandsCasino alert Deadline: prompt resolved/dismissed, stopping ringtone.");
             StopActiveSessionRingtone();
         }
 
@@ -675,6 +677,7 @@ public class CommandsCasinoPage : ContentPage
 
     private async Task TriggerSessionAlertAsync(CasinoAlertKind kind)
     {
+        Debug.WriteLine($"CommandsCasino alert {kind}: trigger entered.");
         try
         {
             var duration = kind == CasinoAlertKind.Half
@@ -682,9 +685,11 @@ public class CommandsCasinoPage : ContentPage
                 : TimeSpan.FromMilliseconds(500);
 
             Vibration.Default.Vibrate(duration);
+            Debug.WriteLine($"CommandsCasino alert {kind}: vibration requested for {duration.TotalMilliseconds}ms.");
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"CommandsCasino alert {kind}: vibration failed: {ex}");
             // Vibration can be unavailable or disabled; the visual prompts still run.
         }
 
@@ -692,8 +697,9 @@ public class CommandsCasinoPage : ContentPage
         {
             await PlaySessionAlertSoundAsync(kind);
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"CommandsCasino alert {kind}: sound failed: {ex}");
             // Sound is best-effort and must not interrupt the casino session flow.
         }
     }
@@ -701,18 +707,23 @@ public class CommandsCasinoPage : ContentPage
     private async Task PlaySessionAlertSoundAsync(CasinoAlertKind kind)
     {
 #if ANDROID
-        StopActiveSessionRingtone();
-
+        Debug.WriteLine($"CommandsCasino alert {kind}: Android ringtone play path entered.");
         var ringtoneType = kind == CasinoAlertKind.Half
             ? Android.Media.RingtoneType.Notification
             : Android.Media.RingtoneType.Alarm;
         var uri = Android.Media.RingtoneManager.GetDefaultUri(ringtoneType);
+        Debug.WriteLine($"CommandsCasino alert {kind}: ringtone type={ringtoneType}, uri={uri}");
         var ringtone = Android.Media.RingtoneManager.GetRingtone(Android.App.Application.Context, uri);
         if (ringtone == null)
+        {
+            Debug.WriteLine($"CommandsCasino alert {kind}: RingtoneManager.GetRingtone returned null.");
             return;
+        }
 
         _activeSessionRingtone = ringtone;
+        Debug.WriteLine($"CommandsCasino alert {kind}: ringtone acquired, calling Play().");
         ringtone.Play();
+        Debug.WriteLine($"CommandsCasino alert {kind}: Play() returned.");
 
         ScheduleActiveSessionRingtoneStop(kind == CasinoAlertKind.Half
             ? TimeSpan.FromSeconds(2)
@@ -739,6 +750,7 @@ public class CommandsCasinoPage : ContentPage
 #if ANDROID
         try
         {
+            Debug.WriteLine($"CommandsCasino alert: StopActiveSessionRingtone called. Has ringtone={_activeSessionRingtone != null}, has stop CTS={_activeSessionRingtoneStopCts != null}.");
             _activeSessionRingtoneStopCts?.Cancel();
             _activeSessionRingtoneStopCts?.Dispose();
             _activeSessionRingtoneStopCts = null;
@@ -746,9 +758,11 @@ public class CommandsCasinoPage : ContentPage
             _activeSessionRingtone?.Stop();
             _activeSessionRingtone?.Dispose();
             _activeSessionRingtone = null;
+            Debug.WriteLine("CommandsCasino alert: active ringtone stopped/disposed.");
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"CommandsCasino alert: stopping active ringtone failed: {ex}");
             _activeSessionRingtone = null;
         }
 #endif
@@ -757,6 +771,7 @@ public class CommandsCasinoPage : ContentPage
     private void ScheduleActiveSessionRingtoneStop(TimeSpan delay)
     {
 #if ANDROID
+        Debug.WriteLine($"CommandsCasino alert: scheduling ringtone auto-stop after {delay.TotalSeconds:0.#}s.");
         _activeSessionRingtoneStopCts?.Cancel();
         _activeSessionRingtoneStopCts?.Dispose();
         var cts = new CancellationTokenSource();
@@ -768,13 +783,18 @@ public class CommandsCasinoPage : ContentPage
             {
                 await Task.Delay(delay, cts.Token);
                 if (!cts.IsCancellationRequested)
+                {
+                    Debug.WriteLine("CommandsCasino alert: ringtone auto-stop delay elapsed.");
                     MainThread.BeginInvokeOnMainThread(StopActiveSessionRingtone);
+                }
             }
             catch (OperationCanceledException)
             {
+                Debug.WriteLine("CommandsCasino alert: ringtone auto-stop cancelled.");
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"CommandsCasino alert: ringtone auto-stop failed: {ex}");
             }
         });
 #endif
