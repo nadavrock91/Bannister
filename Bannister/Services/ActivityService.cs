@@ -458,6 +458,7 @@ namespace Bannister.Services
                 activity.Notes = "";
                 activity.DisplayDaysOfWeek = "";
                 activity.DisplayDayOfMonth = 0;
+                activity.ExcludeFromNotEveryDaySection = false;
                 activity.DisplayDayStreak = 0;
                 activity.AutoSuggestThreshold = 30;
                 activity.LastDisplayDayUsed = null;

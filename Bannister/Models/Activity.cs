@@ -252,6 +252,11 @@ public class Activity
     /// 0 or null means not restricted to a specific day of month.
     /// </summary>
     public int DisplayDayOfMonth { get; set; } = 0;  // 0 = not restricted
+
+    /// <summary>
+    /// If true, non-daily activities stay in their regular grouping instead of the top notice section.
+    /// </summary>
+    public bool ExcludeFromNotEveryDaySection { get; set; } = false;
     
     // ============ DISPLAY DAY STREAK TRACKING ============
     

@@ -477,6 +477,7 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN ShowStreakAsDaysSinceStarted INTEGER DEFAULT 0"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN CurrentStreakStartedAt TEXT"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN AutoSuggestThreshold INTEGER DEFAULT 30"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN ExcludeFromNotEveryDaySection INTEGER DEFAULT 0"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

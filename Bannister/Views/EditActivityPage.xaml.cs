@@ -18,6 +18,7 @@ public partial class EditActivityPage : ContentPage
     private readonly Activity _activity;
     private string? _selectedImageFilename = null;
     private DisplayDaysSelector? _displayDaysSelector = null;
+    private CheckBox? _chkExcludeFromNotEveryDaySection = null;
     private List<string> _categoryOptions = new();
     private int _previousCategoryIndex = 0;
 
@@ -146,6 +147,10 @@ public partial class EditActivityPage : ContentPage
                 _activity.DisplayDaysOfWeek ?? "",
                 _activity.DisplayDayOfMonth);
         }
+        if (_chkExcludeFromNotEveryDaySection != null)
+        {
+            _chkExcludeFromNotEveryDaySection.IsChecked = _activity.ExcludeFromNotEveryDaySection;
+        }
 
         // Set image from filename
         _selectedImageFilename = _activity.ImagePath;
@@ -188,6 +193,35 @@ public partial class EditActivityPage : ContentPage
                 // Create and insert DisplayDaysSelector after Schedule section
                 _displayDaysSelector = new DisplayDaysSelector();
                 mainStack.Children.Insert(scheduleIndex + 1, _displayDaysSelector.Container);
+
+                _chkExcludeFromNotEveryDaySection = new CheckBox();
+                var inlineSection = new VerticalStackLayout
+                {
+                    Spacing = 4,
+                    Padding = new Thickness(0, 4, 0, 0)
+                };
+                inlineSection.Children.Add(new HorizontalStackLayout
+                {
+                    Spacing = 8,
+                    Children =
+                    {
+                        _chkExcludeFromNotEveryDaySection,
+                        new Label
+                        {
+                            Text = "Show inline with regular activities",
+                            VerticalOptions = LayoutOptions.Center,
+                            FontAttributes = FontAttributes.Bold
+                        }
+                    }
+                });
+                inlineSection.Children.Add(new Label
+                {
+                    Text = "Don't isolate to the 'Not Daily' section at the top, even on days when this activity normally shows.",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#666"),
+                    Margin = new Thickness(38, 0, 0, 0)
+                });
+                mainStack.Children.Insert(scheduleIndex + 2, inlineSection);
             }
         }
     }
@@ -679,6 +713,10 @@ public partial class EditActivityPage : ContentPage
             {
                 _activity.DisplayDaysOfWeek = _displayDaysSelector.GetDisplayDaysOfWeek();
                 _activity.DisplayDayOfMonth = _displayDaysSelector.GetDisplayDayOfMonth();
+            }
+            if (_chkExcludeFromNotEveryDaySection != null)
+            {
+                _activity.ExcludeFromNotEveryDaySection = _chkExcludeFromNotEveryDaySection.IsChecked;
             }
 
             await _activities.UpdateActivityAsync(_activity);

@@ -118,9 +118,11 @@ public static class ActivityFilterHelper
 
         var nonDailyDueToday = activities
             .Where(a => a.Activity.ShouldDisplayToday &&
+                        !a.Activity.ExcludeFromNotEveryDaySection &&
                         (!string.IsNullOrEmpty(a.Activity.DisplayDaysOfWeek) || a.Activity.DisplayDayOfMonth > 0))
-            .OrderBy(a => a.LastUsedDate.HasValue)
-            .ThenByDescending(a => a.LastUsedDate)
+            .OrderBy(a => a.LastUsedDate.HasValue
+                ? Math.Max(0, (DateTime.Today - a.LastUsedDate.Value.Date).Days)
+                : int.MaxValue)
             .ThenBy(a => a.Name)
             .ToList();
 
