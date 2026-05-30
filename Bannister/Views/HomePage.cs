@@ -49,6 +49,7 @@ public class HomePage : ContentPage
     private bool _weeklyCommitmentsPromptChecked = false;
     private bool _subActivityDailyPromptChecked = false;
     private bool _deadlineCheckInChecked = false;
+    private bool _allowanceDailyPromptChecked = false;
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
 
     // UI Controls
@@ -402,6 +403,7 @@ public class HomePage : ContentPage
         await LoadDataAsync();
         await ShowDailyLoginPromptsIfNeededAsync();
         await CheckSubActivityDailyPromptAsync();
+        await CheckAllowanceDailyPromptAsync();
         await CheckDeadlineCheckInAsync();
 
         if (!_introChecked)
@@ -663,6 +665,45 @@ public class HomePage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error checking deadline prompts: {ex.Message}");
+        }
+    }
+
+    private async Task CheckAllowanceDailyPromptAsync()
+    {
+        if (_allowanceDailyPromptChecked) return;
+        _allowanceDailyPromptChecked = true;
+
+        try
+        {
+            if (_db.IsReadOnly) return;
+
+            string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            string lastPromptKey = $"allowance_daily_prompt_{_auth.CurrentUsername}";
+            string? lastPrompt = null;
+            try { lastPrompt = await SecureStorage.GetAsync(lastPromptKey); } catch { }
+
+            if (lastPrompt == today) return;
+
+            var allowances = await _allowanceService.GetDailyPromptAllowancesAsync(_auth.CurrentUsername);
+            if (allowances.Count == 0) return;
+
+            foreach (var allowance in allowances)
+            {
+                bool completed = await DisplayAlert(
+                    "Daily Allowance Check-In",
+                    $"Did you complete \"{allowance.Title}\" today?",
+                    "Yes",
+                    "No");
+
+                if (completed)
+                    await _allowanceService.IncrementAsync(allowance.Id);
+            }
+
+            try { await SecureStorage.SetAsync(lastPromptKey, today); } catch { }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking allowance daily prompts: {ex.Message}");
         }
     }
 

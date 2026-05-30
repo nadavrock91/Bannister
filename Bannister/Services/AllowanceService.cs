@@ -29,7 +29,10 @@ public class AllowanceService
 
         var conn = await _db.GetConnectionAsync();
         if (!_db.IsReadOnly)
+        {
             await conn.CreateTableAsync<Allowance>();
+            try { await conn.ExecuteAsync("ALTER TABLE allowances ADD COLUMN PromptDailyOnHome INTEGER DEFAULT 0"); } catch { }
+        }
 
         _initialized = true;
     }
@@ -71,6 +74,12 @@ public class AllowanceService
         var conn = await _db.GetConnectionAsync();
         await conn.InsertAsync(allowance);
         return allowance;
+    }
+
+    public async Task<List<Allowance>> GetDailyPromptAllowancesAsync(string username)
+    {
+        var allowances = await GetAllowancesAsync(username);
+        return allowances.Where(a => a.PromptDailyOnHome).OrderBy(a => a.Title, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     public async Task SetCurrentAsync(int id, int current)
@@ -119,6 +128,14 @@ public class AllowanceService
         await UpdateAllowanceAsync(id, allowance =>
         {
             allowance.Title = title.Trim();
+        });
+    }
+
+    public async Task SetPromptDailyOnHomeAsync(int id, bool enabled)
+    {
+        await UpdateAllowanceAsync(id, allowance =>
+        {
+            allowance.PromptDailyOnHome = enabled;
         });
     }
 

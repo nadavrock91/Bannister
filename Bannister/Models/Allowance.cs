@@ -17,6 +17,8 @@ public class Allowance
 
     public int Current { get; set; }
 
+    public bool PromptDailyOnHome { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
