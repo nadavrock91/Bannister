@@ -642,6 +642,9 @@ public class CommandsCasinoPage : ContentPage
         }
 
         await TriggerSessionAlertAsync(CasinoAlertKind.Deadline);
+        Debug.WriteLine("CommandsCasino alert Deadline: waiting 5s before prompt.");
+        await Task.Delay(TimeSpan.FromSeconds(5), token);
+
         bool? completed;
         try
         {
@@ -708,22 +711,30 @@ public class CommandsCasinoPage : ContentPage
     {
 #if ANDROID
         Debug.WriteLine($"CommandsCasino alert {kind}: Android ringtone play path entered.");
-        var ringtoneType = kind == CasinoAlertKind.Half
-            ? Android.Media.RingtoneType.Notification
-            : Android.Media.RingtoneType.Alarm;
-        var uri = Android.Media.RingtoneManager.GetDefaultUri(ringtoneType);
-        Debug.WriteLine($"CommandsCasino alert {kind}: ringtone type={ringtoneType}, uri={uri}");
-        var ringtone = Android.Media.RingtoneManager.GetRingtone(Android.App.Application.Context, uri);
-        if (ringtone == null)
+        int playCount = kind == CasinoAlertKind.Half ? 1 : 3;
+        for (int i = 0; i < playCount; i++)
         {
-            Debug.WriteLine($"CommandsCasino alert {kind}: RingtoneManager.GetRingtone returned null.");
-            return;
-        }
+            if (i > 0)
+                StopActiveSessionRingtone();
 
-        _activeSessionRingtone = ringtone;
-        Debug.WriteLine($"CommandsCasino alert {kind}: ringtone acquired, calling Play().");
-        ringtone.Play();
-        Debug.WriteLine($"CommandsCasino alert {kind}: Play() returned.");
+            var ringtoneType = Android.Media.RingtoneType.Notification;
+            var uri = Android.Media.RingtoneManager.GetDefaultUri(ringtoneType);
+            Debug.WriteLine($"CommandsCasino alert {kind}: ringtone type={ringtoneType}, uri={uri}, play {i + 1}/{playCount}");
+            var ringtone = Android.Media.RingtoneManager.GetRingtone(Android.App.Application.Context, uri);
+            if (ringtone == null)
+            {
+                Debug.WriteLine($"CommandsCasino alert {kind}: RingtoneManager.GetRingtone returned null.");
+                return;
+            }
+
+            _activeSessionRingtone = ringtone;
+            Debug.WriteLine($"CommandsCasino alert {kind}: ringtone acquired, calling Play().");
+            ringtone.Play();
+            Debug.WriteLine($"CommandsCasino alert {kind}: Play() returned.");
+
+            if (i < playCount - 1)
+                await Task.Delay(850);
+        }
 
         ScheduleActiveSessionRingtoneStop(kind == CasinoAlertKind.Half
             ? TimeSpan.FromSeconds(2)
