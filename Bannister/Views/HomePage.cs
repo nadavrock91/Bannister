@@ -38,6 +38,7 @@ public class HomePage : ContentPage
     private readonly ListsService _listsService;
     private readonly CommandsCasinoService _commandsCasino;
     private readonly RoutineService _routineService;
+    private readonly DeadlineService _deadlineService;
     private readonly OperationApplierService _applier;
     private readonly PendingActivityIdeaService _pendingIdeas;
     private bool _introChecked = false;
@@ -46,6 +47,7 @@ public class HomePage : ContentPage
     private bool _dailyHabitAllowancePromptChecked = false;
     private bool _weeklyCommitmentsPromptChecked = false;
     private bool _subActivityDailyPromptChecked = false;
+    private bool _deadlineCheckInChecked = false;
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
 
     // UI Controls
@@ -65,6 +67,7 @@ public class HomePage : ContentPage
     private Button _btnTasks;
     private Button _btnLearning;
     private Button _btnDatabases;
+    private Button _btnDeadlines;
     private Button _btnDesignations;
     private Button _btnDragons;
     private Button _btnStreaks;
@@ -86,7 +89,7 @@ public class HomePage : ContentPage
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
-        CommandsCasinoService commandsCasino, RoutineService routineService)
+        CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService)
     {
         _auth = auth;
         _games = games;
@@ -120,6 +123,7 @@ public class HomePage : ContentPage
         _listsService = listsService;
         _commandsCasino = commandsCasino;
         _routineService = routineService;
+        _deadlineService = deadlineService;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -213,6 +217,10 @@ public class HomePage : ContentPage
         _btnDatabases = CreateButton("🗄️ Databases", Color.FromArgb("#ECEFF1"), Color.FromArgb("#455A64"));
         _btnDatabases.Clicked += OnDatabasesClicked;
         navButtons.Add(("Databases", _btnDatabases));
+
+        _btnDeadlines = CreateButton("Deadlines", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
+        _btnDeadlines.Clicked += OnDeadlinesClicked;
+        navButtons.Add(("Deadlines", _btnDeadlines));
 
         _btnDesignations = CreateButton("Designations", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
         _btnDesignations.Clicked += OnDesignationsClicked;
@@ -386,6 +394,7 @@ public class HomePage : ContentPage
         await LoadDataAsync();
         await ShowDailyLoginPromptsIfNeededAsync();
         await CheckSubActivityDailyPromptAsync();
+        await CheckDeadlineCheckInAsync();
 
         if (!_introChecked)
         {
@@ -606,6 +615,46 @@ public class HomePage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error checking sub-activity daily prompts: {ex.Message}");
+        }
+    }
+
+    private async Task CheckDeadlineCheckInAsync()
+    {
+        if (_deadlineCheckInChecked) return;
+        _deadlineCheckInChecked = true;
+
+        try
+        {
+            if (_db.IsReadOnly) return;
+
+            string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            string lastPromptKey = $"deadlines_checkin_{_auth.CurrentUsername}";
+            string? lastPrompt = null;
+            try { lastPrompt = await SecureStorage.GetAsync(lastPromptKey); } catch { }
+
+            if (lastPrompt == today) return;
+
+            var overdue = await _deadlineService.GetOverdueActiveDeadlinesAsync(_auth.CurrentUsername);
+            if (overdue.Count == 0) return;
+
+            foreach (var deadline in overdue)
+            {
+                bool completed = await DisplayAlert(
+                    "Deadline Check-In",
+                    $"Did you complete \"{deadline.Title}\"? ({DeadlineService.BucketName(deadline.Bucket)})",
+                    "Yes",
+                    "No");
+
+                await _deadlineService.SetStateAsync(
+                    deadline.Id,
+                    completed ? DeadlineService.StateArchived : DeadlineService.StateFailed);
+            }
+
+            try { await SecureStorage.SetAsync(lastPromptKey, today); } catch { }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking deadline prompts: {ex.Message}");
         }
     }
 
@@ -1116,6 +1165,12 @@ public class HomePage : ContentPage
     private async void OnDatabasesClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("databases");
+    }
+
+    private async void OnDeadlinesClicked(object? sender, EventArgs e)
+    {
+        var page = new DeadlinesHubPage(_auth, _deadlineService);
+        await Navigation.PushAsync(page);
     }
 
     private async void OnDesignationsClicked(object? sender, EventArgs e)
