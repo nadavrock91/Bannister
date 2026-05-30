@@ -1817,8 +1817,8 @@ public class LearningPage : ContentPage
             if (category == null) return; // User cancelled
         }
 
-        if (destination == "Pending" && !await EnsureCanSetVideoPendingAsync(channelName, category))
-            return;
+        if (destination == "Pending" && !await EnsureCanSetVideoPendingAsync(channelName, category, fallbackToWatchOnAdd: true))
+            destination = "To Watch";
         
         // Create the video
         var video = new LearningVideo
@@ -3513,7 +3513,7 @@ public class LearningPage : ContentPage
         return await EnsureCanSetVideoPendingAsync(video.Creator, video.Category ?? "Unsorted");
     }
 
-    private async Task<bool> EnsureCanSetVideoPendingAsync(string? creator, string? category)
+    private async Task<bool> EnsureCanSetVideoPendingAsync(string? creator, string? category, bool fallbackToWatchOnAdd = false)
     {
         var focus = GetVideoFocusSettings();
         var normalizedCategory = category ?? "Unsorted";
@@ -3525,9 +3525,13 @@ public class LearningPage : ContentPage
             return true;
 
         var count = await GetCreatorMonthlyWatchCountAsync(creator, focus.Category);
+        string fallbackMessage = fallbackToWatchOnAdd
+            ? "\n\nThe video will be added to To Watch instead."
+            : "";
+
         await DisplayAlert(
             "Channel Locked",
-            $"This channel has reached its monthly watch limit and is locked. You cannot set its videos to pending.\n\nChannel: {creator ?? "Unknown"}\nMonthly limit: {focus.CreatorMonthlyLimit}\nWatched this month: {count}",
+            $"This channel has reached its monthly watch limit and is locked. You cannot set its videos to pending.{fallbackMessage}\n\nChannel: {creator ?? "Unknown"}\nMonthly limit: {focus.CreatorMonthlyLimit}\nWatched this month: {count}",
             "OK");
         return false;
     }
