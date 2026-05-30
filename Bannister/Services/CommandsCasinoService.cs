@@ -31,6 +31,7 @@ public class CommandsCasinoService
         if (!_db.IsReadOnly)
         {
             await conn.CreateTableAsync<CasinoChip>();
+            try { await conn.ExecuteAsync("ALTER TABLE casino_chips ADD COLUMN Category TEXT DEFAULT ''"); } catch { }
             await conn.CreateTableAsync<CasinoPreset>();
             await conn.CreateTableAsync<CasinoLostChip>();
         }
@@ -55,7 +56,18 @@ public class CommandsCasinoService
         }
     }
 
-    public async Task<CasinoChip> AddChipAsync(string username, string name)
+    public async Task<List<string>> GetChipCategoriesAsync(string username)
+    {
+        var chips = await GetChipsAsync(username);
+        return chips
+            .Select(c => c.Category?.Trim() ?? "")
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<CasinoChip> AddChipAsync(string username, string name, string category = "")
     {
         EnsureWritable();
         await EnsureInitializedAsync();
@@ -64,12 +76,25 @@ public class CommandsCasinoService
         {
             Username = username,
             Name = name.Trim(),
+            Category = category.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
         var conn = await _db.GetConnectionAsync();
         await conn.InsertAsync(chip);
         return chip;
+    }
+
+    public async Task SetChipCategoryAsync(int chipId, string category)
+    {
+        EnsureWritable();
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var chip = await conn.FindAsync<CasinoChip>(chipId);
+        if (chip == null) return;
+
+        chip.Category = category.Trim();
+        await conn.UpdateAsync(chip);
     }
 
     public async Task DeleteChipAsync(int id)

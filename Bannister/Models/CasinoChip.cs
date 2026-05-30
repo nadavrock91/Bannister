@@ -11,5 +11,6 @@ public class CasinoChip
     public string Username { get; set; } = "";
 
     public string Name { get; set; } = "";
+    public string Category { get; set; } = "";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

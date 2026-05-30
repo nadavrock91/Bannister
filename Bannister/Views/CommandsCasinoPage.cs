@@ -17,6 +17,7 @@ public class CommandsCasinoPage : ContentPage
     private VerticalStackLayout _presetsStack = new();
     private VerticalStackLayout _lostChipsStack = new();
     private Label _selectedChipLabel = new();
+    private Picker _chipCategoryPicker = new();
     private Label _clockLabel = new();
     private Label _startHintLabel = new();
     private Label _sessionHalfCountdownLabel = new();
@@ -30,9 +31,14 @@ public class CommandsCasinoPage : ContentPage
     private List<CasinoChip> _chips = new();
     private List<CasinoPreset> _presets = new();
     private List<CasinoLostChip> _lostChips = new();
+    private List<string> _chipCategories = new();
     private CasinoChip? _selectedChip;
+    private CasinoPreset? _selectedPreset;
     private int _selectedDeadlineSeconds = 30;
     private bool _sessionActive;
+    private bool _refreshingChipCategoryPicker;
+    private bool _settingPresetText;
+    private string _selectedChipCategoryFilter = "All";
     private CancellationTokenSource? _sessionCts;
 #if ANDROID
     private Android.Media.Ringtone? _activeSessionRingtone;
@@ -141,6 +147,32 @@ public class CommandsCasinoPage : ContentPage
         };
 
         _chipsStack = new VerticalStackLayout { Spacing = 8 };
+        _chipCategoryPicker = new Picker
+        {
+            Title = "Chip category",
+            WidthRequest = 220
+        };
+        _chipCategoryPicker.SelectedIndexChanged += (_, _) =>
+        {
+            if (_refreshingChipCategoryPicker) return;
+            _selectedChipCategoryFilter = _chipCategoryPicker.SelectedItem?.ToString() ?? "All";
+            RefreshChips();
+        };
+
+        var categoryRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Category:",
+                    VerticalOptions = LayoutOptions.Center,
+                    TextColor = Color.FromArgb("#6D5A4A")
+                },
+                _chipCategoryPicker
+            }
+        };
 
         var addButton = SmallButton("+ Add Chip", Color.FromArgb("#2E7D32"), Colors.White);
         addButton.Clicked += OnAddChipClicked;
@@ -151,6 +183,7 @@ public class CommandsCasinoPage : ContentPage
         return Section("Stake your chip", new View[]
         {
             _selectedChipLabel,
+            categoryRow,
             _chipsStack,
             new HorizontalStackLayout { Spacing = 8, Children = { addButton, manageButton } }
         });
@@ -205,7 +238,16 @@ public class CommandsCasinoPage : ContentPage
             BackgroundColor = Colors.White,
             FontSize = 15
         };
-        _commandEditor.TextChanged += (_, _) => UpdateStartState();
+        _commandEditor.TextChanged += (_, _) =>
+        {
+            if (!_settingPresetText && _selectedPreset != null && _commandEditor.Text != _selectedPreset.Text)
+            {
+                _selectedPreset = null;
+                RefreshPresets();
+            }
+
+            UpdateStartState();
+        };
 
         return Section("Choose or write command", new View[]
         {
@@ -379,17 +421,40 @@ public class CommandsCasinoPage : ContentPage
 
         string username = _auth.CurrentUsername;
         _chips = await _casino.GetChipsAsync(username);
+        _chipCategories = await _casino.GetChipCategoriesAsync(username);
         _presets = await _casino.GetPresetsAsync(username);
         _lostChips = await _casino.GetLostChipsAsync(username);
+        _selectedPreset = null;
 
         if (_selectedChip != null)
             _selectedChip = _chips.FirstOrDefault(c => c.Id == _selectedChip.Id);
 
+        RefreshChipCategoryPicker();
         RefreshChips();
         RefreshPresets();
         RefreshLostChips();
         RefreshDeadlineButtons();
         UpdateStartState();
+    }
+
+    private void RefreshChipCategoryPicker()
+    {
+        _refreshingChipCategoryPicker = true;
+        _chipCategoryPicker.Items.Clear();
+        _chipCategoryPicker.Items.Add("All");
+        foreach (string category in _chipCategories)
+            _chipCategoryPicker.Items.Add(category);
+        _chipCategoryPicker.Items.Add("Uncategorized");
+
+        int index = _chipCategoryPicker.Items.IndexOf(_selectedChipCategoryFilter);
+        if (index < 0)
+        {
+            _selectedChipCategoryFilter = "All";
+            index = 0;
+        }
+
+        _chipCategoryPicker.SelectedIndex = index;
+        _refreshingChipCategoryPicker = false;
     }
 
     private void RefreshChips()
@@ -407,12 +472,23 @@ public class CommandsCasinoPage : ContentPage
             return;
         }
 
+        var visibleChips = _chips.Where(ChipMatchesSelectedCategory).ToList();
+        if (visibleChips.Count == 0)
+        {
+            _chipsStack.Children.Add(new Label
+            {
+                Text = "No chips in this category.",
+                TextColor = Color.FromArgb("#8D6E63")
+            });
+            return;
+        }
+
         var row = new HorizontalStackLayout
         {
             Spacing = 8
         };
 
-        foreach (var chip in _chips)
+        foreach (var chip in visibleChips)
         {
             bool selected = _selectedChip?.Id == chip.Id;
             var button = SmallButton(chip.Name, selected ? Color.FromArgb("#F9A825") : Color.FromArgb("#EFE1CF"), Color.FromArgb("#3D2B1F"));
@@ -426,6 +502,12 @@ public class CommandsCasinoPage : ContentPage
         }
 
         _chipsStack.Children.Add(row);
+    }
+
+    private bool ChipMatchesSelectedCategory(CasinoChip chip)
+    {
+        string category = NormalizeChipCategory(chip.Category);
+        return _selectedChipCategoryFilter == "All" || category == _selectedChipCategoryFilter;
     }
 
     private void RefreshPresets()
@@ -443,11 +525,19 @@ public class CommandsCasinoPage : ContentPage
 
         foreach (var preset in _presets)
         {
-            var button = SmallButton(Truncate(preset.Text, 80), Color.FromArgb("#E3F2FD"), Color.FromArgb("#0D47A1"));
+            bool selected = _selectedPreset?.Id == preset.Id;
+            var button = SmallButton(
+                Truncate(preset.Text, 80),
+                selected ? Color.FromArgb("#F9A825") : Color.FromArgb("#E3F2FD"),
+                selected ? Color.FromArgb("#3D2B1F") : Color.FromArgb("#0D47A1"));
             button.HorizontalOptions = LayoutOptions.Fill;
             button.Clicked += (_, _) =>
             {
+                _selectedPreset = preset;
+                _settingPresetText = true;
                 _commandEditor.Text = preset.Text;
+                _settingPresetText = false;
+                RefreshPresets();
                 UpdateStartState();
             };
             _presetsStack.Children.Add(button);
@@ -522,7 +612,8 @@ public class CommandsCasinoPage : ContentPage
         string? name = await DisplayPromptAsync("Add Chip", "Name the chip you are staking:");
         if (string.IsNullOrWhiteSpace(name)) return;
 
-        await _casino.AddChipAsync(_auth.CurrentUsername, name);
+        string category = await PickChipCategoryAsync("Chip Category", defaultToUncategorizedOnCancel: true) ?? "";
+        await _casino.AddChipAsync(_auth.CurrentUsername, name, category);
         await LoadAsync();
     }
 
@@ -537,12 +628,7 @@ public class CommandsCasinoPage : ContentPage
 
     private async void OnManageChipsClicked(object? sender, EventArgs e)
     {
-        await ShowManagementOverlayAsync("Manage Chips", _chips.Select(c => (c.Id, c.Name)).ToList(), async id =>
-        {
-            await _casino.DeleteChipAsync(id);
-            if (_selectedChip?.Id == id) _selectedChip = null;
-            await LoadAsync();
-        });
+        await ShowManageChipsOverlayAsync();
     }
 
     private async void OnManagePresetsClicked(object? sender, EventArgs e)
@@ -550,6 +636,7 @@ public class CommandsCasinoPage : ContentPage
         await ShowManagementOverlayAsync("Manage Presets", _presets.Select(p => (p.Id, p.Text)).ToList(), async id =>
         {
             await _casino.DeletePresetAsync(id);
+            if (_selectedPreset?.Id == id) _selectedPreset = null;
             await LoadAsync();
         });
     }
@@ -811,6 +898,131 @@ public class CommandsCasinoPage : ContentPage
 #endif
     }
 
+    private async Task ShowManageChipsOverlayAsync()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        bool closing = false;
+        ContentPage? page = null;
+
+        var list = new VerticalStackLayout { Spacing = 8 };
+        if (_chips.Count == 0)
+        {
+            list.Children.Add(new Label
+            {
+                Text = "Nothing to manage yet.",
+                TextColor = Color.FromArgb("#8D6E63")
+            });
+        }
+        else
+        {
+            foreach (var chip in _chips)
+            {
+                var row = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = GridLength.Auto },
+                        new ColumnDefinition { Width = GridLength.Auto }
+                    },
+                    ColumnSpacing = 8,
+                    Padding = new Thickness(0, 4)
+                };
+
+                row.Add(new Label
+                {
+                    Text = $"{chip.Name} [{NormalizeChipCategory(chip.Category)}]",
+                    LineBreakMode = LineBreakMode.WordWrap,
+                    TextColor = Color.FromArgb("#3D2B1F"),
+                    VerticalOptions = LayoutOptions.Center
+                }, 0, 0);
+
+                var categoryButton = SmallButton("Change Category", Color.FromArgb("#1565C0"), Colors.White);
+                categoryButton.Clicked += async (_, _) =>
+                {
+                    string? category = await PickChipCategoryAsync("Change Chip Category", defaultToUncategorizedOnCancel: false);
+                    if (category == null) return;
+
+                    await _casino.SetChipCategoryAsync(chip.Id, category);
+                    await CloseAsync();
+                    await LoadAsync();
+                    await ShowManageChipsOverlayAsync();
+                };
+                row.Add(categoryButton, 1, 0);
+
+                var deleteButton = SmallButton("Delete", Color.FromArgb("#C62828"), Colors.White);
+                deleteButton.Clicked += async (_, _) =>
+                {
+                    await _casino.DeleteChipAsync(chip.Id);
+                    if (_selectedChip?.Id == chip.Id) _selectedChip = null;
+                    await CloseAsync();
+                    await LoadAsync();
+                    await ShowManageChipsOverlayAsync();
+                };
+                row.Add(deleteButton, 2, 0);
+                list.Children.Add(row);
+            }
+        }
+
+        var closeButton = SmallButton("Done", Color.FromArgb("#5D4037"), Colors.White);
+
+        async Task CloseAsync()
+        {
+            if (closing) return;
+            closing = true;
+            if (page != null)
+                await Navigation.PopModalAsync(false);
+            tcs.TrySetResult(true);
+        }
+
+        closeButton.Clicked += async (_, _) => await CloseAsync();
+
+        page = new ContentPage
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            Content = new Grid
+            {
+                Padding = 24,
+                Children =
+                {
+                    new Frame
+                    {
+                        BackgroundColor = Colors.White,
+                        CornerRadius = 12,
+                        Padding = 18,
+                        HasShadow = true,
+                        HorizontalOptions = LayoutOptions.Center,
+                        VerticalOptions = LayoutOptions.Center,
+                        WidthRequest = 680,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 12,
+                            Children =
+                            {
+                                new Label
+                                {
+                                    Text = "Manage Chips",
+                                    FontSize = 20,
+                                    FontAttributes = FontAttributes.Bold,
+                                    TextColor = Color.FromArgb("#333")
+                                },
+                                new ScrollView
+                                {
+                                    HeightRequest = 360,
+                                    Content = list
+                                },
+                                closeButton
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        await Navigation.PushModalAsync(page, false);
+        await tcs.Task;
+    }
+
     private async Task ShowManagementOverlayAsync(string title, List<(int id, string text)> rows, Func<int, Task> deleteAsync)
     {
         var tcs = new TaskCompletionSource<bool>();
@@ -921,6 +1133,38 @@ public class CommandsCasinoPage : ContentPage
     }
 
     private string GetStartLabelKey() => $"commands_casino_start_label_{_auth.CurrentUsername}";
+
+    private async Task<string?> PickChipCategoryAsync(string title, bool defaultToUncategorizedOnCancel)
+    {
+        var categories = await _casino.GetChipCategoriesAsync(_auth.CurrentUsername);
+        var options = categories
+            .Concat(new[] { "Uncategorized", "+ New Category" })
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        string? choice = await DisplayActionSheet(title, "Cancel", null, options);
+        if (choice == null || choice == "Cancel")
+            return defaultToUncategorizedOnCancel ? "" : null;
+
+        if (choice == "Uncategorized")
+            return "";
+
+        if (choice == "+ New Category")
+        {
+            string? category = await DisplayPromptAsync("New Category", "Name the chip category:");
+            if (string.IsNullOrWhiteSpace(category))
+                return defaultToUncategorizedOnCancel ? "" : null;
+
+            return category.Trim();
+        }
+
+        return choice.Trim();
+    }
+
+    private static string NormalizeChipCategory(string? category)
+    {
+        return string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category.Trim();
+    }
 
     private static string FormatDuration(int seconds)
     {
