@@ -575,9 +575,9 @@ public class SubActivitiesPage : ContentPage
             "Cancel",
             null,
             "✏️ Rename",
-            $"☀️ Reset Mode: {(item.ResetMode == "daily" ? "Daily → Manual" : "Manual → Daily")}",
-            $"Daily Home Prompt: {(item.PromptDailyOnHome ? "On -> Off" : "Off -> On")}",
-            $"🔒 Addition Mode: {(item.AdditionMode == "unlimited" ? "Unlimited → Locked" : "Locked → Unlimited")}",
+            $"☀️ Reset Mode (current: {(item.ResetMode == "daily" ? "Daily" : "Manual")})",
+            $"Daily Home Prompt (current: {(item.PromptDailyOnHome ? "On" : "Off")})",
+            $"🔒 Addition Mode (current: {(item.AdditionMode == "unlimited" ? "Unlimited" : "Locked")})",
             "📊 Stats",
             "📦 Archive",
             "🗑️ Delete");
@@ -594,13 +594,13 @@ public class SubActivitiesPage : ContentPage
                 await LoadDataAsync();
             }
         }
-        else if (action.StartsWith("☀️"))
+        else if (action.StartsWith("☀️ Reset Mode", StringComparison.Ordinal) || action.StartsWith("Reset Mode", StringComparison.Ordinal))
         {
             item.ResetMode = item.ResetMode == "daily" ? "manual" : "daily";
             await _subActivityService.UpdateAsync(item);
             await LoadDataAsync();
         }
-        else if (action.StartsWith("Daily Home Prompt:"))
+        else if (action.StartsWith("Daily Home Prompt", StringComparison.Ordinal))
         {
             if (_subActivityService.IsReadOnly)
             {
@@ -612,7 +612,7 @@ public class SubActivitiesPage : ContentPage
             await _subActivityService.UpdateAsync(item);
             await LoadDataAsync();
         }
-        else if (action.StartsWith("🔒"))
+        else if (action.StartsWith("🔒 Addition Mode", StringComparison.Ordinal) || action.StartsWith("Addition Mode", StringComparison.Ordinal))
         {
             if (item.AdditionMode == "unlimited")
             {

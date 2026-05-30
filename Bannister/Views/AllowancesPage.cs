@@ -175,30 +175,32 @@ public class AllowancesPage : ContentPage
             "Set Current Value",
             "Change Total Allowance",
             "Reset to 0",
-            allowance.PromptDailyOnHome ? "Daily Prompt: On" : "Daily Prompt: Off",
+            $"Daily Prompt (current: {(allowance.PromptDailyOnHome ? "On" : "Off")})",
             "Delete");
 
-        switch (action)
+        if (action == "Rename")
         {
-            case "Rename":
-                await RenameAsync(allowance);
-                break;
-            case "Set Current Value":
-                await SetCurrentAsync(allowance);
-                break;
-            case "Change Total Allowance":
-                await SetTotalAsync(allowance);
-                break;
-            case "Reset to 0":
-                await ResetAsync(allowance);
-                break;
-            case "Daily Prompt: On":
-            case "Daily Prompt: Off":
-                await ToggleDailyPromptAsync(allowance);
-                break;
-            case "Delete":
-                await DeleteAsync(allowance);
-                break;
+            await RenameAsync(allowance);
+        }
+        else if (action == "Set Current Value")
+        {
+            await SetCurrentAsync(allowance);
+        }
+        else if (action == "Change Total Allowance")
+        {
+            await SetTotalAsync(allowance);
+        }
+        else if (action == "Reset to 0")
+        {
+            await ResetAsync(allowance);
+        }
+        else if (action?.StartsWith("Daily Prompt", StringComparison.Ordinal) == true)
+        {
+            await ToggleDailyPromptAsync(allowance);
+        }
+        else if (action == "Delete")
+        {
+            await DeleteAsync(allowance);
         }
     }
 
