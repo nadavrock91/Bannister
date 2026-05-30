@@ -106,19 +106,18 @@ public class StoryProductionPage : ContentPage
 
     private void BuildUI()
     {
-        // Main layout: fixed top section + scrollable cards
+        // Main layout: scrollable page content + overlay layer
         var pageGrid = new Grid
         {
             RowDefinitions =
             {
-                new RowDefinition(GridLength.Auto),   // header + project picker + buttons
-                new RowDefinition(GridLength.Star)     // scrollable cards
+                new RowDefinition(GridLength.Star)
             },
             Padding = 16,
             RowSpacing = 8
         };
 
-        // === TOP SECTION (fixed, never scrolls) ===
+        // === TOP SECTION ===
         var topStack = new VerticalStackLayout { Spacing = 12 };
 
         // Header
@@ -466,17 +465,8 @@ public class StoryProductionPage : ContentPage
         ApplyWrapMargins(linesHeaderStack);
         topStack.Children.Add(linesHeaderStack);
 
-        Grid.SetRow(topStack, 0);
-        pageGrid.Children.Add(topStack);
-
         // === BOTTOM SECTION (scrollable cards) ===
         _linesContainer = new VerticalStackLayout { Spacing = 8 };
-        
-        _mainScrollView = new ScrollView
-        {
-            Content = _linesContainer,
-            VerticalOptions = LayoutOptions.FillAndExpand
-        };
 
         // Info when no project selected
         _linesContainer.Children.Add(new Label
@@ -488,7 +478,18 @@ public class StoryProductionPage : ContentPage
             Margin = new Thickness(0, 40, 0, 0)
         });
 
-        Grid.SetRow(_mainScrollView, 1);
+        var scrollContent = new VerticalStackLayout { Spacing = 8 };
+        scrollContent.Children.Add(topStack);
+        scrollContent.Children.Add(_linesContainer);
+
+        _mainScrollView = new ScrollView
+        {
+            Content = scrollContent,
+            Orientation = ScrollOrientation.Vertical,
+            VerticalOptions = LayoutOptions.FillAndExpand
+        };
+
+        Grid.SetRow(_mainScrollView, 0);
         pageGrid.Children.Add(_mainScrollView);
 
         // Loading overlay
@@ -524,7 +525,7 @@ public class StoryProductionPage : ContentPage
         loadingStack.Children.Add(_loadingLabel);
 
         _loadingOverlay.Children.Add(loadingStack);
-        Grid.SetRowSpan(_loadingOverlay, 2);
+        Grid.SetRow(_loadingOverlay, 0);
         pageGrid.Children.Add(_loadingOverlay);
 
         Content = pageGrid;
