@@ -2164,7 +2164,7 @@ public class CalendarDayPage : ContentPage
         });
 
         if (isRoutine && routine != null)
-            textStack.Children.Add(new Label { Text = $"Routine · every {routine.FrequencyDays} days", FontSize = 11, TextColor = Color.FromArgb("#00897B") });
+            textStack.Children.Add(new Label { Text = $"Routine · {RoutineService.FormatRoutineFrequency(routine)}", FontSize = 11, TextColor = Color.FromArgb("#00897B") });
 
         if (!string.IsNullOrEmpty(task.Category))
             textStack.Children.Add(new Label { Text = $"📁 {task.Category}", FontSize = 11, TextColor = Color.FromArgb("#888") });
@@ -2221,7 +2221,7 @@ public class CalendarDayPage : ContentPage
                 TextColor = isRoutine ? Color.FromArgb("#00695C") : Color.FromArgb("#1565C0"),
                 CornerRadius = 4, Padding = 0
             };
-            ToolTipProperties.SetText(postponeBtn, isRoutine && routine != null ? $"Postpone (+{routine.FrequencyDays}d)" : "Move task to a later date");
+            ToolTipProperties.SetText(postponeBtn, isRoutine && routine != null ? RoutineService.FormatPostponeTooltip(routine) : "Move task to a later date");
             postponeBtn.Clicked += async (s, ev) =>
             {
                 if (task.RoutineId.HasValue)

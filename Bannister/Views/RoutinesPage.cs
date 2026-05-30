@@ -137,7 +137,7 @@ public class RoutinesPage : ContentPage
         });
         text.Children.Add(new Label
         {
-            Text = $"every {routine.FrequencyDays} days · started {routine.StartDate:MMM d, yyyy}",
+            Text = $"{RoutineService.FormatRoutineFrequency(routine)} · started {routine.StartDate:MMM d, yyyy}",
             FontSize = 12,
             TextColor = Color.FromArgb("#666")
         });
@@ -193,7 +193,7 @@ public class RoutinesPage : ContentPage
         if (string.IsNullOrWhiteSpace(name))
             return;
 
-        int? frequency = await PickFrequencyAsync();
+        var frequency = await PickFrequencyAsync();
         if (frequency == null)
             return;
 
@@ -201,7 +201,15 @@ public class RoutinesPage : ContentPage
         if (startDate == null)
             return;
 
-        await _routines.AddRoutineAsync(_auth.CurrentUsername, name.Trim(), frequency.Value, startDate.Value);
+        await _routines.AddRoutineAsync(
+            _auth.CurrentUsername,
+            name.Trim(),
+            frequency.FrequencyDays,
+            startDate.Value,
+            frequency.FrequencyType,
+            frequency.DayOfMonth,
+            frequency.WeekOrdinal,
+            frequency.DayOfWeek);
         await LoadAsync();
     }
 
@@ -211,12 +219,16 @@ public class RoutinesPage : ContentPage
         if (string.IsNullOrWhiteSpace(name))
             return;
 
-        int? frequency = await PickFrequencyAsync(routine.FrequencyDays);
+        var frequency = await PickFrequencyAsync(routine);
         if (frequency == null)
             return;
 
         routine.Name = name.Trim();
-        routine.FrequencyDays = frequency.Value;
+        routine.FrequencyDays = frequency.FrequencyDays;
+        routine.FrequencyType = frequency.FrequencyType;
+        routine.DayOfMonth = frequency.DayOfMonth;
+        routine.WeekOrdinal = frequency.WeekOrdinal;
+        routine.DayOfWeek = frequency.DayOfWeek;
         await _routines.UpdateRoutineAsync(routine);
         await LoadAsync();
     }
@@ -231,7 +243,26 @@ public class RoutinesPage : ContentPage
         await LoadAsync();
     }
 
-    private async Task<int?> PickFrequencyAsync(int? current = null)
+    private async Task<RoutineFrequencySelection?> PickFrequencyAsync(Routine? current = null)
+    {
+        string? type = await DisplayActionSheet(
+            current == null ? "Frequency Type" : $"Frequency Type (current: {RoutineService.FormatRoutineFrequency(current)})",
+            "Cancel",
+            null,
+            "Every N days",
+            "Day of month",
+            "Nth weekday of month");
+
+        return type switch
+        {
+            "Every N days" => await PickEveryNDaysFrequencyAsync(current?.FrequencyDays),
+            "Day of month" => await PickDayOfMonthFrequencyAsync(current?.DayOfMonth),
+            "Nth weekday of month" => await PickNthWeekdayFrequencyAsync(current?.WeekOrdinal, current?.DayOfWeek),
+            _ => null
+        };
+    }
+
+    private async Task<RoutineFrequencySelection?> PickEveryNDaysFrequencyAsync(int? current = null)
     {
         string? choice = await DisplayActionSheet(
             current.HasValue ? $"Frequency (current: {current.Value} days)" : "Frequency",
@@ -244,7 +275,7 @@ public class RoutinesPage : ContentPage
             "365 days (yearly)",
             "Manual entry");
 
-        return choice switch
+        int? days = choice switch
         {
             "1 day" => 1,
             "7 days (weekly)" => 7,
@@ -254,6 +285,79 @@ public class RoutinesPage : ContentPage
             "Manual entry" => await PromptManualFrequencyAsync(),
             _ => null
         };
+
+        return days.HasValue
+            ? new RoutineFrequencySelection { FrequencyType = 0, FrequencyDays = days.Value }
+            : null;
+    }
+
+    private async Task<RoutineFrequencySelection?> PickDayOfMonthFrequencyAsync(int? current = null)
+    {
+        string? value = await DisplayPromptAsync(
+            "Day of Month",
+            "Day of month (1-31):",
+            "OK",
+            "Cancel",
+            keyboard: Keyboard.Numeric,
+            initialValue: current is >= 1 and <= 31 ? current.Value.ToString() : "");
+
+        if (!int.TryParse(value, out int day) || day < 1 || day > 31)
+            return null;
+
+        return new RoutineFrequencySelection { FrequencyType = 1, DayOfMonth = day };
+    }
+
+    private async Task<RoutineFrequencySelection?> PickNthWeekdayFrequencyAsync(int? currentOrdinal = null, int? currentDayOfWeek = null)
+    {
+        string? ordinalChoice = await DisplayActionSheet(
+            currentOrdinal.HasValue ? $"Which occurrence? (current: {OrdinalWord(currentOrdinal.Value)})" : "Which occurrence?",
+            "Cancel",
+            null,
+            "First",
+            "Second",
+            "Third",
+            "Fourth",
+            "Last");
+
+        int? ordinal = ordinalChoice switch
+        {
+            "First" => 1,
+            "Second" => 2,
+            "Third" => 3,
+            "Fourth" => 4,
+            "Last" => 5,
+            _ => null
+        };
+        if (ordinal == null)
+            return null;
+
+        string? weekdayChoice = await DisplayActionSheet(
+            currentDayOfWeek.HasValue ? $"Which weekday? (current: {WeekdayName(currentDayOfWeek.Value)})" : "Which weekday?",
+            "Cancel",
+            null,
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday");
+
+        int? dayOfWeek = weekdayChoice switch
+        {
+            "Sunday" => 0,
+            "Monday" => 1,
+            "Tuesday" => 2,
+            "Wednesday" => 3,
+            "Thursday" => 4,
+            "Friday" => 5,
+            "Saturday" => 6,
+            _ => null
+        };
+        if (dayOfWeek == null)
+            return null;
+
+        return new RoutineFrequencySelection { FrequencyType = 2, WeekOrdinal = ordinal.Value, DayOfWeek = dayOfWeek.Value };
     }
 
     private async Task<int?> PromptManualFrequencyAsync()
@@ -359,5 +463,29 @@ public class RoutinesPage : ContentPage
             Margin = new Thickness(4, 2)
         };
         return button;
+    }
+
+    private static string OrdinalWord(int ordinal) => ordinal switch
+    {
+        1 => "first",
+        2 => "second",
+        3 => "third",
+        4 => "fourth",
+        5 => "last",
+        _ => "unknown"
+    };
+
+    private static string WeekdayName(int dayOfWeek)
+    {
+        return ((System.DayOfWeek)Math.Clamp(dayOfWeek, 0, 6)).ToString();
+    }
+
+    private sealed class RoutineFrequencySelection
+    {
+        public int FrequencyType { get; set; }
+        public int FrequencyDays { get; set; }
+        public int DayOfMonth { get; set; }
+        public int WeekOrdinal { get; set; }
+        public int DayOfWeek { get; set; }
     }
 }

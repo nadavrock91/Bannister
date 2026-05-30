@@ -15,6 +15,14 @@ public class Routine
 
     public int FrequencyDays { get; set; }
 
+    public int FrequencyType { get; set; }
+
+    public int DayOfMonth { get; set; }
+
+    public int WeekOrdinal { get; set; }
+
+    public int DayOfWeek { get; set; }
+
     public DateTime StartDate { get; set; }
 
     public bool IsActive { get; set; } = true;
