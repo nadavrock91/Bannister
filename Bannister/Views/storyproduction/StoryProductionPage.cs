@@ -82,6 +82,28 @@ public class StoryProductionPage : ContentPage
         await LoadProjectsAsync();
     }
 
+    private static FlexLayout CreateWrappingRow(Thickness? margin = null)
+    {
+        return new FlexLayout
+        {
+            Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = margin ?? Thickness.Zero
+        };
+    }
+
+    private static void ApplyWrapMargins(FlexLayout row)
+    {
+        foreach (var child in row.Children)
+        {
+            if (child is View view)
+                view.Margin = new Thickness(0, 0, 8, 8);
+        }
+    }
+
     private void BuildUI()
     {
         // Main layout: fixed top section + scrollable cards
@@ -140,7 +162,7 @@ public class StoryProductionPage : ContentPage
             TextColor = Color.FromArgb("#666")
         });
 
-        var categoryRow = new HorizontalStackLayout { Spacing = 8 };
+        var categoryRow = CreateWrappingRow();
 
         _projectCategoryPicker = new Picker
         {
@@ -164,9 +186,10 @@ public class StoryProductionPage : ContentPage
         _projectCategoryBtn.Clicked += OnSetProjectCategoryClicked;
         categoryRow.Children.Add(_projectCategoryBtn);
 
+        ApplyWrapMargins(categoryRow);
         projectStack.Children.Add(categoryRow);
 
-        var pickerRow = new HorizontalStackLayout { Spacing = 8 };
+        var pickerRow = CreateWrappingRow();
         
         _projectPicker = new Picker
         {
@@ -202,6 +225,7 @@ public class StoryProductionPage : ContentPage
         _deleteProjectBtn.Clicked += OnDeleteProjectClicked;
         pickerRow.Children.Add(_deleteProjectBtn);
         
+        ApplyWrapMargins(pickerRow);
         projectStack.Children.Add(pickerRow);
 
         // Draft picker row
@@ -215,7 +239,7 @@ public class StoryProductionPage : ContentPage
         };
         projectStack.Children.Add(_draftLabel);
 
-        var draftRow = new HorizontalStackLayout { Spacing = 8 };
+        var draftRow = CreateWrappingRow();
         
         _draftPicker = new Picker
         {
@@ -280,6 +304,7 @@ public class StoryProductionPage : ContentPage
         _compareToBtn.Clicked += OnCompareToClicked;
         draftRow.Children.Add(_compareToBtn);
         
+        ApplyWrapMargins(draftRow);
         projectStack.Children.Add(draftRow);
 
         // Current draft name display (shows full name + latest indicator + comparison info)
@@ -317,11 +342,7 @@ public class StoryProductionPage : ContentPage
         topStack.Children.Add(projectFrame);
 
         // Lines section header with action buttons
-        var linesHeaderStack = new HorizontalStackLayout 
-        { 
-            Spacing = 8,
-            Margin = new Thickness(0, 4, 0, 0)
-        };
+        var linesHeaderStack = CreateWrappingRow(new Thickness(0, 4, 0, 0));
         
         linesHeaderStack.Children.Add(new Label
         {
@@ -442,6 +463,7 @@ public class StoryProductionPage : ContentPage
         _storyPointsBtn.Clicked += OnStoryPointsClicked;
         linesHeaderStack.Children.Add(_storyPointsBtn);
         
+        ApplyWrapMargins(linesHeaderStack);
         topStack.Children.Add(linesHeaderStack);
 
         Grid.SetRow(topStack, 0);
