@@ -17,7 +17,11 @@ public class TaskService
         if (_initialized) return;
         
         var conn = await _db.GetConnectionAsync();
-        if (!_db.IsReadOnly) await conn.CreateTableAsync<TaskItem>();
+        if (!_db.IsReadOnly)
+        {
+            await conn.CreateTableAsync<TaskItem>();
+            try { await conn.ExecuteAsync("ALTER TABLE tasks ADD COLUMN RoutineId INTEGER"); } catch { }
+        }
         _initialized = true;
     }
 

@@ -31,6 +31,10 @@ public class TaskItem
     
     // Optional due date
     public DateTime? DueDate { get; set; }
+
+    // Optional routine source; null means this is a manual task.
+    [Indexed]
+    public int? RoutineId { get; set; }
     
     [Ignore]
     public bool IsOverdue => DueDate.HasValue && !IsCompleted && DueDate.Value.Date < DateTime.Today;

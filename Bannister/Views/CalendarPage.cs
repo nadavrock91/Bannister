@@ -18,6 +18,7 @@ public class CalendarPage : ContentPage
     private readonly IdeasService? _ideasService;
     private readonly DatabaseService _db;
     private readonly LookoutService _lookoutService;
+    private readonly RoutineService _routineService;
 
     private Label _monthLabel;
     private Grid _calendarGrid;
@@ -38,13 +39,14 @@ public class CalendarPage : ContentPage
     private Dictionary<int, int> _completedCounts = new();
     private Dictionary<int, int> _lookoutCounts = new();
 
-    public CalendarPage(AuthService auth, TaskService taskService, IdeasService? ideasService = null, DatabaseService? db = null, LookoutService? lookoutService = null)
+    public CalendarPage(AuthService auth, TaskService taskService, IdeasService? ideasService = null, DatabaseService? db = null, LookoutService? lookoutService = null, RoutineService? routineService = null)
     {
         _auth = auth;
         _taskService = taskService;
         _ideasService = ideasService;
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _lookoutService = lookoutService ?? new LookoutService(_db);
+        _routineService = routineService ?? new RoutineService(_db, _auth);
         Title = "Calendar";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -145,6 +147,16 @@ public class CalendarPage : ContentPage
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(moveBtn, 6, 0);
 
+        var routinesBtn = new Button
+        {
+            Text = "Routines", FontSize = 12, HeightRequest = 38,
+            BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White,
+            CornerRadius = 6, Padding = new Thickness(12, 0)
+        };
+        routinesBtn.Clicked += async (s, e) => await Navigation.PushAsync(new RoutinesPage(_auth, _routineService));
+        navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        navRow.Add(routinesBtn, 7, 0);
+
         _weekStartButton = new Button
         {
             Text = "Week: Mon",
@@ -158,7 +170,7 @@ public class CalendarPage : ContentPage
         ToolTipProperties.SetText(_weekStartButton, "Change calendar week display order");
         _weekStartButton.Clicked += async (s, e) => await ChangeWeekStartAsync();
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        navRow.Add(_weekStartButton, 7, 0);
+        navRow.Add(_weekStartButton, 8, 0);
 
         mainStack.Children.Add(navRow);
 
@@ -497,7 +509,7 @@ public class CalendarPage : ContentPage
     private async Task NavigateToDayAsync(int day)
     {
         var date = new DateTime(_year, _month, day);
-        var page = new CalendarDayPage(_auth, _taskService, date, _ideasService, _lookoutService);
+        var page = new CalendarDayPage(_auth, _taskService, date, _ideasService, _lookoutService, _routineService);
         await Navigation.PushAsync(page);
     }
 
@@ -1629,6 +1641,7 @@ public class CalendarDayPage : ContentPage
     private readonly DateTime _date;
     private readonly IdeasService? _ideasService;
     private readonly LookoutService _lookoutService;
+    private readonly RoutineService _routineService;
 
     private VerticalStackLayout _activeStack;
     private VerticalStackLayout _completedStack;
@@ -1640,14 +1653,16 @@ public class CalendarDayPage : ContentPage
     private Label _lookoutsHeader;
     private int _loadTasksVersion;
     private bool _isAddingLookout;
+    private Dictionary<int, Routine> _routineById = new();
 
-    public CalendarDayPage(AuthService auth, TaskService taskService, DateTime date, IdeasService? ideasService = null, LookoutService? lookoutService = null)
+    public CalendarDayPage(AuthService auth, TaskService taskService, DateTime date, IdeasService? ideasService = null, LookoutService? lookoutService = null, RoutineService? routineService = null)
     {
         _auth = auth;
         _taskService = taskService;
         _date = date.Date;
         _ideasService = ideasService;
         _lookoutService = lookoutService ?? throw new ArgumentNullException(nameof(lookoutService));
+        _routineService = routineService ?? throw new ArgumentNullException(nameof(routineService));
         Title = date.ToString("MMM d, yyyy");
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -1794,6 +1809,7 @@ public class CalendarDayPage : ContentPage
         var dayActive = active.Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == _date).ToList();
         var dayCompleted = completed.Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == _date).ToList();
         var lookouts = await _lookoutService.GetForDateAsync(_auth.CurrentUsername, _date);
+        await LoadRoutineLookupAsync(dayActive.Concat(dayCompleted));
 
         if (loadVersion != _loadTasksVersion)
             return;
@@ -2094,14 +2110,33 @@ public class CalendarDayPage : ContentPage
         await LoadTasksAsync();
     }
 
+    private async Task LoadRoutineLookupAsync(IEnumerable<TaskItem> tasks)
+    {
+        _routineById.Clear();
+        var routineIds = tasks
+            .Where(t => t.RoutineId.HasValue)
+            .Select(t => t.RoutineId!.Value)
+            .Distinct()
+            .ToList();
+
+        foreach (int routineId in routineIds)
+        {
+            var routine = await _routineService.GetRoutineAsync(routineId);
+            if (routine != null)
+                _routineById[routineId] = routine;
+        }
+    }
+
     private Frame BuildTaskCard(TaskItem task, bool isCompleted)
     {
         string priorityIcon = task.Priority switch { 3 => "🔴", 2 => "🟡", 1 => "🟢", _ => "⚪" };
+        bool isRoutine = task.RoutineId.HasValue;
+        _routineById.TryGetValue(task.RoutineId ?? 0, out var routine);
 
         var frame = new Frame
         {
-            BackgroundColor = isCompleted ? Color.FromArgb("#E8F5E9") : task.IsUrgent ? Color.FromArgb("#FFEBEE") : Colors.White,
-            BorderColor = isCompleted ? Color.FromArgb("#4CAF50") : task.IsUrgent ? Color.FromArgb("#C62828") : Color.FromArgb("#E0E0E0"),
+            BackgroundColor = isCompleted ? Color.FromArgb("#E8F5E9") : isRoutine ? Color.FromArgb("#E0F2F1") : task.IsUrgent ? Color.FromArgb("#FFEBEE") : Colors.White,
+            BorderColor = isCompleted ? Color.FromArgb("#4CAF50") : isRoutine ? Color.FromArgb("#00897B") : task.IsUrgent ? Color.FromArgb("#C62828") : Color.FromArgb("#E0E0E0"),
             CornerRadius = 8, Padding = 12, HasShadow = !isCompleted
         };
 
@@ -2118,14 +2153,18 @@ public class CalendarDayPage : ContentPage
         var textStack = new VerticalStackLayout { Spacing = 3 };
 
         string urgentPrefix = task.IsUrgent ? "🔴 " : "";
+        string routinePrefix = isRoutine ? "↻ " : "";
         textStack.Children.Add(new Label
         {
-            Text = $"{urgentPrefix}{priorityIcon} {task.Title}",
+            Text = $"{routinePrefix}{urgentPrefix}{priorityIcon} {task.Title}",
             FontSize = 14, FontAttributes = isCompleted ? FontAttributes.None : FontAttributes.Bold,
-            TextColor = isCompleted ? Color.FromArgb("#666") : task.IsUrgent ? Color.FromArgb("#C62828") : Color.FromArgb("#333"),
+            TextColor = isCompleted ? Color.FromArgb("#666") : isRoutine ? Color.FromArgb("#00695C") : task.IsUrgent ? Color.FromArgb("#C62828") : Color.FromArgb("#333"),
             TextDecorations = isCompleted ? TextDecorations.Strikethrough : TextDecorations.None,
             LineBreakMode = LineBreakMode.WordWrap
         });
+
+        if (isRoutine && routine != null)
+            textStack.Children.Add(new Label { Text = $"Routine · every {routine.FrequencyDays} days", FontSize = 11, TextColor = Color.FromArgb("#00897B") });
 
         if (!string.IsNullOrEmpty(task.Category))
             textStack.Children.Add(new Label { Text = $"📁 {task.Category}", FontSize = 11, TextColor = Color.FromArgb("#888") });
@@ -2168,6 +2207,8 @@ public class CalendarDayPage : ContentPage
             completeBtn.Clicked += async (s, e) =>
             {
                 await _taskService.CompleteTaskAsync(task);
+                if (task.RoutineId.HasValue)
+                    await _routineService.OnTaskCompletedAsync(task.Id);
                 await LoadTasksAsync();
             };
             btnStack.Children.Add(completeBtn);
@@ -2175,28 +2216,43 @@ public class CalendarDayPage : ContentPage
             // Postpone button
             var postponeBtn = new Button
             {
-                Text = "⏩", FontSize = 14, WidthRequest = 36, HeightRequest = 32,
-                BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0"),
+                Text = isRoutine ? "↻" : "⏩", FontSize = 14, WidthRequest = 36, HeightRequest = 32,
+                BackgroundColor = isRoutine ? Color.FromArgb("#E0F2F1") : Color.FromArgb("#E3F2FD"),
+                TextColor = isRoutine ? Color.FromArgb("#00695C") : Color.FromArgb("#1565C0"),
                 CornerRadius = 4, Padding = 0
             };
-            ToolTipProperties.SetText(postponeBtn, "Move task to a later date");
-            postponeBtn.Clicked += async (s, ev) => await ShowPostponeAsync(task);
+            ToolTipProperties.SetText(postponeBtn, isRoutine && routine != null ? $"Postpone (+{routine.FrequencyDays}d)" : "Move task to a later date");
+            postponeBtn.Clicked += async (s, ev) =>
+            {
+                if (task.RoutineId.HasValue)
+                {
+                    await _routineService.PostponeRoutineInstanceAsync(task.Id);
+                    await LoadTasksAsync();
+                }
+                else
+                {
+                    await ShowPostponeAsync(task);
+                }
+            };
             btnStack.Children.Add(postponeBtn);
 
-            var unplaceBtn = new Button
+            if (!isRoutine)
             {
-                Text = "📥",
-                FontSize = 14,
-                WidthRequest = 36,
-                HeightRequest = 32,
-                BackgroundColor = Color.FromArgb("#F3E5F5"),
-                TextColor = Color.FromArgb("#6A1B9A"),
-                CornerRadius = 4,
-                Padding = 0
-            };
-            ToolTipProperties.SetText(unplaceBtn, "Move task to not yet placed and remove its date");
-            unplaceBtn.Clicked += async (s, ev) => await MoveTaskToNotYetPlacedAsync(task);
-            btnStack.Children.Add(unplaceBtn);
+                var unplaceBtn = new Button
+                {
+                    Text = "📥",
+                    FontSize = 14,
+                    WidthRequest = 36,
+                    HeightRequest = 32,
+                    BackgroundColor = Color.FromArgb("#F3E5F5"),
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    CornerRadius = 4,
+                    Padding = 0
+                };
+                ToolTipProperties.SetText(unplaceBtn, "Move task to not yet placed and remove its date");
+                unplaceBtn.Clicked += async (s, ev) => await MoveTaskToNotYetPlacedAsync(task);
+                btnStack.Children.Add(unplaceBtn);
+            }
         }
         else
         {
@@ -2226,22 +2282,25 @@ public class CalendarDayPage : ContentPage
         editBtn.Clicked += async (s, e) => await EditTaskAsync(task);
         btnStack.Children.Add(editBtn);
 
-        var deleteBtn = new Button
+        if (!isRoutine)
         {
-            Text = "🗑", FontSize = 14, WidthRequest = 36, HeightRequest = 32,
-            BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828"),
-            CornerRadius = 4, Padding = 0
-        };
-        ToolTipProperties.SetText(deleteBtn, "Delete task");
-        deleteBtn.Clicked += async (s, e) =>
-        {
-            if (await DisplayAlert("Delete?", $"Delete \"{task.Title}\"?", "Delete", "Cancel"))
+            var deleteBtn = new Button
             {
-                await _taskService.DeleteTaskAsync(task);
-                await LoadTasksAsync();
-            }
-        };
-        btnStack.Children.Add(deleteBtn);
+                Text = "🗑", FontSize = 14, WidthRequest = 36, HeightRequest = 32,
+                BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828"),
+                CornerRadius = 4, Padding = 0
+            };
+            ToolTipProperties.SetText(deleteBtn, "Delete task");
+            deleteBtn.Clicked += async (s, e) =>
+            {
+                if (await DisplayAlert("Delete?", $"Delete \"{task.Title}\"?", "Delete", "Cancel"))
+                {
+                    await _taskService.DeleteTaskAsync(task);
+                    await LoadTasksAsync();
+                }
+            };
+            btnStack.Children.Add(deleteBtn);
+        }
 
         grid.Add(btnStack, 1, 0);
         frame.Content = grid;

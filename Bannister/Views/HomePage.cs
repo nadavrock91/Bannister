@@ -37,6 +37,7 @@ public class HomePage : ContentPage
     private readonly DesignationService _designationService;
     private readonly ListsService _listsService;
     private readonly CommandsCasinoService _commandsCasino;
+    private readonly RoutineService _routineService;
     private readonly OperationApplierService _applier;
     private readonly PendingActivityIdeaService _pendingIdeas;
     private bool _introChecked = false;
@@ -85,7 +86,7 @@ public class HomePage : ContentPage
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
-        CommandsCasinoService commandsCasino)
+        CommandsCasinoService commandsCasino, RoutineService routineService)
     {
         _auth = auth;
         _games = games;
@@ -118,6 +119,7 @@ public class HomePage : ContentPage
         _designationService = designationService;
         _listsService = listsService;
         _commandsCasino = commandsCasino;
+        _routineService = routineService;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -1217,7 +1219,7 @@ public class HomePage : ContentPage
     private async Task OpenCalendarFromHomeAsync()
     {
         await MarkCalendarVisitedTodayAsync();
-        var page = new CalendarPage(_auth, _taskService, _ideas, _db);
+        var page = new CalendarPage(_auth, _taskService, _ideas, _db, routineService: _routineService);
         await Navigation.PushAsync(page);
     }
 
