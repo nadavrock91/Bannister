@@ -50,6 +50,8 @@ public class HomePage : ContentPage
     private bool _subActivityDailyPromptChecked = false;
     private bool _deadlineCheckInChecked = false;
     private bool _allowanceDailyPromptChecked = false;
+    private bool _isHomeVisible = false;
+    private int _homePromptRunId = 0;
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
 
     // UI Controls
@@ -393,18 +395,26 @@ public class HomePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _isHomeVisible = true;
+        int promptRunId = ++_homePromptRunId;
 
         // Auto-backup on login
         await _backup.AutoBackupAsync("login");
+        if (!IsHomePromptRunActive(promptRunId)) return;
 
         _loadingOverlay.IsVisible = false;
 
         _lblWelcome.Text = $"Welcome, {_auth.CurrentUsername}";
         await LoadDataAsync();
-        await ShowDailyLoginPromptsIfNeededAsync();
-        await CheckSubActivityDailyPromptAsync();
-        await CheckAllowanceDailyPromptAsync();
-        await CheckDeadlineCheckInAsync();
+        if (!IsHomePromptRunActive(promptRunId)) return;
+        await ShowDailyLoginPromptsIfNeededAsync(promptRunId);
+        if (!IsHomePromptRunActive(promptRunId)) return;
+        await CheckSubActivityDailyPromptAsync(promptRunId);
+        if (!IsHomePromptRunActive(promptRunId)) return;
+        await CheckAllowanceDailyPromptAsync(promptRunId);
+        if (!IsHomePromptRunActive(promptRunId)) return;
+        await CheckDeadlineCheckInAsync(promptRunId);
+        if (!IsHomePromptRunActive(promptRunId)) return;
 
         if (!_introChecked)
         {
@@ -431,22 +441,39 @@ public class HomePage : ContentPage
         }
 
         // Check for expired activities
-        await CheckExpiredActivitiesAsync();
+        await CheckExpiredActivitiesAsync(promptRunId);
+        if (!IsHomePromptRunActive(promptRunId)) return;
         
         // Check for missing weekly task commitments (only on Saturday - last chance before week resets)
-        await CheckWeeklyCommitmentsAsync();
+        await CheckWeeklyCommitmentsAsync(promptRunId);
+        if (!IsHomePromptRunActive(promptRunId)) return;
         
         // Check for unfilled daily habit slots (only on Saturday)
-        await CheckDailyHabitAllowanceAsync();
+        await CheckDailyHabitAllowanceAsync(promptRunId);
+        if (!IsHomePromptRunActive(promptRunId)) return;
 
         // Check for unfilled weekly/monthly habit slots (only on the 1st of the month)
-        await CheckWeeklyHabitAllowanceAsync();
-        await CheckMonthlyHabitAllowanceAsync();
+        await CheckWeeklyHabitAllowanceAsync(promptRunId);
+        if (!IsHomePromptRunActive(promptRunId)) return;
+        await CheckMonthlyHabitAllowanceAsync(promptRunId);
+        if (!IsHomePromptRunActive(promptRunId)) return;
 
         // Check if unencrypted legacy database file still exists
         await CheckLegacyUnencryptedDbAsync();
 
         _ = CheckQueuedOperationsPromptAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        _isHomeVisible = false;
+        _homePromptRunId++;
+        base.OnDisappearing();
+    }
+
+    private bool IsHomePromptRunActive(int promptRunId)
+    {
+        return _isHomeVisible && promptRunId == _homePromptRunId;
     }
 
     protected override bool OnBackButtonPressed()
@@ -562,7 +589,7 @@ public class HomePage : ContentPage
         _loadingOverlay.IsVisible = false;
     }
 
-    private async Task ShowDailyLoginPromptsIfNeededAsync()
+    private async Task ShowDailyLoginPromptsIfNeededAsync(int promptRunId)
     {
         string today = DateTime.Today.ToString("yyyy-MM-dd");
         string shownKey = $"daily_login_prompts_shown_{_auth.CurrentUsername}";
@@ -574,19 +601,22 @@ public class HomePage : ContentPage
         var prompts = await _dailyLoginPrompts.GetPromptsAsync(_auth.CurrentUsername, activeOnly: true);
         if (prompts.Count == 0)
         {
+            if (!IsHomePromptRunActive(promptRunId)) return;
             try { await SecureStorage.SetAsync(shownKey, today); } catch { }
             return;
         }
 
-        try { await SecureStorage.SetAsync(shownKey, today); } catch { }
-
         for (int i = 0; i < prompts.Count; i++)
         {
+            if (!IsHomePromptRunActive(promptRunId)) return;
             await DailyLoginPromptDisplayPage.ShowAsync(Navigation, prompts[i], i + 1, prompts.Count);
+            if (!IsHomePromptRunActive(promptRunId)) return;
         }
+
+        try { await SecureStorage.SetAsync(shownKey, today); } catch { }
     }
 
-    private async Task CheckSubActivityDailyPromptAsync()
+    private async Task CheckSubActivityDailyPromptAsync(int promptRunId)
     {
         if (_subActivityDailyPromptChecked) return;
         _subActivityDailyPromptChecked = true;
@@ -607,12 +637,14 @@ public class HomePage : ContentPage
 
             foreach (var process in processes)
             {
+                if (!IsHomePromptRunActive(promptRunId)) return;
                 string action = await DisplayActionSheet(
                     $"Did you complete all sub-activities for \"{process.Name}\"?",
                     "Cancel",
                     null,
                     "Mark All Done",
                     "Not Yet");
+                if (!IsHomePromptRunActive(promptRunId)) return;
 
                 if (action == "Mark All Done")
                 {
@@ -626,9 +658,13 @@ public class HomePage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Error checking sub-activity daily prompts: {ex.Message}");
         }
+        finally
+        {
+            _subActivityDailyPromptChecked = false;
+        }
     }
 
-    private async Task CheckDeadlineCheckInAsync()
+    private async Task CheckDeadlineCheckInAsync(int promptRunId)
     {
         if (_deadlineCheckInChecked) return;
         _deadlineCheckInChecked = true;
@@ -649,11 +685,13 @@ public class HomePage : ContentPage
 
             foreach (var deadline in overdue)
             {
+                if (!IsHomePromptRunActive(promptRunId)) return;
                 bool completed = await DisplayAlert(
                     "Deadline Check-In",
                     $"Did you complete \"{deadline.Title}\"? ({DeadlineService.BucketName(deadline.Bucket)})",
                     "Yes",
                     "No");
+                if (!IsHomePromptRunActive(promptRunId)) return;
 
                 await _deadlineService.SetStateAsync(
                     deadline.Id,
@@ -666,9 +704,13 @@ public class HomePage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Error checking deadline prompts: {ex.Message}");
         }
+        finally
+        {
+            _deadlineCheckInChecked = false;
+        }
     }
 
-    private async Task CheckAllowanceDailyPromptAsync()
+    private async Task CheckAllowanceDailyPromptAsync(int promptRunId)
     {
         if (_allowanceDailyPromptChecked) return;
         _allowanceDailyPromptChecked = true;
@@ -689,11 +731,13 @@ public class HomePage : ContentPage
 
             foreach (var allowance in allowances)
             {
+                if (!IsHomePromptRunActive(promptRunId)) return;
                 bool completed = await DisplayAlert(
                     "Daily Allowance Check-In",
                     $"Did you complete \"{allowance.Title}\" today?",
                     "Yes",
                     "No");
+                if (!IsHomePromptRunActive(promptRunId)) return;
 
                 if (completed)
                     await _allowanceService.IncrementAsync(allowance.Id);
@@ -705,9 +749,13 @@ public class HomePage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Error checking allowance daily prompts: {ex.Message}");
         }
+        finally
+        {
+            _allowanceDailyPromptChecked = false;
+        }
     }
 
-    private async Task CheckDailyHabitAllowanceAsync()
+    private async Task CheckDailyHabitAllowanceAsync(int promptRunId)
     {
         if (_dailyHabitAllowancePromptChecked) return;
         _dailyHabitAllowancePromptChecked = true;
@@ -734,6 +782,7 @@ public class HomePage : ContentPage
             string today = DateTime.Today.ToString("yyyy-MM-dd");
             if (lastPrompt == today) return; // Already prompted today
 
+            if (!IsHomePromptRunActive(promptRunId)) return;
             bool goToHabits = await DisplayAlert(
                 "⚠️ Daily Habit Slots Unfilled",
                 $"You have {active}/{required} daily habit slots filled this week.\n\n" +
@@ -742,6 +791,7 @@ public class HomePage : ContentPage
                 "Would you like to add daily habits now?",
                 "Yes, Go to Daily Habits",
                 "Later");
+            if (!IsHomePromptRunActive(promptRunId)) return;
 
             // Mark as prompted today
             try { await SecureStorage.SetAsync(lastPromptKey, today); } catch { }
@@ -755,9 +805,13 @@ public class HomePage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Error checking daily habit allowance: {ex.Message}");
         }
+        finally
+        {
+            _dailyHabitAllowancePromptChecked = false;
+        }
     }
 
-    private async Task CheckWeeklyHabitAllowanceAsync()
+    private async Task CheckWeeklyHabitAllowanceAsync(int promptRunId)
     {
         try
         {
@@ -779,11 +833,13 @@ public class HomePage : ContentPage
             string thisMonth = DateTime.Today.ToString("yyyy-MM");
             if (lastPrompt == thisMonth) return;
 
+            if (!IsHomePromptRunActive(promptRunId)) return;
             bool goToHabits = await DisplayAlert(
                 "Weekly Habit Slots Unfilled",
                 $"You have {active}/{required} weekly habit slots filled this month. Go to Weekly Habits to designate which weekly habits you'll pursue?",
                 "Yes, Go to Weekly Habits",
                 "Later");
+            if (!IsHomePromptRunActive(promptRunId)) return;
 
             try { await SecureStorage.SetAsync(lastPromptKey, thisMonth); } catch { }
 
@@ -798,7 +854,7 @@ public class HomePage : ContentPage
         }
     }
 
-    private async Task CheckMonthlyHabitAllowanceAsync()
+    private async Task CheckMonthlyHabitAllowanceAsync(int promptRunId)
     {
         try
         {
@@ -820,11 +876,13 @@ public class HomePage : ContentPage
             string thisMonth = DateTime.Today.ToString("yyyy-MM");
             if (lastPrompt == thisMonth) return;
 
+            if (!IsHomePromptRunActive(promptRunId)) return;
             bool goToHabits = await DisplayAlert(
                 "Monthly Habit Slots Unfilled",
                 $"You have {active}/{required} monthly habit slots filled this month. Go to Monthly Habits to designate which monthly habits you'll pursue?",
                 "Yes, Go to Monthly Habits",
                 "Later");
+            if (!IsHomePromptRunActive(promptRunId)) return;
 
             try { await SecureStorage.SetAsync(lastPromptKey, thisMonth); } catch { }
 
@@ -839,7 +897,7 @@ public class HomePage : ContentPage
         }
     }
 
-    private async Task CheckWeeklyCommitmentsAsync()
+    private async Task CheckWeeklyCommitmentsAsync(int promptRunId)
     {
         if (_weeklyCommitmentsPromptChecked) return;
         _weeklyCommitmentsPromptChecked = true;
@@ -873,6 +931,7 @@ public class HomePage : ContentPage
             string today = DateTime.Today.ToString("yyyy-MM-dd");
             if (lastPrompt == today) return; // Already prompted today
 
+            if (!IsHomePromptRunActive(promptRunId)) return;
             bool goToTasks = await DisplayAlert(
                 "⚠️ Last Day to Designate Tasks",
                 $"You have designated {committed}/{required} tasks for your focus '{challenge.FocusCategory}' this week.\n\n" +
@@ -881,6 +940,7 @@ public class HomePage : ContentPage
                 "Would you like to designate tasks now?",
                 "Yes, Go to Tasks",
                 "Later");
+            if (!IsHomePromptRunActive(promptRunId)) return;
 
             // Mark as prompted today
             try { await SecureStorage.SetAsync(lastPromptKey, today); } catch { }
@@ -893,6 +953,10 @@ public class HomePage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error checking weekly commitments: {ex.Message}");
+        }
+        finally
+        {
+            _weeklyCommitmentsPromptChecked = false;
         }
     }
 
@@ -1070,7 +1134,7 @@ public class HomePage : ContentPage
         }
     }
 
-    private async Task CheckExpiredActivitiesAsync()
+    private async Task CheckExpiredActivitiesAsync(int promptRunId)
     {
         if (_expiredActivitiesPromptChecked) return;
         _expiredActivitiesPromptChecked = true;
@@ -1086,11 +1150,13 @@ public class HomePage : ContentPage
 
             if (expired.Count > 0)
             {
+                if (!IsHomePromptRunActive(promptRunId)) return;
                 bool handle = await DisplayAlert(
                     "Expired Activities",
                     $"You have {expired.Count} expired activity(ies). Would you like to review them?",
                     "Yes",
                     "Later");
+                if (!IsHomePromptRunActive(promptRunId)) return;
 
                 if (handle)
                 {
@@ -1101,6 +1167,10 @@ public class HomePage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error checking expired activities: {ex.Message}");
+        }
+        finally
+        {
+            _expiredActivitiesPromptChecked = false;
         }
     }
 
