@@ -396,11 +396,17 @@ public class HomePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing fired, sequence-running={_homePromptSequenceRunning}, run-id-before={_homePromptRunId}, is-visible-before={_isHomeVisible}");
         _isHomeVisible = true;
-        if (_homePromptSequenceRunning) return;
+        if (_homePromptSequenceRunning)
+        {
+            System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing returning because prompt sequence is already running, run-id={_homePromptRunId}");
+            return;
+        }
 
         _homePromptSequenceRunning = true;
         int promptRunId = ++_homePromptRunId;
+        System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing started prompt sequence, promptRunId={promptRunId}");
 
         try
         {
@@ -472,11 +478,13 @@ public class HomePage : ContentPage
         finally
         {
             _homePromptSequenceRunning = false;
+            System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing prompt sequence finished/reset, promptRunId={promptRunId}, current-run-id={_homePromptRunId}, is-visible={_isHomeVisible}");
         }
     }
 
     protected override void OnDisappearing()
     {
+        System.Diagnostics.Debug.WriteLine($"[HomePage] OnDisappearing fired, sequence-running={_homePromptSequenceRunning}, run-id={_homePromptRunId}, is-visible-before={_isHomeVisible}");
         _isHomeVisible = false;
         base.OnDisappearing();
     }
@@ -601,29 +609,68 @@ public class HomePage : ContentPage
 
     private async Task ShowDailyLoginPromptsIfNeededAsync(int promptRunId)
     {
+        System.Diagnostics.Debug.WriteLine($"[DailyLogin] Entry, promptRunId={promptRunId}, current-run-id={_homePromptRunId}, is-visible={_isHomeVisible}, sequence-running={_homePromptSequenceRunning}");
         string today = DateTime.Today.ToString("yyyy-MM-dd");
         string shownKey = $"daily_login_prompts_shown_{_auth.CurrentUsername}";
+        System.Diagnostics.Debug.WriteLine($"[DailyLogin] Today={today}, shownKey={shownKey}");
         string? lastShown = null;
-        try { lastShown = await SecureStorage.GetAsync(shownKey); } catch { }
+        try
+        {
+            lastShown = await SecureStorage.GetAsync(shownKey);
+            System.Diagnostics.Debug.WriteLine($"[DailyLogin] SecureStorage read succeeded, stored marker={(lastShown ?? "null")}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DailyLogin] SecureStorage read failed: {ex.GetType().Name}: {ex.Message}");
+        }
 
-        if (lastShown == today) return;
+        if (lastShown == today)
+        {
+            System.Diagnostics.Debug.WriteLine("[DailyLogin] Stored marker matches today; skipping prompts.");
+            return;
+        }
 
         var prompts = await _dailyLoginPrompts.GetPromptsAsync(_auth.CurrentUsername, activeOnly: true);
+        System.Diagnostics.Debug.WriteLine($"[DailyLogin] Retrieved {prompts.Count} active prompts.");
         if (prompts.Count == 0)
         {
-            if (!IsHomePromptRunActive(promptRunId)) return;
-            try { await SecureStorage.SetAsync(shownKey, today); } catch { }
+            bool active = IsHomePromptRunActive(promptRunId);
+            System.Diagnostics.Debug.WriteLine($"[DailyLogin] No prompts. Active-run before marker write={active}, promptRunId={promptRunId}, current-run-id={_homePromptRunId}, is-visible={_isHomeVisible}");
+            if (!active) return;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[DailyLogin] Writing marker for no-prompt case: {shownKey}={today}");
+                await SecureStorage.SetAsync(shownKey, today);
+                System.Diagnostics.Debug.WriteLine("[DailyLogin] SecureStorage marker write succeeded for no-prompt case.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DailyLogin] SecureStorage marker write failed for no-prompt case: {ex.GetType().Name}: {ex.Message}");
+            }
             return;
         }
 
         for (int i = 0; i < prompts.Count; i++)
         {
-            if (!IsHomePromptRunActive(promptRunId)) return;
+            bool activeBeforePrompt = IsHomePromptRunActive(promptRunId);
+            System.Diagnostics.Debug.WriteLine($"[DailyLogin] Prompt {i + 1}/{prompts.Count} about to display, id={prompts[i].Id}, sort={prompts[i].SortOrder}, active-before={activeBeforePrompt}, promptRunId={promptRunId}, current-run-id={_homePromptRunId}, is-visible={_isHomeVisible}");
+            if (!activeBeforePrompt) return;
             await DailyLoginPromptDisplayPage.ShowAsync(Navigation, prompts[i], i + 1, prompts.Count);
-            if (!IsHomePromptRunActive(promptRunId)) return;
+            bool activeAfterPrompt = IsHomePromptRunActive(promptRunId);
+            System.Diagnostics.Debug.WriteLine($"[DailyLogin] Prompt {i + 1}/{prompts.Count} returned, active-after={activeAfterPrompt}, promptRunId={promptRunId}, current-run-id={_homePromptRunId}, is-visible={_isHomeVisible}, sequence-running={_homePromptSequenceRunning}");
+            if (!activeAfterPrompt) return;
         }
 
-        try { await SecureStorage.SetAsync(shownKey, today); } catch { }
+        System.Diagnostics.Debug.WriteLine($"[DailyLogin] All prompts returned. Writing marker: {shownKey}={today}");
+        try
+        {
+            await SecureStorage.SetAsync(shownKey, today);
+            System.Diagnostics.Debug.WriteLine("[DailyLogin] SecureStorage marker write succeeded after prompts.");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DailyLogin] SecureStorage marker write failed after prompts: {ex.GetType().Name}: {ex.Message}");
+        }
     }
 
     private async Task CheckSubActivityDailyPromptAsync(int promptRunId)

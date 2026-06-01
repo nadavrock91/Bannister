@@ -5,6 +5,7 @@ namespace Bannister.Views;
 public class DailyLoginPromptDisplayPage : ContentPage
 {
     private readonly TaskCompletionSource _closed = new();
+    private bool _isClosing;
 
     private DailyLoginPromptDisplayPage(DailyLoginPrompt prompt, int position, int total)
     {
@@ -76,14 +77,23 @@ public class DailyLoginPromptDisplayPage : ContentPage
 
     protected override bool OnBackButtonPressed()
     {
+        _ = CloseAsync();
+        return true;
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        if (_isClosing) return;
         _closed.TrySetResult();
-        return base.OnBackButtonPressed();
     }
 
     private async Task CloseAsync()
     {
-        _closed.TrySetResult();
+        if (_isClosing) return;
+        _isClosing = true;
         await Navigation.PopModalAsync(false);
+        _closed.TrySetResult();
     }
 
     private static Color SafeColor(string value, string fallback)
