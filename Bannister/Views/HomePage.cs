@@ -52,6 +52,7 @@ public class HomePage : ContentPage
     private bool _allowanceDailyPromptChecked = false;
     private bool _isHomeVisible = false;
     private int _homePromptRunId = 0;
+    private bool _homePromptSequenceRunning = false;
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
 
     // UI Controls
@@ -396,78 +397,87 @@ public class HomePage : ContentPage
     {
         base.OnAppearing();
         _isHomeVisible = true;
+        if (_homePromptSequenceRunning) return;
+
+        _homePromptSequenceRunning = true;
         int promptRunId = ++_homePromptRunId;
 
-        // Auto-backup on login
-        await _backup.AutoBackupAsync("login");
-        if (!IsHomePromptRunActive(promptRunId)) return;
-
-        _loadingOverlay.IsVisible = false;
-
-        _lblWelcome.Text = $"Welcome, {_auth.CurrentUsername}";
-        await LoadDataAsync();
-        if (!IsHomePromptRunActive(promptRunId)) return;
-        await ShowDailyLoginPromptsIfNeededAsync(promptRunId);
-        if (!IsHomePromptRunActive(promptRunId)) return;
-        await CheckSubActivityDailyPromptAsync(promptRunId);
-        if (!IsHomePromptRunActive(promptRunId)) return;
-        await CheckAllowanceDailyPromptAsync(promptRunId);
-        if (!IsHomePromptRunActive(promptRunId)) return;
-        await CheckDeadlineCheckInAsync(promptRunId);
-        if (!IsHomePromptRunActive(promptRunId)) return;
-
-        if (!_introChecked)
+        try
         {
-            _introChecked = true;
+            // Auto-backup on login
+            await _backup.AutoBackupAsync("login");
+            if (!IsHomePromptRunActive(promptRunId)) return;
 
-            if (!await HasSeenIntroAsync())
+            _loadingOverlay.IsVisible = false;
+
+            _lblWelcome.Text = $"Welcome, {_auth.CurrentUsername}";
+            await LoadDataAsync();
+            if (!IsHomePromptRunActive(promptRunId)) return;
+            await ShowDailyLoginPromptsIfNeededAsync(promptRunId);
+            if (!IsHomePromptRunActive(promptRunId)) return;
+            await CheckSubActivityDailyPromptAsync(promptRunId);
+            if (!IsHomePromptRunActive(promptRunId)) return;
+            await CheckAllowanceDailyPromptAsync(promptRunId);
+            if (!IsHomePromptRunActive(promptRunId)) return;
+            await CheckDeadlineCheckInAsync(promptRunId);
+            if (!IsHomePromptRunActive(promptRunId)) return;
+
+            if (!_introChecked)
             {
-                bool goToDiet = await DisplayAlert(
-                    "Welcome to Bannister",
-                    "This is your Home screen.\n" +
-                    "Later you'll choose between different EXP games like Diet, Exercise, and more.\n\n" +
-                    "A Diet game has been created for you.\n" +
-                    "Want to go in now?",
-                    "Go to Diet",
-                    "Skip");
+                _introChecked = true;
 
-                await MarkIntroSeenAsync();
-
-                if (goToDiet)
+                if (!await HasSeenIntroAsync())
                 {
-                    await Shell.Current.GoToAsync("activitygrid?gameId=diet");
+                    bool goToDiet = await DisplayAlert(
+                        "Welcome to Bannister",
+                        "This is your Home screen.\n" +
+                        "Later you'll choose between different EXP games like Diet, Exercise, and more.\n\n" +
+                        "A Diet game has been created for you.\n" +
+                        "Want to go in now?",
+                        "Go to Diet",
+                        "Skip");
+
+                    await MarkIntroSeenAsync();
+
+                    if (goToDiet)
+                    {
+                        await Shell.Current.GoToAsync("activitygrid?gameId=diet");
+                    }
                 }
             }
+
+            // Check for expired activities
+            await CheckExpiredActivitiesAsync(promptRunId);
+            if (!IsHomePromptRunActive(promptRunId)) return;
+
+            // Check for missing weekly task commitments (only on Saturday - last chance before week resets)
+            await CheckWeeklyCommitmentsAsync(promptRunId);
+            if (!IsHomePromptRunActive(promptRunId)) return;
+
+            // Check for unfilled daily habit slots (only on Saturday)
+            await CheckDailyHabitAllowanceAsync(promptRunId);
+            if (!IsHomePromptRunActive(promptRunId)) return;
+
+            // Check for unfilled weekly/monthly habit slots (only on the 1st of the month)
+            await CheckWeeklyHabitAllowanceAsync(promptRunId);
+            if (!IsHomePromptRunActive(promptRunId)) return;
+            await CheckMonthlyHabitAllowanceAsync(promptRunId);
+            if (!IsHomePromptRunActive(promptRunId)) return;
+
+            // Check if unencrypted legacy database file still exists
+            await CheckLegacyUnencryptedDbAsync();
+
+            _ = CheckQueuedOperationsPromptAsync();
         }
-
-        // Check for expired activities
-        await CheckExpiredActivitiesAsync(promptRunId);
-        if (!IsHomePromptRunActive(promptRunId)) return;
-        
-        // Check for missing weekly task commitments (only on Saturday - last chance before week resets)
-        await CheckWeeklyCommitmentsAsync(promptRunId);
-        if (!IsHomePromptRunActive(promptRunId)) return;
-        
-        // Check for unfilled daily habit slots (only on Saturday)
-        await CheckDailyHabitAllowanceAsync(promptRunId);
-        if (!IsHomePromptRunActive(promptRunId)) return;
-
-        // Check for unfilled weekly/monthly habit slots (only on the 1st of the month)
-        await CheckWeeklyHabitAllowanceAsync(promptRunId);
-        if (!IsHomePromptRunActive(promptRunId)) return;
-        await CheckMonthlyHabitAllowanceAsync(promptRunId);
-        if (!IsHomePromptRunActive(promptRunId)) return;
-
-        // Check if unencrypted legacy database file still exists
-        await CheckLegacyUnencryptedDbAsync();
-
-        _ = CheckQueuedOperationsPromptAsync();
+        finally
+        {
+            _homePromptSequenceRunning = false;
+        }
     }
 
     protected override void OnDisappearing()
     {
         _isHomeVisible = false;
-        _homePromptRunId++;
         base.OnDisappearing();
     }
 
