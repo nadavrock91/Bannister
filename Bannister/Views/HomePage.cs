@@ -694,18 +694,66 @@ public class HomePage : ContentPage
 
             foreach (var process in processes)
             {
+                var currentProcess = await _subActivityService.GetByIdAsync(process.Id);
+                if (currentProcess == null) continue;
+
+                var pendingSteps = _subActivityService.GetSteps(currentProcess)
+                    .Select((step, index) => new SubActivityStepOption(index, step.Name))
+                    .Where(step => !string.IsNullOrWhiteSpace(step.Name))
+                    .Where(step =>
+                    {
+                        var steps = _subActivityService.GetSteps(currentProcess);
+                        return step.StepIndex >= 0 &&
+                            step.StepIndex < steps.Count &&
+                            !steps[step.StepIndex].Done;
+                    })
+                    .ToList();
+
+                if (pendingSteps.Count == 0) continue;
+
                 if (!IsHomePromptRunActive(promptRunId)) return;
-                string action = await DisplayActionSheet(
-                    $"Did you complete all sub-activities for \"{process.Name}\"?",
-                    "Cancel",
-                    null,
-                    "Mark All Done",
-                    "Not Yet");
+                string? action = await SubActivityDailyPromptPage.ShowAsync(Navigation, currentProcess.Name, pendingSteps);
                 if (!IsHomePromptRunActive(promptRunId)) return;
 
-                if (action == "Mark All Done")
+                if (action == "all_done")
                 {
-                    await _subActivityService.CompleteAllStepsAsync(process);
+                    currentProcess = await _subActivityService.GetByIdAsync(process.Id);
+                    if (currentProcess != null)
+                    {
+                        await _subActivityService.CompleteAllStepsAsync(currentProcess);
+                    }
+                }
+                else if (action == "some_done")
+                {
+                    currentProcess = await _subActivityService.GetByIdAsync(process.Id);
+                    if (currentProcess == null) continue;
+
+                    pendingSteps = _subActivityService.GetSteps(currentProcess)
+                        .Select((step, index) => new SubActivityStepOption(index, step.Name))
+                        .Where(step => !string.IsNullOrWhiteSpace(step.Name))
+                        .Where(step =>
+                        {
+                            var steps = _subActivityService.GetSteps(currentProcess);
+                            return step.StepIndex >= 0 &&
+                                step.StepIndex < steps.Count &&
+                                !steps[step.StepIndex].Done;
+                        })
+                        .ToList();
+
+                    if (pendingSteps.Count == 0) continue;
+
+                    if (!IsHomePromptRunActive(promptRunId)) return;
+                    var selectedStepIndexes = await SubActivityStepPickerPage.ShowAsync(Navigation, currentProcess.Name, pendingSteps);
+                    if (!IsHomePromptRunActive(promptRunId)) return;
+
+                    if (selectedStepIndexes is { Count: > 0 })
+                    {
+                        currentProcess = await _subActivityService.GetByIdAsync(process.Id);
+                        if (currentProcess != null)
+                        {
+                            await _subActivityService.MarkStepsDoneAsync(currentProcess, selectedStepIndexes);
+                        }
+                    }
                 }
             }
 

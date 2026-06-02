@@ -329,5 +329,42 @@ public class SubActivityService
         await MarkCompletedAsync(item);
     }
 
+    public async Task MarkStepsDoneAsync(SubActivity item, IEnumerable<int> stepIndexes)
+    {
+        if (_db.IsReadOnly) return;
+
+        var selectedIndexes = stepIndexes
+            .Distinct()
+            .Where(index => index >= 0)
+            .ToHashSet();
+        if (selectedIndexes.Count == 0) return;
+
+        var steps = GetSteps(item);
+        if (steps.Count == 0) return;
+
+        bool wasComplete = steps.All(s => s.Done);
+        bool changed = false;
+
+        for (int i = 0; i < steps.Count; i++)
+        {
+            if (!selectedIndexes.Contains(i) || steps[i].Done) continue;
+            steps[i].Done = true;
+            changed = true;
+        }
+
+        if (!changed) return;
+
+        item.StepsJson = JsonSerializer.Serialize(steps);
+
+        if (!wasComplete && steps.All(s => s.Done))
+        {
+            await MarkCompletedAsync(item);
+        }
+        else
+        {
+            await UpdateAsync(item);
+        }
+    }
+
     #endregion
 }
