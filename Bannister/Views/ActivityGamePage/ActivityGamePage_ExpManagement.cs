@@ -1,4 +1,5 @@
 using Bannister.Helpers;
+using Bannister.Services;
 
 namespace Bannister.Views;
 
@@ -118,23 +119,11 @@ public partial class ActivityGamePage
     {
         if (_game == null) return;
 
-        string autoAwardKey = $"AutoAward_LastCheck_{_auth.CurrentUsername}_{_game.GameId}";
-        string lastCheckDate = await _dailyChecks.GetAsync(autoAwardKey);
-        string today = DateTime.Now.ToString("yyyy-MM-dd");
-
-        // Check if already processed today
-        if (lastCheckDate == today)
-        {
-            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Already checked today, skipping");
-            return;
-        }
-        
-        // Set the preference IMMEDIATELY to prevent any possibility of double execution
-        await _dailyChecks.SetAsync(autoAwardKey, today);
-        System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Set preference to {today}");
-
         var allActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game.GameId);
-        var autoAwardActivities = allActivities.Where(a => a.IsAutoAward).ToList();
+        var autoAwardActivities = allActivities
+            .Where(IsEligibleAutoAwardActivity)
+            .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         if (autoAwardActivities.Count == 0)
         {
@@ -142,82 +131,119 @@ public partial class ActivityGamePage
             return;
         }
 
-        var eligibleActivities = new List<Models.Activity>();
-        var now = DateTime.Now;
+        var today = DateTime.Today;
+        int totalAwards = 0;
 
         foreach (var activity in autoAwardActivities)
         {
-            bool isEligible = false;
-
-            if (activity.AutoAwardFrequency == "Daily")
+            if (activity.LastAutoAwarded.HasValue && activity.LastAutoAwarded.Value.Date >= today)
             {
-                if (!activity.LastAutoAwarded.HasValue || 
-                    activity.LastAutoAwarded.Value.Date < now.Date)
-                {
-                    isEligible = true;
-                }
-            }
-            else if (activity.AutoAwardFrequency == "Weekly")
-            {
-                var selectedDays = activity.AutoAwardDays.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                string todayName = now.DayOfWeek.ToString();
-
-                if (selectedDays.Contains(todayName))
-                {
-                    if (!activity.LastAutoAwarded.HasValue || 
-                        activity.LastAutoAwarded.Value.Date < now.Date)
-                    {
-                        isEligible = true;
-                    }
-                }
-            }
-            else if (activity.AutoAwardFrequency == "Monthly")
-            {
-                if (now.Day == 1)
-                {
-                    if (!activity.LastAutoAwarded.HasValue || 
-                        activity.LastAutoAwarded.Value.Month < now.Month ||
-                        activity.LastAutoAwarded.Value.Year < now.Year)
-                    {
-                        isEligible = true;
-                    }
-                }
+                System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] {activity.Name} already awarded today");
+                continue;
             }
 
-            if (isEligible)
+            var startDate = activity.LastAutoAwarded.HasValue
+                ? activity.LastAutoAwarded.Value.Date.AddDays(1)
+                : today;
+
+            if (startDate > today)
+                continue;
+
+            foreach (var day in EachAutoAwardDay(startDate, today))
             {
-                eligibleActivities.Add(activity);
+                var localNoon = DateTime.SpecifyKind(day.Date.AddHours(12), DateTimeKind.Local);
+                await ApplyAutoAwardActivityAsync(activity, localNoon);
+                totalAwards++;
             }
+
+            activity.LastAutoAwarded = today;
+            await _activities.UpdateActivityAsync(activity);
         }
 
-        if (eligibleActivities.Count > 0)
+        if (totalAwards > 0)
         {
-            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Found {eligibleActivities.Count} eligible activities, showing page");
-            
-            // Get current level for PercentOfLevel calculations
-            var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
-
-            var confirmPage = new AutoAwardConfirmationPage(
-                eligibleActivities,
-                _exp,
-                _activities,
-                _auth.CurrentUsername,
-                _game.GameId,
-                currentLevel
-            );
-            await Navigation.PushModalAsync(confirmPage);
-            
-            // Wait for the modal to complete before continuing
-            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Waiting for modal completion...");
-            await confirmPage.WaitForCompletionAsync();
-            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Modal completed");
-
+            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Applied {totalAwards} retroactive auto-award(s)");
             await RefreshExpAsync();
             await RefreshActivitiesAsync();
         }
-        else
+    }
+
+    private static bool IsEligibleAutoAwardActivity(Models.Activity activity)
+    {
+        if (!activity.IsAutoAward || !activity.IsActive || activity.IsPossible)
+            return false;
+
+        if (activity.EndDate.HasValue && activity.EndDate.Value < DateTime.Now)
+            return false;
+
+        return !string.Equals(activity.Category, "Expired", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(activity.Category, "Stale", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task ApplyAutoAwardActivityAsync(Models.Activity activity, DateTime localNoon)
+    {
+        string gameId = activity.Game;
+        var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, gameId);
+        int expAmount = CalculateAutoAwardExpGain(activity, currentLevel) * Math.Max(1, activity.Multiplier);
+
+        await _exp.ApplyExpAsync(
+            _auth.CurrentUsername,
+            gameId,
+            $"{activity.Name} (Auto Award)",
+            expAmount,
+            activity.Id,
+            localNoon);
+
+        if (activity.IsStreakTracked)
         {
-            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] No eligible activities");
+            await _streaks.RecordActivityUsageAsync(
+                _auth.CurrentUsername,
+                gameId,
+                activity.Id,
+                activity.Name,
+                activity,
+                localNoon);
         }
+
+        if (activity.HabitType != "None")
+            await _activities.RecordHabitCompletionAsync(activity, localNoon);
+
+        await _activities.RecordDisplayDayStreakAsync(activity, localNoon);
+
+        activity.TimesCompleted++;
+        await _activities.UpdateActivityAsync(activity);
+
+        var newHabits = Application.Current?.Handler?.MauiContext?.Services.GetService<NewHabitService>();
+        if (newHabits != null)
+            await newHabits.RecordHabitDoneAsync(activity.Id, localNoon);
+
+        if (activity.ExpGain > 0)
+        {
+            int streakBonus = ActivityService.CalculateStreakBonus(activity.DisplayDayStreak);
+            if (streakBonus > 0)
+            {
+                await _exp.ApplyExpAsync(
+                    _auth.CurrentUsername,
+                    gameId,
+                    $"{activity.Name} (Auto Award Streak Bonus)",
+                    streakBonus,
+                    activity.Id,
+                    localNoon);
+            }
+        }
+    }
+
+    private static int CalculateAutoAwardExpGain(Models.Activity activity, int currentLevel)
+    {
+        if (activity.RewardType == "PercentOfLevel")
+            return ExpEngine.ExpForPercentOfLevel(currentLevel, activity.PercentOfLevel, activity.PercentCutoffLevel);
+
+        return activity.ExpGain;
+    }
+
+    private static IEnumerable<DateTime> EachAutoAwardDay(DateTime start, DateTime end)
+    {
+        for (var day = start.Date; day <= end.Date; day = day.AddDays(1))
+            yield return day;
     }
 }

@@ -245,7 +245,7 @@ public class GameCatchUpPage : ContentPage
 
     private static bool IsEligibleActivity(Activity activity)
     {
-        if (!activity.IsActive || activity.IsPossible)
+        if (!activity.IsActive || activity.IsPossible || activity.IsAutoAward)
             return false;
 
         if (activity.EndDate.HasValue && activity.EndDate.Value < DateTime.Now)
@@ -440,6 +440,29 @@ public class GameCatchUpPage : ContentPage
                 LineBreakMode = LineBreakMode.WordWrap
             });
 
+            var selectAllButton = new Button
+            {
+                Text = "Select All Days",
+                BackgroundColor = Color.FromArgb("#E8F5E9"),
+                TextColor = Color.FromArgb("#2E7D32"),
+                CornerRadius = 8,
+                HeightRequest = 38,
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                HorizontalOptions = LayoutOptions.Start
+            };
+            selectAllButton.Clicked += (_, _) =>
+            {
+                foreach (var row in Rows)
+                {
+                    if (row.IsChecked)
+                        continue;
+
+                    row.SetSelected(true, 1);
+                }
+            };
+            stack.Children.Add(selectAllButton);
+
             foreach (var row in Rows)
                 stack.Children.Add(row.View);
 
@@ -458,6 +481,7 @@ public class GameCatchUpPage : ContentPage
     private sealed class CatchUpDayRow
     {
         private readonly Func<CatchUpDayRow, Task<int?>> _showCountPrompt;
+        private readonly CheckBox _checkbox;
         private readonly Label _countLabel;
         private readonly Grid _countGrid;
 
@@ -471,7 +495,7 @@ public class GameCatchUpPage : ContentPage
             Date = date;
             _showCountPrompt = showCountPrompt;
 
-            var checkbox = new CheckBox
+            _checkbox = new CheckBox
             {
                 VerticalOptions = LayoutOptions.Center,
                 Color = Color.FromArgb("#2E7D32")
@@ -526,7 +550,7 @@ public class GameCatchUpPage : ContentPage
             _countGrid.Add(_countLabel, 1, 0);
             _countGrid.Add(plus, 2, 0);
 
-            checkbox.CheckedChanged += (_, e) =>
+            _checkbox.CheckedChanged += (_, e) =>
             {
                 IsChecked = e.Value;
                 if (IsChecked && Count < 1)
@@ -544,7 +568,7 @@ public class GameCatchUpPage : ContentPage
                     new ColumnDefinition { Width = GridLength.Auto }
                 }
             };
-            row.Add(checkbox, 0, 0);
+            row.Add(_checkbox, 0, 0);
             row.Add(dateLabel, 1, 0);
             row.Add(_countGrid, 2, 0);
 
@@ -571,6 +595,16 @@ public class GameCatchUpPage : ContentPage
         {
             Count = Math.Clamp(count, 1, 999);
             _countLabel.Text = Count.ToString();
+        }
+
+        public void SetSelected(bool checkedState, int count)
+        {
+            if (checkedState)
+                SetCount(count);
+
+            _checkbox.IsChecked = checkedState;
+            IsChecked = checkedState;
+            _countGrid.IsVisible = checkedState;
         }
     }
 }
