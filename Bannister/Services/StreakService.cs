@@ -62,9 +62,11 @@ public class StreakService
     /// <summary>
     /// Get or create the active streak for an activity
     /// </summary>
-    public async Task<StreakAttempt> GetOrCreateActiveStreakAsync(string username, string game, int activityId, string activityName)
+    public async Task<StreakAttempt> GetOrCreateActiveStreakAsync(string username, string game, int activityId, string activityName,
+        DateTime? usedAt = null)
     {
         var conn = await _db.GetConnectionAsync();
+        var usedDate = (usedAt ?? DateTime.UtcNow).ToUniversalTime().Date;
         
         var activeStreak = await conn.Table<StreakAttempt>()
             .Where(s => s.Username == username && s.Game == game && s.ActivityId == activityId && s.IsActive)
@@ -91,8 +93,8 @@ public class StreakService
             ActivityName = activityName,
             AttemptNumber = nextAttemptNumber,
             IsActive = true,
-            StartedAt = DateTime.UtcNow,
-            LastUsedDate = DateTime.UtcNow.Date,
+            StartedAt = usedDate,
+            LastUsedDate = usedDate,
             DaysAchieved = 0
         };
 
@@ -108,7 +110,8 @@ public class StreakService
     /// Record activity usage and update streak
     /// Called when an activity is used (EXP awarded)
     /// </summary>
-    public async Task RecordActivityUsageAsync(string username, string game, int activityId, string activityName, Activity? activity = null)
+    public async Task RecordActivityUsageAsync(string username, string game, int activityId, string activityName, Activity? activity = null,
+        DateTime? usedAt = null)
     {
         var conn = await _db.GetConnectionAsync();
         
@@ -116,12 +119,12 @@ public class StreakService
             .Where(s => s.Username == username && s.Game == game && s.ActivityId == activityId && s.IsActive)
             .FirstOrDefaultAsync();
 
-        var today = DateTime.UtcNow.Date;
+        var today = (usedAt ?? DateTime.UtcNow).ToUniversalTime().Date;
 
         if (activeStreak == null)
         {
             // Start a new streak
-            await GetOrCreateActiveStreakAsync(username, game, activityId, activityName);
+            await GetOrCreateActiveStreakAsync(username, game, activityId, activityName, usedAt);
             return;
         }
 
@@ -141,7 +144,7 @@ public class StreakService
             {
                 // Consecutive day! Extend the streak
                 int daysBefore = activeStreak.DaysAchieved;
-                activeStreak.DaysAchieved = GetNextDaysAchieved(activeStreak, activity);
+                activeStreak.DaysAchieved = GetNextDaysAchieved(activeStreak, activity, today);
                 activeStreak.LastUsedDate = today;
                 await conn.UpdateAsync(activeStreak);
                 
@@ -161,7 +164,7 @@ public class StreakService
                     "Streak reset after a missed day");
 
                 // Start a new streak
-                await GetOrCreateActiveStreakAsync(username, game, activityId, activityName);
+                await GetOrCreateActiveStreakAsync(username, game, activityId, activityName, usedAt);
             }
             // daysSinceLastUse == 0 means same day, already handled above
         }
@@ -169,19 +172,20 @@ public class StreakService
         {
             // First use, update last used date
             int daysBefore = activeStreak.DaysAchieved;
-            activeStreak.DaysAchieved = GetNextDaysAchieved(activeStreak, activity);
+            activeStreak.DaysAchieved = GetNextDaysAchieved(activeStreak, activity, today);
             activeStreak.LastUsedDate = today;
             await conn.UpdateAsync(activeStreak);
             await LogStreakChangeAsync(activeStreak.Id, daysBefore, activeStreak.DaysAchieved, "increment");
         }
     }
 
-    private static int GetNextDaysAchieved(StreakAttempt streak, Activity? activity)
+    private static int GetNextDaysAchieved(StreakAttempt streak, Activity? activity, DateTime? usedDate = null)
     {
         if (activity?.ShowStreakAsDaysSinceStarted == true && streak.StartedAt.HasValue)
         {
             var startDate = streak.StartedAt.Value.ToLocalTime().Date;
-            return Math.Max(0, (DateTime.Today - startDate).Days);
+            var endDate = (usedDate ?? DateTime.Today).Date;
+            return Math.Max(0, (endDate - startDate).Days);
         }
 
         return streak.DaysAchieved + 1;

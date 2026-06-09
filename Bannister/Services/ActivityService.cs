@@ -475,12 +475,12 @@ namespace Bannister.Services
         /// <summary>
         /// Record that a habit activity was completed today
         /// </summary>
-        public async Task RecordHabitCompletionAsync(Activity activity)
+        public async Task RecordHabitCompletionAsync(Activity activity, DateTime? completedAt = null)
         {
             if (activity == null) return;
             
             // Update habit tracking
-            var today = DateTime.Now.Date;
+            var today = (completedAt ?? DateTime.Now).Date;
             
             if (activity.HabitType == "None") return;
             
@@ -549,14 +549,14 @@ namespace Bannister.Services
         /// Record that an activity was used today and update its display day streak.
         /// Call this when EXP is awarded for an activity.
         /// </summary>
-        public async Task RecordDisplayDayStreakAsync(Activity activity)
+        public async Task RecordDisplayDayStreakAsync(Activity activity, DateTime? usedAt = null)
         {
             if (activity == null) return;
             
             // Skip if opted out of streak tracking
             if (activity.OptOutDisplayDayStreak) return;
             
-            var today = DateTime.Now.Date;
+            var today = (usedAt ?? DateTime.Now).Date;
             
             // Skip if already recorded today
             if (activity.LastDisplayDayUsed.HasValue && activity.LastDisplayDayUsed.Value.Date == today)

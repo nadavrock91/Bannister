@@ -146,16 +146,31 @@ namespace Bannister.Services
         /// </summary>
         public async Task RecordGameVisitAsync(string username, string gameId)
         {
+            await UpdateLastVisitedAtAsync(username, gameId, DateTime.Now);
+        }
+
+        public async Task UpdateLastVisitedAtAsync(string username, string gameId, DateTime now)
+        {
             if (_db.IsReadOnly) return; // silently skip on secondary devices
 
             var game = await GetGameAsync(username, gameId);
             if (game != null)
             {
-                game.LastVisitedAt = DateTime.Now;
+                game.LastVisitedAt = now;
                 var conn = await _db.GetConnectionAsync();
                 await conn.UpdateAsync(game);
                 System.Diagnostics.Debug.WriteLine($">>> RECORDED VISIT: {gameId} at {game.LastVisitedAt}");
             }
+        }
+
+        public static bool ShouldShowCatchUp(Game game, DateTime today, out int daysSinceLastVisit)
+        {
+            daysSinceLastVisit = 0;
+            if (!game.LastVisitedAt.HasValue)
+                return false;
+
+            daysSinceLastVisit = (today.Date - game.LastVisitedAt.Value.Date).Days;
+            return daysSinceLastVisit >= 2;
         }
 
         /// <summary>

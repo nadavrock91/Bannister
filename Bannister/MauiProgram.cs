@@ -100,6 +100,7 @@ public static class MauiProgram
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddTransient<GamesListPage>();
+        builder.Services.AddTransient<GameCatchUpPage>();
         builder.Services.AddTransient<NewHabitsPage>();
         builder.Services.AddTransient<ActivityGamePage>();
         builder.Services.AddTransient<SetupGoalPage>();

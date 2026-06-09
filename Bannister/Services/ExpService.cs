@@ -107,9 +107,17 @@ namespace Bannister.Services
             return result.OrderBy(x => x.Item1.LevelCapAt).ToList();
         }
 
-        public async Task<int> ApplyExpAsync(string username, string game, string activityName, int deltaExp, int activityId = 0)
+        public async Task<int> ApplyExpAsync(string username, string game, string activityName, int deltaExp, int activityId = 0,
+            DateTime? backdatedTo = null)
         {
+            if (_db.IsReadOnly)
+            {
+                ReadOnlyModeNotifier.ShowBlockedWriteMessage();
+                return await GetTotalExpAsync(username, game);
+            }
+
             var conn = await _db.GetConnectionAsync();
+            var loggedAtUtc = NormalizeLoggedAtUtc(backdatedTo);
 
             // Get current state
             var state = await conn.Table<ExpState>()
@@ -187,10 +195,40 @@ namespace Bannister.Services
                 TotalExp = newTotal,
                 LevelBefore = levelBefore,
                 LevelAfter = levelAfter,
-                LoggedAt = DateTime.UtcNow
+                LoggedAt = loggedAtUtc
             });
 
             return newTotal;
+        }
+
+        public async Task<List<ExpLog>> GetExpLogsForActivityOnDateAsync(string username, string game, int activityId, DateTime date)
+        {
+            var conn = await _db.GetConnectionAsync();
+            var logs = await conn.Table<ExpLog>()
+                .Where(x => x.Username == username && x.Game == game && x.ActivityId == activityId)
+                .ToListAsync();
+
+            var localDate = date.Date;
+            return logs
+                .Where(log => log.LoggedAt.ToLocalTime().Date == localDate)
+                .OrderByDescending(log => log.LoggedAt)
+                .ToList();
+        }
+
+        private static DateTime NormalizeLoggedAtUtc(DateTime? backdatedTo)
+        {
+            if (!backdatedTo.HasValue)
+                return DateTime.UtcNow;
+
+            var value = backdatedTo.Value;
+            if (value.Kind == DateTimeKind.Utc)
+                return value;
+
+            var local = value.Kind == DateTimeKind.Local
+                ? value
+                : DateTime.SpecifyKind(value, DateTimeKind.Local);
+
+            return local.ToUniversalTime();
         }
 
         /// <summary>

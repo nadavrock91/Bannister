@@ -8,6 +8,7 @@ public partial class MainShell : Shell
         InitializeComponent();
 
         Routing.RegisterRoute("gameslist", typeof(GamesListPage));
+        Routing.RegisterRoute("gamecatchup", typeof(GameCatchUpPage));
         Routing.RegisterRoute("activitygrid", typeof(ActivityGamePage));
         Routing.RegisterRoute("setupgoal", typeof(SetupGoalPage));
         Routing.RegisterRoute("addactivity", typeof(ActivityCreationPage));

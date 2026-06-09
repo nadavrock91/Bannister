@@ -546,7 +546,7 @@ public class NewHabitService
     /// </summary>
     /// <param name="positiveActivityId">Activity ID</param>
     /// <returns>The updated habit, or null if not found or already recorded today</returns>
-    public async Task<NewHabit?> RecordHabitDoneAsync(int positiveActivityId)
+    public async Task<NewHabit?> RecordHabitDoneAsync(int positiveActivityId, DateTime? appliedAt = null)
     {
         var conn = await _db.GetConnectionAsync();
         if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
@@ -557,7 +557,7 @@ public class NewHabitService
 
         if (habit == null) return null;
 
-        var today = DateTime.UtcNow.Date;
+        var today = (appliedAt ?? DateTime.UtcNow).ToUniversalTime().Date;
         var lastDate = habit.LastAppliedDate?.Date;
 
         if (lastDate == today)

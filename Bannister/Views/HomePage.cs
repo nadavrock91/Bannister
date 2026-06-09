@@ -447,7 +447,7 @@ public class HomePage : ContentPage
 
                     if (goToDiet)
                     {
-                        await Shell.Current.GoToAsync("activitygrid?gameId=diet");
+                        await NavigateToGameWithCatchUpAsync("diet");
                     }
                 }
             }
@@ -1307,6 +1307,23 @@ public class HomePage : ContentPage
         }
 
         await Shell.Current.GoToAsync("gameslist");
+    }
+
+    private async Task NavigateToGameWithCatchUpAsync(string gameId)
+    {
+        var game = await _games.GetGameAsync(_auth.CurrentUsername, gameId);
+        string encodedGameId = Uri.EscapeDataString(gameId);
+
+        if (game != null && GameService.ShouldShowCatchUp(game, DateTime.Today, out _))
+        {
+            await Shell.Current.GoToAsync($"gamecatchup?gameId={encodedGameId}");
+            return;
+        }
+
+        if (game != null)
+            await _games.UpdateLastVisitedAtAsync(_auth.CurrentUsername, game.GameId, DateTime.Now);
+
+        await Shell.Current.GoToAsync($"activitygrid?gameId={encodedGameId}");
     }
 
     private async void OnNewHabitsClicked(object? sender, EventArgs e)

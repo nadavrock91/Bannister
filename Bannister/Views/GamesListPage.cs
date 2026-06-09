@@ -404,7 +404,7 @@ public class GamesListPage : ContentPage
             _loadingOverlay.IsVisible = true;
 
             await Task.Delay(50);
-            await Shell.Current.GoToAsync($"activitygrid?gameId={vm.Game.GameId}");
+            await NavigateToGameWithCatchUpAsync(vm.Game);
         }
         catch (Exception ex)
         {
@@ -415,6 +415,20 @@ public class GamesListPage : ContentPage
             _isNavigating = false;
             _loadingOverlay.IsVisible = false;
         }
+    }
+
+    private async Task NavigateToGameWithCatchUpAsync(Game game)
+    {
+        string encodedGameId = Uri.EscapeDataString(game.GameId);
+
+        if (GameService.ShouldShowCatchUp(game, DateTime.Today, out _))
+        {
+            await Shell.Current.GoToAsync($"gamecatchup?gameId={encodedGameId}");
+            return;
+        }
+
+        await _games.UpdateLastVisitedAtAsync(_auth.CurrentUsername, game.GameId, DateTime.Now);
+        await Shell.Current.GoToAsync($"activitygrid?gameId={encodedGameId}");
     }
 
     private async void OnAddGameClicked(object sender, EventArgs e)
