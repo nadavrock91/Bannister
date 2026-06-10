@@ -132,7 +132,8 @@ public partial class ActivityGamePage
         }
 
         var today = DateTime.Today;
-        int totalAwards = 0;
+        var pendingDayCounts = new Dictionary<int, int>();
+        var pendingActivities = new List<Models.Activity>();
 
         foreach (var activity in autoAwardActivities)
         {
@@ -142,9 +143,43 @@ public partial class ActivityGamePage
                 continue;
             }
 
-            var startDate = activity.LastAutoAwarded.HasValue
-                ? activity.LastAutoAwarded.Value.Date.AddDays(1)
-                : today;
+            var startDate = GetAutoAwardStartDate(activity, today);
+            if (startDate > today)
+                continue;
+
+            pendingActivities.Add(activity);
+            pendingDayCounts[activity.Id] = (today - startDate).Days + 1;
+        }
+
+        if (pendingActivities.Count == 0)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] No pending auto-awards");
+            return;
+        }
+
+        var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
+        var confirmPage = new AutoAwardConfirmationPage(
+            pendingActivities,
+            _exp,
+            _activities,
+            _auth.CurrentUsername,
+            _game.GameId,
+            currentLevel,
+            pendingDayCounts);
+
+        await Navigation.PushModalAsync(confirmPage);
+        bool confirmed = await confirmPage.WaitForCompletionAsync();
+        if (!confirmed)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] User skipped pending auto-awards");
+            return;
+        }
+
+        int totalAwards = 0;
+
+        foreach (var activity in confirmPage.SelectedActivities)
+        {
+            var startDate = GetAutoAwardStartDate(activity, today);
 
             if (startDate > today)
                 continue;
@@ -166,6 +201,13 @@ public partial class ActivityGamePage
             await RefreshExpAsync();
             await RefreshActivitiesAsync();
         }
+    }
+
+    private static DateTime GetAutoAwardStartDate(Models.Activity activity, DateTime today)
+    {
+        return activity.LastAutoAwarded.HasValue
+            ? activity.LastAutoAwarded.Value.Date.AddDays(1)
+            : today;
     }
 
     private static bool IsEligibleAutoAwardActivity(Models.Activity activity)
