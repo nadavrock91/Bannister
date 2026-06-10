@@ -477,6 +477,14 @@ public class GameCatchUpPage : ContentPage
                 TextColor = Color.FromArgb("#222222"),
                 LineBreakMode = LineBreakMode.WordWrap
             });
+            stack.Children.Add(new Label
+            {
+                Text = string.IsNullOrWhiteSpace(activity.Category) ? "Uncategorized" : activity.Category,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#666666"),
+                Margin = new Thickness(0, -6, 0, 0),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
 
             var selectAllButton = new Button
             {
