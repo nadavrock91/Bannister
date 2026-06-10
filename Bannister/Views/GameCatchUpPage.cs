@@ -243,7 +243,45 @@ public class GameCatchUpPage : ContentPage
         }
     }
 
-    private static bool IsEligibleActivity(Activity activity)
+    public static async Task<bool> HasEligibleCatchUpActivitiesAsync(
+        string username,
+        Game game,
+        ActivityService activities,
+        ExpService exp)
+    {
+        if (!game.LastVisitedAt.HasValue)
+            return false;
+
+        var catchUpStart = game.LastVisitedAt.Value.Date.AddDays(1);
+        var catchUpEnd = DateTime.Today;
+        if (catchUpStart > catchUpEnd)
+            return false;
+
+        var days = EachDay(catchUpStart, catchUpEnd).ToList();
+        var gameActivities = await activities.GetActivitiesAsync(username, game.GameId);
+
+        foreach (var activity in gameActivities.Where(IsEligibleActivity))
+        {
+            foreach (var day in days)
+            {
+                if (!activity.IsScheduledDisplayDay(day))
+                    continue;
+
+                var existing = await exp.GetExpLogsForActivityOnDateAsync(
+                    username,
+                    activity.Game,
+                    activity.Id,
+                    day);
+
+                if (existing.Count == 0)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static bool IsEligibleActivity(Activity activity)
     {
         if (!activity.IsActive || activity.IsPossible || activity.IsAutoAward)
             return false;

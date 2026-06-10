@@ -23,6 +23,7 @@ public class GamesListPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
+    private readonly ActivityService _activities;
     private readonly ExpService _exp;
     private readonly DatabaseService _db;
     private readonly ActivityGroupingService _groupingService;
@@ -33,11 +34,12 @@ public class GamesListPage : ContentPage
     private Grid _loadingOverlay;
     private Button _restoreBtn;
 
-    public GamesListPage(AuthService auth, GameService games, ExpService exp, DatabaseService db,
+    public GamesListPage(AuthService auth, GameService games, ActivityService activities, ExpService exp, DatabaseService db,
         ActivityGroupingService groupingService)
     {
         _auth = auth;
         _games = games;
+        _activities = activities;
         _exp = exp;
         _db = db;
         _groupingService = groupingService;
@@ -423,8 +425,17 @@ public class GamesListPage : ContentPage
 
         if (GameService.ShouldShowCatchUp(game, DateTime.Today, out _))
         {
-            await Shell.Current.GoToAsync($"gamecatchup?gameId={encodedGameId}");
-            return;
+            bool hasEligibleRows = await GameCatchUpPage.HasEligibleCatchUpActivitiesAsync(
+                _auth.CurrentUsername,
+                game,
+                _activities,
+                _exp);
+
+            if (hasEligibleRows)
+            {
+                await Shell.Current.GoToAsync($"gamecatchup?gameId={encodedGameId}");
+                return;
+            }
         }
 
         await _games.UpdateLastVisitedAtAsync(_auth.CurrentUsername, game.GameId, DateTime.Now);

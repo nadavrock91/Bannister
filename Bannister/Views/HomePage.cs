@@ -1316,8 +1316,17 @@ public class HomePage : ContentPage
 
         if (game != null && GameService.ShouldShowCatchUp(game, DateTime.Today, out _))
         {
-            await Shell.Current.GoToAsync($"gamecatchup?gameId={encodedGameId}");
-            return;
+            bool hasEligibleRows = await GameCatchUpPage.HasEligibleCatchUpActivitiesAsync(
+                _auth.CurrentUsername,
+                game,
+                _activities,
+                _exp);
+
+            if (hasEligibleRows)
+            {
+                await Shell.Current.GoToAsync($"gamecatchup?gameId={encodedGameId}");
+                return;
+            }
         }
 
         if (game != null)
