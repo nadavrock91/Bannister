@@ -175,7 +175,12 @@ public partial class ActivityGamePage
             return;
         }
 
+        var (levelBefore, expIntoBefore, expNeededBefore) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
+        double progressBefore = expNeededBefore > 0 ? (double)expIntoBefore / expNeededBefore : 0;
         int totalAwards = 0;
+        int totalExpAwarded = 0;
+        var bonusDetails = new List<string>();
+        var awardedActivityIds = new HashSet<int>();
 
         foreach (var activity in confirmPage.SelectedActivities)
         {
@@ -186,9 +191,15 @@ public partial class ActivityGamePage
 
             foreach (var day in EachAutoAwardDay(startDate, today))
             {
-                var localNoon = DateTime.SpecifyKind(day.Date.AddHours(12), DateTimeKind.Local);
-                await ApplyAutoAwardActivityAsync(activity, localNoon);
+                DateTime targetTime = day.Date == today.Date
+                    ? DateTime.Now
+                    : DateTime.SpecifyKind(day.Date.AddHours(12), DateTimeKind.Local);
+
+                var awardResult = await ApplyAutoAwardActivityAsync(activity, targetTime);
+                totalExpAwarded += awardResult.TotalExp;
+                bonusDetails.AddRange(awardResult.BonusDetails);
                 totalAwards++;
+                awardedActivityIds.Add(activity.Id);
             }
 
             activity.LastAutoAwarded = today;
@@ -198,6 +209,32 @@ public partial class ActivityGamePage
         if (totalAwards > 0)
         {
             System.Diagnostics.Debug.WriteLine($"[AUTO-AWARD] Applied {totalAwards} retroactive auto-award(s)");
+            string bonusMessage = bonusDetails.Count > 0
+                ? $"\n\n{string.Join("\n", bonusDetails)}"
+                : "";
+
+            await DisplayAlert(
+                "EXP Awarded!",
+                $"Awarded {totalExpAwarded} total EXP from {awardedActivityIds.Count} auto-award activit{(awardedActivityIds.Count == 1 ? "y" : "ies")} across {totalAwards} day{(totalAwards == 1 ? "" : "s")}.{bonusMessage}",
+                "OK");
+
+            var (levelAfter, expIntoAfter, expNeededAfter) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
+            double progressAfter = expNeededAfter > 0 ? (double)expIntoAfter / expNeededAfter : 0;
+            bool leveledUp = levelAfter > levelBefore;
+
+            if (lblCurrentLevel != null)
+                lblCurrentLevel.Text = $"Level {levelAfter}";
+            if (lblExpToNext != null)
+                lblExpToNext.Text = $"{expIntoAfter} / {expNeededAfter} EXP";
+            if (lblExpTotal != null)
+            {
+                int totalExp = await _exp.GetTotalExpAsync(_auth.CurrentUsername, _game.GameId);
+                lblExpTotal.Text = $"Total EXP: {totalExp:N0}";
+            }
+            if (expProgressBar != null)
+                expProgressBar.ProgressColor = Color.FromArgb("#4CAF50");
+
+            await AnimateExpBar(progressBefore, progressAfter, leveledUp);
             await RefreshExpAsync();
             await RefreshActivitiesAsync();
         }
@@ -222,11 +259,13 @@ public partial class ActivityGamePage
             && !string.Equals(activity.Category, "Stale", StringComparison.OrdinalIgnoreCase);
     }
 
-    private async Task ApplyAutoAwardActivityAsync(Models.Activity activity, DateTime localNoon)
+    private async Task<(int TotalExp, List<string> BonusDetails)> ApplyAutoAwardActivityAsync(Models.Activity activity, DateTime loggedAt)
     {
         string gameId = activity.Game;
         var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, gameId);
         int expAmount = CalculateAutoAwardExpGain(activity, currentLevel) * Math.Max(1, activity.Multiplier);
+        int totalExp = expAmount;
+        var bonusDetails = new List<string>();
 
         await _exp.ApplyExpAsync(
             _auth.CurrentUsername,
@@ -234,7 +273,7 @@ public partial class ActivityGamePage
             $"{activity.Name} (Auto Award)",
             expAmount,
             activity.Id,
-            localNoon);
+            loggedAt);
 
         if (activity.IsStreakTracked)
         {
@@ -244,20 +283,20 @@ public partial class ActivityGamePage
                 activity.Id,
                 activity.Name,
                 activity,
-                localNoon);
+                loggedAt);
         }
 
         if (activity.HabitType != "None")
-            await _activities.RecordHabitCompletionAsync(activity, localNoon);
+            await _activities.RecordHabitCompletionAsync(activity, loggedAt);
 
-        await _activities.RecordDisplayDayStreakAsync(activity, localNoon);
+        await _activities.RecordDisplayDayStreakAsync(activity, loggedAt);
 
         activity.TimesCompleted++;
         await _activities.UpdateActivityAsync(activity);
 
         var newHabits = Application.Current?.Handler?.MauiContext?.Services.GetService<NewHabitService>();
         if (newHabits != null)
-            await newHabits.RecordHabitDoneAsync(activity.Id, localNoon);
+            await newHabits.RecordHabitDoneAsync(activity.Id, loggedAt);
 
         if (activity.ExpGain > 0)
         {
@@ -270,9 +309,13 @@ public partial class ActivityGamePage
                     $"{activity.Name} (Auto Award Streak Bonus)",
                     streakBonus,
                     activity.Id,
-                    localNoon);
+                    loggedAt);
+                totalExp += streakBonus;
+                bonusDetails.Add($"🔥 {activity.Name} streak bonus ({activity.DisplayDayStreak} days): +{streakBonus}");
             }
         }
+
+        return (totalExp, bonusDetails);
     }
 
     private static int CalculateAutoAwardExpGain(Models.Activity activity, int currentLevel)
