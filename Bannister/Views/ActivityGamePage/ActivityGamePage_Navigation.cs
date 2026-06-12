@@ -23,6 +23,7 @@ public partial class ActivityGamePage
             if (navIndex >= 0)
             {
                 // Category is navigable, use its index
+                _tempNonNavigableCategory = null;
                 _currentCategoryIndex = navIndex;
             }
             else
@@ -81,8 +82,57 @@ public partial class ActivityGamePage
         if (metaFilterPicker.SelectedIndex >= 0)
         {
             _currentMetaFilter = metaFilterPicker.SelectedItem?.ToString() ?? "All Activities";
+
+            if (!string.Equals(_currentMetaFilter, "All Activities", StringComparison.OrdinalIgnoreCase) &&
+                IsViewingStreakAttemptCategory() &&
+                TrySwitchToDefaultNonAttemptCategory())
+            {
+                return;
+            }
+
             await RefreshActivitiesAsync();
         }
+    }
+
+    private bool IsViewingStreakAttemptCategory()
+    {
+        string? currentCategory = GetCurrentSelectedCategory();
+        return !string.IsNullOrWhiteSpace(currentCategory) &&
+            GetStreakContainerForCategory(currentCategory) != null;
+    }
+
+    private string? GetCurrentSelectedCategory()
+    {
+        if (!string.IsNullOrWhiteSpace(_tempNonNavigableCategory))
+        {
+            return _tempNonNavigableCategory;
+        }
+
+        if (_currentCategoryIndex >= 0 && _currentCategoryIndex < _navigableCategories.Count)
+        {
+            return _navigableCategories[_currentCategoryIndex];
+        }
+
+        if (categoryPicker.SelectedIndex >= 0 && categoryPicker.SelectedIndex < _categories.Count)
+        {
+            return _categories[categoryPicker.SelectedIndex];
+        }
+
+        return null;
+    }
+
+    private bool TrySwitchToDefaultNonAttemptCategory()
+    {
+        for (int i = 0; i < _categories.Count; i++)
+        {
+            if (GetStreakContainerForCategory(_categories[i]) == null)
+            {
+                categoryPicker.SelectedIndex = i;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void OnSortOrderChanged(object? sender, EventArgs e)
