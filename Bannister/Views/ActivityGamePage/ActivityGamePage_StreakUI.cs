@@ -1,6 +1,7 @@
 using Bannister.Models;
 using Bannister.Services;
 using Bannister.ViewModels;
+using Bannister.Helpers;
 
 namespace Bannister.Views;
 
@@ -623,6 +624,27 @@ public partial class ActivityGamePage
             mainStack.Children.Add(noAttemptsFrame);
             return;
         }
+
+        if (!ShouldIncludeStreakContainerForCurrentMetaFilter(streakContainer))
+        {
+            mainStack.Children.Add(new Frame
+            {
+                Padding = 16,
+                CornerRadius = 8,
+                HasShadow = false,
+                BorderColor = Color.FromArgb("#E0E0E0"),
+                BackgroundColor = Color.FromArgb("#FAFAFA"),
+                Margin = new Thickness(0, 16, 0, 0),
+                Content = new Label
+                {
+                    Text = "No streak attempts match the current filter.",
+                    FontSize = 14,
+                    TextColor = Color.FromArgb("#666666"),
+                    HorizontalOptions = LayoutOptions.Center
+                }
+            });
+            return;
+        }
         
         var attemptVMs = attempts
             .OrderByDescending(a => a.IsActive)
@@ -657,6 +679,18 @@ public partial class ActivityGamePage
             
             columnIndex++;
         }
+    }
+
+    private bool ShouldIncludeStreakContainerForCurrentMetaFilter(Activity streakContainer)
+    {
+        var containerVm = new ActivityGameViewModel(streakContainer)
+        {
+            CurrentLevel = _currentLevel
+        };
+
+        return ActivityFilterHelper
+            .ApplyMetaFilter(new List<ActivityGameViewModel> { containerVm }, _currentMetaFilter)
+            .Count > 0;
     }
 
     /// <summary>
