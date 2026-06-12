@@ -76,12 +76,12 @@ public partial class ActivityGamePage
         _ = RefreshActivitiesAsync();
     }
 
-    private void OnMetaFilterChanged(object? sender, EventArgs e)
+    private async void OnMetaFilterChanged(object? sender, EventArgs e)
     {
         if (metaFilterPicker.SelectedIndex >= 0)
         {
             _currentMetaFilter = metaFilterPicker.SelectedItem?.ToString() ?? "All Activities";
-            _ = RefreshActivitiesAsync();
+            await RefreshActivitiesAsync();
         }
     }
 
