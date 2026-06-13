@@ -127,6 +127,7 @@ public partial class ActivityGamePage
             $"Times Completed: {activity.TimesCompleted}",
             notesOption,
             "Duplicate as Negative",
+            "Set Manual Priority",
             "Set Auto-Award"
         };
 
@@ -206,6 +207,10 @@ public partial class ActivityGamePage
         else if (action == "Duplicate as Negative")
         {
             await HandleDuplicateAsNegative(activity);
+        }
+        else if (action == "Set Manual Priority")
+        {
+            await HandleSetManualPriority(activity, activityVM);
         }
         else if (action == "Set Auto-Award")
         {
@@ -486,6 +491,39 @@ public partial class ActivityGamePage
         }
 
         await Shell.Current.GoToAsync(queryParams);
+    }
+
+    private async Task HandleSetManualPriority(Activity activity, ActivityGameViewModel? activityVM)
+    {
+        string result = await DisplayPromptAsync(
+            "Set Manual Priority",
+            "Lower numbers show first. Leave blank to clear.",
+            accept: "Save",
+            cancel: "Cancel",
+            initialValue: activity.ManualPriority?.ToString() ?? "",
+            keyboard: Keyboard.Numeric);
+
+        if (result == null)
+        {
+            return;
+        }
+
+        int? newPriority = null;
+        if (!string.IsNullOrWhiteSpace(result))
+        {
+            if (!int.TryParse(result.Trim(), out int parsedPriority) || parsedPriority <= 0)
+            {
+                await DisplayAlert("Invalid Priority", "Priority must be a positive number or blank.", "OK");
+                return;
+            }
+
+            newPriority = parsedPriority;
+        }
+
+        activity.ManualPriority = newPriority;
+        await _activities.UpdateActivityAsync(activity);
+        activityVM?.UpdateActivity(activity);
+        await RefreshActivitiesAsync();
     }
 
     private async Task HandleMoveToAnotherGame(Activity activity)
