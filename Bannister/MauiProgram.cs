@@ -84,6 +84,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DeadlineService>();
         builder.Services.AddSingleton<AllowanceService>();
         builder.Services.AddSingleton<ListsService>();
+        builder.Services.AddSingleton<CustomGameService>();
 
 
         // Conversation Practice Module
@@ -142,6 +143,10 @@ public static class MauiProgram
         builder.Services.AddTransient<MoneyManagementPage>();
         builder.Services.AddTransient<AssetsPage>();
         builder.Services.AddTransient<ListsPage>();
+        builder.Services.AddTransient<CustomGamesListPage>();
+        builder.Services.AddTransient<CustomGameEditPage>();
+        builder.Services.AddTransient<CustomGamePlayPage>();
+        builder.Services.AddTransient<CustomGameTopScoresPage>();
         builder.Services.AddTransient<SyncSettingsPage>();
 
 

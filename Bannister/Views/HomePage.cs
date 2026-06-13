@@ -42,6 +42,7 @@ public class HomePage : ContentPage
     private readonly RoutineService _routineService;
     private readonly DeadlineService _deadlineService;
     private readonly AllowanceService _allowanceService;
+    private readonly CustomGameService _customGames;
     private readonly OperationApplierService _applier;
     private readonly PendingActivityIdeaService _pendingIdeas;
     private bool _introChecked = false;
@@ -65,6 +66,7 @@ public class HomePage : ContentPage
     private Button _btnAllowances;
     private Button _btnCommandsCasino;
     private Button _btnConversationPractice;
+    private Button _btnCustomGames;
     private Button _btnPrompts;
     private Button _btnIdeas;
     private Button _btnImageEdit;
@@ -101,7 +103,7 @@ public class HomePage : ContentPage
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
-        AllowanceService allowanceService)
+        AllowanceService allowanceService, CustomGameService customGames)
     {
         _auth = auth;
         _games = games;
@@ -137,6 +139,7 @@ public class HomePage : ContentPage
         _routineService = routineService;
         _deadlineService = deadlineService;
         _allowanceService = allowanceService;
+        _customGames = customGames;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -226,6 +229,10 @@ public class HomePage : ContentPage
         _btnConversationPractice = CreateButton("💬 Conversation Practice", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3F51B5"));
         _btnConversationPractice.Clicked += OnConversationPracticeClicked;
         navButtons.Add(("Conversation Practice", _btnConversationPractice));
+
+        _btnCustomGames = CreateButton("🎲 Custom Games", Color.FromArgb("#EDE7F6"), Color.FromArgb("#512DA8"));
+        _btnCustomGames.Clicked += OnCustomGamesClicked;
+        navButtons.Add(("Custom Games", _btnCustomGames));
 
         _btnCountdowns = CreateButton("⏳ Countdowns (0)", Color.FromArgb("#E1F5FE"), Color.FromArgb("#0277BD"));
         _btnCountdowns.Clicked += OnCountdownsClicked;
@@ -585,6 +592,7 @@ public class HomePage : ContentPage
             "Charts" => OnChartsClicked,
             "Commands Casino" => OnCommandsCasinoClicked,
             "Conversation Practice" => OnConversationPracticeClicked,
+            "Custom Games" => OnCustomGamesClicked,
             "Countdowns" => OnCountdownsClicked,
             "Databases" => OnDatabasesClicked,
             "Deadlines" => OnDeadlinesClicked,
@@ -1575,6 +1583,12 @@ public class HomePage : ContentPage
     private async void OnCommandsCasinoClicked(object? sender, EventArgs e)
     {
         var page = new CommandsCasinoPage(_auth, _commandsCasino);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnCustomGamesClicked(object? sender, EventArgs e)
+    {
+        var page = new CustomGamesListPage(_auth, _customGames);
         await Navigation.PushAsync(page);
     }
 
