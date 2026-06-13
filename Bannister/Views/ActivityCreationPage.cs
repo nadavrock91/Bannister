@@ -55,6 +55,7 @@ public class ActivityCreationPage : ContentPage
     private Entry txtStreakTargetDays;
     private CheckBox chkIsPossible;
     private CheckBox chkIsToBeTested;
+    private Entry txtManualPriority;
     private CheckBox chkShowTimesCompleted;
     private CheckBox chkShowStreakAsDaysSinceStarted;
     private CheckBox chkNoHabitTarget;
@@ -660,6 +661,26 @@ public class ActivityCreationPage : ContentPage
             FontAttributes = FontAttributes.Italic
         });
 
+        statusSection.Children.Add(new Label
+        {
+            Text = "Manual Priority",
+            FontAttributes = FontAttributes.Bold,
+            Margin = new Thickness(0, 8, 0, 0)
+        });
+        txtManualPriority = new Entry
+        {
+            Placeholder = "Blank = default order",
+            Keyboard = Keyboard.Numeric
+        };
+        statusSection.Children.Add(txtManualPriority);
+        statusSection.Children.Add(new Label
+        {
+            Text = "Activities with a priority show first, lower numbers first (1 = top). Leave blank for default order.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            FontAttributes = FontAttributes.Italic
+        });
+
         // Show Times Completed Badge
         var timesCompletedRow = new HorizontalStackLayout { Spacing = 12 };
         chkShowTimesCompleted = new CheckBox();
@@ -1209,6 +1230,7 @@ public class ActivityCreationPage : ContentPage
                 IsStreakContainer = isStreakContainer,
                 IsPossible = chkIsPossible.IsChecked,
                 IsToBeTested = chkIsToBeTested.IsChecked,
+                ManualPriority = ParseManualPriority(txtManualPriority.Text),
                 ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked,
                 ShowStreakAsDaysSinceStarted = chkShowStreakAsDaysSinceStarted.IsChecked,
                 NoHabitTarget = isStreakContainer ? true : chkNoHabitTarget.IsChecked, // Streak containers don't need habit targets
@@ -1289,6 +1311,13 @@ public class ActivityCreationPage : ContentPage
             _modalTcs?.TrySetResult(null);
         }
         return base.OnBackButtonPressed();
+    }
+
+    private static int? ParseManualPriority(string? value)
+    {
+        return int.TryParse(value?.Trim(), out int priority) && priority > 0
+            ? priority
+            : null;
     }
 
     private static string GetImagesFolderPath()

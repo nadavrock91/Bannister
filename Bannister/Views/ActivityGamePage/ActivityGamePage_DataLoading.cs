@@ -543,10 +543,37 @@ public partial class ActivityGamePage
         // Apply meta filter (All Activities, Has Multiplier, etc.)
         filtered = ActivityFilterHelper.ApplyMetaFilter(filtered, _currentMetaFilter);
         filtered = ActivityFilterHelper.ApplySorting(filtered, sortPicker?.SelectedItem?.ToString() ?? "Last Used (Recent First)");
+        filtered = ApplyManualPrioritySort(filtered);
         _currentlyVisibleActivities = filtered.ToList();
 
         BuildActivitiesGridWithHeaders(filtered);
         await RefreshPendingActivityIdeaCountAsync();
+    }
+
+    private static List<ActivityGameViewModel> ApplyManualPrioritySort(List<ActivityGameViewModel> activities)
+    {
+        var prioritized = activities
+            .Where(vm => vm.Activity.ManualPriority.HasValue)
+            .OrderBy(vm => vm.Activity.ManualPriority!.Value)
+            .ThenBy(vm => vm.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (prioritized.Count == 0)
+        {
+            return activities;
+        }
+
+        foreach (var vm in prioritized)
+        {
+            vm.SectionHeader = "";
+        }
+
+        var prioritizedIds = prioritized.Select(vm => vm.Id).ToHashSet();
+        var defaultOrdered = activities
+            .Where(vm => !prioritizedIds.Contains(vm.Id))
+            .ToList();
+
+        return prioritized.Concat(defaultOrdered).ToList();
     }
 
     /// <summary>

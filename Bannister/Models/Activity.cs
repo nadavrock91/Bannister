@@ -37,6 +37,9 @@ public class Activity
     // Activity has not been tried in real life yet
     public bool IsToBeTested { get; set; } = false;
 
+    // Optional manual display priority. Lower numbers appear first; null uses default sorting.
+    public int? ManualPriority { get; set; }
+
     // Reward type: "Fixed" (based on MeaningfulUntilLevel) or "PercentOfLevel" (dynamic)
     public string RewardType { get; set; } = "Fixed";
     

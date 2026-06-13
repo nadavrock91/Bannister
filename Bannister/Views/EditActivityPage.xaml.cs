@@ -20,6 +20,7 @@ public partial class EditActivityPage : ContentPage
     private DisplayDaysSelector? _displayDaysSelector = null;
     private CheckBox? _chkExcludeFromNotEveryDaySection = null;
     private CheckBox? _chkIsToBeTested = null;
+    private Entry? _entryManualPriority = null;
     private List<string> _categoryOptions = new();
     private int _previousCategoryIndex = 0;
 
@@ -156,6 +157,10 @@ public partial class EditActivityPage : ContentPage
         {
             _chkIsToBeTested.IsChecked = _activity.IsToBeTested;
         }
+        if (_entryManualPriority != null)
+        {
+            _entryManualPriority.Text = _activity.ManualPriority?.ToString() ?? "";
+        }
 
         // Set image from filename
         _selectedImageFilename = _activity.ImagePath;
@@ -249,6 +254,25 @@ public partial class EditActivityPage : ContentPage
                     FontSize = 12,
                     TextColor = Color.FromArgb("#666"),
                     Margin = new Thickness(38, 0, 0, 0)
+                });
+
+                inlineSection.Children.Add(new Label
+                {
+                    Text = "Manual Priority",
+                    FontAttributes = FontAttributes.Bold,
+                    Margin = new Thickness(0, 10, 0, 0)
+                });
+                _entryManualPriority = new Entry
+                {
+                    Placeholder = "Blank = default order",
+                    Keyboard = Keyboard.Numeric
+                };
+                inlineSection.Children.Add(_entryManualPriority);
+                inlineSection.Children.Add(new Label
+                {
+                    Text = "Activities with a priority show first, lower numbers first (1 = top). Leave blank for default order.",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#666")
                 });
                 mainStack.Children.Insert(scheduleIndex + 2, inlineSection);
             }
@@ -751,6 +775,7 @@ public partial class EditActivityPage : ContentPage
             {
                 _activity.IsToBeTested = _chkIsToBeTested.IsChecked;
             }
+            _activity.ManualPriority = ParseManualPriority(_entryManualPriority?.Text);
 
             await _activities.UpdateActivityAsync(_activity);
 
@@ -780,6 +805,13 @@ public partial class EditActivityPage : ContentPage
     private async void OnCancel(object sender, EventArgs e)
     {
         await Navigation.PopModalAsync();
+    }
+
+    private static int? ParseManualPriority(string? value)
+    {
+        return int.TryParse(value?.Trim(), out int priority) && priority > 0
+            ? priority
+            : null;
     }
 
     private static string GetImagesFolderPath()
