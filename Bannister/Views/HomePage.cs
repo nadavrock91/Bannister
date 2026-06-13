@@ -8,6 +8,8 @@ namespace Bannister.Views;
 
 public class HomePage : ContentPage
 {
+    private sealed record HomeNavButton(string Id, Button SourceButton);
+
     private readonly AuthService _auth;
     private readonly GameService _games;
     private readonly DragonService _dragons;
@@ -84,6 +86,8 @@ public class HomePage : ContentPage
     private Button _btnMoneyManagement;
     private Button _btnLists;
     private Button _btnToBeTested;
+    private VerticalStackLayout _buttonSectionsStack;
+    private List<HomeNavButton> _homeNavButtons = new();
     private Grid _loadingOverlay;
     private Label _loadingOverlayLabel;
 
@@ -311,9 +315,17 @@ public class HomePage : ContentPage
         _btnAudioLibrary.Clicked += OnAudioLibraryClicked;
         navButtons.Add(("Audio Library", _btnAudioLibrary));
 
-        // Sort alphabetically and add to layout
-        foreach (var (_, btn) in navButtons.OrderBy(b => b.sortKey, StringComparer.OrdinalIgnoreCase))
-            mainStack.Children.Add(btn);
+        _homeNavButtons = navButtons
+            .Select(item => new HomeNavButton(item.sortKey, item.btn))
+            .ToList();
+
+        _buttonSectionsStack = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Margin = new Thickness(0, 16, 0, 0)
+        };
+        mainStack.Children.Add(_buttonSectionsStack);
+        RefreshButtonsLayout();
 
         // Logout (always last)
         var btnLogout = CreateButton("Logout", Colors.White, Color.FromArgb("#333333"));
@@ -395,6 +407,206 @@ public class HomePage : ContentPage
             HeightRequest = height,
             FontSize = bold && height > 48 ? 18 : 16,
             FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None
+        };
+    }
+
+    private string GetQuickAccessPreferencesKey() => $"home_quick_access_{_auth.CurrentUsername}";
+
+    private HashSet<string> GetQuickAccessButtons()
+    {
+        string stored = Preferences.Default.Get(GetQuickAccessPreferencesKey(), "");
+        return stored
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void ToggleQuickAccess(string buttonId)
+    {
+        var quickAccess = GetQuickAccessButtons();
+        if (!quickAccess.Add(buttonId))
+        {
+            quickAccess.Remove(buttonId);
+        }
+
+        string stored = string.Join(",", quickAccess.OrderBy(id => id, StringComparer.OrdinalIgnoreCase));
+        Preferences.Default.Set(GetQuickAccessPreferencesKey(), stored);
+        RefreshButtonsLayout();
+    }
+
+    private void RefreshButtonsLayout()
+    {
+        if (_buttonSectionsStack == null || _homeNavButtons.Count == 0)
+        {
+            return;
+        }
+
+        _buttonSectionsStack.Children.Clear();
+        var quickAccess = GetQuickAccessButtons();
+        var sortedButtons = _homeNavButtons
+            .OrderBy(button => button.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        _buttonSectionsStack.Children.Add(CreateButtonSectionHeader("Quick Access"));
+
+        var quickButtons = sortedButtons
+            .Where(button => quickAccess.Contains(button.Id))
+            .ToList();
+
+        if (quickButtons.Count == 0)
+        {
+            _buttonSectionsStack.Children.Add(new Label
+            {
+                Text = "Use the three-dot menu (⋮) on any button below to add it here.",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#E8EAF6"),
+                Margin = new Thickness(0, -4, 0, 8)
+            });
+        }
+        else
+        {
+            foreach (var button in quickButtons)
+            {
+                _buttonSectionsStack.Children.Add(CreateNavButtonWrapper(button, quickAccess.Contains(button.Id)));
+            }
+        }
+
+        _buttonSectionsStack.Children.Add(CreateButtonSectionHeader("All Buttons"));
+
+        foreach (var range in new[] { "A-E", "F-J", "K-O", "P-T", "U-Z" })
+        {
+            var groupButtons = sortedButtons
+                .Where(button => GetButtonRange(button.Id) == range)
+                .ToList();
+
+            if (groupButtons.Count == 0)
+            {
+                continue;
+            }
+
+            _buttonSectionsStack.Children.Add(CreateButtonRangeHeader(range));
+            foreach (var button in groupButtons)
+            {
+                _buttonSectionsStack.Children.Add(CreateNavButtonWrapper(button, quickAccess.Contains(button.Id)));
+            }
+        }
+    }
+
+    private Label CreateButtonSectionHeader(string text)
+    {
+        return new Label
+        {
+            Text = text,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            Margin = new Thickness(0, 10, 0, 2)
+        };
+    }
+
+    private Label CreateButtonRangeHeader(string text)
+    {
+        return new Label
+        {
+            Text = text,
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#E8EAF6"),
+            Margin = new Thickness(2, 8, 0, 0)
+        };
+    }
+
+    private View CreateNavButtonWrapper(HomeNavButton navButton, bool isQuickAccess)
+    {
+        var source = navButton.SourceButton;
+        var button = CreateButton(
+            source.Text,
+            source.BackgroundColor,
+            source.TextColor,
+            (int)source.HeightRequest,
+            source.FontAttributes.HasFlag(FontAttributes.Bold));
+        button.Clicked += GetHomeNavClickedHandler(navButton.Id);
+
+        var menuButton = new Button
+        {
+            Text = "⋮",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            WidthRequest = 34,
+            HeightRequest = 34,
+            Padding = new Thickness(0),
+            CornerRadius = 17,
+            BackgroundColor = Color.FromRgba(255, 255, 255, 210),
+            TextColor = Color.FromArgb("#333333"),
+            HorizontalOptions = LayoutOptions.End,
+            VerticalOptions = LayoutOptions.Start,
+            Margin = new Thickness(0, 7, 7, 0)
+        };
+        menuButton.Clicked += async (_, _) => await ShowQuickAccessMenuAsync(navButton.Id, isQuickAccess);
+
+        var wrapper = new Grid();
+        wrapper.Children.Add(button);
+        wrapper.Children.Add(menuButton);
+        return wrapper;
+    }
+
+    private async Task ShowQuickAccessMenuAsync(string buttonId, bool isQuickAccess)
+    {
+        string option = isQuickAccess ? "Remove from Quick Access" : "Add to Quick Access";
+        string action = await DisplayActionSheet(buttonId, "Cancel", null, option);
+        if (action == option)
+        {
+            ToggleQuickAccess(buttonId);
+        }
+    }
+
+    private string GetButtonRange(string buttonId)
+    {
+        char first = buttonId.FirstOrDefault(c => char.IsLetter(c));
+        if (first == default)
+        {
+            return "U-Z";
+        }
+
+        first = char.ToUpperInvariant(first);
+        if (first <= 'E') return "A-E";
+        if (first <= 'J') return "F-J";
+        if (first <= 'O') return "K-O";
+        if (first <= 'T') return "P-T";
+        return "U-Z";
+    }
+
+    private EventHandler GetHomeNavClickedHandler(string buttonId)
+    {
+        return buttonId switch
+        {
+            "Allowances" => OnAllowancesClicked,
+            "Audio Library" => OnAudioLibraryClicked,
+            "Calendar" => OnCalendarClicked,
+            "Charts" => OnChartsClicked,
+            "Commands Casino" => OnCommandsCasinoClicked,
+            "Conversation Practice" => OnConversationPracticeClicked,
+            "Countdowns" => OnCountdownsClicked,
+            "Databases" => OnDatabasesClicked,
+            "Deadlines" => OnDeadlinesClicked,
+            "Designations" => OnDesignationsClicked,
+            "Dragons" => OnDragonsClicked,
+            "Games" => OnGamesClicked,
+            "Habits" => OnNewHabitsClicked,
+            "Ideas" => OnIdeasClicked,
+            "Image Edit" => OnImageEditClicked,
+            "Image Production" => OnImageProductionClicked,
+            "Learning" => OnLearningClicked,
+            "Lists" => OnListsClicked,
+            "Money Management" => OnMoneyManagementClicked,
+            "Music Production" => OnMusicProductionClicked,
+            "Prompts" => OnPromptsClicked,
+            "Settings" => OnSettingsClicked,
+            "Story Production" => OnStoryProductionClicked,
+            "Streaks" => OnStreaksClicked,
+            "SubActivities" => OnSubActivitiesClicked,
+            "Tasks" => OnTasksClicked,
+            "To Be Tested" => OnToBeTestedClicked,
+            _ => (_, _) => { }
         };
     }
 
@@ -1200,6 +1412,8 @@ public class HomePage : ContentPage
             _btnTasks.BackgroundColor = Color.FromArgb("#E3F2FD");
             _btnTasks.TextColor = Color.FromArgb("#1565C0");
         }
+
+        RefreshButtonsLayout();
     }
 
     private async Task CheckLegacyUnencryptedDbAsync()
