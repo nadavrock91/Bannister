@@ -644,13 +644,7 @@ public class HomePage : ContentPage
             _lblWelcome.Text = $"Welcome, {_auth.CurrentUsername}";
             await LoadDataAsync();
             if (!IsHomePromptRunActive(promptRunId)) return;
-            await ShowDailyLoginPromptsIfNeededAsync(promptRunId);
-            if (!IsHomePromptRunActive(promptRunId)) return;
-            await CheckSubActivityDailyPromptAsync(promptRunId);
-            if (!IsHomePromptRunActive(promptRunId)) return;
-            await CheckAllowanceDailyPromptAsync(promptRunId);
-            if (!IsHomePromptRunActive(promptRunId)) return;
-            await CheckDeadlineCheckInAsync(promptRunId);
+            await ShowHomePromptManagerIfNeededAsync(promptRunId);
             if (!IsHomePromptRunActive(promptRunId)) return;
 
             if (!_introChecked)
@@ -676,24 +670,6 @@ public class HomePage : ContentPage
                     }
                 }
             }
-
-            // Check for expired activities
-            await CheckExpiredActivitiesAsync(promptRunId);
-            if (!IsHomePromptRunActive(promptRunId)) return;
-
-            // Check for missing weekly task commitments (only on Saturday - last chance before week resets)
-            await CheckWeeklyCommitmentsAsync(promptRunId);
-            if (!IsHomePromptRunActive(promptRunId)) return;
-
-            // Check for unfilled daily habit slots (only on Saturday)
-            await CheckDailyHabitAllowanceAsync(promptRunId);
-            if (!IsHomePromptRunActive(promptRunId)) return;
-
-            // Check for unfilled weekly/monthly habit slots (only on the 1st of the month)
-            await CheckWeeklyHabitAllowanceAsync(promptRunId);
-            if (!IsHomePromptRunActive(promptRunId)) return;
-            await CheckMonthlyHabitAllowanceAsync(promptRunId);
-            if (!IsHomePromptRunActive(promptRunId)) return;
 
             // Check if unencrypted legacy database file still exists
             await CheckLegacyUnencryptedDbAsync();
@@ -830,6 +806,343 @@ public class HomePage : ContentPage
     private void HideHomeOverlay()
     {
         _loadingOverlay.IsVisible = false;
+    }
+
+    private async Task ShowHomePromptManagerIfNeededAsync(int promptRunId)
+    {
+        while (IsHomePromptRunActive(promptRunId))
+        {
+            var pendingPrompts = await GetPendingHomePromptDefinitionsAsync(promptRunId);
+            if (pendingPrompts.Count == 0)
+                return;
+
+            var result = await HomePromptManagerPage.ShowAsync(Navigation, pendingPrompts);
+            if (result == null)
+                return;
+
+            if (!IsHomePromptRunActive(promptRunId))
+                return;
+
+            if (result.Action == HomePromptManagerResult.AddressAll)
+            {
+                foreach (var queuedPrompt in pendingPrompts)
+                {
+                    if (!IsHomePromptRunActive(promptRunId))
+                        return;
+
+                    var currentPrompt = (await GetPendingHomePromptDefinitionsAsync(promptRunId))
+                        .FirstOrDefault(p => p.Id == queuedPrompt.Id);
+                    if (currentPrompt == null)
+                        continue;
+
+                    await currentPrompt.AddressAsync();
+                }
+
+                continue;
+            }
+
+            if (result.Action == HomePromptManagerResult.Address && !string.IsNullOrWhiteSpace(result.PromptId))
+            {
+                var currentPrompt = (await GetPendingHomePromptDefinitionsAsync(promptRunId))
+                    .FirstOrDefault(p => p.Id == result.PromptId);
+                if (currentPrompt != null)
+                {
+                    await currentPrompt.AddressAsync();
+                }
+            }
+        }
+    }
+
+    private async Task<List<HomePromptDefinition>> GetPendingHomePromptDefinitionsAsync(int promptRunId)
+    {
+        var definitions = CreateHomePromptDefinitions(promptRunId);
+        var pending = new List<HomePromptDefinition>();
+
+        foreach (var definition in definitions)
+        {
+            try
+            {
+                if (await definition.IsPendingAsync())
+                {
+                    pending.Add(definition);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error checking prompt '{definition.Id}': {ex.Message}");
+            }
+        }
+
+        return pending;
+    }
+
+    private List<HomePromptDefinition> CreateHomePromptDefinitions(int promptRunId)
+    {
+        return new List<HomePromptDefinition>
+        {
+            new(
+                "daily_login",
+                "Daily Login Prompts",
+                "Review your configured daily login reminders.",
+                IsDailyLoginPromptPendingAsync,
+                () => ShowDailyLoginPromptsIfNeededAsync(promptRunId),
+                SkipDailyLoginPromptsTodayAsync),
+            new(
+                "subactivity",
+                "Sub-Activities Check-In",
+                "Check off any sub-activity steps you completed today.",
+                IsSubActivityDailyPromptPendingAsync,
+                () => CheckSubActivityDailyPromptAsync(promptRunId),
+                SkipSubActivityDailyPromptTodayAsync),
+            new(
+                "allowance",
+                "Allowance Check-In",
+                "Review daily allowance items and mark completed work.",
+                IsAllowanceDailyPromptPendingAsync,
+                () => CheckAllowanceDailyPromptAsync(promptRunId),
+                SkipAllowanceDailyPromptTodayAsync),
+            new(
+                "deadline",
+                "Deadline Check-In",
+                "Resolve overdue deadlines that need a completion decision.",
+                IsDeadlineCheckInPendingAsync,
+                () => CheckDeadlineCheckInAsync(promptRunId),
+                SkipDeadlineCheckInTodayAsync),
+            new(
+                "expired",
+                "Expired Activities",
+                "Review activities whose end date has passed.",
+                IsExpiredActivitiesPromptPendingAsync,
+                async () =>
+                {
+                    await CheckExpiredActivitiesAsync(promptRunId);
+                    await SkipExpiredActivitiesPromptTodayAsync();
+                },
+                SkipExpiredActivitiesPromptTodayAsync),
+            new(
+                "weekly_commitments",
+                "Weekly Commitments",
+                "Designate enough focus tasks before the week resets.",
+                IsWeeklyCommitmentsPromptPendingAsync,
+                () => CheckWeeklyCommitmentsAsync(promptRunId),
+                SkipWeeklyCommitmentsPromptTodayAsync),
+            new(
+                "daily_habit_allowance",
+                "Daily Habit Slots",
+                "Fill required daily habit slots before the week resets.",
+                IsDailyHabitAllowancePromptPendingAsync,
+                () => CheckDailyHabitAllowanceAsync(promptRunId),
+                SkipDailyHabitAllowancePromptTodayAsync),
+            new(
+                "weekly_habit_allowance",
+                "Weekly Habit Slots",
+                "Fill required weekly habit slots for the month.",
+                IsWeeklyHabitAllowancePromptPendingAsync,
+                () => CheckWeeklyHabitAllowanceAsync(promptRunId),
+                SkipWeeklyHabitAllowancePromptThisMonthAsync),
+            new(
+                "monthly_habit_allowance",
+                "Monthly Habit Slots",
+                "Fill required monthly habit slots for the month.",
+                IsMonthlyHabitAllowancePromptPendingAsync,
+                () => CheckMonthlyHabitAllowanceAsync(promptRunId),
+                SkipMonthlyHabitAllowancePromptThisMonthAsync)
+        };
+    }
+
+    private async Task<bool> IsDailyLoginPromptPendingAsync()
+    {
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string shownKey = $"daily_login_prompts_shown_{_auth.CurrentUsername}";
+        if (await ReadSecureStorageAsync(shownKey) == today)
+            return false;
+
+        var prompts = await _dailyLoginPrompts.GetPromptsAsync(_auth.CurrentUsername, activeOnly: true);
+        return prompts.Count > 0;
+    }
+
+    private async Task<bool> IsSubActivityDailyPromptPendingAsync()
+    {
+        if (_db.IsReadOnly)
+            return false;
+
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (await ReadSecureStorageAsync($"subactivity_daily_prompt_{_auth.CurrentUsername}") == today)
+            return false;
+
+        var processes = await _subActivityService.GetDailyPromptProcessesAsync(_auth.CurrentUsername);
+        foreach (var process in processes)
+        {
+            var currentProcess = await _subActivityService.GetByIdAsync(process.Id);
+            if (currentProcess == null)
+                continue;
+
+            if (HasPendingSubActivitySteps(currentProcess))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool HasPendingSubActivitySteps(SubActivity process)
+    {
+        var steps = _subActivityService.GetSteps(process);
+        return steps.Any(step => !string.IsNullOrWhiteSpace(step.Name) && !step.Done);
+    }
+
+    private async Task<bool> IsAllowanceDailyPromptPendingAsync()
+    {
+        if (_db.IsReadOnly)
+            return false;
+
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (await ReadSecureStorageAsync($"allowance_daily_prompt_{_auth.CurrentUsername}") == today)
+            return false;
+
+        var allowances = await _allowanceService.GetDailyPromptAllowancesAsync(_auth.CurrentUsername);
+        return allowances.Count > 0;
+    }
+
+    private async Task<bool> IsDeadlineCheckInPendingAsync()
+    {
+        if (_db.IsReadOnly)
+            return false;
+
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (await ReadSecureStorageAsync($"deadlines_checkin_{_auth.CurrentUsername}") == today)
+            return false;
+
+        var overdue = await _deadlineService.GetOverdueActiveDeadlinesAsync(_auth.CurrentUsername);
+        return overdue.Count > 0;
+    }
+
+    private async Task<bool> IsExpiredActivitiesPromptPendingAsync()
+    {
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (await ReadSecureStorageAsync($"expired_activities_prompt_{_auth.CurrentUsername}") == today)
+            return false;
+
+        var expired = await _activities.GetExpiredActivitiesAsync(_auth.CurrentUsername);
+        return expired.Count > 0;
+    }
+
+    private async Task<bool> IsDailyHabitAllowancePromptPendingAsync()
+    {
+        if (DateTime.Today.DayOfWeek != DayOfWeek.Saturday)
+            return false;
+
+        var habitService = Application.Current?.Handler?.MauiContext?.Services
+            .GetService<NewHabitService>();
+        if (habitService == null)
+            return false;
+
+        var (needsAlert, _, _) = await habitService.CheckDailyHabitAlertAsync(_auth.CurrentUsername);
+        if (!needsAlert)
+            return false;
+
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        return await ReadSecureStorageAsync($"daily_habit_allowance_prompt_{_auth.CurrentUsername}") != today;
+    }
+
+    private async Task<bool> IsWeeklyHabitAllowancePromptPendingAsync()
+    {
+        if (DateTime.Today.Day != 1)
+            return false;
+
+        var habitService = Application.Current?.Handler?.MauiContext?.Services
+            .GetService<NewHabitService>();
+        if (habitService == null)
+            return false;
+
+        var (needsAlert, _, _) = await habitService.CheckWeeklyHabitAlertAsync(_auth.CurrentUsername);
+        if (!needsAlert)
+            return false;
+
+        string thisMonth = DateTime.Today.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        return await ReadSecureStorageAsync($"weekly_habit_allowance_prompt_{_auth.CurrentUsername}") != thisMonth;
+    }
+
+    private async Task<bool> IsMonthlyHabitAllowancePromptPendingAsync()
+    {
+        if (DateTime.Today.Day != 1)
+            return false;
+
+        var habitService = Application.Current?.Handler?.MauiContext?.Services
+            .GetService<NewHabitService>();
+        if (habitService == null)
+            return false;
+
+        var (needsAlert, _, _) = await habitService.CheckMonthlyHabitAlertAsync(_auth.CurrentUsername);
+        if (!needsAlert)
+            return false;
+
+        string thisMonth = DateTime.Today.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        return await ReadSecureStorageAsync($"monthly_habit_allowance_prompt_{_auth.CurrentUsername}") != thisMonth;
+    }
+
+    private async Task<bool> IsWeeklyCommitmentsPromptPendingAsync()
+    {
+        if (DateTime.Today.DayOfWeek != DayOfWeek.Saturday)
+            return false;
+
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null)
+            return false;
+
+        var commitments = await _challengeService.GetCurrentWeekCommitmentsAsync(challenge.Id);
+        if (commitments.Count >= challenge.CurrentAllowance)
+            return false;
+
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        return await ReadSecureStorageAsync($"weekly_commitment_prompt_{_auth.CurrentUsername}") != today;
+    }
+
+    private Task SkipDailyLoginPromptsTodayAsync() =>
+        WriteSecureStorageAsync($"daily_login_prompts_shown_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
+    private Task SkipSubActivityDailyPromptTodayAsync() =>
+        WriteSecureStorageAsync($"subactivity_daily_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
+    private Task SkipAllowanceDailyPromptTodayAsync() =>
+        WriteSecureStorageAsync($"allowance_daily_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
+    private Task SkipDeadlineCheckInTodayAsync() =>
+        WriteSecureStorageAsync($"deadlines_checkin_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
+    private Task SkipExpiredActivitiesPromptTodayAsync() =>
+        WriteSecureStorageAsync($"expired_activities_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
+    private Task SkipDailyHabitAllowancePromptTodayAsync() =>
+        WriteSecureStorageAsync($"daily_habit_allowance_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
+    private Task SkipWeeklyCommitmentsPromptTodayAsync() =>
+        WriteSecureStorageAsync($"weekly_commitment_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
+    private Task SkipWeeklyHabitAllowancePromptThisMonthAsync() =>
+        WriteSecureStorageAsync($"weekly_habit_allowance_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM", CultureInfo.InvariantCulture));
+
+    private Task SkipMonthlyHabitAllowancePromptThisMonthAsync() =>
+        WriteSecureStorageAsync($"monthly_habit_allowance_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM", CultureInfo.InvariantCulture));
+
+    private static async Task<string?> ReadSecureStorageAsync(string key)
+    {
+        try
+        {
+            return await SecureStorage.GetAsync(key);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static async Task WriteSecureStorageAsync(string key, string value)
+    {
+        try
+        {
+            await SecureStorage.SetAsync(key, value);
+        }
+        catch { }
     }
 
     private async Task ShowDailyLoginPromptsIfNeededAsync(int promptRunId)
