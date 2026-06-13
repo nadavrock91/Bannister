@@ -54,6 +54,7 @@ public class ActivityCreationPage : ContentPage
     private CheckBox chkStreakTracked;
     private Entry txtStreakTargetDays;
     private CheckBox chkIsPossible;
+    private CheckBox chkIsToBeTested;
     private CheckBox chkShowTimesCompleted;
     private CheckBox chkShowStreakAsDaysSinceStarted;
     private CheckBox chkNoHabitTarget;
@@ -641,6 +642,24 @@ public class ActivityCreationPage : ContentPage
             FontAttributes = FontAttributes.Italic
         });
 
+        var toBeTestedRow = new HorizontalStackLayout { Spacing = 12 };
+        chkIsToBeTested = new CheckBox();
+        toBeTestedRow.Children.Add(chkIsToBeTested);
+        toBeTestedRow.Children.Add(new Label
+        {
+            Text = "To Be Tested",
+            VerticalOptions = LayoutOptions.Center
+        });
+        statusSection.Children.Add(toBeTestedRow);
+
+        statusSection.Children.Add(new Label
+        {
+            Text = "Mark this activity as something you haven't tried in real life yet and want to remember to try.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            FontAttributes = FontAttributes.Italic
+        });
+
         // Show Times Completed Badge
         var timesCompletedRow = new HorizontalStackLayout { Spacing = 12 };
         chkShowTimesCompleted = new CheckBox();
@@ -1189,6 +1208,7 @@ public class ActivityCreationPage : ContentPage
                 StreakTargetDays = isStreakContainer ? streakTargetDays : 365,
                 IsStreakContainer = isStreakContainer,
                 IsPossible = chkIsPossible.IsChecked,
+                IsToBeTested = chkIsToBeTested.IsChecked,
                 ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked,
                 ShowStreakAsDaysSinceStarted = chkShowStreakAsDaysSinceStarted.IsChecked,
                 NoHabitTarget = isStreakContainer ? true : chkNoHabitTarget.IsChecked, // Streak containers don't need habit targets

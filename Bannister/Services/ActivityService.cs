@@ -28,6 +28,43 @@ namespace Bannister.Services
             return result;
         }
 
+        public async Task<List<Activity>> GetToBeTestedActivitiesAsync(string username)
+        {
+            var conn = await _db.GetConnectionAsync();
+            var activities = await conn.Table<Activity>()
+                .Where(x => x.Username == username && x.IsActive && x.IsToBeTested)
+                .ToListAsync();
+            var games = await conn.Table<Game>()
+                .Where(x => x.Username == username)
+                .ToListAsync();
+            var gameNames = games
+                .GroupBy(g => g.GameId, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().DisplayName, StringComparer.OrdinalIgnoreCase);
+
+            return activities
+                .OrderBy(a => gameNames.TryGetValue(a.Game, out string? displayName) ? displayName : a.Game, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        public async Task SetIsToBeTestedAsync(int activityId, bool value)
+        {
+            if (_db.IsReadOnly)
+            {
+                ReadOnlyModeNotifier.ShowBlockedWriteMessage();
+                return;
+            }
+
+            var activity = await GetActivityAsync(activityId);
+            if (activity == null)
+            {
+                return;
+            }
+
+            activity.IsToBeTested = value;
+            await UpdateActivityAsync(activity);
+        }
+
         public async Task<List<Activity>> GetVisibleActivitiesAsync(string username, string game, int currentLevel, bool showAll = false)
         {
             var activities = await GetActivitiesAsync(username, game);

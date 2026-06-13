@@ -19,6 +19,7 @@ public partial class EditActivityPage : ContentPage
     private string? _selectedImageFilename = null;
     private DisplayDaysSelector? _displayDaysSelector = null;
     private CheckBox? _chkExcludeFromNotEveryDaySection = null;
+    private CheckBox? _chkIsToBeTested = null;
     private List<string> _categoryOptions = new();
     private int _previousCategoryIndex = 0;
 
@@ -151,6 +152,10 @@ public partial class EditActivityPage : ContentPage
         {
             _chkExcludeFromNotEveryDaySection.IsChecked = _activity.ExcludeFromNotEveryDaySection;
         }
+        if (_chkIsToBeTested != null)
+        {
+            _chkIsToBeTested.IsChecked = _activity.IsToBeTested;
+        }
 
         // Set image from filename
         _selectedImageFilename = _activity.ImagePath;
@@ -217,6 +222,30 @@ public partial class EditActivityPage : ContentPage
                 inlineSection.Children.Add(new Label
                 {
                     Text = "Don't isolate to the 'Not Daily' section at the top, even on days when this activity normally shows.",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#666"),
+                    Margin = new Thickness(38, 0, 0, 0)
+                });
+
+                _chkIsToBeTested = new CheckBox();
+                inlineSection.Children.Add(new HorizontalStackLayout
+                {
+                    Spacing = 8,
+                    Margin = new Thickness(0, 8, 0, 0),
+                    Children =
+                    {
+                        _chkIsToBeTested,
+                        new Label
+                        {
+                            Text = "To Be Tested",
+                            VerticalOptions = LayoutOptions.Center,
+                            FontAttributes = FontAttributes.Bold
+                        }
+                    }
+                });
+                inlineSection.Children.Add(new Label
+                {
+                    Text = "Mark this activity as something you haven't tried in real life yet and want to remember to try.",
                     FontSize = 12,
                     TextColor = Color.FromArgb("#666"),
                     Margin = new Thickness(38, 0, 0, 0)
@@ -717,6 +746,10 @@ public partial class EditActivityPage : ContentPage
             if (_chkExcludeFromNotEveryDaySection != null)
             {
                 _activity.ExcludeFromNotEveryDaySection = _chkExcludeFromNotEveryDaySection.IsChecked;
+            }
+            if (_chkIsToBeTested != null)
+            {
+                _activity.IsToBeTested = _chkIsToBeTested.IsChecked;
             }
 
             await _activities.UpdateActivityAsync(_activity);

@@ -34,6 +34,9 @@ public class Activity
     // Possible activity - idea for future, not yet active
     public bool IsPossible { get; set; } = false;
 
+    // Activity has not been tried in real life yet
+    public bool IsToBeTested { get; set; } = false;
+
     // Reward type: "Fixed" (based on MeaningfulUntilLevel) or "PercentOfLevel" (dynamic)
     public string RewardType { get; set; } = "Fixed";
     

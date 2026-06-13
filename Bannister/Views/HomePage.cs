@@ -83,6 +83,7 @@ public class HomePage : ContentPage
     private Button _btnAudioLibrary;
     private Button _btnMoneyManagement;
     private Button _btnLists;
+    private Button _btnToBeTested;
     private Grid _loadingOverlay;
     private Label _loadingOverlayLabel;
 
@@ -301,6 +302,10 @@ public class HomePage : ContentPage
         _btnTasks = CreateButton("📋 Tasks", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
         _btnTasks.Clicked += OnTasksClicked;
         navButtons.Add(("Tasks", _btnTasks));
+
+        _btnToBeTested = CreateButton("To Be Tested", Color.FromArgb("#FFF9C4"), Color.FromArgb("#F57C00"));
+        _btnToBeTested.Clicked += OnToBeTestedClicked;
+        navButtons.Add(("To Be Tested", _btnToBeTested));
 
         _btnAudioLibrary = CreateButton("🔊 Audio Library", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
         _btnAudioLibrary.Clicked += OnAudioLibraryClicked;
@@ -1449,6 +1454,12 @@ public class HomePage : ContentPage
     private async void OnTasksClicked(object? sender, EventArgs e)
     {
         var page = new TasksPage(_auth, _taskService, _challengeService, _ideas);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnToBeTestedClicked(object? sender, EventArgs e)
+    {
+        var page = new ToBeTestedPage(_auth, _activities, _games, _exp);
         await Navigation.PushAsync(page);
     }
 
