@@ -11,6 +11,7 @@ namespace Bannister.Views;
 
 public partial class EditActivityPage : ContentPage
 {
+    private const string NewCategoryOption = "+ New Category...";
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
     private readonly StreakService? _streaks;
@@ -107,7 +108,7 @@ public partial class EditActivityPage : ContentPage
         }
         
         // Add "New Category" option at the end
-        categories.Add("➕ New Category...");
+        categories.Add(NewCategoryOption);
         _categoryOptions = categories;
 
         pickerCategory.ItemsSource = categories;
@@ -359,7 +360,7 @@ public partial class EditActivityPage : ContentPage
         
         string selected = _categoryOptions[pickerCategory.SelectedIndex];
         
-        if (selected == "➕ New Category...")
+        if (selected == NewCategoryOption)
         {
             // Prompt for new category name
             string? newCategory = await DisplayPromptAsync(
@@ -599,7 +600,7 @@ public partial class EditActivityPage : ContentPage
         string category = pickerCategory.SelectedItem?.ToString() ?? "Misc";
         
         // Don't allow saving with "New Category" as the category
-        if (category == "➕ New Category...")
+        if (category == NewCategoryOption)
         {
             await DisplayAlert("Invalid Category", "Please select or create a valid category.", "OK");
             return;

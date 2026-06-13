@@ -1009,6 +1009,63 @@ public partial class ActivityGamePage
         await RefreshActivitiesAsync();
     }
 
+    private async Task<bool> HasPreviousEndedAttemptAsync(StreakAttemptViewModel attemptVM)
+    {
+        var attempt = attemptVM.GetAttempt();
+        if (!attempt.IsActive)
+            return false;
+
+        var activity = attemptVM.GetActivity();
+        var previousAttempt = await GetPreviousEndedAttemptAsync(activity, attempt);
+        return previousAttempt != null;
+    }
+
+    private async Task<StreakAttempt?> GetPreviousEndedAttemptAsync(Activity activity, StreakAttempt currentAttempt)
+    {
+        var allAttempts = await _streaks.GetStreakAttemptsAsync(
+            _auth.CurrentUsername,
+            GetActivityGameId(activity),
+            activity.Id);
+
+        return allAttempts
+            .Where(a => !a.IsActive
+                && a.EndedAt.HasValue
+                && a.AttemptNumber < currentAttempt.AttemptNumber)
+            .OrderByDescending(a => a.AttemptNumber)
+            .FirstOrDefault();
+    }
+
+    private async Task DeleteAttemptAndRestartPrevious(StreakAttemptViewModel attemptVM)
+    {
+        if (_db.IsReadOnly)
+        {
+            await DisplayAlert("Read Only", "This device cannot modify streak attempts.", "OK");
+            return;
+        }
+
+        var attempt = attemptVM.GetAttempt();
+        var activity = attemptVM.GetActivity();
+        var previousAttempt = await GetPreviousEndedAttemptAsync(activity, attempt);
+
+        if (previousAttempt == null)
+        {
+            await DisplayAlert("No Previous Attempt", "There is no ended previous attempt to restart.", "OK");
+            return;
+        }
+
+        bool confirm = await DisplayAlert(
+            "Delete and Restart?",
+            "This will delete the current attempt and reactivate the previous attempt as your active streak. Continue?",
+            "Delete and Restart",
+            "Cancel");
+
+        if (!confirm)
+            return;
+
+        await _streaks.DeleteStreakAttemptAsync(attempt.Id);
+        await RefreshActivitiesAsync();
+    }
+
     /// <summary>
     /// Reactivate an ended streak attempt.
     /// </summary>

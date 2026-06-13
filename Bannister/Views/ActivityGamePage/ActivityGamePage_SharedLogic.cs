@@ -121,6 +121,7 @@ public partial class ActivityGamePage
         var options = new List<string>
         {
             "✏️ Edit Activity",
+            "Edit Category",
             $"Set Multiplier (current: x{activity.Multiplier})",
             "Applied X Times (one-time)",
             "Update Streak Values",
@@ -138,6 +139,10 @@ public partial class ActivityGamePage
             {
                 options.Add("✏️ Edit Attempt Days");
                 options.Add("📅 Edit Start Date");
+                if (await HasPreviousEndedAttemptAsync(attemptVM))
+                {
+                    options.Add("Delete This Attempt and Restart Previous");
+                }
             }
             else
             {
@@ -173,6 +178,10 @@ public partial class ActivityGamePage
             var editPage = new EditActivityPage(_auth, _activities, _game!.GameId, activity);
             await Navigation.PushModalAsync(editPage);
             await RefreshActivitiesAsync();
+        }
+        else if (action == "Edit Category")
+        {
+            await HandleEditCategory(activity, activityVM);
         }
         else if (action.StartsWith("Set Multiplier"))
         {
@@ -233,6 +242,10 @@ public partial class ActivityGamePage
         else if ((action == "📅 Edit Start Date" || action == "📅 Edit Date Range") && attemptVM != null)
         {
             await EditAttemptDates(attemptVM);
+        }
+        else if (action == "Delete This Attempt and Restart Previous" && attemptVM != null)
+        {
+            await DeleteAttemptAndRestartPrevious(attemptVM);
         }
         else if (action == "🗑️ Delete This Attempt" && attemptVM != null)
         {
@@ -523,6 +536,63 @@ public partial class ActivityGamePage
         activity.ManualPriority = newPriority;
         await _activities.UpdateActivityAsync(activity);
         activityVM?.UpdateActivity(activity);
+        await RefreshActivitiesAsync();
+    }
+
+    private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? activityVM)
+    {
+        const string newCategoryOption = "+ New Category...";
+
+        var categories = await _activities.GetCategoriesAsync(_auth.CurrentUsername, GetActivityGameId(activity));
+        categories = categories
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        categories.Add(newCategoryOption);
+
+        string selected = await DisplayActionSheet(
+            "Select Category",
+            "Cancel",
+            null,
+            categories.ToArray());
+
+        if (string.IsNullOrEmpty(selected) || selected == "Cancel")
+        {
+            return;
+        }
+
+        string targetCategory;
+        if (selected == newCategoryOption)
+        {
+            string newCategory = await DisplayPromptAsync(
+                "New Category",
+                "Enter a new category name:",
+                "Save",
+                "Cancel");
+
+            if (string.IsNullOrWhiteSpace(newCategory))
+            {
+                return;
+            }
+
+            targetCategory = newCategory.Trim();
+        }
+        else
+        {
+            targetCategory = selected.Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(targetCategory) ||
+            string.Equals(activity.Category, targetCategory, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        activity.Category = targetCategory;
+        await _activities.UpdateActivityAsync(activity);
+        activityVM?.UpdateActivity(activity);
+        await LoadCategoriesAsync();
         await RefreshActivitiesAsync();
     }
 
