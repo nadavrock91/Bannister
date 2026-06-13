@@ -206,11 +206,33 @@ public class CustomGamePlayPage : ContentPage
 
     private async Task EndManuallyAsync()
     {
-        if (_instance == null) return;
-        bool confirm = await DisplayAlert("End Game Now", $"Log final score {_instance.FinalScore}?", "End Game", "Cancel");
-        if (!confirm) return;
-        await _customGames.EndInstanceAsync(_instance.Id);
-        await Navigation.PopAsync();
+        if (_instance == null || _endingPromptOpen) return;
+
+        _endingPromptOpen = true;
+        StopTimer();
+
+        string action = await DisplayActionSheet(
+            "End Game",
+            "Cancel",
+            null,
+            $"End and Log Score ({_instance.FinalScore})",
+            "End Without Logging");
+
+        if (action?.StartsWith("End and Log Score", StringComparison.Ordinal) == true)
+        {
+            await _customGames.EndInstanceAsync(_instance.Id);
+            await Navigation.PopAsync();
+        }
+        else if (action == "End Without Logging")
+        {
+            await _customGames.DeleteInstanceAsync(_instance.Id);
+            await Navigation.PopAsync();
+        }
+        else
+        {
+            _endingPromptOpen = false;
+            StartTimer();
+        }
     }
 
     private void UpdateDisplay()

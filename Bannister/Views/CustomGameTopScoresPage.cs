@@ -94,12 +94,26 @@ public class CustomGameTopScoresPage : ContentPage
         };
         details.SetValue(Grid.ColumnProperty, 1);
 
+        var deleteButton = new Button
+        {
+            Text = "Delete",
+            FontSize = 12,
+            Padding = new Thickness(10, 4),
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 6,
+            VerticalOptions = LayoutOptions.Center
+        };
+        deleteButton.Clicked += async (_, _) => await DeleteScoreAsync(score);
+        deleteButton.SetValue(Grid.ColumnProperty, 2);
+
         var grid = new Grid
         {
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Auto },
-                new ColumnDefinition { Width = GridLength.Star }
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
             },
             ColumnSpacing = 12,
             Children =
@@ -112,7 +126,8 @@ public class CustomGameTopScoresPage : ContentPage
                     TextColor = Color.FromArgb("#512DA8"),
                     VerticalOptions = LayoutOptions.Center
                 },
-                details
+                details,
+                deleteButton
             }
         };
 
@@ -125,6 +140,28 @@ public class CustomGameTopScoresPage : ContentPage
             BackgroundColor = Colors.White,
             Content = grid
         };
+    }
+
+    private async Task DeleteScoreAsync(CustomGameInstance score)
+    {
+        string action = await DisplayActionSheet(
+            $"Score: {score.FinalScore}",
+            "Cancel",
+            null,
+            "Delete");
+        if (action != "Delete")
+        {
+            return;
+        }
+
+        bool confirm = await DisplayAlert("Delete this score?", "This score will be removed from top scores.", "Delete", "Cancel");
+        if (!confirm)
+        {
+            return;
+        }
+
+        await _customGames.DeleteInstanceAsync(score.Id);
+        await LoadAsync();
     }
 
     private static string FormatDuration(TimeSpan duration)
