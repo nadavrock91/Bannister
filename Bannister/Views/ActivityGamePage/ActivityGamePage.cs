@@ -24,6 +24,7 @@ public partial class ActivityGamePage : ContentPage
     private readonly AttemptService _attempts;
     private readonly DatabaseService _db;
     private readonly StreakService _streaks;
+    private readonly StreakGoalService _streakGoals;
     private readonly DailyCheckService _dailyChecks;
     private readonly ActivityGroupingService? _groupingService;
     private readonly PendingActivityIdeaService _pendingIdeas;
@@ -108,7 +109,7 @@ public partial class ActivityGamePage : ContentPage
 
     public ActivityGamePage(AuthService auth, GameService games, ActivityService activities,
         ExpService exp, DragonService dragons, AttemptService attempts, DatabaseService db, StreakService streaks,
-        DailyCheckService dailyChecks, ActivityGroupingService groupingService,
+        StreakGoalService streakGoals, DailyCheckService dailyChecks, ActivityGroupingService groupingService,
         PendingActivityIdeaService pendingIdeas, IdeasService ideas)
     {
         _auth = auth;
@@ -119,6 +120,7 @@ public partial class ActivityGamePage : ContentPage
         _attempts = attempts;
         _db = db;
         _streaks = streaks;
+        _streakGoals = streakGoals;
         _dailyChecks = dailyChecks;
         _groupingService = groupingService;
         _pendingIdeas = pendingIdeas;

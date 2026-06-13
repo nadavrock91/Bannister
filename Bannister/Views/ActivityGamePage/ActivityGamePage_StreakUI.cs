@@ -576,6 +576,9 @@ public partial class ActivityGamePage
         
         var header = BuildStreakContainerHeader(streakContainer, attempts);
         mainStack.Children.Add(header);
+
+        var goalsHeader = await BuildStreakGoalsHeaderAsync(streakContainer, attempts);
+        mainStack.Children.Add(goalsHeader);
         
         if (attempts.Count == 0)
         {
@@ -657,6 +660,204 @@ public partial class ActivityGamePage
             
             columnIndex++;
         }
+    }
+
+    private async Task<View> BuildStreakGoalsHeaderAsync(Activity streakContainer, List<StreakAttempt> attempts)
+    {
+        int currentStreakDays = GetCurrentStreakGoalDays(streakContainer, attempts);
+
+        List<StreakGoal> goals;
+        if (_db.IsReadOnly)
+        {
+            goals = await _streakGoals.GetGoalsForActivityAsync(streakContainer.Id);
+        }
+        else
+        {
+            goals = await _streakGoals.MarkAchievedIfReachedAsync(streakContainer.Id, currentStreakDays);
+        }
+
+        var stack = new VerticalStackLayout
+        {
+            Spacing = 10
+        };
+
+        if (goals.Count == 0)
+        {
+            stack.Children.Add(new Label
+            {
+                Text = "No streak goals yet.",
+                FontSize = 16,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#5D4037")
+            });
+
+            var setFirstButton = new Button
+            {
+                Text = "Set First Goal",
+                BackgroundColor = Color.FromArgb("#FFB300"),
+                TextColor = Colors.White,
+                CornerRadius = 8,
+                HeightRequest = 42
+            };
+            setFirstButton.Clicked += async (_, _) => await PromptAddStreakGoalAsync(streakContainer, null);
+            stack.Children.Add(setFirstButton);
+
+            return WrapStreakGoalsFrame(stack);
+        }
+
+        var firstGoal = goals.First();
+        var latestGoal = goals.Last();
+        int daysSinceStart = Math.Max(0, (DateTime.Today - firstGoal.SetDate.ToLocalTime().Date).Days);
+
+        stack.Children.Add(new Label
+        {
+            Text = $"Started: {firstGoal.SetDate.ToLocalTime():MMM d, yyyy}",
+            FontSize = 17,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#3E2723")
+        });
+        stack.Children.Add(new Label
+        {
+            Text = $"Days since: {daysSinceStart}",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#795548")
+        });
+
+        for (int i = 0; i < goals.Count; i++)
+        {
+            stack.Children.Add(BuildStreakGoalCard(i + 1, goals[i], currentStreakDays));
+        }
+
+        if (latestGoal.AchievedDate.HasValue)
+        {
+            var addGoalButton = new Button
+            {
+                Text = "+ Add New Goal",
+                BackgroundColor = Color.FromArgb("#6D4C41"),
+                TextColor = Colors.White,
+                CornerRadius = 8,
+                HeightRequest = 42
+            };
+            addGoalButton.Clicked += async (_, _) => await PromptAddStreakGoalAsync(streakContainer, latestGoal);
+            stack.Children.Add(addGoalButton);
+        }
+
+        return WrapStreakGoalsFrame(stack);
+    }
+
+    private static int GetCurrentStreakGoalDays(Activity streakContainer, List<StreakAttempt> attempts)
+    {
+        var activeAttempt = attempts
+            .Where(a => a.IsActive)
+            .OrderByDescending(a => a.AttemptNumber)
+            .FirstOrDefault();
+
+        return activeAttempt?.DaysAchieved ?? streakContainer.DisplayDayStreak;
+    }
+
+    private View BuildStreakGoalCard(int goalNumber, StreakGoal goal, int currentStreakDays)
+    {
+        var stack = new VerticalStackLayout
+        {
+            Spacing = 4
+        };
+
+        stack.Children.Add(new Label
+        {
+            Text = $"Goal {goalNumber}: {goal.TargetDays} days",
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222222")
+        });
+        stack.Children.Add(new Label
+        {
+            Text = $"Set: {goal.SetDate.ToLocalTime():MMM d, yyyy}",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666666")
+        });
+
+        if (goal.AchievedDate.HasValue)
+        {
+            int daysTaken = Math.Max(0, (goal.AchievedDate.Value.Date - goal.SetDate.ToLocalTime().Date).Days);
+            stack.Children.Add(new Label
+            {
+                Text = $"Achieved: {goal.AchievedDate.Value:MMM d, yyyy} (took {daysTaken} days)",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#2E7D32")
+            });
+        }
+        else
+        {
+            int daysToGo = goal.TargetDays - currentStreakDays;
+            stack.Children.Add(new Label
+            {
+                Text = daysToGo <= 0 ? "Goal reached!" : $"In progress - {daysToGo} days to go",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#795548")
+            });
+        }
+
+        return new Frame
+        {
+            Padding = 10,
+            CornerRadius = 8,
+            HasShadow = false,
+            BorderColor = Color.FromArgb("#FFE082"),
+            BackgroundColor = Color.FromArgb("#FFFDF5"),
+            Content = stack
+        };
+    }
+
+    private static Frame WrapStreakGoalsFrame(View content)
+    {
+        return new Frame
+        {
+            Padding = 14,
+            CornerRadius = 10,
+            HasShadow = false,
+            BorderColor = Color.FromArgb("#FFCC80"),
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            Margin = new Thickness(0, 12, 0, 8),
+            Content = content
+        };
+    }
+
+    private async Task PromptAddStreakGoalAsync(Activity streakContainer, StreakGoal? previousGoal)
+    {
+        if (_db.IsReadOnly)
+        {
+            await DisplayAlert("Read Only", "Streak goals can only be changed on the master device.", "OK");
+            return;
+        }
+
+        string? result = await DisplayPromptAsync(
+            previousGoal == null ? "Set First Goal" : "Add New Goal",
+            previousGoal == null
+                ? "Enter target streak days."
+                : $"Enter target streak days greater than {previousGoal.TargetDays}.",
+            "Save",
+            "Cancel",
+            keyboard: Keyboard.Numeric);
+
+        if (result == null)
+        {
+            return;
+        }
+
+        if (!int.TryParse(result.Trim(), out int targetDays) || targetDays <= 0)
+        {
+            await DisplayAlert("Invalid Goal", "Enter a positive number of days.", "OK");
+            return;
+        }
+
+        if (previousGoal != null && targetDays <= previousGoal.TargetDays)
+        {
+            await DisplayAlert("Invalid Goal", $"Enter a number greater than {previousGoal.TargetDays}.", "OK");
+            return;
+        }
+
+        await _streakGoals.AddGoalAsync(streakContainer.Id, targetDays);
+        await RefreshActivitiesAsync();
     }
 
     /// <summary>

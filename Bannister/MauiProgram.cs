@@ -57,6 +57,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AttemptService>();
         builder.Services.AddSingleton<BackupService>();
         builder.Services.AddSingleton<StreakService>();
+        builder.Services.AddSingleton<StreakGoalService>();
         builder.Services.AddSingleton<NewHabitService>();
         builder.Services.AddSingleton<CountdownService>();
         builder.Services.AddSingleton<LearningService>();
