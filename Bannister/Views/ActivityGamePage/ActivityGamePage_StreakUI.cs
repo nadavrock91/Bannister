@@ -294,10 +294,12 @@ public partial class ActivityGamePage
         };
         contentStack.Children.Add(attemptLabel);
 
+        const double defaultDaysFontSize = 34;
+        string daysText = attemptVM.DaysWithTargetDisplay;
         var daysLabel = new Label
         {
-            Text = attemptVM.DaysWithTargetDisplay,
-            FontSize = 34,
+            Text = daysText,
+            FontSize = GetStreakAttemptDaysFontSize(daysText, defaultDaysFontSize),
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center,
@@ -422,6 +424,17 @@ public partial class ActivityGamePage
 
         outerFrame.Content = grid;
         return outerFrame;
+    }
+
+    private static double GetStreakAttemptDaysFontSize(string text, double defaultFontSize)
+    {
+        int compactLength = text.Count(c => !char.IsWhiteSpace(c));
+        return compactLength switch
+        {
+            <= 7 => defaultFontSize,
+            <= 9 => defaultFontSize * 0.75,
+            _ => defaultFontSize * 0.6
+        };
     }
 
     /// <summary>
