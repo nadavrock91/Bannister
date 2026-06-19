@@ -89,6 +89,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<OpenAIKeyService>();
         builder.Services.AddSingleton<OpenAIImageService>();
         builder.Services.AddSingleton<OwnerModeService>();
+        builder.Services.AddSingleton<WebsiteProjectService>();
 
 
         // Conversation Practice Module
@@ -130,6 +131,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ImageEditPage>();
         builder.Services.AddTransient<ImageGenerationHubPage>();
         builder.Services.AddTransient<ChatGptImageGenerationPage>();
+        builder.Services.AddTransient<WebsiteBuilderPage>();
 
         // Conversation Practice Pages
         builder.Services.AddTransient<ConversationListPage>();

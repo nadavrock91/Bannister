@@ -48,6 +48,7 @@ public class HomePage : ContentPage
     private readonly OpenAIKeyService _openAIKeyService;
     private readonly OpenAIImageService _openAIImageService;
     private readonly OwnerModeService _ownerMode;
+    private readonly WebsiteProjectService _websiteProjects;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -92,6 +93,7 @@ public class HomePage : ContentPage
     private Button _btnMoneyManagement;
     private Button _btnLists;
     private Button _btnToBeTested;
+    private Button _btnWebsiteBuilder;
     private VerticalStackLayout _buttonSectionsStack;
     private List<HomeNavButton> _allHomeNavButtons = new();
     private List<HomeNavButton> _homeNavButtons = new();
@@ -114,7 +116,7 @@ public class HomePage : ContentPage
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
         AllowanceService allowanceService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
-        OpenAIImageService openAIImageService, OwnerModeService ownerMode)
+        OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects)
     {
         _auth = auth;
         _games = games;
@@ -154,6 +156,7 @@ public class HomePage : ContentPage
         _openAIKeyService = openAIKeyService;
         _openAIImageService = openAIImageService;
         _ownerMode = ownerMode;
+        _websiteProjects = websiteProjects;
         _ownerMode.StateChanged += OnOwnerModeStateChanged;
 
         Title = "Bannister";
@@ -341,6 +344,10 @@ public class HomePage : ContentPage
         _btnAudioLibrary = CreateButton("🔊 Audio Library", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
         _btnAudioLibrary.Clicked += OnAudioLibraryClicked;
         navButtons.Add(("Audio Library", _btnAudioLibrary));
+
+        _btnWebsiteBuilder = CreateButton("Website Builder", Color.FromArgb("#B3E5FC"), Color.FromArgb("#01579B"));
+        _btnWebsiteBuilder.Clicked += OnWebsiteBuilderClicked;
+        navButtons.Add(("Website Builder", _btnWebsiteBuilder));
 
         _allHomeNavButtons = navButtons
             .Select(item => new HomeNavButton(item.sortKey, item.btn))
@@ -769,6 +776,7 @@ public class HomePage : ContentPage
             "SubActivities" => OnSubActivitiesClicked,
             "Tasks" => OnTasksClicked,
             "To Be Tested" => OnToBeTestedClicked,
+            "Website Builder" => OnWebsiteBuilderClicked,
             _ => (_, _) => { }
         };
     }
@@ -2133,6 +2141,12 @@ public class HomePage : ContentPage
     private async void OnListsClicked(object? sender, EventArgs e)
     {
         var page = new ListsPage(_auth, _listsService);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnWebsiteBuilderClicked(object? sender, EventArgs e)
+    {
+        var page = new WebsiteBuilderPage(_auth, _websiteProjects);
         await Navigation.PushAsync(page);
     }
 
