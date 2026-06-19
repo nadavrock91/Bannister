@@ -11,13 +11,11 @@ public class OpenAIImageService
     private const string ImageGenerationUrl = "https://api.openai.com/v1/images/generations";
     private readonly OpenAIKeyService _keyService;
     private readonly HttpClient _apiClient;
-    private readonly HttpClient _downloadClient;
 
     public OpenAIImageService(OpenAIKeyService keyService)
     {
         _keyService = keyService;
         _apiClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-        _downloadClient = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
     }
 
     public async Task<GenerateImageResult> GenerateImageAsync(string prompt)
@@ -36,10 +34,11 @@ public class OpenAIImageService
 
             var requestBody = new
             {
-                model = "dall-e-2",
+                model = "gpt-image-1-mini",
                 prompt = prompt.Trim(),
                 n = 1,
-                size = "1024x1024"
+                size = "1024x1024",
+                quality = "low"
             };
 
             request.Content = new StringContent(
@@ -54,12 +53,12 @@ public class OpenAIImageService
                 return GenerateImageResult.Fail(MapError(response.StatusCode, responseJson));
 
             var parsed = JsonSerializer.Deserialize<ImageGenerationResponse>(responseJson);
-            var imageUrl = parsed?.Data?.FirstOrDefault()?.Url;
-            if (string.IsNullOrWhiteSpace(imageUrl))
-                return GenerateImageResult.Fail("Image generation succeeded, but no image URL was returned.");
+            var b64Json = parsed?.Data?.FirstOrDefault()?.B64Json;
+            if (string.IsNullOrWhiteSpace(b64Json))
+                return GenerateImageResult.Fail("Image generation succeeded, but no image data was returned.");
 
-            var imageBytes = await _downloadClient.GetByteArrayAsync(imageUrl);
-            return GenerateImageResult.Ok(imageUrl, imageBytes);
+            var imageBytes = Convert.FromBase64String(b64Json);
+            return GenerateImageResult.Ok(null, imageBytes);
         }
         catch (TaskCanceledException ex)
         {
@@ -78,6 +77,14 @@ public class OpenAIImageService
     private static string MapError(HttpStatusCode statusCode, string responseJson)
     {
         var apiMessage = TryGetApiErrorMessage(responseJson);
+        var combinedMessage = $"{apiMessage}\n{responseJson}";
+
+        if (combinedMessage.Contains("must be verified to use this model", StringComparison.OrdinalIgnoreCase) ||
+            combinedMessage.Contains("organization must be verified", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Your OpenAI organization must be verified to use GPT Image models. Visit platform.openai.com/settings to complete verification.";
+        }
+
         if (statusCode == HttpStatusCode.Unauthorized)
             return "API key was rejected. Re-configure your key.";
 
@@ -116,8 +123,8 @@ public class OpenAIImageService
 
     private sealed class ImageData
     {
-        [JsonPropertyName("url")]
-        public string? Url { get; set; }
+        [JsonPropertyName("b64_json")]
+        public string? B64Json { get; set; }
     }
 
     private sealed class OpenAIErrorResponse
@@ -139,7 +146,7 @@ public sealed record GenerateImageResult(
     byte[]? ImageBytes,
     string? ErrorMessage)
 {
-    public static GenerateImageResult Ok(string imageUrl, byte[] imageBytes) =>
+    public static GenerateImageResult Ok(string? imageUrl, byte[] imageBytes) =>
         new(true, imageUrl, imageBytes, null);
 
     public static GenerateImageResult Fail(string errorMessage) =>
