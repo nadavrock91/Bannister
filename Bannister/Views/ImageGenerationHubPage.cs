@@ -5,10 +5,12 @@ namespace Bannister.Views;
 public class ImageGenerationHubPage : ContentPage
 {
     private readonly OpenAIKeyService _keyService;
+    private readonly OpenAIImageService _imageService;
 
-    public ImageGenerationHubPage(OpenAIKeyService keyService)
+    public ImageGenerationHubPage(OpenAIKeyService keyService, OpenAIImageService imageService)
     {
         _keyService = keyService;
+        _imageService = imageService;
         Title = "Image Generation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -37,7 +39,7 @@ public class ImageGenerationHubPage : ContentPage
         stack.Children.Add(CreateProviderCard(
             "ChatGPT API",
             "Generate images using OpenAI's image API.",
-            async () => await Navigation.PushAsync(new ChatGptImageGenerationPage(_keyService))));
+            async () => await Navigation.PushAsync(new ChatGptImageGenerationPage(_keyService, _imageService))));
 
         Content = new ScrollView { Content = stack };
     }

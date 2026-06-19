@@ -5,15 +5,22 @@ namespace Bannister.Views;
 public class ChatGptImageGenerationPage : ContentPage
 {
     private readonly OpenAIKeyService _keyService;
+    private readonly OpenAIImageService _imageService;
     private readonly Editor _promptEditor;
     private readonly Label _keyStatusLabel;
     private readonly Label _keySourceLabel;
     private readonly Button _configureKeyButton;
     private readonly Button _clearKeyButton;
+    private readonly Button _generateButton;
+    private readonly ActivityIndicator _generationIndicator;
+    private readonly Label _generationStatusLabel;
+    private readonly Image _generatedImage;
+    private bool _isGenerating;
 
-    public ChatGptImageGenerationPage(OpenAIKeyService keyService)
+    public ChatGptImageGenerationPage(OpenAIKeyService keyService, OpenAIImageService imageService)
     {
         _keyService = keyService;
+        _imageService = imageService;
         Title = "ChatGPT Image Generation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -63,7 +70,7 @@ public class ChatGptImageGenerationPage : ContentPage
             FontSize = 15
         };
 
-        var generateButton = new Button
+        _generateButton = new Button
         {
             Text = "Generate Image",
             BackgroundColor = Color.FromArgb("#C2185B"),
@@ -71,8 +78,31 @@ public class ChatGptImageGenerationPage : ContentPage
             CornerRadius = 8,
             HeightRequest = 48
         };
-        generateButton.Clicked += async (_, _) =>
-            await DisplayAlert("Not yet implemented", "Image generation will be wired in a future pass.", "OK");
+        _generateButton.Clicked += async (_, _) => await GenerateImageAsync();
+
+        _generationIndicator = new ActivityIndicator
+        {
+            IsRunning = false,
+            IsVisible = false,
+            Color = Color.FromArgb("#C2185B"),
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        _generationStatusLabel = new Label
+        {
+            Text = "",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#555"),
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+
+        _generatedImage = new Image
+        {
+            IsVisible = false,
+            HeightRequest = 400,
+            Aspect = Aspect.AspectFit,
+            BackgroundColor = Colors.White
+        };
 
         Content = new ScrollView
         {
@@ -105,7 +135,10 @@ public class ChatGptImageGenerationPage : ContentPage
                         TextColor = Color.FromArgb("#333")
                     },
                     _promptEditor,
-                    generateButton
+                    _generateButton,
+                    _generationIndicator,
+                    _generationStatusLabel,
+                    _generatedImage
                 }
             }
         };
@@ -237,5 +270,96 @@ public class ChatGptImageGenerationPage : ContentPage
 
         await _keyService.ClearAsync();
         await RefreshKeyStatusAsync();
+    }
+
+    private async Task GenerateImageAsync()
+    {
+        if (_isGenerating)
+            return;
+
+        if (!await _keyService.IsKeyConfiguredAsync())
+        {
+            await DisplayAlert("API key required", "Configure API key first.", "OK");
+            return;
+        }
+
+        var prompt = _promptEditor.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            await DisplayAlert("Prompt required", "Enter a prompt first.", "OK");
+            return;
+        }
+
+        try
+        {
+            SetGeneratingState(true, "Generating image...");
+
+            var result = await _imageService.GenerateImageAsync(prompt);
+            if (!result.Success || result.ImageBytes == null)
+            {
+                await DisplayAlert("Image generation failed", result.ErrorMessage ?? "Image generation failed.", "OK");
+                return;
+            }
+
+            var filename = $"bannister_dalle_{DateTime.Now:yyyy-MM-dd}_{DateTime.Now:HH-mm-ss}.png";
+            var saveResult = await SaveImageToDownloadsAsync(result.ImageBytes, filename);
+
+            _generatedImage.Source = ImageSource.FromStream(() => new MemoryStream(result.ImageBytes));
+            _generatedImage.IsVisible = true;
+            _generationStatusLabel.Text = saveResult.SavedToDownloads
+                ? $"Saved to: {saveResult.Path}"
+                : $"Saved to app storage (couldn't access Downloads): {saveResult.Path}";
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Image generation failed", $"Image generation failed: {ex.Message}", "OK");
+        }
+        finally
+        {
+            SetGeneratingState(false);
+        }
+    }
+
+    private void SetGeneratingState(bool isGenerating, string status = "")
+    {
+        _isGenerating = isGenerating;
+        _generateButton.IsEnabled = !isGenerating;
+        _configureKeyButton.IsEnabled = !isGenerating;
+        _clearKeyButton.IsEnabled = !isGenerating;
+        _generationIndicator.IsVisible = isGenerating;
+        _generationIndicator.IsRunning = isGenerating;
+        if (!string.IsNullOrWhiteSpace(status))
+            _generationStatusLabel.Text = status;
+    }
+
+    private static async Task<(string Path, bool SavedToDownloads)> SaveImageToDownloadsAsync(byte[] imageBytes, string filename)
+    {
+        try
+        {
+            var downloadsPath = GetDownloadsFolderPath();
+            Directory.CreateDirectory(downloadsPath);
+            var outputPath = Path.Combine(downloadsPath, filename);
+            await File.WriteAllBytesAsync(outputPath, imageBytes);
+            return (outputPath, true);
+        }
+        catch
+        {
+            var fallbackPath = Path.Combine(FileSystem.AppDataDirectory, filename);
+            await File.WriteAllBytesAsync(fallbackPath, imageBytes);
+            return (fallbackPath, false);
+        }
+    }
+
+    private static string GetDownloadsFolderPath()
+    {
+#if ANDROID
+        var downloads = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryDownloads);
+        return downloads?.AbsolutePath ?? FileSystem.AppDataDirectory;
+#else
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return string.IsNullOrWhiteSpace(userProfile)
+            ? FileSystem.AppDataDirectory
+            : Path.Combine(userProfile, "Downloads");
+#endif
     }
 }
