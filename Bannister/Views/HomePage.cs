@@ -45,6 +45,7 @@ public class HomePage : ContentPage
     private readonly CustomGameService _customGames;
     private readonly OperationApplierService _applier;
     private readonly PendingActivityIdeaService _pendingIdeas;
+    private readonly OpenAIKeyService _openAIKeyService;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -104,7 +105,7 @@ public class HomePage : ContentPage
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
-        AllowanceService allowanceService, CustomGameService customGames)
+        AllowanceService allowanceService, CustomGameService customGames, OpenAIKeyService openAIKeyService)
     {
         _auth = auth;
         _games = games;
@@ -141,6 +142,7 @@ public class HomePage : ContentPage
         _deadlineService = deadlineService;
         _allowanceService = allowanceService;
         _customGames = customGames;
+        _openAIKeyService = openAIKeyService;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -1886,7 +1888,7 @@ public class HomePage : ContentPage
 
     private async void OnImageGenerationClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new ImageGenerationHubPage());
+        await Navigation.PushAsync(new ImageGenerationHubPage(_openAIKeyService));
     }
 
     private async void OnCalendarClicked(object? sender, EventArgs e)

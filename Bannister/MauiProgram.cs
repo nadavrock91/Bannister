@@ -86,6 +86,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AllowanceService>();
         builder.Services.AddSingleton<ListsService>();
         builder.Services.AddSingleton<CustomGameService>();
+        builder.Services.AddSingleton<OpenAIKeyService>();
 
 
         // Conversation Practice Module
