@@ -125,6 +125,8 @@ public static class MauiProgram
         builder.Services.AddTransient<MusicProductionHubPage>();
         builder.Services.AddTransient<MusicForStoriesPage>();
         builder.Services.AddTransient<ImageEditPage>();
+        builder.Services.AddTransient<ImageGenerationHubPage>();
+        builder.Services.AddTransient<ChatGptImageGenerationPage>();
 
         // Conversation Practice Pages
         builder.Services.AddTransient<ConversationListPage>();

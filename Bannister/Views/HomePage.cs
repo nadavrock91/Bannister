@@ -70,6 +70,7 @@ public class HomePage : ContentPage
     private Button _btnPrompts;
     private Button _btnIdeas;
     private Button _btnImageEdit;
+    private Button _btnImageGeneration;
     private Button _btnStoryProduction;
     private Button _btnMusicProduction;
     private Button _btnImageProduction;
@@ -273,6 +274,10 @@ public class HomePage : ContentPage
         _btnImageEdit = CreateButton("Image Edit", Color.FromArgb("#E0F7FA"), Color.FromArgb("#006064"));
         _btnImageEdit.Clicked += OnImageEditClicked;
         navButtons.Add(("Image Edit", _btnImageEdit));
+
+        _btnImageGeneration = CreateButton("Image Generation", Color.FromArgb("#F8BBD0"), Color.FromArgb("#C2185B"));
+        _btnImageGeneration.Clicked += OnImageGenerationClicked;
+        navButtons.Add(("Image Generation", _btnImageGeneration));
 
         _btnLearning = CreateButton("📚 Learning (Books & Videos)", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C2185B"));
         _btnLearning.Clicked += OnLearningClicked;
@@ -602,6 +607,7 @@ public class HomePage : ContentPage
             "Habits" => OnNewHabitsClicked,
             "Ideas" => OnIdeasClicked,
             "Image Edit" => OnImageEditClicked,
+            "Image Generation" => OnImageGenerationClicked,
             "Image Production" => OnImageProductionClicked,
             "Learning" => OnLearningClicked,
             "Lists" => OnListsClicked,
@@ -1876,6 +1882,11 @@ public class HomePage : ContentPage
     private async void OnImageEditClicked(object? sender, EventArgs e)
     {
         await Navigation.PushAsync(new ImageEditPage());
+    }
+
+    private async void OnImageGenerationClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new ImageGenerationHubPage());
     }
 
     private async void OnCalendarClicked(object? sender, EventArgs e)

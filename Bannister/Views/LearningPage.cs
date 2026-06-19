@@ -22,6 +22,9 @@ public class FocusSettings
     public DateTime? LastCompletedDate { get; set; }
     public DateTime? StreakStartDate { get; set; }
     public int CreatorMonthlyLimit { get; set; } = 10;  // max videos per creator per month
+    public int CreatorThreeMonthLimit { get; set; } = 20;
+    public int CreatorSixMonthLimit { get; set; } = 30;
+    public int CreatorYearlyLimit { get; set; } = 50;
 }
 
 /// <summary>
@@ -62,6 +65,18 @@ public class LearningPage : ContentPage
     private Dictionary<string, int> _creatorMonthlyCounts = new();
     private HashSet<string> _lockedCreators = new();
     private FocusSettings _currentFocus;
+
+    private sealed class CreatorLimitStatus
+    {
+        public int MonthlyCount { get; set; }
+        public int ThreeMonthCount { get; set; }
+        public int SixMonthCount { get; set; }
+        public int YearlyCount { get; set; }
+        public string? LockedWindow { get; set; }
+        public int LockedCount { get; set; }
+        public int LockedLimit { get; set; }
+        public bool IsLocked => LockedWindow != null;
+    }
     
     // Focus system UI
     private Frame _videoFocusFrame;
@@ -970,7 +985,7 @@ public class LearningPage : ContentPage
             await UpdateFilterPickersAsync(allVideos);
         }
         
-        // Get locked creators (those at monthly limit in focus category)
+        // Get locked creators (those at any creator rotation limit in focus category)
         _lockedCreators = (await GetLockedCreatorsAsync()).ToHashSet();
         
         // Calculate creator monthly watch counts for display (in focus category only)
@@ -1056,7 +1071,7 @@ public class LearningPage : ContentPage
             string message = allVideos.Count == 0
                 ? "No videos added yet.\nTap '+ Add Video' or '📋 Import Links' to start!"
                 : _selectedStatus == "Locked" 
-                    ? "No locked creators.\nCreators get locked when you watch " + _currentFocus.CreatorMonthlyLimit + " videos from them this month."
+                    ? "No locked creators.\nCreators get locked when any creator rotation limit is reached."
                     : "No videos match the current filters.";
                 
             _videosStack.Children.Add(new Label
@@ -1083,7 +1098,7 @@ public class LearningPage : ContentPage
                 Margin = new Thickness(0, 0, 0, 8),
                 Content = new Label
                 {
-                    Text = $"🔒 {_lockedCreators.Count} creator(s) locked this month (select 'Locked' filter to view)",
+                    Text = $"🔒 {_lockedCreators.Count} creator(s) locked by rotation limits (select 'Locked' filter to view)",
                     FontSize = 11,
                     TextColor = Color.FromArgb("#C62828")
                 }
@@ -1571,18 +1586,17 @@ public class LearningPage : ContentPage
         if (!await CheckVideoFocusAllowedAsync(video.Category ?? "Unsorted"))
             return;
         
-        // Check creator monthly limit (only in focus category)
+        // Check creator rotation limits (only in focus category)
         var focus = GetVideoFocusSettings();
         if (focus.IsActive && (video.Category ?? "Unsorted") == focus.Category)
         {
-            int count = await GetCreatorMonthlyWatchCountAsync(video.Creator, focus.Category);
-            if (count >= focus.CreatorMonthlyLimit)
+            var limitStatus = await GetCreatorLimitStatusAsync(video.Creator, focus.Category);
+            if (limitStatus.IsLocked)
             {
                 await DisplayAlert(
                     "🔒 Creator Locked",
-                    $"You've watched {count} videos from '{video.Creator}' in '{focus.Category}' this month.\n\n" +
-                    $"Monthly limit: {focus.CreatorMonthlyLimit}\n\n" +
-                    "This creator is locked until next month.",
+                    $"You've watched {limitStatus.LockedCount} videos from '{video.Creator}' in '{focus.Category}' for the {limitStatus.LockedWindow} window.\n\n" +
+                    $"{GetCreatorLimitSummary(limitStatus, focus)}",
                     "OK");
                 return;
             }
@@ -3083,14 +3097,20 @@ public class LearningPage : ContentPage
             : "🎯 Set Focus Mode";
         
         string creatorLimitOption = $"👤 Creator Monthly Limit: {focus.CreatorMonthlyLimit}";
+        string creatorThreeMonthLimitOption = $"👤 Creator 3-Month Limit: {focus.CreatorThreeMonthLimit}";
+        string creatorSixMonthLimitOption = $"👤 Creator 6-Month Limit: {focus.CreatorSixMonthLimit}";
+        string creatorYearlyLimitOption = $"👤 Creator 1-Year Limit: {focus.CreatorYearlyLimit}";
         
         var result = await DisplayActionSheet(
             "⚙️ Video Settings",
             "Done",
             null,
             focusOption,
-            "📊 Creator Stats This Month",
+            "📊 Creator Rotation Stats",
             creatorLimitOption,
+            creatorThreeMonthLimitOption,
+            creatorSixMonthLimitOption,
+            creatorYearlyLimitOption,
             "📁 Manage Categories",
             "🔗 Channel → Category Mappings",
             "🔄 Reset Filters");
@@ -3101,13 +3121,45 @@ public class LearningPage : ContentPage
         {
             await SetupVideoFocusAsync();
         }
-        else if (result == "📊 Creator Stats This Month")
+        else if (result == "📊 Creator Rotation Stats")
         {
             await ShowCreatorMonthlyStatsAsync();
         }
         else if (result == creatorLimitOption)
         {
-            await SetCreatorMonthlyLimitAsync();
+            await SetCreatorLimitAsync(
+                "Creator Monthly Limit",
+                "Max videos to watch per creator per calendar month:",
+                focus.CreatorMonthlyLimit,
+                (settings, limit) => { settings.CreatorMonthlyLimit = limit; return settings; },
+                "month");
+        }
+        else if (result == creatorThreeMonthLimitOption)
+        {
+            await SetCreatorLimitAsync(
+                "Creator 3-Month Limit",
+                "Max videos to watch per creator over the last 90 days:",
+                focus.CreatorThreeMonthLimit,
+                (settings, limit) => { settings.CreatorThreeMonthLimit = limit; return settings; },
+                "3 months");
+        }
+        else if (result == creatorSixMonthLimitOption)
+        {
+            await SetCreatorLimitAsync(
+                "Creator 6-Month Limit",
+                "Max videos to watch per creator over the last 180 days:",
+                focus.CreatorSixMonthLimit,
+                (settings, limit) => { settings.CreatorSixMonthLimit = limit; return settings; },
+                "6 months");
+        }
+        else if (result == creatorYearlyLimitOption)
+        {
+            await SetCreatorLimitAsync(
+                "Creator 1-Year Limit",
+                "Max videos to watch per creator over the last 365 days:",
+                focus.CreatorYearlyLimit,
+                (settings, limit) => { settings.CreatorYearlyLimit = limit; return settings; },
+                "year");
         }
         else if (result == "📁 Manage Categories")
         {
@@ -3321,23 +3373,23 @@ public class LearningPage : ContentPage
         
         var videos = await _learning.GetVideosAsync(_auth.CurrentUsername);
         
-        // Get start of current month
-        var monthStart = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-        
-        // Count completed videos per creator this month IN FOCUS CATEGORY
-        var creatorCounts = videos
-            .Where(v => v.Status == "Completed" && 
-                       v.CompletedAt >= monthStart &&
+        // Count completed videos per creator in focus category across all rotation windows.
+        var focusVideos = videos
+            .Where(v => v.Status == "Completed" &&
+                       v.CompletedAt.HasValue &&
                        (v.Category ?? "Unsorted") == focus.Category)
+            .ToList();
+
+        var creatorCounts = focusVideos
             .GroupBy(v => v.Creator ?? "Unknown")
-            .Select(g => new { Creator = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
+            .Select(g => new { Creator = g.Key, Status = CalculateCreatorLimitStatus(focusVideos, g.Key, focus.Category, focus) })
+            .OrderByDescending(x => x.Status.YearlyCount)
             .ThenBy(x => x.Creator)
             .ToList();
         
         if (creatorCounts.Count == 0)
         {
-            await DisplayAlert("Creator Counts", "No videos completed in focus category this month.", "OK");
+            await DisplayAlert("Creator Counts", "No videos completed in focus category.", "OK");
             return;
         }
         
@@ -3357,7 +3409,7 @@ public class LearningPage : ContentPage
         
         contentStack.Children.Add(new Label
         {
-            Text = $"Focus: {focus.Category} - Monthly limit: {focus.CreatorMonthlyLimit}",
+            Text = $"Focus: {focus.Category} - Limits: {focus.CreatorMonthlyLimit}/{focus.CreatorThreeMonthLimit}/{focus.CreatorSixMonthLimit}/{focus.CreatorYearlyLimit}",
             FontSize = 12,
             TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
@@ -3370,8 +3422,12 @@ public class LearningPage : ContentPage
         
         foreach (var item in creatorCounts)
         {
-            bool atLimit = item.Count >= focus.CreatorMonthlyLimit;
-            bool nearLimit = !atLimit && item.Count >= Math.Ceiling(focus.CreatorMonthlyLimit * 0.8);
+            bool atLimit = item.Status.IsLocked;
+            bool nearLimit = !atLimit &&
+                (item.Status.MonthlyCount >= Math.Ceiling(focus.CreatorMonthlyLimit * 0.8) ||
+                 item.Status.ThreeMonthCount >= Math.Ceiling(focus.CreatorThreeMonthLimit * 0.8) ||
+                 item.Status.SixMonthCount >= Math.Ceiling(focus.CreatorSixMonthLimit * 0.8) ||
+                 item.Status.YearlyCount >= Math.Ceiling(focus.CreatorYearlyLimit * 0.8));
             var rowColor = atLimit
                 ? Color.FromArgb("#D32F2F")
                 : nearLimit
@@ -3397,7 +3453,7 @@ public class LearningPage : ContentPage
             
             row.Children.Add(new Label
             {
-                Text = $"{item.Count}/{focus.CreatorMonthlyLimit}",
+                Text = $"M {item.Status.MonthlyCount}/{focus.CreatorMonthlyLimit} | 3M {item.Status.ThreeMonthCount}/{focus.CreatorThreeMonthLimit} | 6M {item.Status.SixMonthCount}/{focus.CreatorSixMonthLimit} | 1Y {item.Status.YearlyCount}/{focus.CreatorYearlyLimit}",
                 FontSize = 12,
                 VerticalOptions = LayoutOptions.Center,
                 TextColor = rowColor
@@ -3445,25 +3501,28 @@ public class LearningPage : ContentPage
     }
 
     /// <summary>
-    /// Set the monthly limit for watching videos from the same creator
+    /// Set one of the creator rotation limits.
     /// </summary>
-    private async Task SetCreatorMonthlyLimitAsync()
+    private async Task SetCreatorLimitAsync(
+        string title,
+        string message,
+        int currentValue,
+        Func<FocusSettings, int, FocusSettings> applyLimit,
+        string savedWindowLabel)
     {
-        var focus = GetVideoFocusSettings();
-        
         string? result = await DisplayPromptAsync(
-            "Creator Monthly Limit",
-            "Max videos to watch per creator per month:",
-            initialValue: focus.CreatorMonthlyLimit.ToString(),
+            title,
+            message,
+            initialValue: currentValue.ToString(),
             keyboard: Keyboard.Numeric);
-        
+
         if (string.IsNullOrEmpty(result)) return;
-        
+
         if (int.TryParse(result, out int limit) && limit > 0)
         {
-            focus.CreatorMonthlyLimit = limit;
+            var focus = applyLimit(GetVideoFocusSettings(), limit);
             SaveVideoFocusSettings(focus);
-            await DisplayAlert("Saved", $"Creator limit set to {limit} videos per month.", "OK");
+            await DisplayAlert("Saved", $"Creator limit set to {limit} videos per {savedWindowLabel}.", "OK");
         }
         else
         {
@@ -3472,40 +3531,21 @@ public class LearningPage : ContentPage
     }
 
     /// <summary>
-    /// Get watch count for a creator this month within a specific category
+    /// Get watch count for a creator this month within a specific category.
     /// </summary>
     private async Task<int> GetCreatorMonthlyWatchCountAsync(string? creator, string? category = null)
     {
-        if (string.IsNullOrEmpty(creator)) return 0;
-        
-        var videos = await _learning.GetVideosAsync(_auth.CurrentUsername);
-        var monthStart = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-        
-        var query = videos.Where(v => 
-            v.Creator == creator && 
-            v.Status == "Completed" && 
-            v.CompletedAt >= monthStart);
-        
-        // If category specified, filter by it
-        if (!string.IsNullOrEmpty(category))
-        {
-            query = query.Where(v => (v.Category ?? "Unsorted") == category);
-        }
-        
-        return query.Count();
+        var status = await GetCreatorLimitStatusAsync(creator, category);
+        return status.MonthlyCount;
     }
 
     /// <summary>
-    /// Check if creator has reached monthly limit in focus category
+    /// Check if creator has reached any active creator rotation limit in focus category.
     /// </summary>
     private async Task<bool> CheckCreatorLimitAsync(string? creator, string? category = null)
     {
-        if (string.IsNullOrEmpty(creator)) return false;
-        
-        var focus = GetVideoFocusSettings();
-        int count = await GetCreatorMonthlyWatchCountAsync(creator, category);
-        
-        return count >= focus.CreatorMonthlyLimit;
+        var status = await GetCreatorLimitStatusAsync(creator, category);
+        return status.IsLocked;
     }
 
     private async Task<bool> EnsureCanSetVideoPendingAsync(LearningVideo video)
@@ -3521,23 +3561,24 @@ public class LearningPage : ContentPage
         if (!focus.IsActive || normalizedCategory != focus.Category)
             return true;
 
-        if (!await CheckCreatorLimitAsync(creator, focus.Category))
+        var limitStatus = await GetCreatorLimitStatusAsync(creator, focus.Category);
+        if (!limitStatus.IsLocked)
             return true;
-
-        var count = await GetCreatorMonthlyWatchCountAsync(creator, focus.Category);
         string fallbackMessage = fallbackToWatchOnAdd
             ? "\n\nThe video will be added to To Watch instead."
             : "";
 
         await DisplayAlert(
             "Channel Locked",
-            $"This channel has reached its monthly watch limit and is locked. You cannot set its videos to pending.{fallbackMessage}\n\nChannel: {creator ?? "Unknown"}\nMonthly limit: {focus.CreatorMonthlyLimit}\nWatched this month: {count}",
+            $"This channel has reached its {limitStatus.LockedWindow} watch limit and is locked. You cannot set its videos to pending.{fallbackMessage}\n\n" +
+            $"Channel: {creator ?? "Unknown"}\n" +
+            $"{GetCreatorLimitSummary(limitStatus, focus)}",
             "OK");
         return false;
     }
     
     /// <summary>
-    /// Get set of locked creators (at monthly limit) for the focus category
+    /// Get set of locked creators (at any creator rotation limit) for the focus category
     /// </summary>
     private async Task<HashSet<string>> GetLockedCreatorsAsync()
     {
@@ -3545,19 +3586,98 @@ public class LearningPage : ContentPage
         if (!focus.IsActive) return new HashSet<string>();
         
         var videos = await _learning.GetVideosAsync(_auth.CurrentUsername);
-        var monthStart = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-        
-        // Count videos per creator in focus category this month
-        var creatorCounts = videos
-            .Where(v => v.Status == "Completed" && 
-                       v.CompletedAt >= monthStart &&
+        var lockedCreators = videos
+            .Where(v => v.Status == "Completed" &&
+                       v.CompletedAt.HasValue &&
                        (v.Category ?? "Unsorted") == focus.Category)
             .GroupBy(v => v.Creator ?? "Unknown")
-            .Where(g => g.Count() >= focus.CreatorMonthlyLimit)
+            .Where(g => CalculateCreatorLimitStatus(g, g.Key, focus.Category, focus).IsLocked)
             .Select(g => g.Key)
             .ToHashSet();
         
-        return creatorCounts;
+        return lockedCreators;
+    }
+
+    private async Task<CreatorLimitStatus> GetCreatorLimitStatusAsync(string? creator, string? category = null)
+    {
+        var focus = GetVideoFocusSettings();
+        var videos = await _learning.GetVideosAsync(_auth.CurrentUsername);
+        return CalculateCreatorLimitStatus(videos, creator, category, focus);
+    }
+
+    private CreatorLimitStatus CalculateCreatorLimitStatus(
+        IEnumerable<LearningVideo> videos,
+        string? creator,
+        string? category,
+        FocusSettings focus)
+    {
+        var status = new CreatorLimitStatus();
+        if (string.IsNullOrEmpty(creator))
+            return status;
+
+        var normalizedCategory = category ?? "Unsorted";
+        var now = DateTime.Now;
+        var monthStart = new DateTime(now.Year, now.Month, 1);
+        var threeMonthStart = DateTime.Today.AddDays(-90);
+        var sixMonthStart = DateTime.Today.AddDays(-180);
+        var yearlyStart = DateTime.Today.AddDays(-365);
+
+        foreach (var video in videos)
+        {
+            if (video.Status != "Completed" ||
+                !video.CompletedAt.HasValue ||
+                (video.Creator ?? "Unknown") != creator ||
+                (!string.IsNullOrEmpty(category) && (video.Category ?? "Unsorted") != normalizedCategory))
+            {
+                continue;
+            }
+
+            var completedAt = video.CompletedAt.Value;
+            if (completedAt >= monthStart)
+                status.MonthlyCount++;
+            if (completedAt.Date >= threeMonthStart)
+                status.ThreeMonthCount++;
+            if (completedAt.Date >= sixMonthStart)
+                status.SixMonthCount++;
+            if (completedAt.Date >= yearlyStart)
+                status.YearlyCount++;
+        }
+
+        if (status.MonthlyCount >= focus.CreatorMonthlyLimit)
+        {
+            status.LockedWindow = "monthly";
+            status.LockedCount = status.MonthlyCount;
+            status.LockedLimit = focus.CreatorMonthlyLimit;
+        }
+        else if (status.ThreeMonthCount >= focus.CreatorThreeMonthLimit)
+        {
+            status.LockedWindow = "3-month";
+            status.LockedCount = status.ThreeMonthCount;
+            status.LockedLimit = focus.CreatorThreeMonthLimit;
+        }
+        else if (status.SixMonthCount >= focus.CreatorSixMonthLimit)
+        {
+            status.LockedWindow = "6-month";
+            status.LockedCount = status.SixMonthCount;
+            status.LockedLimit = focus.CreatorSixMonthLimit;
+        }
+        else if (status.YearlyCount >= focus.CreatorYearlyLimit)
+        {
+            status.LockedWindow = "1-year";
+            status.LockedCount = status.YearlyCount;
+            status.LockedLimit = focus.CreatorYearlyLimit;
+        }
+
+        return status;
+    }
+
+    private static string GetCreatorLimitSummary(CreatorLimitStatus status, FocusSettings focus)
+    {
+        return
+            $"Monthly: {status.MonthlyCount}/{focus.CreatorMonthlyLimit}\n" +
+            $"3-month: {status.ThreeMonthCount}/{focus.CreatorThreeMonthLimit}\n" +
+            $"6-month: {status.SixMonthCount}/{focus.CreatorSixMonthLimit}\n" +
+            $"1-year: {status.YearlyCount}/{focus.CreatorYearlyLimit}";
     }
 
     #endregion
