@@ -6,11 +6,14 @@ public class ImageGenerationHubPage : ContentPage
 {
     private readonly OpenAIKeyService _keyService;
     private readonly OpenAIImageService _imageService;
+    private readonly OwnerModeService _ownerMode;
+    private readonly View _normalContent;
 
-    public ImageGenerationHubPage(OpenAIKeyService keyService, OpenAIImageService imageService)
+    public ImageGenerationHubPage(OpenAIKeyService keyService, OpenAIImageService imageService, OwnerModeService ownerMode)
     {
         _keyService = keyService;
         _imageService = imageService;
+        _ownerMode = ownerMode;
         Title = "Image Generation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -39,9 +42,65 @@ public class ImageGenerationHubPage : ContentPage
         stack.Children.Add(CreateProviderCard(
             "ChatGPT API",
             "Generate images using OpenAI's image API.",
-            async () => await Navigation.PushAsync(new ChatGptImageGenerationPage(_keyService, _imageService))));
+            async () => await Navigation.PushAsync(new ChatGptImageGenerationPage(_keyService, _imageService, _ownerMode))));
 
-        Content = new ScrollView { Content = stack };
+        _normalContent = new ScrollView { Content = stack };
+        Content = _normalContent;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        Content = await _ownerMode.IsUnlockedAsync()
+            ? _normalContent
+            : CreateLockedContent();
+    }
+
+    private View CreateLockedContent()
+    {
+        var backButton = new Button
+        {
+            Text = "Back",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#333333"),
+            CornerRadius = 8,
+            WidthRequest = 140,
+            HorizontalOptions = LayoutOptions.Center
+        };
+        backButton.Clicked += async (_, _) => await Navigation.PopAsync();
+
+        return new Grid
+        {
+            Padding = 24,
+            Children =
+            {
+                new VerticalStackLayout
+                {
+                    Spacing = 12,
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Children =
+                    {
+                        new Label
+                        {
+                            Text = "Owner Mode Locked",
+                            FontSize = 24,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = Color.FromArgb("#222"),
+                            HorizontalTextAlignment = TextAlignment.Center
+                        },
+                        new Label
+                        {
+                            Text = "Image Generation is available only when Owner Mode is unlocked.",
+                            FontSize = 14,
+                            TextColor = Color.FromArgb("#666"),
+                            HorizontalTextAlignment = TextAlignment.Center
+                        },
+                        backButton
+                    }
+                }
+            }
+        };
     }
 
     private static Frame CreateProviderCard(string title, string description, Action tapped)

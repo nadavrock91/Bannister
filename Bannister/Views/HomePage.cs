@@ -47,6 +47,7 @@ public class HomePage : ContentPage
     private readonly PendingActivityIdeaService _pendingIdeas;
     private readonly OpenAIKeyService _openAIKeyService;
     private readonly OpenAIImageService _openAIImageService;
+    private readonly OwnerModeService _ownerMode;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -92,9 +93,15 @@ public class HomePage : ContentPage
     private Button _btnLists;
     private Button _btnToBeTested;
     private VerticalStackLayout _buttonSectionsStack;
+    private List<HomeNavButton> _allHomeNavButtons = new();
     private List<HomeNavButton> _homeNavButtons = new();
     private Grid _loadingOverlay;
     private Label _loadingOverlayLabel;
+    private Label _ownerModeStatusLabel;
+    private Button _lockOwnerModeButton;
+    private bool _isOwnerModeUnlocked;
+    private int _ownerModeTapCount;
+    private DateTime _ownerModeFirstTapAt = DateTime.MinValue;
 
     public HomePage(AuthService auth, GameService games, DragonService dragons,
         BackupService backup, AttemptService attempts, StreakService streaks, DatabaseService db, ExpService exp,
@@ -107,7 +114,7 @@ public class HomePage : ContentPage
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
         AllowanceService allowanceService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
-        OpenAIImageService openAIImageService)
+        OpenAIImageService openAIImageService, OwnerModeService ownerMode)
     {
         _auth = auth;
         _games = games;
@@ -146,11 +153,14 @@ public class HomePage : ContentPage
         _customGames = customGames;
         _openAIKeyService = openAIKeyService;
         _openAIImageService = openAIImageService;
+        _ownerMode = ownerMode;
+        _ownerMode.StateChanged += OnOwnerModeStateChanged;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
 
         BuildUI();
+        _ = RefreshOwnerModeUiAsync();
     }
 
     private void BuildUI()
@@ -332,9 +342,10 @@ public class HomePage : ContentPage
         _btnAudioLibrary.Clicked += OnAudioLibraryClicked;
         navButtons.Add(("Audio Library", _btnAudioLibrary));
 
-        _homeNavButtons = navButtons
+        _allHomeNavButtons = navButtons
             .Select(item => new HomeNavButton(item.sortKey, item.btn))
             .ToList();
+        _homeNavButtons = GetVisibleHomeNavButtons();
 
         _buttonSectionsStack = new VerticalStackLayout
         {
@@ -349,6 +360,7 @@ public class HomePage : ContentPage
         btnLogout.Margin = new Thickness(0, 16, 0, 0);
         btnLogout.Clicked += OnLogoutClicked;
         mainStack.Children.Add(btnLogout);
+        mainStack.Children.Add(CreateOwnerModeSection());
 
         scrollView.Content = mainStack;
         mainGrid.Children.Add(scrollView);
@@ -425,6 +437,138 @@ public class HomePage : ContentPage
             FontSize = bold && height > 48 ? 18 : 16,
             FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None
         };
+    }
+
+    private View CreateOwnerModeSection()
+    {
+        _ownerModeStatusLabel = new Label
+        {
+            Text = "Owner Mode: Locked",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#ECEFF1"),
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        _lockOwnerModeButton = new Button
+        {
+            Text = "Lock Owner Mode",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#333333"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            IsVisible = false
+        };
+        _lockOwnerModeButton.Clicked += async (_, _) => await LockOwnerModeAsync();
+
+        var statusGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 10
+        };
+        statusGrid.Add(_ownerModeStatusLabel, 0, 0);
+        statusGrid.Add(_lockOwnerModeButton, 1, 0);
+
+        var versionLabel = new Label
+        {
+            Text = $"Bannister v{AppInfo.Current.VersionString}",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#DDE1FF"),
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (_, _) => await HandleOwnerModeVersionTapAsync();
+        versionLabel.GestureRecognizers.Add(tap);
+
+        return new VerticalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(0, 10, 0, 0),
+            Children =
+            {
+                statusGrid,
+                versionLabel
+            }
+        };
+    }
+
+    private List<HomeNavButton> GetVisibleHomeNavButtons()
+    {
+        return _allHomeNavButtons
+            .Where(button => _isOwnerModeUnlocked || button.Id != "Image Generation")
+            .ToList();
+    }
+
+    private async Task RefreshOwnerModeUiAsync()
+    {
+        _isOwnerModeUnlocked = await _ownerMode.IsUnlockedAsync();
+        _homeNavButtons = GetVisibleHomeNavButtons();
+
+        if (_ownerModeStatusLabel != null)
+        {
+            _ownerModeStatusLabel.Text = _isOwnerModeUnlocked
+                ? "Owner Mode: Unlocked"
+                : "Owner Mode: Locked";
+            _ownerModeStatusLabel.TextColor = _isOwnerModeUnlocked
+                ? Color.FromArgb("#A5D6A7")
+                : Color.FromArgb("#ECEFF1");
+        }
+
+        if (_lockOwnerModeButton != null)
+            _lockOwnerModeButton.IsVisible = _isOwnerModeUnlocked;
+
+        RefreshButtonsLayout();
+    }
+
+    private void OnOwnerModeStateChanged(object? sender, EventArgs e)
+    {
+        MainThread.BeginInvokeOnMainThread(async () => await RefreshOwnerModeUiAsync());
+    }
+
+    private async Task HandleOwnerModeVersionTapAsync()
+    {
+        var now = DateTime.UtcNow;
+        if (_ownerModeTapCount == 0 || (now - _ownerModeFirstTapAt).TotalSeconds > 3)
+        {
+            _ownerModeFirstTapAt = now;
+            _ownerModeTapCount = 1;
+            return;
+        }
+
+        _ownerModeTapCount++;
+        if (_ownerModeTapCount < 7)
+            return;
+
+        _ownerModeTapCount = 0;
+        _ownerModeFirstTapAt = DateTime.MinValue;
+        await ShowOwnerModeUnlockPromptAsync();
+    }
+
+    private async Task ShowOwnerModeUnlockPromptAsync()
+    {
+        var passphrase = await OwnerPassphrasePromptPage.ShowAsync(Navigation);
+        if (passphrase == null)
+            return;
+
+        if (await _ownerMode.TryUnlockAsync(passphrase))
+        {
+            await DisplayAlert("Owner Mode", "Owner Mode unlocked.", "OK");
+            await RefreshOwnerModeUiAsync();
+        }
+        else
+        {
+            await DisplayAlert("Owner Mode", "Incorrect passphrase.", "OK");
+        }
+    }
+
+    private async Task LockOwnerModeAsync()
+    {
+        await _ownerMode.LockAsync();
+        await RefreshOwnerModeUiAsync();
     }
 
     private string GetQuickAccessPreferencesKey() => $"home_quick_access_{_auth.CurrentUsername}";
@@ -1891,7 +2035,13 @@ public class HomePage : ContentPage
 
     private async void OnImageGenerationClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new ImageGenerationHubPage(_openAIKeyService, _openAIImageService));
+        if (!await _ownerMode.IsUnlockedAsync())
+        {
+            await DisplayAlert("Owner Mode Locked", "This feature is available only when Owner Mode is unlocked.", "OK");
+            return;
+        }
+
+        await Navigation.PushAsync(new ImageGenerationHubPage(_openAIKeyService, _openAIImageService, _ownerMode));
     }
 
     private async void OnCalendarClicked(object? sender, EventArgs e)
@@ -2080,6 +2230,116 @@ public class HomePage : ContentPage
 
         // RESET STACK — ANDROID REQUIRED
         await Shell.Current.GoToAsync("//login");
+    }
+
+    private sealed class OwnerPassphrasePromptPage : ContentPage
+    {
+        private readonly TaskCompletionSource<string?> _completion = new();
+        private readonly Entry _entry;
+        private bool _isClosing;
+
+        private OwnerPassphrasePromptPage()
+        {
+            Title = "Owner Mode";
+            BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
+
+            _entry = new Entry
+            {
+                Placeholder = "Passphrase",
+                IsPassword = true,
+                BackgroundColor = Colors.White,
+                TextColor = Color.FromArgb("#222"),
+                PlaceholderColor = Color.FromArgb("#777")
+            };
+
+            var saveButton = new Button
+            {
+                Text = "Unlock",
+                BackgroundColor = Color.FromArgb("#5B63EE"),
+                TextColor = Colors.White,
+                CornerRadius = 8,
+                HeightRequest = 44
+            };
+            saveButton.Clicked += async (_, _) => await CloseAsync(_entry.Text ?? string.Empty);
+
+            var cancelButton = new Button
+            {
+                Text = "Cancel",
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#333"),
+                CornerRadius = 8,
+                HeightRequest = 44
+            };
+            cancelButton.Clicked += async (_, _) => await CloseAsync(null);
+
+            var buttons = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Star }
+                },
+                ColumnSpacing = 10
+            };
+            buttons.Add(cancelButton, 0, 0);
+            buttons.Add(saveButton, 1, 0);
+
+            Content = new Grid
+            {
+                Padding = 24,
+                Children =
+                {
+                    new Frame
+                    {
+                        BackgroundColor = Colors.White,
+                        CornerRadius = 12,
+                        Padding = 20,
+                        HasShadow = true,
+                        VerticalOptions = LayoutOptions.Center,
+                        HorizontalOptions = LayoutOptions.Fill,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 14,
+                            Children =
+                            {
+                                new Label
+                                {
+                                    Text = "Enter Owner Passphrase",
+                                    FontSize = 20,
+                                    FontAttributes = FontAttributes.Bold,
+                                    TextColor = Color.FromArgb("#222")
+                                },
+                                _entry,
+                                buttons
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        protected override bool OnBackButtonPressed()
+        {
+            _ = CloseAsync(null);
+            return true;
+        }
+
+        private async Task CloseAsync(string? result)
+        {
+            if (_isClosing)
+                return;
+
+            _isClosing = true;
+            await Navigation.PopModalAsync();
+            _completion.TrySetResult(result);
+        }
+
+        public static async Task<string?> ShowAsync(INavigation navigation)
+        {
+            var page = new OwnerPassphrasePromptPage();
+            await navigation.PushModalAsync(page);
+            return await page._completion.Task;
+        }
     }
 
     private sealed class QueueSnoozeDatePage : ContentPage

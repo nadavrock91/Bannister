@@ -6,6 +6,8 @@ public class ChatGptImageGenerationPage : ContentPage
 {
     private readonly OpenAIKeyService _keyService;
     private readonly OpenAIImageService _imageService;
+    private readonly OwnerModeService _ownerMode;
+    private readonly View _normalContent;
     private readonly Editor _promptEditor;
     private readonly Label _keyStatusLabel;
     private readonly Label _keySourceLabel;
@@ -17,10 +19,11 @@ public class ChatGptImageGenerationPage : ContentPage
     private readonly Image _generatedImage;
     private bool _isGenerating;
 
-    public ChatGptImageGenerationPage(OpenAIKeyService keyService, OpenAIImageService imageService)
+    public ChatGptImageGenerationPage(OpenAIKeyService keyService, OpenAIImageService imageService, OwnerModeService ownerMode)
     {
         _keyService = keyService;
         _imageService = imageService;
+        _ownerMode = ownerMode;
         Title = "ChatGPT Image Generation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -104,7 +107,7 @@ public class ChatGptImageGenerationPage : ContentPage
             BackgroundColor = Colors.White
         };
 
-        Content = new ScrollView
+        _normalContent = new ScrollView
         {
             Content = new VerticalStackLayout
             {
@@ -142,12 +145,67 @@ public class ChatGptImageGenerationPage : ContentPage
                 }
             }
         };
+        Content = _normalContent;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (!await _ownerMode.IsUnlockedAsync())
+        {
+            Content = CreateLockedContent();
+            return;
+        }
+
+        Content = _normalContent;
         await RefreshKeyStatusAsync();
+    }
+
+    private View CreateLockedContent()
+    {
+        var backButton = new Button
+        {
+            Text = "Back",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#333333"),
+            CornerRadius = 8,
+            WidthRequest = 140,
+            HorizontalOptions = LayoutOptions.Center
+        };
+        backButton.Clicked += async (_, _) => await Navigation.PopAsync();
+
+        return new Grid
+        {
+            Padding = 24,
+            Children =
+            {
+                new VerticalStackLayout
+                {
+                    Spacing = 12,
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Children =
+                    {
+                        new Label
+                        {
+                            Text = "Owner Mode Locked",
+                            FontSize = 24,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = Color.FromArgb("#222"),
+                            HorizontalTextAlignment = TextAlignment.Center
+                        },
+                        new Label
+                        {
+                            Text = "ChatGPT Image Generation is available only when Owner Mode is unlocked.",
+                            FontSize = 14,
+                            TextColor = Color.FromArgb("#666"),
+                            HorizontalTextAlignment = TextAlignment.Center
+                        },
+                        backButton
+                    }
+                }
+            }
+        };
     }
 
     private Frame CreateKeySettingsSection()
