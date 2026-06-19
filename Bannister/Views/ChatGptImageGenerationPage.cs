@@ -5,6 +5,9 @@ namespace Bannister.Views;
 
 public class ChatGptImageGenerationPage : ContentPage
 {
+    private const decimal CostPerImageUsd = 0.011m;
+    private const string CostPerImageNote = "as of June 2026";
+
     private enum QueueStatus
     {
         Queued,
@@ -42,6 +45,8 @@ public class ChatGptImageGenerationPage : ContentPage
     private readonly Frame _batchPasteFrame;
     private readonly Frame _queueFrame;
     private readonly Label _queueHeaderLabel;
+    private readonly Label _queueCostLabel;
+    private readonly Button _viewPricingButton;
     private readonly VerticalStackLayout _queueItemsStack;
     private readonly Button _startQueueButton;
     private readonly Button _cancelQueueButton;
@@ -170,6 +175,23 @@ public class ChatGptImageGenerationPage : ContentPage
             TextColor = Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.Center
         };
+        _queueCostLabel = new Label
+        {
+            FontSize = 12,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#666666")
+        };
+        _viewPricingButton = new Button
+        {
+            Text = "View current OpenAI pricing",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            HorizontalOptions = LayoutOptions.Start
+        };
+        _viewPricingButton.Clicked += async (_, _) => await Launcher.OpenAsync("https://openai.com/api/pricing/");
         _queueItemsStack = new VerticalStackLayout { Spacing = 8 };
         _startQueueButton = new Button
         {
@@ -415,6 +437,8 @@ public class ChatGptImageGenerationPage : ContentPage
                 Children =
                 {
                     headerGrid,
+                    _queueCostLabel,
+                    _viewPricingButton,
                     _queueItemsStack,
                     buttonGrid
                 }
@@ -616,6 +640,18 @@ public class ChatGptImageGenerationPage : ContentPage
             return;
         }
 
+        var queuedCount = _queue.Count(q => q.Status == QueueStatus.Queued);
+        var estimatedCost = queuedCount * CostPerImageUsd;
+        var confirm = await DisplayAlert(
+            "Confirm batch generation",
+            $"Generate {queuedCount} image(s) for an estimated ${estimatedCost:0.000} USD?\n\n" +
+            $"(Estimated at ${CostPerImageUsd:0.000} per image, {CostPerImageNote}. Actual cost may vary slightly.)",
+            "Generate",
+            "Cancel");
+
+        if (!confirm)
+            return;
+
         _isQueueRunning = true;
         _cancelQueueRequested = false;
         SetGeneratingState(true, "Generating batch...");
@@ -706,7 +742,12 @@ public class ChatGptImageGenerationPage : ContentPage
         _batchPasteFrame.IsVisible = !hasQueue;
         _queueFrame.IsVisible = hasQueue;
         _queueHeaderLabel.Text = $"{_queue.Count} prompt{(_queue.Count == 1 ? "" : "s")} queued";
-        _startQueueButton.IsEnabled = hasQueue && !_isQueueRunning && _queue.Any(q => q.Status == QueueStatus.Queued);
+        var queuedCount = _queue.Count(q => q.Status == QueueStatus.Queued);
+        var totalCost = queuedCount * CostPerImageUsd;
+        _queueCostLabel.Text = $"Estimated cost: ${totalCost:0.000} USD for {queuedCount} queued (at ${CostPerImageUsd:0.000} per image, {CostPerImageNote})";
+        _queueCostLabel.IsVisible = queuedCount > 0;
+        _viewPricingButton.IsVisible = queuedCount > 0;
+        _startQueueButton.IsEnabled = hasQueue && !_isQueueRunning && queuedCount > 0;
         _cancelQueueButton.IsVisible = _isQueueRunning;
         _clearQueueButton.IsEnabled = !_isQueueRunning;
         _parseBatchButton.IsEnabled = !_isGenerating && !_isQueueRunning;
