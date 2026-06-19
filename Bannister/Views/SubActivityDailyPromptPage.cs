@@ -1,4 +1,5 @@
 using Bannister.Models;
+using Bannister.Services;
 
 namespace Bannister.Views;
 
@@ -6,13 +7,29 @@ public record SubActivityStepOption(int StepIndex, string Name);
 
 public class SubActivityDailyPromptPage : ContentPage
 {
-    private readonly TaskCompletionSource<string?> _completion = new();
+    private readonly TaskCompletionSource<bool> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly SubActivityService _subActivityService;
+    private readonly SubActivity _process;
+    private readonly Dictionary<int, int> _stepStates = new();
     private bool _isClosing;
 
-    private SubActivityDailyPromptPage(string processName, IReadOnlyList<SubActivityStepOption> pendingSteps)
+    private SubActivityDailyPromptPage(SubActivityService subActivityService, SubActivity process)
     {
+        _subActivityService = subActivityService;
+        _process = process;
+
         Title = "Daily Routine Check";
         BackgroundColor = Color.FromArgb("#80000000");
+
+        var steps = _subActivityService.GetSteps(process)
+            .Select((step, index) => new SubActivityStepOption(index, step.Name))
+            .Where(step => !string.IsNullOrWhiteSpace(step.Name))
+            .ToList();
+
+        foreach (var step in steps)
+        {
+            _stepStates[step.StepIndex] = (int)SubActivityStepSubmissionState.NotDone;
+        }
 
         var card = new Frame
         {
@@ -23,8 +40,8 @@ public class SubActivityDailyPromptPage : ContentPage
             BorderColor = Color.FromArgb("#D0D7DE"),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
-            WidthRequest = 560,
-            MaximumWidthRequest = 720
+            WidthRequest = 640,
+            MaximumWidthRequest = 760
         };
 
         var content = new VerticalStackLayout { Spacing = 14 };
@@ -38,7 +55,7 @@ public class SubActivityDailyPromptPage : ContentPage
         });
         content.Children.Add(new Label
         {
-            Text = processName,
+            Text = process.Name,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#111827"),
@@ -46,149 +63,21 @@ public class SubActivityDailyPromptPage : ContentPage
         });
         content.Children.Add(new Label
         {
-            Text = "Remaining steps",
+            Text = "Mark each step for today. Not Relevant counts as complete for the daily streak.",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#6B7280")
-        });
-
-        var stepsStack = new VerticalStackLayout { Spacing = 8 };
-        foreach (var step in pendingSteps)
-        {
-            stepsStack.Children.Add(new Label
-            {
-                Text = $"• {step.Name}",
-                FontSize = 15,
-                TextColor = Color.FromArgb("#374151"),
-                LineBreakMode = LineBreakMode.WordWrap
-            });
-        }
-
-        content.Children.Add(new ScrollView
-        {
-            MaximumHeightRequest = 260,
-            Content = stepsStack
-        });
-
-        var buttons = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            },
-            ColumnSpacing = 10
-        };
-        buttons.Add(CreateButton("Mark All Done", Color.FromArgb("#2E7D32"), Colors.White, "all_done"), 0, 0);
-        buttons.Add(CreateButton("Some Done", Color.FromArgb("#F9A825"), Colors.Black, "some_done"), 1, 0);
-        buttons.Add(CreateButton("Not Yet", Color.FromArgb("#ECEFF1"), Color.FromArgb("#263238"), "not_yet"), 2, 0);
-        content.Children.Add(buttons);
-
-        card.Content = content;
-        Content = new Grid
-        {
-            Padding = 20,
-            BackgroundColor = Color.FromArgb("#80000000"),
-            Children = { card }
-        };
-    }
-
-    public static async Task<string?> ShowAsync(INavigation navigation, string processName, IReadOnlyList<SubActivityStepOption> pendingSteps)
-    {
-        var page = new SubActivityDailyPromptPage(processName, pendingSteps);
-        await navigation.PushModalAsync(page, false);
-        return await page._completion.Task;
-    }
-
-    protected override bool OnBackButtonPressed()
-    {
-        _ = CloseAsync(null);
-        return true;
-    }
-
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        if (_isClosing) return;
-        _completion.TrySetResult(null);
-    }
-
-    private Button CreateButton(string text, Color background, Color textColor, string result)
-    {
-        var button = new Button
-        {
-            Text = text,
-            BackgroundColor = background,
-            TextColor = textColor,
-            CornerRadius = 8,
-            FontAttributes = FontAttributes.Bold,
-            HeightRequest = 44
-        };
-        button.Clicked += async (s, e) => await CloseAsync(result);
-        return button;
-    }
-
-    private async Task CloseAsync(string? result)
-    {
-        if (_isClosing) return;
-        _isClosing = true;
-        await Navigation.PopModalAsync(false);
-        _completion.TrySetResult(result);
-    }
-}
-
-public class SubActivityStepPickerPage : ContentPage
-{
-    private readonly TaskCompletionSource<List<int>?> _completion = new();
-    private readonly HashSet<int> _selectedIndexes = new();
-    private bool _isClosing;
-
-    private SubActivityStepPickerPage(string processName, IReadOnlyList<SubActivityStepOption> pendingSteps)
-    {
-        Title = "Some Done";
-        BackgroundColor = Color.FromArgb("#80000000");
-
-        var card = new Frame
-        {
-            Padding = 22,
-            CornerRadius = 12,
-            HasShadow = true,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#D0D7DE"),
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center,
-            WidthRequest = 560,
-            MaximumWidthRequest = 720
-        };
-
-        var content = new VerticalStackLayout { Spacing = 14 };
-        content.Children.Add(new Label
-        {
-            Text = "Which steps are done?",
-            FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1F2937"),
-            HorizontalTextAlignment = TextAlignment.Center
-        });
-        content.Children.Add(new Label
-        {
-            Text = processName,
-            FontSize = 17,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#111827"),
+            TextColor = Color.FromArgb("#6B7280"),
             LineBreakMode = LineBreakMode.WordWrap
         });
 
-        var stepsStack = new VerticalStackLayout { Spacing = 8 };
-        foreach (var step in pendingSteps)
+        var stepsStack = new VerticalStackLayout { Spacing = 10 };
+        foreach (var step in steps)
         {
             stepsStack.Children.Add(CreateStepRow(step));
         }
 
         content.Children.Add(new ScrollView
         {
-            MaximumHeightRequest = 300,
+            MaximumHeightRequest = 380,
             Content = stepsStack
         });
 
@@ -201,27 +90,30 @@ public class SubActivityStepPickerPage : ContentPage
             },
             ColumnSpacing = 10
         };
-        var confirm = new Button
+
+        var submit = new Button
         {
-            Text = "Confirm Selected",
+            Text = "Submit Today's Progress",
             BackgroundColor = Color.FromArgb("#2E7D32"),
             TextColor = Colors.White,
-            CornerRadius = 8,
             FontAttributes = FontAttributes.Bold,
-            HeightRequest = 44
+            CornerRadius = 8,
+            HeightRequest = 46
         };
-        confirm.Clicked += async (s, e) => await CloseAsync(_selectedIndexes.OrderBy(i => i).ToList());
-        var cancel = new Button
+        submit.Clicked += async (_, _) => await SubmitAsync();
+
+        var skip = new Button
         {
-            Text = "Cancel",
+            Text = "Skip",
             BackgroundColor = Color.FromArgb("#ECEFF1"),
             TextColor = Color.FromArgb("#263238"),
             CornerRadius = 8,
-            HeightRequest = 44
+            HeightRequest = 46
         };
-        cancel.Clicked += async (s, e) => await CloseAsync(null);
-        buttons.Add(confirm, 0, 0);
-        buttons.Add(cancel, 1, 0);
+        skip.Clicked += async (_, _) => await CloseAsync(false);
+
+        buttons.Add(submit, 0, 0);
+        buttons.Add(skip, 1, 0);
         content.Children.Add(buttons);
 
         card.Content = content;
@@ -233,16 +125,122 @@ public class SubActivityStepPickerPage : ContentPage
         };
     }
 
-    public static async Task<List<int>?> ShowAsync(INavigation navigation, string processName, IReadOnlyList<SubActivityStepOption> pendingSteps)
+    public static async Task<bool> ShowAsync(INavigation navigation, SubActivityService subActivityService, SubActivity process)
     {
-        var page = new SubActivityStepPickerPage(processName, pendingSteps);
+        var page = new SubActivityDailyPromptPage(subActivityService, process);
         await navigation.PushModalAsync(page, false);
         return await page._completion.Task;
     }
 
+    private View CreateStepRow(SubActivityStepOption step)
+    {
+        string groupName = $"sub_step_{_process.Id}_{step.StepIndex}_{Guid.NewGuid():N}";
+
+        var row = new VerticalStackLayout
+        {
+            Spacing = 6,
+            Padding = new Thickness(10, 8),
+            BackgroundColor = Color.FromArgb("#F8FAFC")
+        };
+
+        row.Children.Add(new Label
+        {
+            Text = step.Name,
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#374151"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var options = new HorizontalStackLayout
+        {
+            Spacing = 14
+        };
+
+        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Done", SubActivityStepSubmissionState.Done, false));
+        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Not Done", SubActivityStepSubmissionState.NotDone, true));
+        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Not Relevant", SubActivityStepSubmissionState.NotRelevant, false));
+        row.Children.Add(options);
+
+        return row;
+    }
+
+    private View CreateStateRadio(int stepIndex, string groupName, string label, SubActivityStepSubmissionState state, bool selected)
+    {
+        var radio = new RadioButton
+        {
+            GroupName = groupName,
+            IsChecked = selected,
+            VerticalOptions = LayoutOptions.Center
+        };
+        radio.CheckedChanged += (_, e) =>
+        {
+            if (e.Value)
+            {
+                _stepStates[stepIndex] = (int)state;
+            }
+        };
+
+        return new HorizontalStackLayout
+        {
+            Spacing = 4,
+            Children =
+            {
+                radio,
+                new Label
+                {
+                    Text = label,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#374151"),
+                    VerticalOptions = LayoutOptions.Center
+                }
+            }
+        };
+    }
+
+    private async Task SubmitAsync()
+    {
+        var result = await _subActivityService.SubmitDailySubAsync(_process.Id, _stepStates);
+
+        if (result.MilestoneReached)
+        {
+            string action = await DisplayActionSheet(
+                $"Add a step to {_process.Name}?",
+                "Cancel",
+                null,
+                "Yes",
+                "No");
+
+            if (action == "Yes")
+            {
+                string? stepName = await DisplayPromptAsync(
+                    "New Step",
+                    $"Enter a new step for {_process.Name}:",
+                    "Save",
+                    "Cancel");
+
+                if (!string.IsNullOrWhiteSpace(stepName) &&
+                    await _subActivityService.TryAddStepAsync(_process.Id, stepName.Trim()))
+                {
+                    await _subActivityService.ResetConsecutiveAllDoneDaysAsync(_process.Id);
+                    await CloseAsync(true);
+                    return;
+                }
+
+                await _subActivityService.RevertAllowanceAsync(_process.Id);
+            }
+            else
+            {
+                await _subActivityService.RevertAllowanceAsync(_process.Id);
+            }
+        }
+
+        await CloseAsync(result.Submitted);
+    }
+
     protected override bool OnBackButtonPressed()
     {
-        _ = CloseAsync(null);
+        _ = CloseAsync(false);
         return true;
     }
 
@@ -250,63 +248,14 @@ public class SubActivityStepPickerPage : ContentPage
     {
         base.OnDisappearing();
         if (_isClosing) return;
-        _completion.TrySetResult(null);
+        _completion.TrySetResult(false);
     }
 
-    private View CreateStepRow(SubActivityStepOption step)
-    {
-        var checkbox = new CheckBox
-        {
-            InputTransparent = true,
-            VerticalOptions = LayoutOptions.Center
-        };
-        var label = new Label
-        {
-            Text = step.Name,
-            FontSize = 15,
-            TextColor = Color.FromArgb("#374151"),
-            LineBreakMode = LineBreakMode.WordWrap,
-            VerticalOptions = LayoutOptions.Center
-        };
-        var row = new Grid
-        {
-            Padding = new Thickness(8, 6),
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Auto),
-                new ColumnDefinition(GridLength.Star)
-            },
-            ColumnSpacing = 10,
-            BackgroundColor = Color.FromArgb("#F8FAFC")
-        };
-        row.Add(checkbox, 0, 0);
-        row.Add(label, 1, 0);
-
-        row.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(() =>
-            {
-                checkbox.IsChecked = !checkbox.IsChecked;
-                if (checkbox.IsChecked)
-                {
-                    _selectedIndexes.Add(step.StepIndex);
-                    row.BackgroundColor = Color.FromArgb("#E8F5E9");
-                }
-                else
-                {
-                    _selectedIndexes.Remove(step.StepIndex);
-                    row.BackgroundColor = Color.FromArgb("#F8FAFC");
-                }
-            })
-        });
-        return row;
-    }
-
-    private async Task CloseAsync(List<int>? selectedIndexes)
+    private async Task CloseAsync(bool submitted)
     {
         if (_isClosing) return;
         _isClosing = true;
         await Navigation.PopModalAsync(false);
-        _completion.TrySetResult(selectedIndexes);
+        _completion.TrySetResult(submitted);
     }
 }

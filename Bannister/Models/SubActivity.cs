@@ -64,6 +64,12 @@ public class SubActivity
     public DateTime? LastResetDate { get; set; }
 
     public bool PromptDailyOnHome { get; set; } = false;
+
+    public int Allowance { get; set; } = 1;
+
+    public int ConsecutiveAllDoneDays { get; set; } = 0;
+
+    public DateTime? LastSubmissionDate { get; set; }
     
     public bool IsArchived { get; set; } = false;
     
@@ -78,4 +84,13 @@ public class SubActivityStep
 {
     public string Name { get; set; } = "";
     public bool Done { get; set; } = false;
+    public int LastSubmissionState { get; set; } = 0;
+    public DateTime? LastSubmissionDate { get; set; }
+}
+
+public enum SubActivityStepSubmissionState
+{
+    NotDone = 0,
+    Done = 1,
+    NotRelevant = 2
 }

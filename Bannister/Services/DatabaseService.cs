@@ -476,6 +476,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<CustomGameButton>();
             await _db!.CreateTableAsync<CustomGameInstance>();
             await _db!.CreateTableAsync<StreakGoal>();
+            await _db!.CreateTableAsync<SubActivity>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN ShowStreakAsDaysSinceStarted INTEGER DEFAULT 0"); } catch { }
@@ -486,6 +487,9 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN ManualPriority INTEGER"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE games ADD COLUMN LastVisitedAt TEXT"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN LastAutoAwarded TEXT"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN Allowance INTEGER DEFAULT 1"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN ConsecutiveAllDoneDays INTEGER DEFAULT 0"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN LastSubmissionDate TEXT"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

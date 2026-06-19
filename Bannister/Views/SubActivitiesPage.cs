@@ -236,6 +236,25 @@ public class SubActivitiesPage : ContentPage
             });
         }
 
+        var allowanceFrame = new Frame
+        {
+            Padding = new Thickness(8, 2),
+            CornerRadius = 10,
+            BackgroundColor = steps.Count >= item.Allowance ? Color.FromArgb("#FFF3E0") : Color.FromArgb("#E8F5E9"),
+            BorderColor = Colors.Transparent,
+            Content = new Label
+            {
+                Text = $"Allowance: {item.Allowance} / Steps: {steps.Count}",
+                FontSize = 11,
+                TextColor = steps.Count >= item.Allowance ? Color.FromArgb("#E65100") : Color.FromArgb("#2E7D32")
+            }
+        };
+        allowanceFrame.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await EditAllowanceAsync(item))
+        });
+        badgeRow.Children.Add(allowanceFrame);
+
         titleStack.Children.Add(badgeRow);
         Grid.SetColumn(titleStack, 0);
         headerRow.Children.Add(titleStack);
@@ -330,12 +349,17 @@ public class SubActivitiesPage : ContentPage
         }
 
         // Add step button
+        bool atAllowanceLimit = steps.Count >= item.Allowance;
         bool canAdd = _subActivityService.CanAddStep(item);
         int neededToAdd = _subActivityService.CompletionsNeededToAdd(item);
 
         var addStepBtn = new Button
         {
-            Text = canAdd ? "+ Add Step" : $"🔒 {neededToAdd} more completion(s) to unlock",
+            Text = canAdd
+                ? "+ Add Step"
+                : atAllowanceLimit
+                    ? "Allowance reached"
+                    : $"🔒 {neededToAdd} more completion(s) to unlock",
             BackgroundColor = canAdd ? Color.FromArgb("#E0F7FA") : Color.FromArgb("#F5F5F5"),
             TextColor = canAdd ? Color.FromArgb("#00838F") : Color.FromArgb("#999"),
             CornerRadius = 6,
@@ -348,6 +372,15 @@ public class SubActivitiesPage : ContentPage
             addStepBtn.Clicked += async (s, e) => await AddStepAsync(item, false);
         }
         cardStack.Children.Add(addStepBtn);
+        if (atAllowanceLimit)
+        {
+            cardStack.Children.Add(new Label
+            {
+                Text = "Allowance reached. Earn more via 3-day streak or edit Allowance.",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#E65100")
+            });
+        }
 
         // Pending Steps Section
         if (pendingSteps.Count > 0)
@@ -568,6 +601,30 @@ public class SubActivitiesPage : ContentPage
         await LoadDataAsync();
     }
 
+    private async Task EditAllowanceAsync(SubActivity item)
+    {
+        int stepCount = _subActivityService.GetSteps(item).Count;
+        string? result = await DisplayPromptAsync(
+            "Edit Allowance",
+            $"Current steps: {stepCount}\n\nEnter the max number of active steps allowed:",
+            "Save",
+            "Cancel",
+            initialValue: item.Allowance.ToString(),
+            keyboard: Keyboard.Numeric);
+
+        if (string.IsNullOrWhiteSpace(result))
+            return;
+
+        if (!int.TryParse(result, out int allowance) || allowance < stepCount)
+        {
+            await DisplayAlert("Invalid Allowance", $"Allowance must be at least the current step count ({stepCount}).", "OK");
+            return;
+        }
+
+        await _subActivityService.SetAllowanceAsync(item, allowance);
+        await LoadDataAsync();
+    }
+
     private async Task ShowProcessSettingsAsync(SubActivity item)
     {
         string action = await DisplayActionSheet(
@@ -577,6 +634,7 @@ public class SubActivitiesPage : ContentPage
             "✏️ Rename",
             $"☀️ Reset Mode (current: {(item.ResetMode == "daily" ? "Daily" : "Manual")})",
             $"Daily Home Prompt (current: {(item.PromptDailyOnHome ? "On" : "Off")})",
+            $"Allowance (current: {item.Allowance})",
             $"🔒 Addition Mode (current: {(item.AdditionMode == "unlimited" ? "Unlimited" : "Locked")})",
             "📊 Stats",
             "📦 Archive",
@@ -611,6 +669,10 @@ public class SubActivitiesPage : ContentPage
             item.PromptDailyOnHome = !item.PromptDailyOnHome;
             await _subActivityService.UpdateAsync(item);
             await LoadDataAsync();
+        }
+        else if (action.StartsWith("Allowance", StringComparison.Ordinal))
+        {
+            await EditAllowanceAsync(item);
         }
         else if (action.StartsWith("🔒 Addition Mode", StringComparison.Ordinal) || action.StartsWith("Addition Mode", StringComparison.Ordinal))
         {

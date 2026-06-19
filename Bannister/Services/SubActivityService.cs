@@ -1,5 +1,6 @@
 using Bannister.Models;
 using System.Text.Json;
+using SQLite;
 
 namespace Bannister.Services;
 
@@ -21,6 +22,24 @@ public class SubActivityService
         {
             await conn.CreateTableAsync<SubActivity>();
             try { await conn.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN PromptDailyOnHome INTEGER DEFAULT 0"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN Allowance INTEGER DEFAULT 1"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN ConsecutiveAllDoneDays INTEGER DEFAULT 0"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN LastSubmissionDate TEXT"); } catch { }
+            await BackfillAllowancesAsync(conn);
+        }
+    }
+
+    private async Task BackfillAllowancesAsync(ISQLiteAsyncConnection conn)
+    {
+        var items = await conn.Table<SubActivity>().ToListAsync();
+        foreach (var item in items.Where(i => i.Allowance <= 1))
+        {
+            int stepCount = GetSteps(item).Count;
+            if (stepCount > item.Allowance)
+            {
+                item.Allowance = stepCount;
+                await conn.UpdateAsync(item);
+            }
         }
     }
 
@@ -60,10 +79,11 @@ public class SubActivityService
         var items = await GetActiveAsync(username);
         return items
             .Where(item => item.PromptDailyOnHome)
+            .Where(item => item.LastSubmissionDate?.Date != DateTime.Today)
             .Where(item =>
             {
                 var steps = GetSteps(item);
-                return steps.Count > 0 && !steps.All(s => s.Done);
+                return steps.Count > 0;
             })
             .OrderBy(item => item.Name)
             .ToList();
@@ -90,6 +110,7 @@ public class SubActivityService
             ResetMode = resetMode,
             AdditionMode = additionMode,
             RequiredCompletionsToUnlock = requiredCompletions,
+            Allowance = 1,
             CreatedAt = DateTime.UtcNow,
             ModifiedAt = DateTime.UtcNow
         };
@@ -174,8 +195,40 @@ public class SubActivityService
     public async Task AddStepAsync(SubActivity item, string stepName)
     {
         var steps = GetSteps(item);
-        steps.Add(new SubActivityStep { Name = stepName, Done = false });
+        if (steps.Count >= item.Allowance)
+            return;
+
+        steps.Add(new SubActivityStep
+        {
+            Name = stepName,
+            Done = false,
+            LastSubmissionState = (int)SubActivityStepSubmissionState.NotDone
+        });
         await SaveStepsAsync(item, steps);
+    }
+
+    public async Task<bool> TryAddStepAsync(int processId, string stepName)
+    {
+        if (_db.IsReadOnly)
+            return false;
+
+        var item = await GetByIdAsync(processId);
+        if (item == null || string.IsNullOrWhiteSpace(stepName))
+            return false;
+
+        var steps = GetSteps(item);
+        if (steps.Count >= item.Allowance)
+            return false;
+
+        steps.Add(new SubActivityStep
+        {
+            Name = stepName.Trim(),
+            Done = false,
+            LastSubmissionState = (int)SubActivityStepSubmissionState.NotDone
+        });
+        item.StepsJson = JsonSerializer.Serialize(steps);
+        await UpdateAsync(item);
+        return true;
     }
 
     public async Task AddPendingStepAsync(SubActivity item, string stepName)
@@ -226,11 +279,14 @@ public class SubActivityService
         var pending = GetPendingSteps(item);
         if (pendingIndex >= 0 && pendingIndex < pending.Count)
         {
+            var steps = GetSteps(item);
+            if (steps.Count >= item.Allowance)
+                return;
+
             var step = pending[pendingIndex];
             pending.RemoveAt(pendingIndex);
             await SavePendingStepsAsync(item, pending);
 
-            var steps = GetSteps(item);
             steps.Add(new SubActivityStep { Name = step.Name, Done = false });
             await SaveStepsAsync(item, steps);
 
@@ -273,10 +329,11 @@ public class SubActivityService
 
     public bool CanAddStep(SubActivity item)
     {
+        var steps = GetSteps(item);
+        if (steps.Count >= item.Allowance) return false;
         if (item.AdditionMode == "unlimited") return true;
         
         // Always allow adding if there are no steps yet
-        var steps = GetSteps(item);
         if (steps.Count == 0) return true;
         
         return item.CompletionsSinceLastAddition >= item.RequiredCompletionsToUnlock;
@@ -284,6 +341,7 @@ public class SubActivityService
 
     public int CompletionsNeededToAdd(SubActivity item)
     {
+        if (GetSteps(item).Count >= item.Allowance) return 0;
         if (item.AdditionMode == "unlimited") return 0;
         return Math.Max(0, item.RequiredCompletionsToUnlock - item.CompletionsSinceLastAddition);
     }
@@ -300,6 +358,7 @@ public class SubActivityService
         foreach (var step in steps)
         {
             step.Done = false;
+            step.LastSubmissionState = (int)SubActivityStepSubmissionState.NotDone;
         }
         item.StepsJson = JsonSerializer.Serialize(steps);
         item.LastResetDate = DateTime.UtcNow;
@@ -310,6 +369,94 @@ public class SubActivityService
     {
         item.TotalCompletions++;
         item.CompletionsSinceLastAddition++;
+        await UpdateAsync(item);
+    }
+
+    public async Task<SubActivityDailySubmissionResult> SubmitDailySubAsync(int processId, Dictionary<int, int> stepStates)
+    {
+        if (_db.IsReadOnly)
+            return new SubActivityDailySubmissionResult(false, false, null);
+
+        var item = await GetByIdAsync(processId);
+        if (item == null)
+            return new SubActivityDailySubmissionResult(false, false, null);
+
+        var today = DateTime.Today;
+        var steps = GetSteps(item);
+        if (steps.Count == 0)
+            return new SubActivityDailySubmissionResult(false, false, item);
+
+        for (int i = 0; i < steps.Count; i++)
+        {
+            int state = stepStates.TryGetValue(i, out var submittedState)
+                ? submittedState
+                : (int)SubActivityStepSubmissionState.NotDone;
+            if (!Enum.IsDefined(typeof(SubActivityStepSubmissionState), state))
+                state = (int)SubActivityStepSubmissionState.NotDone;
+
+            steps[i].LastSubmissionState = state;
+            steps[i].LastSubmissionDate = today;
+            steps[i].Done = state == (int)SubActivityStepSubmissionState.Done ||
+                state == (int)SubActivityStepSubmissionState.NotRelevant;
+        }
+
+        bool allDone = steps.All(step => step.LastSubmissionState == (int)SubActivityStepSubmissionState.Done ||
+            step.LastSubmissionState == (int)SubActivityStepSubmissionState.NotRelevant);
+        int previousStreak = item.ConsecutiveAllDoneDays;
+
+        item.StepsJson = JsonSerializer.Serialize(steps);
+        item.ConsecutiveAllDoneDays = allDone ? item.ConsecutiveAllDoneDays + 1 : 0;
+        item.LastSubmissionDate = today;
+
+        if (allDone)
+        {
+            item.TotalCompletions++;
+            item.CompletionsSinceLastAddition++;
+        }
+
+        bool milestoneReached = previousStreak < 3 && item.ConsecutiveAllDoneDays == 3;
+        if (milestoneReached)
+        {
+            item.Allowance++;
+        }
+
+        await UpdateAsync(item);
+        return new SubActivityDailySubmissionResult(true, milestoneReached, item);
+    }
+
+    public async Task IncreaseAllowanceAsync(int processId)
+    {
+        if (_db.IsReadOnly) return;
+        var item = await GetByIdAsync(processId);
+        if (item == null) return;
+        item.Allowance++;
+        await UpdateAsync(item);
+    }
+
+    public async Task RevertAllowanceAsync(int processId)
+    {
+        if (_db.IsReadOnly) return;
+        var item = await GetByIdAsync(processId);
+        if (item == null) return;
+        item.Allowance = Math.Max(GetSteps(item).Count, item.Allowance - 1);
+        item.ConsecutiveAllDoneDays = 0;
+        await UpdateAsync(item);
+    }
+
+    public async Task ResetConsecutiveAllDoneDaysAsync(int processId)
+    {
+        if (_db.IsReadOnly) return;
+        var item = await GetByIdAsync(processId);
+        if (item == null) return;
+        item.ConsecutiveAllDoneDays = 0;
+        await UpdateAsync(item);
+    }
+
+    public async Task SetAllowanceAsync(SubActivity item, int allowance)
+    {
+        if (_db.IsReadOnly) return;
+        int stepCount = GetSteps(item).Count;
+        item.Allowance = Math.Max(stepCount, allowance);
         await UpdateAsync(item);
     }
 
@@ -368,3 +515,8 @@ public class SubActivityService
 
     #endregion
 }
+
+public record SubActivityDailySubmissionResult(
+    bool Submitted,
+    bool MilestoneReached,
+    SubActivity? Process);
