@@ -39,8 +39,7 @@ public class OpenAIImageService
                 model = "dall-e-2",
                 prompt = prompt.Trim(),
                 n = 1,
-                size = "1024x1024",
-                response_format = "url"
+                size = "1024x1024"
             };
 
             request.Content = new StringContent(
