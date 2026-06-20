@@ -25,6 +25,20 @@ public class WebsiteProject
 
     public int TasksSinceSummaryUpdate { get; set; } = 0;
 
+    public string VisionRaw { get; set; } = "";
+
+    public string VisionRefined { get; set; } = "";
+
+    public string CompletedTaskTitles { get; set; } = "";
+
+    public int WorkflowState { get; set; } = 0;
+
+    public string PendingTaskTitle { get; set; } = "";
+
+    public string PendingCodexPrompt { get; set; } = "";
+
+    public string PendingCommitMessage { get; set; } = "";
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

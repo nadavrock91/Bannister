@@ -145,4 +145,186 @@ public class WebsiteProjectService
         await SaveAsync(project);
         return true;
     }
+
+    public async Task<bool> SetVisionRawAsync(int projectId, string vision)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.VisionRaw = vision;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetVisionRefinedAsync(int projectId, string vision)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.VisionRefined = vision;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetCompletedTaskTitlesAsync(int projectId, string titles)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.CompletedTaskTitles = titles;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> PrependTaskTitleAsync(int projectId, string title)
+    {
+        EnsureWritable();
+        if (string.IsNullOrWhiteSpace(title))
+            return false;
+
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        var entry = $"{DateTime.Today:yyyy-MM-dd}: {title.Trim()}";
+        project.CompletedTaskTitles = string.IsNullOrWhiteSpace(project.CompletedTaskTitles)
+            ? entry
+            : $"{entry}\n{project.CompletedTaskTitles}";
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetWorkflowStateAsync(int projectId, int state)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.WorkflowState = state;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetPendingTaskTitleAsync(int projectId, string title)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.PendingTaskTitle = title;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetPendingCodexPromptAsync(int projectId, string prompt)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.PendingCodexPrompt = prompt;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetPendingCommitMessageAsync(int projectId, string message)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.PendingCommitMessage = message;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> AdvanceToWaitingForLLMAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.WorkflowState = 1;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> AdvanceToReadyToExecuteAsync(int projectId, string taskTitle, string codexPrompt)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.PendingTaskTitle = taskTitle;
+        project.PendingCodexPrompt = codexPrompt;
+        project.PendingCommitMessage = "";
+        project.WorkflowState = 2;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> AdvanceToReadyToCommitAsync(int projectId, string commitMessage)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.PendingCommitMessage = commitMessage;
+        project.WorkflowState = 3;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> ResetWorkflowAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.PendingTaskTitle = "";
+        project.PendingCodexPrompt = "";
+        project.PendingCommitMessage = "";
+        project.WorkflowState = 0;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> CompleteWorkflowAsync(int projectId, string taskTitle)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(taskTitle))
+        {
+            var entry = $"{DateTime.Today:yyyy-MM-dd}: {taskTitle.Trim()}";
+            project.CompletedTaskTitles = string.IsNullOrWhiteSpace(project.CompletedTaskTitles)
+                ? entry
+                : $"{entry}\n{project.CompletedTaskTitles}";
+        }
+
+        project.TaskCount++;
+        project.TasksSinceSummaryUpdate++;
+        project.PendingTaskTitle = "";
+        project.PendingCodexPrompt = "";
+        project.PendingCommitMessage = "";
+        project.WorkflowState = 0;
+        await SaveAsync(project);
+        return true;
+    }
 }

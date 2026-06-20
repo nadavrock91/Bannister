@@ -1,27 +1,31 @@
 namespace Bannister.Views;
 
-public class WebsiteSummaryEditorPage : ContentPage
+public class WebsiteMultilineEditorPage : ContentPage
 {
-    private readonly Editor _summaryEditor;
+    private readonly Editor _editor;
     private readonly TaskCompletionSource<string?> _resultTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _closingFromButton;
     private bool _isClosing;
 
-    public WebsiteSummaryEditorPage(string initialSummary)
+    public WebsiteMultilineEditorPage(
+        string title,
+        string subtitle,
+        string initialText,
+        string placeholder = "")
     {
-        Title = "Edit Project Summary";
+        Title = title;
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
-        _summaryEditor = new Editor
+        _editor = new Editor
         {
             AutoSize = EditorAutoSizeOption.Disabled,
-            Text = initialSummary,
+            Text = initialText,
             BackgroundColor = Colors.White,
             TextColor = Color.FromArgb("#222"),
             FontSize = 13,
             HeightRequest = 400,
             MinimumHeightRequest = 300,
-            Placeholder = "Paste the full summary text here..."
+            Placeholder = placeholder
         };
 
         var cancelButton = new Button
@@ -45,7 +49,7 @@ public class WebsiteSummaryEditorPage : ContentPage
             HeightRequest = 44,
             FontSize = 14
         };
-        saveButton.Clicked += async (_, _) => await CloseAsync(_summaryEditor.Text ?? string.Empty);
+        saveButton.Clicked += async (_, _) => await CloseAsync(_editor.Text ?? string.Empty);
 
         var buttonGrid = new Grid
         {
@@ -69,18 +73,18 @@ public class WebsiteSummaryEditorPage : ContentPage
                 {
                     new Label
                     {
-                        Text = "Edit Project Summary",
+                        Text = title,
                         FontSize = 24,
                         FontAttributes = FontAttributes.Bold,
                         TextColor = Color.FromArgb("#222")
                     },
                     new Label
                     {
-                        Text = "Paste the summary Codex returned below. Multi-line content is preserved.",
+                        Text = subtitle,
                         FontSize = 14,
                         TextColor = Color.FromArgb("#555")
                     },
-                    _summaryEditor,
+                    _editor,
                     buttonGrid
                 }
             }

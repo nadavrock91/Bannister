@@ -494,6 +494,13 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN CodebasePath TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN ProjectSummary TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN TasksSinceSummaryUpdate INTEGER DEFAULT 0"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN VisionRaw TEXT DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN VisionRefined TEXT DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN CompletedTaskTitles TEXT DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN WorkflowState INTEGER DEFAULT 0"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingTaskTitle TEXT DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingCodexPrompt TEXT DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingCommitMessage TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN Allowance INTEGER DEFAULT 1"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN ConsecutiveAllDoneDays INTEGER DEFAULT 0"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN LastSubmissionDate TEXT"); } catch { }
