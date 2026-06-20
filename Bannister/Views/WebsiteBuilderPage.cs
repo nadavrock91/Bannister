@@ -2,7 +2,6 @@ using Bannister.Models;
 using Bannister.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
-using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
@@ -51,9 +50,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly Editor _ideaEditor;
     private readonly Button _deleteIdeaButton;
     private readonly VerticalStackLayout _domainSection;
-    private readonly Editor _domainCandidatesEditor;
-    private readonly VerticalStackLayout _domainResultsSection;
-    private readonly VerticalStackLayout _domainRowsStack;
+    private readonly Entry _purchasedDomainEntry;
     private readonly VerticalStackLayout _projectViewSection;
     private readonly Label _projectTitleLabel;
     private readonly Editor _projectIdeaDisplay;
@@ -116,18 +113,21 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         var copyDomainPromptButton = CreatePrimaryButton("Copy Domain Names Prompt to Clipboard", Color.FromArgb("#01579B"));
         copyDomainPromptButton.Clicked += async (_, _) => await CopyDomainNamesPromptAsync();
 
-        _domainCandidatesEditor = new Editor
+        var goToGoDaddyButton = CreatePrimaryButton("Go to GoDaddy", Color.FromArgb("#01579B"));
+        goToGoDaddyButton.TextColor = Colors.White;
+        goToGoDaddyButton.FontAttributes = FontAttributes.Bold;
+        goToGoDaddyButton.Clicked += async (_, _) => await Launcher.OpenAsync("https://www.godaddy.com/en");
+
+        _purchasedDomainEntry = new Entry
         {
-            Placeholder = "Paste domain suggestions, one per line. Numbered or bulleted lists are fine.",
-            AutoSize = EditorAutoSizeOption.TextChanges,
-            MinimumHeightRequest = 200,
+            Placeholder = "e.g. hookbrain.com",
             BackgroundColor = Colors.White,
             TextColor = Color.FromArgb("#222"),
             PlaceholderColor = Color.FromArgb("#888")
         };
 
-        var parseDomainsButton = CreatePrimaryButton("Parse Domains", Color.FromArgb("#2E7D32"));
-        parseDomainsButton.Clicked += async (_, _) => await ParseDomainsAsync();
+        var saveProjectFromDomainButton = CreatePrimaryButton("Save as Project", Color.FromArgb("#2E7D32"));
+        saveProjectFromDomainButton.Clicked += async (_, _) => await SaveProjectFromPurchasedDomainAsync();
 
         _domainSection = new VerticalStackLayout
         {
@@ -135,25 +135,12 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             IsVisible = false,
             Children =
             {
-                CreateSectionHeader("Step 2: Domain Name Candidates"),
+                CreateSectionHeader("Step 2: Pick and Purchase Domain"),
                 copyDomainPromptButton,
-                _domainCandidatesEditor,
-                parseDomainsButton
-            }
-        };
-
-        _domainRowsStack = new VerticalStackLayout { Spacing = 10 };
-        var clearDomainsButton = CreateSecondaryButton("Clear Domains");
-        clearDomainsButton.Clicked += (_, _) => ClearDomainCandidates();
-        _domainResultsSection = new VerticalStackLayout
-        {
-            Spacing = 12,
-            IsVisible = false,
-            Children =
-            {
-                CreateSectionHeader("Step 3: Check Availability & Save as Project"),
-                _domainRowsStack,
-                clearDomainsButton
+                goToGoDaddyButton,
+                new Label { Text = "Purchased Domain", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
+                _purchasedDomainEntry,
+                saveProjectFromDomainButton
             }
         };
 
@@ -218,8 +205,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                     _ideaEditor,
                     saveIdeaButton,
                     _deleteIdeaButton,
-                    _domainSection,
-                    _domainResultsSection
+                    _domainSection
                 }
             }
         };
@@ -388,7 +374,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _currentProjectId = 0;
         _ideaTitleEntry.Text = idea.Title;
         _ideaEditor.Text = idea.IdeaText;
-        ClearDomainCandidates();
+        _purchasedDomainEntry.Text = "";
         _projectPicker.SelectedIndex = -1;
         RefreshStateVisibility();
     }
@@ -401,7 +387,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _projectIdeaDisplay.Text = project.IdeaText;
         _ideaTitleEntry.Text = "";
         _ideaEditor.Text = "";
-        ClearDomainCandidates();
+        _purchasedDomainEntry.Text = "";
         _ideaPicker.SelectedIndex = -1;
         RefreshStateVisibility();
     }
@@ -467,67 +453,30 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         await DisplayAlert("Deleted", "Project deleted.", "OK");
     }
 
-    private async Task ParseDomainsAsync()
+    private async Task SaveProjectFromPurchasedDomainAsync()
     {
-        var domains = ParseDomainCandidates(_domainCandidatesEditor.Text ?? "");
-        if (domains.Count == 0)
+        var domain = (_purchasedDomainEntry.Text ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(domain))
         {
-            await DisplayAlert("No domains found", "No valid domains found in pasted text.", "OK");
+            await DisplayAlert("Domain required", "Enter a purchased domain first.", "OK");
             return;
         }
 
-        _domainRowsStack.Children.Clear();
-        foreach (var domain in domains)
-            _domainRowsStack.Children.Add(CreateDomainRow(domain));
-        _domainResultsSection.IsVisible = true;
+        if (domain.Any(char.IsWhiteSpace))
+        {
+            await DisplayAlert("Invalid domain", "Domain cannot contain spaces.", "OK");
+            return;
+        }
+
+        if (!domain.Contains('.'))
+        {
+            await DisplayAlert("Invalid domain", "Enter a domain like hookbrain.com.", "OK");
+            return;
+        }
+
+        await PromoteIdeaToProjectAsync(domain);
     }
 
-    private View CreateDomainRow(string domain)
-    {
-        var domainLabel = new Label
-        {
-            Text = domain,
-            FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        };
-
-        var checkButton = CreatePrimaryButton("Check / Buy", Color.FromArgb("#1565C0"));
-        checkButton.Clicked += async (_, _) =>
-        {
-            var url = $"https://www.namecheap.com/domains/registration/results/?domain={Uri.EscapeDataString(domain)}";
-            await Launcher.OpenAsync(url);
-        };
-
-        var useButton = CreatePrimaryButton("Use as Project", Color.FromArgb("#2E7D32"));
-        useButton.Clicked += async (_, _) => await PromoteIdeaToProjectAsync(domain);
-
-        var buttons = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star }
-            },
-            ColumnSpacing = 10
-        };
-        buttons.Add(checkButton, 0, 0);
-        buttons.Add(useButton, 1, 0);
-
-        return new Frame
-        {
-            Padding = 14,
-            CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            HasShadow = false,
-            Content = new VerticalStackLayout
-            {
-                Spacing = 10,
-                Children = { domainLabel, buttons }
-            }
-        };
-    }
 
     private async Task PromoteIdeaToProjectAsync(string domain)
     {
@@ -567,7 +516,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _ideaEditor.Text = "";
         _projectTitleLabel.Text = "";
         _projectIdeaDisplay.Text = "";
-        ClearDomainCandidates();
+        _purchasedDomainEntry.Text = "";
         await RefreshPickersAsync();
         RefreshStateVisibility();
     }
@@ -582,49 +531,12 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         await Task.CompletedTask;
     }
 
-    private void ClearDomainCandidates()
-    {
-        _domainCandidatesEditor.Text = "";
-        _domainRowsStack.Children.Clear();
-        _domainResultsSection.IsVisible = false;
-    }
-
     private void RefreshStateVisibility()
     {
         var hasIdea = _currentIdeaId > 0;
         var hasProject = _currentProjectId > 0;
         _deleteIdeaButton.IsVisible = hasIdea;
         _domainSection.IsVisible = hasIdea && !hasProject;
-        _domainResultsSection.IsVisible = hasIdea && !hasProject && _domainRowsStack.Children.Count > 0;
         _projectViewSection.IsVisible = hasProject;
-    }
-
-    public static List<string> ParseDomainCandidates(string pastedText)
-    {
-        if (string.IsNullOrWhiteSpace(pastedText))
-            return new List<string>();
-
-        return pastedText
-            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
-            .Select(CleanDomainLine)
-            .Where(IsPlausibleDomain)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
-
-    private static string CleanDomainLine(string line)
-    {
-        var value = line.Trim();
-        value = Regex.Replace(value, @"^\s*(?:\d+[\.\)]|[-*])\s*", "");
-        value = value.Trim().TrimEnd('.', ',', ';', ':', ')', ']');
-        return value.ToLowerInvariant();
-    }
-
-    private static bool IsPlausibleDomain(string value)
-    {
-        return !string.IsNullOrWhiteSpace(value)
-            && value.Contains('.')
-            && !value.Any(char.IsWhiteSpace)
-            && value.Length < 60;
     }
 }
