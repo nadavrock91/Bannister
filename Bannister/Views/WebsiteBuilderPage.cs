@@ -71,6 +71,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly Button _copySummaryPromptButton;
     private readonly Button _pasteSummaryResultButton;
     private readonly Label _codebasePathLabel;
+    private readonly Button _editCodebasePathButton;
     private readonly Button _copyCodexCommandButton;
     private readonly Button _openTerminalButton;
     private readonly Button _deleteProjectButton;
@@ -249,6 +250,17 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             LineBreakMode = LineBreakMode.TailTruncation
         };
 
+        _editCodebasePathButton = new Button
+        {
+            Text = "Edit Code Folder Path",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        _editCodebasePathButton.Clicked += async (_, _) => await EditCodebasePathAsync();
+
         _copyCodexCommandButton = new Button
         {
             Text = "Copy CD + Codex Command",
@@ -339,6 +351,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                     TextColor = Color.FromArgb("#333")
                 },
                 _codebasePathLabel,
+                _editCodebasePathButton,
                 _copyCodexCommandButton,
                 _openTerminalButton
             }
@@ -1063,6 +1076,40 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             "Command copied",
             $"Command copied: {command}. Paste into a Command Prompt to navigate to your project folder and start Codex.",
             "OK");
+    }
+
+    private async Task EditCodebasePathAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        var input = await DisplayPromptAsync(
+            "Edit Code Folder Path",
+            "Enter the full path to your project's code folder:",
+            "Save",
+            "Cancel",
+            initialValue: project.CodebasePath,
+            maxLength: 500);
+
+        if (input == null)
+            return;
+
+        var trimmedPath = input.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedPath))
+        {
+            var clear = await DisplayAlert(
+                "Clear the code folder path?",
+                "Clear the stored code folder path for this project?",
+                "Yes",
+                "No");
+
+            if (!clear)
+                return;
+        }
+
+        if (await _projectService.SetCodebasePathAsync(project.Id, trimmedPath))
+            await RefreshCurrentProjectAsync();
     }
 
     private async Task OpenTerminalAsync()
