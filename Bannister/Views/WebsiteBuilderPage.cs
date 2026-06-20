@@ -3,7 +3,6 @@ using Bannister.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Storage;
-using System.Diagnostics;
 
 namespace Bannister.Views;
 
@@ -43,6 +42,8 @@ Constraints for the domain suggestions:
 
 Output as a plain numbered list 1 to 20, one domain per line, with the TLD included on each line. No commentary, no explanation, no preamble. Just the numbered list of domain names.";
 
+    private const string UpdateSummaryPrompt = "You are reviewing a website-in-progress to produce a summary that will give context to a fresh LLM chat session later.\n\nRead through the project files in this folder and produce a concise summary covering:\n\n1. WHAT THE SITE IS: one-paragraph description of the project's purpose and target audience based on the code.\n2. CURRENT STATE: what pages, components, and features exist right now.\n3. TECH STACK: framework, key dependencies, styling approach.\n4. STRUCTURE: notable folder organization decisions.\n5. RECENT WORK: from git log if available, what's been changed recently.\n6. WHAT'S MISSING: obvious gaps or unfinished pieces.\n\nKeep the summary to 200-400 words total. Use plain text with clear section headers. Output ONLY the summary text - no preamble, no follow-up offers, just the summary I can copy into a separate tool.";
+
     private readonly AuthService _auth;
     private readonly WebsiteProjectService _projectService;
     private readonly WebsiteIdeaService _ideaService;
@@ -64,9 +65,11 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly Button _setTargetButton;
     private readonly Frame _celebrationFrame;
     private readonly Button _setNewTargetButton;
+    private readonly Label _summaryStalenessLabel;
+    private readonly Label _summaryPreviewLabel;
+    private readonly Button _copySummaryPromptButton;
+    private readonly Button _pasteSummaryResultButton;
     private readonly Label _codebasePathLabel;
-    private readonly Button _createLocalFolderButton;
-    private readonly Button _openFolderButton;
     private readonly Button _deleteProjectButton;
 
     private List<WebsiteIdea> _ideasCache = new();
@@ -243,26 +246,61 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             LineBreakMode = LineBreakMode.TailTruncation
         };
 
-        _createLocalFolderButton = new Button
+        _summaryStalenessLabel = new Label
         {
-            Text = "Create Local Folder",
+            FontSize = 12,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#888")
+        };
+
+        _summaryPreviewLabel = new Label
+        {
+            FontSize = 13,
+            TextColor = Color.FromArgb("#444"),
+            MaxLines = 3,
+            LineBreakMode = LineBreakMode.TailTruncation,
+            IsVisible = false
+        };
+
+        _copySummaryPromptButton = new Button
+        {
+            Text = "Copy Update Summary Prompt",
             BackgroundColor = Color.FromArgb("#E3F2FD"),
             TextColor = Color.FromArgb("#01579B"),
+            CornerRadius = 8,
+            HeightRequest = 42
+        };
+        _copySummaryPromptButton.Clicked += async (_, _) => await CopyUpdateSummaryPromptAsync();
+
+        _pasteSummaryResultButton = new Button
+        {
+            Text = "Paste Summary Result",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42,
             FontAttributes = FontAttributes.Bold
         };
-        _createLocalFolderButton.Clicked += async (_, _) => await CreateLocalFolderAsync();
+        _pasteSummaryResultButton.Clicked += async (_, _) => await PasteSummaryResultAsync();
 
-        _openFolderButton = new Button
+        var projectSummarySection = new VerticalStackLayout
         {
-            Text = "Open Folder",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
-            CornerRadius = 8,
-            HeightRequest = 40
+            Spacing = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Project Summary",
+                    FontSize = 14,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#333")
+                },
+                _summaryStalenessLabel,
+                _summaryPreviewLabel,
+                _copySummaryPromptButton,
+                _pasteSummaryResultButton
+            }
         };
-        _openFolderButton.Clicked += async (_, _) => await OpenCodebaseFolderAsync();
 
         var projectFilesSection = new VerticalStackLayout
         {
@@ -276,9 +314,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                     FontAttributes = FontAttributes.Bold,
                     TextColor = Color.FromArgb("#333")
                 },
-                _codebasePathLabel,
-                _createLocalFolderButton,
-                _openFolderButton
+                _codebasePathLabel
             }
         };
 
@@ -310,6 +346,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                 counterEditGrid,
                 _setTargetButton,
                 _celebrationFrame,
+                projectSummarySection,
                 projectFilesSection,
                 _deleteProjectButton
             }
@@ -793,18 +830,34 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _taskCountLabel.Text = $"{project.TaskCount} / {project.TaskTarget}";
         _decrementButton.IsEnabled = project.TaskCount > 0;
         _celebrationFrame.IsVisible = project.TaskCount >= project.TaskTarget;
+        UpdateProjectSummaryDisplay(project);
         UpdateCodebasePathDisplay(project);
+    }
+
+    private void UpdateProjectSummaryDisplay(WebsiteProject project)
+    {
+        var hasSummary = !string.IsNullOrWhiteSpace(project.ProjectSummary);
+        if (!hasSummary)
+        {
+            _summaryStalenessLabel.Text = "Summary not yet generated";
+            _summaryPreviewLabel.IsVisible = false;
+            _summaryPreviewLabel.Text = "";
+            return;
+        }
+
+        _summaryStalenessLabel.Text = project.TasksSinceSummaryUpdate > 0
+            ? $"{project.TasksSinceSummaryUpdate} tasks since last summary update"
+            : "Summary up to date";
+        _summaryPreviewLabel.Text = project.ProjectSummary;
+        _summaryPreviewLabel.IsVisible = true;
     }
 
     private void UpdateCodebasePathDisplay(WebsiteProject project)
     {
-        var isWindows = IsWindows();
         var hasPath = !string.IsNullOrWhiteSpace(project.CodebasePath);
         _codebasePathLabel.Text = hasPath
             ? $"Code folder: {project.CodebasePath}"
-            : "No code folder set yet.";
-        _createLocalFolderButton.IsVisible = isWindows;
-        _openFolderButton.IsVisible = isWindows && hasPath;
+            : "No code folder set yet (use Setup Guide Step 9).";
     }
 
     private async Task RefreshCurrentProjectAsync()
@@ -924,57 +977,34 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         return null;
     }
 
-    private async Task CreateLocalFolderAsync()
+    private async Task CopyUpdateSummaryPromptAsync()
     {
-        if (!IsWindows() || _currentProjectId <= 0)
-            return;
+        await Clipboard.SetTextAsync(UpdateSummaryPrompt);
+        await DisplayAlert(
+            "Prompt copied",
+            "Prompt copied. Paste into Codex CLI in your project folder. Codex will read the project files and output a summary. Then tap Paste Summary Result here and paste the response.",
+            "OK");
+    }
 
+    private async Task PasteSummaryResultAsync()
+    {
         var project = await GetCurrentProjectOrAlertAsync();
         if (project == null)
             return;
 
-        var parentPath = await WebsiteFolderHelper.PickParentFolderPathAsync(this);
-        if (string.IsNullOrWhiteSpace(parentPath))
+        var input = await DisplayPromptAsync(
+            "Paste Summary Result",
+            "Paste the summary Codex returned:",
+            "Save",
+            "Cancel",
+            initialValue: project.ProjectSummary,
+            maxLength: 5000);
+
+        if (input == null)
             return;
 
-        var folderName = WebsiteFolderHelper.DeriveFolderName(project.Title, project.Id);
-        var targetPath = Path.Combine(parentPath, folderName);
-
-        try
-        {
-            Directory.CreateDirectory(targetPath);
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Folder not created", $"Could not create the folder: {ex.Message}", "OK");
-            return;
-        }
-
-        if (await _projectService.SetCodebasePathAsync(project.Id, targetPath))
+        if (await _projectService.SetProjectSummaryAsync(project.Id, input.Trim()))
             await RefreshCurrentProjectAsync();
-    }
-
-    private async Task OpenCodebaseFolderAsync()
-    {
-        if (!IsWindows() || _currentProjectId <= 0)
-            return;
-
-        var project = await GetCurrentProjectOrAlertAsync();
-        if (project == null || string.IsNullOrWhiteSpace(project.CodebasePath))
-            return;
-
-        if (!Directory.Exists(project.CodebasePath))
-        {
-            await DisplayAlert("Folder not found", $"Folder not found at {project.CodebasePath}. Re-create or update the project.", "OK");
-            return;
-        }
-
-        Process.Start("explorer.exe", project.CodebasePath);
-    }
-
-    private static bool IsWindows()
-    {
-        return DeviceInfo.Current.Platform == DevicePlatform.WinUI;
     }
 
     private void RefreshStateVisibility()

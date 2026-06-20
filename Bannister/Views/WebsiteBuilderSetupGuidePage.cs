@@ -1,6 +1,8 @@
+using Bannister.Models;
 using Bannister.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Storage;
+using System.Diagnostics;
 
 namespace Bannister.Views;
 
@@ -455,6 +457,7 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
         {
             StepActionType.PopNavigation => CreateInternalActionButton(action.Label, async () => await Navigation.PopAsync()),
             StepActionType.CreateProjectFolder => CreateInternalActionButton(action.Label, async () => await CreateProjectFolderFromWizardAsync()),
+            StepActionType.OpenProjectFolder => CreateInternalActionButton(action.Label, async () => await OpenProjectFolderFromWizardAsync()),
             _ => CreateExternalLinkButton(action.Label, action.Payload)
         };
     }
@@ -467,25 +470,9 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
             return;
         }
 
-        var projectId = await GetLastSelectedProjectIdAsync();
-        if (projectId <= 0)
-        {
-            await DisplayAlert(
-                "Save a project first",
-                "Go to Website Builder, save an idea, purchase a domain, and save it as a project. Then return to this step to create the project folder.",
-                "OK");
+        var project = await GetLastSelectedProjectOrAlertAsync();
+        if (project == null)
             return;
-        }
-
-        var project = await _projectService.GetByIdAsync(projectId);
-        if (project == null || !string.Equals(project.Username, _auth.CurrentUsername, StringComparison.OrdinalIgnoreCase))
-        {
-            await DisplayAlert(
-                "Save a project first",
-                "The last selected project could not be found. Go to Website Builder, load or create a project, then return to this step.",
-                "OK");
-            return;
-        }
 
         var parentPath = await WebsiteFolderHelper.PickParentFolderPathAsync(this);
         if (string.IsNullOrWhiteSpace(parentPath))
@@ -506,6 +493,58 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
 
         if (await _projectService.SetCodebasePathAsync(project.Id, targetPath))
             await DisplayAlert("Folder created", $"Folder created at {targetPath}", "OK");
+    }
+
+    private async Task OpenProjectFolderFromWizardAsync()
+    {
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        {
+            await DisplayAlert("Windows only", "Folder operations are supported on Windows only.", "OK");
+            return;
+        }
+
+        var project = await GetLastSelectedProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(project.CodebasePath))
+        {
+            await DisplayAlert("Folder not set", "Create the folder first, then use Open Folder.", "OK");
+            return;
+        }
+
+        if (!Directory.Exists(project.CodebasePath))
+        {
+            await DisplayAlert("Folder not found", $"Folder not found at {project.CodebasePath}. Re-create the folder.", "OK");
+            return;
+        }
+
+        Process.Start("explorer.exe", project.CodebasePath);
+    }
+
+    private async Task<WebsiteProject?> GetLastSelectedProjectOrAlertAsync()
+    {
+        var projectId = await GetLastSelectedProjectIdAsync();
+        if (projectId <= 0)
+        {
+            await DisplayAlert(
+                "Save a project first",
+                "Go to Website Builder, save an idea, purchase a domain, and save it as a project. Then return to this step.",
+                "OK");
+            return null;
+        }
+
+        var project = await _projectService.GetByIdAsync(projectId);
+        if (project == null || !string.Equals(project.Username, _auth.CurrentUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            await DisplayAlert(
+                "Save a project first",
+                "The last selected project could not be found. Go to Website Builder, load or create a project, then return to this step.",
+                "OK");
+            return null;
+        }
+
+        return project;
     }
 
     private async Task<int> GetLastSelectedProjectIdAsync()
@@ -652,7 +691,11 @@ After purchase, return to Bannister's Website Builder, type the purchased domain
                 @"Bannister creates the local folder where Codex will edit files. Tap the button below to browse to a parent location (e.g. C:\projects) - Bannister creates the subfolder named after your domain there and saves the path on your project.
 
 Note: this requires a project to be currently loaded in Bannister. If you haven't saved a project yet, go to Website Builder first (save an idea, type a purchased domain, save as project), then come back.",
-                new List<StepAction> { new("Create Project Folder", StepActionType.CreateProjectFolder, "") }),
+                new List<StepAction>
+                {
+                    new("Create Project Folder", StepActionType.CreateProjectFolder, ""),
+                    new("Open Folder", StepActionType.OpenProjectFolder, "")
+                }),
             new(
                 "Initialize Tech Stack",
                 @"Open a terminal in your new project folder (the one Bannister created in the previous step). You can do this via the Bannister Open Folder button to navigate Explorer to it, then Shift+Right-click inside the folder and pick 'Open in Terminal'.
@@ -741,6 +784,7 @@ DNS propagation takes 5 minutes to 48 hours. Once it completes, Vercel auto-issu
     {
         ExternalLink,
         PopNavigation,
-        CreateProjectFolder
+        CreateProjectFolder,
+        OpenProjectFolder
     }
 }

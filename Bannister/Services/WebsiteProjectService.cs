@@ -74,6 +74,7 @@ public class WebsiteProjectService
             return false;
 
         project.TaskCount++;
+        project.TasksSinceSummaryUpdate++;
         await SaveAsync(project);
         return true;
     }
@@ -128,6 +129,19 @@ public class WebsiteProjectService
             return false;
 
         project.CodebasePath = path;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetProjectSummaryAsync(int projectId, string summary)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.ProjectSummary = summary;
+        project.TasksSinceSummaryUpdate = 0;
         await SaveAsync(project);
         return true;
     }
