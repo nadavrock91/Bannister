@@ -1040,18 +1040,14 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (project == null)
             return;
 
-        var input = await DisplayPromptAsync(
-            "Paste Summary Result",
-            "Paste the summary Codex returned:",
-            "Save",
-            "Cancel",
-            initialValue: project.ProjectSummary,
-            maxLength: 5000);
+        var editorPage = new WebsiteSummaryEditorPage(project.ProjectSummary);
+        await Navigation.PushModalAsync(editorPage);
+        var result = await editorPage.ShowAsync();
 
-        if (input == null)
+        if (result == null)
             return;
 
-        if (await _projectService.SetProjectSummaryAsync(project.Id, input.Trim()))
+        if (await _projectService.SetProjectSummaryAsync(project.Id, result))
             await RefreshCurrentProjectAsync();
     }
 
