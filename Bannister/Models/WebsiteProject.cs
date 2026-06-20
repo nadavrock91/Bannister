@@ -19,6 +19,8 @@ public class WebsiteProject
 
     public int TaskTarget { get; set; } = 1000;
 
+    public string CodebasePath { get; set; } = "";
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

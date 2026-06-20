@@ -119,4 +119,16 @@ public class WebsiteProjectService
         await SaveAsync(project);
         return true;
     }
+
+    public async Task<bool> SetCodebasePathAsync(int projectId, string path)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.CodebasePath = path;
+        await SaveAsync(project);
+        return true;
+    }
 }

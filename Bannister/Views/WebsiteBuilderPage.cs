@@ -3,6 +3,8 @@ using Bannister.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Storage;
+using System.Diagnostics;
+using System.Text;
 
 namespace Bannister.Views;
 
@@ -63,6 +65,9 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly Button _setTargetButton;
     private readonly Frame _celebrationFrame;
     private readonly Button _setNewTargetButton;
+    private readonly Label _codebasePathLabel;
+    private readonly Button _createLocalFolderButton;
+    private readonly Button _openFolderButton;
     private readonly Button _deleteProjectButton;
 
     private List<WebsiteIdea> _ideasCache = new();
@@ -231,6 +236,53 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             }
         };
 
+        _codebasePathLabel = new Label
+        {
+            FontSize = 13,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+
+        _createLocalFolderButton = new Button
+        {
+            Text = "Create Local Folder",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#01579B"),
+            CornerRadius = 8,
+            HeightRequest = 42,
+            FontAttributes = FontAttributes.Bold
+        };
+        _createLocalFolderButton.Clicked += async (_, _) => await CreateLocalFolderAsync();
+
+        _openFolderButton = new Button
+        {
+            Text = "Open Folder",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            HeightRequest = 40
+        };
+        _openFolderButton.Clicked += async (_, _) => await OpenCodebaseFolderAsync();
+
+        var projectFilesSection = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Project Files",
+                    FontSize = 14,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#333")
+                },
+                _codebasePathLabel,
+                _createLocalFolderButton,
+                _openFolderButton
+            }
+        };
+
         _deleteProjectButton = CreateDangerButton("Delete Project");
         _deleteProjectButton.Clicked += async (_, _) => await DeleteProjectAsync();
 
@@ -259,6 +311,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                 counterEditGrid,
                 _setTargetButton,
                 _celebrationFrame,
+                projectFilesSection,
                 _deleteProjectButton
             }
         };
@@ -741,6 +794,18 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _taskCountLabel.Text = $"{project.TaskCount} / {project.TaskTarget}";
         _decrementButton.IsEnabled = project.TaskCount > 0;
         _celebrationFrame.IsVisible = project.TaskCount >= project.TaskTarget;
+        UpdateCodebasePathDisplay(project);
+    }
+
+    private void UpdateCodebasePathDisplay(WebsiteProject project)
+    {
+        var isWindows = IsWindows();
+        var hasPath = !string.IsNullOrWhiteSpace(project.CodebasePath);
+        _codebasePathLabel.Text = hasPath
+            ? $"Code folder: {project.CodebasePath}"
+            : "No code folder set yet.";
+        _createLocalFolderButton.IsVisible = isWindows;
+        _openFolderButton.IsVisible = isWindows && hasPath;
     }
 
     private async Task RefreshCurrentProjectAsync()
@@ -858,6 +923,112 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         await DisplayAlert("Project missing", "This project could not be found.", "OK");
         await ClearAllAsync();
         return null;
+    }
+
+    private async Task CreateLocalFolderAsync()
+    {
+        if (!IsWindows() || _currentProjectId <= 0)
+            return;
+
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        var parentPath = await PickParentFolderPathAsync();
+        if (string.IsNullOrWhiteSpace(parentPath))
+            return;
+
+        var folderName = DeriveFolderName(project.Title, project.Id);
+        var targetPath = Path.Combine(parentPath, folderName);
+
+        try
+        {
+            Directory.CreateDirectory(targetPath);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Folder not created", $"Could not create the folder: {ex.Message}", "OK");
+            return;
+        }
+
+        if (await _projectService.SetCodebasePathAsync(project.Id, targetPath))
+            await RefreshCurrentProjectAsync();
+    }
+
+    private async Task<string?> PickParentFolderPathAsync()
+    {
+#if WINDOWS
+        var picker = new Windows.Storage.Pickers.FolderPicker();
+        picker.FileTypeFilter.Add("*");
+
+        var window = Application.Current?.Windows.FirstOrDefault();
+        var nativeWindow = window?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+        if (nativeWindow == null)
+            return null;
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(nativeWindow);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+        var folder = await picker.PickSingleFolderAsync();
+        return folder?.Path;
+#else
+        await Task.CompletedTask;
+        return null;
+#endif
+    }
+
+    private async Task OpenCodebaseFolderAsync()
+    {
+        if (!IsWindows() || _currentProjectId <= 0)
+            return;
+
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null || string.IsNullOrWhiteSpace(project.CodebasePath))
+            return;
+
+        if (!Directory.Exists(project.CodebasePath))
+        {
+            await DisplayAlert("Folder not found", $"Folder not found at {project.CodebasePath}. Re-create or update the project.", "OK");
+            return;
+        }
+
+        Process.Start("explorer.exe", project.CodebasePath);
+    }
+
+    private static string DeriveFolderName(string domain, int projectId)
+    {
+        var root = domain;
+        var dotIndex = root.IndexOf('.');
+        if (dotIndex >= 0)
+            root = root[..dotIndex];
+
+        root = root.ToLowerInvariant();
+        var builder = new StringBuilder();
+        var lastWasHyphen = false;
+
+        foreach (var ch in root)
+        {
+            if (char.IsLetterOrDigit(ch))
+            {
+                builder.Append(ch);
+                lastWasHyphen = false;
+            }
+            else if (!lastWasHyphen)
+            {
+                builder.Append('-');
+                lastWasHyphen = true;
+            }
+        }
+
+        var folderName = builder.ToString().Trim('-');
+        return string.IsNullOrWhiteSpace(folderName)
+            ? $"project-{projectId}"
+            : folderName;
+    }
+
+    private static bool IsWindows()
+    {
+        return DeviceInfo.Current.Platform == DevicePlatform.WinUI;
     }
 
     private void RefreshStateVisibility()
