@@ -95,6 +95,7 @@ public class HomePage : ContentPage
     private Button _btnLists;
     private Button _btnToBeTested;
     private Button _btnWebsiteBuilder;
+    private Button _btnZeroCounts;
     private VerticalStackLayout _buttonSectionsStack;
     private List<HomeNavButton> _allHomeNavButtons = new();
     private List<HomeNavButton> _homeNavButtons = new();
@@ -351,6 +352,10 @@ public class HomePage : ContentPage
         _btnWebsiteBuilder = CreateButton("Website Builder", Color.FromArgb("#B3E5FC"), Color.FromArgb("#01579B"));
         _btnWebsiteBuilder.Clicked += OnWebsiteBuilderClicked;
         navButtons.Add(("Website Builder", _btnWebsiteBuilder));
+
+        _btnZeroCounts = CreateButton("Zero Counts", Color.FromArgb("#D1FAE5"), Color.FromArgb("#065F46"));
+        _btnZeroCounts.Clicked += OnZeroCountsClicked;
+        navButtons.Add(("Zero Counts", _btnZeroCounts));
 
         _allHomeNavButtons = navButtons
             .Select(item => new HomeNavButton(item.sortKey, item.btn))
@@ -780,6 +785,7 @@ public class HomePage : ContentPage
             "Tasks" => OnTasksClicked,
             "To Be Tested" => OnToBeTestedClicked,
             "Website Builder" => OnWebsiteBuilderClicked,
+            "Zero Counts" => OnZeroCountsClicked,
             _ => (_, _) => { }
         };
     }
@@ -2205,6 +2211,12 @@ public class HomePage : ContentPage
     private async void OnWebsiteBuilderClicked(object? sender, EventArgs e)
     {
         var page = new WebsiteBuilderPage(_auth, _websiteProjects, _websiteIdeas, _games);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnZeroCountsClicked(object? sender, EventArgs e)
+    {
+        var page = new ZeroCountsPage(_auth, _activities, _games);
         await Navigation.PushAsync(page);
     }
 

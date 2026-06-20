@@ -264,6 +264,7 @@ public partial class ActivityGamePage
         string gameId = activity.Game;
         var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, gameId);
         int expAmount = CalculateAutoAwardExpGain(activity, currentLevel) * Math.Max(1, activity.Multiplier);
+        expAmount = ApplyZeroCountFirstCompletionMultiplier(activity, expAmount);
         int totalExp = expAmount;
         var bonusDetails = new List<string>();
 
@@ -291,8 +292,18 @@ public partial class ActivityGamePage
 
         await _activities.RecordDisplayDayStreakAsync(activity, loggedAt);
 
+        bool completedZeroCount = activity.IsZeroCount && activity.TimesCompleted == 0;
         activity.TimesCompleted++;
+        if (completedZeroCount)
+        {
+            activity.IsZeroCount = false;
+            activity.ZeroCountCompletedAt = DateTime.Now;
+            activity.Category = "Misc";
+        }
         await _activities.UpdateActivityAsync(activity);
+
+        if (completedZeroCount)
+            await PromptMoveCompletedZeroCountAsync(activity);
 
         var newHabits = Application.Current?.Handler?.MauiContext?.Services.GetService<NewHabitService>();
         if (newHabits != null)

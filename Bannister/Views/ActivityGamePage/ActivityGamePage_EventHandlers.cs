@@ -38,13 +38,22 @@ public partial class ActivityGamePage
             int baseExp = activityVM.ExpGain;
             int effectiveMultiplier = activityVM.EffectiveMultiplier;
             int expForThisActivity = baseExp * effectiveMultiplier;
+            bool isFirstZeroCountCompletion = activityVM.Activity.IsZeroCount && activityVM.Activity.TimesCompleted == 0;
 
-            // Apply EXP multiple times if multiplier > 1 (just the EXP logging)
-            for (int i = 0; i < effectiveMultiplier; i++)
+            if (isFirstZeroCountCompletion)
             {
-                // In grouping mode, use the activity's own game for EXP
                 string expGameId = _isGroupingMode ? activityVM.Activity.Game : _game!.GameId;
-                await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, activityVM.Name, baseExp, activityVM.Id);
+                await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, activityVM.Name, expForThisActivity * 10, activityVM.Id);
+            }
+            else
+            {
+                // Apply EXP multiple times if multiplier > 1 (just the EXP logging)
+                for (int i = 0; i < effectiveMultiplier; i++)
+                {
+                    // In grouping mode, use the activity's own game for EXP
+                    string expGameId = _isGroupingMode ? activityVM.Activity.Game : _game!.GameId;
+                    await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, activityVM.Name, baseExp, activityVM.Id);
+                }
             }
 
             // Process completion ONCE per activity using shared logic
@@ -52,7 +61,7 @@ public partial class ActivityGamePage
             // times completed, NewHabit progress, and streak bonus
             var (bonusExp, bonusDetails) = await ProcessActivityCompletionCoreAsync(activityVM.Activity);
             
-            totalExp += expForThisActivity + bonusExp;
+            totalExp += (isFirstZeroCountCompletion ? expForThisActivity * 10 : expForThisActivity) + bonusExp;
 
             // Update ViewModel with new values from activity
             activityVM.DisplayDayStreak = activityVM.Activity.DisplayDayStreak;
@@ -65,7 +74,10 @@ public partial class ActivityGamePage
                 : activityVM.Multiplier > 1 
                     ? $" (x{activityVM.Multiplier})" 
                     : "";
-            details.Add($"{activityVM.Name}{multiplierInfo}: {sign}{expForThisActivity}");
+            string zeroCountInfo = isFirstZeroCountCompletion ? " (Zero Count x10)" : "";
+            int displayedExp = isFirstZeroCountCompletion ? expForThisActivity * 10 : expForThisActivity;
+            string displayedSign = displayedExp >= 0 ? "+" : "";
+            details.Add($"{activityVM.Name}{multiplierInfo}{zeroCountInfo}: {displayedSign}{displayedExp}");
             
             if (!string.IsNullOrEmpty(bonusDetails))
             {

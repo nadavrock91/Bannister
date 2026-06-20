@@ -28,6 +28,14 @@ namespace Bannister.Services
             return result;
         }
 
+        public async Task<List<Activity>> GetActivitiesAsync(string username)
+        {
+            var conn = await _db.GetConnectionAsync();
+            return await conn.Table<Activity>()
+                .Where(x => x.Username == username && x.IsActive)
+                .ToListAsync();
+        }
+
         public async Task<List<Activity>> GetToBeTestedActivitiesAsync(string username)
         {
             var conn = await _db.GetConnectionAsync();

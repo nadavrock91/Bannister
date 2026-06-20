@@ -22,6 +22,10 @@ public class Activity
 
     public string Category { get; set; } = "Misc";
 
+    public bool IsZeroCount { get; set; } = false;
+
+    public DateTime? ZeroCountCompletedAt { get; set; }
+
     // Start/End dates now include time in the DateTime value
     public DateTime? StartDate { get; set; }
 

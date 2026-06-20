@@ -27,19 +27,20 @@ public partial class ActivityGamePage
         string logDescription)
     {
         string activityGameId = GetActivityGameId(activity);
+        int appliedExpAmount = ApplyZeroCountFirstCompletionMultiplier(activity, expAmount);
 
         // 1. Apply base EXP
         await _exp.ApplyExpAsync(
             _auth.CurrentUsername,
             activityGameId,
             logDescription,
-            expAmount,
+            appliedExpAmount,
             activity.Id);
 
         // 2. Process all the other side effects
         var (bonusExp, bonusDetails) = await ProcessActivityCompletionCoreAsync(activity);
 
-        return (expAmount + bonusExp, bonusDetails);
+        return (appliedExpAmount + bonusExp, bonusDetails);
     }
 
     /// <summary>
@@ -78,9 +79,19 @@ public partial class ActivityGamePage
         // 3. Record display day streak
         await _activities.RecordDisplayDayStreakAsync(activity);
 
-        // 4. Increment times completed
+        // 4. Increment times completed and atomically exit zero-count state when this is the first completion.
+        bool completedZeroCount = activity.IsZeroCount && activity.TimesCompleted == 0;
         activity.TimesCompleted++;
+        if (completedZeroCount)
+        {
+            activity.IsZeroCount = false;
+            activity.ZeroCountCompletedAt = DateTime.Now;
+            activity.Category = "Misc";
+        }
         await _activities.UpdateActivityAsync(activity);
+
+        if (completedZeroCount)
+            await PromptMoveCompletedZeroCountAsync(activity);
 
         // 5. Update NewHabit progress if this activity is linked to a NewHabit
         await RecordNewHabitProgressAsync(activity.Id);
@@ -103,6 +114,65 @@ public partial class ActivityGamePage
         }
 
         return (bonusExp, string.Join("\n", bonusDetails));
+    }
+
+    private static int ApplyZeroCountFirstCompletionMultiplier(Activity activity, int expAmount)
+    {
+        return activity.IsZeroCount && activity.TimesCompleted == 0
+            ? expAmount * 10
+            : expAmount;
+    }
+
+    private async Task PromptMoveCompletedZeroCountAsync(Activity activity)
+    {
+        if (activity.ZeroCountCompletedAt == null ||
+            !string.Equals(activity.Category, "Misc", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var sameGameActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, activity.Game);
+        var existingCategories = sameGameActivities
+            .Select(a => a.Category)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Where(c => !string.Equals(c, "Zero Counts", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(c, "Misc", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var buttons = new List<string>();
+        buttons.AddRange(existingCategories);
+        buttons.Add("Type new category");
+        buttons.Add("Keep in Misc");
+
+        var choice = await DisplayActionSheet(
+            $"Move '{activity.Name}' to which category?",
+            "Cancel",
+            null,
+            buttons.ToArray());
+
+        if (choice == null || choice == "Cancel" || choice == "Keep in Misc")
+            return;
+
+        if (choice == "Type new category")
+        {
+            var typed = await DisplayPromptAsync(
+                "New category",
+                "Enter the category name:",
+                "Save",
+                "Cancel",
+                maxLength: 50);
+
+            if (string.IsNullOrWhiteSpace(typed))
+                return;
+
+            activity.Category = typed.Trim();
+        }
+        else
+        {
+            activity.Category = choice;
+        }
+
+        await _activities.UpdateActivityAsync(activity);
     }
 
     /// <summary>

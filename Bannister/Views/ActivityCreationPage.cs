@@ -59,6 +59,7 @@ public class ActivityCreationPage : ContentPage
     private CheckBox chkIsToBeTested;
     private Entry txtManualPriority;
     private CheckBox chkShowTimesCompleted;
+    private CheckBox chkIsZeroCount;
     private CheckBox chkShowStreakAsDaysSinceStarted;
     private CheckBox chkNoHabitTarget;
     private CheckBox chkHasHabitTarget;
@@ -649,6 +650,16 @@ public class ActivityCreationPage : ContentPage
 
         mainStack.Children.Add(streakSection);
 
+        var zeroCountRow = new HorizontalStackLayout { Spacing = 12 };
+        chkIsZeroCount = new CheckBox();
+        zeroCountRow.Children.Add(chkIsZeroCount);
+        zeroCountRow.Children.Add(new Label
+        {
+            Text = "Mark as Zero Count (never done - 10x EXP first time)",
+            VerticalOptions = LayoutOptions.Center
+        });
+        mainStack.Children.Add(zeroCountRow);
+
         // Activity Status (Possible)
         var statusSection = new VerticalStackLayout { Spacing = 8 };
         statusSection.Children.Add(new Label
@@ -1216,6 +1227,10 @@ public class ActivityCreationPage : ContentPage
             // Check if converting to streak container
             bool isStreakContainer = chkStreakTracked.IsChecked;
             string activityName = txtName.Text.Trim();
+            bool isZeroCount = chkIsZeroCount.IsChecked;
+            if (isZeroCount && !isStreakContainer)
+                category = "Zero Counts";
+
             string originalCategory = category;
             int streakTargetDays = 365;
 
@@ -1251,6 +1266,7 @@ public class ActivityCreationPage : ContentPage
                 Name = activityName,
                 Category = isStreakContainer ? activityName : category, // Streak containers get their own category
                 OriginalCategory = isStreakContainer ? originalCategory : null, // Store original for reference
+                IsZeroCount = isZeroCount && !isStreakContainer,
                 MeaningfulUntilLevel = meaningful,
                 ExpGain = expGain,
                 RewardType = isPercentType ? "PercentOfLevel" : "Fixed",

@@ -375,6 +375,29 @@ public partial class ActivityGamePage
         nameLabel.SetBinding(Label.TextProperty, "Name");
         grid.Children.Add(nameLabel);
 
+        if (activity.Activity.IsZeroCount)
+        {
+            var zeroBadge = new Frame
+            {
+                BackgroundColor = Color.FromArgb("#059669"),
+                CornerRadius = 10,
+                Padding = new Thickness(8, 3),
+                HasShadow = false,
+                BorderColor = Colors.Transparent,
+                HorizontalOptions = LayoutOptions.End,
+                VerticalOptions = LayoutOptions.Start,
+                Margin = new Thickness(4, 4, 42, 4)
+            };
+            zeroBadge.Content = new Label
+            {
+                Text = "ZERO",
+                TextColor = Colors.White,
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold
+            };
+            grid.Children.Add(zeroBadge);
+        }
+
         // Multiplier Badge (shows permanent multiplier OR temporary if set)
         var multiplierFrame = new Frame
         {
