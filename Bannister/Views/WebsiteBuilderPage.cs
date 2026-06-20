@@ -49,11 +49,19 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly Entry _ideaTitleEntry;
     private readonly Editor _ideaEditor;
     private readonly Button _deleteIdeaButton;
+    private readonly VerticalStackLayout _ideaSection;
     private readonly VerticalStackLayout _domainSection;
     private readonly Entry _purchasedDomainEntry;
-    private readonly VerticalStackLayout _projectViewSection;
-    private readonly Label _projectTitleLabel;
-    private readonly Editor _projectIdeaDisplay;
+    private readonly VerticalStackLayout _taskCounterSection;
+    private readonly Label _projectTitleHeaderLabel;
+    private readonly Label _projectIdeaReferenceLabel;
+    private readonly Label _taskCountLabel;
+    private readonly Button _incrementButton;
+    private readonly Button _decrementButton;
+    private readonly Button _editCountButton;
+    private readonly Button _setTargetButton;
+    private readonly Frame _celebrationFrame;
+    private readonly Button _setNewTargetButton;
     private readonly Button _deleteProjectButton;
 
     private List<WebsiteIdea> _ideasCache = new();
@@ -144,31 +152,112 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             }
         };
 
-        _projectTitleLabel = new Label
+        _ideaSection = new VerticalStackLayout
         {
-            FontSize = 20,
+            Spacing = 12,
+            Children =
+            {
+                CreateSectionHeader("Step 1: Ideas for Website"),
+                copyIdeasButton,
+                new Label { Text = "Idea Title", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
+                _ideaTitleEntry,
+                new Label { Text = "Selected Idea / Notes", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
+                _ideaEditor,
+                saveIdeaButton,
+                _deleteIdeaButton
+            }
+        };
+
+        _projectTitleHeaderLabel = new Label
+        {
+            FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#222")
         };
-        _projectIdeaDisplay = new Editor
+        _projectIdeaReferenceLabel = new Label
         {
-            IsReadOnly = true,
-            AutoSize = EditorAutoSizeOption.TextChanges,
-            MinimumHeightRequest = 220,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            FontSize = 13,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+        _taskCountLabel = new Label
+        {
+            FontSize = 48,
+            FontAttributes = FontAttributes.Bold,
+            HorizontalOptions = LayoutOptions.Center,
             TextColor = Color.FromArgb("#222")
         };
+        _incrementButton = CreatePrimaryButton("+1 Task", Color.FromArgb("#2E7D32"));
+        _incrementButton.FontSize = 20;
+        _incrementButton.HeightRequest = 58;
+        _incrementButton.Clicked += async (_, _) => await OnIncrementClickedAsync();
+
+        _decrementButton = CreateSecondaryButton("-1 Task");
+        _decrementButton.Clicked += async (_, _) => await OnDecrementClickedAsync();
+
+        _editCountButton = CreateSecondaryButton("Edit Count");
+        _editCountButton.Clicked += async (_, _) => await OnEditCountClickedAsync();
+
+        _setTargetButton = CreateSecondaryButton("Set Target");
+        _setTargetButton.Clicked += async (_, _) => await OnSetTargetClickedAsync();
+
+        _setNewTargetButton = CreatePrimaryButton("Set New Target", Color.FromArgb("#2E7D32"));
+        _setNewTargetButton.Clicked += async (_, _) => await OnSetNewTargetClickedAsync();
+
+        _celebrationFrame = new Frame
+        {
+            Padding = 14,
+            CornerRadius = 8,
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            BorderColor = Color.FromArgb("#2E7D32"),
+            HasShadow = false,
+            IsVisible = false,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "🎉 Target reached!",
+                        FontSize = 18,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#1B5E20")
+                    },
+                    _setNewTargetButton
+                }
+            }
+        };
+
         _deleteProjectButton = CreateDangerButton("Delete Project");
         _deleteProjectButton.Clicked += async (_, _) => await DeleteProjectAsync();
-        _projectViewSection = new VerticalStackLayout
+
+        var counterEditGrid = new Grid
         {
-            Spacing = 10,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 10
+        };
+        counterEditGrid.Add(_decrementButton, 0, 0);
+        counterEditGrid.Add(_editCountButton, 1, 0);
+
+        _taskCounterSection = new VerticalStackLayout
+        {
+            Spacing = 14,
             IsVisible = false,
             Children =
             {
-                CreateSectionHeader("Saved Project"),
-                _projectTitleLabel,
-                _projectIdeaDisplay,
+                _projectTitleHeaderLabel,
+                _projectIdeaReferenceLabel,
+                _taskCountLabel,
+                _incrementButton,
+                counterEditGrid,
+                _setTargetButton,
+                _celebrationFrame,
                 _deleteProjectButton
             }
         };
@@ -196,15 +285,8 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                         Margin = new Thickness(0, -6, 0, 8)
                     },
                     CreatePickerGrid(newIdeaButton, newProjectButton),
-                    _projectViewSection,
-                    CreateSectionHeader("Step 1: Ideas for Website"),
-                    copyIdeasButton,
-                    new Label { Text = "Idea Title", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
-                    _ideaTitleEntry,
-                    new Label { Text = "Selected Idea / Notes", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
-                    _ideaEditor,
-                    saveIdeaButton,
-                    _deleteIdeaButton,
+                    _taskCounterSection,
+                    _ideaSection,
                     _domainSection
                 }
             }
@@ -330,7 +412,9 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _projectsCache = await _projectService.GetAllForUserAsync(_auth.CurrentUsername);
 
         _ideaPicker.ItemsSource = _ideasCache.Select(idea => idea.Title).ToList();
-        _projectPicker.ItemsSource = _projectsCache.Select(project => project.Title).ToList();
+        var projectTitles = _projectsCache.Select(project => project.Title).ToList();
+        projectTitles.Add("+ New Project");
+        _projectPicker.ItemsSource = projectTitles;
 
         SetPickerSelection(_ideaPicker, _ideasCache.Select(i => i.Id).ToList(), selectIdeaId ?? (_currentIdeaId > 0 ? _currentIdeaId : null));
         SetPickerSelection(_projectPicker, _projectsCache.Select(p => p.Id).ToList(), selectProjectId ?? (_currentProjectId > 0 ? _currentProjectId : null));
@@ -360,7 +444,16 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
     private async Task OnProjectSelectedAsync()
     {
-        if (_isRefreshingPickers || _projectPicker.SelectedIndex < 0 || _projectPicker.SelectedIndex >= _projectsCache.Count)
+        if (_isRefreshingPickers || _projectPicker.SelectedIndex < 0)
+            return;
+
+        if (_projectPicker.SelectedIndex == _projectsCache.Count)
+        {
+            await ClearProjectStateAsync();
+            return;
+        }
+
+        if (_projectPicker.SelectedIndex > _projectsCache.Count)
             return;
 
         var project = _projectsCache[_projectPicker.SelectedIndex];
@@ -383,8 +476,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     {
         _currentProjectId = project.Id;
         _currentIdeaId = 0;
-        _projectTitleLabel.Text = project.Title;
-        _projectIdeaDisplay.Text = project.IdeaText;
+        UpdateTaskCounterDisplay(project);
         _ideaTitleEntry.Text = "";
         _ideaEditor.Text = "";
         _purchasedDomainEntry.Text = "";
@@ -505,6 +597,9 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         await _ideaService.DeleteAsync(_currentIdeaId);
         await ClearAllAsync();
         await RefreshPickersAsync(selectProjectId: project.Id);
+        var savedProject = await _projectService.GetByIdAsync(project.Id);
+        if (savedProject != null)
+            LoadProject(savedProject);
         await DisplayAlert("Project created", $"Project '{domain}' created.", "OK");
     }
 
@@ -514,8 +609,9 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _currentProjectId = 0;
         _ideaTitleEntry.Text = "";
         _ideaEditor.Text = "";
-        _projectTitleLabel.Text = "";
-        _projectIdeaDisplay.Text = "";
+        _projectTitleHeaderLabel.Text = "";
+        _projectIdeaReferenceLabel.Text = "";
+        _taskCountLabel.Text = "";
         _purchasedDomainEntry.Text = "";
         await RefreshPickersAsync();
         RefreshStateVisibility();
@@ -524,11 +620,138 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private async Task ClearProjectStateAsync()
     {
         _currentProjectId = 0;
-        _projectTitleLabel.Text = "";
-        _projectIdeaDisplay.Text = "";
+        _projectTitleHeaderLabel.Text = "";
+        _projectIdeaReferenceLabel.Text = "";
+        _taskCountLabel.Text = "";
         _projectPicker.SelectedIndex = -1;
         RefreshStateVisibility();
         await Task.CompletedTask;
+    }
+
+    private void UpdateTaskCounterDisplay(WebsiteProject project)
+    {
+        _projectTitleHeaderLabel.Text = project.Title;
+        _projectIdeaReferenceLabel.Text = project.IdeaText;
+        _taskCountLabel.Text = $"{project.TaskCount} / {project.TaskTarget}";
+        _decrementButton.IsEnabled = project.TaskCount > 0;
+        _celebrationFrame.IsVisible = project.TaskCount >= project.TaskTarget;
+    }
+
+    private async Task RefreshCurrentProjectAsync()
+    {
+        if (_currentProjectId <= 0)
+            return;
+
+        var project = await _projectService.GetByIdAsync(_currentProjectId);
+        if (project == null)
+        {
+            await ClearAllAsync();
+            return;
+        }
+
+        UpdateTaskCounterDisplay(project);
+        await RefreshPickersAsync(selectProjectId: project.Id);
+        RefreshStateVisibility();
+    }
+
+    private async Task OnIncrementClickedAsync()
+    {
+        if (_currentProjectId <= 0)
+            return;
+
+        if (await _projectService.IncrementTaskCountAsync(_currentProjectId))
+            await RefreshCurrentProjectAsync();
+    }
+
+    private async Task OnDecrementClickedAsync()
+    {
+        if (_currentProjectId <= 0)
+            return;
+
+        if (await _projectService.DecrementTaskCountAsync(_currentProjectId))
+            await RefreshCurrentProjectAsync();
+    }
+
+    private async Task OnEditCountClickedAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        var input = await DisplayPromptAsync(
+            "Edit Count",
+            "Enter the current completed task count:",
+            "Save",
+            "Cancel",
+            initialValue: project.TaskCount.ToString(),
+            keyboard: Keyboard.Numeric);
+
+        if (input == null)
+            return;
+
+        if (!int.TryParse(input.Trim(), out var newCount) || newCount < 0)
+        {
+            await DisplayAlert("Invalid count", "Task count must be 0 or a positive number.", "OK");
+            return;
+        }
+
+        if (await _projectService.SetTaskCountAsync(project.Id, newCount))
+            await RefreshCurrentProjectAsync();
+    }
+
+    private async Task OnSetTargetClickedAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        await PromptAndSetTargetAsync(project, project.TaskTarget.ToString());
+    }
+
+    private async Task OnSetNewTargetClickedAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        await PromptAndSetTargetAsync(project, Math.Max(1, project.TaskTarget * 2).ToString());
+    }
+
+    private async Task PromptAndSetTargetAsync(WebsiteProject project, string initialValue)
+    {
+        var input = await DisplayPromptAsync(
+            "Set Target",
+            "Enter the task target:",
+            "Save",
+            "Cancel",
+            initialValue: initialValue,
+            keyboard: Keyboard.Numeric);
+
+        if (input == null)
+            return;
+
+        if (!int.TryParse(input.Trim(), out var newTarget) || newTarget <= 0)
+        {
+            await DisplayAlert("Invalid target", "Task target must be a positive number.", "OK");
+            return;
+        }
+
+        if (await _projectService.SetTaskTargetAsync(project.Id, newTarget))
+            await RefreshCurrentProjectAsync();
+    }
+
+    private async Task<WebsiteProject?> GetCurrentProjectOrAlertAsync()
+    {
+        if (_currentProjectId <= 0)
+            return null;
+
+        var project = await _projectService.GetByIdAsync(_currentProjectId);
+        if (project != null)
+            return project;
+
+        await DisplayAlert("Project missing", "This project could not be found.", "OK");
+        await ClearAllAsync();
+        return null;
     }
 
     private void RefreshStateVisibility()
@@ -536,7 +759,8 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         var hasIdea = _currentIdeaId > 0;
         var hasProject = _currentProjectId > 0;
         _deleteIdeaButton.IsVisible = hasIdea;
+        _ideaSection.IsVisible = !hasProject;
         _domainSection.IsVisible = hasIdea && !hasProject;
-        _projectViewSection.IsVisible = hasProject;
+        _taskCounterSection.IsVisible = hasProject;
     }
 }

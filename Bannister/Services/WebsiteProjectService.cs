@@ -65,4 +65,58 @@ public class WebsiteProjectService
         if (project != null)
             await conn.DeleteAsync(project);
     }
+
+    public async Task<bool> IncrementTaskCountAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.TaskCount++;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> DecrementTaskCountAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null || project.TaskCount <= 0)
+            return false;
+
+        project.TaskCount = Math.Max(0, project.TaskCount - 1);
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetTaskCountAsync(int projectId, int newCount)
+    {
+        EnsureWritable();
+        if (newCount < 0)
+            return false;
+
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.TaskCount = newCount;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetTaskTargetAsync(int projectId, int newTarget)
+    {
+        EnsureWritable();
+        if (newTarget <= 0)
+            return false;
+
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.TaskTarget = newTarget;
+        await SaveAsync(project);
+        return true;
+    }
 }

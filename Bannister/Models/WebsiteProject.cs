@@ -15,6 +15,10 @@ public class WebsiteProject
 
     public string IdeaText { get; set; } = "";
 
+    public int TaskCount { get; set; } = 0;
+
+    public int TaskTarget { get; set; } = 1000;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
