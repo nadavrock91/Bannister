@@ -93,7 +93,6 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly Button _decrementButton;
     private readonly Button _editCountButton;
     private readonly Button _setTargetButton;
-    private readonly Button _copyNextTaskPromptButton;
     private readonly Button _viewTaskLogButton;
     private readonly Frame _celebrationFrame;
     private readonly Button _setNewTargetButton;
@@ -453,17 +452,6 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _setTargetButton = CreateSecondaryButton("Set Target");
         _setTargetButton.Clicked += async (_, _) => await OnSetTargetClickedAsync();
 
-        _copyNextTaskPromptButton = new Button
-        {
-            Text = "Copy Next Task Prompt",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
-            CornerRadius = 8,
-            HeightRequest = 50,
-            FontAttributes = FontAttributes.Bold
-        };
-        _copyNextTaskPromptButton.Clicked += async (_, _) => await CopyNextTaskPromptAsync();
-
         _viewTaskLogButton = new Button
         {
             Text = "View Task Log",
@@ -482,19 +470,18 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             {
                 new Label
                 {
-                    Text = "Next Task",
+                    Text = "Task Log",
                     FontSize = 14,
                     FontAttributes = FontAttributes.Bold,
                     TextColor = Color.FromArgb("#333")
                 },
                 new Label
                 {
-                    Text = "Ask an LLM what to build next based on your vision, latest summary, and task history.",
+                    Text = "View or edit the list of completed tasks.",
                     FontSize = 12,
                     FontAttributes = FontAttributes.Italic,
                     TextColor = Color.FromArgb("#888")
                 },
-                _copyNextTaskPromptButton,
                 _viewTaskLogButton
             }
         };
