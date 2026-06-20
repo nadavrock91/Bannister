@@ -1514,7 +1514,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         await Clipboard.SetTextAsync(prompt);
         await DisplayAlert(
             "Prompt copied",
-            "Prompt copied. Paste into an LLM. When you have the response, tap Paste Task Plan.",
+            "Prompt copied to clipboard. Paste it into Claude or ChatGPT in a browser. The LLM will respond with a NEXT TASK and a CODEX PROMPT. Copy the LLM's ENTIRE response (both sections together) and tap Paste Task Plan back in Bannister.",
             "OK");
 
         if (await _projectService.AdvanceToWaitingForLLMAsync(project.Id))
@@ -1549,7 +1549,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, parsed.Value.TaskTitle, parsed.Value.CodexPrompt))
         {
             await RefreshCurrentProjectAsync();
-            await DisplayAlert("Task plan parsed", "Task plan parsed. Tap Copy Codex Prompt to continue.", "OK");
+            await DisplayAlert("Task plan parsed", "Task plan parsed. Bannister extracted the task title and the Codex prompt. Tap Copy Codex Prompt to put just the Codex prompt on your clipboard, then paste into Codex CLI.", "OK");
         }
     }
 
@@ -1829,9 +1829,12 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         prompt.AppendLine("(the full prompt to paste into Codex CLI - clear, self-contained, specific about what files/components to edit)");
         prompt.AppendLine();
         prompt.AppendLine("IMPORTANT FORMATTING:");
+        prompt.AppendLine("- Output the entire response as plain text. NO markdown code fences (no triple-backticks, no backticks anywhere). NO markdown bold or italics. Just plain text with the section headers NEXT TASK: and CODEX PROMPT:.");
+        prompt.AppendLine("- Do this so the user can copy your entire response in one block and paste it into Bannister, which will parse out the CODEX PROMPT portion for them.");
         prompt.AppendLine("- NEXT TASK should be ONE LINE (max 100 chars) - this becomes the task title.");
-        prompt.AppendLine("- CODEX PROMPT should be a complete self-contained prompt Codex can execute directly.");
-        prompt.AppendLine("- End your CODEX PROMPT with this exact line: \"At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing what you did>\"");
+        prompt.AppendLine("- CODEX PROMPT should be a complete self-contained prompt Codex can execute directly. Write it as flowing plain text with paragraph breaks and indented sub-points if needed, but NO code fences.");
+        prompt.AppendLine("- End your CODEX PROMPT with this exact line (no formatting):");
+        prompt.AppendLine("  At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing what you did>");
         prompt.AppendLine("- This lets the automation extract the commit message after Codex finishes.");
         prompt.AppendLine();
         prompt.Append("That's it. No other commentary.");
