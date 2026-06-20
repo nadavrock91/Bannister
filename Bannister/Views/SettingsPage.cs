@@ -13,6 +13,8 @@ public class SettingsPage : ContentPage
     private readonly BackupService _backup;
     private Switch _calendarBeforeGamesSwitch;
     private Label _calendarBeforeGamesStatus;
+    private Switch _websiteBuilderInterruptSwitch;
+    private Label _websiteBuilderInterruptStatus;
     private bool _loadingSettings;
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup)
@@ -175,6 +177,75 @@ public class SettingsPage : ContentPage
         homeFrame.Content = homeStack;
         mainStack.Children.Add(homeFrame);
 
+        // Games first-entry interrupts section
+        var gamesInterruptFrame = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent
+        };
+
+        var gamesInterruptStack = new VerticalStackLayout { Spacing = 12 };
+
+        gamesInterruptStack.Children.Add(new Label
+        {
+            Text = "Games First Entry Interrupts",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        var websiteBuilderInterruptRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+
+        var websiteBuilderInterruptText = new VerticalStackLayout { Spacing = 4 };
+        websiteBuilderInterruptText.Children.Add(new Label
+        {
+            Text = "Website Builder daily interrupt",
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+        websiteBuilderInterruptText.Children.Add(new Label
+        {
+            Text = "When entering Games, remind you to do your Website Builder task first.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+        Grid.SetColumn(websiteBuilderInterruptText, 0);
+        websiteBuilderInterruptRow.Children.Add(websiteBuilderInterruptText);
+
+        _websiteBuilderInterruptSwitch = new Switch
+        {
+            IsToggled = true,
+            VerticalOptions = LayoutOptions.Center
+        };
+        _websiteBuilderInterruptSwitch.Toggled += OnWebsiteBuilderInterruptToggled;
+        Grid.SetColumn(_websiteBuilderInterruptSwitch, 1);
+        websiteBuilderInterruptRow.Children.Add(_websiteBuilderInterruptSwitch);
+
+        gamesInterruptStack.Children.Add(websiteBuilderInterruptRow);
+
+        _websiteBuilderInterruptStatus = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        };
+        gamesInterruptStack.Children.Add(_websiteBuilderInterruptStatus);
+
+        gamesInterruptFrame.Content = gamesInterruptStack;
+        mainStack.Children.Add(gamesInterruptFrame);
+
         // Sync & Devices section
         var syncFrame = new Frame
         {
@@ -274,6 +345,10 @@ public class SettingsPage : ContentPage
         bool enabled = await GetCalendarBeforeGamesBlockEnabledAsync();
         _calendarBeforeGamesSwitch.IsToggled = enabled;
         UpdateCalendarBeforeGamesStatus(enabled);
+
+        bool websiteBuilderInterruptEnabled = await GetWebsiteBuilderInterruptEnabledAsync();
+        _websiteBuilderInterruptSwitch.IsToggled = websiteBuilderInterruptEnabled;
+        UpdateWebsiteBuilderInterruptStatus(websiteBuilderInterruptEnabled);
         _loadingSettings = false;
     }
 
@@ -286,11 +361,27 @@ public class SettingsPage : ContentPage
         UpdateCalendarBeforeGamesStatus(e.Value);
     }
 
+    private async void OnWebsiteBuilderInterruptToggled(object? sender, ToggledEventArgs e)
+    {
+        if (_loadingSettings)
+            return;
+
+        await SetWebsiteBuilderInterruptEnabledAsync(e.Value);
+        UpdateWebsiteBuilderInterruptStatus(e.Value);
+    }
+
     private void UpdateCalendarBeforeGamesStatus(bool enabled)
     {
         _calendarBeforeGamesStatus.Text = enabled
             ? "Enabled. Games will require a Calendar visit first each day."
             : "Disabled. Games can be opened directly from Home.";
+    }
+
+    private void UpdateWebsiteBuilderInterruptStatus(bool enabled)
+    {
+        _websiteBuilderInterruptStatus.Text = enabled
+            ? "Enabled. Games will remind you about the Website Builder task once per day."
+            : "Disabled. Games will not show the Website Builder daily reminder.";
     }
 
     private async Task<bool> GetCalendarBeforeGamesBlockEnabledAsync()
@@ -306,4 +397,18 @@ public class SettingsPage : ContentPage
     }
 
     private string GetCalendarBeforeGamesBlockStorageKey() => $"home_block_games_until_calendar_{_auth.CurrentUsername}";
+
+    private async Task<bool> GetWebsiteBuilderInterruptEnabledAsync()
+    {
+        string? value = null;
+        try { value = await SecureStorage.GetAsync(GetWebsiteBuilderInterruptEnabledKey()); } catch { }
+        return value != "0";
+    }
+
+    private async Task SetWebsiteBuilderInterruptEnabledAsync(bool enabled)
+    {
+        try { await SecureStorage.SetAsync(GetWebsiteBuilderInterruptEnabledKey(), enabled ? "1" : "0"); } catch { }
+    }
+
+    private string GetWebsiteBuilderInterruptEnabledKey() => $"website_builder_interrupt_enabled_{_auth.CurrentUsername}";
 }

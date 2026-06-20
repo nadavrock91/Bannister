@@ -1949,7 +1949,62 @@ public class HomePage : ContentPage
             }
         }
 
+        if (await ShowWebsiteBuilderDailyInterruptAsync())
+            return;
+
         await Shell.Current.GoToAsync("gameslist");
+    }
+
+    private async Task<bool> ShowWebsiteBuilderDailyInterruptAsync()
+    {
+        if (!await GetWebsiteBuilderInterruptEnabledAsync())
+            return false;
+
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string tokenKey = GetWebsiteBuilderInterruptShownKey(today);
+        string? token = null;
+        try { token = await SecureStorage.GetAsync(tokenKey); } catch { }
+        if (!string.IsNullOrWhiteSpace(token))
+            return false;
+
+        var game = await GetWebsiteBuildingGameAsync();
+        if (game == null)
+            return false;
+
+        var activities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, game.GameId);
+        var activity = activities.FirstOrDefault(a =>
+            a.Name.Equals("Daily Website Task till 1000", StringComparison.OrdinalIgnoreCase));
+
+        if (activity == null || IsActivityCompletedToday(activity))
+            return false;
+
+        bool goNow = await DisplayAlert(
+            "Daily Website Task",
+            "Your daily website task isn't done yet. Go to Website Builder first?",
+            "Go now",
+            "Later");
+
+        try { await SecureStorage.SetAsync(tokenKey, "1"); } catch { }
+
+        if (!goNow)
+            return false;
+
+        var page = new WebsiteBuilderPage(_auth, _websiteProjects, _websiteIdeas, _games);
+        await Navigation.PushAsync(page);
+        return true;
+    }
+
+    private async Task<Game?> GetWebsiteBuildingGameAsync()
+    {
+        var games = await _games.GetGamesAsync(_auth.CurrentUsername);
+        return games.FirstOrDefault(g => g.DisplayName.Equals("Website Building", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsActivityCompletedToday(Activity activity)
+    {
+        var today = DateTime.Today;
+        return (activity.LastHabitDate.HasValue && activity.LastHabitDate.Value.Date == today)
+            || (activity.LastDisplayDayUsed.HasValue && activity.LastDisplayDayUsed.Value.Date == today);
     }
 
     private async Task NavigateToGameWithCatchUpAsync(string gameId)
@@ -2149,7 +2204,7 @@ public class HomePage : ContentPage
 
     private async void OnWebsiteBuilderClicked(object? sender, EventArgs e)
     {
-        var page = new WebsiteBuilderPage(_auth, _websiteProjects, _websiteIdeas);
+        var page = new WebsiteBuilderPage(_auth, _websiteProjects, _websiteIdeas, _games);
         await Navigation.PushAsync(page);
     }
 
@@ -2238,6 +2293,17 @@ public class HomePage : ContentPage
     private string GetCalendarVisitedStorageKey() => $"home_calendar_visited_{_auth.CurrentUsername}";
 
     private string GetCalendarBeforeGamesBlockStorageKey() => $"home_block_games_until_calendar_{_auth.CurrentUsername}";
+
+    private async Task<bool> GetWebsiteBuilderInterruptEnabledAsync()
+    {
+        string? value = null;
+        try { value = await SecureStorage.GetAsync(GetWebsiteBuilderInterruptEnabledKey()); } catch { }
+        return value != "0";
+    }
+
+    private string GetWebsiteBuilderInterruptEnabledKey() => $"website_builder_interrupt_enabled_{_auth.CurrentUsername}";
+
+    private string GetWebsiteBuilderInterruptShownKey(string date) => $"website_builder_interrupt_shown_{_auth.CurrentUsername}_{date}";
 
     private async Task LogoutAsync()
     {

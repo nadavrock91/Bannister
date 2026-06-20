@@ -17,6 +17,8 @@ namespace Bannister.Views;
 [QueryProperty(nameof(NoHabitTargetStr), "noHabitTarget")]
 [QueryProperty(nameof(PrefillStartDate), "prefillStartDate")]
 [QueryProperty(nameof(PrefillEndDate), "prefillEndDate")]
+[QueryProperty(nameof(PrefillStreakTrackedStr), "prefillStreakTracked")]
+[QueryProperty(nameof(PrefillStreakTargetDays), "prefillStreakTargetDays")]
 public class ActivityCreationPage : ContentPage
 {
     private readonly AuthService _auth;
@@ -132,6 +134,22 @@ public class ActivityCreationPage : ContentPage
         }
     }
 
+    public string? PrefillStreakTrackedStr
+    {
+        get => _prefillStreakTracked ? "true" : "false";
+        set => _prefillStreakTracked = value?.ToLowerInvariant() == "true";
+    }
+
+    public string? PrefillStreakTargetDays
+    {
+        get => _prefillStreakTargetDays?.ToString();
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && int.TryParse(value, out var days) && days > 0)
+                _prefillStreakTargetDays = days;
+        }
+    }
+
     public ActivityCreationPage(AuthService auth, ActivityService activities, GameService games)
     {
         _auth = auth;
@@ -161,7 +179,9 @@ public class ActivityCreationPage : ContentPage
         bool isNegative = false,
         bool noHabitTarget = false,
         DateTime? prefillStartDate = null,
-        DateTime? prefillEndDate = null)
+        DateTime? prefillEndDate = null,
+        bool prefillStreakTracked = false,
+        int? prefillStreakTargetDays = null)
     {
         var page = new ActivityCreationPage(auth, activities, games);
         page._isModalMode = true;
@@ -175,6 +195,8 @@ public class ActivityCreationPage : ContentPage
         page._noHabitTarget = noHabitTarget;
         page._prefillStartDate = prefillStartDate;
         page._prefillEndDate = prefillEndDate;
+        page._prefillStreakTracked = prefillStreakTracked;
+        page._prefillStreakTargetDays = prefillStreakTargetDays;
         
         await navigation.PushModalAsync(new NavigationPage(page));
         return await page._modalTcs.Task;
@@ -189,6 +211,8 @@ public class ActivityCreationPage : ContentPage
     private bool _noHabitTarget;
     private DateTime? _prefillStartDate;
     private DateTime? _prefillEndDate;
+    private bool _prefillStreakTracked;
+    private int? _prefillStreakTargetDays;
     private bool _prefillApplied = false;
 
     protected override async void OnAppearing()
@@ -226,6 +250,14 @@ public class ActivityCreationPage : ContentPage
                 if (_noHabitTarget || _isNegative)
                 {
                     chkNoHabitTarget.IsChecked = true;
+                }
+
+                if (_prefillStreakTracked)
+                {
+                    chkStreakTracked.IsChecked = true;
+                    txtStreakTargetDays.IsEnabled = true;
+                    if (_prefillStreakTargetDays.HasValue)
+                        txtStreakTargetDays.Text = _prefillStreakTargetDays.Value.ToString();
                 }
                 
                 // Set start date if prefilled

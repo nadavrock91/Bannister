@@ -59,6 +59,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly AuthService _auth;
     private readonly WebsiteProjectService _projectService;
     private readonly WebsiteIdeaService _ideaService;
+    private readonly GameService _gameService;
     private readonly Picker _ideaPicker;
     private readonly Picker _projectPicker;
     private readonly Entry _ideaTitleEntry;
@@ -112,11 +113,12 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private int _currentProjectId;
     private bool _isRefreshingPickers;
 
-    public WebsiteBuilderPage(AuthService auth, WebsiteProjectService projectService, WebsiteIdeaService ideaService)
+    public WebsiteBuilderPage(AuthService auth, WebsiteProjectService projectService, WebsiteIdeaService ideaService, GameService gameService)
     {
         _auth = auth;
         _projectService = projectService;
         _ideaService = ideaService;
+        _gameService = gameService;
         Title = "Website Builder";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -735,7 +737,49 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         await RefreshPickersAsync();
         await TryLoadLastSelectedProjectAsync();
         RefreshStateVisibility();
+        await ShowGamificationPromptIfNeededAsync();
     }
+
+    private async Task ShowGamificationPromptIfNeededAsync()
+    {
+        var key = GetGamificationPromptShownKey();
+        string? shown = null;
+        try { shown = await SecureStorage.GetAsync(key); } catch { }
+
+        if (!string.IsNullOrWhiteSpace(shown))
+            return;
+
+        var confirm = await DisplayAlert(
+            "Make this a habit?",
+            "Want to add a daily Game Activity for one website task per day with streak tracking?",
+            "Yes",
+            "No");
+
+        try { await SecureStorage.SetAsync(key, DateTime.UtcNow.ToString("O")); } catch { }
+
+        if (!confirm)
+            return;
+
+        var game = await EnsureWebsiteBuildingGameAsync();
+        if (game == null)
+            return;
+
+        var gameId = Uri.EscapeDataString(game.GameId);
+        var name = Uri.EscapeDataString("Daily Website Task till 1000");
+        await Shell.Current.GoToAsync($"addactivity?gameId={gameId}&prefillName={name}&prefillStreakTracked=true&prefillStreakTargetDays=1000");
+    }
+
+    private async Task<Game?> EnsureWebsiteBuildingGameAsync()
+    {
+        var games = await _gameService.GetGamesAsync(_auth.CurrentUsername);
+        var existing = games.FirstOrDefault(g => g.DisplayName.Equals("Website Building", StringComparison.OrdinalIgnoreCase));
+        if (existing != null)
+            return existing;
+
+        return await _gameService.CreateGameAsync(_auth.CurrentUsername, "Website Building");
+    }
+
+    private string GetGamificationPromptShownKey() => $"website_builder_gamify_prompt_shown_{_auth.CurrentUsername}";
 
     private View CreatePickerGrid(Button newIdeaButton, Button newProjectButton)
     {
