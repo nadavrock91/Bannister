@@ -90,6 +90,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<OpenAIImageService>();
         builder.Services.AddSingleton<OwnerModeService>();
         builder.Services.AddSingleton<WebsiteProjectService>();
+        builder.Services.AddSingleton<WebsiteIdeaService>();
 
 
         // Conversation Practice Module

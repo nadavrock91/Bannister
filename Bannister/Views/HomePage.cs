@@ -49,6 +49,7 @@ public class HomePage : ContentPage
     private readonly OpenAIImageService _openAIImageService;
     private readonly OwnerModeService _ownerMode;
     private readonly WebsiteProjectService _websiteProjects;
+    private readonly WebsiteIdeaService _websiteIdeas;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -116,7 +117,8 @@ public class HomePage : ContentPage
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
         AllowanceService allowanceService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
-        OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects)
+        OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
+        WebsiteIdeaService websiteIdeas)
     {
         _auth = auth;
         _games = games;
@@ -157,6 +159,7 @@ public class HomePage : ContentPage
         _openAIImageService = openAIImageService;
         _ownerMode = ownerMode;
         _websiteProjects = websiteProjects;
+        _websiteIdeas = websiteIdeas;
         _ownerMode.StateChanged += OnOwnerModeStateChanged;
 
         Title = "Bannister";
@@ -2146,7 +2149,7 @@ public class HomePage : ContentPage
 
     private async void OnWebsiteBuilderClicked(object? sender, EventArgs e)
     {
-        var page = new WebsiteBuilderPage(_auth, _websiteProjects);
+        var page = new WebsiteBuilderPage(_auth, _websiteProjects, _websiteIdeas);
         await Navigation.PushAsync(page);
     }
 
