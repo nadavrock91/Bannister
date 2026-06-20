@@ -2,6 +2,7 @@ using Bannister.Models;
 using Bannister.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
+using Microsoft.Maui.Storage;
 
 namespace Bannister.Views;
 
@@ -297,6 +298,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     {
         base.OnAppearing();
         await RefreshPickersAsync();
+        await TryLoadLastSelectedProjectAsync();
         RefreshStateVisibility();
     }
 
@@ -405,6 +407,73 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         await DisplayAlert("Copied", "Domain names prompt copied with your idea details baked in.", "OK");
     }
 
+    private string GetLastProjectStorageKey()
+    {
+        return $"website_builder_last_project_id_{_auth.CurrentUsername}";
+    }
+
+    private async Task TryLoadLastSelectedProjectAsync()
+    {
+        string? storedValue;
+        try
+        {
+            storedValue = await SecureStorage.GetAsync(GetLastProjectStorageKey());
+        }
+        catch
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(storedValue))
+            return;
+
+        if (!int.TryParse(storedValue, out var projectId))
+        {
+            await ClearLastSelectedProjectIdAsync();
+            return;
+        }
+
+        var project = await _projectService.GetByIdAsync(projectId);
+        if (project == null || !string.Equals(project.Username, _auth.CurrentUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            await ClearLastSelectedProjectIdAsync();
+            return;
+        }
+
+        LoadProject(project);
+        var index = _projectsCache.FindIndex(p => p.Id == project.Id);
+        if (index >= 0)
+        {
+            _isRefreshingPickers = true;
+            _projectPicker.SelectedIndex = index;
+            _isRefreshingPickers = false;
+        }
+    }
+
+    private async Task SaveLastSelectedProjectIdAsync(int projectId)
+    {
+        try
+        {
+            await SecureStorage.SetAsync(GetLastProjectStorageKey(), projectId.ToString());
+        }
+        catch
+        {
+        }
+    }
+
+    private Task ClearLastSelectedProjectIdAsync()
+    {
+        try
+        {
+            SecureStorage.Remove(GetLastProjectStorageKey());
+        }
+        catch
+        {
+        }
+
+        return Task.CompletedTask;
+    }
+
     private async Task RefreshPickersAsync(int? selectIdeaId = null, int? selectProjectId = null)
     {
         _isRefreshingPickers = true;
@@ -469,6 +538,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _ideaEditor.Text = idea.IdeaText;
         _purchasedDomainEntry.Text = "";
         _projectPicker.SelectedIndex = -1;
+        _ = ClearLastSelectedProjectIdAsync();
         RefreshStateVisibility();
     }
 
@@ -481,6 +551,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _ideaEditor.Text = "";
         _purchasedDomainEntry.Text = "";
         _ideaPicker.SelectedIndex = -1;
+        _ = SaveLastSelectedProjectIdAsync(project.Id);
         RefreshStateVisibility();
     }
 
@@ -541,6 +612,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             return;
 
         await _projectService.DeleteAsync(_currentProjectId);
+        await ClearLastSelectedProjectIdAsync();
         await ClearAllAsync();
         await DisplayAlert("Deleted", "Project deleted.", "OK");
     }
@@ -605,6 +677,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
     private async Task ClearAllAsync()
     {
+        await ClearLastSelectedProjectIdAsync();
         _currentIdeaId = 0;
         _currentProjectId = 0;
         _ideaTitleEntry.Text = "";
@@ -619,6 +692,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
     private async Task ClearProjectStateAsync()
     {
+        await ClearLastSelectedProjectIdAsync();
         _currentProjectId = 0;
         _projectTitleHeaderLabel.Text = "";
         _projectIdeaReferenceLabel.Text = "";
