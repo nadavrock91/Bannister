@@ -4,7 +4,6 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Storage;
 using System.Diagnostics;
-using System.Text;
 
 namespace Bannister.Views;
 
@@ -328,7 +327,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
         };
-        setupGuideButton.Clicked += async (_, _) => await Navigation.PushAsync(new WebsiteBuilderSetupGuidePage(_auth));
+        setupGuideButton.Clicked += async (_, _) => await Navigation.PushAsync(new WebsiteBuilderSetupGuidePage(_auth, _projectService));
 
         Content = new ScrollView
         {
@@ -934,11 +933,11 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (project == null)
             return;
 
-        var parentPath = await PickParentFolderPathAsync();
+        var parentPath = await WebsiteFolderHelper.PickParentFolderPathAsync(this);
         if (string.IsNullOrWhiteSpace(parentPath))
             return;
 
-        var folderName = DeriveFolderName(project.Title, project.Id);
+        var folderName = WebsiteFolderHelper.DeriveFolderName(project.Title, project.Id);
         var targetPath = Path.Combine(parentPath, folderName);
 
         try
@@ -953,28 +952,6 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
         if (await _projectService.SetCodebasePathAsync(project.Id, targetPath))
             await RefreshCurrentProjectAsync();
-    }
-
-    private async Task<string?> PickParentFolderPathAsync()
-    {
-#if WINDOWS
-        var picker = new Windows.Storage.Pickers.FolderPicker();
-        picker.FileTypeFilter.Add("*");
-
-        var window = Application.Current?.Windows.FirstOrDefault();
-        var nativeWindow = window?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
-        if (nativeWindow == null)
-            return null;
-
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(nativeWindow);
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-
-        var folder = await picker.PickSingleFolderAsync();
-        return folder?.Path;
-#else
-        await Task.CompletedTask;
-        return null;
-#endif
     }
 
     private async Task OpenCodebaseFolderAsync()
@@ -993,37 +970,6 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         }
 
         Process.Start("explorer.exe", project.CodebasePath);
-    }
-
-    private static string DeriveFolderName(string domain, int projectId)
-    {
-        var root = domain;
-        var dotIndex = root.IndexOf('.');
-        if (dotIndex >= 0)
-            root = root[..dotIndex];
-
-        root = root.ToLowerInvariant();
-        var builder = new StringBuilder();
-        var lastWasHyphen = false;
-
-        foreach (var ch in root)
-        {
-            if (char.IsLetterOrDigit(ch))
-            {
-                builder.Append(ch);
-                lastWasHyphen = false;
-            }
-            else if (!lastWasHyphen)
-            {
-                builder.Append('-');
-                lastWasHyphen = true;
-            }
-        }
-
-        var folderName = builder.ToString().Trim('-');
-        return string.IsNullOrWhiteSpace(folderName)
-            ? $"project-{projectId}"
-            : folderName;
     }
 
     private static bool IsWindows()

@@ -9,6 +9,7 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
     private const int TotalSteps = 14;
 
     private readonly AuthService _auth;
+    private readonly WebsiteProjectService _projectService;
     private readonly List<StepData> _steps;
     private readonly HashSet<int> _completedSteps = new();
     private readonly HorizontalStackLayout _stepIndicator;
@@ -21,9 +22,10 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
 
     private int _currentStep = 1;
 
-    public WebsiteBuilderSetupGuidePage(AuthService auth)
+    public WebsiteBuilderSetupGuidePage(AuthService auth, WebsiteProjectService projectService)
     {
         _auth = auth;
+        _projectService = projectService;
         _steps = CreateSteps();
 
         Title = "Setup Guide";
@@ -449,9 +451,74 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
 
     private Button CreateActionButton(StepAction action)
     {
-        return action.Type == StepActionType.PopNavigation
-            ? CreateInternalActionButton(action.Label, async () => await Navigation.PopAsync())
-            : CreateExternalLinkButton(action.Label, action.Payload);
+        return action.Type switch
+        {
+            StepActionType.PopNavigation => CreateInternalActionButton(action.Label, async () => await Navigation.PopAsync()),
+            StepActionType.CreateProjectFolder => CreateInternalActionButton(action.Label, async () => await CreateProjectFolderFromWizardAsync()),
+            _ => CreateExternalLinkButton(action.Label, action.Payload)
+        };
+    }
+
+    private async Task CreateProjectFolderFromWizardAsync()
+    {
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        {
+            await DisplayAlert("Windows only", "Folder creation is supported on Windows only.", "OK");
+            return;
+        }
+
+        var projectId = await GetLastSelectedProjectIdAsync();
+        if (projectId <= 0)
+        {
+            await DisplayAlert(
+                "Save a project first",
+                "Go to Website Builder, save an idea, purchase a domain, and save it as a project. Then return to this step to create the project folder.",
+                "OK");
+            return;
+        }
+
+        var project = await _projectService.GetByIdAsync(projectId);
+        if (project == null || !string.Equals(project.Username, _auth.CurrentUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            await DisplayAlert(
+                "Save a project first",
+                "The last selected project could not be found. Go to Website Builder, load or create a project, then return to this step.",
+                "OK");
+            return;
+        }
+
+        var parentPath = await WebsiteFolderHelper.PickParentFolderPathAsync(this);
+        if (string.IsNullOrWhiteSpace(parentPath))
+            return;
+
+        var folderName = WebsiteFolderHelper.DeriveFolderName(project.Title, project.Id);
+        var targetPath = Path.Combine(parentPath, folderName);
+
+        try
+        {
+            Directory.CreateDirectory(targetPath);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Folder not created", $"Could not create the folder: {ex.Message}", "OK");
+            return;
+        }
+
+        if (await _projectService.SetCodebasePathAsync(project.Id, targetPath))
+            await DisplayAlert("Folder created", $"Folder created at {targetPath}", "OK");
+    }
+
+    private async Task<int> GetLastSelectedProjectIdAsync()
+    {
+        try
+        {
+            var value = await SecureStorage.GetAsync($"website_builder_last_project_id_{_auth.CurrentUsername}");
+            return int.TryParse(value, out var projectId) ? projectId : 0;
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private static Button CreateExternalLinkButton(string label, string url)
@@ -582,12 +649,10 @@ After purchase, return to Bannister's Website Builder, type the purchased domain
                 }),
             new(
                 "Create Project Folder",
-                @"Once your domain is saved as a Bannister project, you can create the local folder where Codex will edit files.
+                @"Bannister creates the local folder where Codex will edit files. Tap the button below to browse to a parent location (e.g. C:\projects) - Bannister creates the subfolder named after your domain there and saves the path on your project.
 
-Bannister handles this for you. Tap the button below to return to Website Builder, load your project (or stay on it if already loaded), and tap Create Local Folder in the Project Files section. Pick where on your computer you want the folder to live (e.g. C:\projects).
-
-Bannister creates the subfolder using your domain name and saves the path on the project.",
-                new List<StepAction> { new("Go to Website Builder", StepActionType.PopNavigation, "") }),
+Note: this requires a project to be currently loaded in Bannister. If you haven't saved a project yet, go to Website Builder first (save an idea, type a purchased domain, save as project), then come back.",
+                new List<StepAction> { new("Create Project Folder", StepActionType.CreateProjectFolder, "") }),
             new(
                 "Initialize Tech Stack",
                 @"Open a terminal in your new project folder (the one Bannister created in the previous step). You can do this via the Bannister Open Folder button to navigate Explorer to it, then Shift+Right-click inside the folder and pick 'Open in Terminal'.
@@ -675,6 +740,7 @@ DNS propagation takes 5 minutes to 48 hours. Once it completes, Vercel auto-issu
     private enum StepActionType
     {
         ExternalLink,
-        PopNavigation
+        PopNavigation,
+        CreateProjectFolder
     }
 }
