@@ -263,6 +263,20 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             }
         };
 
+        var setupGuideButton = new Button
+        {
+            Text = "Setup Guide",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#01579B"),
+            CornerRadius = 6,
+            HeightRequest = 32,
+            FontSize = 13,
+            Padding = new Thickness(12, 0),
+            HorizontalOptions = LayoutOptions.End,
+            VerticalOptions = LayoutOptions.Center
+        };
+        setupGuideButton.Clicked += async (_, _) => await Navigation.PushAsync(new WebsiteBuilderSetupGuidePage());
+
         Content = new ScrollView
         {
             Content = new VerticalStackLayout
@@ -271,13 +285,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                 Spacing = 14,
                 Children =
                 {
-                    new Label
-                    {
-                        Text = "Website Builder",
-                        FontSize = 28,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
+                    CreateTitleRow(setupGuideButton),
                     new Label
                     {
                         Text = "Generate website ideas via LLM, save selected ones as projects.",
@@ -292,6 +300,30 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                 }
             }
         };
+    }
+
+    private static View CreateTitleRow(Button setupGuideButton)
+    {
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 12
+        };
+
+        grid.Add(new Label
+        {
+            Text = "Website Builder",
+            FontSize = 28,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222"),
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+        grid.Add(setupGuideButton, 1, 0);
+        return grid;
     }
 
     protected override async void OnAppearing()
