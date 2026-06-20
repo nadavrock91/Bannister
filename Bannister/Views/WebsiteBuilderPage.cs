@@ -3,6 +3,7 @@ using Bannister.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Storage;
+using System.Diagnostics;
 
 namespace Bannister.Views;
 
@@ -70,6 +71,8 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly Button _copySummaryPromptButton;
     private readonly Button _pasteSummaryResultButton;
     private readonly Label _codebasePathLabel;
+    private readonly Button _copyCodexCommandButton;
+    private readonly Button _openTerminalButton;
     private readonly Button _deleteProjectButton;
 
     private List<WebsiteIdea> _ideasCache = new();
@@ -246,6 +249,27 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             LineBreakMode = LineBreakMode.TailTruncation
         };
 
+        _copyCodexCommandButton = new Button
+        {
+            Text = "Copy CD + Codex Command",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#01579B"),
+            CornerRadius = 8,
+            HeightRequest = 42,
+            FontAttributes = FontAttributes.Bold
+        };
+        _copyCodexCommandButton.Clicked += async (_, _) => await CopyCodexCommandAsync();
+
+        _openTerminalButton = new Button
+        {
+            Text = "Open Terminal",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            HeightRequest = 42
+        };
+        _openTerminalButton.Clicked += async (_, _) => await OpenTerminalAsync();
+
         _summaryStalenessLabel = new Label
         {
             FontSize = 12,
@@ -314,7 +338,9 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                     FontAttributes = FontAttributes.Bold,
                     TextColor = Color.FromArgb("#333")
                 },
-                _codebasePathLabel
+                _codebasePathLabel,
+                _copyCodexCommandButton,
+                _openTerminalButton
             }
         };
 
@@ -858,6 +884,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _codebasePathLabel.Text = hasPath
             ? $"Code folder: {project.CodebasePath}"
             : "No code folder set yet (use Setup Guide Step 9).";
+
+        var isWindows = IsWindows();
+        _copyCodexCommandButton.IsVisible = isWindows;
+        _openTerminalButton.IsVisible = isWindows;
+    }
+
+    private static bool IsWindows()
+    {
+        return DeviceInfo.Current.Platform == DevicePlatform.WinUI;
     }
 
     private async Task RefreshCurrentProjectAsync()
@@ -1005,6 +1040,70 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
         if (await _projectService.SetProjectSummaryAsync(project.Id, input.Trim()))
             await RefreshCurrentProjectAsync();
+    }
+
+    private async Task CopyCodexCommandAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(project.CodebasePath))
+        {
+            await DisplayAlert(
+                "Code folder not set",
+                "Code folder not set. Use Setup Guide Step 9 to create the project folder first.",
+                "OK");
+            return;
+        }
+
+        var command = $"cd /d {project.CodebasePath} && codex";
+        await Clipboard.SetTextAsync(command);
+        await DisplayAlert(
+            "Command copied",
+            $"Command copied: {command}. Paste into a Command Prompt to navigate to your project folder and start Codex.",
+            "OK");
+    }
+
+    private async Task OpenTerminalAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(project.CodebasePath))
+        {
+            await DisplayAlert(
+                "Code folder not set",
+                "Code folder not set. Use Setup Guide Step 9 to create the project folder first.",
+                "OK");
+            return;
+        }
+
+        if (!Directory.Exists(project.CodebasePath))
+        {
+            await DisplayAlert(
+                "Folder not found",
+                $"Folder not found at {project.CodebasePath}. Re-create the folder via Setup Guide Step 9.",
+                "OK");
+            return;
+        }
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/k cd /d \"{project.CodebasePath}\"",
+                UseShellExecute = true,
+                WorkingDirectory = project.CodebasePath
+            };
+            Process.Start(startInfo);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Could not open terminal", $"Could not open terminal: {ex.Message}", "OK");
+        }
     }
 
     private void RefreshStateVisibility()
