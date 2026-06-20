@@ -328,7 +328,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
         };
-        setupGuideButton.Clicked += async (_, _) => await Navigation.PushAsync(new WebsiteBuilderSetupGuidePage());
+        setupGuideButton.Clicked += async (_, _) => await Navigation.PushAsync(new WebsiteBuilderSetupGuidePage(_auth));
 
         Content = new ScrollView
         {
