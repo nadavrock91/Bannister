@@ -38,7 +38,7 @@ public class AllowancesPage : ContentPage
 
         root.Children.Add(new Label
         {
-            Text = "Track any allowance: budget, consumption, behavior, anything with a cap.",
+            Text = "Adaptive caps. Report success or failure each attempt. Three successes in a row raises the cap. One failure lowers it.",
             FontSize = 13,
             TextColor = Color.FromArgb("#666")
         });
@@ -76,14 +76,10 @@ public class AllowancesPage : ContentPage
 
     private View BuildAllowanceCard(Allowance allowance)
     {
-        bool atMin = allowance.Current <= 0;
-        bool atMax = allowance.Current >= allowance.Total;
-        double progress = allowance.Total <= 0 ? 0 : (double)allowance.Current / allowance.Total;
-
         var frame = new Frame
         {
             BackgroundColor = Colors.White,
-            BorderColor = atMax ? Color.FromArgb("#EF9A9A") : Color.FromArgb("#80CBC4"),
+            BorderColor = Color.FromArgb("#80CBC4"),
             CornerRadius = 8,
             HasShadow = false,
             Padding = 12
@@ -104,47 +100,71 @@ public class AllowancesPage : ContentPage
         title.GestureRecognizers.Add(tap);
         stack.Children.Add(title);
 
-        stack.Children.Add(new Label
+        var metrics = new Grid
         {
-            Text = $"{allowance.Current} / {allowance.Total}",
-            FontSize = 18,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            }
+        };
+        metrics.Add(new Label
+        {
+            Text = $"Cap: {allowance.Total}",
+            FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = atMax ? Color.FromArgb("#C62828") : Color.FromArgb("#2E7D32")
-        });
-
-        stack.Children.Add(new ProgressBar
+            TextColor = Color.FromArgb("#263238")
+        }, 0, 0);
+        metrics.Add(new Label
         {
-            Progress = progress,
-            ProgressColor = atMax ? Color.FromArgb("#C62828") : Color.FromArgb("#2E7D32"),
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            HeightRequest = 8
-        });
+            Text = $"Streak: {allowance.SuccessStreak}/3",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#263238"),
+            HorizontalTextAlignment = TextAlignment.End
+        }, 1, 0);
+        stack.Children.Add(metrics);
 
-        var actions = new HorizontalStackLayout { Spacing = 8 };
-
-        var decrement = SmallButton("-", atMin ? "#BDBDBD" : "#1565C0");
-        decrement.WidthRequest = 48;
-        decrement.IsEnabled = !atMin;
-        decrement.Clicked += async (_, _) =>
+        var historyRow = new HorizontalStackLayout { Spacing = 6, HeightRequest = 18 };
+        foreach (var entry in ParseHistory(allowance.RecentHistory).TakeLast(10))
         {
-            await _allowances.DecrementAsync(allowance.Id);
-            await RefreshAsync();
+            historyRow.Children.Add(new BoxView
+            {
+                WidthRequest = 10,
+                HeightRequest = 10,
+                CornerRadius = 5,
+                Color = entry.success ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828"),
+                VerticalOptions = LayoutOptions.Center
+            });
+        }
+        stack.Children.Add(historyRow);
+
+        var actions = new Grid
+        {
+            ColumnSpacing = 8,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            }
         };
-        actions.Children.Add(decrement);
 
-        var increment = SmallButton("+", atMax ? "#BDBDBD" : "#2E7D32");
-        increment.WidthRequest = 48;
-        increment.IsEnabled = !atMax;
-        increment.Clicked += async (_, _) =>
-        {
-            await _allowances.IncrementAsync(allowance.Id);
-            await RefreshAsync();
-        };
-        actions.Children.Add(increment);
+        var success = SmallButton("✓ Success", "#2E7D32");
+        success.FontAttributes = FontAttributes.Bold;
+        success.HeightRequest = 42;
+        success.Clicked += async (_, _) => await RecordOutcomeAsync(allowance, true);
+        actions.Add(success, 0, 0);
+
+        var failure = SmallButton("✗ Failure", "#C62828");
+        failure.FontAttributes = FontAttributes.Bold;
+        failure.HeightRequest = 42;
+        failure.Clicked += async (_, _) => await RecordOutcomeAsync(allowance, false);
+        actions.Add(failure, 1, 0);
 
         var edit = SmallButton("Edit", "#00695C");
         edit.Clicked += async (_, _) => await ShowEditMenuAsync(allowance);
-        actions.Children.Add(edit);
+        actions.Add(edit, 2, 0);
 
         stack.Children.Add(actions);
         frame.Content = stack;
@@ -157,12 +177,49 @@ public class AllowancesPage : ContentPage
         if (string.IsNullOrWhiteSpace(title))
             return;
 
-        string? totalText = await DisplayPromptAsync("Total Allowance", "Total cap:", "Add", "Cancel", keyboard: Keyboard.Numeric, initialValue: "1");
+        string? totalText = await DisplayPromptAsync("Starting Cap", "Starting cap:", "Add", "Cancel", keyboard: Keyboard.Numeric, initialValue: "1");
         if (!int.TryParse(totalText, out int total))
             return;
 
-        await _allowances.AddAllowanceAsync(_auth.CurrentUsername, title.Trim(), total);
-        await RefreshAsync();
+        try
+        {
+            await _allowances.AddAllowanceAsync(_auth.CurrentUsername, title.Trim(), Math.Max(1, total));
+            await RefreshAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task RecordOutcomeAsync(Allowance allowance, bool success)
+    {
+        int previousCap = allowance.Total;
+
+        try
+        {
+            bool recorded = await _allowances.RecordOutcomeAsync(allowance.Id, success);
+            if (!recorded)
+            {
+                await RefreshAsync();
+                return;
+            }
+
+            var refreshed = (await _allowances.GetAllowancesAsync(_auth.CurrentUsername)).FirstOrDefault(a => a.Id == allowance.Id);
+            await RefreshAsync();
+
+            if (refreshed == null || refreshed.Total == previousCap)
+                return;
+
+            if (refreshed.Total > previousCap)
+                await DisplayAlert("Allowance Promoted", $"Cap raised to {refreshed.Total}.", "OK");
+            else
+                await DisplayAlert("Allowance Demoted", $"Cap lowered to {refreshed.Total}.", "OK");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task ShowEditMenuAsync(Allowance allowance)
@@ -172,27 +229,17 @@ public class AllowancesPage : ContentPage
             "Cancel",
             null,
             "Rename",
-            "Set Current Value",
-            "Change Total Allowance",
-            "Reset to 0",
-            $"Daily Prompt (current: {(allowance.PromptDailyOnHome ? "On" : "Off")})",
+            "Change Cap",
+            $"Daily Prompt ({(allowance.PromptDailyOnHome ? "On" : "Off")})",
             "Delete");
 
         if (action == "Rename")
         {
             await RenameAsync(allowance);
         }
-        else if (action == "Set Current Value")
-        {
-            await SetCurrentAsync(allowance);
-        }
-        else if (action == "Change Total Allowance")
+        else if (action == "Change Cap")
         {
             await SetTotalAsync(allowance);
-        }
-        else if (action == "Reset to 0")
-        {
-            await ResetAsync(allowance);
         }
         else if (action?.StartsWith("Daily Prompt", StringComparison.Ordinal) == true)
         {
@@ -210,43 +257,45 @@ public class AllowancesPage : ContentPage
         if (string.IsNullOrWhiteSpace(title))
             return;
 
-        await _allowances.UpdateTitleAsync(allowance.Id, title.Trim());
-        await RefreshAsync();
-    }
-
-    private async Task SetCurrentAsync(Allowance allowance)
-    {
-        string? value = await DisplayPromptAsync("Set Current Value", "Current count:", "Save", "Cancel", keyboard: Keyboard.Numeric, initialValue: allowance.Current.ToString());
-        if (!int.TryParse(value, out int current))
-            return;
-
-        await _allowances.SetCurrentAsync(allowance.Id, current);
-        await RefreshAsync();
+        try
+        {
+            await _allowances.UpdateTitleAsync(allowance.Id, title.Trim());
+            await RefreshAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task SetTotalAsync(Allowance allowance)
     {
-        string? value = await DisplayPromptAsync("Change Total Allowance", "Total cap:", "Save", "Cancel", keyboard: Keyboard.Numeric, initialValue: allowance.Total.ToString());
+        string? value = await DisplayPromptAsync("Change Cap", "Cap:", "Save", "Cancel", keyboard: Keyboard.Numeric, initialValue: allowance.Total.ToString());
         if (!int.TryParse(value, out int total))
             return;
 
-        await _allowances.SetTotalAsync(allowance.Id, total);
-        await RefreshAsync();
-    }
-
-    private async Task ResetAsync(Allowance allowance)
-    {
-        if (!await DisplayAlert("Reset Allowance?", $"Reset \"{allowance.Title}\" to 0?", "Reset", "Cancel"))
-            return;
-
-        await _allowances.ResetAsync(allowance.Id);
-        await RefreshAsync();
+        try
+        {
+            await _allowances.SetTotalAsync(allowance.Id, Math.Max(1, total));
+            await RefreshAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task ToggleDailyPromptAsync(Allowance allowance)
     {
-        await _allowances.SetPromptDailyOnHomeAsync(allowance.Id, !allowance.PromptDailyOnHome);
-        await RefreshAsync();
+        try
+        {
+            await _allowances.SetPromptDailyOnHomeAsync(allowance.Id, !allowance.PromptDailyOnHome);
+            await RefreshAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task DeleteAsync(Allowance allowance)
@@ -254,8 +303,38 @@ public class AllowancesPage : ContentPage
         if (!await DisplayAlert("Delete Allowance?", $"Delete \"{allowance.Title}\"?", "Delete", "Cancel"))
             return;
 
-        await _allowances.DeleteAllowanceAsync(allowance.Id);
-        await RefreshAsync();
+        try
+        {
+            await _allowances.DeleteAllowanceAsync(allowance.Id);
+            await RefreshAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task ShowReadOnlyAlertAsync()
+    {
+        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to modify allowances.", "OK");
+    }
+
+    private static IEnumerable<(DateTime date, bool success)> ParseHistory(string? history)
+    {
+        foreach (var token in (history ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = token.Split(':', 2);
+            if (parts.Length != 2)
+                continue;
+
+            if (!DateTime.TryParse(parts[0], out var date))
+                continue;
+
+            if (parts[1] == "S")
+                yield return (date, true);
+            else if (parts[1] == "F")
+                yield return (date, false);
+        }
     }
 
     private static Button SmallButton(string text, string color)

@@ -1,5 +1,6 @@
 using Bannister.Models;
 using SQLite;
+using System.Globalization;
 
 namespace Bannister.Services;
 
@@ -32,6 +33,10 @@ public class AllowanceService
         {
             await conn.CreateTableAsync<Allowance>();
             try { await conn.ExecuteAsync("ALTER TABLE allowances ADD COLUMN PromptDailyOnHome INTEGER DEFAULT 0"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE allowances ADD COLUMN SuccessStreak INTEGER DEFAULT 0"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE allowances ADD COLUMN RecentHistory TEXT DEFAULT ''"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE allowances ADD COLUMN LastOutcomeDate TEXT"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE allowances ADD COLUMN CapFloor INTEGER DEFAULT 1"); } catch { }
         }
 
         _initialized = true;
@@ -67,6 +72,10 @@ public class AllowanceService
             Title = title.Trim(),
             Total = Math.Max(1, total),
             Current = 0,
+            SuccessStreak = 0,
+            RecentHistory = "",
+            LastOutcomeDate = null,
+            CapFloor = 1,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -82,43 +91,57 @@ public class AllowanceService
         return allowances.Where(a => a.PromptDailyOnHome).OrderBy(a => a.Title, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    public async Task SetCurrentAsync(int id, int current)
+    public async Task<bool> RecordOutcomeAsync(int id, bool success)
     {
-        await UpdateAllowanceAsync(id, allowance =>
+        EnsureWritable();
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var allowance = await conn.FindAsync<Allowance>(id);
+        if (allowance == null) return false;
+
+        var now = DateTime.UtcNow;
+        allowance.LastOutcomeDate = now;
+        allowance.RecentHistory = AppendHistory(allowance.RecentHistory, $"{now:yyyy-MM-dd}:{(success ? "S" : "F")}");
+
+        allowance.CapFloor = Math.Max(1, allowance.CapFloor);
+        allowance.Total = Math.Max(allowance.CapFloor, allowance.Total);
+
+        if (success)
         {
-            allowance.Current = Math.Clamp(current, 0, allowance.Total);
-        });
+            allowance.SuccessStreak++;
+            if (allowance.SuccessStreak >= 3)
+            {
+                allowance.Total++;
+                allowance.SuccessStreak = 0;
+            }
+        }
+        else
+        {
+            allowance.SuccessStreak = 0;
+            allowance.Total = Math.Max(allowance.CapFloor, allowance.Total - 1);
+        }
+
+        allowance.UpdatedAt = now;
+        await conn.UpdateAsync(allowance);
+        return true;
     }
 
-    public async Task IncrementAsync(int id)
+    public async Task<List<(DateTime date, bool success)>> GetRecentHistoryEntriesAsync(int id)
     {
-        await UpdateAllowanceAsync(id, allowance =>
-        {
-            allowance.Current = Math.Min(allowance.Current + 1, allowance.Total);
-        });
-    }
-
-    public async Task DecrementAsync(int id)
-    {
-        await UpdateAllowanceAsync(id, allowance =>
-        {
-            allowance.Current = Math.Max(allowance.Current - 1, 0);
-        });
-    }
-
-    public async Task ResetAsync(int id)
-    {
-        await UpdateAllowanceAsync(id, allowance =>
-        {
-            allowance.Current = 0;
-        });
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var allowance = await conn.FindAsync<Allowance>(id);
+        return allowance == null
+            ? new List<(DateTime date, bool success)>()
+            : ParseHistory(allowance.RecentHistory);
     }
 
     public async Task SetTotalAsync(int id, int total)
     {
         await UpdateAllowanceAsync(id, allowance =>
         {
-            allowance.Total = Math.Max(1, total);
+            allowance.CapFloor = Math.Max(1, allowance.CapFloor);
+            allowance.Total = Math.Max(allowance.CapFloor, total);
             allowance.Current = Math.Clamp(allowance.Current, 0, allowance.Total);
         });
     }
@@ -156,9 +179,45 @@ public class AllowanceService
         if (allowance == null) return;
 
         update(allowance);
-        allowance.Total = Math.Max(1, allowance.Total);
+        allowance.CapFloor = Math.Max(1, allowance.CapFloor);
+        allowance.Total = Math.Max(allowance.CapFloor, allowance.Total);
         allowance.Current = Math.Clamp(allowance.Current, 0, allowance.Total);
         allowance.UpdatedAt = DateTime.UtcNow;
         await conn.UpdateAsync(allowance);
+    }
+
+    private static string AppendHistory(string? history, string entry)
+    {
+        var entries = (history ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+
+        entries.Add(entry);
+
+        if (entries.Count > 14)
+            entries = entries.Skip(entries.Count - 14).ToList();
+
+        return string.Join(",", entries);
+    }
+
+    private static List<(DateTime date, bool success)> ParseHistory(string? history)
+    {
+        var entries = new List<(DateTime date, bool success)>();
+        foreach (var token in (history ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = token.Split(':', 2);
+            if (parts.Length != 2)
+                continue;
+
+            if (!DateTime.TryParseExact(parts[0], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+                continue;
+
+            if (parts[1] == "S")
+                entries.Add((date, true));
+            else if (parts[1] == "F")
+                entries.Add((date, false));
+        }
+
+        return entries;
     }
 }

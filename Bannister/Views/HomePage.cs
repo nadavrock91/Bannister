@@ -1069,7 +1069,7 @@ public class HomePage : ContentPage
             new(
                 "allowance",
                 "Allowance Check-In",
-                "Review daily allowance items and mark completed work.",
+                "Report success or failure for your adaptive allowances.",
                 IsAllowanceDailyPromptPendingAsync,
                 () => CheckAllowanceDailyPromptAsync(promptRunId),
                 SkipAllowanceDailyPromptTodayAsync),
@@ -1484,15 +1484,27 @@ public class HomePage : ContentPage
             foreach (var allowance in allowances)
             {
                 if (!IsHomePromptRunActive(promptRunId)) return;
-                bool completed = await DisplayAlert(
+                int previousCap = allowance.Total;
+                bool success = await DisplayAlert(
                     "Daily Allowance Check-In",
-                    $"Did you complete \"{allowance.Title}\" today?",
-                    "Yes",
-                    "No");
+                    $"Success with \"{allowance.Title}\" today? Cap is {allowance.Total}, streak is {allowance.SuccessStreak}/3.",
+                    "Success",
+                    "Failure");
                 if (!IsHomePromptRunActive(promptRunId)) return;
 
-                if (completed)
-                    await _allowanceService.IncrementAsync(allowance.Id);
+                bool recorded = await _allowanceService.RecordOutcomeAsync(allowance.Id, success);
+                if (!recorded)
+                    continue;
+
+                var refreshedAllowance = (await _allowanceService.GetDailyPromptAllowancesAsync(_auth.CurrentUsername))
+                    .FirstOrDefault(a => a.Id == allowance.Id);
+                if (refreshedAllowance == null || refreshedAllowance.Total == previousCap)
+                    continue;
+
+                if (refreshedAllowance.Total > previousCap)
+                    await DisplayAlert("Allowance Promoted", $"Cap raised to {refreshedAllowance.Total}.", "OK");
+                else
+                    await DisplayAlert("Allowance Demoted", $"Cap lowered to {refreshedAllowance.Total}.", "OK");
             }
 
             try { await SecureStorage.SetAsync(lastPromptKey, today); } catch { }

@@ -1,0 +1,18 @@
+2026-06-22 05:30:31: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-06-22 05:30:31: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-06-22 05:30:33: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-06-22 05:30:38: Changes: 3, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 21404
+2026-06-22 05:30:38: Left to Right: Copy File: 3 
+2026-06-22 05:30:38: == Sync Started by On Schedule Min=30 Hour=5 
+2026-06-22 05:30:38: ConnectCloned connected to file:///C:/rock/bannister
+2026-06-22 05:30:38: ConnectCloned connected to file:///C:/rock/bannister
+2026-06-22 05:30:38: ConnectCloned connected to file:///C:/rock/bannister
+2026-06-22 05:30:38: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-06-22 05:30:38: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-06-22 05:30:38: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-06-22 05:30:44: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (17,863)
+2026-06-22 05:30:44: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (17,863)
+2026-06-22 05:30:44: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (87,552)
+2026-06-22 05:30:44: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-06-22 05:30:47: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-06-22 05:30:50: == Sync Complete. Time: 00:00:12, Speed: 13.70 KB/s, OK: 3, Errors: 0

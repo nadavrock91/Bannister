@@ -17,6 +17,14 @@ public class Allowance
 
     public int Current { get; set; }
 
+    public int SuccessStreak { get; set; }
+
+    public string RecentHistory { get; set; } = "";
+
+    public DateTime? LastOutcomeDate { get; set; }
+
+    public int CapFloor { get; set; } = 1;
+
     public bool PromptDailyOnHome { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
