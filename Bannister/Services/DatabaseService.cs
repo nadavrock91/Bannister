@@ -503,6 +503,8 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingTaskTitle TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingCodexPrompt TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingCommitMessage TEXT DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN LatestQAReport TEXT DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN LatestQAReportCapturedAt TEXT"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN Allowance INTEGER DEFAULT 1"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN ConsecutiveAllDoneDays INTEGER DEFAULT 0"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN LastSubmissionDate TEXT"); } catch { }

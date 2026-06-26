@@ -82,6 +82,10 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly Button _editCodexPromptButton;
     private readonly Button _editCommitMessageButton;
     private readonly Button _commitAndPushButton;
+    private readonly Label _qaStatusLabel;
+    private readonly Button _copyQAExplorationPromptButton;
+    private readonly Button _pasteQAReportButton;
+    private readonly Button _clearQAReportButton;
     private readonly Label _projectTitleHeaderLabel;
     private readonly Label _projectIdeaReferenceLabel;
     private readonly Label _visionStatusLabel;
@@ -349,6 +353,60 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                     _commitAndPushButton,
                     _cancelWorkflowButton
                 }
+            }
+        };
+
+        _qaStatusLabel = new Label
+        {
+            FontSize = 12,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#555555"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+
+        _copyQAExplorationPromptButton = CreateSecondaryButton("Copy QA Exploration Prompt");
+        _copyQAExplorationPromptButton.Clicked += async (_, _) => await CopyQAExplorationPromptAsync();
+
+        _pasteQAReportButton = CreateSecondaryButton("Paste QA Report");
+        _pasteQAReportButton.Clicked += async (_, _) => await PasteQAReportAsync();
+
+        _clearQAReportButton = new Button
+        {
+            Text = "Clear QA Report",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#333333"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 12,
+            Padding = new Thickness(12, 0)
+        };
+        _clearQAReportButton.Clicked += async (_, _) => await ClearQAReportAsync();
+
+        var qaButtonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                _copyQAExplorationPromptButton,
+                _pasteQAReportButton,
+                _clearQAReportButton
+            }
+        };
+
+        var qaExplorationSection = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = "QA Exploration (optional)",
+                    FontSize = 13,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#00695C")
+                },
+                _qaStatusLabel,
+                qaButtonRow
             }
         };
 
@@ -653,6 +711,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             Children =
             {
                 _workflowStatusBanner,
+                qaExplorationSection,
                 _projectTitleHeaderLabel,
                 _projectIdeaReferenceLabel,
                 visionSection,
@@ -1230,9 +1289,33 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _decrementButton.IsEnabled = project.TaskCount > 0;
         _celebrationFrame.IsVisible = project.TaskCount >= project.TaskTarget;
         UpdateWorkflowDisplay(project);
+        UpdateQADisplay(project);
         UpdateVisionDisplay(project);
         UpdateProjectSummaryDisplay(project);
         UpdateCodebasePathDisplay(project);
+    }
+
+    private void UpdateQADisplay(WebsiteProject project)
+    {
+        var hasReport = !string.IsNullOrWhiteSpace(project.LatestQAReport);
+        _qaStatusLabel.Text = hasReport
+            ? $"QA report attached — {project.LatestQAReport.Length} characters, captured {FormatQACapturedAt(project.LatestQAReportCapturedAt)}."
+            : "No QA report attached. Skip this step or run QA before planning the next task.";
+        _clearQAReportButton.IsVisible = hasReport;
+    }
+
+    private static string FormatQACapturedAt(DateTime? capturedAt)
+    {
+        return capturedAt.HasValue
+            ? capturedAt.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm")
+            : "unknown time";
+    }
+
+    private static string FormatQAReportUtc(DateTime? capturedAt)
+    {
+        return capturedAt.HasValue
+            ? $"{capturedAt.Value.ToUniversalTime():yyyy-MM-dd HH:mm} UTC"
+            : "unknown time UTC";
     }
 
     private void UpdateWorkflowDisplay(WebsiteProject project)
@@ -1588,6 +1671,72 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             "Prompt copied",
             "Prompt copied. Paste into Claude/ChatGPT to get a refined vision. Then tap Paste Refined Vision.",
             "OK");
+    }
+
+    private async Task CopyQAExplorationPromptAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        var prompt = BuildQAExplorationPrompt(project);
+        await Clipboard.SetTextAsync(prompt);
+        await DisplayAlert(
+            "QA exploration prompt copied",
+            "Paste this into ChatGPT Agent Mode (or any browsing agent). When it returns the report, tap Paste QA Report.",
+            "OK");
+    }
+
+    private async Task PasteQAReportAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        var result = await ShowMultilineEditorAsync(
+            "Paste QA Report",
+            "Paste the agent's full report. It will be folded into the next planning prompt and cleared after the next commit.",
+            project.LatestQAReport,
+            "QA report text…");
+
+        if (result == null)
+            return;
+
+        try
+        {
+            if (await _projectService.SetLatestQAReportAsync(project.Id, result))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task ClearQAReportAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        var confirm = await DisplayAlert(
+            "Clear QA Report?",
+            "The current QA report will be discarded.",
+            "Clear",
+            "Cancel");
+
+        if (!confirm)
+            return;
+
+        try
+        {
+            if (await _projectService.ClearLatestQAReportAsync(project.Id))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task PasteVisionRefinedAsync()
@@ -1996,15 +2145,81 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         return await editorPage.ShowAsync();
     }
 
-    private static string BuildNextTaskPrompt(WebsiteProject project)
+    private static string GetProjectVisionContext(WebsiteProject project)
     {
-        var vision = !string.IsNullOrWhiteSpace(project.VisionRefined)
+        return !string.IsNullOrWhiteSpace(project.VisionRefined)
             ? project.VisionRefined
             : !string.IsNullOrWhiteSpace(project.VisionRaw)
                 ? project.VisionRaw
                 : !string.IsNullOrWhiteSpace(project.IdeaText)
                     ? project.IdeaText
                     : "(no vision set yet)";
+    }
+
+    private static List<string> GetRecentCompletedTaskTitles(WebsiteProject project, int count)
+    {
+        return (project.CompletedTaskTitles ?? "")
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(count)
+            .ToList();
+    }
+
+    private static string BuildQAExplorationPrompt(WebsiteProject project)
+    {
+        var liveUrl = $"https://{project.Title}";
+        var vision = GetProjectVisionContext(project);
+        var summary = !string.IsNullOrWhiteSpace(project.ProjectSummary)
+            ? project.ProjectSummary
+            : "(no project summary saved yet)";
+        var recentTasks = GetRecentCompletedTaskTitles(project, 5);
+
+        var prompt = new StringBuilder();
+        prompt.AppendLine("You are a QA exploration agent for a live website.");
+        prompt.AppendLine();
+        prompt.AppendLine($"LIVE SITE URL: {liveUrl}");
+        prompt.AppendLine();
+        prompt.AppendLine("PROJECT VISION:");
+        prompt.AppendLine(vision);
+        prompt.AppendLine();
+        prompt.AppendLine("PROJECT SUMMARY:");
+        prompt.AppendLine(summary);
+        prompt.AppendLine();
+        prompt.AppendLine("MOST RECENT COMPLETED TASKS:");
+        if (recentTasks.Count == 0)
+        {
+            prompt.AppendLine("(no completed tasks logged yet)");
+        }
+        else
+        {
+            foreach (var task in recentTasks)
+                prompt.AppendLine($"- {task}");
+        }
+        prompt.AppendLine();
+        prompt.AppendLine("INSTRUCTIONS:");
+        prompt.AppendLine("Visit the live site as a real user would. Walk through the site, click into key surfaces, try the main flows, and observe the actual deployed behavior.");
+        prompt.AppendLine("Do not edit any code. Do not propose implementation tasks. Only observe and report what you find.");
+        prompt.AppendLine("Output plain text only, with no markdown code fences anywhere, so the whole response pastes cleanly into Bannister.");
+        prompt.AppendLine();
+        prompt.AppendLine("Organize your report under these exact labeled sections:");
+        prompt.AppendLine("WORKING");
+        prompt.AppendLine("What is functioning well.");
+        prompt.AppendLine();
+        prompt.AppendLine("BROKEN");
+        prompt.AppendLine("What is actively broken, with steps to reproduce.");
+        prompt.AppendLine();
+        prompt.AppendLine("ROUGH");
+        prompt.AppendLine("What works but feels unfinished or confusing.");
+        prompt.AppendLine();
+        prompt.AppendLine("MISSING");
+        prompt.AppendLine("What a user would expect to find that is not there.");
+        prompt.AppendLine();
+        prompt.AppendLine("Be concrete and specific: name the route, name the element, and describe what happened.");
+        return prompt.ToString();
+    }
+
+    private static string BuildNextTaskPrompt(WebsiteProject project)
+    {
+        var vision = GetProjectVisionContext(project);
         var summary = !string.IsNullOrWhiteSpace(project.ProjectSummary)
             ? project.ProjectSummary
             : "(not yet generated - tap Copy Update Summary Prompt after Codex has built something)";
@@ -2027,6 +2242,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         prompt.AppendLine("COMPLETED TASKS SO FAR (most recent first):");
         prompt.AppendLine(taskLog);
         prompt.AppendLine();
+        if (!string.IsNullOrWhiteSpace(project.LatestQAReport))
+        {
+            prompt.AppendLine("LATEST QA REPORT:");
+            prompt.AppendLine($"Captured at: {FormatQAReportUtc(project.LatestQAReportCapturedAt)}");
+            prompt.AppendLine(project.LatestQAReport);
+            prompt.AppendLine();
+            prompt.AppendLine("Weight the QA findings heavily when choosing the next task. Prioritize BROKEN items above MISSING items, MISSING items above ROUGH items, and ROUGH items above net new ideas.");
+            prompt.AppendLine();
+        }
         prompt.AppendLine("YOUR JOB:");
         prompt.AppendLine("Pick ONE concrete next task that advances this project. Be specific: which file or feature, what to add, why this step matters. Then write a ready-to-paste Codex prompt for the task. Respond in this exact format:");
         prompt.AppendLine();

@@ -39,6 +39,10 @@ public class WebsiteProject
 
     public string PendingCommitMessage { get; set; } = "";
 
+    public string LatestQAReport { get; set; } = "";
+
+    public DateTime? LatestQAReportCapturedAt { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

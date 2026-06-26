@@ -269,6 +269,35 @@ public class WebsiteProjectService
         return true;
     }
 
+    public async Task<bool> SetLatestQAReportAsync(int projectId, string report)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        var trimmedReport = report.Trim();
+        project.LatestQAReport = trimmedReport;
+        project.LatestQAReportCapturedAt = string.IsNullOrWhiteSpace(trimmedReport)
+            ? null
+            : DateTime.UtcNow;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> ClearLatestQAReportAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.LatestQAReport = "";
+        project.LatestQAReportCapturedAt = null;
+        await SaveAsync(project);
+        return true;
+    }
+
     public async Task<bool> AdvanceToWaitingForLLMAsync(int projectId)
     {
         EnsureWritable();
@@ -344,6 +373,8 @@ public class WebsiteProjectService
         project.PendingTaskTitle = "";
         project.PendingCodexPrompt = "";
         project.PendingCommitMessage = "";
+        project.LatestQAReport = "";
+        project.LatestQAReportCapturedAt = null;
         project.WorkflowState = 0;
         await SaveAsync(project);
         return true;
