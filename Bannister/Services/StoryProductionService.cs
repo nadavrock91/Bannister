@@ -36,6 +36,11 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FinalClipCount INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN LlmConversationLog TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN ProjectCategory TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeViews INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeLikes INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeComments INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeAverageViewDurationSeconds INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeStatsCapturedAt TEXT"); } catch { }
     }
 
     public async Task<List<StoryProject>> GetProjectsAsync(string username)
@@ -159,6 +164,40 @@ public class StoryProductionService
             project.ProjectedDays = projectedDays;
             await UpdateProjectAsync(project);
         }
+    }
+
+    public async Task<bool> SetYouTubeStatsAsync(int projectId, int views, int likes, int comments, int averageViewDurationSeconds)
+    {
+        EnsureWritable();
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.YouTubeViews = Math.Max(0, views);
+        project.YouTubeLikes = Math.Max(0, likes);
+        project.YouTubeComments = Math.Max(0, comments);
+        project.YouTubeAverageViewDurationSeconds = Math.Max(0, averageViewDurationSeconds);
+        project.YouTubeStatsCapturedAt = DateTime.UtcNow;
+
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(project);
+        return true;
+    }
+
+    public async Task<bool> ClearYouTubeStatsAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.YouTubeViews = 0;
+        project.YouTubeLikes = 0;
+        project.YouTubeComments = 0;
+        project.YouTubeAverageViewDurationSeconds = 0;
+        project.YouTubeStatsCapturedAt = null;
+
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(project);
+        return true;
     }
 
     /// <summary>

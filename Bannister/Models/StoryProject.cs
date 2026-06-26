@@ -57,6 +57,18 @@ public class StoryProject
     
     // Actual final clip count (set on publish)
     public int FinalClipCount { get; set; } = 0;
+
+    // === YOUTUBE FEEDBACK SNAPSHOT ===
+
+    public int YouTubeViews { get; set; } = 0;
+
+    public int YouTubeLikes { get; set; } = 0;
+
+    public int YouTubeComments { get; set; } = 0;
+
+    public int YouTubeAverageViewDurationSeconds { get; set; } = 0;
+
+    public DateTime? YouTubeStatsCapturedAt { get; set; }
     
     [Ignore]
     public bool IsActive => Status == "active";

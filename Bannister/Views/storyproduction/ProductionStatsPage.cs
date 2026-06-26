@@ -1,5 +1,6 @@
 using Bannister.Services;
 using Bannister.Models;
+using System.Globalization;
 
 namespace Bannister.Views;
 
@@ -307,8 +308,119 @@ public class ProductionStatsPage : ContentPage
 
         stack.Children.Add(statsGrid);
 
+        if (project.IsPublished)
+        {
+            stack.Children.Add(BuildYouTubeFeedbackSection(project));
+        }
+
         card.Content = stack;
         return card;
+    }
+
+    private View BuildYouTubeFeedbackSection(StoryProject project)
+    {
+        var section = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        section.Children.Add(new Label
+        {
+            Text = "YouTube Feedback",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#C62828")
+        });
+
+        DateTime? capturedAt = project.YouTubeStatsCapturedAt;
+        bool hasStats = capturedAt.HasValue;
+        section.Children.Add(new Label
+        {
+            Text = hasStats ? $"Last updated {capturedAt:yyyy-MM-dd HH:mm}" : "No stats entered yet.",
+            FontSize = 11,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var metricsGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 8
+        };
+
+        AddYouTubeMetricTile(metricsGrid, 0, "Views", hasStats ? FormatLargeNumber(project.YouTubeViews) : "—");
+        AddYouTubeMetricTile(metricsGrid, 1, "Likes", hasStats ? FormatLargeNumber(project.YouTubeLikes) : "—");
+        AddYouTubeMetricTile(metricsGrid, 2, "Comments", hasStats ? FormatLargeNumber(project.YouTubeComments) : "—");
+        AddYouTubeMetricTile(metricsGrid, 3, "Avg duration", hasStats ? FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds) : "—");
+        section.Children.Add(metricsGrid);
+
+        var editBtn = new Button
+        {
+            Text = "Edit YouTube Stats",
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        editBtn.Clicked += async (s, e) =>
+        {
+            if (_storyService.IsReadOnly)
+            {
+                await ShowReadOnlyAlertAsync();
+                return;
+            }
+
+            await ShowEditYouTubeStatsAsync(project);
+        };
+        section.Children.Add(editBtn);
+
+        return section;
+    }
+
+    private void AddYouTubeMetricTile(Grid grid, int col, string label, string value)
+    {
+        var frame = new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            Padding = 6,
+            CornerRadius = 6,
+            HasShadow = false
+        };
+
+        frame.Content = new VerticalStackLayout
+        {
+            Spacing = 2,
+            Children =
+            {
+                new Label
+                {
+                    Text = label,
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#666"),
+                    HorizontalTextAlignment = TextAlignment.Center
+                },
+                new Label
+                {
+                    Text = value,
+                    FontSize = 14,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#263238"),
+                    HorizontalTextAlignment = TextAlignment.Center
+                }
+            }
+        };
+
+        Grid.SetColumn(frame, col);
+        grid.Children.Add(frame);
     }
 
     private void AddStatCell(Grid grid, int row, int col, string label, string value)
@@ -336,6 +448,267 @@ public class ProductionStatsPage : ContentPage
     private async Task ShowReadOnlyAlertAsync()
     {
         await DisplayAlert("Read-only", "Read-only on this device. Sync from master to modify Story Production data.", "OK");
+    }
+
+    private Task ShowEditYouTubeStatsAsync(StoryProject project)
+    {
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            InputTransparent = false
+        };
+
+        var card = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent,
+            WidthRequest = 520,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 12 };
+        stack.Children.Add(new Label
+        {
+            Text = "Edit YouTube Stats",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#C62828")
+        });
+        stack.Children.Add(new Label
+        {
+            Text = project.Name,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        bool hasStats = project.YouTubeStatsCapturedAt.HasValue;
+        var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeViews.ToString(CultureInfo.InvariantCulture) : "", "Views", Keyboard.Numeric);
+        var likesEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeLikes.ToString(CultureInfo.InvariantCulture) : "", "Likes", Keyboard.Numeric);
+        var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeComments.ToString(CultureInfo.InvariantCulture) : "", "Comments", Keyboard.Numeric);
+        var durationEntry = CreateYouTubeStatsEntry(hasStats ? FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds) : "", "MM:SS", Keyboard.Default);
+
+        stack.Children.Add(CreateYouTubeStatsInputRow("Views", viewsEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Likes", likesEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Comments", commentsEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Average view duration", durationEntry));
+
+        var footer = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 10,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        var clearBtn = new Button
+        {
+            Text = "Clear stats",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#C62828"),
+            FontSize = 12,
+            Padding = new Thickness(8, 0)
+        };
+        Grid.SetColumn(clearBtn, 0);
+        footer.Children.Add(clearBtn);
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#E0E0E0"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            Padding = new Thickness(18, 8)
+        };
+        Grid.SetColumn(cancelBtn, 2);
+        footer.Children.Add(cancelBtn);
+
+        var saveBtn = new Button
+        {
+            Text = "Save",
+            BackgroundColor = Color.FromArgb("#C62828"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(22, 8)
+        };
+        Grid.SetColumn(saveBtn, 3);
+        footer.Children.Add(saveBtn);
+
+        stack.Children.Add(footer);
+        card.Content = stack;
+        overlay.Children.Add(card);
+
+        void CloseOverlay()
+        {
+            if (Content is Grid mainGrid)
+                mainGrid.Children.Remove(overlay);
+        }
+
+        cancelBtn.Clicked += (s, e) => CloseOverlay();
+
+        clearBtn.Clicked += async (s, e) =>
+        {
+            bool confirm = await DisplayAlert("Clear YouTube stats?", "All four values will be reset to empty.", "Clear", "Cancel");
+            if (!confirm) return;
+
+            try
+            {
+                await _storyService.ClearYouTubeStatsAsync(project.Id);
+                CloseOverlay();
+                await LoadStatsAsync();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
+        };
+
+        saveBtn.Clicked += async (s, e) =>
+        {
+            int views = ParseNonNegativeIntegerOrZero(viewsEntry.Text);
+            int likes = ParseNonNegativeIntegerOrZero(likesEntry.Text);
+            int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
+
+            if (!TryParseDurationToSeconds(durationEntry.Text ?? "", out int durationSeconds))
+            {
+                await DisplayAlert("Invalid Duration", "Average view duration must be in MM:SS format or just seconds.", "OK");
+                return;
+            }
+
+            try
+            {
+                await _storyService.SetYouTubeStatsAsync(project.Id, views, likes, comments, durationSeconds);
+                CloseOverlay();
+                await LoadStatsAsync();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
+        };
+
+        if (Content is Grid pageGrid)
+        {
+            Grid.SetRowSpan(overlay, 2);
+            pageGrid.Children.Add(overlay);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Entry CreateYouTubeStatsEntry(string initialValue, string placeholder, Keyboard keyboard)
+    {
+        return new Entry
+        {
+            Text = initialValue,
+            Placeholder = placeholder,
+            Keyboard = keyboard,
+            WidthRequest = 180,
+            HorizontalOptions = LayoutOptions.End
+        };
+    }
+
+    private View CreateYouTubeStatsInputRow(string label, Entry entry)
+    {
+        var row = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+
+        row.Children.Add(new Label
+        {
+            Text = label,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        Grid.SetColumn(entry, 1);
+        row.Children.Add(entry);
+        return row;
+    }
+
+    private static int ParseNonNegativeIntegerOrZero(string? input)
+    {
+        if (!int.TryParse((input ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+            return 0;
+
+        return Math.Max(0, value);
+    }
+
+    private static bool TryParseDurationToSeconds(string input, out int seconds)
+    {
+        seconds = 0;
+        string trimmed = (input ?? "").Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return true;
+
+        if (!trimmed.Contains(':'))
+        {
+            if (!int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out int plainSeconds))
+                return false;
+            if (plainSeconds < 0)
+                return false;
+
+            seconds = plainSeconds;
+            return true;
+        }
+
+        var parts = trimmed.Split(':');
+        if (parts.Length < 2 || parts.Length > 3)
+            return false;
+
+        var values = new int[parts.Length];
+        for (int i = 0; i < parts.Length; i++)
+        {
+            if (!int.TryParse(parts[i].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out values[i]))
+                return false;
+            if (values[i] < 0)
+                return false;
+        }
+
+        int secondsPart = values[^1];
+        if (secondsPart < 0 || secondsPart > 59)
+            return false;
+
+        if (parts.Length == 2)
+        {
+            seconds = values[0] * 60 + secondsPart;
+            return true;
+        }
+
+        seconds = values[0] * 3600 + values[1] * 60 + secondsPart;
+        return true;
+    }
+
+    private static string FormatDurationFromSeconds(int totalSeconds)
+    {
+        totalSeconds = Math.Max(0, totalSeconds);
+        int hours = totalSeconds / 3600;
+        int minutes = (totalSeconds % 3600) / 60;
+        int seconds = totalSeconds % 60;
+
+        return hours > 0
+            ? $"{hours}:{minutes:00}:{seconds:00}"
+            : $"{minutes}:{seconds:00}";
+    }
+
+    private static string FormatLargeNumber(int value)
+    {
+        return Math.Max(0, value).ToString("N0", CultureInfo.InvariantCulture);
     }
 
     private async Task ShowProjectSettingsAsync(StoryProject project)
