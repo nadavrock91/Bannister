@@ -1070,14 +1070,21 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             idea = new WebsiteIdea { Username = _auth.CurrentUsername };
         }
 
-        idea.Username = _auth.CurrentUsername;
-        idea.Title = title;
-        idea.IdeaText = _ideaEditor.Text?.Trim() ?? "";
-        _currentIdeaId = await _ideaService.SaveAsync(idea);
-        _currentProjectId = 0;
-        await RefreshPickersAsync(selectIdeaId: _currentIdeaId);
-        RefreshStateVisibility();
-        await DisplayAlert("Saved", "Idea saved.", "OK");
+        try
+        {
+            idea.Username = _auth.CurrentUsername;
+            idea.Title = title;
+            idea.IdeaText = _ideaEditor.Text?.Trim() ?? "";
+            _currentIdeaId = await _ideaService.SaveAsync(idea);
+            _currentProjectId = 0;
+            await RefreshPickersAsync(selectIdeaId: _currentIdeaId);
+            RefreshStateVisibility();
+            await DisplayAlert("Saved", "Idea saved.", "OK");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task DeleteIdeaAsync()
@@ -1089,9 +1096,16 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (!confirm)
             return;
 
-        await _ideaService.DeleteAsync(_currentIdeaId);
-        await ClearAllAsync();
-        await DisplayAlert("Deleted", "Idea deleted.", "OK");
+        try
+        {
+            await _ideaService.DeleteAsync(_currentIdeaId);
+            await ClearAllAsync();
+            await DisplayAlert("Deleted", "Idea deleted.", "OK");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task DeleteProjectAsync()
@@ -1103,10 +1117,17 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (!confirm)
             return;
 
-        await _projectService.DeleteAsync(_currentProjectId);
-        await ClearLastSelectedProjectIdAsync();
-        await ClearAllAsync();
-        await DisplayAlert("Deleted", "Project deleted.", "OK");
+        try
+        {
+            await _projectService.DeleteAsync(_currentProjectId);
+            await ClearLastSelectedProjectIdAsync();
+            await ClearAllAsync();
+            await DisplayAlert("Deleted", "Project deleted.", "OK");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task SaveProjectFromPurchasedDomainAsync()
@@ -1130,7 +1151,14 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             return;
         }
 
-        await PromoteIdeaToProjectAsync(domain);
+        try
+        {
+            await PromoteIdeaToProjectAsync(domain);
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
 
@@ -1355,11 +1383,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             "Skip Title",
             maxLength: 200);
 
-        if (!string.IsNullOrWhiteSpace(input))
-            await _projectService.PrependTaskTitleAsync(_currentProjectId, input.Trim());
-
-        if (await _projectService.IncrementTaskCountAsync(_currentProjectId))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.LogAndIncrementTaskAsync(_currentProjectId, input?.Trim() ?? ""))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task OnDecrementClickedAsync()
@@ -1367,8 +1399,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (_currentProjectId <= 0)
             return;
 
-        if (await _projectService.DecrementTaskCountAsync(_currentProjectId))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.DecrementTaskCountAsync(_currentProjectId))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task OnEditCountClickedAsync()
@@ -1394,8 +1433,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             return;
         }
 
-        if (await _projectService.SetTaskCountAsync(project.Id, newCount))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetTaskCountAsync(project.Id, newCount))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task OnSetTargetClickedAsync()
@@ -1435,8 +1481,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             return;
         }
 
-        if (await _projectService.SetTaskTargetAsync(project.Id, newTarget))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetTaskTargetAsync(project.Id, newTarget))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task<WebsiteProject?> GetCurrentProjectOrAlertAsync()
@@ -1477,8 +1530,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (result == null)
             return;
 
-        if (await _projectService.SetProjectSummaryAsync(project.Id, result))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetProjectSummaryAsync(project.Id, result))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task EditVisionRawAsync()
@@ -1496,8 +1556,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (result == null)
             return;
 
-        if (await _projectService.SetVisionRawAsync(project.Id, result))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetVisionRawAsync(project.Id, result))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task CopyVisionRefinementPromptAsync()
@@ -1538,8 +1605,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (result == null)
             return;
 
-        if (await _projectService.SetVisionRefinedAsync(project.Id, result))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetVisionRefinedAsync(project.Id, result))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task CopyNextTaskPromptAsync()
@@ -1561,8 +1635,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             "Prompt copied to clipboard. Paste it into Claude or ChatGPT in a browser. The LLM will respond with a NEXT TASK and a CODEX PROMPT. Copy the LLM's ENTIRE response (both sections together) and tap Paste Task Plan back in Bannister.",
             "OK");
 
-        if (await _projectService.AdvanceToWaitingForLLMAsync(project.Id))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.AdvanceToWaitingForLLMAsync(project.Id))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task PasteTaskPlanAsync()
@@ -1590,10 +1671,17 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             return;
         }
 
-        if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, parsed.Value.TaskTitle, parsed.Value.CodexPrompt))
+        try
         {
-            await RefreshCurrentProjectAsync();
-            await DisplayAlert("Task plan parsed", "Task plan parsed. Bannister extracted the task title and the Codex prompt. Tap Copy Codex Prompt to put just the Codex prompt on your clipboard, then paste into Codex CLI.", "OK");
+            if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, parsed.Value.TaskTitle, parsed.Value.CodexPrompt))
+            {
+                await RefreshCurrentProjectAsync();
+                await DisplayAlert("Task plan parsed", "Task plan parsed. Bannister extracted the task title and the Codex prompt. Tap Copy Codex Prompt to put just the Codex prompt on your clipboard, then paste into Codex CLI.", "OK");
+            }
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
         }
     }
 
@@ -1612,8 +1700,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (!confirm)
             return;
 
-        if (await _projectService.ResetWorkflowAsync(project.Id))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.ResetWorkflowAsync(project.Id))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task CopyCodexPromptAsync()
@@ -1660,10 +1755,17 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             commitMessage = "Codex task";
         }
 
-        if (await _projectService.AdvanceToReadyToCommitAsync(project.Id, commitMessage))
+        try
         {
-            await RefreshCurrentProjectAsync();
-            await DisplayAlert("Result parsed", "Result parsed. Review the commit message and tap Commit and Push.", "OK");
+            if (await _projectService.AdvanceToReadyToCommitAsync(project.Id, commitMessage))
+            {
+                await RefreshCurrentProjectAsync();
+                await DisplayAlert("Result parsed", "Result parsed. Review the commit message and tap Commit and Push.", "OK");
+            }
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
         }
     }
 
@@ -1682,8 +1784,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (result == null)
             return;
 
-        if (await _projectService.SetPendingTaskTitleAsync(project.Id, result.Trim()))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetPendingTaskTitleAsync(project.Id, result.Trim()))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task EditPendingCodexPromptAsync()
@@ -1701,8 +1810,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (result == null)
             return;
 
-        if (await _projectService.SetPendingCodexPromptAsync(project.Id, result))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetPendingCodexPromptAsync(project.Id, result))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task EditPendingCommitMessageAsync()
@@ -1720,8 +1836,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (result == null)
             return;
 
-        if (await _projectService.SetPendingCommitMessageAsync(project.Id, result.Trim()))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetPendingCommitMessageAsync(project.Id, result.Trim()))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task CommitAndPushAsync()
@@ -1732,6 +1855,12 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             return;
         }
 
+        if (_projectService.IsReadOnly)
+        {
+            await ShowReadOnlyAlertAsync();
+            return;
+        }
+
         var project = await GetCurrentProjectOrAlertAsync();
         if (project == null)
             return;
@@ -1739,6 +1868,12 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (string.IsNullOrWhiteSpace(project.CodebasePath))
         {
             await DisplayAlert("Code folder not set", "Code folder not set. Use Setup Guide Step 9 to create the project folder first.", "OK");
+            return;
+        }
+
+        if (project.CodebasePath.Contains('"'))
+        {
+            await DisplayAlert("Invalid path", "Invalid characters in code folder path.", "OK");
             return;
         }
 
@@ -1754,8 +1889,23 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             return;
         }
 
-        var escapedCommitMessage = project.PendingCommitMessage.Replace('"', '\'').Trim();
-        var arguments = $"/c cd /d \"{project.CodebasePath}\" && git add . && git commit -m \"{escapedCommitMessage}\" && git push";
+        var sanitizedCommitMessage = project.PendingCommitMessage
+            .Replace('"', '\'')
+            .Replace('`', '\'')
+            .Replace('%', ' ')
+            .Replace('&', '+')
+            .Replace('|', ' ')
+            .Replace('<', '(')
+            .Replace('>', ')')
+            .Replace('^', ' ')
+            .Trim();
+        if (string.IsNullOrWhiteSpace(sanitizedCommitMessage))
+        {
+            await DisplayAlert("Commit message empty", "Commit message empty after sanitization. Edit it and try again.", "OK");
+            return;
+        }
+
+        var arguments = $"/c cd /d \"{project.CodebasePath}\" && git add . && git commit -m \"{sanitizedCommitMessage}\" && git push";
 
         try
         {
@@ -1782,11 +1932,18 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
             if (process.ExitCode == 0)
             {
-                if (await _projectService.CompleteWorkflowAsync(project.Id, project.PendingTaskTitle))
+                try
                 {
-                    var updated = await _projectService.GetByIdAsync(project.Id);
-                    await RefreshCurrentProjectAsync();
-                    await DisplayAlert("Committed and pushed!", $"Committed and pushed! Counter incremented to {updated?.TaskCount ?? project.TaskCount + 1}.", "OK");
+                    if (await _projectService.CompleteWorkflowAsync(project.Id, project.PendingTaskTitle))
+                    {
+                        var updated = await _projectService.GetByIdAsync(project.Id);
+                        await RefreshCurrentProjectAsync();
+                        await DisplayAlert("Committed and pushed!", $"Committed and pushed! Counter incremented to {updated?.TaskCount ?? project.TaskCount + 1}.", "OK");
+                    }
+                }
+                catch (ReadOnlyDatabaseException)
+                {
+                    await ShowReadOnlyAlertAsync();
                 }
                 return;
             }
@@ -1817,8 +1974,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (result == null)
             return;
 
-        if (await _projectService.SetCompletedTaskTitlesAsync(project.Id, result))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetCompletedTaskTitlesAsync(project.Id, result))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task<string?> ShowMultilineEditorAsync(
@@ -1879,6 +2043,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         prompt.AppendLine("- CODEX PROMPT should be a complete self-contained prompt Codex can execute directly. Write it as flowing plain text with paragraph breaks and indented sub-points if needed, but NO code fences.");
         prompt.AppendLine("- End your CODEX PROMPT with this exact line (no formatting):");
         prompt.AppendLine("  At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing what you did>");
+        prompt.AppendLine("- Output the commit message as a single unbroken paragraph with no line breaks anywhere inside the COMMIT MESSAGE: section. The parser reads only the first line after the marker.");
         prompt.AppendLine("- This lets the automation extract the commit message after Codex finishes.");
         prompt.AppendLine();
         prompt.Append("That's it. No other commentary.");
@@ -1969,7 +2134,13 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             return;
         }
 
-        var command = $"cd /d {project.CodebasePath} && codex";
+        if (project.CodebasePath.Contains('"'))
+        {
+            await DisplayAlert("Invalid path", "Invalid characters in code folder path.", "OK");
+            return;
+        }
+
+        var command = $"cd /d \"{project.CodebasePath}\" && codex";
         await Clipboard.SetTextAsync(command);
         await DisplayAlert(
             "Command copied",
@@ -2007,8 +2178,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                 return;
         }
 
-        if (await _projectService.SetCodebasePathAsync(project.Id, trimmedPath))
-            await RefreshCurrentProjectAsync();
+        try
+        {
+            if (await _projectService.SetCodebasePathAsync(project.Id, trimmedPath))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task OpenTerminalAsync()
@@ -2023,6 +2201,12 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                 "Code folder not set",
                 "Code folder not set. Use Setup Guide Step 9 to create the project folder first.",
                 "OK");
+            return;
+        }
+
+        if (project.CodebasePath.Contains('"'))
+        {
+            await DisplayAlert("Invalid path", "Invalid characters in code folder path.", "OK");
             return;
         }
 
@@ -2050,6 +2234,11 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         {
             await DisplayAlert("Could not open terminal", $"Could not open terminal: {ex.Message}", "OK");
         }
+    }
+
+    private async Task ShowReadOnlyAlertAsync()
+    {
+        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to modify Website Builder data.", "OK");
     }
 
     private void RefreshStateVisibility()

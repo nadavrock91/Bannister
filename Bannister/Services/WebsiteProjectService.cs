@@ -79,6 +79,27 @@ public class WebsiteProjectService
         return true;
     }
 
+    public async Task<bool> LogAndIncrementTaskAsync(int projectId, string taskTitle)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(taskTitle))
+        {
+            var entry = $"{DateTime.Today:yyyy-MM-dd}: {taskTitle.Trim()}";
+            project.CompletedTaskTitles = string.IsNullOrWhiteSpace(project.CompletedTaskTitles)
+                ? entry
+                : $"{entry}\n{project.CompletedTaskTitles}";
+        }
+
+        project.TaskCount++;
+        project.TasksSinceSummaryUpdate++;
+        await SaveAsync(project);
+        return true;
+    }
+
     public async Task<bool> DecrementTaskCountAsync(int projectId)
     {
         EnsureWritable();
@@ -252,7 +273,7 @@ public class WebsiteProjectService
     {
         EnsureWritable();
         var project = await GetByIdAsync(projectId);
-        if (project == null)
+        if (project == null || project.WorkflowState != 0)
             return false;
 
         project.WorkflowState = 1;
@@ -264,7 +285,7 @@ public class WebsiteProjectService
     {
         EnsureWritable();
         var project = await GetByIdAsync(projectId);
-        if (project == null)
+        if (project == null || project.WorkflowState != 1)
             return false;
 
         project.PendingTaskTitle = taskTitle;
@@ -279,7 +300,7 @@ public class WebsiteProjectService
     {
         EnsureWritable();
         var project = await GetByIdAsync(projectId);
-        if (project == null)
+        if (project == null || project.WorkflowState != 2)
             return false;
 
         project.PendingCommitMessage = commitMessage;
@@ -307,7 +328,7 @@ public class WebsiteProjectService
     {
         EnsureWritable();
         var project = await GetByIdAsync(projectId);
-        if (project == null)
+        if (project == null || project.WorkflowState != 3)
             return false;
 
         if (!string.IsNullOrWhiteSpace(taskTitle))

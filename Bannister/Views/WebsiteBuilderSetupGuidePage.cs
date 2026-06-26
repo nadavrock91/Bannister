@@ -144,6 +144,7 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await MigrateLegacySetupGuideKeysAsync(_auth.CurrentUsername);
         await LoadStateAsync();
 
         if (_currentStep == TotalSteps + 1 || _completedSteps.Count >= TotalSteps)
@@ -214,7 +215,14 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
             return;
 
         DisplayStep(_currentStep - 1);
-        await SaveStateAsync();
+        try
+        {
+            await SaveStateAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task SkipAsync()
@@ -223,7 +231,14 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
             return;
 
         DisplayStep(_currentStep + 1);
-        await SaveStateAsync();
+        try
+        {
+            await SaveStateAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task MarkDoneAsync()
@@ -236,12 +251,26 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
         if (_completedSteps.Count >= TotalSteps || _currentStep == TotalSteps)
         {
             DisplayCompletion();
-            await SaveStateAsync();
+            try
+            {
+                await SaveStateAsync();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
             return;
         }
 
         DisplayStep(_currentStep + 1);
-        await SaveStateAsync();
+        try
+        {
+            await SaveStateAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task RestartGuideAsync()
@@ -257,7 +286,14 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
 
         _completedSteps.Clear();
         DisplayStep(1);
-        await SaveStateAsync();
+        try
+        {
+            await SaveStateAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task LoadStateAsync()
@@ -300,9 +336,36 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
         }
     }
 
-    private string CurrentStepKey => $"setup_guide_current_step_{_auth.CurrentUsername}";
+    private string CurrentStepKey => $"website_builder_setup_guide_current_step_{_auth.CurrentUsername}";
 
-    private string CompletedStepsKey => $"setup_guide_completed_steps_{_auth.CurrentUsername}";
+    private string CompletedStepsKey => $"website_builder_setup_guide_completed_steps_{_auth.CurrentUsername}";
+
+    private static async Task MigrateLegacySetupGuideKeysAsync(string username)
+    {
+        await MigrateKeyAsync(
+            $"setup_guide_current_step_{username}",
+            $"website_builder_setup_guide_current_step_{username}");
+
+        await MigrateKeyAsync(
+            $"setup_guide_completed_steps_{username}",
+            $"website_builder_setup_guide_completed_steps_{username}");
+
+        static async Task MigrateKeyAsync(string oldKey, string newKey)
+        {
+            string? newValue = null;
+            try { newValue = await SecureStorage.GetAsync(newKey); } catch { }
+            if (!string.IsNullOrWhiteSpace(newValue))
+                return;
+
+            string? oldValue = null;
+            try { oldValue = await SecureStorage.GetAsync(oldKey); } catch { }
+            if (string.IsNullOrWhiteSpace(oldValue))
+                return;
+
+            try { await SecureStorage.SetAsync(newKey, oldValue); } catch { return; }
+            try { SecureStorage.Remove(oldKey); } catch { }
+        }
+    }
 
     private VerticalStackLayout CreateCompletionSection()
     {
@@ -491,8 +554,15 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
             return;
         }
 
-        if (await _projectService.SetCodebasePathAsync(project.Id, targetPath))
-            await DisplayAlert("Folder created", $"Folder created at {targetPath}", "OK");
+        try
+        {
+            if (await _projectService.SetCodebasePathAsync(project.Id, targetPath))
+                await DisplayAlert("Folder created", $"Folder created at {targetPath}", "OK");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task OpenProjectFolderFromWizardAsync()
@@ -591,6 +661,11 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
         };
         button.Clicked += async (_, _) => await onClick();
         return button;
+    }
+
+    private async Task ShowReadOnlyAlertAsync()
+    {
+        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to modify Website Builder data.", "OK");
     }
 
     private static List<StepData> CreateSteps()
