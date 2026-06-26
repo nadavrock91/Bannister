@@ -333,6 +333,11 @@ public class ProductionStatsPage : ContentPage
         grid.Children.Add(stack);
     }
 
+    private async Task ShowReadOnlyAlertAsync()
+    {
+        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to modify Story Production data.", "OK");
+    }
+
     private async Task ShowProjectSettingsAsync(StoryProject project)
     {
         var options = new List<string>();
@@ -375,8 +380,15 @@ public class ProductionStatsPage : ContentPage
             bool confirm = await DisplayAlert("Unpublish", $"Revert '{project.Name}' to unpublished?", "Yes", "No");
             if (confirm)
             {
-                await _storyService.UnpublishProjectAsync(project.Id);
-                await LoadStatsAsync();
+                try
+                {
+                    await _storyService.UnpublishProjectAsync(project.Id);
+                    await LoadStatsAsync();
+                }
+                catch (ReadOnlyDatabaseException)
+                {
+                    await ShowReadOnlyAlertAsync();
+                }
             }
         }
         else if (action == "✏️ Edit Clip Count")
@@ -385,9 +397,16 @@ public class ProductionStatsPage : ContentPage
                 initialValue: project.FinalClipCount.ToString(), keyboard: Keyboard.Numeric);
             if (!string.IsNullOrEmpty(clipStr) && int.TryParse(clipStr, out int clips))
             {
-                project.FinalClipCount = clips;
-                await _storyService.UpdateProjectAsync(project);
-                await LoadStatsAsync();
+                try
+                {
+                    project.FinalClipCount = clips;
+                    await _storyService.UpdateProjectAsync(project);
+                    await LoadStatsAsync();
+                }
+                catch (ReadOnlyDatabaseException)
+                {
+                    await ShowReadOnlyAlertAsync();
+                }
             }
         }
     }
@@ -406,9 +425,16 @@ public class ProductionStatsPage : ContentPage
         
         if (DateTime.TryParse(newDateStr, out DateTime newDate))
         {
-            project.CreatedAt = newDate;
-            await _storyService.UpdateProjectAsync(project);
-            await LoadStatsAsync();
+            try
+            {
+                project.CreatedAt = newDate;
+                await _storyService.UpdateProjectAsync(project);
+                await LoadStatsAsync();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
         }
         else
         {
@@ -431,10 +457,17 @@ public class ProductionStatsPage : ContentPage
         
         if (DateTime.TryParse(newDateStr, out DateTime newDate))
         {
-            project.PublishedAt = newDate;
-            project.CompletedAt = newDate;
-            await _storyService.UpdateProjectAsync(project);
-            await LoadStatsAsync();
+            try
+            {
+                project.PublishedAt = newDate;
+                project.CompletedAt = newDate;
+                await _storyService.UpdateProjectAsync(project);
+                await LoadStatsAsync();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
         }
         else
         {
@@ -459,8 +492,15 @@ public class ProductionStatsPage : ContentPage
         if (string.IsNullOrEmpty(clipStr)) return;
         if (!int.TryParse(clipStr, out int finalClips)) return;
 
-        await _storyService.PublishProjectAsync(project.Id, finalClips);
-        await LoadStatsAsync();
+        try
+        {
+            await _storyService.PublishProjectAsync(project.Id, finalClips);
+            await LoadStatsAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task SetProjectionsAsync(StoryProject project)
@@ -477,8 +517,15 @@ public class ProductionStatsPage : ContentPage
         if (string.IsNullOrEmpty(daysStr)) return;
         if (!int.TryParse(daysStr, out int projectedDays)) return;
 
-        await _storyService.SetProjectionsAsync(project.Id, projectedClips, projectedDays);
-        await LoadStatsAsync();
+        try
+        {
+            await _storyService.SetProjectionsAsync(project.Id, projectedClips, projectedDays);
+            await LoadStatsAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async void OnExportClicked(object? sender, EventArgs e)

@@ -199,6 +199,11 @@ public class ShotBreakdownPage : ContentPage
         }
     }
 
+    private async Task ShowReadOnlyAlertAsync()
+    {
+        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to modify Story Production data.", "OK");
+    }
+
     private Frame BuildClipCard(VisualShot shot)
     {
         bool isReady = shot.Done || shot.AllTasksDone;
@@ -235,12 +240,19 @@ public class ShotBreakdownPage : ContentPage
         int shotIdx = shot.Index - 1;
         checkbox.CheckedChanged += async (s, e) =>
         {
-            // Toggle all tasks when main checkbox is toggled
-            shot.Task1_ImageGenerated = checkbox.IsChecked;
-            shot.Task2_VideoGenerated = checkbox.IsChecked;
-            shot.Done = checkbox.IsChecked;
-            await _storyService.SaveShotsAsync(_line, _shots);
-            RebuildClipsList();
+            try
+            {
+                // Toggle all tasks when main checkbox is toggled
+                shot.Task1_ImageGenerated = checkbox.IsChecked;
+                shot.Task2_VideoGenerated = checkbox.IsChecked;
+                shot.Done = checkbox.IsChecked;
+                await _storyService.SaveShotsAsync(_line, _shots);
+                RebuildClipsList();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
         };
         Grid.SetColumn(checkbox, 0);
         grid.Children.Add(checkbox);
@@ -327,7 +339,14 @@ public class ShotBreakdownPage : ContentPage
 
         if (string.IsNullOrWhiteSpace(description)) return;
 
-        await _storyService.AddShotAsync(_line, description);
-        LoadClips();
+        try
+        {
+            await _storyService.AddShotAsync(_line, description);
+            LoadClips();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 }

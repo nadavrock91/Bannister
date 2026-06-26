@@ -772,11 +772,15 @@ public class StoryProductionPage : ContentPage
         }
 
         var family = await _storyService.GetProjectDraftsAsync(rootId);
-        foreach (var project in family)
+        bool saved = await TryStoryWriteAsync(async () =>
         {
-            project.ProjectCategory = category;
-            await _storyService.UpdateProjectAsync(project);
-        }
+            foreach (var project in family)
+            {
+                project.ProjectCategory = category;
+                await _storyService.UpdateProjectAsync(project);
+            }
+        });
+        if (!saved) return;
 
         if (_currentProject != null)
             _currentProject.ProjectCategory = category;
@@ -922,7 +926,7 @@ public class StoryProductionPage : ContentPage
     {
         if (_currentProject == null) return;
 
-        await _storyService.SetAsLatestAsync(_currentProject.Id);
+        if (!await TryStoryWriteAsync(() => _storyService.SetAsLatestAsync(_currentProject.Id))) return;
         
         // Reload to show updated star indicators
         var parentId = _currentProject.ParentProjectId ?? _currentProject.Id;
@@ -943,7 +947,7 @@ public class StoryProductionPage : ContentPage
 
         if (string.IsNullOrWhiteSpace(newName)) return;
 
-        await _storyService.RenameDraftAsync(_currentProject.Id, newName.Trim());
+        if (!await TryStoryWriteAsync(() => _storyService.RenameDraftAsync(_currentProject.Id, newName.Trim()))) return;
         
         // Reload drafts to show updated name
         var parentId = _currentProject.ParentProjectId ?? _currentProject.Id;
@@ -965,7 +969,7 @@ public class StoryProductionPage : ContentPage
         var parentId = _currentProject.ParentProjectId ?? _currentProject.Id;
         
         // Delete the draft
-        await _storyService.DeleteDraftAsync(_currentProject.Id);
+        if (!await TryStoryWriteAsync(() => _storyService.DeleteDraftAsync(_currentProject.Id))) return;
         
         // Reload drafts - will select latest or original
         await LoadDraftsAsync(parentId);
@@ -1002,7 +1006,7 @@ public class StoryProductionPage : ContentPage
         if (result == "🔄 Auto (previous version)")
         {
             // Clear manual override
-            await _storyService.SetCompareToAsync(_currentProject.Id, null);
+            if (!await TryStoryWriteAsync(() => _storyService.SetCompareToAsync(_currentProject.Id, null))) return;
         }
         else
         {
@@ -1013,7 +1017,7 @@ public class StoryProductionPage : ContentPage
             
             if (selectedDraft != null)
             {
-                await _storyService.SetCompareToAsync(_currentProject.Id, selectedDraft.Id);
+                if (!await TryStoryWriteAsync(() => _storyService.SetCompareToAsync(_currentProject.Id, selectedDraft.Id))) return;
             }
         }
 
@@ -1066,7 +1070,16 @@ public class StoryProductionPage : ContentPage
         _loadingLabel.Text = "Importing visuals...";
         _loadingOverlay.IsVisible = true;
 
-        int imported = await _storyService.ImportVisualsFromDraftAsync(_currentProject.Id, sourceDraft.Id);
+        int imported = 0;
+        bool importOk = await TryStoryWriteAsync(async () =>
+        {
+            imported = await _storyService.ImportVisualsFromDraftAsync(_currentProject.Id, sourceDraft.Id);
+        });
+        if (!importOk)
+        {
+            _loadingOverlay.IsVisible = false;
+            return;
+        }
 
         _loadingOverlay.IsVisible = false;
 
@@ -1147,7 +1160,7 @@ public class StoryProductionPage : ContentPage
             return;
 
         _currentProject.LlmConversationLog = log.Trim();
-        await _storyService.UpdateProjectAsync(_currentProject);
+        if (!await TryStoryWriteAsync(() => _storyService.UpdateProjectAsync(_currentProject))) return;
         await DisplayAlert("Saved", "LLM conversation log saved for this project.", "OK");
     }
 
@@ -1294,7 +1307,21 @@ public class StoryProductionPage : ContentPage
 
     private async Task ShowReadOnlyAlertAsync()
     {
-        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to create ideas.", "OK");
+        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to modify Story Production data.", "OK");
+    }
+
+    private async Task<bool> TryStoryWriteAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+            return true;
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+            return false;
+        }
     }
 
     private List<string> BuildConversationIdeaAnalysisPrompts(StoryProject project, int charsPerPart)
@@ -1873,262 +1900,6 @@ public class StoryProductionPage : ContentPage
         return result;
     }
 
-    private async Task<List<(string category, string text)>?> ShowPromptAndPasteInputAsync(string title, string instructions, List<string> promptParts, string pastePlaceholder)
-    {
-        var tcs = new TaskCompletionSource<List<(string category, string text)>?>();
-        int currentPartIndex = 0;
-        var queuedIdeas = new List<(string category, string text)>();
-        var queuedParts = new HashSet<int>();
-
-        var overlay = new Grid
-        {
-            BackgroundColor = Color.FromArgb("#80000000"),
-            VerticalOptions = LayoutOptions.Fill,
-            HorizontalOptions = LayoutOptions.Fill
-        };
-
-        var card = new Frame
-        {
-            Padding = 20,
-            CornerRadius = 12,
-            BackgroundColor = Colors.White,
-            HasShadow = true,
-            BorderColor = Colors.Transparent,
-            WidthRequest = 680,
-            VerticalOptions = LayoutOptions.Center,
-            HorizontalOptions = LayoutOptions.Center
-        };
-
-        var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(new Label
-        {
-            Text = title,
-            FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        stack.Children.Add(new Label
-        {
-            Text = instructions,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
-
-        var promptEditor = new Editor
-        {
-            Text = promptParts[currentPartIndex],
-            IsReadOnly = true,
-            FontSize = 11,
-            FontFamily = "Consolas",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            HeightRequest = 220,
-            AutoSize = EditorAutoSizeOption.Disabled
-        };
-        stack.Children.Add(promptEditor);
-
-        var partLabel = new Label
-        {
-            Text = promptParts.Count == 1 ? "Request part 1 of 1" : $"Request part 1 of {promptParts.Count}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
-        stack.Children.Add(partLabel);
-
-        var queueStatusLabel = new Label
-        {
-            Text = "Queued ideas: 0",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
-        stack.Children.Add(queueStatusLabel);
-
-        var promptButtonRow = new HorizontalStackLayout
-        {
-            Spacing = 8,
-            HorizontalOptions = LayoutOptions.Start
-        };
-
-        var copyPromptBtn = new Button
-        {
-            Text = "Copy Current Part",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
-            CornerRadius = 8,
-            Padding = new Thickness(16, 8),
-            HorizontalOptions = LayoutOptions.Start
-        };
-
-        var previousPartBtn = new Button
-        {
-            Text = "Previous",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#455A64"),
-            CornerRadius = 8,
-            Padding = new Thickness(16, 8),
-            IsEnabled = false
-        };
-
-        var nextPartBtn = new Button
-        {
-            Text = "Next",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#455A64"),
-            CornerRadius = 8,
-            Padding = new Thickness(16, 8),
-            IsEnabled = promptParts.Count > 1
-        };
-
-        void ShowPromptPart(int index)
-        {
-            currentPartIndex = Math.Clamp(index, 0, promptParts.Count - 1);
-            promptEditor.Text = promptParts[currentPartIndex];
-            string queuedMarker = queuedParts.Contains(currentPartIndex) ? " - response queued" : "";
-            partLabel.Text = $"Request part {currentPartIndex + 1} of {promptParts.Count}{queuedMarker}";
-            previousPartBtn.IsEnabled = currentPartIndex > 0;
-            nextPartBtn.IsEnabled = currentPartIndex < promptParts.Count - 1;
-        }
-
-        void UpdateQueueStatus()
-        {
-            queueStatusLabel.Text = $"Queued ideas: {queuedIdeas.Count} from {queuedParts.Count}/{promptParts.Count} part(s)";
-            ShowPromptPart(currentPartIndex);
-        }
-
-        copyPromptBtn.Clicked += async (s, e) =>
-        {
-            await Clipboard.SetTextAsync(promptParts[currentPartIndex]);
-            copyPromptBtn.Text = "Copied";
-            await Task.Delay(1000);
-            copyPromptBtn.Text = "Copy Current Part";
-        };
-        previousPartBtn.Clicked += (s, e) => ShowPromptPart(currentPartIndex - 1);
-        nextPartBtn.Clicked += (s, e) => ShowPromptPart(currentPartIndex + 1);
-
-        promptButtonRow.Children.Add(copyPromptBtn);
-        promptButtonRow.Children.Add(previousPartBtn);
-        promptButtonRow.Children.Add(nextPartBtn);
-        stack.Children.Add(promptButtonRow);
-
-        stack.Children.Add(new Label
-        {
-            Text = "Paste LLM response:",
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-
-        var pasteEditor = new Editor
-        {
-            Placeholder = pastePlaceholder,
-            FontSize = 12,
-            FontFamily = "Consolas",
-            BackgroundColor = Color.FromArgb("#FFFDE7"),
-            HeightRequest = 160,
-            AutoSize = EditorAutoSizeOption.Disabled
-        };
-        stack.Children.Add(pasteEditor);
-
-        var btnRow = new HorizontalStackLayout
-        {
-            Spacing = 12,
-            HorizontalOptions = LayoutOptions.End
-        };
-
-        var cancelBtn = new Button
-        {
-            Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333"),
-            CornerRadius = 8,
-            Padding = new Thickness(20, 8)
-        };
-        var logBtn = new Button
-        {
-            Text = "Log Queued Ideas",
-            BackgroundColor = Color.FromArgb("#7B1FA2"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            Padding = new Thickness(20, 8)
-        };
-
-        var queueBtn = new Button
-        {
-            Text = "Queue Response + Next",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            Padding = new Thickness(20, 8)
-        };
-
-        void Close(List<(string category, string text)>? value)
-        {
-            if (Content is Grid mainGrid)
-                mainGrid.Children.Remove(overlay);
-            tcs.TrySetResult(value);
-        }
-
-        bool QueueCurrentResponse()
-        {
-            var parsed = ParseConversationIdeas(pasteEditor.Text ?? "");
-            if (parsed.Count == 0)
-                return false;
-
-            queuedIdeas.AddRange(parsed);
-            queuedParts.Add(currentPartIndex);
-            pasteEditor.Text = "";
-            UpdateQueueStatus();
-            return true;
-        }
-
-        cancelBtn.Clicked += (s, e) => Close(null);
-        queueBtn.Clicked += async (s, e) =>
-        {
-            if (!QueueCurrentResponse())
-            {
-                await DisplayAlert("No Ideas Found", "No readable IDEA lines were found. Expected: IDEA|Category|Idea text", "OK");
-                return;
-            }
-
-            if (currentPartIndex < promptParts.Count - 1)
-                ShowPromptPart(currentPartIndex + 1);
-        };
-        logBtn.Clicked += async (s, e) =>
-        {
-            if (!string.IsNullOrWhiteSpace(pasteEditor.Text))
-            {
-                if (!QueueCurrentResponse())
-                {
-                    await DisplayAlert("No Ideas Found", "No readable IDEA lines were found in the current paste box.", "OK");
-                    return;
-                }
-            }
-
-            if (queuedIdeas.Count == 0)
-            {
-                await DisplayAlert("Nothing Queued", "Queue at least one LLM response before logging ideas.", "OK");
-                return;
-            }
-
-            Close(queuedIdeas);
-        };
-
-        btnRow.Children.Add(cancelBtn);
-        btnRow.Children.Add(queueBtn);
-        btnRow.Children.Add(logBtn);
-        stack.Children.Add(btnRow);
-
-        card.Content = stack;
-        overlay.Children.Add(card);
-
-        if (Content is Grid pageGrid)
-        {
-            Grid.SetRowSpan(overlay, 2);
-            pageGrid.Children.Add(overlay);
-        }
-
-        return await tcs.Task;
-    }
-
     private void HideProjectControls()
     {
         _insertLineBtn.IsVisible = false;
@@ -2452,7 +2223,7 @@ public class StoryProductionPage : ContentPage
             };
             upBtn.Clicked += async (s, e) =>
             {
-                await _storyService.MoveLineUpAsync(line.Id);
+                if (!await TryStoryWriteAsync(() => _storyService.MoveLineUpAsync(line.Id))) return;
                 await LoadLinesAsync(preserveScroll: true);
             };
             btnStack.Children.Add(upBtn);
@@ -2473,7 +2244,7 @@ public class StoryProductionPage : ContentPage
             };
             downBtn.Clicked += async (s, e) =>
             {
-                await _storyService.MoveLineDownAsync(line.Id);
+                if (!await TryStoryWriteAsync(() => _storyService.MoveLineDownAsync(line.Id))) return;
                 await LoadLinesAsync(preserveScroll: true);
             };
             btnStack.Children.Add(downBtn);
@@ -2495,7 +2266,7 @@ public class StoryProductionPage : ContentPage
             bool confirm = await DisplayAlert("Delete Line",
                 $"Delete line #{line.LineOrder}?", "Delete", "Cancel");
             if (!confirm) return;
-            await _storyService.DeleteLineAsync(line.Id);
+            if (!await TryStoryWriteAsync(() => _storyService.DeleteLineAsync(line.Id))) return;
             await LoadLinesAsync(preserveScroll: true);
         };
         btnStack.Children.Add(deleteBtn);
@@ -2515,7 +2286,7 @@ public class StoryProductionPage : ContentPage
         silentBtn.Clicked += async (s, e) =>
         {
             line.IsSilent = !line.IsSilent;
-            await _storyService.UpdateLineAsync(line);
+            if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
             await LoadLinesAsync(preserveScroll: true);
         };
         btnStack.Children.Add(silentBtn);
@@ -2687,7 +2458,7 @@ public class StoryProductionPage : ContentPage
                 // Just checked - prompt for time
                 await PromptAndLogTaskTimeAsync(line, 0, "visual_complete", $"Line {line.LineOrder}: Complete visual");
             }
-            await _storyService.ToggleVisualPreparedAsync(line.Id);
+            if (!await TryStoryWriteAsync(() => _storyService.ToggleVisualPreparedAsync(line.Id))) return;
             await LoadLinesAsync(preserveScroll: true);
         };
         readyStack.Children.Add(readyCheckbox);
@@ -2834,7 +2605,7 @@ public class StoryProductionPage : ContentPage
                     try { File.Delete(thumbFile); } catch { }
                 }
                 line.VisualAssetPath = "";
-                await _storyService.UpdateLineAsync(line);
+                if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
                 await LoadLinesAsync(preserveScroll: true);
             };
             removeBtn.GestureRecognizers.Add(removeTap);
@@ -2907,10 +2678,14 @@ public class StoryProductionPage : ContentPage
             placeholder: "Brief description of this story...",
             initialValue: "");
         
-        var project = await _storyService.CreateProjectAsync(
-            _auth.CurrentUsername, 
-            name.Trim(), 
-            description?.Trim() ?? "");
+        StoryProject? project = null;
+        if (!await TryStoryWriteAsync(async () =>
+        {
+            project = await _storyService.CreateProjectAsync(
+                _auth.CurrentUsername,
+                name.Trim(),
+                description?.Trim() ?? "");
+        })) return;
         
         await LoadProjectsAsync();
         
@@ -2931,7 +2706,7 @@ public class StoryProductionPage : ContentPage
             "Delete", "Cancel");
         if (!confirm) return;
 
-        await _storyService.DeleteProjectAsync(_currentProject.Id);
+        if (!await TryStoryWriteAsync(() => _storyService.DeleteProjectAsync(_currentProject.Id))) return;
         Preferences.Remove($"StoryProd_LastProject_{_auth.CurrentUsername}");
         _currentProject = null;
         _addLineBtn.IsVisible = false;
@@ -3001,10 +2776,10 @@ public class StoryProductionPage : ContentPage
             placeholder: "What should the viewer see?",
             initialValue: "");
         
-        await _storyService.AddLineAsync(
-            _currentProject.Id, 
-            lineText.Trim(), 
-            visualDesc?.Trim() ?? "");
+        if (!await TryStoryWriteAsync(() => _storyService.AddLineAsync(
+            _currentProject.Id,
+            lineText.Trim(),
+            visualDesc?.Trim() ?? ""))) return;
         
         await LoadLinesAsync(preserveScroll: true);
     }
@@ -3020,13 +2795,16 @@ public class StoryProductionPage : ContentPage
 
         if (string.IsNullOrWhiteSpace(visualDesc)) return;
 
-        var newLine = await _storyService.AddLineAsync(
-            _currentProject.Id,
-            "",
-            visualDesc.Trim());
+        if (!await TryStoryWriteAsync(async () =>
+        {
+            var newLine = await _storyService.AddLineAsync(
+                _currentProject.Id,
+                "",
+                visualDesc.Trim());
 
-        newLine.IsSilent = true;
-        await _storyService.UpdateLineAsync(newLine);
+            newLine.IsSilent = true;
+            await _storyService.UpdateLineAsync(newLine);
+        })) return;
 
         await LoadLinesAsync(preserveScroll: true);
     }
@@ -3066,12 +2844,12 @@ public class StoryProductionPage : ContentPage
             placeholder: "What should the viewer see?",
             initialValue: "");
 
-        await _storyService.InsertLineBeforeAsync(
+        if (!await TryStoryWriteAsync(() => _storyService.InsertLineBeforeAsync(
             _currentProject.Id,
             targetOrder,
             lineText.Trim(),
             visualDesc?.Trim() ?? "",
-            isSilent: false);
+            isSilent: false))) return;
         
         await LoadLinesAsync(preserveScroll: true);
     }
@@ -3103,12 +2881,12 @@ public class StoryProductionPage : ContentPage
 
         if (string.IsNullOrWhiteSpace(visualDesc)) return;
 
-        await _storyService.InsertLineBeforeAsync(
+        if (!await TryStoryWriteAsync(() => _storyService.InsertLineBeforeAsync(
             _currentProject.Id,
             targetOrder,
             "",
             visualDesc.Trim(),
-            isSilent: true);
+            isSilent: true))) return;
         
         await LoadLinesAsync(preserveScroll: true);
     }
@@ -3134,7 +2912,7 @@ public class StoryProductionPage : ContentPage
         if (newText == null) return; // Cancelled
         
         line.LineText = newText.Trim();
-        await _storyService.UpdateLineAsync(line);
+        if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
         await LoadLinesAsync(preserveScroll: true);
     }
 
@@ -3261,7 +3039,7 @@ public class StoryProductionPage : ContentPage
         if (newDesc == null) return; // Cancelled
         
         line.VisualDescription = newDesc.Trim();
-        await _storyService.UpdateLineAsync(line);
+        if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
         await LoadLinesAsync(preserveScroll: true);
     }
 
@@ -3303,7 +3081,7 @@ public class StoryProductionPage : ContentPage
             }
 
             line.VisualAssetPath = filePath;
-            await _storyService.UpdateLineAsync(line);
+            if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
             await LoadLinesAsync(preserveScroll: true);
         }
         catch (Exception ex)
@@ -3458,12 +3236,16 @@ public class StoryProductionPage : ContentPage
 
         var prompts = await LoadCustomPromptsAsync();
         string finalTitle = GetUniqueCustomPromptTitle(prompts, title.Trim());
-        var prompt = await _customPrompts.AddCustomPromptAsync(_auth.CurrentUsername, "story", finalTitle, text.Trim());
+        CustomPromptItem? prompt = null;
+        if (!await TryStoryWriteAsync(async () =>
+        {
+            prompt = await _customPrompts.AddCustomPromptAsync(_auth.CurrentUsername, "story", finalTitle, text.Trim());
+        })) return;
 
         await DisplayAlert("Saved", $"Custom prompt \"{finalTitle}\" saved.", "OK");
 
         if (_ideaLogger != null)
-            await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, prompt.Text, "story_custom_prompts");
+            await TryStoryWriteAsync(() => _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, prompt!.Text, "story_custom_prompts"));
     }
 
     private async Task ShowCustomPromptActionsAsync(CustomPromptItem prompt)
@@ -3498,7 +3280,7 @@ public class StoryProductionPage : ContentPage
                 break;
             case "Log As Idea":
                 if (_ideaLogger != null)
-                    await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, prompt.Text, "story_custom_prompts");
+                    await TryStoryWriteAsync(() => _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, prompt.Text, "story_custom_prompts"));
                 break;
         }
     }
@@ -3529,7 +3311,7 @@ public class StoryProductionPage : ContentPage
         var prompts = await LoadCustomPromptsAsync();
         prompt.Title = GetUniqueCustomPromptTitle(prompts.Where(p => p.Id != prompt.Id).ToList(), newTitle.Trim());
         prompt.Text = newText.Trim();
-        await _customPrompts.UpdateCustomPromptAsync(prompt);
+        await TryStoryWriteAsync(() => _customPrompts.UpdateCustomPromptAsync(prompt));
     }
 
     private async Task DeleteCustomPromptAsync(CustomPromptItem prompt)
@@ -3545,7 +3327,7 @@ public class StoryProductionPage : ContentPage
         if (!delete)
             return;
 
-        await _customPrompts.DeleteCustomPromptAsync(prompt.Id);
+        await TryStoryWriteAsync(() => _customPrompts.DeleteCustomPromptAsync(prompt.Id));
     }
 
     private async Task<List<CustomPromptItem>> LoadCustomPromptsAsync()
@@ -3559,24 +3341,50 @@ public class StoryProductionPage : ContentPage
 
     private async Task MigrateCustomPromptsFromPreferencesAsync()
     {
-        if (_customPrompts == null || _customPrompts.IsReadOnly)
+        if (_customPrompts == null)
             return;
 
-        var existing = await _customPrompts.GetCustomPromptsAsync(_auth.CurrentUsername, "story");
-        if (existing.Count > 0)
+        string legacyJson = Preferences.Get(GetCustomPromptsKey(), "");
+        if (string.IsNullOrWhiteSpace(legacyJson))
             return;
 
-        var legacyPrompts = LoadLegacyCustomPromptsFromPreferences();
-        foreach (var prompt in legacyPrompts.Where(p => !string.IsNullOrWhiteSpace(p.Title)))
+        if (_customPrompts.IsReadOnly)
+            return;
+
+        try
         {
-            var item = await _customPrompts.AddCustomPromptAsync(
-                _auth.CurrentUsername,
-                "story",
-                prompt.Title.Trim(),
-                prompt.Text?.Trim() ?? "");
-            item.CreatedAt = prompt.CreatedAt;
-            item.UpdatedAt = prompt.UpdatedAt;
-            await _customPrompts.UpdateCustomPromptAsync(item);
+            var legacyPrompts = JsonSerializer.Deserialize<List<StoryCustomPrompt>>(legacyJson) ?? new List<StoryCustomPrompt>();
+            if (legacyPrompts.Count == 0)
+                return;
+
+            var existing = await _customPrompts.GetCustomPromptsAsync(_auth.CurrentUsername, "story");
+            int migrated = 0;
+
+            foreach (var prompt in legacyPrompts.Where(p => !string.IsNullOrWhiteSpace(p.Title)))
+            {
+                string title = GetUniqueCustomPromptTitle(existing, prompt.Title.Trim());
+                var item = await _customPrompts.AddCustomPromptAsync(
+                    _auth.CurrentUsername,
+                    "story",
+                    title,
+                    prompt.Text?.Trim() ?? "");
+                item.CreatedAt = prompt.CreatedAt;
+                item.UpdatedAt = prompt.UpdatedAt;
+                await _customPrompts.UpdateCustomPromptAsync(item);
+                existing.Add(item);
+                migrated++;
+            }
+
+            Preferences.Remove(GetCustomPromptsKey());
+            System.Diagnostics.Debug.WriteLine($"[STORY] Migrated {migrated} legacy custom prompt(s) and removed legacy preferences key.");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            // Invisible migration: leave the legacy key in place for retry on a writable device.
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STORY] Legacy custom prompt migration failed; key preserved for retry: {ex.Message}");
         }
     }
 
@@ -5159,12 +4967,20 @@ Rules:
             _loadingLabel.Text = $"Creating \"{draftName}\"...";
             _loadingOverlay.IsVisible = true;
 
-            var newDraft = await _storyService.CreateDraftFromImportAsync(
-                _currentProject.Id,
-                _auth.CurrentUsername,
-                importedLines,
-                draftName.Trim(),
-                setAsLatest);
+            StoryProject? newDraft = null;
+            if (!await TryStoryWriteAsync(async () =>
+            {
+                newDraft = await _storyService.CreateDraftFromImportAsync(
+                    _currentProject.Id,
+                    _auth.CurrentUsername,
+                    importedLines,
+                    draftName.Trim(),
+                    setAsLatest);
+            }))
+            {
+                _loadingOverlay.IsVisible = false;
+                return;
+            }
 
             // Mark all lines as having completed visuals (since video already exists)
             _loadingLabel.Text = "Marking visuals as complete...";
@@ -5172,7 +4988,7 @@ Rules:
 
             // Reload drafts and select the new one
             _loadingLabel.Text = "Loading drafts...";
-            var parentId = newDraft.ParentProjectId ?? newDraft.Id;
+            var parentId = newDraft!.ParentProjectId ?? newDraft.Id;
             await LoadDraftsAsync(parentId, newDraft.Id);
 
             _loadingOverlay.IsVisible = false;
@@ -5398,7 +5214,15 @@ Rules:
                     _loadingLabel.Text = "Importing visuals...";
                     _loadingOverlay.IsVisible = true;
 
-                    int imported = await _storyService.ImportVisualsFromDraftAsync(newDraft.Id, bestSource.draft.Id);
+                    int imported = 0;
+                    if (!await TryStoryWriteAsync(async () =>
+                    {
+                        imported = await _storyService.ImportVisualsFromDraftAsync(newDraft.Id, bestSource.draft.Id);
+                    }))
+                    {
+                        _loadingOverlay.IsVisible = false;
+                        return;
+                    }
 
                     _loadingOverlay.IsVisible = false;
 
@@ -5646,563 +5470,6 @@ Rules:
 
         scrollView.Content = stack;
         card.Content = scrollView;
-        overlay.Children.Add(card);
-
-        if (this.Content is Grid pageGrid)
-        {
-            Grid.SetRowSpan(overlay, 2);
-            pageGrid.Children.Add(overlay);
-        }
-
-        await tcs.Task;
-    }
-
-    private async Task ShowShotsEditorAsync(StoryLine line)
-    {
-        var tcs = new TaskCompletionSource<bool>();
-
-        var overlay = new Grid
-        {
-            BackgroundColor = Color.FromArgb("#80000000"),
-            InputTransparent = false
-        };
-
-        var card = new Frame
-        {
-            CornerRadius = 12,
-            Padding = 20,
-            BackgroundColor = Colors.White,
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center,
-            WidthRequest = 750,
-            MaximumHeightRequest = 650
-        };
-
-        var mainScroll = new ScrollView();
-        var mainStack = new VerticalStackLayout { Spacing = 12 };
-
-        // Header
-        mainStack.Children.Add(new Label
-        {
-            Text = $"📸 Shot Breakdown - Line #{line.LineOrder}",
-            FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-
-        // Visual description context
-        var contextFrame = new Frame
-        {
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            Padding = 10,
-            CornerRadius = 6
-        };
-        contextFrame.Content = new Label
-        {
-            Text = $"🎨 {line.VisualDescription}",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
-        mainStack.Children.Add(contextFrame);
-
-        // Show line-level prompts if they exist (for reference/copying)
-        bool hasLinePrompts = !string.IsNullOrEmpty(line.ImagePrompt) || !string.IsNullOrEmpty(line.VideoPrompt);
-        if (hasLinePrompts)
-        {
-            var linePromptsFrame = new Frame
-            {
-                BackgroundColor = Color.FromArgb("#E8F5E9"),
-                Padding = 10,
-                CornerRadius = 6,
-                BorderColor = Color.FromArgb("#4CAF50")
-            };
-            var linePromptsStack = new VerticalStackLayout { Spacing = 6 };
-            linePromptsStack.Children.Add(new Label
-            {
-                Text = "📋 Line-Level Prompts (from AI import):",
-                FontSize = 12,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#2E7D32")
-            });
-            
-            if (!string.IsNullOrEmpty(line.ImagePrompt))
-            {
-                var imgRow = new HorizontalStackLayout { Spacing = 6 };
-                imgRow.Children.Add(new Label
-                {
-                    Text = $"🖼️ {(line.ImagePrompt.Length > 80 ? line.ImagePrompt.Substring(0, 80) + "..." : line.ImagePrompt)}",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#666"),
-                    VerticalOptions = LayoutOptions.Center
-                });
-                var copyImgLineBtn = new Button
-                {
-                    Text = "📋 Copy",
-                    BackgroundColor = Color.FromArgb("#FFFDE7"),
-                    TextColor = Color.FromArgb("#F57F17"),
-                    HeightRequest = 26,
-                    Padding = new Thickness(8, 2),
-                    CornerRadius = 4,
-                    FontSize = 10
-                };
-                copyImgLineBtn.Clicked += async (s, e) =>
-                {
-                    await Clipboard.SetTextAsync(line.ImagePrompt);
-                    copyImgLineBtn.Text = "✓";
-                    await Task.Delay(1000);
-                    copyImgLineBtn.Text = "📋 Copy";
-                };
-                imgRow.Children.Add(copyImgLineBtn);
-                linePromptsStack.Children.Add(imgRow);
-            }
-            
-            if (!string.IsNullOrEmpty(line.VideoPrompt))
-            {
-                var vidRow = new HorizontalStackLayout { Spacing = 6 };
-                vidRow.Children.Add(new Label
-                {
-                    Text = $"🎬 {(line.VideoPrompt.Length > 80 ? line.VideoPrompt.Substring(0, 80) + "..." : line.VideoPrompt)}",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#666"),
-                    VerticalOptions = LayoutOptions.Center
-                });
-                var copyVidLineBtn = new Button
-                {
-                    Text = "📋 Copy",
-                    BackgroundColor = Color.FromArgb("#E3F2FD"),
-                    TextColor = Color.FromArgb("#1565C0"),
-                    HeightRequest = 26,
-                    Padding = new Thickness(8, 2),
-                    CornerRadius = 4,
-                    FontSize = 10
-                };
-                copyVidLineBtn.Clicked += async (s, e) =>
-                {
-                    await Clipboard.SetTextAsync(line.VideoPrompt);
-                    copyVidLineBtn.Text = "✓";
-                    await Task.Delay(1000);
-                    copyVidLineBtn.Text = "📋 Copy";
-                };
-                vidRow.Children.Add(copyVidLineBtn);
-                linePromptsStack.Children.Add(vidRow);
-            }
-            
-            linePromptsFrame.Content = linePromptsStack;
-            mainStack.Children.Add(linePromptsFrame);
-        }
-
-        // Get current shots
-        var shots = _storyService.GetShots(line);
-        var shotsContainer = new VerticalStackLayout { Spacing = 8 };
-
-        void RebuildShotsList()
-        {
-            shotsContainer.Children.Clear();
-            shots = _storyService.GetShots(line);
-
-            if (shots.Count == 0)
-            {
-                // Show simple prompts editor
-                shotsContainer.Children.Add(new Label
-                {
-                    Text = "No shot breakdown yet. Add shots below or use simple prompts:",
-                    FontSize = 13,
-                    TextColor = Color.FromArgb("#666"),
-                    Margin = new Thickness(0, 8)
-                });
-
-                // Image prompt
-                var imgPromptLabel = new Label { Text = "🖼️ Image Prompt (ChatGPT/DALL-E/Midjourney):", FontSize = 12, FontAttributes = FontAttributes.Bold };
-                shotsContainer.Children.Add(imgPromptLabel);
-
-                var imgPromptEditor = new Editor
-                {
-                    Text = line.ImagePrompt,
-                    Placeholder = "Prompt for starting frame image...",
-                    HeightRequest = 60,
-                    FontSize = 12,
-                    BackgroundColor = Color.FromArgb("#FFFDE7")
-                };
-                imgPromptEditor.TextChanged += (s, e) => line.ImagePrompt = imgPromptEditor.Text;
-                shotsContainer.Children.Add(imgPromptEditor);
-
-                // Video prompt
-                var vidPromptLabel = new Label { Text = "🎬 Video Prompt (Luma/Runway):", FontSize = 12, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 8, 0, 0) };
-                shotsContainer.Children.Add(vidPromptLabel);
-
-                var vidPromptEditor = new Editor
-                {
-                    Text = line.VideoPrompt,
-                    Placeholder = "Prompt for video generation...",
-                    HeightRequest = 60,
-                    FontSize = 12,
-                    BackgroundColor = Color.FromArgb("#E3F2FD")
-                };
-                vidPromptEditor.TextChanged += (s, e) => line.VideoPrompt = vidPromptEditor.Text;
-                shotsContainer.Children.Add(vidPromptEditor);
-            }
-            else
-            {
-                // Show shots list
-                foreach (var shot in shots)
-                {
-                    var shotFrame = new Frame
-                    {
-                        BackgroundColor = shot.Done ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFF8E1"),
-                        Padding = 10,
-                        CornerRadius = 8,
-                        BorderColor = shot.Done ? Color.FromArgb("#4CAF50") : Color.FromArgb("#FFB300")
-                    };
-
-                    var shotStack = new VerticalStackLayout { Spacing = 6 };
-
-                    // Shot header row
-                    var shotHeader = new HorizontalStackLayout { Spacing = 8 };
-                    shotHeader.Children.Add(new Label
-                    {
-                        Text = $"Shot {shot.Index}",
-                        FontSize = 13,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333"),
-                        VerticalOptions = LayoutOptions.Center
-                    });
-
-                    var doneCheck = new CheckBox { IsChecked = shot.Done, Color = Color.FromArgb("#4CAF50") };
-                    int shotIdx = shot.Index - 1;
-                    doneCheck.CheckedChanged += async (s, e) =>
-                    {
-                        await _storyService.ToggleShotDoneAsync(line, shotIdx);
-                        RebuildShotsList();
-                    };
-                    shotHeader.Children.Add(doneCheck);
-                    shotHeader.Children.Add(new Label
-                    {
-                        Text = shot.Done ? "Done" : "Pending",
-                        FontSize = 11,
-                        TextColor = shot.Done ? Color.FromArgb("#4CAF50") : Color.FromArgb("#999"),
-                        VerticalOptions = LayoutOptions.Center
-                    });
-
-                    var deleteBtn = new Button
-                    {
-                        Text = "🗑️",
-                        BackgroundColor = Color.FromArgb("#FFEBEE"),
-                        TextColor = Color.FromArgb("#C62828"),
-                        WidthRequest = 30,
-                        HeightRequest = 26,
-                        Padding = 0,
-                        CornerRadius = 4,
-                        FontSize = 10
-                    };
-                    deleteBtn.Clicked += async (s, e) =>
-                    {
-                        await _storyService.DeleteShotAsync(line, shotIdx);
-                        RebuildShotsList();
-                    };
-                    shotHeader.Children.Add(deleteBtn);
-
-                    shotStack.Children.Add(shotHeader);
-
-                    // Description (smaller, just context)
-                    shotStack.Children.Add(new Label
-                    {
-                        Text = $"📝 {shot.Description}",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#666"),
-                        Margin = new Thickness(0, 0, 0, 8)
-                    });
-
-                    // === TASK 1: Generate Image ===
-                    var task1Frame = new Frame
-                    {
-                        BackgroundColor = shot.Task1_ImageGenerated ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFFDE7"),
-                        Padding = 8,
-                        CornerRadius = 6,
-                        BorderColor = shot.Task1_ImageGenerated ? Color.FromArgb("#4CAF50") : Color.FromArgb("#FFC107")
-                    };
-                    var task1Stack = new VerticalStackLayout { Spacing = 4 };
-                    
-                    var task1Header = new HorizontalStackLayout { Spacing = 6 };
-                    var task1Check = new CheckBox 
-                    { 
-                        IsChecked = shot.Task1_ImageGenerated, 
-                        Color = Color.FromArgb("#4CAF50"),
-                        VerticalOptions = LayoutOptions.Center
-                    };
-                    task1Check.CheckedChanged += async (s, e) =>
-                    {
-                        if (task1Check.IsChecked && !shot.Task1_ImageGenerated)
-                        {
-                            // Just checked - prompt for time
-                            await PromptAndLogTaskTimeAsync(line, shotIdx, "image_generated", $"Shot {shotIdx + 1}: Generate image", shot.Description);
-                        }
-                        shot.Task1_ImageGenerated = task1Check.IsChecked;
-                        shot.Done = shot.AllTasksDone;
-                        await _storyService.SaveShotsAsync(line, shots);
-                        await UpdateTimeProjectionAsync();
-                        RebuildShotsList();
-                    };
-                    task1Header.Children.Add(task1Check);
-                    task1Header.Children.Add(new Label
-                    {
-                        Text = "1️⃣ Generate Starting Image",
-                        FontSize = 12,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = shot.Task1_ImageGenerated ? Color.FromArgb("#4CAF50") : Color.FromArgb("#333"),
-                        VerticalOptions = LayoutOptions.Center
-                    });
-                    task1Stack.Children.Add(task1Header);
-
-                    // Image prompt with copy button
-                    var imgPromptRow = new HorizontalStackLayout { Spacing = 6 };
-                    var imgPromptEntry = new Entry
-                    {
-                        Text = shot.ImagePrompt,
-                        Placeholder = "ChatGPT/DALL-E prompt for starting frame...",
-                        FontSize = 11,
-                        HorizontalOptions = LayoutOptions.FillAndExpand
-                    };
-                    imgPromptEntry.TextChanged += (s, e) => shot.ImagePrompt = imgPromptEntry.Text;
-                    imgPromptRow.Children.Add(imgPromptEntry);
-                    
-                    // Fill from line button (if shot empty but line has prompt)
-                    if (string.IsNullOrEmpty(shot.ImagePrompt) && !string.IsNullOrEmpty(line.ImagePrompt))
-                    {
-                        var fillImgBtn = new Button
-                        {
-                            Text = "⬇️",
-                            BackgroundColor = Color.FromArgb("#FFF3E0"),
-                            TextColor = Color.FromArgb("#E65100"),
-                            WidthRequest = 36,
-                            HeightRequest = 30,
-                            Padding = 0,
-                            CornerRadius = 4,
-                            FontSize = 12
-                        };
-                        fillImgBtn.Clicked += async (s, e) =>
-                        {
-                            shot.ImagePrompt = line.ImagePrompt;
-                            await _storyService.SaveShotsAsync(line, shots);
-                            RebuildShotsList();
-                        };
-                        imgPromptRow.Children.Add(fillImgBtn);
-                    }
-                    
-                    var copyImgBtn = new Button
-                    {
-                        Text = "📋",
-                        BackgroundColor = Color.FromArgb("#E3F2FD"),
-                        TextColor = Color.FromArgb("#1976D2"),
-                        WidthRequest = 36,
-                        HeightRequest = 30,
-                        Padding = 0,
-                        CornerRadius = 4,
-                        FontSize = 12
-                    };
-                    copyImgBtn.Clicked += async (s, e) =>
-                    {
-                        if (!string.IsNullOrEmpty(shot.ImagePrompt))
-                        {
-                            await Clipboard.SetTextAsync(shot.ImagePrompt);
-                            copyImgBtn.Text = "✓";
-                            await Task.Delay(1000);
-                            copyImgBtn.Text = "📋";
-                        }
-                    };
-                    imgPromptRow.Children.Add(copyImgBtn);
-                    task1Stack.Children.Add(imgPromptRow);
-                    
-                    task1Frame.Content = task1Stack;
-                    shotStack.Children.Add(task1Frame);
-
-                    // === TASK 2: Generate Video ===
-                    var task2Frame = new Frame
-                    {
-                        BackgroundColor = shot.Task2_VideoGenerated ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#E3F2FD"),
-                        Padding = 8,
-                        CornerRadius = 6,
-                        BorderColor = shot.Task2_VideoGenerated ? Color.FromArgb("#4CAF50") : Color.FromArgb("#2196F3"),
-                        Margin = new Thickness(0, 4, 0, 0)
-                    };
-                    var task2Stack = new VerticalStackLayout { Spacing = 4 };
-                    
-                    var task2Header = new HorizontalStackLayout { Spacing = 6 };
-                    var task2Check = new CheckBox 
-                    { 
-                        IsChecked = shot.Task2_VideoGenerated, 
-                        Color = Color.FromArgb("#4CAF50"),
-                        VerticalOptions = LayoutOptions.Center
-                    };
-                    task2Check.CheckedChanged += async (s, e) =>
-                    {
-                        if (task2Check.IsChecked && !shot.Task2_VideoGenerated)
-                        {
-                            // Just checked - prompt for time
-                            await PromptAndLogTaskTimeAsync(line, shotIdx, "video_generated", $"Shot {shotIdx + 1}: Generate video", shot.Description);
-                        }
-                        shot.Task2_VideoGenerated = task2Check.IsChecked;
-                        shot.Done = shot.AllTasksDone;
-                        await _storyService.SaveShotsAsync(line, shots);
-                        await UpdateTimeProjectionAsync();
-                        RebuildShotsList();
-                    };
-                    task2Header.Children.Add(task2Check);
-                    task2Header.Children.Add(new Label
-                    {
-                        Text = "2️⃣ Generate Video (Luma/Runway)",
-                        FontSize = 12,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = shot.Task2_VideoGenerated ? Color.FromArgb("#4CAF50") : Color.FromArgb("#333"),
-                        VerticalOptions = LayoutOptions.Center
-                    });
-                    task2Stack.Children.Add(task2Header);
-
-                    // Video prompt with copy button
-                    var vidPromptRow = new HorizontalStackLayout { Spacing = 6 };
-                    var vidPromptEntry = new Entry
-                    {
-                        Text = shot.VideoPrompt,
-                        Placeholder = "Luma prompt (set image as first frame)...",
-                        FontSize = 11,
-                        HorizontalOptions = LayoutOptions.FillAndExpand
-                    };
-                    vidPromptEntry.TextChanged += (s, e) => shot.VideoPrompt = vidPromptEntry.Text;
-                    vidPromptRow.Children.Add(vidPromptEntry);
-                    
-                    var copyVidBtn = new Button
-                    {
-                        Text = "📋",
-                        BackgroundColor = Color.FromArgb("#E3F2FD"),
-                        TextColor = Color.FromArgb("#1976D2"),
-                        WidthRequest = 36,
-                        HeightRequest = 30,
-                        Padding = 0,
-                        CornerRadius = 4,
-                        FontSize = 12
-                    };
-                    copyVidBtn.Clicked += async (s, e) =>
-                    {
-                        if (!string.IsNullOrEmpty(shot.VideoPrompt))
-                        {
-                            await Clipboard.SetTextAsync(shot.VideoPrompt);
-                            copyVidBtn.Text = "✓";
-                            await Task.Delay(1000);
-                            copyVidBtn.Text = "📋";
-                        }
-                    };
-                    vidPromptRow.Children.Add(copyVidBtn);
-                    
-                    // Fill from line button (if shot empty but line has prompt)
-                    if (string.IsNullOrEmpty(shot.VideoPrompt) && !string.IsNullOrEmpty(line.VideoPrompt))
-                    {
-                        var fillVidBtn = new Button
-                        {
-                            Text = "⬇️",
-                            BackgroundColor = Color.FromArgb("#E3F2FD"),
-                            TextColor = Color.FromArgb("#1565C0"),
-                            WidthRequest = 36,
-                            HeightRequest = 30,
-                            Padding = 0,
-                            CornerRadius = 4,
-                            FontSize = 12
-                        };
-                        fillVidBtn.Clicked += async (s, e) =>
-                        {
-                            shot.VideoPrompt = line.VideoPrompt;
-                            await _storyService.SaveShotsAsync(line, shots);
-                            RebuildShotsList();
-                        };
-                        vidPromptRow.Children.Add(fillVidBtn);
-                    }
-                    
-                    task2Stack.Children.Add(vidPromptRow);
-                    
-                    task2Frame.Content = task2Stack;
-                    shotStack.Children.Add(task2Frame);
-
-                    shotFrame.Content = shotStack;
-                    shotsContainer.Children.Add(shotFrame);
-                }
-            }
-        }
-
-        RebuildShotsList();
-        mainStack.Children.Add(shotsContainer);
-
-        // Add shot button
-        var addShotRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 8, 0, 0) };
-
-        var newShotEntry = new Entry
-        {
-            Placeholder = "New shot description...",
-            HorizontalOptions = LayoutOptions.FillAndExpand,
-            FontSize = 12
-        };
-        addShotRow.Children.Add(newShotEntry);
-
-        var addShotBtn = new Button
-        {
-            Text = "+ Add Shot",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
-            CornerRadius = 6,
-            Padding = new Thickness(12, 6),
-            FontSize = 12
-        };
-        addShotBtn.Clicked += async (s, e) =>
-        {
-            if (!string.IsNullOrWhiteSpace(newShotEntry.Text))
-            {
-                await _storyService.AddShotAsync(line, newShotEntry.Text.Trim());
-                newShotEntry.Text = "";
-                RebuildShotsList();
-            }
-        };
-        addShotRow.Children.Add(addShotBtn);
-
-        mainStack.Children.Add(addShotRow);
-
-        // Close/Save buttons
-        var btnRow = new HorizontalStackLayout
-        {
-            Spacing = 12,
-            HorizontalOptions = LayoutOptions.End,
-            Margin = new Thickness(0, 12, 0, 0)
-        };
-
-        var closeBtn = new Button
-        {
-            Text = "Close",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333"),
-            CornerRadius = 8,
-            Padding = new Thickness(20, 8)
-        };
-        closeBtn.Clicked += async (s, e) =>
-        {
-            // Save any changes to simple prompts
-            if (shots.Count == 0)
-            {
-                await _storyService.SavePromptsAsync(line, line.ImagePrompt, line.VideoPrompt);
-            }
-            else
-            {
-                // Save all shot edits
-                await _storyService.SaveShotsAsync(line, shots);
-            }
-
-            if (this.Content is Grid mainGrid)
-                mainGrid.Children.Remove(overlay);
-            
-            await LoadLinesAsync(preserveScroll: true);
-            tcs.TrySetResult(true);
-        };
-        btnRow.Children.Add(closeBtn);
-
-        mainStack.Children.Add(btnRow);
-
-        mainScroll.Content = mainStack;
-        card.Content = mainScroll;
         overlay.Children.Add(card);
 
         if (this.Content is Grid pageGrid)

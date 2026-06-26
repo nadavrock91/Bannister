@@ -53,6 +53,25 @@ public class StoryPointsPage : ContentPage
         await LoadPointsAsync();
     }
 
+    private async Task ShowReadOnlyAlertAsync()
+    {
+        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to modify Story Production data.", "OK");
+    }
+
+    private async Task<bool> TryStoryWriteAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+            return true;
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+            return false;
+        }
+    }
+
     private void BuildUI()
     {
         var mainGrid = new Grid();
@@ -681,7 +700,11 @@ public class StoryPointsPage : ContentPage
             string? name = await DisplayPromptAsync("New Version", "Enter a name for the new version:", initialValue: "");
             if (name == null) return;
             
-            int newVersion = await _storyService.CreateNewStoryPointVersionAsync(_project.Id, string.IsNullOrWhiteSpace(name) ? null : name.Trim());
+            int newVersion = 0;
+            if (!await TryStoryWriteAsync(async () =>
+            {
+                newVersion = await _storyService.CreateNewStoryPointVersionAsync(_project.Id, string.IsNullOrWhiteSpace(name) ? null : name.Trim());
+            })) return;
             _currentVersion = newVersion;
             await LoadVersionsAsync();
             await LoadPointsAsync();
@@ -693,8 +716,12 @@ public class StoryPointsPage : ContentPage
             if (name == null) return;
             
             int sourceVersion = _currentVersion;
-            int newVersion = await _storyService.CreateNewStoryPointVersionAsync(_project.Id, string.IsNullOrWhiteSpace(name) ? null : name.Trim());
-            await _storyService.DuplicatePointsToVersionAsync(_project.Id, sourceVersion, newVersion);
+            int newVersion = 0;
+            if (!await TryStoryWriteAsync(async () =>
+            {
+                newVersion = await _storyService.CreateNewStoryPointVersionAsync(_project.Id, string.IsNullOrWhiteSpace(name) ? null : name.Trim());
+                await _storyService.DuplicatePointsToVersionAsync(_project.Id, sourceVersion, newVersion);
+            })) return;
             _currentVersion = newVersion;
             await LoadVersionsAsync();
             await LoadPointsAsync();
@@ -708,12 +735,12 @@ public class StoryPointsPage : ContentPage
             string? newName = await DisplayPromptAsync("Rename Version", "Enter new name:", initialValue: currentName);
             if (newName == null) return;
             
-            await _storyService.RenameStoryPointVersionAsync(_project.Id, _currentVersion, newName.Trim());
+            if (!await TryStoryWriteAsync(() => _storyService.RenameStoryPointVersionAsync(_project.Id, _currentVersion, newName.Trim()))) return;
             await LoadVersionsAsync();
         }
         else if (result == "⭐ Set as Latest")
         {
-            await _storyService.SetStoryPointVersionAsLatestAsync(_project.Id, _currentVersion);
+            if (!await TryStoryWriteAsync(() => _storyService.SetStoryPointVersionAsLatestAsync(_project.Id, _currentVersion))) return;
             await LoadVersionsAsync();
             await DisplayAlert("Done", $"Version {_currentVersion} is now marked as latest.", "OK");
         }
@@ -724,7 +751,7 @@ public class StoryPointsPage : ContentPage
                 "Delete", "Cancel");
             if (!confirm) return;
             
-            await _storyService.DeleteStoryPointVersionAsync(_project.Id, _currentVersion);
+            if (!await TryStoryWriteAsync(() => _storyService.DeleteStoryPointVersionAsync(_project.Id, _currentVersion))) return;
             await LoadVersionsAsync();
             
             // Switch to latest version
@@ -927,7 +954,7 @@ public class StoryPointsPage : ContentPage
         {
             upBtn.Clicked += async (s, e) =>
             {
-                await _storyService.ReorderStoryPointAsync(point.Id, moveUp: true);
+                if (!await TryStoryWriteAsync(() => _storyService.ReorderStoryPointAsync(point.Id, moveUp: true))) return;
                 await LoadPointsAsync();
             };
         }
@@ -949,7 +976,7 @@ public class StoryPointsPage : ContentPage
         {
             downBtn.Clicked += async (s, e) =>
             {
-                await _storyService.ReorderStoryPointAsync(point.Id, moveUp: false);
+                if (!await TryStoryWriteAsync(() => _storyService.ReorderStoryPointAsync(point.Id, moveUp: false))) return;
                 await LoadPointsAsync();
             };
         }
@@ -992,7 +1019,7 @@ public class StoryPointsPage : ContentPage
             toggleSubBtn.Clicked += async (s, e) =>
             {
                 string newSubcategory = isChronological ? "misc" : "chronological";
-                await _storyService.UpdateStoryPointSubcategoryAsync(point.Id, newSubcategory);
+                if (!await TryStoryWriteAsync(() => _storyService.UpdateStoryPointSubcategoryAsync(point.Id, newSubcategory))) return;
                 await LoadPointsAsync();
             };
             rightStack.Children.Add(toggleSubBtn);
@@ -1012,7 +1039,7 @@ public class StoryPointsPage : ContentPage
             subLockBtn.Clicked += async (s, e) =>
             {
                 point.IsSubcategoryLocked = !point.IsSubcategoryLocked;
-                await _storyService.UpdateStoryPointAsync(point);
+                if (!await TryStoryWriteAsync(() => _storyService.UpdateStoryPointAsync(point))) return;
                 await LoadPointsAsync();
             };
             rightStack.Children.Add(subLockBtn);
@@ -1035,7 +1062,7 @@ public class StoryPointsPage : ContentPage
         catLockBtn.Clicked += async (s, e) =>
         {
             point.IsCategoryLocked = !point.IsCategoryLocked;
-            await _storyService.UpdateStoryPointAsync(point);
+            if (!await TryStoryWriteAsync(() => _storyService.UpdateStoryPointAsync(point))) return;
             await LoadPointsAsync();
         };
         rightStack.Children.Add(catLockBtn);
@@ -1054,7 +1081,17 @@ public class StoryPointsPage : ContentPage
             CornerRadius = 6
         };
         ToolTipProperties.SetText(menuBtn, "More options");
-        menuBtn.Clicked += async (s, e) => await ShowPointContextMenuAsync(point);
+        menuBtn.Clicked += async (s, e) =>
+        {
+            try
+            {
+                await ShowPointContextMenuAsync(point);
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
+        };
         rightStack.Children.Add(menuBtn);
 
         Grid.SetColumn(rightStack, 2);
@@ -1222,7 +1259,7 @@ public class StoryPointsPage : ContentPage
             if (p.IsCategoryLocked != locked)
             {
                 p.IsCategoryLocked = locked;
-                await _storyService.UpdateStoryPointAsync(p);
+                if (!await TryStoryWriteAsync(() => _storyService.UpdateStoryPointAsync(p))) return;
                 count++;
             }
         }
@@ -1244,7 +1281,7 @@ public class StoryPointsPage : ContentPage
             if (p.IsSubcategoryLocked != locked)
             {
                 p.IsSubcategoryLocked = locked;
-                await _storyService.UpdateStoryPointAsync(p);
+                if (!await TryStoryWriteAsync(() => _storyService.UpdateStoryPointAsync(p))) return;
                 count++;
             }
         }
@@ -1266,14 +1303,14 @@ public class StoryPointsPage : ContentPage
         
         if (string.IsNullOrWhiteSpace(text)) return;
 
-        await _storyService.AddStoryPointAsync(_project.Id, text.Trim(), category, subcategory);
+        if (!await TryStoryWriteAsync(() => _storyService.AddStoryPointAsync(_project.Id, text.Trim(), category, subcategory))) return;
 
         // Also log to Ideas under "all_story_points" category
         if (_ideasService != null)
         {
             try
             {
-                await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, text.Trim(), "all_story_points", fullIdea: text.Trim());
+                if (!await TryStoryWriteAsync(() => _ideasService.CreateIdeaAsync(_auth.CurrentUsername, text.Trim(), "all_story_points", fullIdea: text.Trim()))) return;
             }
             catch (Exception ex)
             {
@@ -1287,7 +1324,7 @@ public class StoryPointsPage : ContentPage
     private async Task LogIdeaAsync()
     {
         if (_ideaLogger == null) return;
-        await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername);
+        await TryStoryWriteAsync(() => _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername));
     }
 
     private async Task EditPointAsync(StoryPoint point)
@@ -1297,7 +1334,7 @@ public class StoryPointsPage : ContentPage
         if (string.IsNullOrWhiteSpace(text)) return;
 
         point.Text = text.Trim();
-        await _storyService.UpdateStoryPointAsync(point);
+        if (!await TryStoryWriteAsync(() => _storyService.UpdateStoryPointAsync(point))) return;
         await LoadPointsAsync();
     }
 

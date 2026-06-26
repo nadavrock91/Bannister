@@ -177,6 +177,11 @@ public class ClipSetupPage : ContentPage
         UpdateProgress();
     }
 
+    private async Task ShowReadOnlyAlertAsync()
+    {
+        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to modify Story Production data.", "OK");
+    }
+
     private Frame BuildTaskCard(
         int taskNumber,
         string title,
@@ -413,7 +418,14 @@ public class ClipSetupPage : ContentPage
 
     private async Task SaveShot()
     {
-        await _storyService.SaveShotsAsync(_line, _allShots);
+        try
+        {
+            await _storyService.SaveShotsAsync(_line, _allShots);
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task SaveAndRefresh()
@@ -452,8 +464,15 @@ public class ClipSetupPage : ContentPage
 
         if (!confirm) return;
 
-        int shotIdx = _shot.Index - 1;
-        await _storyService.DeleteShotAsync(_line, shotIdx);
-        await Navigation.PopAsync();
+        try
+        {
+            int shotIdx = _shot.Index - 1;
+            await _storyService.DeleteShotAsync(_line, shotIdx);
+            await Navigation.PopAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 }

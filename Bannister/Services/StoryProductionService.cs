@@ -12,6 +12,14 @@ public class StoryProductionService
         _db = db;
     }
 
+    public bool IsReadOnly => _db.IsReadOnly;
+
+    private void EnsureWritable()
+    {
+        if (_db.IsReadOnly)
+            throw new ReadOnlyDatabaseException("Story Production is read-only on secondary devices.");
+    }
+
     #region Projects
 
     private async Task EnsureProjectTableAsync(ISQLiteAsyncConnection conn)
@@ -64,6 +72,7 @@ public class StoryProductionService
 
     public async Task<StoryProject> CreateProjectAsync(string username, string name, string description = "")
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         await EnsureProjectTableAsync(conn);
         
@@ -84,16 +93,21 @@ public class StoryProductionService
 
     public async Task UpdateProjectAsync(StoryProject project)
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         await conn.UpdateAsync(project);
     }
 
     public async Task DeleteProjectAsync(int projectId)
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         
-        // Delete all lines first
-        await conn.ExecuteAsync("DELETE FROM StoryLine WHERE ProjectId = ?", projectId);
+        // Delete related rows first
+        await conn.ExecuteAsync("DELETE FROM story_lines WHERE ProjectId = ?", projectId);
+        try { await conn.ExecuteAsync("DELETE FROM story_points WHERE ProjectId = ?", projectId); } catch { }
+        try { await conn.ExecuteAsync("DELETE FROM story_point_versions WHERE ProjectId = ?", projectId); } catch { }
+        try { await conn.ExecuteAsync("DELETE FROM production_task_logs WHERE ProjectId = ?", projectId); } catch { }
         
         // Delete project
         await conn.DeleteAsync<StoryProject>(projectId);
@@ -103,6 +117,7 @@ public class StoryProductionService
 
     public async Task CompleteProjectAsync(int projectId)
     {
+        EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project != null)
         {
@@ -117,6 +132,7 @@ public class StoryProductionService
     /// </summary>
     public async Task PublishProjectAsync(int projectId, int finalClipCount)
     {
+        EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project != null)
         {
@@ -135,6 +151,7 @@ public class StoryProductionService
     /// </summary>
     public async Task SetProjectionsAsync(int projectId, int projectedClips, int projectedDays)
     {
+        EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project != null)
         {
@@ -149,6 +166,7 @@ public class StoryProductionService
     /// </summary>
     public async Task UnpublishProjectAsync(int projectId)
     {
+        EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project != null)
         {
@@ -219,6 +237,7 @@ public class StoryProductionService
 
     public async Task<StoryLine> AddLineAsync(int projectId, string lineText, string visualDescription = "")
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         await EnsureStoryLineTableAsync(conn);
         
@@ -241,6 +260,7 @@ public class StoryProductionService
 
     public async Task<StoryLine> InsertLineBeforeAsync(int projectId, int beforeOrder, string lineText, string visualDescription, bool isSilent)
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         if (!_db.IsReadOnly) await conn.CreateTableAsync<StoryLine>();
         
@@ -267,6 +287,7 @@ public class StoryProductionService
 
     public async Task UpdateLineAsync(StoryLine line)
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         line.ModifiedAt = DateTime.UtcNow;
         await conn.UpdateAsync(line);
@@ -274,12 +295,14 @@ public class StoryProductionService
 
     public async Task DeleteLineAsync(int lineId)
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         await conn.DeleteAsync<StoryLine>(lineId);
     }
 
     public async Task ToggleVisualPreparedAsync(int lineId)
     {
+        EnsureWritable();
         var line = await GetLineByIdAsync(lineId);
         if (line != null)
         {
@@ -291,6 +314,7 @@ public class StoryProductionService
 
     public async Task ReorderLinesAsync(int projectId, List<int> lineIds)
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         
         for (int i = 0; i < lineIds.Count; i++)
@@ -303,6 +327,7 @@ public class StoryProductionService
 
     public async Task MoveLineUpAsync(int lineId)
     {
+        EnsureWritable();
         var line = await GetLineByIdAsync(lineId);
         if (line == null || line.LineOrder <= 1) return;
         
@@ -327,6 +352,7 @@ public class StoryProductionService
 
     public async Task MoveLineDownAsync(int lineId)
     {
+        EnsureWritable();
         var line = await GetLineByIdAsync(lineId);
         if (line == null) return;
         
@@ -400,6 +426,7 @@ public class StoryProductionService
     /// </summary>
     public async Task RenameDraftAsync(int projectId, string newName)
     {
+        EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project != null)
         {
@@ -414,6 +441,7 @@ public class StoryProductionService
     /// </summary>
     public async Task DeleteDraftAsync(int projectId)
     {
+        EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project == null) return;
         
@@ -440,6 +468,7 @@ public class StoryProductionService
     /// </summary>
     public async Task SetAsLatestAsync(int projectId)
     {
+        EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project == null) return;
 
@@ -504,6 +533,7 @@ public class StoryProductionService
     /// </summary>
     public async Task SetCompareToAsync(int projectId, int? compareToProjectId)
     {
+        EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project == null) return;
         
@@ -597,6 +627,7 @@ public class StoryProductionService
     /// </summary>
     public async Task CopyLineToComparisonAsync(int currentProjectId, int compareToProjectId, int lineOrder)
     {
+        EnsureWritable();
         var currentLine = await GetLineByOrderAsync(currentProjectId, lineOrder);
         var compareLine = await GetLineByOrderAsync(compareToProjectId, lineOrder);
         
@@ -638,6 +669,7 @@ public class StoryProductionService
     /// <returns>Number of lines that had visuals imported</returns>
     public async Task<int> ImportVisualsFromDraftAsync(int targetProjectId, int sourceProjectId)
     {
+        EnsureWritable();
         var targetLines = await GetLinesAsync(targetProjectId);
         var sourceLines = await GetLinesAsync(sourceProjectId);
         
@@ -682,6 +714,7 @@ public class StoryProductionService
         string? customName = null,
         bool setAsLatest = false)
     {
+        EnsureWritable();
         var sourceProject = await GetProjectByIdAsync(sourceProjectId);
         if (sourceProject == null)
             throw new ArgumentException("Source project not found");
@@ -758,6 +791,7 @@ public class StoryProductionService
     /// </summary>
     public async Task<StoryProject> CreateDraftVersionAsync(int sourceProjectId, string? customName = null)
     {
+        EnsureWritable();
         var sourceProject = await GetProjectByIdAsync(sourceProjectId);
         if (sourceProject == null)
             throw new ArgumentException("Source project not found");
@@ -1118,6 +1152,7 @@ public class StoryProductionService
     /// </summary>
     public async Task SaveShotsAsync(StoryLine line, List<VisualShot> shots)
     {
+        EnsureWritable();
         line.ShotsJson = System.Text.Json.JsonSerializer.Serialize(shots);
         line.ShotCount = shots.Count;
         line.ModifiedAt = DateTime.UtcNow;
@@ -1136,6 +1171,7 @@ public class StoryProductionService
     /// </summary>
     public async Task AddShotAsync(StoryLine line, string description, string imagePrompt = "", string videoPrompt = "")
     {
+        EnsureWritable();
         var shots = GetShots(line);
         shots.Add(new VisualShot
         {
@@ -1148,23 +1184,11 @@ public class StoryProductionService
     }
 
     /// <summary>
-    /// Update a specific shot
-    /// </summary>
-    public async Task UpdateShotAsync(StoryLine line, int shotIndex, VisualShot updatedShot)
-    {
-        var shots = GetShots(line);
-        if (shotIndex >= 0 && shotIndex < shots.Count)
-        {
-            shots[shotIndex] = updatedShot;
-            await SaveShotsAsync(line, shots);
-        }
-    }
-
-    /// <summary>
     /// Delete a shot from a line
     /// </summary>
     public async Task DeleteShotAsync(StoryLine line, int shotIndex)
     {
+        EnsureWritable();
         var shots = GetShots(line);
         if (shotIndex >= 0 && shotIndex < shots.Count)
         {
@@ -1176,30 +1200,6 @@ public class StoryProductionService
             }
             await SaveShotsAsync(line, shots);
         }
-    }
-
-    /// <summary>
-    /// Mark a shot as done/not done
-    /// </summary>
-    public async Task ToggleShotDoneAsync(StoryLine line, int shotIndex)
-    {
-        var shots = GetShots(line);
-        if (shotIndex >= 0 && shotIndex < shots.Count)
-        {
-            shots[shotIndex].Done = !shots[shotIndex].Done;
-            await SaveShotsAsync(line, shots);
-        }
-    }
-
-    /// <summary>
-    /// Save simple prompts (for single-shot visuals)
-    /// </summary>
-    public async Task SavePromptsAsync(StoryLine line, string imagePrompt, string videoPrompt)
-    {
-        line.ImagePrompt = imagePrompt;
-        line.VideoPrompt = videoPrompt;
-        line.ModifiedAt = DateTime.UtcNow;
-        await UpdateLineAsync(line);
     }
 
     /// <summary>
@@ -1254,8 +1254,8 @@ public class StoryProductionService
     /// Log a completed production task with time spent
     /// </summary>
     public async Task LogTaskTimeAsync(
-        string username, 
-        int projectId, 
+        string username,
+        int projectId,
         int lineId, 
         int shotIndex, 
         string taskType, 
@@ -1265,6 +1265,7 @@ public class StoryProductionService
         string visualDescription = "",
         string shotDescription = "")
     {
+        EnsureWritable();
         await EnsureTaskLogTableAsync();
         var conn = await _db.GetConnectionAsync();
 
@@ -1439,6 +1440,7 @@ public class StoryProductionService
     /// </summary>
     public async Task SetStoryPointVersionAsLatestAsync(int projectId, int version)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
         
@@ -1508,6 +1510,7 @@ public class StoryProductionService
     /// </summary>
     public async Task<int> CreateNewStoryPointVersionAsync(int projectId, string? name = null)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
 
@@ -1532,6 +1535,7 @@ public class StoryProductionService
     /// </summary>
     public async Task DuplicatePointsToVersionAsync(int projectId, int fromVersion, int toVersion)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
 
@@ -1595,6 +1599,7 @@ public class StoryProductionService
     /// </summary>
     public async Task<StoryPoint> AddStoryPointAsync(int projectId, string text, string category = "active", string? subcategory = null)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
 
@@ -1652,6 +1657,7 @@ public class StoryProductionService
     /// </summary>
     public async Task<StoryPoint> InsertStoryPointBeforeAsync(int projectId, int beforePointId, string text, string category = "active", string? subcategory = null)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
 
@@ -1715,6 +1721,7 @@ public class StoryProductionService
     /// </summary>
     public async Task UpdateStoryPointAsync(StoryPoint point)
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         point.ModifiedAt = DateTime.UtcNow;
         await conn.UpdateAsync(point);
@@ -1725,6 +1732,7 @@ public class StoryProductionService
     /// </summary>
     public async Task DeleteStoryPointAsync(int pointId)
     {
+        EnsureWritable();
         var conn = await _db.GetConnectionAsync();
         await conn.DeleteAsync<StoryPoint>(pointId);
     }
@@ -1734,6 +1742,7 @@ public class StoryProductionService
     /// </summary>
     public async Task MoveStoryPointToCategoryAsync(int pointId, string newCategory, string? newSubcategory = null)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
 
@@ -1772,6 +1781,7 @@ public class StoryProductionService
     /// </summary>
     public async Task UpdateStoryPointSubcategoryAsync(int pointId, string newSubcategory)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
 
@@ -1799,6 +1809,7 @@ public class StoryProductionService
     /// </summary>
     public async Task ReorderStoryPointAsync(int pointId, bool moveUp)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
 
@@ -1835,6 +1846,7 @@ public class StoryProductionService
     /// </summary>
     public async Task DeleteStoryPointVersionAsync(int projectId, int version)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
 
@@ -1862,6 +1874,7 @@ public class StoryProductionService
     /// </summary>
     public async Task RenameStoryPointVersionAsync(int projectId, int version, string newName)
     {
+        EnsureWritable();
         await EnsureStoryPointsTableAsync();
         var conn = await _db.GetConnectionAsync();
 
