@@ -710,8 +710,8 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             IsVisible = false,
             Children =
             {
-                _workflowStatusBanner,
                 qaExplorationSection,
+                _workflowStatusBanner,
                 _projectTitleHeaderLabel,
                 _projectIdeaReferenceLabel,
                 visionSection,
