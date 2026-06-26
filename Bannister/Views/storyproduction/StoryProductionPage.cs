@@ -6,6 +6,10 @@ namespace Bannister.Views;
 
 public class StoryProductionPage : ContentPage
 {
+    private const int DefaultConversationIdeaCharsPerPart = 12000;
+    private const int MinConversationIdeaCharsPerPart = 2000;
+    private const int MaxConversationIdeaCharsPerPart = 50000;
+
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
     private readonly IdeasService? _ideasService;
@@ -1253,16 +1257,9 @@ public class StoryProductionPage : ContentPage
             return;
         }
 
-        var promptParts = BuildConversationIdeaAnalysisPrompts(_currentProject);
-        var parsed = await ShowPromptAndPasteInputAsync(
-            "Analyze Conversation For Ideas",
-            promptParts.Count == 1
-                ? "Copy this prompt to an LLM. Paste the returned IDEA lines below to log them into Ideas."
-                : $"Copy each request part to an LLM. Paste each response here to queue its ideas, then log all queued ideas once. Parts: {promptParts.Count}",
-            promptParts,
-            "Paste IDEA|Category|Text lines here...");
+        var parsed = await ShowParallelAnalyzeOverlayAsync(_currentProject, _currentProject.LlmConversationLog);
 
-        if (parsed == null || parsed.Count == 0)
+        if (parsed.Count == 0)
             return;
 
         bool confirm = await DisplayAlert(
@@ -1275,22 +1272,34 @@ public class StoryProductionPage : ContentPage
             return;
 
         int logged = 0;
-        foreach (var item in parsed)
+        try
         {
-            if (string.IsNullOrWhiteSpace(item.category) || string.IsNullOrWhiteSpace(item.text))
-                continue;
+            foreach (var item in parsed)
+            {
+                if (string.IsNullOrWhiteSpace(item.category) || string.IsNullOrWhiteSpace(item.text))
+                    continue;
 
-            await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, item.text.Trim(), item.category.Trim(), fullIdea: item.text.Trim());
-            logged++;
+                await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, item.text.Trim(), item.category.Trim(), fullIdea: item.text.Trim());
+                logged++;
+            }
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+            return;
         }
 
         await DisplayAlert("Ideas Logged", $"Logged {logged} idea(s).", "OK");
     }
 
-    private List<string> BuildConversationIdeaAnalysisPrompts(StoryProject project)
+    private async Task ShowReadOnlyAlertAsync()
     {
-        const int maxConversationCharsPerPart = 12000;
-        var conversationParts = SplitTextForPromptParts(project.LlmConversationLog, maxConversationCharsPerPart);
+        await DisplayAlert("Read-only", "Read-only on this device. Sync from master to create ideas.", "OK");
+    }
+
+    private List<string> BuildConversationIdeaAnalysisPrompts(StoryProject project, int charsPerPart)
+    {
+        var conversationParts = SplitTextForPromptParts(project.LlmConversationLog, charsPerPart);
         var prompts = new List<string>();
 
         for (int i = 0; i < conversationParts.Count; i++)
@@ -1299,6 +1308,465 @@ public class StoryProductionPage : ContentPage
         }
 
         return prompts;
+    }
+
+    private static string GetConversationIdeaCharsPerPartKey(string username) =>
+        $"story_llm_log_chars_per_part_{username}";
+
+    private async Task<int> GetConversationIdeaCharsPerPartAsync()
+    {
+        try
+        {
+            var raw = await SecureStorage.GetAsync(GetConversationIdeaCharsPerPartKey(_auth.CurrentUsername));
+            if (int.TryParse(raw, out int value) &&
+                value >= MinConversationIdeaCharsPerPart &&
+                value <= MaxConversationIdeaCharsPerPart)
+            {
+                return value;
+            }
+        }
+        catch { }
+
+        return DefaultConversationIdeaCharsPerPart;
+    }
+
+    private async Task SaveConversationIdeaCharsPerPartAsync(int value)
+    {
+        try
+        {
+            await SecureStorage.SetAsync(GetConversationIdeaCharsPerPartKey(_auth.CurrentUsername), value.ToString());
+        }
+        catch { }
+    }
+
+    private async Task<List<(string category, string text)>> ShowParallelAnalyzeOverlayAsync(StoryProject project, string conversationLog)
+    {
+        var tcs = new TaskCompletionSource<List<(string category, string text)>>();
+        int charsPerPart = await GetConversationIdeaCharsPerPartAsync();
+        var pasteEditors = new List<Editor>();
+        var partStatusLabels = new List<Label>();
+        var partStatusFrames = new List<Frame>();
+
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            VerticalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+
+        double width = DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density;
+        double height = DeviceDisplay.MainDisplayInfo.Height / DeviceDisplay.MainDisplayInfo.Density;
+        bool isNarrow = DeviceInfo.Idiom == DeviceIdiom.Phone || width < 700;
+
+        var card = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent,
+            WidthRequest = Math.Min(isNarrow ? 640 : 1120, Math.Max(320, width - 32)),
+            HeightRequest = Math.Min(820, Math.Max(560, height - 48)),
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        var root = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            },
+            RowSpacing = 12
+        };
+
+        var headerStack = new VerticalStackLayout { Spacing = 8 };
+        headerStack.Children.Add(new Label
+        {
+            Text = "Analyze Conversation For Ideas",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+        headerStack.Children.Add(new Label
+        {
+            Text = "Copy each part to a different LLM chat. Paste responses back in any order, then tap Log Queued Ideas.",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var splitRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            VerticalOptions = LayoutOptions.Center
+        };
+        splitRow.Children.Add(new Label
+        {
+            Text = "Chars per part:",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        var charsEntry = new Entry
+        {
+            Text = charsPerPart.ToString(),
+            Keyboard = Keyboard.Numeric,
+            WidthRequest = 100,
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            TextColor = Color.FromArgb("#222")
+        };
+        splitRow.Children.Add(charsEntry);
+
+        var reloadBtn = new Button
+        {
+            Text = "Reload Parts",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            Padding = new Thickness(14, 8)
+        };
+        splitRow.Children.Add(reloadBtn);
+        headerStack.Children.Add(splitRow);
+
+        var statusLine = new Label
+        {
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        };
+        headerStack.Children.Add(statusLine);
+        Grid.SetRow(headerStack, 0);
+        root.Children.Add(headerStack);
+
+        var partsStack = new VerticalStackLayout { Spacing = 12 };
+        var partsScroll = new ScrollView
+        {
+            Content = partsStack,
+            Orientation = ScrollOrientation.Vertical
+        };
+        Grid.SetRow(partsScroll, 1);
+        root.Children.Add(partsScroll);
+
+        var footerRow = new HorizontalStackLayout
+        {
+            Spacing = 12,
+            HorizontalOptions = LayoutOptions.End
+        };
+        var logBtn = new Button
+        {
+            Text = "Log Queued Ideas (0)",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(20, 8),
+            IsEnabled = false
+        };
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#E0E0E0"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            Padding = new Thickness(20, 8)
+        };
+        footerRow.Children.Add(logBtn);
+        footerRow.Children.Add(cancelBtn);
+        Grid.SetRow(footerRow, 2);
+        root.Children.Add(footerRow);
+
+        void Close(List<(string category, string text)> value)
+        {
+            if (Content is Grid mainGrid)
+                mainGrid.Children.Remove(overlay);
+            tcs.TrySetResult(value);
+        }
+
+        int GetTotalParsedIdeas()
+        {
+            int total = 0;
+            foreach (var editor in pasteEditors)
+                total += ParseConversationIdeas(editor.Text ?? "").Count;
+            return total;
+        }
+
+        void UpdateCardStatus(int index)
+        {
+            if (index < 0 || index >= pasteEditors.Count)
+                return;
+
+            var text = pasteEditors[index].Text ?? "";
+            var parsedCount = ParseConversationIdeas(text).Count;
+            var label = partStatusLabels[index];
+            var frame = partStatusFrames[index];
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                label.Text = "Empty";
+                label.TextColor = Color.FromArgb("#455A64");
+                frame.BackgroundColor = Color.FromArgb("#ECEFF1");
+            }
+            else if (parsedCount > 0)
+            {
+                label.Text = $"Response queued ({parsedCount} ideas parsed)";
+                label.TextColor = Color.FromArgb("#2E7D32");
+                frame.BackgroundColor = Color.FromArgb("#E8F5E9");
+            }
+            else
+            {
+                label.Text = "Response pasted (no ideas parsed yet)";
+                label.TextColor = Color.FromArgb("#F57F17");
+                frame.BackgroundColor = Color.FromArgb("#FFF8E1");
+            }
+
+            int total = GetTotalParsedIdeas();
+            logBtn.Text = $"Log Queued Ideas ({total})";
+            logBtn.IsEnabled = total > 0;
+        }
+
+        void UpdateAllStatuses()
+        {
+            for (int i = 0; i < pasteEditors.Count; i++)
+                UpdateCardStatus(i);
+        }
+
+        View BuildPartCard(string prompt, string partText, int index, int totalParts)
+        {
+            var statusLabel = new Label
+            {
+                Text = "Empty",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#455A64"),
+                VerticalOptions = LayoutOptions.Center
+            };
+            var statusFrame = new Frame
+            {
+                Padding = new Thickness(8, 4),
+                CornerRadius = 10,
+                HasShadow = false,
+                BorderColor = Colors.Transparent,
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                Content = statusLabel,
+                HorizontalOptions = LayoutOptions.End
+            };
+
+            partStatusLabels.Add(statusLabel);
+            partStatusFrames.Add(statusFrame);
+
+            var header = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 8
+            };
+            header.Children.Add(new Label
+            {
+                Text = $"Part {index + 1} of {totalParts} • {partText.Length} characters",
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#333")
+            });
+            Grid.SetColumn(statusFrame, 1);
+            header.Children.Add(statusFrame);
+
+            var promptEditor = new Editor
+            {
+                Text = prompt,
+                IsReadOnly = true,
+                FontSize = 11,
+                FontFamily = "Consolas",
+                BackgroundColor = Color.FromArgb("#F5F5F5"),
+                HeightRequest = 220,
+                AutoSize = EditorAutoSizeOption.Disabled
+            };
+            var copyBtn = new Button
+            {
+                Text = $"Copy Part {index + 1}",
+                BackgroundColor = Color.FromArgb("#E3F2FD"),
+                TextColor = Color.FromArgb("#1565C0"),
+                CornerRadius = 8,
+                Padding = new Thickness(16, 8)
+            };
+            copyBtn.Clicked += async (_, _) =>
+            {
+                await Clipboard.SetTextAsync(prompt);
+                copyBtn.Text = "Copied";
+                await Task.Delay(1500);
+                copyBtn.Text = $"Copy Part {index + 1}";
+            };
+
+            var leftColumn = new VerticalStackLayout
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new Label { Text = "Prompt", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
+                    promptEditor,
+                    copyBtn
+                }
+            };
+
+            var pasteEditor = new Editor
+            {
+                Placeholder = "Paste IDEA|Category|Text lines here...",
+                FontSize = 12,
+                FontFamily = "Consolas",
+                BackgroundColor = Color.FromArgb("#FFFDE7"),
+                HeightRequest = 220,
+                AutoSize = EditorAutoSizeOption.Disabled
+            };
+            pasteEditors.Add(pasteEditor);
+            int capturedIndex = index;
+            pasteEditor.TextChanged += (_, _) => UpdateCardStatus(capturedIndex);
+
+            var clearBtn = new Button
+            {
+                Text = "Clear",
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#333"),
+                CornerRadius = 8,
+                Padding = new Thickness(14, 8),
+                HorizontalOptions = LayoutOptions.Start
+            };
+            clearBtn.Clicked += (_, _) => pasteEditor.Text = "";
+
+            var rightColumn = new VerticalStackLayout
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new Label { Text = "Paste LLM response", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
+                    pasteEditor,
+                    clearBtn
+                }
+            };
+
+            View body;
+            if (isNarrow)
+            {
+                body = new VerticalStackLayout
+                {
+                    Spacing = 12,
+                    Children = { leftColumn, rightColumn }
+                };
+            }
+            else
+            {
+                var columns = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition(GridLength.Star),
+                        new ColumnDefinition(GridLength.Star)
+                    },
+                    ColumnSpacing = 12
+                };
+                columns.Add(leftColumn, 0, 0);
+                columns.Add(rightColumn, 1, 0);
+                body = columns;
+            }
+
+            return new Frame
+            {
+                Padding = 12,
+                CornerRadius = 10,
+                BackgroundColor = Colors.White,
+                BorderColor = Color.FromArgb("#E0E0E0"),
+                HasShadow = false,
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 10,
+                    Children = { header, body }
+                }
+            };
+        }
+
+        void RebuildParts(int splitSize)
+        {
+            charsPerPart = splitSize;
+            pasteEditors.Clear();
+            partStatusLabels.Clear();
+            partStatusFrames.Clear();
+            partsStack.Children.Clear();
+
+            var conversationParts = SplitTextForPromptParts(conversationLog, charsPerPart);
+            for (int i = 0; i < conversationParts.Count; i++)
+            {
+                var prompt = BuildConversationIdeaAnalysisPrompt(project, conversationParts[i], i + 1, conversationParts.Count);
+                partsStack.Children.Add(BuildPartCard(prompt, conversationParts[i], i, conversationParts.Count));
+            }
+
+            statusLine.Text = $"Parts: {conversationParts.Count} • Total log length: {(conversationLog ?? "").Length} characters.";
+            logBtn.Text = "Log Queued Ideas (0)";
+            logBtn.IsEnabled = false;
+            UpdateAllStatuses();
+        }
+
+        reloadBtn.Clicked += async (_, _) =>
+        {
+            if (!int.TryParse(charsEntry.Text, out int newCharsPerPart) ||
+                newCharsPerPart < MinConversationIdeaCharsPerPart ||
+                newCharsPerPart > MaxConversationIdeaCharsPerPart)
+            {
+                await DisplayAlert("Invalid Split Size", "Chars per part must be a number between 2000 and 50000.", "OK");
+                return;
+            }
+
+            bool hasPastedResponses = pasteEditors.Any(editor => !string.IsNullOrWhiteSpace(editor.Text));
+            if (hasPastedResponses)
+            {
+                bool reload = await DisplayAlert(
+                    "Reload Parts?",
+                    "Reload will clear all pasted responses. Continue?",
+                    "Reload",
+                    "Cancel");
+
+                if (!reload)
+                    return;
+            }
+
+            await SaveConversationIdeaCharsPerPartAsync(newCharsPerPart);
+            RebuildParts(newCharsPerPart);
+        };
+
+        logBtn.Clicked += async (_, _) =>
+        {
+            var aggregate = new List<(string category, string text)>();
+            foreach (var editor in pasteEditors)
+            {
+                if (string.IsNullOrWhiteSpace(editor.Text))
+                    continue;
+
+                aggregate.AddRange(ParseConversationIdeas(editor.Text));
+            }
+
+            if (aggregate.Count == 0)
+            {
+                await DisplayAlert("No Ideas Parsed", "No ideas parsed from any response. Check that the LLM output uses the IDEA|Category|Text format.", "OK");
+                return;
+            }
+
+            Close(aggregate);
+        };
+
+        cancelBtn.Clicked += (_, _) => Close(new List<(string category, string text)>());
+
+        RebuildParts(charsPerPart);
+        card.Content = root;
+        overlay.Children.Add(card);
+
+        if (Content is Grid pageGrid)
+        {
+            Grid.SetRowSpan(overlay, 2);
+            pageGrid.Children.Add(overlay);
+        }
+
+        return await tcs.Task;
     }
 
     private string BuildConversationIdeaAnalysisPrompt(StoryProject project, string conversationPart, int partNumber, int totalParts)
@@ -1334,10 +1802,10 @@ public class StoryProductionPage : ContentPage
         return sb.ToString();
     }
 
-    private List<string> SplitTextForPromptParts(string text, int maxChars)
+    private List<string> SplitTextForPromptParts(string text, int charsPerPart)
     {
         var normalized = (text ?? "").Replace("\r\n", "\n").Replace('\r', '\n');
-        if (normalized.Length <= maxChars)
+        if (normalized.Length <= charsPerPart)
             return new List<string> { normalized };
 
         var parts = new List<string>();
@@ -1347,7 +1815,7 @@ public class StoryProductionPage : ContentPage
         foreach (var block in blocks)
         {
             string line = block + "\n";
-            if (line.Length > maxChars)
+            if (line.Length > charsPerPart)
             {
                 if (current.Length > 0)
                 {
@@ -1355,15 +1823,15 @@ public class StoryProductionPage : ContentPage
                     current.Clear();
                 }
 
-                for (int i = 0; i < line.Length; i += maxChars)
+                for (int i = 0; i < line.Length; i += charsPerPart)
                 {
-                    int length = Math.Min(maxChars, line.Length - i);
+                    int length = Math.Min(charsPerPart, line.Length - i);
                     parts.Add(line.Substring(i, length).TrimEnd());
                 }
                 continue;
             }
 
-            if (current.Length + line.Length > maxChars && current.Length > 0)
+            if (current.Length + line.Length > charsPerPart && current.Length > 0)
             {
                 parts.Add(current.ToString().TrimEnd());
                 current.Clear();
