@@ -40,6 +40,8 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeLikes INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeComments INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeAverageViewDurationSeconds INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeShares INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeNewFollowers INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeStatsCapturedAt TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookViews INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookLikes INTEGER DEFAULT 0"); } catch { }
@@ -47,12 +49,16 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookAverageViewDurationSeconds INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookThreeSecondViews INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookOneMinuteViews INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookShares INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookNewFollowers INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookStatsCapturedAt TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokViews INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokLikes INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokComments INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokAverageWatchTimeSeconds INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokPercentWatchedFullVideo REAL DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokShares INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokNewFollowers INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokStatsCapturedAt TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN IsProduced INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN ProducedAt TEXT"); } catch { }
@@ -224,7 +230,7 @@ public class StoryProductionService
         }
     }
 
-    public async Task<bool> SetYouTubeStatsAsync(int projectId, int views, int likes, int comments, int averageViewDurationSeconds)
+    public async Task<bool> SetYouTubeStatsAsync(int projectId, int views, int likes, int comments, int averageViewDurationSeconds, int shares, int newFollowers)
     {
         EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
@@ -234,6 +240,8 @@ public class StoryProductionService
         project.YouTubeLikes = Math.Max(0, likes);
         project.YouTubeComments = Math.Max(0, comments);
         project.YouTubeAverageViewDurationSeconds = Math.Max(0, averageViewDurationSeconds);
+        project.YouTubeShares = Math.Max(0, shares);
+        project.YouTubeNewFollowers = Math.Max(0, newFollowers);
         project.YouTubeStatsCapturedAt = DateTime.UtcNow;
 
         var conn = await _db.GetConnectionAsync();
@@ -251,6 +259,8 @@ public class StoryProductionService
         project.YouTubeLikes = 0;
         project.YouTubeComments = 0;
         project.YouTubeAverageViewDurationSeconds = 0;
+        project.YouTubeShares = 0;
+        project.YouTubeNewFollowers = 0;
         project.YouTubeStatsCapturedAt = null;
 
         var conn = await _db.GetConnectionAsync();
@@ -258,7 +268,7 @@ public class StoryProductionService
         return true;
     }
 
-    public async Task<bool> SetFacebookStatsAsync(int projectId, int views, int likes, int comments, int averageViewDurationSeconds, int threeSecondViews, int oneMinuteViews)
+    public async Task<bool> SetFacebookStatsAsync(int projectId, int views, int likes, int comments, int averageViewDurationSeconds, int threeSecondViews, int oneMinuteViews, int shares, int newFollowers)
     {
         EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
@@ -270,6 +280,8 @@ public class StoryProductionService
         project.FacebookAverageViewDurationSeconds = Math.Max(0, averageViewDurationSeconds);
         project.FacebookThreeSecondViews = Math.Max(0, threeSecondViews);
         project.FacebookOneMinuteViews = Math.Max(0, oneMinuteViews);
+        project.FacebookShares = Math.Max(0, shares);
+        project.FacebookNewFollowers = Math.Max(0, newFollowers);
         project.FacebookStatsCapturedAt = DateTime.UtcNow;
 
         var conn = await _db.GetConnectionAsync();
@@ -289,6 +301,8 @@ public class StoryProductionService
         project.FacebookAverageViewDurationSeconds = 0;
         project.FacebookThreeSecondViews = 0;
         project.FacebookOneMinuteViews = 0;
+        project.FacebookShares = 0;
+        project.FacebookNewFollowers = 0;
         project.FacebookStatsCapturedAt = null;
 
         var conn = await _db.GetConnectionAsync();
@@ -296,7 +310,7 @@ public class StoryProductionService
         return true;
     }
 
-    public async Task<bool> SetTikTokStatsAsync(int projectId, int views, int likes, int comments, int averageWatchTimeSeconds, double percentWatchedFullVideo)
+    public async Task<bool> SetTikTokStatsAsync(int projectId, int views, int likes, int comments, int averageWatchTimeSeconds, double percentWatchedFullVideo, int shares, int newFollowers)
     {
         EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
@@ -307,6 +321,8 @@ public class StoryProductionService
         project.TikTokComments = Math.Max(0, comments);
         project.TikTokAverageWatchTimeSeconds = Math.Max(0, averageWatchTimeSeconds);
         project.TikTokPercentWatchedFullVideo = Math.Clamp(percentWatchedFullVideo, 0.0, 100.0);
+        project.TikTokShares = Math.Max(0, shares);
+        project.TikTokNewFollowers = Math.Max(0, newFollowers);
         project.TikTokStatsCapturedAt = DateTime.UtcNow;
 
         var conn = await _db.GetConnectionAsync();
@@ -325,6 +341,8 @@ public class StoryProductionService
         project.TikTokComments = 0;
         project.TikTokAverageWatchTimeSeconds = 0;
         project.TikTokPercentWatchedFullVideo = 0.0;
+        project.TikTokShares = 0;
+        project.TikTokNewFollowers = 0;
         project.TikTokStatsCapturedAt = null;
 
         var conn = await _db.GetConnectionAsync();

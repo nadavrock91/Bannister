@@ -79,6 +79,10 @@ public class StoryProject
 
     public int YouTubeAverageViewDurationSeconds { get; set; } = 0;
 
+    public int YouTubeShares { get; set; } = 0;
+
+    public int YouTubeNewFollowers { get; set; } = 0;
+
     public DateTime? YouTubeStatsCapturedAt { get; set; }
 
     // === FACEBOOK FEEDBACK SNAPSHOT ===
@@ -95,6 +99,10 @@ public class StoryProject
 
     public int FacebookOneMinuteViews { get; set; } = 0;
 
+    public int FacebookShares { get; set; } = 0;
+
+    public int FacebookNewFollowers { get; set; } = 0;
+
     public DateTime? FacebookStatsCapturedAt { get; set; }
 
     // === TIKTOK FEEDBACK SNAPSHOT ===
@@ -108,6 +116,10 @@ public class StoryProject
     public int TikTokAverageWatchTimeSeconds { get; set; } = 0;
 
     public double TikTokPercentWatchedFullVideo { get; set; } = 0.0;
+
+    public int TikTokShares { get; set; } = 0;
+
+    public int TikTokNewFollowers { get; set; } = 0;
 
     public DateTime? TikTokStatsCapturedAt { get; set; }
     

@@ -438,25 +438,31 @@ public class ProductionStatsDetailPage : ContentPage
         var viewsEntry = CreateStatsEntry(hasStats ? project.YouTubeViews.ToString(CultureInfo.InvariantCulture) : "0", "Views", Keyboard.Numeric);
         var likesEntry = CreateStatsEntry(hasStats ? project.YouTubeLikes.ToString(CultureInfo.InvariantCulture) : "0", "Likes", Keyboard.Numeric);
         var commentsEntry = CreateStatsEntry(hasStats ? project.YouTubeComments.ToString(CultureInfo.InvariantCulture) : "0", "Comments", Keyboard.Numeric);
+        var sharesEntry = CreateStatsEntry(hasStats ? project.YouTubeShares.ToString(CultureInfo.InvariantCulture) : "0", "Shares", Keyboard.Numeric);
+        var newFollowersEntry = CreateStatsEntry(hasStats ? project.YouTubeNewFollowers.ToString(CultureInfo.InvariantCulture) : "0", "New followers", Keyboard.Numeric);
 
         stack.Children.Add(CreateStatsInputRow("Views", viewsEntry));
         stack.Children.Add(CreateStatsInputRow("Likes", likesEntry));
         stack.Children.Add(CreateStatsInputRow("Comments", commentsEntry));
         stack.Children.Add(CreateDurationInputRow("Average view duration", hasStats ? project.YouTubeAverageViewDurationSeconds : 0, out var minutesEntry, out var secondsEntry));
+        stack.Children.Add(CreateStatsInputRow("Shares", sharesEntry));
+        stack.Children.Add(CreateStatsInputRow("New followers", newFollowersEntry));
 
-        AddOverlayFooter(overlay, stack, "#C62828", "Clear YouTube stats?", "All four values will be reset to empty.",
+        AddOverlayFooter(overlay, stack, "#C62828", "Clear YouTube stats?", "All six values will be reset to empty.",
             async () => await _storyService.ClearYouTubeStatsAsync(project.Id),
             async () =>
             {
                 int views = ParseNonNegativeIntegerOrZero(viewsEntry.Text);
                 int likes = ParseNonNegativeIntegerOrZero(likesEntry.Text);
                 int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
+                int shares = ParseNonNegativeIntegerOrZero(sharesEntry.Text);
+                int newFollowers = ParseNonNegativeIntegerOrZero(newFollowersEntry.Text);
                 if (!TryReadMinutesSeconds(minutesEntry, secondsEntry, out int durationSeconds))
                 {
                     await DisplayAlert("Invalid Duration", "Minutes and seconds must be non-negative numbers; seconds must be 0-59.", "OK");
                     return false;
                 }
-                await _storyService.SetYouTubeStatsAsync(project.Id, views, likes, comments, durationSeconds);
+                await _storyService.SetYouTubeStatsAsync(project.Id, views, likes, comments, durationSeconds, shares, newFollowers);
                 return true;
             });
         return Task.CompletedTask;
@@ -471,6 +477,8 @@ public class ProductionStatsDetailPage : ContentPage
         var commentsEntry = CreateStatsEntry(hasStats ? project.FacebookComments.ToString(CultureInfo.InvariantCulture) : "0", "Comments", Keyboard.Numeric);
         var threeSecondViewsEntry = CreateStatsEntry(hasStats ? project.FacebookThreeSecondViews.ToString(CultureInfo.InvariantCulture) : "0", "3-second views", Keyboard.Numeric);
         var oneMinuteViewsEntry = CreateStatsEntry(hasStats ? project.FacebookOneMinuteViews.ToString(CultureInfo.InvariantCulture) : "0", "1-minute views", Keyboard.Numeric);
+        var sharesEntry = CreateStatsEntry(hasStats ? project.FacebookShares.ToString(CultureInfo.InvariantCulture) : "0", "Shares", Keyboard.Numeric);
+        var newFollowersEntry = CreateStatsEntry(hasStats ? project.FacebookNewFollowers.ToString(CultureInfo.InvariantCulture) : "0", "New followers", Keyboard.Numeric);
 
         stack.Children.Add(CreateStatsInputRow("Views", viewsEntry));
         stack.Children.Add(CreateStatsInputRow("Likes", likesEntry));
@@ -478,8 +486,10 @@ public class ProductionStatsDetailPage : ContentPage
         stack.Children.Add(CreateDurationInputRow("Average view duration", hasStats ? project.FacebookAverageViewDurationSeconds : 0, out var minutesEntry, out var secondsEntry));
         stack.Children.Add(CreateStatsInputRow("3-second views", threeSecondViewsEntry));
         stack.Children.Add(CreateStatsInputRow("1-minute views", oneMinuteViewsEntry));
+        stack.Children.Add(CreateStatsInputRow("Shares", sharesEntry));
+        stack.Children.Add(CreateStatsInputRow("New followers", newFollowersEntry));
 
-        AddOverlayFooter(overlay, stack, "#1877F2", "Clear Facebook stats?", "All six values will be reset to empty.",
+        AddOverlayFooter(overlay, stack, "#1877F2", "Clear Facebook stats?", "All eight values will be reset to empty.",
             async () => await _storyService.ClearFacebookStatsAsync(project.Id),
             async () =>
             {
@@ -488,12 +498,14 @@ public class ProductionStatsDetailPage : ContentPage
                 int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
                 int threeSecondViews = ParseNonNegativeIntegerOrZero(threeSecondViewsEntry.Text);
                 int oneMinuteViews = ParseNonNegativeIntegerOrZero(oneMinuteViewsEntry.Text);
+                int shares = ParseNonNegativeIntegerOrZero(sharesEntry.Text);
+                int newFollowers = ParseNonNegativeIntegerOrZero(newFollowersEntry.Text);
                 if (!TryReadMinutesSeconds(minutesEntry, secondsEntry, out int durationSeconds))
                 {
                     await DisplayAlert("Invalid Duration", "Minutes and seconds must be non-negative numbers; seconds must be 0-59.", "OK");
                     return false;
                 }
-                await _storyService.SetFacebookStatsAsync(project.Id, views, likes, comments, durationSeconds, threeSecondViews, oneMinuteViews);
+                await _storyService.SetFacebookStatsAsync(project.Id, views, likes, comments, durationSeconds, threeSecondViews, oneMinuteViews, shares, newFollowers);
                 return true;
             });
         return Task.CompletedTask;
@@ -507,20 +519,26 @@ public class ProductionStatsDetailPage : ContentPage
         var likesEntry = CreateStatsEntry(hasStats ? project.TikTokLikes.ToString(CultureInfo.InvariantCulture) : "0", "Likes", Keyboard.Numeric);
         var commentsEntry = CreateStatsEntry(hasStats ? project.TikTokComments.ToString(CultureInfo.InvariantCulture) : "0", "Comments", Keyboard.Numeric);
         var percentEntry = CreateStatsEntry(hasStats ? project.TikTokPercentWatchedFullVideo.ToString("0.0", CultureInfo.InvariantCulture) : "0.0", "0-100", Keyboard.Numeric);
+        var sharesEntry = CreateStatsEntry(hasStats ? project.TikTokShares.ToString(CultureInfo.InvariantCulture) : "0", "Shares", Keyboard.Numeric);
+        var newFollowersEntry = CreateStatsEntry(hasStats ? project.TikTokNewFollowers.ToString(CultureInfo.InvariantCulture) : "0", "New followers", Keyboard.Numeric);
 
         stack.Children.Add(CreateStatsInputRow("Views", viewsEntry));
         stack.Children.Add(CreateStatsInputRow("Likes", likesEntry));
         stack.Children.Add(CreateStatsInputRow("Comments", commentsEntry));
         stack.Children.Add(CreateDurationInputRow("Average watch time", hasStats ? project.TikTokAverageWatchTimeSeconds : 0, out var minutesEntry, out var secondsEntry));
         stack.Children.Add(CreateStatsInputRow("Percent watched full video", percentEntry));
+        stack.Children.Add(CreateStatsInputRow("Shares", sharesEntry));
+        stack.Children.Add(CreateStatsInputRow("New followers", newFollowersEntry));
 
-        AddOverlayFooter(overlay, stack, "#FE2C55", "Clear TikTok stats?", "All five values will be reset to empty.",
+        AddOverlayFooter(overlay, stack, "#FE2C55", "Clear TikTok stats?", "All seven values will be reset to empty.",
             async () => await _storyService.ClearTikTokStatsAsync(project.Id),
             async () =>
             {
                 int views = ParseNonNegativeIntegerOrZero(viewsEntry.Text);
                 int likes = ParseNonNegativeIntegerOrZero(likesEntry.Text);
                 int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
+                int shares = ParseNonNegativeIntegerOrZero(sharesEntry.Text);
+                int newFollowers = ParseNonNegativeIntegerOrZero(newFollowersEntry.Text);
                 if (!TryReadMinutesSeconds(minutesEntry, secondsEntry, out int averageWatchTimeSeconds))
                 {
                     await DisplayAlert("Invalid Duration", "Minutes and seconds must be non-negative numbers; seconds must be 0-59.", "OK");
@@ -539,7 +557,7 @@ public class ProductionStatsDetailPage : ContentPage
                     await DisplayAlert("Invalid Percent", "Percent must be a number between 0 and 100.", "OK");
                     return false;
                 }
-                await _storyService.SetTikTokStatsAsync(project.Id, views, likes, comments, averageWatchTimeSeconds, percentWatchedFullVideo);
+                await _storyService.SetTikTokStatsAsync(project.Id, views, likes, comments, averageWatchTimeSeconds, percentWatchedFullVideo, shares, newFollowers);
                 return true;
             });
         return Task.CompletedTask;

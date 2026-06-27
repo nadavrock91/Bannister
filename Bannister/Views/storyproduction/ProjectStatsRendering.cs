@@ -13,17 +13,17 @@ public static class ProjectStatsRendering
 
         if (project.YouTubeStatsCapturedAt.HasValue)
         {
-            sb.AppendLine($"YouTube: {FormatLargeNumber(project.YouTubeViews)} views, {FormatLargeNumber(project.YouTubeLikes)} likes, {FormatLargeNumber(project.YouTubeComments)} comments, {FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds)}");
+            sb.AppendLine($"YouTube: {FormatLargeNumber(project.YouTubeViews)} views, {FormatLargeNumber(project.YouTubeLikes)} likes, {FormatLargeNumber(project.YouTubeComments)} comments, {FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds)}, {FormatLargeNumber(project.YouTubeShares)} shares, {FormatLargeNumber(project.YouTubeNewFollowers)} new followers");
         }
 
         if (project.FacebookStatsCapturedAt.HasValue)
         {
-            sb.AppendLine($"Facebook: {FormatLargeNumber(project.FacebookViews)} views, {FormatLargeNumber(project.FacebookLikes)} likes, {FormatLargeNumber(project.FacebookComments)} comments, {FormatDurationFromSeconds(project.FacebookAverageViewDurationSeconds)}, {FormatLargeNumber(project.FacebookThreeSecondViews)} 3-sec views ({FormatPercentForDenominator(project.FacebookThreeSecondViews, project.FacebookViews)}), {FormatLargeNumber(project.FacebookOneMinuteViews)} 1-min views ({FormatPercentForDenominator(project.FacebookOneMinuteViews, project.FacebookViews)})");
+            sb.AppendLine($"Facebook: {FormatLargeNumber(project.FacebookViews)} views, {FormatLargeNumber(project.FacebookLikes)} likes, {FormatLargeNumber(project.FacebookComments)} comments, {FormatDurationFromSeconds(project.FacebookAverageViewDurationSeconds)}, {FormatLargeNumber(project.FacebookThreeSecondViews)} 3-sec views ({FormatPercentForDenominator(project.FacebookThreeSecondViews, project.FacebookViews)}), {FormatLargeNumber(project.FacebookOneMinuteViews)} 1-min views ({FormatPercentForDenominator(project.FacebookOneMinuteViews, project.FacebookViews)}), {FormatLargeNumber(project.FacebookShares)} shares, {FormatLargeNumber(project.FacebookNewFollowers)} new followers");
         }
 
         if (project.TikTokStatsCapturedAt.HasValue)
         {
-            sb.AppendLine($"TikTok: {FormatLargeNumber(project.TikTokViews)} views, {FormatLargeNumber(project.TikTokLikes)} likes, {FormatLargeNumber(project.TikTokComments)} comments, {FormatDurationFromSeconds(project.TikTokAverageWatchTimeSeconds)}, {FormatPercent(project.TikTokPercentWatchedFullVideo)} watched full video");
+            sb.AppendLine($"TikTok: {FormatLargeNumber(project.TikTokViews)} views, {FormatLargeNumber(project.TikTokLikes)} likes, {FormatLargeNumber(project.TikTokComments)} comments, {FormatDurationFromSeconds(project.TikTokAverageWatchTimeSeconds)}, {FormatPercent(project.TikTokPercentWatchedFullVideo)} watched full video, {FormatLargeNumber(project.TikTokShares)} shares, {FormatLargeNumber(project.TikTokNewFollowers)} new followers");
         }
 
         return sb.ToString().TrimEnd();
@@ -65,16 +65,23 @@ public static class ProjectStatsRendering
             {
                 new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(GridLength.Star)
             },
-            ColumnSpacing = 8
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8,
+            RowSpacing = 8
         };
 
         AddMetricTile(metricsGrid, 0, 0, "Views", hasStats ? FormatLargeNumber(project.YouTubeViews) : "—");
         AddMetricTile(metricsGrid, 0, 1, "Likes", hasStats ? FormatLargeNumber(project.YouTubeLikes) : "—");
         AddMetricTile(metricsGrid, 0, 2, "Comments", hasStats ? FormatLargeNumber(project.YouTubeComments) : "—");
-        AddMetricTile(metricsGrid, 0, 3, "Avg duration", hasStats ? FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds) : "—");
+        AddMetricTile(metricsGrid, 1, 0, "Avg duration", hasStats ? FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds) : "—");
+        AddMetricTile(metricsGrid, 1, 1, "Shares", hasStats ? FormatLargeNumber(project.YouTubeShares) : "—");
+        AddMetricTile(metricsGrid, 1, 2, "New followers", hasStats ? FormatLargeNumber(project.YouTubeNewFollowers) : "—");
         section.Children.Add(metricsGrid);
 
         section.Children.Add(CreateEditButton("Edit YouTube Stats", "#FFEBEE", "#C62828", project, isReadOnly, showReadOnlyAlert, onEdit));
@@ -122,6 +129,7 @@ public static class ProjectStatsRendering
             RowDefinitions =
             {
                 new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto),
                 new RowDefinition(GridLength.Auto)
             },
             ColumnSpacing = 8,
@@ -134,6 +142,8 @@ public static class ProjectStatsRendering
         AddMetricTile(metricsGrid, 1, 0, "Avg duration", hasStats ? FormatDurationFromSeconds(project.FacebookAverageViewDurationSeconds) : "—");
         AddMetricTile(metricsGrid, 1, 1, "3s views", FormatCountWithPercent(project.FacebookThreeSecondViews, project.FacebookViews, hasStats));
         AddMetricTile(metricsGrid, 1, 2, "1min views", FormatCountWithPercent(project.FacebookOneMinuteViews, project.FacebookViews, hasStats));
+        AddMetricTile(metricsGrid, 2, 0, "Shares", hasStats ? FormatLargeNumber(project.FacebookShares) : "—");
+        AddMetricTile(metricsGrid, 2, 1, "New followers", hasStats ? FormatLargeNumber(project.FacebookNewFollowers) : "—");
         section.Children.Add(metricsGrid);
 
         section.Children.Add(CreateEditButton("Edit Facebook Stats", "#E7F3FF", "#1877F2", project, isReadOnly, showReadOnlyAlert, onEdit));
@@ -181,6 +191,7 @@ public static class ProjectStatsRendering
             RowDefinitions =
             {
                 new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto),
                 new RowDefinition(GridLength.Auto)
             },
             ColumnSpacing = 8,
@@ -192,6 +203,8 @@ public static class ProjectStatsRendering
         AddMetricTile(metricsGrid, 0, 2, "Comments", hasStats ? FormatLargeNumber(project.TikTokComments) : "—");
         AddMetricTile(metricsGrid, 1, 0, "Avg watch time", hasStats ? FormatDurationFromSeconds(project.TikTokAverageWatchTimeSeconds) : "—");
         AddMetricTile(metricsGrid, 1, 1, "% full video", hasStats ? FormatPercent(project.TikTokPercentWatchedFullVideo) : "—");
+        AddMetricTile(metricsGrid, 1, 2, "Shares", hasStats ? FormatLargeNumber(project.TikTokShares) : "—");
+        AddMetricTile(metricsGrid, 2, 0, "New followers", hasStats ? FormatLargeNumber(project.TikTokNewFollowers) : "—");
         section.Children.Add(metricsGrid);
 
         section.Children.Add(CreateEditButton("Edit TikTok Stats", "#FFE6EA", "#FE2C55", project, isReadOnly, showReadOnlyAlert, onEdit));

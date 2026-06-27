@@ -653,11 +653,15 @@ public class ProductionStatsPage : ContentPage
         var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeViews.ToString(CultureInfo.InvariantCulture) : "0", "Views", Keyboard.Numeric);
         var likesEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeLikes.ToString(CultureInfo.InvariantCulture) : "0", "Likes", Keyboard.Numeric);
         var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeComments.ToString(CultureInfo.InvariantCulture) : "0", "Comments", Keyboard.Numeric);
+        var sharesEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeShares.ToString(CultureInfo.InvariantCulture) : "0", "Shares", Keyboard.Numeric);
+        var newFollowersEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeNewFollowers.ToString(CultureInfo.InvariantCulture) : "0", "New followers", Keyboard.Numeric);
 
         stack.Children.Add(CreateYouTubeStatsInputRow("Views", viewsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Likes", likesEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Comments", commentsEntry));
         stack.Children.Add(CreateDurationInputRow("Average view duration", hasStats ? project.YouTubeAverageViewDurationSeconds : 0, out var ytMinutesEntry, out var ytSecondsEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Shares", sharesEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("New followers", newFollowersEntry));
 
         var footer = new Grid
         {
@@ -719,7 +723,7 @@ public class ProductionStatsPage : ContentPage
 
         clearBtn.Clicked += async (s, e) =>
         {
-            bool confirm = await DisplayAlert("Clear YouTube stats?", "All four values will be reset to empty.", "Clear", "Cancel");
+            bool confirm = await DisplayAlert("Clear YouTube stats?", "All six values will be reset to empty.", "Clear", "Cancel");
             if (!confirm) return;
 
             try
@@ -739,6 +743,8 @@ public class ProductionStatsPage : ContentPage
             int views = ParseNonNegativeIntegerOrZero(viewsEntry.Text);
             int likes = ParseNonNegativeIntegerOrZero(likesEntry.Text);
             int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
+            int shares = ParseNonNegativeIntegerOrZero(sharesEntry.Text);
+            int newFollowers = ParseNonNegativeIntegerOrZero(newFollowersEntry.Text);
 
             if (!TryReadMinutesSeconds(ytMinutesEntry, ytSecondsEntry, out int durationSeconds))
             {
@@ -748,7 +754,7 @@ public class ProductionStatsPage : ContentPage
 
             try
             {
-                await _storyService.SetYouTubeStatsAsync(project.Id, views, likes, comments, durationSeconds);
+                await _storyService.SetYouTubeStatsAsync(project.Id, views, likes, comments, durationSeconds, shares, newFollowers);
                 CloseOverlay();
                 await LoadStatsAsync();
             }
@@ -808,6 +814,8 @@ public class ProductionStatsPage : ContentPage
         var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookComments.ToString(CultureInfo.InvariantCulture) : "0", "Comments", Keyboard.Numeric);
         var threeSecondViewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookThreeSecondViews.ToString(CultureInfo.InvariantCulture) : "0", "3-second views", Keyboard.Numeric);
         var oneMinuteViewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookOneMinuteViews.ToString(CultureInfo.InvariantCulture) : "0", "1-minute views", Keyboard.Numeric);
+        var sharesEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookShares.ToString(CultureInfo.InvariantCulture) : "0", "Shares", Keyboard.Numeric);
+        var newFollowersEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookNewFollowers.ToString(CultureInfo.InvariantCulture) : "0", "New followers", Keyboard.Numeric);
 
         stack.Children.Add(CreateYouTubeStatsInputRow("Views", viewsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Likes", likesEntry));
@@ -815,6 +823,8 @@ public class ProductionStatsPage : ContentPage
         stack.Children.Add(CreateDurationInputRow("Average view duration", hasStats ? project.FacebookAverageViewDurationSeconds : 0, out var fbMinutesEntry, out var fbSecondsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("3-second views", threeSecondViewsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("1-minute views", oneMinuteViewsEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Shares", sharesEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("New followers", newFollowersEntry));
 
         var footer = new Grid
         {
@@ -876,7 +886,7 @@ public class ProductionStatsPage : ContentPage
 
         clearBtn.Clicked += async (s, e) =>
         {
-            bool confirm = await DisplayAlert("Clear Facebook stats?", "All six values will be reset to empty.", "Clear", "Cancel");
+            bool confirm = await DisplayAlert("Clear Facebook stats?", "All eight values will be reset to empty.", "Clear", "Cancel");
             if (!confirm) return;
 
             try
@@ -898,6 +908,8 @@ public class ProductionStatsPage : ContentPage
             int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
             int threeSecondViews = ParseNonNegativeIntegerOrZero(threeSecondViewsEntry.Text);
             int oneMinuteViews = ParseNonNegativeIntegerOrZero(oneMinuteViewsEntry.Text);
+            int shares = ParseNonNegativeIntegerOrZero(sharesEntry.Text);
+            int newFollowers = ParseNonNegativeIntegerOrZero(newFollowersEntry.Text);
 
             if (!TryReadMinutesSeconds(fbMinutesEntry, fbSecondsEntry, out int durationSeconds))
             {
@@ -907,7 +919,7 @@ public class ProductionStatsPage : ContentPage
 
             try
             {
-                await _storyService.SetFacebookStatsAsync(project.Id, views, likes, comments, durationSeconds, threeSecondViews, oneMinuteViews);
+                await _storyService.SetFacebookStatsAsync(project.Id, views, likes, comments, durationSeconds, threeSecondViews, oneMinuteViews, shares, newFollowers);
                 CloseOverlay();
                 await LoadStatsAsync();
             }
@@ -966,12 +978,16 @@ public class ProductionStatsPage : ContentPage
         var likesEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokLikes.ToString(CultureInfo.InvariantCulture) : "0", "Likes", Keyboard.Numeric);
         var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokComments.ToString(CultureInfo.InvariantCulture) : "0", "Comments", Keyboard.Numeric);
         var percentEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokPercentWatchedFullVideo.ToString("0.0", CultureInfo.InvariantCulture) : "0.0", "0-100", Keyboard.Numeric);
+        var sharesEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokShares.ToString(CultureInfo.InvariantCulture) : "0", "Shares", Keyboard.Numeric);
+        var newFollowersEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokNewFollowers.ToString(CultureInfo.InvariantCulture) : "0", "New followers", Keyboard.Numeric);
 
         stack.Children.Add(CreateYouTubeStatsInputRow("Views", viewsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Likes", likesEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Comments", commentsEntry));
         stack.Children.Add(CreateDurationInputRow("Average watch time", hasStats ? project.TikTokAverageWatchTimeSeconds : 0, out var ttMinutesEntry, out var ttSecondsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Percent watched full video", percentEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Shares", sharesEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("New followers", newFollowersEntry));
 
         var footer = new Grid
         {
@@ -1033,7 +1049,7 @@ public class ProductionStatsPage : ContentPage
 
         clearBtn.Clicked += async (s, e) =>
         {
-            bool confirm = await DisplayAlert("Clear TikTok stats?", "All five values will be reset to empty.", "Clear", "Cancel");
+            bool confirm = await DisplayAlert("Clear TikTok stats?", "All seven values will be reset to empty.", "Clear", "Cancel");
             if (!confirm) return;
 
             try
@@ -1053,6 +1069,8 @@ public class ProductionStatsPage : ContentPage
             int views = ParseNonNegativeIntegerOrZero(viewsEntry.Text);
             int likes = ParseNonNegativeIntegerOrZero(likesEntry.Text);
             int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
+            int shares = ParseNonNegativeIntegerOrZero(sharesEntry.Text);
+            int newFollowers = ParseNonNegativeIntegerOrZero(newFollowersEntry.Text);
 
             if (!TryReadMinutesSeconds(ttMinutesEntry, ttSecondsEntry, out int averageWatchTimeSeconds))
             {
@@ -1077,7 +1095,7 @@ public class ProductionStatsPage : ContentPage
 
             try
             {
-                await _storyService.SetTikTokStatsAsync(project.Id, views, likes, comments, averageWatchTimeSeconds, percentWatchedFullVideo);
+                await _storyService.SetTikTokStatsAsync(project.Id, views, likes, comments, averageWatchTimeSeconds, percentWatchedFullVideo, shares, newFollowers);
                 CloseOverlay();
                 await LoadStatsAsync();
             }
