@@ -8,6 +8,7 @@ public class HooksCreationPage : ContentPage
     private Editor _stage4Editor = null!;
 
     private const string Stage1Prompt = "Give me a flat list of exactly 100 random English words. Choose words from a broad mix of categories: physical objects, abstract concepts, emotions, animals, foods, materials, places, actions, sensations, colors, sounds, professions, time periods, weather phenomena, body parts, tools, textures, and feelings. Mix high-concept and low-concept, ordinary and strange. Return ONLY the words, numbered 1 to 100, one per line. No commentary, no headers, no grouping. Just the numbered list.";
+    private const string ImageGeneratorGridSuffix = "Create the result as a single 9:16 vertical concept sheet containing 20 numbered variations arranged in a 4x5 grid. Each panel must show a completely different idea, composition, story moment, camera angle, environment, mood, and visual hook. Prioritize variety of ideas over small visual changes. Large visible numbers 1-20. Cinematic realistic, high detail, easy side-by-side comparison, no text except numbers.";
 
     public HooksCreationPage()
     {
@@ -43,7 +44,7 @@ public class HooksCreationPage : ContentPage
         _stage1Editor = CreateEditor("Paste the LLM's 100 random words here...");
         _stage2Editor = CreateEditor("Paste the LLM's 100 hook image ideas here...");
         _stage3Editor = CreateEditor("Paste the LLM's conceptual hook analysis here...");
-        _stage4Editor = CreateEditor("Paste the LLM's integrated image prompt here. Re-press Copy Stage 4 to generate another variation.");
+        _stage4Editor = CreateEditor("Paste the LLM's 20 image prompts here.");
 
         stack.Children.Add(CreateStageSection(
             "Stage 1 — 100 Random Words",
@@ -68,11 +69,12 @@ public class HooksCreationPage : ContentPage
             "Combine a random word and a conceptual hook into a finished image prompt. Re-run as many times as you want for infinite variety.",
             "Copy Stage 4 prompt",
             OnCopyStage4PromptClicked,
-            _stage4Editor));
+            _stage4Editor,
+            CreateImageGeneratorCopyButton()));
 
         stack.Children.Add(new Label
         {
-            Text = "Tip: re-press Copy Stage 4 prompt at any time. The LLM picks new random combinations each run.",
+            Text = "Tip: re-press Copy Stage 4 prompt for a fresh set of 20. Then paste the LLM result, and use Copy 20 prompts + grid suffix to send everything to an image generator that renders a 4x5 numbered concept sheet.",
             FontSize = 12,
             TextColor = Color.FromArgb("#777"),
             FontAttributes = FontAttributes.Italic,
@@ -82,7 +84,7 @@ public class HooksCreationPage : ContentPage
         Content = new ScrollView { Content = stack };
     }
 
-    private static Frame CreateStageSection(string title, string subtitle, string buttonText, EventHandler clicked, Editor editor)
+    private static Frame CreateStageSection(string title, string subtitle, string buttonText, EventHandler clicked, Editor editor, View? trailingView = null)
     {
         var button = new Button
         {
@@ -95,6 +97,32 @@ public class HooksCreationPage : ContentPage
         };
         button.Clicked += clicked;
 
+        var sectionStack = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                new Label
+                {
+                    Text = title,
+                    FontSize = 16,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#222")
+                },
+                new Label
+                {
+                    Text = subtitle,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#666")
+                },
+                button,
+                editor
+            }
+        };
+
+        if (trailingView != null)
+            sectionStack.Children.Add(trailingView);
+
         return new Frame
         {
             BackgroundColor = Colors.White,
@@ -102,29 +130,23 @@ public class HooksCreationPage : ContentPage
             CornerRadius = 10,
             Padding = 16,
             HasShadow = false,
-            Content = new VerticalStackLayout
-            {
-                Spacing = 10,
-                Children =
-                {
-                    new Label
-                    {
-                        Text = title,
-                        FontSize = 16,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
-                    new Label
-                    {
-                        Text = subtitle,
-                        FontSize = 13,
-                        TextColor = Color.FromArgb("#666")
-                    },
-                    button,
-                    editor
-                }
-            }
+            Content = sectionStack
         };
+    }
+
+    private Button CreateImageGeneratorCopyButton()
+    {
+        var button = new Button
+        {
+            Text = "Copy 20 prompts + grid suffix for image generator",
+            BackgroundColor = Color.FromArgb("#00838F"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42,
+            HorizontalOptions = LayoutOptions.Start
+        };
+        button.Clicked += OnCopyImageGeneratorPromptClicked;
+        return button;
     }
 
     private static Editor CreateEditor(string placeholder) => new()
@@ -165,21 +187,32 @@ LIST A — 100 random words:
 LIST B — 100 image ideas with conceptual hooks:
 
 {{conceptualHooks}}
-Randomly pick ONE word from List A and ONE conceptual-hook entry from List B. Use a true random selection — do not pick the same items every time. Now synthesize a single FINAL IMAGE PROMPT that integrates the randomly picked word into an image built around the randomly picked conceptual hook mechanic. The result must be:
+Randomly pick 20 different combinations: each combination is ONE word from List A plus ONE conceptual-hook entry from List B. Use true random selection across all 20 picks — each pick should be different, and across the 20 picks the spread should feel varied (no clustering, no repeats). For each picked combination, synthesize a single IMAGE PROMPT that integrates the picked word into an image built around the picked conceptual hook mechanic. Each image prompt must be:
 
 A scroll-stopping first frame for a short-form video.
-Visually specific — describe composition, subject, lighting, mood, color, and one or two unexpected details.
-Image-only — do not describe motion, sound, or what happens next.
-60 to 120 words.
 
-Output format:
+Visually specific — describe composition, subject, lighting, mood, color, and one or two unexpected details.
+
+Image-only — do not describe motion, sound, or what happens next.
+
+40 to 80 words per prompt (shorter than a single integrated prompt since you're producing 20).
+
+Output format — numbered 1 to 20, one block per variation:
+
+
 
 PICKED WORD: {the word}
 
 PICKED HOOK: {the conceptual hook phrase}
 
-IMAGE PROMPT: {the 60–120 word image prompt}
-Return only that block. No commentary.
+IMAGE PROMPT: {the 40–80 word image prompt}
+
+
+
+PICKED WORD: ...
+
+...
+Continue through 20. Return only those 20 blocks. No commentary, no preamble, no closing remark.
 """;
 
     private async void OnCopyStage1PromptClicked(object? sender, EventArgs e)
@@ -232,6 +265,20 @@ Return only that block. No commentary.
 
         await Clipboard.SetTextAsync(BuildStage4Prompt(words, conceptualHooks));
         if (sender is Button btn) await FlashCopiedAsync(btn, "Copy Stage 4 prompt");
+    }
+
+    private async void OnCopyImageGeneratorPromptClicked(object? sender, EventArgs e)
+    {
+        var prompts = _stage4Editor.Text?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(prompts))
+        {
+            await DisplayAlert("Stage 4 needed", "Paste the LLM's 20 image prompts first.", "OK");
+            return;
+        }
+
+        string finalBlock = prompts + "\n\n" + ImageGeneratorGridSuffix;
+        await Clipboard.SetTextAsync(finalBlock);
+        if (sender is Button btn) await FlashCopiedAsync(btn, "Copy 20 prompts + grid suffix for image generator");
     }
 
     private async Task FlashCopiedAsync(Button btn, string original)
