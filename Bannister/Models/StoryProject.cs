@@ -69,6 +69,22 @@ public class StoryProject
     public int YouTubeAverageViewDurationSeconds { get; set; } = 0;
 
     public DateTime? YouTubeStatsCapturedAt { get; set; }
+
+    // === FACEBOOK FEEDBACK SNAPSHOT ===
+
+    public int FacebookViews { get; set; } = 0;
+
+    public int FacebookLikes { get; set; } = 0;
+
+    public int FacebookComments { get; set; } = 0;
+
+    public int FacebookAverageViewDurationSeconds { get; set; } = 0;
+
+    public int FacebookThreeSecondViews { get; set; } = 0;
+
+    public int FacebookOneMinuteViews { get; set; } = 0;
+
+    public DateTime? FacebookStatsCapturedAt { get; set; }
     
     [Ignore]
     public bool IsActive => Status == "active";

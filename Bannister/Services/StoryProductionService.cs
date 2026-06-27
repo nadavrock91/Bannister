@@ -41,6 +41,13 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeComments INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeAverageViewDurationSeconds INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN YouTubeStatsCapturedAt TEXT"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookViews INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookLikes INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookComments INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookAverageViewDurationSeconds INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookThreeSecondViews INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookOneMinuteViews INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookStatsCapturedAt TEXT"); } catch { }
     }
 
     public async Task<List<StoryProject>> GetProjectsAsync(string username)
@@ -194,6 +201,44 @@ public class StoryProductionService
         project.YouTubeComments = 0;
         project.YouTubeAverageViewDurationSeconds = 0;
         project.YouTubeStatsCapturedAt = null;
+
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetFacebookStatsAsync(int projectId, int views, int likes, int comments, int averageViewDurationSeconds, int threeSecondViews, int oneMinuteViews)
+    {
+        EnsureWritable();
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.FacebookViews = Math.Max(0, views);
+        project.FacebookLikes = Math.Max(0, likes);
+        project.FacebookComments = Math.Max(0, comments);
+        project.FacebookAverageViewDurationSeconds = Math.Max(0, averageViewDurationSeconds);
+        project.FacebookThreeSecondViews = Math.Max(0, threeSecondViews);
+        project.FacebookOneMinuteViews = Math.Max(0, oneMinuteViews);
+        project.FacebookStatsCapturedAt = DateTime.UtcNow;
+
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(project);
+        return true;
+    }
+
+    public async Task<bool> ClearFacebookStatsAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.FacebookViews = 0;
+        project.FacebookLikes = 0;
+        project.FacebookComments = 0;
+        project.FacebookAverageViewDurationSeconds = 0;
+        project.FacebookThreeSecondViews = 0;
+        project.FacebookOneMinuteViews = 0;
+        project.FacebookStatsCapturedAt = null;
 
         var conn = await _db.GetConnectionAsync();
         await conn.UpdateAsync(project);

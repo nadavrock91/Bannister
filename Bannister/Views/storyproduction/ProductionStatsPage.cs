@@ -311,6 +311,7 @@ public class ProductionStatsPage : ContentPage
         if (project.IsPublished)
         {
             stack.Children.Add(BuildYouTubeFeedbackSection(project));
+            stack.Children.Add(BuildFacebookFeedbackSection(project));
         }
 
         card.Content = stack;
@@ -355,10 +356,10 @@ public class ProductionStatsPage : ContentPage
             ColumnSpacing = 8
         };
 
-        AddYouTubeMetricTile(metricsGrid, 0, "Views", hasStats ? FormatLargeNumber(project.YouTubeViews) : "—");
-        AddYouTubeMetricTile(metricsGrid, 1, "Likes", hasStats ? FormatLargeNumber(project.YouTubeLikes) : "—");
-        AddYouTubeMetricTile(metricsGrid, 2, "Comments", hasStats ? FormatLargeNumber(project.YouTubeComments) : "—");
-        AddYouTubeMetricTile(metricsGrid, 3, "Avg duration", hasStats ? FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds) : "—");
+        AddMetricTile(metricsGrid, 0, 0, "Views", hasStats ? FormatLargeNumber(project.YouTubeViews) : "—");
+        AddMetricTile(metricsGrid, 0, 1, "Likes", hasStats ? FormatLargeNumber(project.YouTubeLikes) : "—");
+        AddMetricTile(metricsGrid, 0, 2, "Comments", hasStats ? FormatLargeNumber(project.YouTubeComments) : "—");
+        AddMetricTile(metricsGrid, 0, 3, "Avg duration", hasStats ? FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds) : "—");
         section.Children.Add(metricsGrid);
 
         var editBtn = new Button
@@ -385,7 +386,82 @@ public class ProductionStatsPage : ContentPage
         return section;
     }
 
-    private void AddYouTubeMetricTile(Grid grid, int col, string label, string value)
+    private View BuildFacebookFeedbackSection(StoryProject project)
+    {
+        var section = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        section.Children.Add(new Label
+        {
+            Text = "Facebook Feedback",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1877F2")
+        });
+
+        DateTime? capturedAt = project.FacebookStatsCapturedAt;
+        bool hasStats = capturedAt.HasValue;
+        section.Children.Add(new Label
+        {
+            Text = hasStats ? $"Last updated {capturedAt:yyyy-MM-dd HH:mm}" : "No stats entered yet.",
+            FontSize = 11,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var metricsGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8,
+            RowSpacing = 8
+        };
+
+        AddMetricTile(metricsGrid, 0, 0, "Views", hasStats ? FormatLargeNumber(project.FacebookViews) : "—");
+        AddMetricTile(metricsGrid, 0, 1, "Likes", hasStats ? FormatLargeNumber(project.FacebookLikes) : "—");
+        AddMetricTile(metricsGrid, 0, 2, "Comments", hasStats ? FormatLargeNumber(project.FacebookComments) : "—");
+        AddMetricTile(metricsGrid, 1, 0, "Avg duration", hasStats ? FormatDurationFromSeconds(project.FacebookAverageViewDurationSeconds) : "—");
+        AddMetricTile(metricsGrid, 1, 1, "3s views", FormatCountWithPercent(project.FacebookThreeSecondViews, project.FacebookViews, hasStats));
+        AddMetricTile(metricsGrid, 1, 2, "1min views", FormatCountWithPercent(project.FacebookOneMinuteViews, project.FacebookViews, hasStats));
+        section.Children.Add(metricsGrid);
+
+        var editBtn = new Button
+        {
+            Text = "Edit Facebook Stats",
+            BackgroundColor = Color.FromArgb("#E7F3FF"),
+            TextColor = Color.FromArgb("#1877F2"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        editBtn.Clicked += async (s, e) =>
+        {
+            if (_storyService.IsReadOnly)
+            {
+                await ShowReadOnlyAlertAsync();
+                return;
+            }
+
+            await ShowEditFacebookStatsAsync(project);
+        };
+        section.Children.Add(editBtn);
+
+        return section;
+    }
+
+    private void AddMetricTile(Grid grid, int row, int col, string label, string value)
     {
         var frame = new Frame
         {
@@ -419,6 +495,7 @@ public class ProductionStatsPage : ContentPage
             }
         };
 
+        Grid.SetRow(frame, row);
         Grid.SetColumn(frame, col);
         grid.Children.Add(frame);
     }
@@ -604,6 +681,166 @@ public class ProductionStatsPage : ContentPage
         return Task.CompletedTask;
     }
 
+    private Task ShowEditFacebookStatsAsync(StoryProject project)
+    {
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            InputTransparent = false
+        };
+
+        var card = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent,
+            WidthRequest = 520,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 12 };
+        stack.Children.Add(new Label
+        {
+            Text = "Edit Facebook Stats",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1877F2")
+        });
+        stack.Children.Add(new Label
+        {
+            Text = project.Name,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        bool hasStats = project.FacebookStatsCapturedAt.HasValue;
+        var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookViews.ToString(CultureInfo.InvariantCulture) : "", "Views", Keyboard.Numeric);
+        var likesEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookLikes.ToString(CultureInfo.InvariantCulture) : "", "Likes", Keyboard.Numeric);
+        var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookComments.ToString(CultureInfo.InvariantCulture) : "", "Comments", Keyboard.Numeric);
+        var durationEntry = CreateYouTubeStatsEntry(hasStats ? FormatDurationFromSeconds(project.FacebookAverageViewDurationSeconds) : "", "MM:SS", Keyboard.Default);
+        var threeSecondViewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookThreeSecondViews.ToString(CultureInfo.InvariantCulture) : "", "3-second views", Keyboard.Numeric);
+        var oneMinuteViewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookOneMinuteViews.ToString(CultureInfo.InvariantCulture) : "", "1-minute views", Keyboard.Numeric);
+
+        stack.Children.Add(CreateYouTubeStatsInputRow("Views", viewsEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Likes", likesEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Comments", commentsEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Average view duration", durationEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("3-second views", threeSecondViewsEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("1-minute views", oneMinuteViewsEntry));
+
+        var footer = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 10,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        var clearBtn = new Button
+        {
+            Text = "Clear stats",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#1877F2"),
+            FontSize = 12,
+            Padding = new Thickness(8, 0)
+        };
+        Grid.SetColumn(clearBtn, 0);
+        footer.Children.Add(clearBtn);
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#E0E0E0"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            Padding = new Thickness(18, 8)
+        };
+        Grid.SetColumn(cancelBtn, 2);
+        footer.Children.Add(cancelBtn);
+
+        var saveBtn = new Button
+        {
+            Text = "Save",
+            BackgroundColor = Color.FromArgb("#1877F2"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(22, 8)
+        };
+        Grid.SetColumn(saveBtn, 3);
+        footer.Children.Add(saveBtn);
+
+        stack.Children.Add(footer);
+        card.Content = stack;
+        overlay.Children.Add(card);
+
+        void CloseOverlay()
+        {
+            if (Content is Grid mainGrid)
+                mainGrid.Children.Remove(overlay);
+        }
+
+        cancelBtn.Clicked += (s, e) => CloseOverlay();
+
+        clearBtn.Clicked += async (s, e) =>
+        {
+            bool confirm = await DisplayAlert("Clear Facebook stats?", "All six values will be reset to empty.", "Clear", "Cancel");
+            if (!confirm) return;
+
+            try
+            {
+                await _storyService.ClearFacebookStatsAsync(project.Id);
+                CloseOverlay();
+                await LoadStatsAsync();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
+        };
+
+        saveBtn.Clicked += async (s, e) =>
+        {
+            int views = ParseNonNegativeIntegerOrZero(viewsEntry.Text);
+            int likes = ParseNonNegativeIntegerOrZero(likesEntry.Text);
+            int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
+            int threeSecondViews = ParseNonNegativeIntegerOrZero(threeSecondViewsEntry.Text);
+            int oneMinuteViews = ParseNonNegativeIntegerOrZero(oneMinuteViewsEntry.Text);
+
+            if (!TryParseDurationToSeconds(durationEntry.Text ?? "", out int durationSeconds))
+            {
+                await DisplayAlert("Invalid Duration", "Average view duration must be in MM:SS format or just seconds.", "OK");
+                return;
+            }
+
+            try
+            {
+                await _storyService.SetFacebookStatsAsync(project.Id, views, likes, comments, durationSeconds, threeSecondViews, oneMinuteViews);
+                CloseOverlay();
+                await LoadStatsAsync();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
+        };
+
+        if (Content is Grid pageGrid)
+        {
+            Grid.SetRowSpan(overlay, 2);
+            pageGrid.Children.Add(overlay);
+        }
+
+        return Task.CompletedTask;
+    }
+
     private Entry CreateYouTubeStatsEntry(string initialValue, string placeholder, Keyboard keyboard)
     {
         return new Entry
@@ -709,6 +946,22 @@ public class ProductionStatsPage : ContentPage
     private static string FormatLargeNumber(int value)
     {
         return Math.Max(0, value).ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatCountWithPercent(int count, int denominator, bool statsCaptured)
+    {
+        if (!statsCaptured)
+            return "—";
+
+        int safeCount = Math.Max(0, count);
+        int safeDenominator = Math.Max(0, denominator);
+        string raw = FormatLargeNumber(safeCount);
+
+        if (safeDenominator == 0)
+            return $"{raw} (—)";
+
+        double percent = safeCount * 100.0 / safeDenominator;
+        return $"{raw} ({percent.ToString("0.0", CultureInfo.InvariantCulture)}%)";
     }
 
     private async Task ShowProjectSettingsAsync(StoryProject project)
