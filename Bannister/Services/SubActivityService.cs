@@ -238,7 +238,7 @@ public class SubActivityService
         await SavePendingStepsAsync(item, pending);
     }
 
-    public async Task ToggleStepAsync(SubActivity item, int stepIndex)
+    public async Task<SubActivityCompletionResult?> ToggleStepAsync(SubActivity item, int stepIndex)
     {
         var steps = GetSteps(item);
         if (stepIndex >= 0 && stepIndex < steps.Count)
@@ -249,9 +249,11 @@ public class SubActivityService
             // Check if all done
             if (steps.All(s => s.Done))
             {
-                await MarkCompletedAsync(item);
+                return await MarkCompletedAsync(item);
             }
         }
+
+        return null;
     }
 
     public async Task RemoveStepAsync(SubActivity item, int stepIndex)
@@ -365,11 +367,49 @@ public class SubActivityService
         await UpdateAsync(item);
     }
 
-    public async Task MarkCompletedAsync(SubActivity item)
+    private async Task<bool> ApplyAllDoneStreakAsync(SubActivity item, DateTime today)
+    {
+        today = today.Date;
+        int previousStreak = item.ConsecutiveAllDoneDays;
+        bool incrementedToday = false;
+
+        if (item.LastSubmissionDate == null)
+        {
+            item.ConsecutiveAllDoneDays = 1;
+            incrementedToday = true;
+        }
+        else
+        {
+            var lastDate = item.LastSubmissionDate.Value.Date;
+            if (lastDate < today.AddDays(-1))
+            {
+                item.ConsecutiveAllDoneDays = 1;
+                incrementedToday = true;
+            }
+            else if (lastDate == today.AddDays(-1))
+            {
+                item.ConsecutiveAllDoneDays++;
+                incrementedToday = true;
+            }
+            else
+            {
+                // Same-day re-completion, future date, or any other unusual state:
+                // record today but do not increment the streak again.
+            }
+        }
+
+        item.LastSubmissionDate = today;
+        return incrementedToday && previousStreak < 3 && item.ConsecutiveAllDoneDays >= 3;
+    }
+
+    public async Task<SubActivityCompletionResult> MarkCompletedAsync(SubActivity item)
     {
         item.TotalCompletions++;
         item.CompletionsSinceLastAddition++;
+        DateTime today = DateTime.UtcNow.Date;
+        bool milestoneReached = await ApplyAllDoneStreakAsync(item, today);
         await UpdateAsync(item);
+        return new SubActivityCompletionResult(item, milestoneReached);
     }
 
     public async Task<SubActivityDailySubmissionResult> SubmitDailySubAsync(int processId, Dictionary<int, int> stepStates)
@@ -402,19 +442,21 @@ public class SubActivityService
 
         bool allDone = steps.All(step => step.LastSubmissionState == (int)SubActivityStepSubmissionState.Done ||
             step.LastSubmissionState == (int)SubActivityStepSubmissionState.NotRelevant);
-        int previousStreak = item.ConsecutiveAllDoneDays;
 
         item.StepsJson = JsonSerializer.Serialize(steps);
-        item.ConsecutiveAllDoneDays = allDone ? item.ConsecutiveAllDoneDays + 1 : 0;
-        item.LastSubmissionDate = today;
 
         if (allDone)
         {
             item.TotalCompletions++;
             item.CompletionsSinceLastAddition++;
         }
+        else
+        {
+            item.ConsecutiveAllDoneDays = 0;
+            item.LastSubmissionDate = today;
+        }
 
-        bool milestoneReached = previousStreak < 3 && item.ConsecutiveAllDoneDays == 3;
+        bool milestoneReached = allDone && await ApplyAllDoneStreakAsync(item, today);
         if (milestoneReached)
         {
             item.Allowance++;
@@ -460,12 +502,12 @@ public class SubActivityService
         await UpdateAsync(item);
     }
 
-    public async Task CompleteAllStepsAsync(SubActivity item)
+    public async Task<SubActivityCompletionResult?> CompleteAllStepsAsync(SubActivity item)
     {
-        if (_db.IsReadOnly) return;
+        if (_db.IsReadOnly) return null;
 
         var steps = GetSteps(item);
-        if (steps.Count == 0 || steps.All(s => s.Done)) return;
+        if (steps.Count == 0 || steps.All(s => s.Done)) return null;
 
         foreach (var step in steps)
         {
@@ -473,21 +515,21 @@ public class SubActivityService
         }
 
         item.StepsJson = JsonSerializer.Serialize(steps);
-        await MarkCompletedAsync(item);
+        return await MarkCompletedAsync(item);
     }
 
-    public async Task MarkStepsDoneAsync(SubActivity item, IEnumerable<int> stepIndexes)
+    public async Task<SubActivityCompletionResult?> MarkStepsDoneAsync(SubActivity item, IEnumerable<int> stepIndexes)
     {
-        if (_db.IsReadOnly) return;
+        if (_db.IsReadOnly) return null;
 
         var selectedIndexes = stepIndexes
             .Distinct()
             .Where(index => index >= 0)
             .ToHashSet();
-        if (selectedIndexes.Count == 0) return;
+        if (selectedIndexes.Count == 0) return null;
 
         var steps = GetSteps(item);
-        if (steps.Count == 0) return;
+        if (steps.Count == 0) return null;
 
         bool wasComplete = steps.All(s => s.Done);
         bool changed = false;
@@ -499,17 +541,18 @@ public class SubActivityService
             changed = true;
         }
 
-        if (!changed) return;
+        if (!changed) return null;
 
         item.StepsJson = JsonSerializer.Serialize(steps);
 
         if (!wasComplete && steps.All(s => s.Done))
         {
-            await MarkCompletedAsync(item);
+            return await MarkCompletedAsync(item);
         }
         else
         {
             await UpdateAsync(item);
+            return null;
         }
     }
 
@@ -520,3 +563,5 @@ public record SubActivityDailySubmissionResult(
     bool Submitted,
     bool MilestoneReached,
     SubActivity? Process);
+
+public record SubActivityCompletionResult(SubActivity Process, bool MilestoneReached);

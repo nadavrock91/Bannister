@@ -228,7 +228,11 @@ public class FloatingChecklist
             };
             cb.CheckedChanged += async (s, e) =>
             {
-                await _subService.ToggleStepAsync(_selectedProcess, idx);
+                var result = await _subService.ToggleStepAsync(_selectedProcess, idx);
+                if (result != null && result.MilestoneReached && !_subService.IsReadOnly)
+                {
+                    await HandleMilestoneAsync(result.Process);
+                }
                 await RefreshStepsAsync();
             };
             row.Add(cb, 0, 0);
@@ -259,5 +263,42 @@ public class FloatingChecklist
                 Margin = new Thickness(36, 4, 0, 0)
             });
         }
+    }
+
+    private async Task HandleMilestoneAsync(SubActivity item)
+    {
+        if (_page == null || _subService.IsReadOnly)
+            return;
+
+        await _subService.IncreaseAllowanceAsync(item.Id);
+
+        string action = await _page.DisplayActionSheet(
+            "3-day streak! Want to add a new step?",
+            "Cancel",
+            null,
+            "Yes, add a step",
+            "Not now");
+
+        if (action == "Yes, add a step")
+        {
+            string? stepName = await _page.DisplayPromptAsync(
+                "New Step",
+                $"Enter a new step for {item.Name}:",
+                "Save",
+                "Cancel");
+
+            if (!string.IsNullOrWhiteSpace(stepName) &&
+                await _subService.TryAddStepAsync(item.Id, stepName.Trim()))
+            {
+                await _subService.ResetConsecutiveAllDoneDaysAsync(item.Id);
+                return;
+            }
+
+            await _page.DisplayAlert("Step Not Added", "Could not add the new step. Reverting the allowance increase.", "OK");
+            await _subService.RevertAllowanceAsync(item.Id);
+            return;
+        }
+
+        await _subService.RevertAllowanceAsync(item.Id);
     }
 }

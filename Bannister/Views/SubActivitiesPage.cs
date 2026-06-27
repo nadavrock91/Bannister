@@ -305,7 +305,11 @@ public class SubActivitiesPage : ContentPage
                 };
                 checkbox.Clicked += async (s, e) =>
                 {
-                    await _subActivityService.ToggleStepAsync(item, index);
+                    var result = await _subActivityService.ToggleStepAsync(item, index);
+                    if (result != null && result.MilestoneReached && !_subActivityService.IsReadOnly)
+                    {
+                        await HandleMilestoneAsync(result.Process);
+                    }
                     await LoadDataAsync();
                 };
                 Grid.SetColumn(checkbox, 0);
@@ -623,6 +627,43 @@ public class SubActivitiesPage : ContentPage
 
         await _subActivityService.SetAllowanceAsync(item, allowance);
         await LoadDataAsync();
+    }
+
+    private async Task HandleMilestoneAsync(SubActivity item)
+    {
+        if (_subActivityService.IsReadOnly)
+            return;
+
+        await _subActivityService.IncreaseAllowanceAsync(item.Id);
+
+        string action = await DisplayActionSheet(
+            "3-day streak! Want to add a new step?",
+            "Cancel",
+            null,
+            "Yes, add a step",
+            "Not now");
+
+        if (action == "Yes, add a step")
+        {
+            string? stepName = await DisplayPromptAsync(
+                "New Step",
+                $"Enter a new step for {item.Name}:",
+                "Save",
+                "Cancel");
+
+            if (!string.IsNullOrWhiteSpace(stepName) &&
+                await _subActivityService.TryAddStepAsync(item.Id, stepName.Trim()))
+            {
+                await _subActivityService.ResetConsecutiveAllDoneDaysAsync(item.Id);
+                return;
+            }
+
+            await DisplayAlert("Step Not Added", "Could not add the new step. Reverting the allowance increase.", "OK");
+            await _subActivityService.RevertAllowanceAsync(item.Id);
+            return;
+        }
+
+        await _subActivityService.RevertAllowanceAsync(item.Id);
     }
 
     private async Task ShowProcessSettingsAsync(SubActivity item)
