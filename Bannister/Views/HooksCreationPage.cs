@@ -15,6 +15,7 @@ public class HooksCreationPage : ContentPage
     private Editor _stage3TemplateEditor = null!;
     private Editor _stage4TemplateEditor = null!;
     private Editor _gridSuffixTemplateEditor = null!;
+    private Editor _oneShotTemplateEditor = null!;
     private bool _isLoadingTemplates;
 
     private const string DefaultStage1Prompt = "Give me a flat list of exactly 100 random English words. Choose words from a broad mix of categories: physical objects, abstract concepts, emotions, animals, foods, materials, places, actions, sensations, colors, sounds, professions, time periods, weather phenomena, body parts, tools, textures, and feelings. Mix high-concept and low-concept, ordinary and strange. Return ONLY the words, numbered 1 to 100, one per line. No commentary, no headers, no grouping. Just the numbered list.";
@@ -76,6 +77,35 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
 
     private const string DefaultGridSuffix = "Create the result as a single 9:16 vertical concept sheet containing 20 numbered variations arranged in a 4x5 grid. Each panel must show a completely different idea, composition, story moment, camera angle, environment, mood, and visual hook. Prioritize variety of ideas over small visual changes. Large visible numbers 1-20. Cinematic realistic, high detail, easy side-by-side comparison, no text except numbers.";
 
+    private const string DefaultOneShotPrompt = """
+You're going to run a 4-stage hook image prompt generation pipeline internally. Do all four stages in order, but ONLY return the final output (the 20 image prompts). Do not show intermediate stages, do not explain your reasoning, do not output the words or hook ideas — only the final 20 prompts.
+Stage 1 — Internally generate 100 random English words spanning physical objects, abstract concepts, emotions, animals, foods, materials, places, actions, sensations, colors, sounds, professions, time periods, weather phenomena, body parts, tools, textures, and feelings. Mix high-concept and low-concept, ordinary and strange.
+Stage 2 — Internally use those 100 words to generate 100 ideas for SCROLL-STOPPING HOOK IMAGES. A scroll-stopping hook image is the first frame of a short-form video that makes the viewer involuntarily stop scrolling — through visual incongruity, emotional immediacy, mystery, danger, beauty, taboo, scale, or pattern interruption. Each idea is a one-sentence visual description of an image, not a description of the video. Mix the 100 words freely, combining 2 or 3 random words per image idea.
+Stage 3 — Internally annotate each of the 100 image ideas with its CONCEPTUAL HOOK — the underlying psychological or perceptual mechanic that makes it scroll-stopping. Examples: visual incongruity, scale violation, taboo proximity, hidden danger, beauty in unexpected context, pattern interruption, emotional immediacy on a face, time-frozen impossibility, scale of suffering, scale of joy, body horror at a distance, the uncanny valley, recognition of a forbidden act, recognition of a private moment.
+Stage 4 — From your 100 internal hook ideas, randomly pick 20 different combinations spanning maximum variety (no clustering, no near-duplicates). For each, synthesize a single IMAGE PROMPT (40 to 80 words) integrating one random word and one conceptual hook mechanic. Each prompt must be:
+A scroll-stopping first frame for a short-form video.
+
+Visually specific — describe composition, subject, lighting, mood, color, and one or two unexpected details.
+
+Image-only — do not describe motion, sound, or what happens next.
+Output format — return ONLY this block, nothing else:
+
+
+
+PICKED WORD: {the word}
+
+PICKED HOOK: {the conceptual hook phrase}
+
+IMAGE PROMPT: {40–80 word image prompt}
+
+
+
+PICKED WORD: ...
+
+...
+Continue through 20. No preamble, no commentary, no closing remark — just the 20 numbered blocks.
+""";
+
     public HooksCreationPage(AuthService auth)
     {
         _auth = auth;
@@ -124,7 +154,9 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
         _stage3TemplateEditor = CreatePromptTemplateEditor("stage3");
         _stage4TemplateEditor = CreatePromptTemplateEditor("stage4");
         _gridSuffixTemplateEditor = CreatePromptTemplateEditor("grid_suffix");
+        _oneShotTemplateEditor = CreatePromptTemplateEditor("one_shot");
 
+        stack.Children.Add(BuildOneShotSection());
         stack.Children.Add(CreateStageSection(
             "Stage 1 — 100 Random Words",
             "Get a list of 100 random words that will seed the rest of the flow.",
@@ -176,7 +208,9 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
             Margin = new Thickness(0, 4, 0, 0)
         });
 
-        Content = new ScrollView { Content = stack };
+        var rootGrid = new Grid();
+        rootGrid.Children.Add(new ScrollView { Content = stack });
+        Content = rootGrid;
     }
 
     private async Task LoadPromptTemplatesAsync()
@@ -189,11 +223,62 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
             _stage3TemplateEditor.Text = await GetCustomPromptAsync("stage3") ?? DefaultStage3Prompt;
             _stage4TemplateEditor.Text = await GetCustomPromptAsync("stage4") ?? DefaultStage4Prompt;
             _gridSuffixTemplateEditor.Text = await GetCustomPromptAsync("grid_suffix") ?? DefaultGridSuffix;
+            _oneShotTemplateEditor.Text = await GetCustomPromptAsync("one_shot") ?? DefaultOneShotPrompt;
         }
         finally
         {
             _isLoadingTemplates = false;
         }
+    }
+
+    private Frame BuildOneShotSection()
+    {
+        var oneShotButton = new Button
+        {
+            Text = " One-shot: all 4 stages in a single LLM call",
+            BackgroundColor = Color.FromArgb("#FF6F00"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 50,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        oneShotButton.Clicked += OnCopyOneShotPromptClicked;
+
+        var subtitle = new Label
+        {
+            Text = "Skip the 4-stage flow. Copies a single prompt that asks the LLM to do everything internally — produce 100 words, 100 hook ideas, conceptual analysis, and 20 final image prompts. Paste the LLM's response directly into the Stage 4 box below.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        };
+
+        var expander = CreatePromptTemplateExpander(
+            _oneShotTemplateEditor,
+            "one_shot",
+            DefaultOneShotPrompt,
+            null,
+            out var toggleButton);
+
+        return new Frame
+        {
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            BorderColor = Color.FromArgb("#FF6F00"),
+            CornerRadius = 10,
+            Padding = 16,
+            HasShadow = false,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    oneShotButton,
+                    subtitle,
+                    toggleButton,
+                    expander
+                }
+            }
+        };
     }
 
     private Frame CreateStageSection(
@@ -416,8 +501,8 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
     private static Editor CreateResponseEditor(string placeholder) => new()
     {
         Placeholder = placeholder,
-        HeightRequest = 180,
-        AutoSize = EditorAutoSizeOption.TextChanges,
+        HeightRequest = 44,
+        AutoSize = EditorAutoSizeOption.Disabled,
         BackgroundColor = Color.FromArgb("#FAFAFA"),
         TextColor = Color.FromArgb("#222"),
         PlaceholderColor = Color.FromArgb("#999"),
@@ -475,12 +560,15 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
 
     private async void OnCopyStage1PromptClicked(object? sender, EventArgs e)
     {
+        _stage1Editor.Text = "";
         await Clipboard.SetTextAsync(_stage1TemplateEditor.Text ?? DefaultStage1Prompt);
         if (sender is Button btn) await FlashCopiedAsync(btn, "Copy Stage 1 prompt");
+        await ShowPasteResultModalAsync("Stage 1 (100 words)", _stage1Editor);
     }
 
     private async void OnCopyStage2PromptClicked(object? sender, EventArgs e)
     {
+        _stage2Editor.Text = "";
         var words = _stage1Editor.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(words))
         {
@@ -490,10 +578,12 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
 
         await Clipboard.SetTextAsync(BuildStage2Prompt(_stage2TemplateEditor.Text ?? DefaultStage2Prompt, words));
         if (sender is Button btn) await FlashCopiedAsync(btn, "Copy Stage 2 prompt");
+        await ShowPasteResultModalAsync("Stage 2 (100 hook ideas)", _stage2Editor);
     }
 
     private async void OnCopyStage3PromptClicked(object? sender, EventArgs e)
     {
+        _stage3Editor.Text = "";
         var hookIdeas = _stage2Editor.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(hookIdeas))
         {
@@ -503,10 +593,12 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
 
         await Clipboard.SetTextAsync(BuildStage3Prompt(_stage3TemplateEditor.Text ?? DefaultStage3Prompt, hookIdeas));
         if (sender is Button btn) await FlashCopiedAsync(btn, "Copy Stage 3 prompt");
+        await ShowPasteResultModalAsync("Stage 3 (conceptual hook analysis)", _stage3Editor);
     }
 
     private async void OnCopyStage4PromptClicked(object? sender, EventArgs e)
     {
+        _stage4Editor.Text = "";
         var words = _stage1Editor.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(words))
         {
@@ -523,6 +615,15 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
 
         await Clipboard.SetTextAsync(BuildStage4Prompt(_stage4TemplateEditor.Text ?? DefaultStage4Prompt, words, conceptualHooks));
         if (sender is Button btn) await FlashCopiedAsync(btn, "Copy Stage 4 prompt");
+        await ShowPasteResultModalAsync("Stage 4 (20 image prompts)", _stage4Editor);
+    }
+
+    private async void OnCopyOneShotPromptClicked(object? sender, EventArgs e)
+    {
+        _stage4Editor.Text = "";
+        await Clipboard.SetTextAsync(_oneShotTemplateEditor.Text ?? DefaultOneShotPrompt);
+        if (sender is Button btn) await FlashCopiedAsync(btn, " One-shot: all 4 stages in a single LLM call");
+        await ShowPasteResultModalAsync("20 image prompts", _stage4Editor);
     }
 
     private async void OnCopyImageGeneratorPromptClicked(object? sender, EventArgs e)
@@ -544,5 +645,108 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
         btn.Text = "Copied!";
         await Task.Delay(1000);
         btn.Text = original;
+    }
+
+    private async Task ShowPasteResultModalAsync(string stageLabel, Editor targetEditor)
+    {
+        if (Content is not Grid root)
+            return;
+
+        var modalEditor = new Editor
+        {
+            Placeholder = $"Paste the LLM's {stageLabel} result here...",
+            HeightRequest = 280,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            FontSize = 13
+        };
+
+        var applyButton = new Button
+        {
+            Text = "Apply",
+            BackgroundColor = Color.FromArgb("#00838F"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+
+        var closeButton = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            HeightRequest = 42,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+
+        var buttonsRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 10
+        };
+        buttonsRow.Add(closeButton, 0, 0);
+        buttonsRow.Add(applyButton, 1, 0);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            Padding = 20,
+            CornerRadius = 12,
+            WidthRequest = 480,
+            HasShadow = true,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 14,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = $"Paste the {stageLabel} result",
+                        FontSize = 16,
+                        FontAttributes = FontAttributes.Bold
+                    },
+                    new Label
+                    {
+                        Text = "When you have the LLM's response, paste it here and tap Apply. Or tap Close and paste directly into the page.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    modalEditor,
+                    buttonsRow
+                }
+            }
+        };
+
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            InputTransparent = false,
+            Children = { card }
+        };
+
+        var tcs = new TaskCompletionSource<bool>();
+        applyButton.Clicked += (_, _) =>
+        {
+            targetEditor.Text = modalEditor.Text ?? "";
+            root.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+        };
+        closeButton.Clicked += (_, _) =>
+        {
+            root.Children.Remove(overlay);
+            tcs.TrySetResult(false);
+        };
+
+        root.Children.Add(overlay);
+        await tcs.Task;
     }
 }

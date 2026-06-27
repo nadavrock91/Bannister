@@ -1857,9 +1857,6 @@ public class LearningPage : ContentPage
 
         if (destination == "Pending" && !await EnsureCanSetVideoPendingAsync(channelName, category, fallbackToWatchOnAdd: true))
             destination = "To Watch";
-
-        var durationSeconds = await PromptDurationSecondsAsync(0, cancelReturnsNull: false);
-        durationSeconds ??= 0;
         
         // Create the video
         var video = new LearningVideo
@@ -1870,7 +1867,7 @@ public class LearningPage : ContentPage
             VideoId = videoId,
             Creator = channelName,
             Category = category,
-            DurationSeconds = durationSeconds.Value,
+            DurationSeconds = 0,
             Status = destination == "Pending" ? "PendingWatched"
                 : destination == "Top Picks" ? "TopPicks"
                 : "NotStarted"
@@ -2494,12 +2491,9 @@ public class LearningPage : ContentPage
         if (string.IsNullOrWhiteSpace(title)) return;
 
         string creator = await DisplayPromptAsync("Edit Video", "Channel/Creator:", initialValue: video.Creator ?? "");
-        var durationSeconds = await PromptDurationSecondsAsync(video.DurationSeconds, cancelReturnsNull: true);
-        if (durationSeconds == null) return;
 
         video.Title = title.Trim();
         video.Creator = creator?.Trim() ?? "";
-        video.DurationSeconds = durationSeconds.Value;
         await _learning.UpdateVideoAsync(video);
     }
 
@@ -2514,47 +2508,6 @@ public class LearningPage : ContentPage
         return hours > 0
             ? $"{hours}:{minutes:00}:{seconds:00}"
             : $"{minutes}:{seconds:00}";
-    }
-
-    private async Task<int?> PromptDurationSecondsAsync(int initialSeconds, bool cancelReturnsNull)
-    {
-        int initialMinutes = Math.Max(0, initialSeconds) / 60;
-        int initialRemainderSeconds = Math.Max(0, initialSeconds) % 60;
-
-        string? minutesText = await DisplayPromptAsync(
-            "Video Duration",
-            "Duration minutes (or skip):",
-            keyboard: Keyboard.Numeric,
-            initialValue: initialMinutes > 0 ? initialMinutes.ToString() : "");
-
-        if (minutesText == null && cancelReturnsNull)
-            return null;
-
-        string? secondsText = await DisplayPromptAsync(
-            "Video Duration",
-            "Duration seconds (or skip):",
-            keyboard: Keyboard.Numeric,
-            initialValue: initialRemainderSeconds > 0 ? initialRemainderSeconds.ToString() : "");
-
-        if (secondsText == null && cancelReturnsNull)
-            return null;
-
-        int minutes = ParseNonNegativeNumberOrZero(minutesText);
-        int seconds = ParseNonNegativeNumberOrZero(secondsText);
-        if (seconds > 59)
-            seconds = 59;
-
-        return (minutes * 60) + seconds;
-    }
-
-    private static int ParseNonNegativeNumberOrZero(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            return 0;
-
-        return int.TryParse(text.Trim(), out int value)
-            ? Math.Max(0, value)
-            : 0;
     }
 
     private async Task<bool> ShowDuplicateVideoStatusSheetAsync(LearningVideo existing)
