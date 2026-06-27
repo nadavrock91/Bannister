@@ -51,6 +51,7 @@ public class HomePage : ContentPage
     private readonly OwnerModeService _ownerMode;
     private readonly WebsiteProjectService _websiteProjects;
     private readonly WebsiteIdeaService _websiteIdeas;
+    private readonly AssetLibraryService _assetLibraryService;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -120,7 +121,7 @@ public class HomePage : ContentPage
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
         AllowanceService allowanceService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
-        WebsiteIdeaService websiteIdeas)
+        WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService)
     {
         _auth = auth;
         _games = games;
@@ -162,6 +163,7 @@ public class HomePage : ContentPage
         _ownerMode = ownerMode;
         _websiteProjects = websiteProjects;
         _websiteIdeas = websiteIdeas;
+        _assetLibraryService = assetLibraryService;
         _ownerMode.StateChanged += OnOwnerModeStateChanged;
 
         Title = "Bannister";
@@ -2325,7 +2327,7 @@ public class HomePage : ContentPage
 
     private async void OnStoryProductionClicked(object? sender, EventArgs e)
     {
-        var page = new StoryProductionHubPage(_auth, _storyProduction, _ideas, _ideaLogger, _subActivityService, _customPrompts);
+        var page = new StoryProductionHubPage(_auth, _storyProduction, _assetLibraryService, _ideas, _ideaLogger, _subActivityService, _customPrompts);
         await Navigation.PushAsync(page);
     }
 

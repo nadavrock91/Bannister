@@ -14,10 +14,11 @@ public class StoryProductionHubPage : ContentPage
     private readonly IdeaLoggerService? _ideaLogger;
     private readonly SubActivityService? _subActivityService;
     private readonly CustomPromptService? _customPrompts;
+    private readonly AssetLibraryService _assetLibraryService;
     
     private Label _statsLabel;
 
-    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null)
+    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, AssetLibraryService assetLibraryService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null)
     {
         _auth = auth;
         _storyService = storyService;
@@ -25,6 +26,7 @@ public class StoryProductionHubPage : ContentPage
         _ideaLogger = ideaLogger;
         _subActivityService = subActivityService;
         _customPrompts = customPrompts;
+        _assetLibraryService = assetLibraryService;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -98,6 +100,18 @@ public class StoryProductionHubPage : ContentPage
             Command = new Command(async () => await OnStatsClicked())
         });
         mainStack.Children.Add(statsBtn);
+
+        // Asset Library button
+        var assetLibraryBtn = CreateMenuButton(
+            "📁 Asset Library",
+            "Index and categorize reusable image and video files",
+            Color.FromArgb("#E0F2F1"),
+            Color.FromArgb("#00695C"));
+        assetLibraryBtn.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await OnAssetLibraryClicked())
+        });
+        mainStack.Children.Add(assetLibraryBtn);
 
         Content = new ScrollView { Content = mainStack };
     }
@@ -179,6 +193,12 @@ public class StoryProductionHubPage : ContentPage
     private async Task OnStatsClicked()
     {
         var page = new ProductionStatsPage(_auth, _storyService);
+        await Navigation.PushAsync(page);
+    }
+
+    private async Task OnAssetLibraryClicked()
+    {
+        var page = new AssetLibraryPage(_auth, _assetLibraryService);
         await Navigation.PushAsync(page);
     }
 }
