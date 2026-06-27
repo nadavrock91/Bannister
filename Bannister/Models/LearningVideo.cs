@@ -40,6 +40,11 @@ public class LearningVideo
     /// Optional duration in minutes
     /// </summary>
     public int? DurationMinutes { get; set; }
+
+    /// <summary>
+    /// Optional duration in seconds. Supersedes DurationMinutes for new Learning video UI.
+    /// </summary>
+    public int DurationSeconds { get; set; } = 0;
     
     /// <summary>
     /// Order in the watch queue (lower = watch first)

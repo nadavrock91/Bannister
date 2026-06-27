@@ -1408,6 +1408,18 @@ public class LearningPage : ContentPage
         };
         statusRow.Children.Add(statusLabel);
 
+        var durationText = FormatDurationFromSeconds(video.DurationSeconds);
+        if (!string.IsNullOrEmpty(durationText))
+        {
+            statusRow.Children.Add(new Label
+            {
+                Text = durationText,
+                FontSize = 10,
+                TextColor = Color.FromArgb("#666"),
+                VerticalOptions = LayoutOptions.Center
+            });
+        }
+
         // Category badge
         var categoryText = video.Category ?? "Unsorted";
         var categoryLabel = new Label
@@ -1768,6 +1780,18 @@ public class LearningPage : ContentPage
             return;
         }
 
+        var existingVideo = await _learning.FindVideoByVideoIdAsync(_auth.CurrentUsername, videoId);
+        if (existingVideo != null)
+        {
+            bool updated = await ShowDuplicateVideoStatusSheetAsync(existingVideo);
+            if (updated)
+            {
+                await DisplayAlert("Updated", $"Updated status of {existingVideo.Title}", "OK");
+                await RefreshVideosAsync();
+            }
+            return;
+        }
+
         // Show loading indicator
         var loadingLabel = new Label
         {
@@ -1833,6 +1857,9 @@ public class LearningPage : ContentPage
 
         if (destination == "Pending" && !await EnsureCanSetVideoPendingAsync(channelName, category, fallbackToWatchOnAdd: true))
             destination = "To Watch";
+
+        var durationSeconds = await PromptDurationSecondsAsync(0, cancelReturnsNull: false);
+        durationSeconds ??= 0;
         
         // Create the video
         var video = new LearningVideo
@@ -1843,6 +1870,7 @@ public class LearningPage : ContentPage
             VideoId = videoId,
             Creator = channelName,
             Category = category,
+            DurationSeconds = durationSeconds.Value,
             Status = destination == "Pending" ? "PendingWatched"
                 : destination == "Top Picks" ? "TopPicks"
                 : "NotStarted"
@@ -2466,10 +2494,100 @@ public class LearningPage : ContentPage
         if (string.IsNullOrWhiteSpace(title)) return;
 
         string creator = await DisplayPromptAsync("Edit Video", "Channel/Creator:", initialValue: video.Creator ?? "");
+        var durationSeconds = await PromptDurationSecondsAsync(video.DurationSeconds, cancelReturnsNull: true);
+        if (durationSeconds == null) return;
 
         video.Title = title.Trim();
         video.Creator = creator?.Trim() ?? "";
+        video.DurationSeconds = durationSeconds.Value;
         await _learning.UpdateVideoAsync(video);
+    }
+
+    private static string FormatDurationFromSeconds(int totalSeconds)
+    {
+        if (totalSeconds <= 0) return "";
+
+        int hours = totalSeconds / 3600;
+        int minutes = (totalSeconds % 3600) / 60;
+        int seconds = totalSeconds % 60;
+
+        return hours > 0
+            ? $"{hours}:{minutes:00}:{seconds:00}"
+            : $"{minutes}:{seconds:00}";
+    }
+
+    private async Task<int?> PromptDurationSecondsAsync(int initialSeconds, bool cancelReturnsNull)
+    {
+        int initialMinutes = Math.Max(0, initialSeconds) / 60;
+        int initialRemainderSeconds = Math.Max(0, initialSeconds) % 60;
+
+        string? minutesText = await DisplayPromptAsync(
+            "Video Duration",
+            "Duration minutes (or skip):",
+            keyboard: Keyboard.Numeric,
+            initialValue: initialMinutes > 0 ? initialMinutes.ToString() : "");
+
+        if (minutesText == null && cancelReturnsNull)
+            return null;
+
+        string? secondsText = await DisplayPromptAsync(
+            "Video Duration",
+            "Duration seconds (or skip):",
+            keyboard: Keyboard.Numeric,
+            initialValue: initialRemainderSeconds > 0 ? initialRemainderSeconds.ToString() : "");
+
+        if (secondsText == null && cancelReturnsNull)
+            return null;
+
+        int minutes = ParseNonNegativeNumberOrZero(minutesText);
+        int seconds = ParseNonNegativeNumberOrZero(secondsText);
+        if (seconds > 59)
+            seconds = 59;
+
+        return (minutes * 60) + seconds;
+    }
+
+    private static int ParseNonNegativeNumberOrZero(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return 0;
+
+        return int.TryParse(text.Trim(), out int value)
+            ? Math.Max(0, value)
+            : 0;
+    }
+
+    private async Task<bool> ShowDuplicateVideoStatusSheetAsync(LearningVideo existing)
+    {
+        string? choice = await DisplayActionSheet(
+            $"Already in your library: {existing.Title}\nCurrent status: {existing.Status}. Change it?",
+            "Cancel",
+            null,
+            "Not Started",
+            "In Progress",
+            "Pending Watched",
+            "Top Picks",
+            "Read Summary",
+            "Watched");
+
+        string? status = choice switch
+        {
+            "Not Started" => "NotStarted",
+            "In Progress" => "InProgress",
+            "Pending Watched" => "PendingWatched",
+            "Top Picks" => "TopPicks",
+            "Read Summary" => "ReadSummary",
+            "Watched" => "Completed",
+            _ => null
+        };
+
+        if (status == null)
+            return false;
+
+        existing.Status = status;
+        existing.CompletedAt = status == "Completed" ? DateTime.Now : null;
+        await _learning.UpdateVideoAsync(existing);
+        return true;
     }
 
     #region YouTube Helpers
@@ -3865,15 +3983,42 @@ public class LearningPage : ContentPage
         };
         _videosStack.Children.Add(loadingLabel);
 
-        // Import all videos
+        var duplicateVideos = new List<LearningVideo>();
+        var newVideoIds = new List<string>();
+        foreach (var videoId in videoIds)
+        {
+            var existingVideo = await _learning.FindVideoByVideoIdAsync(_auth.CurrentUsername, videoId);
+            if (existingVideo != null)
+                duplicateVideos.Add(existingVideo);
+            else
+                newVideoIds.Add(videoId);
+        }
+
+        if (newVideoIds.Count == 0)
+        {
+            _videosStack.Children.Remove(loadingLabel);
+            bool reviewOnlyDuplicates = await DisplayAlert(
+                "Import complete",
+                $"Import complete. Added 0 new videos. Found {duplicateVideos.Count} duplicates already in your library.",
+                "Review duplicates",
+                "OK");
+
+            if (reviewOnlyDuplicates)
+                await ReviewDuplicateVideosAsync(duplicateVideos);
+
+            await RefreshVideosAsync();
+            return;
+        }
+
+        // Import all new videos
         var importedVideos = new List<LearningVideo>();
         int count = 0;
         int autoMapped = 0;
         
-        foreach (var videoId in videoIds)
+        foreach (var videoId in newVideoIds)
         {
             count++;
-            loadingLabel.Text = $"⏳ Fetching video {count}/{videoIds.Count}...";
+            loadingLabel.Text = $"⏳ Fetching video {count}/{newVideoIds.Count}...";
             
             // Fetch video info
             var (title, channelName) = await FetchYouTubeVideoInfoAsync(videoId);
@@ -3917,10 +4062,24 @@ public class LearningPage : ContentPage
 
         _videosStack.Children.Remove(loadingLabel);
 
-        string message = autoMapped > 0
-            ? $"Imported {importedVideos.Count} videos!\n({autoMapped} auto-categorized by channel)"
-            : $"Successfully imported {importedVideos.Count} videos!";
-        await DisplayAlert("Imported", message, "OK");
+        if (duplicateVideos.Count == 0)
+        {
+            string message = autoMapped > 0
+                ? $"Imported {importedVideos.Count} videos!\n({autoMapped} auto-categorized by channel)"
+                : $"Successfully imported {importedVideos.Count} videos!";
+            await DisplayAlert("Imported", message, "OK");
+        }
+        else
+        {
+            bool reviewDuplicates = await DisplayAlert(
+                "Import complete",
+                $"Import complete. Added {importedVideos.Count} new videos. Found {duplicateVideos.Count} duplicates already in your library.",
+                "Review duplicates",
+                "OK");
+
+            if (reviewDuplicates)
+                await ReviewDuplicateVideosAsync(duplicateVideos);
+        }
 
         await PromptImportedTopPicksAsync(importedVideos);
 
@@ -3941,6 +4100,16 @@ public class LearningPage : ContentPage
         }
         
         await RefreshVideosAsync();
+    }
+
+    private async Task ReviewDuplicateVideosAsync(List<LearningVideo> duplicateVideos)
+    {
+        foreach (var duplicate in duplicateVideos)
+        {
+            await ShowDuplicateVideoStatusSheetAsync(duplicate);
+        }
+
+        await DisplayAlert("Done", "Done reviewing duplicates.", "OK");
     }
 
     private async Task PromptImportedTopPicksAsync(List<LearningVideo> importedVideos)

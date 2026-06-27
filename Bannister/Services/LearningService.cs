@@ -15,6 +15,11 @@ public class LearningService
         _db = db;
     }
 
+    private async Task EnsureLearningVideoMigrationsAsync(ISQLiteAsyncConnection conn)
+    {
+        try { await conn.ExecuteAsync("ALTER TABLE LearningVideo ADD COLUMN DurationSeconds INTEGER DEFAULT 0"); } catch { }
+    }
+
     #region Books
 
     /// <summary>
@@ -156,7 +161,11 @@ public class LearningService
     public async Task<List<LearningVideo>> GetVideosAsync(string username)
     {
         var conn = await _db.GetConnectionAsync();
-        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningVideo>();
+        if (!_db.IsReadOnly)
+        {
+            await conn.CreateTableAsync<LearningVideo>();
+            await EnsureLearningVideoMigrationsAsync(conn);
+        }
         
         return await conn.Table<LearningVideo>()
             .Where(v => v.Username == username)
@@ -170,7 +179,11 @@ public class LearningService
     public async Task<List<LearningVideo>> GetVideosByStatusAsync(string username, string status)
     {
         var conn = await _db.GetConnectionAsync();
-        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningVideo>();
+        if (!_db.IsReadOnly)
+        {
+            await conn.CreateTableAsync<LearningVideo>();
+            await EnsureLearningVideoMigrationsAsync(conn);
+        }
         
         return await conn.Table<LearningVideo>()
             .Where(v => v.Username == username && v.Status == status)
@@ -184,7 +197,11 @@ public class LearningService
     public async Task<LearningVideo> AddVideoAsync(LearningVideo video)
     {
         var conn = await _db.GetConnectionAsync();
-        if (!_db.IsReadOnly) await conn.CreateTableAsync<LearningVideo>();
+        if (!_db.IsReadOnly)
+        {
+            await conn.CreateTableAsync<LearningVideo>();
+            await EnsureLearningVideoMigrationsAsync(conn);
+        }
         
         // Get max sort order
         var existing = await conn.Table<LearningVideo>()
@@ -196,6 +213,20 @@ public class LearningService
         
         await conn.InsertAsync(video);
         return video;
+    }
+
+    public async Task<LearningVideo?> FindVideoByVideoIdAsync(string username, string videoId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        if (!_db.IsReadOnly)
+        {
+            await conn.CreateTableAsync<LearningVideo>();
+            await EnsureLearningVideoMigrationsAsync(conn);
+        }
+
+        return await conn.Table<LearningVideo>()
+            .Where(v => v.Username == username && v.VideoId == videoId)
+            .FirstOrDefaultAsync();
     }
 
     /// <summary>
