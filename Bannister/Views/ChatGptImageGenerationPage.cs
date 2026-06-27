@@ -7,6 +7,8 @@ public class ChatGptImageGenerationPage : ContentPage
 {
     private const decimal CostPerImageUsd = 0.011m;
     private const string CostPerImageNote = "as of June 2026";
+    private const decimal VisionRenameEstimatedCostUsd = 0.001m;
+    private const string RenameLastFolderKey = "chatgpt_image_rename_last_folder";
 
     private enum QueueStatus
     {
@@ -27,8 +29,19 @@ public class ChatGptImageGenerationPage : ContentPage
         public string? SavedPath { get; set; }
     }
 
+    private sealed class RenamePreviewItem
+    {
+        public string OriginalPath { get; init; } = "";
+        public string OriginalName { get; init; } = "";
+        public string SuggestedName { get; set; } = "";
+        public string Extension { get; init; } = "";
+        public bool Selected { get; set; } = true;
+        public string? Error { get; set; }
+    }
+
     private readonly OpenAIKeyService _keyService;
     private readonly OpenAIImageService _imageService;
+    private readonly OpenAIVisionService _visionService;
     private readonly OwnerModeService _ownerMode;
     private readonly View _normalContent;
     private readonly Editor _promptEditor;
@@ -52,15 +65,31 @@ public class ChatGptImageGenerationPage : ContentPage
     private readonly Button _cancelQueueButton;
     private readonly Button _clearQueueButton;
     private readonly VerticalStackLayout _batchGalleryStack;
+    private string? _renameFolderPath;
+    private List<RenamePreviewItem>? _renamePreview;
+    private bool _renameDryRunRunning;
+    private bool _renameExecuteRunning;
+    private readonly Label _renameFolderLabel;
+    private readonly Label _renameCountLabel;
+    private readonly Label _renameProgressLabel;
+    private readonly Button _renamePickFolderButton;
+    private readonly Button _renameDryRunButton;
+    private readonly Button _renameExecuteButton;
+    private readonly VerticalStackLayout _renamePreviewStack;
     private readonly List<QueuedPrompt> _queue = new();
     private bool _isGenerating;
     private bool _isQueueRunning;
     private bool _cancelQueueRequested;
 
-    public ChatGptImageGenerationPage(OpenAIKeyService keyService, OpenAIImageService imageService, OwnerModeService ownerMode)
+    public ChatGptImageGenerationPage(
+        OpenAIKeyService keyService,
+        OpenAIImageService imageService,
+        OwnerModeService ownerMode,
+        OpenAIVisionService? visionService = null)
     {
         _keyService = keyService;
         _imageService = imageService;
+        _visionService = visionService ?? new OpenAIVisionService(keyService);
         _ownerMode = ownerMode;
         Title = "ChatGPT Image Generation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -227,6 +256,59 @@ public class ChatGptImageGenerationPage : ContentPage
             Spacing = 12,
             IsVisible = false
         };
+        _renameFolderLabel = new Label
+        {
+            Text = "Folder: (not set)",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+        _renameCountLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        };
+        _renameProgressLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#1565C0"),
+            IsVisible = false
+        };
+        _renamePickFolderButton = new Button
+        {
+            Text = "Pick folder",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 40
+        };
+        _renamePickFolderButton.Clicked += OnPickRenameFolderClicked;
+        _renameDryRunButton = new Button
+        {
+            Text = "Run Dry-Run",
+            BackgroundColor = Color.FromArgb("#00838F"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42,
+            IsEnabled = false
+        };
+        _renameDryRunButton.Clicked += OnRunDryRunClicked;
+        _renameExecuteButton = new Button
+        {
+            Text = "Execute Renames",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42,
+            IsEnabled = false
+        };
+        _renameExecuteButton.Clicked += OnExecuteRenamesClicked;
+        _renamePreviewStack = new VerticalStackLayout
+        {
+            Spacing = 6
+        };
 
         _normalContent = new ScrollView
         {
@@ -278,7 +360,8 @@ public class ChatGptImageGenerationPage : ContentPage
                     },
                     _batchPasteFrame,
                     _queueFrame,
-                    _batchGalleryStack
+                    _batchGalleryStack,
+                    CreateBulkRenameSection()
                 }
             }
         };
@@ -297,6 +380,7 @@ public class ChatGptImageGenerationPage : ContentPage
 
         Content = _normalContent;
         await RefreshKeyStatusAsync();
+        await LoadRenameLastFolderAsync();
     }
 
     private View CreateLockedContent()
@@ -441,6 +525,71 @@ public class ChatGptImageGenerationPage : ContentPage
                     _viewPricingButton,
                     _queueItemsStack,
                     buttonGrid
+                }
+            }
+        };
+    }
+
+    private Frame CreateBulkRenameSection()
+    {
+        var folderRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 10
+        };
+        folderRow.Add(_renameFolderLabel, 0, 0);
+        folderRow.Add(_renamePickFolderButton, 1, 0);
+
+        var actionsGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 10
+        };
+        actionsGrid.Add(_renameDryRunButton, 0, 0);
+        actionsGrid.Add(_renameExecuteButton, 1, 0);
+
+        return new Frame
+        {
+            Padding = 14,
+            CornerRadius = 8,
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            HasShadow = false,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Bulk Image Rename via Vision",
+                        FontSize = 16,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#222")
+                    },
+                    new Label
+                    {
+                        Text = "Pick a folder. The vision API suggests a descriptive filename for each image at the top level. Review the preview, then execute the renames on disk.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    folderRow,
+                    _renameCountLabel,
+                    _renameProgressLabel,
+                    actionsGrid,
+                    new ScrollView
+                    {
+                        HeightRequest = 280,
+                        Content = _renamePreviewStack
+                    }
                 }
             }
         };
@@ -733,6 +882,345 @@ public class ChatGptImageGenerationPage : ContentPage
         RefreshQueueDisplay();
     }
 
+    private async Task LoadRenameLastFolderAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_renameFolderPath))
+            return;
+
+        try
+        {
+            var last = await SecureStorage.GetAsync(RenameLastFolderKey);
+            if (!string.IsNullOrWhiteSpace(last) && Directory.Exists(last))
+                SetRenameFolder(last);
+        }
+        catch
+        {
+        }
+    }
+
+    private async void OnPickRenameFolderClicked(object? sender, EventArgs e)
+    {
+        if (_renameDryRunRunning || _renameExecuteRunning)
+            return;
+
+        string? last = null;
+        try
+        {
+            last = await SecureStorage.GetAsync(RenameLastFolderKey);
+        }
+        catch
+        {
+        }
+
+        var picked = await DisplayPromptAsync(
+            "Pick folder",
+            "Paste folder path:",
+            initialValue: last ?? _renameFolderPath ?? "");
+
+        if (string.IsNullOrWhiteSpace(picked))
+            return;
+
+        picked = picked.Trim().Trim('"');
+        if (!Directory.Exists(picked))
+        {
+            await DisplayAlert("Folder not found", "That folder does not exist.", "OK");
+            return;
+        }
+
+        SetRenameFolder(picked);
+
+        try
+        {
+            await SecureStorage.SetAsync(RenameLastFolderKey, picked);
+        }
+        catch
+        {
+        }
+    }
+
+    private void SetRenameFolder(string folderPath)
+    {
+        _renameFolderPath = folderPath;
+        var count = CountRenameableImages(folderPath);
+        _renameFolderLabel.Text = $"Folder: {folderPath}";
+        _renameCountLabel.Text = count == 0
+            ? "No images found at top level."
+            : $"Found {count} image{(count == 1 ? "" : "s")}. Estimated cost: ${count * VisionRenameEstimatedCostUsd:0.000} USD.";
+
+        _renameDryRunButton.IsEnabled = count > 0 && !_renameDryRunRunning && !_renameExecuteRunning;
+        _renamePreview = null;
+        _renamePreviewStack.Children.Clear();
+        _renameExecuteButton.IsEnabled = false;
+    }
+
+    private async void OnRunDryRunClicked(object? sender, EventArgs e)
+    {
+        if (_renameDryRunRunning || _renameExecuteRunning)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_renameFolderPath) || !Directory.Exists(_renameFolderPath))
+            return;
+
+        if (!await _keyService.IsKeyConfiguredAsync())
+        {
+            await DisplayAlert("API key required", "Configure API key first.", "OK");
+            return;
+        }
+
+        var files = GetRenameableImageFiles(_renameFolderPath);
+        if (files.Count == 0)
+        {
+            await DisplayAlert("No images", "No images found at the top level of that folder.", "OK");
+            return;
+        }
+
+        var confirm = await DisplayAlert(
+            "Confirm dry-run",
+            $"Send {files.Count} image(s) to OpenAI Vision for an estimated ${files.Count * VisionRenameEstimatedCostUsd:0.000} USD?\n\n" +
+            "(Estimated at $0.001 per image. Actual cost may vary.)",
+            "Run",
+            "Cancel");
+
+        if (!confirm)
+            return;
+
+        _renameDryRunRunning = true;
+        _renamePickFolderButton.IsEnabled = false;
+        _renameDryRunButton.IsEnabled = false;
+        _renameExecuteButton.IsEnabled = false;
+        _renameProgressLabel.IsVisible = true;
+        _renamePreview = new List<RenamePreviewItem>();
+        _renamePreviewStack.Children.Clear();
+
+        try
+        {
+            for (var i = 0; i < files.Count; i++)
+            {
+                var path = files[i];
+                _renameProgressLabel.Text = $"Naming {i + 1}/{files.Count}...";
+                await Task.Yield();
+
+                var result = await _visionService.SuggestImageNameAsync(path);
+                var item = new RenamePreviewItem
+                {
+                    OriginalPath = path,
+                    OriginalName = Path.GetFileName(path),
+                    Extension = Path.GetExtension(path),
+                    Selected = result.Success,
+                    SuggestedName = result.Success ? result.SuggestedName! : "",
+                    Error = result.Success ? null : result.ErrorMessage
+                };
+
+                _renamePreview.Add(item);
+                _renamePreviewStack.Children.Add(BuildPreviewRow(item));
+            }
+        }
+        finally
+        {
+            _renameDryRunRunning = false;
+            _renamePickFolderButton.IsEnabled = true;
+            _renameDryRunButton.IsEnabled = true;
+            _renameProgressLabel.IsVisible = false;
+            _renameExecuteButton.IsEnabled = _renamePreview?.Any(p => p.Selected) == true;
+        }
+
+        await DisplayAlert(
+            "Dry-run complete",
+            $"Generated {_renamePreview.Count(p => p.Selected)} name suggestions. Review and edit, then Execute.",
+            "OK");
+    }
+
+    private View BuildPreviewRow(RenamePreviewItem item)
+    {
+        var checkbox = new CheckBox
+        {
+            IsChecked = item.Selected,
+            VerticalOptions = LayoutOptions.Center
+        };
+        checkbox.CheckedChanged += (_, e) =>
+        {
+            item.Selected = e.Value;
+            _renameExecuteButton.IsEnabled = _renamePreview?.Any(p => p.Selected) == true;
+        };
+
+        var original = new Label
+        {
+            Text = item.OriginalName,
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            VerticalOptions = LayoutOptions.Center,
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+
+        var arrow = new Label
+        {
+            Text = "→",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#999"),
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var entry = new Entry
+        {
+            Text = item.SuggestedName,
+            FontSize = 12,
+            HorizontalOptions = LayoutOptions.Fill,
+            IsEnabled = item.Error == null
+        };
+        entry.TextChanged += (_, e) => item.SuggestedName = e.NewTextValue ?? "";
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) },
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) }
+            },
+            ColumnSpacing = 6,
+            Padding = new Thickness(0, 4)
+        };
+        grid.Add(checkbox, 0, 0);
+        grid.Add(original, 1, 0);
+        grid.Add(arrow, 2, 0);
+        grid.Add(entry, 3, 0);
+
+        if (item.Error == null)
+            return grid;
+
+        return new VerticalStackLayout
+        {
+            Spacing = 0,
+            Children =
+            {
+                grid,
+                new Label
+                {
+                    Text = $"Error: {item.Error}",
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#C62828"),
+                    Margin = new Thickness(30, 0, 0, 4)
+                }
+            }
+        };
+    }
+
+    private async void OnExecuteRenamesClicked(object? sender, EventArgs e)
+    {
+        if (_renameExecuteRunning || _renameDryRunRunning)
+            return;
+
+        if (_renamePreview == null || string.IsNullOrWhiteSpace(_renameFolderPath))
+            return;
+
+        var selected = _renamePreview
+            .Where(p => p.Selected && !string.IsNullOrWhiteSpace(p.SuggestedName))
+            .ToList();
+
+        if (selected.Count == 0)
+        {
+            await DisplayAlert("Nothing to rename", "No files selected with a non-empty suggested name.", "OK");
+            return;
+        }
+
+        var confirm = await DisplayAlert(
+            "Rename files on disk?",
+            $"Rename {selected.Count} file(s) on disk in:\n{_renameFolderPath}\n\nThis cannot be undone automatically.",
+            "Rename",
+            "Cancel");
+
+        if (!confirm)
+            return;
+
+        _renameExecuteRunning = true;
+        _renamePickFolderButton.IsEnabled = false;
+        _renameDryRunButton.IsEnabled = false;
+        _renameExecuteButton.IsEnabled = false;
+        _renameProgressLabel.IsVisible = true;
+
+        var folder = _renameFolderPath;
+        var renamed = 0;
+        var skipped = 0;
+        var failed = 0;
+        var failures = new List<string>();
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                for (var i = 0; i < selected.Count; i++)
+                {
+                    var item = selected[i];
+                    var current = i + 1;
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        _renameProgressLabel.Text = $"Renaming {current}/{selected.Count}...";
+                    });
+
+                    try
+                    {
+                        var sanitized = SanitizeForFilename(item.SuggestedName);
+                        if (string.IsNullOrWhiteSpace(sanitized))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
+                        var newPath = Path.Combine(folder, sanitized + item.Extension);
+                        var collisionCounter = 2;
+                        while (File.Exists(newPath) &&
+                               !string.Equals(newPath, item.OriginalPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (collisionCounter > 100)
+                                throw new InvalidOperationException("Could not find an available filename.");
+
+                            newPath = Path.Combine(folder, $"{sanitized}_{collisionCounter}{item.Extension}");
+                            collisionCounter++;
+                        }
+
+                        if (string.Equals(newPath, item.OriginalPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
+                        File.Move(item.OriginalPath, newPath);
+                        renamed++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failed++;
+                        failures.Add($"{item.OriginalName}: {ex.Message}");
+                    }
+                }
+            });
+        }
+        finally
+        {
+            _renameExecuteRunning = false;
+            _renamePickFolderButton.IsEnabled = true;
+            _renameDryRunButton.IsEnabled = true;
+            _renameProgressLabel.IsVisible = false;
+            _renamePreview = null;
+            _renamePreviewStack.Children.Clear();
+            _renameExecuteButton.IsEnabled = false;
+        }
+
+        var summary = $"Renamed: {renamed}\nSkipped: {skipped}\nFailed: {failed}";
+        if (failures.Count > 0)
+        {
+            summary += "\n\nFailures:\n" + string.Join("\n", failures.Take(10));
+            if (failures.Count > 10)
+                summary += $"\n...and {failures.Count - 10} more.";
+        }
+
+        await DisplayAlert("Rename complete", summary, "OK");
+
+        if (Directory.Exists(folder))
+            SetRenameFolder(folder);
+    }
+
     private void RefreshQueueDisplay()
     {
         if (_queueFrame == null || _batchPasteFrame == null || _queueItemsStack == null)
@@ -964,6 +1452,58 @@ public class ChatGptImageGenerationPage : ContentPage
         }
 
         return output.ToString();
+    }
+
+    private static int CountRenameableImages(string folder)
+    {
+        try
+        {
+            return GetRenameableImageFiles(folder).Count;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static List<string> GetRenameableImageFiles(string folder)
+    {
+        var exts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+        };
+
+        try
+        {
+            return Directory.EnumerateFiles(folder, "*", SearchOption.TopDirectoryOnly)
+                .Where(p => exts.Contains(Path.GetExtension(p)))
+                .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch
+        {
+            return new List<string>();
+        }
+    }
+
+    private static string SanitizeForFilename(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return "";
+
+        var s = raw.Trim().ToLowerInvariant();
+        s = s.Trim('"', '\'', '`');
+        s = Regex.Replace(s, @"\s+", "_");
+        s = Regex.Replace(s, @"[^a-z0-9_\-]", "");
+        s = Regex.Replace(s, @"_+", "_");
+        s = s.Trim('_', '-');
+        if (s.Length > 80)
+            s = s.Substring(0, 80).TrimEnd('_', '-');
+
+        return s;
     }
 
     private static async Task<(string Path, bool SavedToDownloads)> SaveImageToDownloadsAsync(byte[] imageBytes, string filename)

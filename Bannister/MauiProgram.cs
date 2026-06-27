@@ -89,6 +89,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<CustomGameService>();
         builder.Services.AddSingleton<OpenAIKeyService>();
         builder.Services.AddSingleton<OpenAIImageService>();
+        builder.Services.AddSingleton<OpenAIVisionService>();
         builder.Services.AddSingleton<OwnerModeService>();
         builder.Services.AddSingleton<WebsiteProjectService>();
         builder.Services.AddSingleton<WebsiteIdeaService>();
