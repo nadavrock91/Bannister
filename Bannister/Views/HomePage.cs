@@ -3,6 +3,7 @@ using Bannister.Models;
 using ConversationPractice.Services;
 using ConversationPractice.Views;
 using System.Globalization;
+using System.IO;
 
 namespace Bannister.Views;
 
@@ -816,8 +817,13 @@ public class HomePage : ContentPage
             _lblWelcome.Text = $"Welcome, {_auth.CurrentUsername}";
             await LoadDataAsync();
             if (!IsHomePromptRunActive(promptRunId)) return;
-            await ShowHomePromptManagerIfNeededAsync(promptRunId);
+            bool homePromptShown = await ShowHomePromptManagerIfNeededAsync(promptRunId);
             if (!IsHomePromptRunActive(promptRunId)) return;
+            if (!homePromptShown)
+            {
+                await CheckAndShowHabitScoldingPopupAsync();
+                if (!IsHomePromptRunActive(promptRunId)) return;
+            }
 
             if (!_introChecked)
             {
@@ -980,27 +986,29 @@ public class HomePage : ContentPage
         _loadingOverlay.IsVisible = false;
     }
 
-    private async Task ShowHomePromptManagerIfNeededAsync(int promptRunId)
+    private async Task<bool> ShowHomePromptManagerIfNeededAsync(int promptRunId)
     {
+        bool promptShown = false;
         while (IsHomePromptRunActive(promptRunId))
         {
             var pendingPrompts = await GetPendingHomePromptDefinitionsAsync(promptRunId);
             if (pendingPrompts.Count == 0)
-                return;
+                return promptShown;
 
             var result = await HomePromptManagerPage.ShowAsync(Navigation, pendingPrompts);
+            promptShown = true;
             if (result == null)
-                return;
+                return true;
 
             if (!IsHomePromptRunActive(promptRunId))
-                return;
+                return true;
 
             if (result.Action == HomePromptManagerResult.AddressAll)
             {
                 foreach (var queuedPrompt in pendingPrompts)
                 {
                     if (!IsHomePromptRunActive(promptRunId))
-                        return;
+                        return true;
 
                     var currentPrompt = (await GetPendingHomePromptDefinitionsAsync(promptRunId))
                         .FirstOrDefault(p => p.Id == queuedPrompt.Id);
@@ -1023,6 +1031,228 @@ public class HomePage : ContentPage
                 }
             }
         }
+
+        return promptShown;
+    }
+
+    private async Task CheckAndShowHabitScoldingPopupAsync()
+    {
+        try
+        {
+            if (!await NewHabitService.IsScoldingMasterEnabledAsync(_auth.CurrentUsername))
+                return;
+
+            var habitService = Application.Current?.Handler?.MauiContext?.Services.GetService<NewHabitService>();
+            if (habitService == null)
+                return;
+
+            var stagnantAllowances = await habitService.GetStagnantAllowancesAsync(_auth.CurrentUsername);
+            if (stagnantAllowances.Count == 0)
+                return;
+
+            var allowance = stagnantAllowances[0];
+            await ShowHabitScoldingOverlayAsync(habitService, allowance);
+            await habitService.MarkScoldedAsync(allowance.Id);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking habit scolding popup: {ex.Message}");
+        }
+    }
+
+    private async Task ShowHabitScoldingOverlayAsync(NewHabitService habitService, HabitAllowance allowance)
+    {
+        if (Content is not Grid root)
+            return;
+
+        var overlay = await BuildHabitScoldingOverlayAsync(habitService, allowance);
+        root.Children.Add(overlay);
+    }
+
+    private async Task<Grid> BuildHabitScoldingOverlayAsync(NewHabitService habitService, HabitAllowance allowance)
+    {
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            InputTransparent = false
+        };
+
+        var title = $"Stuck on {allowance.Frequency} habits";
+        int daysAtOne = allowance.CapAtOneSince.HasValue
+            ? (int)(DateTime.UtcNow.Date - allowance.CapAtOneSince.Value.Date).TotalDays
+            : 0;
+
+        var image = new Image
+        {
+            Source = await ResolveHabitScoldImageSourceAsync(allowance),
+            WidthRequest = 240,
+            HeightRequest = 240,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        var headerGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8
+        };
+
+        headerGrid.Add(new Label
+        {
+            Text = title,
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#263238"),
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+
+        var menuButton = new Button
+        {
+            Text = "⋮",
+            FontSize = 20,
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#263238"),
+            Padding = 0,
+            WidthRequest = 36,
+            HeightRequest = 36
+        };
+        headerGrid.Add(menuButton, 1, 0);
+
+        var okButton = new Button
+        {
+            Text = "OK",
+            BackgroundColor = Color.FromArgb("#4CAF50"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 46
+        };
+
+        var stack = new VerticalStackLayout
+        {
+            Spacing = 16,
+            Children =
+            {
+                headerGrid,
+                image,
+                new Label
+                {
+                    Text = $"Your {allowance.Frequency} habit allowance has been stuck at 1 for {daysAtOne} days. Time to break the cycle.",
+                    FontSize = 14,
+                    TextColor = Color.FromArgb("#37474F"),
+                    HorizontalTextAlignment = TextAlignment.Center
+                },
+                okButton
+            }
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            Padding = 20,
+            CornerRadius = 12,
+            WidthRequest = 360,
+            HasShadow = true,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
+            Content = stack
+        };
+
+        overlay.Children.Add(card);
+
+        okButton.Clicked += (s, e) => RemoveHomeOverlay(overlay);
+        menuButton.Clicked += async (s, e) =>
+        {
+            string disableLabel = $"Disable scolding for {allowance.Frequency}";
+            string result = await DisplayActionSheet(
+                "Scolding options",
+                "Cancel",
+                null,
+                "Change image for this allowance",
+                "Set as new default scold image",
+                disableLabel);
+
+            if (result == "Change image for this allowance")
+            {
+                var path = await PickAndCopyScoldImageAsync($"scold_habit_{allowance.Id}");
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    await habitService.SetScoldImageAsync(allowance.Id, path);
+                    allowance.ScoldImagePath = path;
+                    RemoveHomeOverlay(overlay);
+                    if (Content is Grid root)
+                        root.Children.Add(await BuildHabitScoldingOverlayAsync(habitService, allowance));
+                }
+            }
+            else if (result == "Set as new default scold image")
+            {
+                var path = await PickAndCopyScoldImageAsync("scold_habit_default_user");
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    await NewHabitService.SetDefaultScoldImagePathAsync(_auth.CurrentUsername, path);
+                    RemoveHomeOverlay(overlay);
+                    if (Content is Grid root)
+                        root.Children.Add(await BuildHabitScoldingOverlayAsync(habitService, allowance));
+                }
+            }
+            else if (result == disableLabel)
+            {
+                await habitService.SetScoldingDisabledAsync(allowance.Id, true);
+                RemoveHomeOverlay(overlay);
+            }
+        };
+
+        return overlay;
+    }
+
+    private async Task<ImageSource> ResolveHabitScoldImageSourceAsync(HabitAllowance allowance)
+    {
+        if (!string.IsNullOrWhiteSpace(allowance.ScoldImagePath) && File.Exists(allowance.ScoldImagePath))
+            return ImageSource.FromFile(allowance.ScoldImagePath);
+
+        var defaultPath = await NewHabitService.GetDefaultScoldImagePathAsync(_auth.CurrentUsername);
+        if (!string.IsNullOrWhiteSpace(defaultPath) && File.Exists(defaultPath))
+            return ImageSource.FromFile(defaultPath);
+
+        return "scold_default.png";
+    }
+
+    private async Task<string?> PickAndCopyScoldImageAsync(string filePrefix)
+    {
+        try
+        {
+            var result = await FilePicker.PickAsync(new PickOptions
+            {
+                PickerTitle = "Pick scold image",
+                FileTypes = FilePickerFileType.Images
+            });
+
+            if (result == null)
+                return null;
+
+            var extension = Path.GetExtension(result.FileName);
+            var fileName = $"{filePrefix}_{Guid.NewGuid().ToString().Substring(0, 8)}{extension}";
+            var destination = Path.Combine(FileSystem.AppDataDirectory, fileName);
+
+            using var source = await result.OpenReadAsync();
+            using var target = File.Create(destination);
+            await source.CopyToAsync(target);
+            return destination;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error picking scold image: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static void RemoveHomeOverlay(Grid overlay)
+    {
+        if (overlay.Parent is Grid root)
+            root.Children.Remove(overlay);
     }
 
     private async Task<List<HomePromptDefinition>> GetPendingHomePromptDefinitionsAsync(int promptRunId)

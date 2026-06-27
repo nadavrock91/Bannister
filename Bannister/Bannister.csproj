@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>net8.0-android;net8.0-windows10.0.19041.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
@@ -62,6 +62,7 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Resources\Images\misc\" />
+	  <Folder Include="Resources\Images\motivation\" />
 	  <Folder Include="Security\" />
 	</ItemGroup>
 	<ItemGroup>

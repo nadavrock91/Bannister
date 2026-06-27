@@ -115,4 +115,16 @@ public class HabitAllowance
     
     // Whether the current week's slots have been filled
     public bool IsFilledThisWeek { get; set; } = false;
+
+    // When this allowance first reached the floor of 1. Null when cap is above 1.
+    public DateTime? CapAtOneSince { get; set; }
+
+    // Optional custom scold image for this frequency. Empty means use default.
+    public string ScoldImagePath { get; set; } = "";
+
+    // Per-frequency opt-out for habit scolding.
+    public bool ScoldingDisabled { get; set; } = false;
+
+    // Date/time this allowance was last scolded. Used for once-per-day cadence.
+    public DateTime? LastScoldedOn { get; set; }
 }

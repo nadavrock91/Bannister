@@ -1,4 +1,5 @@
 using Bannister.Models;
+using SQLite;
 
 namespace Bannister.Services;
 
@@ -18,7 +19,12 @@ public class NewHabitService
     public async Task<HabitAllowance> GetOrCreateAllowanceAsync(string username, string frequency = "Daily")
     {
         var conn = await _db.GetConnectionAsync();
-        if (!_db.IsReadOnly) await conn.CreateTableAsync<HabitAllowance>();
+        if (!_db.IsReadOnly)
+        {
+            await conn.CreateTableAsync<HabitAllowance>();
+            await EnsureHabitAllowanceMigrationsAsync(conn);
+            await BackfillCapAtOneSinceAsync(conn, username);
+        }
         
         var allowance = await conn.Table<HabitAllowance>()
             .Where(a => a.Username == username && a.Frequency == frequency)
@@ -31,12 +37,51 @@ public class NewHabitService
                 Username = username,
                 Frequency = frequency,
                 CurrentAllowance = 1,
-                HighestAllowance = 1
+                HighestAllowance = 1,
+                CapAtOneSince = DateTime.UtcNow
             };
             await conn.InsertAsync(allowance);
         }
 
         return allowance;
+    }
+
+    private async Task EnsureHabitAllowanceMigrationsAsync(ISQLiteAsyncConnection conn)
+    {
+        try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN CapAtOneSince TEXT"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN ScoldImagePath TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN ScoldingDisabled INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN LastScoldedOn TEXT"); } catch { }
+    }
+
+    private static string GetCapAtOneBackfillKey(string username) => $"bannister_habit_capatonesince_backfill_done_{username}";
+
+    private async Task BackfillCapAtOneSinceAsync(ISQLiteAsyncConnection conn, string username)
+    {
+        try
+        {
+            var markerKey = GetCapAtOneBackfillKey(username);
+            var marker = await SecureStorage.GetAsync(markerKey);
+            if (marker == "true")
+                return;
+
+            var allowances = await conn.Table<HabitAllowance>()
+                .Where(a => a.Username == username && a.CurrentAllowance == 1 && a.CapAtOneSince == null)
+                .ToListAsync();
+
+            var now = DateTime.UtcNow;
+            foreach (var allowance in allowances)
+            {
+                allowance.CapAtOneSince = now;
+                await conn.UpdateAsync(allowance);
+            }
+
+            await SecureStorage.SetAsync(markerKey, "true");
+        }
+        catch
+        {
+            // Leave marker unset so the backfill can retry later.
+        }
     }
 
     public async Task<int> GetAvailableSlotsAsync(string username, string frequency = "Daily")
@@ -49,7 +94,11 @@ public class NewHabitService
 
     public async Task UpdateAllowanceAsync(HabitAllowance allowance)
     {
+        if (_db.IsReadOnly) return;
         var conn = await _db.GetConnectionAsync();
+        var existing = await conn.FindAsync<HabitAllowance>(allowance.Id);
+        var oldCap = existing?.CurrentAllowance ?? allowance.CurrentAllowance;
+        ApplyCapAtOneTransition(allowance, oldCap);
         if (allowance.CurrentAllowance > allowance.HighestAllowance)
         {
             allowance.HighestAllowance = allowance.CurrentAllowance;
@@ -65,6 +114,7 @@ public class NewHabitService
     {
         var allowance = await GetOrCreateAllowanceAsync(username, frequency);
         allowance.CurrentAllowance++;
+        allowance.CapAtOneSince = null;
         if (allowance.CurrentAllowance > allowance.HighestAllowance)
         {
             allowance.HighestAllowance = allowance.CurrentAllowance;
@@ -168,7 +218,9 @@ public class NewHabitService
             if (activeHabits.Count < allowance.CurrentAllowance)
             {
                 // Not filled - reduce allowance
+                var oldCap = allowance.CurrentAllowance;
                 allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
+                ApplyCapAtOneTransition(allowance, oldCap);
                 System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Daily allowance reduced to {allowance.CurrentAllowance} due to unfilled slots");
             }
         }
@@ -226,6 +278,127 @@ public class NewHabitService
 
         bool isFilled = activeHabits.Count >= allowance.CurrentAllowance;
         return (!isFilled, activeHabits.Count, allowance.CurrentAllowance);
+    }
+
+    public async Task<List<HabitAllowance>> GetStagnantAllowancesAsync(string username)
+    {
+        var conn = await _db.GetConnectionAsync();
+        if (!_db.IsReadOnly)
+        {
+            await conn.CreateTableAsync<HabitAllowance>();
+            await EnsureHabitAllowanceMigrationsAsync(conn);
+            await BackfillCapAtOneSinceAsync(conn, username);
+        }
+
+        var today = DateTime.UtcNow.Date;
+        var allowances = await conn.Table<HabitAllowance>()
+            .Where(a => a.Username == username && !a.ScoldingDisabled && a.CapAtOneSince != null)
+            .ToListAsync();
+
+        return allowances
+            .Where(a =>
+            {
+                int threshold = GetScoldingThresholdDays(a.Frequency);
+                int daysAtOne = (int)(today - a.CapAtOneSince!.Value.Date).TotalDays;
+                bool notScoldedToday = !a.LastScoldedOn.HasValue || a.LastScoldedOn.Value.Date < today;
+                return a.CurrentAllowance == 1 && daysAtOne >= threshold && notScoldedToday;
+            })
+            .OrderBy(a => a.CapAtOneSince)
+            .ToList();
+    }
+
+    public async Task MarkScoldedAsync(int allowanceId)
+    {
+        if (_db.IsReadOnly) return;
+        var conn = await _db.GetConnectionAsync();
+        var allowance = await conn.FindAsync<HabitAllowance>(allowanceId);
+        if (allowance == null) return;
+        allowance.LastScoldedOn = DateTime.UtcNow;
+        await conn.UpdateAsync(allowance);
+    }
+
+    public async Task SetScoldImageAsync(int allowanceId, string imagePath)
+    {
+        if (_db.IsReadOnly) return;
+        var conn = await _db.GetConnectionAsync();
+        var allowance = await conn.FindAsync<HabitAllowance>(allowanceId);
+        if (allowance == null) return;
+        allowance.ScoldImagePath = imagePath ?? "";
+        await conn.UpdateAsync(allowance);
+    }
+
+    public async Task SetScoldingDisabledAsync(int allowanceId, bool disabled)
+    {
+        if (_db.IsReadOnly) return;
+        var conn = await _db.GetConnectionAsync();
+        var allowance = await conn.FindAsync<HabitAllowance>(allowanceId);
+        if (allowance == null) return;
+        allowance.ScoldingDisabled = disabled;
+        if (disabled)
+            allowance.LastScoldedOn = null;
+        await conn.UpdateAsync(allowance);
+    }
+
+    public static async Task<bool> IsScoldingMasterEnabledAsync(string username)
+    {
+        try
+        {
+            var value = await SecureStorage.GetAsync(GetScoldingMasterEnabledKey(username));
+            return value != "false";
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    public static async Task SetScoldingMasterEnabledAsync(string username, bool enabled)
+    {
+        try { await SecureStorage.SetAsync(GetScoldingMasterEnabledKey(username), enabled ? "true" : "false"); } catch { }
+    }
+
+    public static async Task<string?> GetDefaultScoldImagePathAsync(string username)
+    {
+        try
+        {
+            var value = await SecureStorage.GetAsync(GetDefaultScoldImageKey(username));
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public static async Task SetDefaultScoldImagePathAsync(string username, string? path)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                SecureStorage.Remove(GetDefaultScoldImageKey(username));
+            else
+                await SecureStorage.SetAsync(GetDefaultScoldImageKey(username), path);
+        }
+        catch { }
+    }
+
+    private static string GetScoldingMasterEnabledKey(string username) => $"bannister_habit_scolding_master_enabled_{username}";
+
+    private static string GetDefaultScoldImageKey(string username) => $"bannister_habit_default_scold_image_{username}";
+
+    private static int GetScoldingThresholdDays(string frequency) =>
+        string.Equals(frequency, "Daily", StringComparison.OrdinalIgnoreCase) ? 14 : 60;
+
+    private static void ApplyCapAtOneTransition(HabitAllowance allowance, int oldCap)
+    {
+        if (allowance.CurrentAllowance > 1)
+        {
+            allowance.CapAtOneSince = null;
+        }
+        else if (allowance.CurrentAllowance == 1 && oldCap > 1)
+        {
+            allowance.CapAtOneSince = DateTime.UtcNow;
+        }
     }
 
     #endregion
@@ -693,7 +866,9 @@ public class NewHabitService
 
         // Decrease frequency-specific allowance (minimum 1)
         var allowance = await GetOrCreateAllowanceAsync(habit.Username, habit.Frequency);
+        var oldCap = allowance.CurrentAllowance;
         allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
+        ApplyCapAtOneTransition(allowance, oldCap);
         allowance.TotalFailed++;
         await UpdateAllowanceAsync(allowance);
 
@@ -721,7 +896,9 @@ public class NewHabitService
 
         // Decrease frequency-specific allowance (minimum 1)
         var allowance = await GetOrCreateAllowanceAsync(habit.Username, habit.Frequency);
+        var oldCap = allowance.CurrentAllowance;
         allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
+        ApplyCapAtOneTransition(allowance, oldCap);
         allowance.TotalFailed++;
         await UpdateAllowanceAsync(allowance);
 
