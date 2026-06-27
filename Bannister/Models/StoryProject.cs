@@ -85,6 +85,20 @@ public class StoryProject
     public int FacebookOneMinuteViews { get; set; } = 0;
 
     public DateTime? FacebookStatsCapturedAt { get; set; }
+
+    // === TIKTOK FEEDBACK SNAPSHOT ===
+
+    public int TikTokViews { get; set; } = 0;
+
+    public int TikTokLikes { get; set; } = 0;
+
+    public int TikTokComments { get; set; } = 0;
+
+    public int TikTokAverageWatchTimeSeconds { get; set; } = 0;
+
+    public double TikTokPercentWatchedFullVideo { get; set; } = 0.0;
+
+    public DateTime? TikTokStatsCapturedAt { get; set; }
     
     [Ignore]
     public bool IsActive => Status == "active";

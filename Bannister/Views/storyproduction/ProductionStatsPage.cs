@@ -312,6 +312,7 @@ public class ProductionStatsPage : ContentPage
         {
             stack.Children.Add(BuildYouTubeFeedbackSection(project));
             stack.Children.Add(BuildFacebookFeedbackSection(project));
+            stack.Children.Add(BuildTikTokFeedbackSection(project));
         }
 
         card.Content = stack;
@@ -461,6 +462,80 @@ public class ProductionStatsPage : ContentPage
         return section;
     }
 
+    private View BuildTikTokFeedbackSection(StoryProject project)
+    {
+        var section = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        section.Children.Add(new Label
+        {
+            Text = "TikTok Feedback",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#FE2C55")
+        });
+
+        DateTime? capturedAt = project.TikTokStatsCapturedAt;
+        bool hasStats = capturedAt.HasValue;
+        section.Children.Add(new Label
+        {
+            Text = hasStats ? $"Last updated {capturedAt:yyyy-MM-dd HH:mm}" : "No stats entered yet.",
+            FontSize = 11,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var metricsGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8,
+            RowSpacing = 8
+        };
+
+        AddMetricTile(metricsGrid, 0, 0, "Views", hasStats ? FormatLargeNumber(project.TikTokViews) : "—");
+        AddMetricTile(metricsGrid, 0, 1, "Likes", hasStats ? FormatLargeNumber(project.TikTokLikes) : "—");
+        AddMetricTile(metricsGrid, 0, 2, "Comments", hasStats ? FormatLargeNumber(project.TikTokComments) : "—");
+        AddMetricTile(metricsGrid, 1, 0, "Avg watch time", hasStats ? FormatDurationFromSeconds(project.TikTokAverageWatchTimeSeconds) : "—");
+        AddMetricTile(metricsGrid, 1, 1, "% full video", hasStats ? FormatPercent(project.TikTokPercentWatchedFullVideo) : "—");
+        section.Children.Add(metricsGrid);
+
+        var editBtn = new Button
+        {
+            Text = "Edit TikTok Stats",
+            BackgroundColor = Color.FromArgb("#FFE6EA"),
+            TextColor = Color.FromArgb("#FE2C55"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        editBtn.Clicked += async (s, e) =>
+        {
+            if (_storyService.IsReadOnly)
+            {
+                await ShowReadOnlyAlertAsync();
+                return;
+            }
+
+            await ShowEditTikTokStatsAsync(project);
+        };
+        section.Children.Add(editBtn);
+
+        return section;
+    }
+
     private void AddMetricTile(Grid grid, int row, int col, string label, string value)
     {
         var frame = new Frame
@@ -563,15 +638,14 @@ public class ProductionStatsPage : ContentPage
         });
 
         bool hasStats = project.YouTubeStatsCapturedAt.HasValue;
-        var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeViews.ToString(CultureInfo.InvariantCulture) : "", "Views", Keyboard.Numeric);
-        var likesEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeLikes.ToString(CultureInfo.InvariantCulture) : "", "Likes", Keyboard.Numeric);
-        var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeComments.ToString(CultureInfo.InvariantCulture) : "", "Comments", Keyboard.Numeric);
-        var durationEntry = CreateYouTubeStatsEntry(hasStats ? FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds) : "", "MM:SS", Keyboard.Default);
+        var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeViews.ToString(CultureInfo.InvariantCulture) : "0", "Views", Keyboard.Numeric);
+        var likesEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeLikes.ToString(CultureInfo.InvariantCulture) : "0", "Likes", Keyboard.Numeric);
+        var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeComments.ToString(CultureInfo.InvariantCulture) : "0", "Comments", Keyboard.Numeric);
 
         stack.Children.Add(CreateYouTubeStatsInputRow("Views", viewsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Likes", likesEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Comments", commentsEntry));
-        stack.Children.Add(CreateYouTubeStatsInputRow("Average view duration", durationEntry));
+        stack.Children.Add(CreateDurationInputRow("Average view duration", hasStats ? project.YouTubeAverageViewDurationSeconds : 0, out var ytMinutesEntry, out var ytSecondsEntry));
 
         var footer = new Grid
         {
@@ -654,9 +728,9 @@ public class ProductionStatsPage : ContentPage
             int likes = ParseNonNegativeIntegerOrZero(likesEntry.Text);
             int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
 
-            if (!TryParseDurationToSeconds(durationEntry.Text ?? "", out int durationSeconds))
+            if (!TryReadMinutesSeconds(ytMinutesEntry, ytSecondsEntry, out int durationSeconds))
             {
-                await DisplayAlert("Invalid Duration", "Average view duration must be in MM:SS format or just seconds.", "OK");
+                await DisplayAlert("Invalid Duration", "Minutes and seconds must be non-negative numbers; seconds must be 0-59.", "OK");
                 return;
             }
 
@@ -717,17 +791,16 @@ public class ProductionStatsPage : ContentPage
         });
 
         bool hasStats = project.FacebookStatsCapturedAt.HasValue;
-        var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookViews.ToString(CultureInfo.InvariantCulture) : "", "Views", Keyboard.Numeric);
-        var likesEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookLikes.ToString(CultureInfo.InvariantCulture) : "", "Likes", Keyboard.Numeric);
-        var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookComments.ToString(CultureInfo.InvariantCulture) : "", "Comments", Keyboard.Numeric);
-        var durationEntry = CreateYouTubeStatsEntry(hasStats ? FormatDurationFromSeconds(project.FacebookAverageViewDurationSeconds) : "", "MM:SS", Keyboard.Default);
-        var threeSecondViewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookThreeSecondViews.ToString(CultureInfo.InvariantCulture) : "", "3-second views", Keyboard.Numeric);
-        var oneMinuteViewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookOneMinuteViews.ToString(CultureInfo.InvariantCulture) : "", "1-minute views", Keyboard.Numeric);
+        var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookViews.ToString(CultureInfo.InvariantCulture) : "0", "Views", Keyboard.Numeric);
+        var likesEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookLikes.ToString(CultureInfo.InvariantCulture) : "0", "Likes", Keyboard.Numeric);
+        var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookComments.ToString(CultureInfo.InvariantCulture) : "0", "Comments", Keyboard.Numeric);
+        var threeSecondViewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookThreeSecondViews.ToString(CultureInfo.InvariantCulture) : "0", "3-second views", Keyboard.Numeric);
+        var oneMinuteViewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookOneMinuteViews.ToString(CultureInfo.InvariantCulture) : "0", "1-minute views", Keyboard.Numeric);
 
         stack.Children.Add(CreateYouTubeStatsInputRow("Views", viewsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Likes", likesEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("Comments", commentsEntry));
-        stack.Children.Add(CreateYouTubeStatsInputRow("Average view duration", durationEntry));
+        stack.Children.Add(CreateDurationInputRow("Average view duration", hasStats ? project.FacebookAverageViewDurationSeconds : 0, out var fbMinutesEntry, out var fbSecondsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("3-second views", threeSecondViewsEntry));
         stack.Children.Add(CreateYouTubeStatsInputRow("1-minute views", oneMinuteViewsEntry));
 
@@ -814,15 +887,185 @@ public class ProductionStatsPage : ContentPage
             int threeSecondViews = ParseNonNegativeIntegerOrZero(threeSecondViewsEntry.Text);
             int oneMinuteViews = ParseNonNegativeIntegerOrZero(oneMinuteViewsEntry.Text);
 
-            if (!TryParseDurationToSeconds(durationEntry.Text ?? "", out int durationSeconds))
+            if (!TryReadMinutesSeconds(fbMinutesEntry, fbSecondsEntry, out int durationSeconds))
             {
-                await DisplayAlert("Invalid Duration", "Average view duration must be in MM:SS format or just seconds.", "OK");
+                await DisplayAlert("Invalid Duration", "Minutes and seconds must be non-negative numbers; seconds must be 0-59.", "OK");
                 return;
             }
 
             try
             {
                 await _storyService.SetFacebookStatsAsync(project.Id, views, likes, comments, durationSeconds, threeSecondViews, oneMinuteViews);
+                CloseOverlay();
+                await LoadStatsAsync();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
+        };
+
+        if (Content is Grid pageGrid)
+        {
+            Grid.SetRowSpan(overlay, 2);
+            pageGrid.Children.Add(overlay);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task ShowEditTikTokStatsAsync(StoryProject project)
+    {
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            InputTransparent = false
+        };
+
+        var card = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent,
+            WidthRequest = 520,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 12 };
+        stack.Children.Add(new Label
+        {
+            Text = "Edit TikTok Stats",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#FE2C55")
+        });
+        stack.Children.Add(new Label
+        {
+            Text = project.Name,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        bool hasStats = project.TikTokStatsCapturedAt.HasValue;
+        var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokViews.ToString(CultureInfo.InvariantCulture) : "0", "Views", Keyboard.Numeric);
+        var likesEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokLikes.ToString(CultureInfo.InvariantCulture) : "0", "Likes", Keyboard.Numeric);
+        var commentsEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokComments.ToString(CultureInfo.InvariantCulture) : "0", "Comments", Keyboard.Numeric);
+        var percentEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokPercentWatchedFullVideo.ToString("0.0", CultureInfo.InvariantCulture) : "0.0", "0-100", Keyboard.Numeric);
+
+        stack.Children.Add(CreateYouTubeStatsInputRow("Views", viewsEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Likes", likesEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Comments", commentsEntry));
+        stack.Children.Add(CreateDurationInputRow("Average watch time", hasStats ? project.TikTokAverageWatchTimeSeconds : 0, out var ttMinutesEntry, out var ttSecondsEntry));
+        stack.Children.Add(CreateYouTubeStatsInputRow("Percent watched full video", percentEntry));
+
+        var footer = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 10,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        var clearBtn = new Button
+        {
+            Text = "Clear stats",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#FE2C55"),
+            FontSize = 12,
+            Padding = new Thickness(8, 0)
+        };
+        Grid.SetColumn(clearBtn, 0);
+        footer.Children.Add(clearBtn);
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#E0E0E0"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            Padding = new Thickness(18, 8)
+        };
+        Grid.SetColumn(cancelBtn, 2);
+        footer.Children.Add(cancelBtn);
+
+        var saveBtn = new Button
+        {
+            Text = "Save",
+            BackgroundColor = Color.FromArgb("#FE2C55"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(22, 8)
+        };
+        Grid.SetColumn(saveBtn, 3);
+        footer.Children.Add(saveBtn);
+
+        stack.Children.Add(footer);
+        card.Content = stack;
+        overlay.Children.Add(card);
+
+        void CloseOverlay()
+        {
+            if (Content is Grid mainGrid)
+                mainGrid.Children.Remove(overlay);
+        }
+
+        cancelBtn.Clicked += (s, e) => CloseOverlay();
+
+        clearBtn.Clicked += async (s, e) =>
+        {
+            bool confirm = await DisplayAlert("Clear TikTok stats?", "All five values will be reset to empty.", "Clear", "Cancel");
+            if (!confirm) return;
+
+            try
+            {
+                await _storyService.ClearTikTokStatsAsync(project.Id);
+                CloseOverlay();
+                await LoadStatsAsync();
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
+        };
+
+        saveBtn.Clicked += async (s, e) =>
+        {
+            int views = ParseNonNegativeIntegerOrZero(viewsEntry.Text);
+            int likes = ParseNonNegativeIntegerOrZero(likesEntry.Text);
+            int comments = ParseNonNegativeIntegerOrZero(commentsEntry.Text);
+
+            if (!TryReadMinutesSeconds(ttMinutesEntry, ttSecondsEntry, out int averageWatchTimeSeconds))
+            {
+                await DisplayAlert("Invalid Duration", "Minutes and seconds must be non-negative numbers; seconds must be 0-59.", "OK");
+                return;
+            }
+
+            string percentText = (percentEntry.Text ?? "").Trim();
+            double percentWatchedFullVideo = 0.0;
+            if (!string.IsNullOrEmpty(percentText)
+                && !double.TryParse(percentText, NumberStyles.Float, CultureInfo.InvariantCulture, out percentWatchedFullVideo))
+            {
+                await DisplayAlert("Invalid Percent", "Percent must be a number between 0 and 100.", "OK");
+                return;
+            }
+
+            if (percentWatchedFullVideo < 0.0 || percentWatchedFullVideo > 100.0)
+            {
+                await DisplayAlert("Invalid Percent", "Percent must be a number between 0 and 100.", "OK");
+                return;
+            }
+
+            try
+            {
+                await _storyService.SetTikTokStatsAsync(project.Id, views, likes, comments, averageWatchTimeSeconds, percentWatchedFullVideo);
                 CloseOverlay();
                 await LoadStatsAsync();
             }
@@ -878,6 +1121,70 @@ public class ProductionStatsPage : ContentPage
         return row;
     }
 
+    private View CreateDurationInputRow(string label, int initialSeconds, out Entry minutesEntry, out Entry secondsEntry)
+    {
+        initialSeconds = Math.Max(0, initialSeconds);
+
+        minutesEntry = new Entry
+        {
+            Text = (initialSeconds / 60).ToString(CultureInfo.InvariantCulture),
+            Placeholder = "Min",
+            Keyboard = Keyboard.Numeric,
+            WidthRequest = 70,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        secondsEntry = new Entry
+        {
+            Text = (initialSeconds % 60).ToString(CultureInfo.InvariantCulture),
+            Placeholder = "Sec",
+            Keyboard = Keyboard.Numeric,
+            WidthRequest = 70,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var inputRow = new HorizontalStackLayout
+        {
+            Spacing = 6,
+            HorizontalOptions = LayoutOptions.End,
+            Children =
+            {
+                minutesEntry,
+                new Label
+                {
+                    Text = ":",
+                    FontSize = 16,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#333"),
+                    VerticalOptions = LayoutOptions.Center
+                },
+                secondsEntry
+            }
+        };
+
+        var row = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+
+        row.Children.Add(new Label
+        {
+            Text = label,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        Grid.SetColumn(inputRow, 1);
+        row.Children.Add(inputRow);
+        return row;
+    }
+
     private static int ParseNonNegativeIntegerOrZero(string? input)
     {
         if (!int.TryParse((input ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
@@ -886,48 +1193,28 @@ public class ProductionStatsPage : ContentPage
         return Math.Max(0, value);
     }
 
-    private static bool TryParseDurationToSeconds(string input, out int seconds)
+    private static bool TryReadMinutesSeconds(Entry minutesEntry, Entry secondsEntry, out int totalSeconds)
     {
-        seconds = 0;
-        string trimmed = (input ?? "").Trim();
-        if (string.IsNullOrEmpty(trimmed))
-            return true;
+        totalSeconds = 0;
 
-        if (!trimmed.Contains(':'))
-        {
-            if (!int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out int plainSeconds))
-                return false;
-            if (plainSeconds < 0)
-                return false;
+        string minutesText = (minutesEntry.Text ?? "").Trim();
+        string secondsText = (secondsEntry.Text ?? "").Trim();
 
-            seconds = plainSeconds;
-            return true;
-        }
+        int minutes = 0;
+        int seconds = 0;
 
-        var parts = trimmed.Split(':');
-        if (parts.Length < 2 || parts.Length > 3)
+        if (!string.IsNullOrEmpty(minutesText)
+            && !int.TryParse(minutesText, NumberStyles.Integer, CultureInfo.InvariantCulture, out minutes))
             return false;
 
-        var values = new int[parts.Length];
-        for (int i = 0; i < parts.Length; i++)
-        {
-            if (!int.TryParse(parts[i].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out values[i]))
-                return false;
-            if (values[i] < 0)
-                return false;
-        }
-
-        int secondsPart = values[^1];
-        if (secondsPart < 0 || secondsPart > 59)
+        if (!string.IsNullOrEmpty(secondsText)
+            && !int.TryParse(secondsText, NumberStyles.Integer, CultureInfo.InvariantCulture, out seconds))
             return false;
 
-        if (parts.Length == 2)
-        {
-            seconds = values[0] * 60 + secondsPart;
-            return true;
-        }
+        if (minutes < 0 || seconds < 0 || seconds > 59)
+            return false;
 
-        seconds = values[0] * 3600 + values[1] * 60 + secondsPart;
+        totalSeconds = minutes * 60 + seconds;
         return true;
     }
 
@@ -946,6 +1233,11 @@ public class ProductionStatsPage : ContentPage
     private static string FormatLargeNumber(int value)
     {
         return Math.Max(0, value).ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatPercent(double value)
+    {
+        return Math.Clamp(value, 0.0, 100.0).ToString("0.0", CultureInfo.InvariantCulture) + "%";
     }
 
     private static string FormatCountWithPercent(int count, int denominator, bool statsCaptured)

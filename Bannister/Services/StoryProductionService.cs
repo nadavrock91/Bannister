@@ -48,6 +48,12 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookThreeSecondViews INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookOneMinuteViews INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN FacebookStatsCapturedAt TEXT"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokViews INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokLikes INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokComments INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokAverageWatchTimeSeconds INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokPercentWatchedFullVideo REAL DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokStatsCapturedAt TEXT"); } catch { }
     }
 
     public async Task<List<StoryProject>> GetProjectsAsync(string username)
@@ -239,6 +245,42 @@ public class StoryProductionService
         project.FacebookThreeSecondViews = 0;
         project.FacebookOneMinuteViews = 0;
         project.FacebookStatsCapturedAt = null;
+
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetTikTokStatsAsync(int projectId, int views, int likes, int comments, int averageWatchTimeSeconds, double percentWatchedFullVideo)
+    {
+        EnsureWritable();
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.TikTokViews = Math.Max(0, views);
+        project.TikTokLikes = Math.Max(0, likes);
+        project.TikTokComments = Math.Max(0, comments);
+        project.TikTokAverageWatchTimeSeconds = Math.Max(0, averageWatchTimeSeconds);
+        project.TikTokPercentWatchedFullVideo = Math.Clamp(percentWatchedFullVideo, 0.0, 100.0);
+        project.TikTokStatsCapturedAt = DateTime.UtcNow;
+
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(project);
+        return true;
+    }
+
+    public async Task<bool> ClearTikTokStatsAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.TikTokViews = 0;
+        project.TikTokLikes = 0;
+        project.TikTokComments = 0;
+        project.TikTokAverageWatchTimeSeconds = 0;
+        project.TikTokPercentWatchedFullVideo = 0.0;
+        project.TikTokStatsCapturedAt = null;
 
         var conn = await _db.GetConnectionAsync();
         await conn.UpdateAsync(project);
