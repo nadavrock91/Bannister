@@ -101,6 +101,6 @@ public class ImageProductionHubPage : ContentPage
 
     private async void OnHooksCreationTapped(object? sender, TappedEventArgs e)
     {
-        await Navigation.PushAsync(new HooksCreationPage());
+        await Navigation.PushAsync(new HooksCreationPage(_auth));
     }
 }
