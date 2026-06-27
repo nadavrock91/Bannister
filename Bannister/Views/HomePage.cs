@@ -2337,9 +2337,7 @@ public class HomePage : ContentPage
 
     private async void OnImageProductionClicked(object? sender, EventArgs e)
     {
-        var service = new ImageProductionService(_db);
-        var page = new ImageProductionPage(_auth, service);
-        await Navigation.PushAsync(page);
+        await Navigation.PushAsync(new ImageProductionHubPage(_auth, _db));
     }
 
     private async void OnImageEditClicked(object? sender, EventArgs e)
