@@ -441,6 +441,25 @@ public class ProductionStatsPage : ContentPage
             return;
         }
 
+        var action = await DisplayActionSheet(
+            "Export Candidates",
+            "Cancel",
+            null,
+            "Full (with visual prep)",
+            "Script only (LLM estimates clips)");
+
+        if (action == "Full (with visual prep)")
+        {
+            await ExportCandidatesFullAsync(candidates);
+        }
+        else if (action == "Script only (LLM estimates clips)")
+        {
+            await ExportCandidatesScriptOnlyAsync(candidates);
+        }
+    }
+
+    private async Task ExportCandidatesFullAsync(List<StoryProject> candidates)
+    {
         var sb = new StringBuilder();
         sb.AppendLine("NEXT PRODUCTION SELECTION");
         sb.AppendLine();
@@ -500,7 +519,67 @@ public class ProductionStatsPage : ContentPage
         }
 
         await Clipboard.SetTextAsync(sb.ToString());
-        await DisplayAlert("Copied", $"Copied {candidates.Count} candidate stories to clipboard. Paste into your LLM of choice for next-production recommendation.", "OK");
+        await DisplayAlert("Copied", $"Copied {candidates.Count} candidate stories (full) to clipboard. Paste into your LLM of choice for next-production recommendation.", "OK");
+    }
+
+    private async Task ExportCandidatesScriptOnlyAsync(List<StoryProject> candidates)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("NEXT PRODUCTION SELECTION (SCRIPT-ONLY MODE)");
+        sb.AppendLine();
+        sb.AppendLine("I have several stories I've published as talking-head narrations and gathered initial stats on. I haven't yet produced the full visual versions of any of these. Help me decide which to produce next.");
+        sb.AppendLine();
+        sb.AppendLine("For each candidate below I've included:");
+        sb.AppendLine("- The script (line-by-line narration text only)");
+        sb.AppendLine("- Stats from the talking-head publish (views, likes, comments, retention metrics across YouTube, Facebook, TikTok)");
+        sb.AppendLine();
+        sb.AppendLine("Your task, in order:");
+        sb.AppendLine();
+        sb.AppendLine("1. FILTER BY STATS SIGNAL. Identify the candidates with the strongest audience reception. Weight retention metrics (Facebook 1-minute view percent, TikTok percent watched full video) higher than raw view counts, since high views with low retention is weaker signal than moderate views with strong retention.");
+        sb.AppendLine();
+        sb.AppendLine("2. AMONG THE FILTERED CANDIDATES, EVALUATE STORY STRENGTH. Read each script carefully. Assess narrative power, emotional impact, visual potential (how vividly the story would translate to imagery), thematic resonance, and clarity of hook. Strong stats with a weak story is a worse production bet than moderate stats with a powerful story.");
+        sb.AppendLine();
+        sb.AppendLine("3. ESTIMATE CLIP COUNT PER CANDIDATE. Each candidate has a line count. Estimate the number of visual clips required to produce the story by reading the script and judging how many distinct visual moments each line implies. A simple narration line typically maps to 1 clip; lines with multiple beats or scene shifts may need 2-3; abstract or transitional lines may share a clip with adjacent lines. Provide your estimate as a number.");
+        sb.AppendLine();
+        sb.AppendLine("4. PRESENT RESULTS. For each top candidate, give me a structured assessment in this format:");
+        sb.AppendLine();
+        sb.AppendLine("CANDIDATE: {name}");
+        sb.AppendLine("Stats summary: {one-line summary of strongest signal}");
+        sb.AppendLine("Story strength: {1-5 rating} - {one sentence on why}");
+        sb.AppendLine("Estimated clips: {number}");
+        sb.AppendLine("Production cost vs. signal: {Low/Medium/High}");
+        sb.AppendLine("Recommendation rank: {1, 2, 3, etc.}");
+        sb.AppendLine("Reasoning: {2-3 sentences on the full picture}");
+        sb.AppendLine();
+        sb.AppendLine("Give me at least 3 candidates. If fewer than 3 are worth recommending, say so and explain why. Order by your recommended production sequence (best to make next at top).");
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            var project = candidates[i];
+            var statsSourceDraft = await _storyService.ResolveStatsSourceDraftAsync(project) ?? project;
+            var lines = (await _storyService.GetLinesAsync(statsSourceDraft.Id))
+                .OrderBy(l => l.LineOrder)
+                .ToList();
+
+            sb.AppendLine();
+            sb.AppendLine("================================================================");
+            sb.AppendLine($"CANDIDATE {i + 1}: {project.Name}");
+            sb.AppendLine($"Category: {(string.IsNullOrWhiteSpace(project.ProjectCategory) ? "Uncategorized" : project.ProjectCategory.Trim())}");
+            sb.AppendLine($"Stats source draft: {GetStatsSourceDraftLabel(project, statsSourceDraft)}");
+            sb.AppendLine($"Line count: {lines.Count}");
+            sb.AppendLine();
+            sb.AppendLine(ProjectStatsRendering.BuildStatsExportBlock(project));
+            sb.AppendLine();
+            sb.AppendLine("--- SCRIPT ---");
+
+            foreach (var line in lines)
+            {
+                sb.AppendLine($"Line {line.LineOrder}: {line.LineText}");
+            }
+        }
+
+        await Clipboard.SetTextAsync(sb.ToString());
+        await DisplayAlert("Copied", $"Copied {candidates.Count} candidate stories (script only) to clipboard. Paste into your LLM of choice for next-production recommendation.", "OK");
     }
 
     private string GetStatsSourceDraftLabel(StoryProject project, StoryProject resolvedProject)
