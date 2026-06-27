@@ -1,6 +1,7 @@
 using Bannister.Services;
 using Bannister.Models;
 using System.Globalization;
+using System.Text;
 
 namespace Bannister.Views;
 
@@ -14,6 +15,11 @@ public class ProductionStatsPage : ContentPage
     
     private VerticalStackLayout _statsStack;
     private Grid _loadingOverlay;
+    private Picker _categoryPicker;
+    private bool _isLoadingCategories;
+    private string _selectedCategory = "All";
+
+    private static string GetProjectCategoryFilterKey(string username) => $"story_production_category_filter_{username}";
 
     public ProductionStatsPage(AuthService auth, StoryProductionService storyService)
     {
@@ -77,6 +83,34 @@ public class ProductionStatsPage : ContentPage
 
         mainStack.Children.Add(headerRow);
 
+        var categoryRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 10
+        };
+        categoryRow.Children.Add(new Label
+        {
+            Text = "Category:",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#555"),
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        _categoryPicker = new Picker
+        {
+            Title = "Category",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        _categoryPicker.SelectedIndexChanged += OnCategoryFilterChanged;
+        Grid.SetColumn(_categoryPicker, 1);
+        categoryRow.Children.Add(_categoryPicker);
+        mainStack.Children.Add(categoryRow);
+
         _statsStack = new VerticalStackLayout { Spacing = 12 };
         mainStack.Children.Add(_statsStack);
 
@@ -113,6 +147,9 @@ public class ProductionStatsPage : ContentPage
 
             var allProjects = await _storyService.GetProjectsAsync(_auth.CurrentUsername);
             var originalProjects = allProjects.Where(p => p.ParentProjectId == null).OrderByDescending(p => p.CreatedAt).ToList();
+            await LoadSelectedCategoryAsync();
+            RefreshCategoryPicker(originalProjects);
+            var filteredProjects = FilterProjectsBySelectedCategory(originalProjects);
 
             if (originalProjects.Count == 0)
             {
@@ -126,26 +163,34 @@ public class ProductionStatsPage : ContentPage
                 return;
             }
 
-            // Published section
-            var published = originalProjects.Where(p => p.IsPublished).ToList();
-            if (published.Count > 0)
+            // Produced section
+            var produced = filteredProjects.Where(p => p.IsProduced).ToList();
+            _statsStack.Children.Add(CreateSectionHeader($"✅ Produced ({produced.Count})"));
+            if (produced.Count > 0)
             {
-                _statsStack.Children.Add(CreateSectionHeader($"✅ Published ({published.Count})"));
-                foreach (var project in published)
+                foreach (var project in produced)
                 {
                     _statsStack.Children.Add(await BuildProjectCardAsync(project));
                 }
             }
-
-            // Not yet published section
-            var notPublished = originalProjects.Where(p => !p.IsPublished).ToList();
-            if (notPublished.Count > 0)
+            else
             {
-                _statsStack.Children.Add(CreateSectionHeader($"🚧 Not Yet Published ({notPublished.Count})"));
-                foreach (var project in notPublished)
+                _statsStack.Children.Add(CreateEmptyFilterLabel());
+            }
+
+            // Not produced section
+            var notProduced = filteredProjects.Where(p => !p.IsProduced).ToList();
+            _statsStack.Children.Add(CreateNotProducedSectionHeader(notProduced.Count));
+            if (notProduced.Count > 0)
+            {
+                foreach (var project in notProduced)
                 {
                     _statsStack.Children.Add(await BuildProjectCardAsync(project));
                 }
+            }
+            else
+            {
+                _statsStack.Children.Add(CreateEmptyFilterLabel());
             }
         }
         catch (Exception ex)
@@ -174,28 +219,150 @@ public class ProductionStatsPage : ContentPage
         };
     }
 
-    private async Task<Frame> BuildProjectCardAsync(StoryProject project)
+    private View CreateNotProducedSectionHeader(int count)
     {
-        var lines = await _storyService.GetLinesAsync(project.Id);
-        int clipCount = 0;
-        foreach (var line in lines)
+        var grid = new Grid
         {
-            var shots = _storyService.GetShots(line);
-            clipCount += shots.Count > 0 ? shots.Count : 1;
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            Margin = new Thickness(0, 8, 0, 4)
+        };
+
+        grid.Children.Add(new Label
+        {
+            Text = $"🚧 Not Produced ({count})",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        var exportBtn = new Button
+        {
+            Text = "📤 Export for LLM",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            FontSize = 12,
+            Padding = new Thickness(10, 4)
+        };
+        exportBtn.Clicked += async (s, e) => await ExportNotProducedCandidatesAsync();
+        Grid.SetColumn(exportBtn, 1);
+        grid.Children.Add(exportBtn);
+
+        return grid;
+    }
+
+    private Label CreateEmptyFilterLabel()
+    {
+        return new Label
+        {
+            Text = _selectedCategory == "All" ? "(none)" : "(none in this category)",
+            FontSize = 12,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#777"),
+            Margin = new Thickness(4, 0, 0, 8)
+        };
+    }
+
+    private async Task LoadSelectedCategoryAsync()
+    {
+        try
+        {
+            var saved = await SecureStorage.GetAsync(GetProjectCategoryFilterKey(_auth.CurrentUsername));
+            if (!string.IsNullOrWhiteSpace(saved))
+                _selectedCategory = saved;
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SaveSelectedCategoryAsync()
+    {
+        try
+        {
+            await SecureStorage.SetAsync(GetProjectCategoryFilterKey(_auth.CurrentUsername), _selectedCategory);
+        }
+        catch
+        {
+        }
+    }
+
+    private void RefreshCategoryPicker(List<StoryProject> projects)
+    {
+        _isLoadingCategories = true;
+        var previous = _selectedCategory;
+
+        var categories = projects
+            .Select(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim())
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(c => c).First())
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        _categoryPicker.Items.Clear();
+        _categoryPicker.Items.Add("All");
+        foreach (var category in categories)
+            _categoryPicker.Items.Add(category);
+
+        int index = _categoryPicker.Items.IndexOf(previous);
+        if (index < 0)
+        {
+            _selectedCategory = "All";
+            index = 0;
         }
 
+        _categoryPicker.SelectedIndex = index;
+        _isLoadingCategories = false;
+    }
+
+    private List<StoryProject> FilterProjectsBySelectedCategory(List<StoryProject> projects)
+    {
+        if (_selectedCategory == "All")
+            return projects.ToList();
+
+        if (_selectedCategory == "Uncategorized")
+            return projects.Where(p => string.IsNullOrWhiteSpace(p.ProjectCategory)).ToList();
+
+        return projects
+            .Where(p => string.Equals(p.ProjectCategory?.Trim(), _selectedCategory, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private async void OnCategoryFilterChanged(object? sender, EventArgs e)
+    {
+        if (_isLoadingCategories || _categoryPicker.SelectedIndex < 0)
+            return;
+
+        _selectedCategory = _categoryPicker.Items[_categoryPicker.SelectedIndex];
+        await SaveSelectedCategoryAsync();
+        await LoadStatsAsync();
+    }
+
+    private Task<Frame> BuildProjectCardAsync(StoryProject project)
+    {
         var card = new Frame
         {
             Padding = 14,
             CornerRadius = 10,
-            BackgroundColor = project.IsPublished ? Color.FromArgb("#E8F5E9") : Colors.White,
-            BorderColor = project.IsPublished ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E0E0E0"),
+            BackgroundColor = project.IsProduced ? Color.FromArgb("#E8F5E9") : Colors.White,
+            BorderColor = project.IsProduced ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E0E0E0"),
             HasShadow = true
         };
 
+        var tapGesture = new TapGestureRecognizer();
+        tapGesture.Tapped += async (s, e) =>
+        {
+            await Navigation.PushAsync(new ProductionStatsDetailPage(_storyService, _auth, project.Id));
+        };
+        card.GestureRecognizers.Add(tapGesture);
+
         var stack = new VerticalStackLayout { Spacing = 8 };
 
-        // Title row with status and settings
         var titleRow = new Grid
         {
             ColumnDefinitions =
@@ -205,396 +372,162 @@ public class ProductionStatsPage : ContentPage
             }
         };
 
-        var titleStack = new HorizontalStackLayout { Spacing = 8 };
-        titleStack.Children.Add(new Label
-        {
-            Text = project.IsPublished ? "✅" : "🚧",
-            FontSize = 16
-        });
-        titleStack.Children.Add(new Label
+        titleRow.Children.Add(new Label
         {
             Text = project.Name,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#333")
         });
-        Grid.SetColumn(titleStack, 0);
-        titleRow.Children.Add(titleStack);
 
-        var settingsBtn = new Button
+        var chevron = new Label
         {
-            Text = "⚙️",
-            BackgroundColor = Colors.Transparent,
-            FontSize = 16,
-            WidthRequest = 36,
-            HeightRequest = 36,
-            Padding = 0
+            Text = ">",
+            FontSize = 18,
+            TextColor = Color.FromArgb("#999"),
+            VerticalOptions = LayoutOptions.Center
         };
-        settingsBtn.Clicked += async (s, e) => await ShowProjectSettingsAsync(project);
-        Grid.SetColumn(settingsBtn, 1);
-        titleRow.Children.Add(settingsBtn);
+        Grid.SetColumn(chevron, 1);
+        titleRow.Children.Add(chevron);
 
         stack.Children.Add(titleRow);
 
-        // Stats grid
-        var statsGrid = new Grid
+        var datesRow = new Label
         {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            },
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Auto)
-            },
-            RowSpacing = 4,
-            ColumnSpacing = 12
+            Text = $"Started {project.CreatedAt:MMM d, yyyy}  •  Published {(project.IsPublished && project.PublishedAt.HasValue ? project.PublishedAt.Value.ToString("MMM d, yyyy") : "—")}",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#666")
         };
-
-        // Row 0: Start Date | Published Date
-        AddStatCell(statsGrid, 0, 0, "Started", project.CreatedAt.ToString("MMM d, yyyy"));
-        if (project.IsPublished && project.PublishedAt.HasValue)
-        {
-            AddStatCell(statsGrid, 0, 1, "Published", project.PublishedAt.Value.ToString("MMM d, yyyy"));
-        }
-        else
-        {
-            AddStatCell(statsGrid, 0, 1, "Published", "—");
-        }
-
-        // Row 1: Days Taken | Projected Days
-        int actualDays = project.ActualDays;
-        string daysText = project.IsPublished ? $"{actualDays} days" : $"{actualDays} days (ongoing)";
-        AddStatCell(statsGrid, 1, 0, "Duration", daysText);
-        
-        if (project.ProjectedDays > 0)
-        {
-            string projDaysText = $"{project.ProjectedDays} days";
-            if (project.IsPublished)
-            {
-                int diff = actualDays - project.ProjectedDays;
-                if (diff > 0) projDaysText += $" (+{diff})";
-                else if (diff < 0) projDaysText += $" ({diff})";
-            }
-            AddStatCell(statsGrid, 1, 1, "Projected", projDaysText);
-        }
-        else
-        {
-            AddStatCell(statsGrid, 1, 1, "Projected", "—");
-        }
-
-        // Row 2: Clips | Projected Clips
-        string clipsText = project.IsPublished ? $"{project.FinalClipCount} clips" : $"{clipCount} clips";
-        AddStatCell(statsGrid, 2, 0, "Clips", clipsText);
-        
-        if (project.ProjectedClipCount > 0)
-        {
-            string projClipsText = $"{project.ProjectedClipCount} clips";
-            if (project.IsPublished && project.FinalClipCount > 0)
-            {
-                int diff = project.FinalClipCount - project.ProjectedClipCount;
-                if (diff > 0) projClipsText += $" (+{diff})";
-                else if (diff < 0) projClipsText += $" ({diff})";
-            }
-            AddStatCell(statsGrid, 2, 1, "Projected", projClipsText);
-        }
-        else
-        {
-            AddStatCell(statsGrid, 2, 1, "Projected", "—");
-        }
-
-        stack.Children.Add(statsGrid);
+        stack.Children.Add(datesRow);
 
         if (project.IsPublished)
         {
-            stack.Children.Add(BuildYouTubeFeedbackSection(project));
-            stack.Children.Add(BuildFacebookFeedbackSection(project));
-            stack.Children.Add(BuildTikTokFeedbackSection(project));
+            var platformRow = new HorizontalStackLayout { Spacing = 8 };
+            bool hasAnyStats = project.YouTubeStatsCapturedAt.HasValue || project.FacebookStatsCapturedAt.HasValue || project.TikTokStatsCapturedAt.HasValue;
+            int totalViews = project.YouTubeViews + project.FacebookViews + project.TikTokViews;
+            platformRow.Children.Add(CreatePlatformPill("Total", hasAnyStats ? ProjectStatsRendering.FormatLargeNumber(totalViews) : "—", "#ECEFF1", "#263238"));
+            platformRow.Children.Add(CreatePlatformPill("YT", project.YouTubeStatsCapturedAt.HasValue ? ProjectStatsRendering.FormatLargeNumber(project.YouTubeViews) : "—", "#FFEBEE", "#C62828"));
+            platformRow.Children.Add(CreatePlatformPill("FB", project.FacebookStatsCapturedAt.HasValue ? ProjectStatsRendering.FormatLargeNumber(project.FacebookViews) : "—", "#E7F3FF", "#1877F2"));
+            platformRow.Children.Add(CreatePlatformPill("TT", project.TikTokStatsCapturedAt.HasValue ? ProjectStatsRendering.FormatLargeNumber(project.TikTokViews) : "—", "#FFE6EA", "#FE2C55"));
+            stack.Children.Add(platformRow);
+        }
+        else
+        {
+            stack.Children.Add(new Label
+            {
+                Text = "Not yet published",
+                FontSize = 12,
+                FontAttributes = FontAttributes.Italic,
+                TextColor = Color.FromArgb("#666")
+            });
         }
 
         card.Content = stack;
-        return card;
+        return Task.FromResult(card);
     }
 
-    private View BuildYouTubeFeedbackSection(StoryProject project)
+    private async Task ExportNotProducedCandidatesAsync()
     {
-        var section = new VerticalStackLayout
-        {
-            Spacing = 8,
-            Margin = new Thickness(0, 8, 0, 0)
-        };
+        var allProjects = await _storyService.GetProjectsAsync(_auth.CurrentUsername);
+        var parentProjects = allProjects.Where(p => p.ParentProjectId == null).ToList();
+        var candidates = FilterProjectsBySelectedCategory(parentProjects)
+            .Where(p => !p.IsProduced && p.IsPublished)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToList();
 
-        section.Children.Add(new Label
+        if (candidates.Count == 0)
         {
-            Text = "YouTube Feedback",
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#C62828")
-        });
+            await DisplayAlert("No candidates", "No candidate stories available. Mark some projects as Published to gather stats first.", "OK");
+            return;
+        }
 
-        DateTime? capturedAt = project.YouTubeStatsCapturedAt;
-        bool hasStats = capturedAt.HasValue;
-        section.Children.Add(new Label
-        {
-            Text = hasStats ? $"Last updated {capturedAt:yyyy-MM-dd HH:mm}" : "No stats entered yet.",
-            FontSize = 11,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666")
-        });
+        var sb = new StringBuilder();
+        sb.AppendLine("NEXT PRODUCTION SELECTION");
+        sb.AppendLine();
+        sb.AppendLine("I have several stories I've published as talking-head narrations and gathered initial stats on. I haven't yet produced the full visual versions of any of these. Help me decide which to produce next, weighing initial reception against expected production cost (longer/more complex stories cost more to produce visually).");
+        sb.AppendLine();
+        sb.AppendLine("For each candidate below I've included:");
+        sb.AppendLine("- The story content (line by line, with visual context and shot breakdown if drafted)");
+        sb.AppendLine("- Stats from the talking-head publish (views, likes, comments, etc. across YouTube, Facebook, TikTok)");
+        sb.AppendLine("- Projected production days if set");
+        sb.AppendLine();
+        sb.AppendLine("Rank these stories by which to produce next. Give your top 3 with reasoning. Consider both signal strength (which stories audiences responded to) and production efficiency (which give the best return on production effort).");
 
-        var metricsGrid = new Grid
+        for (int i = 0; i < candidates.Count; i++)
         {
-            ColumnDefinitions =
+            var project = candidates[i];
+            var statsSourceDraft = await _storyService.ResolveStatsSourceDraftAsync(project) ?? project;
+            var lines = await _storyService.GetLinesAsync(statsSourceDraft.Id);
+
+            sb.AppendLine();
+            sb.AppendLine("================================================================");
+            sb.AppendLine($"CANDIDATE {i + 1}: {project.Name}");
+            sb.AppendLine($"Category: {(string.IsNullOrWhiteSpace(project.ProjectCategory) ? "Uncategorized" : project.ProjectCategory.Trim())}");
+            sb.AppendLine($"Stats source draft: {GetStatsSourceDraftLabel(project, statsSourceDraft)}");
+            sb.AppendLine($"Projected production days: {(project.ProjectedDays > 0 ? project.ProjectedDays.ToString(CultureInfo.InvariantCulture) : "not estimated")}");
+            sb.AppendLine();
+            sb.AppendLine(ProjectStatsRendering.BuildStatsExportBlock(project));
+            sb.AppendLine();
+            sb.AppendLine("--- STORY ---");
+
+            foreach (var line in lines.OrderBy(l => l.LineOrder))
             {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            },
-            ColumnSpacing = 8
-        };
+                sb.AppendLine($"Line {line.LineOrder}");
+                sb.AppendLine($"  Script: {line.LineText}");
+                if (!string.IsNullOrWhiteSpace(line.VisualDescription))
+                    sb.AppendLine($"  Visual: {line.VisualDescription}");
+                if (!string.IsNullOrWhiteSpace(line.ImagePrompt))
+                    sb.AppendLine($"  ImagePrompt: {line.ImagePrompt}");
+                if (!string.IsNullOrWhiteSpace(line.VideoPrompt))
+                    sb.AppendLine($"  VideoPrompt: {line.VideoPrompt}");
 
-        AddMetricTile(metricsGrid, 0, 0, "Views", hasStats ? FormatLargeNumber(project.YouTubeViews) : "—");
-        AddMetricTile(metricsGrid, 0, 1, "Likes", hasStats ? FormatLargeNumber(project.YouTubeLikes) : "—");
-        AddMetricTile(metricsGrid, 0, 2, "Comments", hasStats ? FormatLargeNumber(project.YouTubeComments) : "—");
-        AddMetricTile(metricsGrid, 0, 3, "Avg duration", hasStats ? FormatDurationFromSeconds(project.YouTubeAverageViewDurationSeconds) : "—");
-        section.Children.Add(metricsGrid);
-
-        var editBtn = new Button
-        {
-            Text = "Edit YouTube Stats",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
-            CornerRadius = 8,
-            FontSize = 13,
-            HorizontalOptions = LayoutOptions.Fill
-        };
-        editBtn.Clicked += async (s, e) =>
-        {
-            if (_storyService.IsReadOnly)
-            {
-                await ShowReadOnlyAlertAsync();
-                return;
-            }
-
-            await ShowEditYouTubeStatsAsync(project);
-        };
-        section.Children.Add(editBtn);
-
-        return section;
-    }
-
-    private View BuildFacebookFeedbackSection(StoryProject project)
-    {
-        var section = new VerticalStackLayout
-        {
-            Spacing = 8,
-            Margin = new Thickness(0, 8, 0, 0)
-        };
-
-        section.Children.Add(new Label
-        {
-            Text = "Facebook Feedback",
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1877F2")
-        });
-
-        DateTime? capturedAt = project.FacebookStatsCapturedAt;
-        bool hasStats = capturedAt.HasValue;
-        section.Children.Add(new Label
-        {
-            Text = hasStats ? $"Last updated {capturedAt:yyyy-MM-dd HH:mm}" : "No stats entered yet.",
-            FontSize = 11,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666")
-        });
-
-        var metricsGrid = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            },
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Auto)
-            },
-            ColumnSpacing = 8,
-            RowSpacing = 8
-        };
-
-        AddMetricTile(metricsGrid, 0, 0, "Views", hasStats ? FormatLargeNumber(project.FacebookViews) : "—");
-        AddMetricTile(metricsGrid, 0, 1, "Likes", hasStats ? FormatLargeNumber(project.FacebookLikes) : "—");
-        AddMetricTile(metricsGrid, 0, 2, "Comments", hasStats ? FormatLargeNumber(project.FacebookComments) : "—");
-        AddMetricTile(metricsGrid, 1, 0, "Avg duration", hasStats ? FormatDurationFromSeconds(project.FacebookAverageViewDurationSeconds) : "—");
-        AddMetricTile(metricsGrid, 1, 1, "3s views", FormatCountWithPercent(project.FacebookThreeSecondViews, project.FacebookViews, hasStats));
-        AddMetricTile(metricsGrid, 1, 2, "1min views", FormatCountWithPercent(project.FacebookOneMinuteViews, project.FacebookViews, hasStats));
-        section.Children.Add(metricsGrid);
-
-        var editBtn = new Button
-        {
-            Text = "Edit Facebook Stats",
-            BackgroundColor = Color.FromArgb("#E7F3FF"),
-            TextColor = Color.FromArgb("#1877F2"),
-            CornerRadius = 8,
-            FontSize = 13,
-            HorizontalOptions = LayoutOptions.Fill
-        };
-        editBtn.Clicked += async (s, e) =>
-        {
-            if (_storyService.IsReadOnly)
-            {
-                await ShowReadOnlyAlertAsync();
-                return;
-            }
-
-            await ShowEditFacebookStatsAsync(project);
-        };
-        section.Children.Add(editBtn);
-
-        return section;
-    }
-
-    private View BuildTikTokFeedbackSection(StoryProject project)
-    {
-        var section = new VerticalStackLayout
-        {
-            Spacing = 8,
-            Margin = new Thickness(0, 8, 0, 0)
-        };
-
-        section.Children.Add(new Label
-        {
-            Text = "TikTok Feedback",
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#FE2C55")
-        });
-
-        DateTime? capturedAt = project.TikTokStatsCapturedAt;
-        bool hasStats = capturedAt.HasValue;
-        section.Children.Add(new Label
-        {
-            Text = hasStats ? $"Last updated {capturedAt:yyyy-MM-dd HH:mm}" : "No stats entered yet.",
-            FontSize = 11,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666")
-        });
-
-        var metricsGrid = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            },
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Auto)
-            },
-            ColumnSpacing = 8,
-            RowSpacing = 8
-        };
-
-        AddMetricTile(metricsGrid, 0, 0, "Views", hasStats ? FormatLargeNumber(project.TikTokViews) : "—");
-        AddMetricTile(metricsGrid, 0, 1, "Likes", hasStats ? FormatLargeNumber(project.TikTokLikes) : "—");
-        AddMetricTile(metricsGrid, 0, 2, "Comments", hasStats ? FormatLargeNumber(project.TikTokComments) : "—");
-        AddMetricTile(metricsGrid, 1, 0, "Avg watch time", hasStats ? FormatDurationFromSeconds(project.TikTokAverageWatchTimeSeconds) : "—");
-        AddMetricTile(metricsGrid, 1, 1, "% full video", hasStats ? FormatPercent(project.TikTokPercentWatchedFullVideo) : "—");
-        section.Children.Add(metricsGrid);
-
-        var editBtn = new Button
-        {
-            Text = "Edit TikTok Stats",
-            BackgroundColor = Color.FromArgb("#FFE6EA"),
-            TextColor = Color.FromArgb("#FE2C55"),
-            CornerRadius = 8,
-            FontSize = 13,
-            HorizontalOptions = LayoutOptions.Fill
-        };
-        editBtn.Clicked += async (s, e) =>
-        {
-            if (_storyService.IsReadOnly)
-            {
-                await ShowReadOnlyAlertAsync();
-                return;
-            }
-
-            await ShowEditTikTokStatsAsync(project);
-        };
-        section.Children.Add(editBtn);
-
-        return section;
-    }
-
-    private void AddMetricTile(Grid grid, int row, int col, string label, string value)
-    {
-        var frame = new Frame
-        {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            Padding = 6,
-            CornerRadius = 6,
-            HasShadow = false
-        };
-
-        frame.Content = new VerticalStackLayout
-        {
-            Spacing = 2,
-            Children =
-            {
-                new Label
+                var shots = _storyService.GetShots(line);
+                if (shots.Count > 0)
                 {
-                    Text = label,
-                    FontSize = 10,
-                    TextColor = Color.FromArgb("#666"),
-                    HorizontalTextAlignment = TextAlignment.Center
-                },
-                new Label
-                {
-                    Text = value,
-                    FontSize = 14,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#263238"),
-                    HorizontalTextAlignment = TextAlignment.Center
+                    sb.AppendLine("  Shots:");
+                    for (int shotIndex = 0; shotIndex < shots.Count; shotIndex++)
+                    {
+                        var shot = shots[shotIndex];
+                        var parts = new List<string> { $"    Shot {shotIndex + 1}: {shot.Description}" };
+                        if (!string.IsNullOrWhiteSpace(shot.ImagePrompt))
+                            parts.Add($"image: {shot.ImagePrompt}");
+                        if (!string.IsNullOrWhiteSpace(shot.VideoPrompt))
+                            parts.Add($"video: {shot.VideoPrompt}");
+                        sb.AppendLine(string.Join(" | ", parts));
+                    }
                 }
             }
-        };
+        }
 
-        Grid.SetRow(frame, row);
-        Grid.SetColumn(frame, col);
-        grid.Children.Add(frame);
+        await Clipboard.SetTextAsync(sb.ToString());
+        await DisplayAlert("Copied", $"Copied {candidates.Count} candidate stories to clipboard. Paste into your LLM of choice for next-production recommendation.", "OK");
     }
 
-    private void AddStatCell(Grid grid, int row, int col, string label, string value)
+    private string GetStatsSourceDraftLabel(StoryProject project, StoryProject resolvedProject)
     {
-        var stack = new VerticalStackLayout { Spacing = 0 };
-        stack.Children.Add(new Label
-        {
-            Text = label,
-            FontSize = 10,
-            TextColor = Color.FromArgb("#999")
-        });
-        stack.Children.Add(new Label
-        {
-            Text = value,
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+        if (resolvedProject.Id == project.Id || resolvedProject.ParentProjectId == null && resolvedProject.Id == (project.ParentProjectId ?? project.Id))
+            return "Original";
 
-        Grid.SetRow(stack, row);
-        Grid.SetColumn(stack, col);
-        grid.Children.Add(stack);
+        return $"Draft {resolvedProject.DraftVersion}: \"{resolvedProject.Name}\"";
+    }
+
+    private View CreatePlatformPill(string label, string value, string background, string foreground)
+    {
+        return new Frame
+        {
+            Padding = new Thickness(8, 3),
+            CornerRadius = 10,
+            BackgroundColor = Color.FromArgb(background),
+            BorderColor = Colors.Transparent,
+            HasShadow = false,
+            Content = new Label
+            {
+                Text = $"{label} {value}",
+                FontSize = 11,
+                TextColor = Color.FromArgb(foreground),
+                FontAttributes = FontAttributes.Bold
+            }
+        };
     }
 
     private async Task ShowReadOnlyAlertAsync()
@@ -1218,44 +1151,6 @@ public class ProductionStatsPage : ContentPage
         return true;
     }
 
-    private static string FormatDurationFromSeconds(int totalSeconds)
-    {
-        totalSeconds = Math.Max(0, totalSeconds);
-        int hours = totalSeconds / 3600;
-        int minutes = (totalSeconds % 3600) / 60;
-        int seconds = totalSeconds % 60;
-
-        return hours > 0
-            ? $"{hours}:{minutes:00}:{seconds:00}"
-            : $"{minutes}:{seconds:00}";
-    }
-
-    private static string FormatLargeNumber(int value)
-    {
-        return Math.Max(0, value).ToString("N0", CultureInfo.InvariantCulture);
-    }
-
-    private static string FormatPercent(double value)
-    {
-        return Math.Clamp(value, 0.0, 100.0).ToString("0.0", CultureInfo.InvariantCulture) + "%";
-    }
-
-    private static string FormatCountWithPercent(int count, int denominator, bool statsCaptured)
-    {
-        if (!statsCaptured)
-            return "—";
-
-        int safeCount = Math.Max(0, count);
-        int safeDenominator = Math.Max(0, denominator);
-        string raw = FormatLargeNumber(safeCount);
-
-        if (safeDenominator == 0)
-            return $"{raw} (—)";
-
-        double percent = safeCount * 100.0 / safeDenominator;
-        return $"{raw} ({percent.ToString("0.0", CultureInfo.InvariantCulture)}%)";
-    }
-
     private async Task ShowProjectSettingsAsync(StoryProject project)
     {
         var options = new List<string>();
@@ -1300,7 +1195,7 @@ public class ProductionStatsPage : ContentPage
             {
                 try
                 {
-                    await _storyService.UnpublishProjectAsync(project.Id);
+                    await _storyService.UnmarkProducedAsync(project.Id);
                     await LoadStatsAsync();
                 }
                 catch (ReadOnlyDatabaseException)
@@ -1412,7 +1307,7 @@ public class ProductionStatsPage : ContentPage
 
         try
         {
-            await _storyService.PublishProjectAsync(project.Id, finalClips);
+            await _storyService.MarkProducedAsync(project.Id, finalClips);
             await LoadStatsAsync();
         }
         catch (ReadOnlyDatabaseException)

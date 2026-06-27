@@ -58,6 +58,8 @@ public class StoryProductionPage : ContentPage
     private string _selectedProjectCategory = "All";
     private bool _isLoadingProjectCategories;
 
+    private static string GetProjectCategoryFilterKey(string username) => $"story_production_category_filter_{username}";
+
     public StoryProductionPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null)
     {
         _auth = auth;
@@ -554,6 +556,7 @@ public class StoryProductionPage : ContentPage
                 .OrderBy(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "zzz" : p.ProjectCategory, StringComparer.OrdinalIgnoreCase)
                 .ThenByDescending(p => p.CreatedAt)
                 .ToList();
+            await LoadSelectedProjectCategoryAsync();
             RefreshProjectCategoryPicker();
             _projects = FilterProjectsBySelectedCategory(_allOriginalProjects);
             System.Diagnostics.Debug.WriteLine($"[STORY] Found {_projects.Count} original projects");
@@ -652,12 +655,37 @@ public class StoryProductionPage : ContentPage
             .ToList();
     }
 
+    private async Task LoadSelectedProjectCategoryAsync()
+    {
+        try
+        {
+            var saved = await SecureStorage.GetAsync(GetProjectCategoryFilterKey(_auth.CurrentUsername));
+            if (!string.IsNullOrWhiteSpace(saved))
+                _selectedProjectCategory = saved;
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SaveSelectedProjectCategoryAsync()
+    {
+        try
+        {
+            await SecureStorage.SetAsync(GetProjectCategoryFilterKey(_auth.CurrentUsername), _selectedProjectCategory);
+        }
+        catch
+        {
+        }
+    }
+
     private async void OnProjectCategoryFilterChanged(object? sender, EventArgs e)
     {
         if (_isLoadingProjectCategories || _projectCategoryPicker.SelectedIndex < 0)
             return;
 
         _selectedProjectCategory = _projectCategoryPicker.Items[_projectCategoryPicker.SelectedIndex];
+        await SaveSelectedProjectCategoryAsync();
         _currentProject = null;
         _projectPicker.SelectedIndex = -1;
         HideProjectControls();
@@ -789,6 +817,8 @@ public class StoryProductionPage : ContentPage
             _selectedProjectCategory = category;
         else if (string.IsNullOrWhiteSpace(category) && _selectedProjectCategory != "All")
             _selectedProjectCategory = "Uncategorized";
+
+        await SaveSelectedProjectCategoryAsync();
 
         await LoadProjectsAsync();
     }

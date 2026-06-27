@@ -55,8 +55,19 @@ public class StoryProject
     // Initial projection: expected production days
     public int ProjectedDays { get; set; } = 0;
     
-    // Actual final clip count (set on publish)
+    // Actual final clip count (set when production is complete)
     public int FinalClipCount { get; set; } = 0;
+
+    // === PRODUCTION TRACKING ===
+
+    // Is the full visual production complete?
+    public bool IsProduced { get; set; } = false;
+
+    // Date when full visual production was completed
+    public DateTime? ProducedAt { get; set; }
+
+    // Draft whose lines should be used for stats/production export. Null = latest draft.
+    public int? StatsSourceDraftProjectId { get; set; }
 
     // === YOUTUBE FEEDBACK SNAPSHOT ===
 
@@ -110,8 +121,8 @@ public class StoryProject
     public bool IsDraft => ParentProjectId != null;
     
     [Ignore]
-    public int ActualDays => IsPublished && PublishedAt.HasValue 
-        ? (int)(PublishedAt.Value.Date - CreatedAt.Date).TotalDays + 1
+    public int ActualDays => IsProduced && ProducedAt.HasValue 
+        ? (int)(ProducedAt.Value.Date - CreatedAt.Date).TotalDays + 1
         : (int)(DateTime.UtcNow.Date - CreatedAt.Date).TotalDays + 1;
     
     [Ignore]

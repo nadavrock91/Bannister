@@ -54,12 +54,45 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokAverageWatchTimeSeconds INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokPercentWatchedFullVideo REAL DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN TikTokStatsCapturedAt TEXT"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN IsProduced INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN ProducedAt TEXT"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN StatsSourceDraftProjectId INTEGER"); } catch { }
+    }
+
+    private async Task BackfillProducedStateAsync(ISQLiteAsyncConnection conn, string username)
+    {
+        if (_db.IsReadOnly || string.IsNullOrWhiteSpace(username)) return;
+
+        string markerKey = $"bannister_isproduced_backfill_done_{username}";
+        try
+        {
+            var done = await SecureStorage.GetAsync(markerKey);
+            if (done == "true") return;
+
+            var projects = await conn.Table<StoryProject>()
+                .Where(p => p.Username == username && p.IsPublished && !p.IsProduced)
+                .ToListAsync();
+
+            foreach (var project in projects)
+            {
+                project.IsProduced = true;
+                project.ProducedAt = project.PublishedAt ?? project.CreatedAt;
+                await conn.UpdateAsync(project);
+            }
+
+            await SecureStorage.SetAsync(markerKey, "true");
+            System.Diagnostics.Debug.WriteLine($"[STORY] Backfilled IsProduced for {projects.Count} published projects.");
+        }
+        catch
+        {
+        }
     }
 
     public async Task<List<StoryProject>> GetProjectsAsync(string username)
     {
         var conn = await _db.GetConnectionAsync();
         await EnsureProjectTableAsync(conn);
+        await BackfillProducedStateAsync(conn, username);
         
         return await conn.Table<StoryProject>()
             .Where(p => p.Username == username)
@@ -71,6 +104,7 @@ public class StoryProductionService
     {
         var conn = await _db.GetConnectionAsync();
         await EnsureProjectTableAsync(conn);
+        await BackfillProducedStateAsync(conn, username);
         
         return await conn.Table<StoryProject>()
             .Where(p => p.Username == username && p.Status == "active")
@@ -146,21 +180,32 @@ public class StoryProductionService
     }
 
     /// <summary>
-    /// Mark a project as published with final clip count
+    /// Mark a project as fully produced with final clip count. Producing also implies published.
     /// </summary>
-    public async Task PublishProjectAsync(int projectId, int finalClipCount)
+    public async Task MarkProducedAsync(int projectId, int finalClipCount)
     {
         EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project != null)
         {
-            project.IsPublished = true;
-            project.PublishedAt = DateTime.UtcNow;
-            project.FinalClipCount = finalClipCount;
+            var now = DateTime.UtcNow;
+            if (!project.IsPublished)
+            {
+                project.IsPublished = true;
+                project.PublishedAt = now;
+            }
+            else if (!project.PublishedAt.HasValue)
+            {
+                project.PublishedAt = now;
+            }
+
+            project.IsProduced = true;
+            project.ProducedAt = now;
+            project.FinalClipCount = Math.Max(0, finalClipCount);
             project.Status = "completed";
-            project.CompletedAt = DateTime.UtcNow;
+            project.CompletedAt = now;
             await UpdateProjectAsync(project);
-            System.Diagnostics.Debug.WriteLine($"[STORY] Published project {projectId}: {finalClipCount} clips");
+            System.Diagnostics.Debug.WriteLine($"[STORY] Produced project {projectId}: {finalClipCount} clips");
         }
     }
 
@@ -287,21 +332,79 @@ public class StoryProductionService
         return true;
     }
 
-    /// <summary>
-    /// Unpublish a project (revert to active)
-    /// </summary>
-    public async Task UnpublishProjectAsync(int projectId)
+    public async Task TogglePublishedAsync(int projectId, bool published)
     {
         EnsureWritable();
         var project = await GetProjectByIdAsync(projectId);
         if (project != null)
         {
-            project.IsPublished = false;
-            project.PublishedAt = null;
-            project.Status = "active";
-            project.CompletedAt = null;
+            project.IsPublished = published;
+            if (published && !project.PublishedAt.HasValue)
+                project.PublishedAt = DateTime.UtcNow;
+
             await UpdateProjectAsync(project);
         }
+    }
+
+    /// <summary>
+    /// Revert only full-production state. Publication history remains intact.
+    /// </summary>
+    public async Task UnmarkProducedAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetProjectByIdAsync(projectId);
+        if (project != null)
+        {
+            project.IsProduced = false;
+            project.ProducedAt = null;
+            await UpdateProjectAsync(project);
+        }
+    }
+
+    public async Task<bool> SetStatsSourceDraftAsync(int projectId, int? statsSourceDraftProjectId)
+    {
+        EnsureWritable();
+        var project = await GetProjectByIdAsync(projectId);
+        if (project == null) return false;
+
+        if (statsSourceDraftProjectId.HasValue)
+        {
+            var target = await GetProjectByIdAsync(statsSourceDraftProjectId.Value);
+            if (target == null) return false;
+
+            int projectRootId = project.ParentProjectId ?? project.Id;
+            int targetRootId = target.ParentProjectId ?? target.Id;
+            if (projectRootId != targetRootId) return false;
+        }
+
+        project.StatsSourceDraftProjectId = statsSourceDraftProjectId;
+        await UpdateProjectAsync(project);
+        return true;
+    }
+
+    public async Task<StoryProject?> ResolveStatsSourceDraftAsync(StoryProject project)
+    {
+        if (project.StatsSourceDraftProjectId.HasValue)
+        {
+            var selected = await GetProjectByIdAsync(project.StatsSourceDraftProjectId.Value);
+            if (selected != null)
+            {
+                int projectRootId = project.ParentProjectId ?? project.Id;
+                int selectedRootId = selected.ParentProjectId ?? selected.Id;
+                if (projectRootId == selectedRootId)
+                    return selected;
+            }
+        }
+
+        var drafts = await GetProjectDraftsAsync(project.Id);
+        if (drafts.Count == 0) return project;
+
+        var latest = drafts.FirstOrDefault(d => d.IsLatest);
+        if (latest != null) return latest;
+
+        return drafts
+            .OrderByDescending(d => d.DraftVersion)
+            .FirstOrDefault() ?? project;
     }
 
     #endregion
