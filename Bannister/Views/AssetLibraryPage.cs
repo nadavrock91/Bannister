@@ -94,6 +94,7 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
         });
 
         stack.Children.Add(BuildLookupSection());
+        stack.Children.Add(BuildStoryDiscoveryButton());
 
         _rootFolderLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#555"), LineBreakMode = LineBreakMode.WordWrap };
         _lastScanLabel = new Label { FontSize = 11, TextColor = Color.FromArgb("#777") };
@@ -423,6 +424,24 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
                 }
             }
         };
+    }
+
+    private Button BuildStoryDiscoveryButton()
+    {
+        var button = new Button
+        {
+            Text = " Story-based asset discovery →",
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            TextColor = Color.FromArgb("#F57C00"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontAttributes = FontAttributes.Bold
+        };
+
+        button.Clicked += async (_, _) =>
+            await Navigation.PushAsync(new StoryBasedAssetDiscoveryPage(_auth, _assetService, _thumbnailService));
+
+        return button;
     }
 
     private async Task LoadLookupTemplateAsync()
@@ -948,7 +967,7 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
             }
         }
 
-        return new Frame
+        var thumbFrame = new Frame
         {
             Padding = 0,
             CornerRadius = 8,
@@ -958,6 +977,13 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
             IsClippedToBounds = true,
             Content = slot
         };
+
+        thumbFrame.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await OpenAssetAsync(item))
+        });
+
+        return thumbFrame;
     }
 
     private async Task OpenCategoryModalAsync(AssetLibraryItem item)
