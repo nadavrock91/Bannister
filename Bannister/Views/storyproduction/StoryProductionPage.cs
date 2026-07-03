@@ -48,6 +48,10 @@ public class StoryProductionPage : ContentPage
     private bool _allExpanded = false;
     private List<(Label collapsed, Label expanded, Button expandBtn)> _expandableCards = new();
     private ScrollView _mainScrollView;
+    private bool _linesExpanded = false;
+    private List<StoryLine> _cachedLines = new();
+    private HashSet<int> _cachedChangedOrders = new();
+    private int _cachedTotalLines = 0;
     
     private List<StoryProject> _projects = new();        // Original projects only
     private List<StoryProject> _allOriginalProjects = new();
@@ -1967,9 +1971,9 @@ public class StoryProductionPage : ContentPage
         _storyPointsBtn.IsVisible = true;
     }
 
-    private async Task LoadLinesAsync(bool preserveScroll = false)
+    private async Task LoadLinesAsync()
     {
-        System.Diagnostics.Debug.WriteLine($"[STORY] LoadLinesAsync START - preserveScroll: {preserveScroll}");
+        System.Diagnostics.Debug.WriteLine("[STORY] LoadLinesAsync START");
         
         if (_currentProject == null) 
         {
@@ -1979,19 +1983,14 @@ public class StoryProductionPage : ContentPage
         
         System.Diagnostics.Debug.WriteLine($"[STORY] Loading lines for project: {_currentProject.Name} (ID: {_currentProject.Id})");
 
-        // Save scroll position before rebuilding
-        double savedScrollY = 0;
-        if (preserveScroll && _mainScrollView != null)
-        {
-            savedScrollY = _mainScrollView.ScrollY;
-        }
-
         _expandableCards.Clear();
         _allExpanded = false;
         _expandAllBtn.Text = "▶ Expand All";
         
         var lines = await _storyService.GetLinesAsync(_currentProject.Id);
         var (totalLines, preparedLines) = await _storyService.GetProjectStatsAsync(_currentProject.Id);
+        _cachedLines = lines;
+        _cachedTotalLines = totalLines;
 
         // Load comparison data
         _compareToProject = await _storyService.GetComparisonProjectAsync(_currentProject);
@@ -2002,6 +2001,8 @@ public class StoryProductionPage : ContentPage
             _changedLineOrders = await _storyService.GetChangedLineOrdersAsync(
                 _currentProject.Id, _compareToProject.Id);
         }
+
+        _cachedChangedOrders = new HashSet<int>(_changedLineOrders);
         
         // Update the display to show comparison info
         UpdateCurrentDraftDisplay();
@@ -2031,47 +2032,138 @@ public class StoryProductionPage : ContentPage
             _projectionLabel.IsVisible = false;
         }
 
-        // Build all new cards first before touching the UI
-        var newCards = new List<View>();
-        
-        if (lines.Count == 0)
+        _linesExpanded = false;
+        RenderLinesContainer();
+
+        System.Diagnostics.Debug.WriteLine("[STORY] LoadLinesAsync END");
+    }
+
+    private void RenderLinesContainer()
+    {
+        RenderCollapsedPlaceholder();
+    }
+
+    private void RenderCollapsedPlaceholder()
+    {
+        _linesContainer.Children.Clear();
+
+        var count = _cachedLines.Count;
+        var changed = _cachedChangedOrders.Count;
+
+        var label = new Label
         {
-            newCards.Add(new Label
-            {
-                Text = "No lines yet.\nTap '+ Add Line' to add script lines.",
-                FontSize = 14,
-                TextColor = Color.FromArgb("#999"),
-                HorizontalTextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 40, 0, 0)
-            });
+            Text = changed > 0
+                ? $"▶ Show {count} lines ({changed} changed)"
+                : $"▶ Show {count} lines",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1565C0"),
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var frame = new Frame
+        {
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            BorderColor = Color.FromArgb("#90CAF9"),
+            CornerRadius = 8,
+            Padding = new Thickness(16, 12),
+            HasShadow = false,
+            Content = label
+        };
+
+        if (count == 0)
+        {
+            label.Text = "(no lines in this draft)";
+            label.TextColor = Color.FromArgb("#777");
+            frame.BackgroundColor = Color.FromArgb("#F5F5F5");
+            frame.BorderColor = Color.FromArgb("#E0E0E0");
         }
         else
         {
-            foreach (var line in lines)
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += async (_, _) => await ExpandLinesAsync();
+            frame.GestureRecognizers.Add(tap);
+        }
+
+        _linesContainer.Children.Add(frame);
+    }
+
+    private async Task ExpandLinesAsync()
+    {
+        if (_linesExpanded) return;
+        if (_cachedLines.Count == 0) return;
+
+        _linesExpanded = true;
+        _expandableCards.Clear();
+        _allExpanded = false;
+        _expandAllBtn.Text = "▶ Expand All";
+
+        ShowLoadingOverlay($"Building {_cachedLines.Count} line cards...");
+        await Task.Yield();
+
+        try
+        {
+            _linesContainer.Children.Clear();
+
+            var collapseButton = new Button
             {
-                bool isChanged = _changedLineOrders.Contains(line.LineOrder);
-                newCards.Add(CreateLineCard(line, lines.Count, isChanged));
+                Text = "▲ Collapse lines",
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#37474F"),
+                CornerRadius = 8,
+                HeightRequest = 36,
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            collapseButton.Clicked += (_, _) => CollapseLines();
+            _linesContainer.Children.Add(collapseButton);
+
+            int built = 0;
+            const int batchSize = 5;
+            int totalLines = _cachedLines.Count;
+
+            foreach (var line in _cachedLines)
+            {
+                bool isChanged = _cachedChangedOrders.Contains(line.LineOrder);
+                var card = CreateLineCard(line, totalLines, isChanged);
+                _linesContainer.Children.Add(card);
+
+                built++;
+                UpdateLoadingOverlay($"Building {built}/{totalLines} line cards...");
+
+                if (built % batchSize == 0)
+                    await Task.Yield();
             }
         }
-
-        // Swap all at once — clear and add in one batch
-        _linesContainer.Children.Clear();
-        foreach (var card in newCards)
+        finally
         {
-            _linesContainer.Children.Add(card);
+            HideLoadingOverlay();
         }
+    }
 
-        // Restore scroll position after layout
-        if (preserveScroll && savedScrollY > 0 && _mainScrollView != null)
-        {
-            Dispatcher.Dispatch(async () =>
-            {
-                await Task.Delay(50);
-                await _mainScrollView.ScrollToAsync(0, savedScrollY, false);
-            });
-        }
-        
-        System.Diagnostics.Debug.WriteLine("[STORY] LoadLinesAsync END");
+    private void CollapseLines()
+    {
+        _linesExpanded = false;
+        _expandableCards.Clear();
+        _allExpanded = false;
+        _expandAllBtn.Text = "▶ Expand All";
+        RenderCollapsedPlaceholder();
+    }
+
+    private void ShowLoadingOverlay(string message)
+    {
+        _loadingLabel.Text = message;
+        _loadingOverlay.IsVisible = true;
+    }
+
+    private void UpdateLoadingOverlay(string message)
+    {
+        _loadingLabel.Text = message;
+    }
+
+    private void HideLoadingOverlay()
+    {
+        _loadingOverlay.IsVisible = false;
     }
 
     // ============================================================
@@ -2254,7 +2346,7 @@ public class StoryProductionPage : ContentPage
             upBtn.Clicked += async (s, e) =>
             {
                 if (!await TryStoryWriteAsync(() => _storyService.MoveLineUpAsync(line.Id))) return;
-                await LoadLinesAsync(preserveScroll: true);
+                await LoadLinesAsync();
             };
             btnStack.Children.Add(upBtn);
         }
@@ -2275,7 +2367,7 @@ public class StoryProductionPage : ContentPage
             downBtn.Clicked += async (s, e) =>
             {
                 if (!await TryStoryWriteAsync(() => _storyService.MoveLineDownAsync(line.Id))) return;
-                await LoadLinesAsync(preserveScroll: true);
+                await LoadLinesAsync();
             };
             btnStack.Children.Add(downBtn);
         }
@@ -2297,7 +2389,7 @@ public class StoryProductionPage : ContentPage
                 $"Delete line #{line.LineOrder}?", "Delete", "Cancel");
             if (!confirm) return;
             if (!await TryStoryWriteAsync(() => _storyService.DeleteLineAsync(line.Id))) return;
-            await LoadLinesAsync(preserveScroll: true);
+            await LoadLinesAsync();
         };
         btnStack.Children.Add(deleteBtn);
 
@@ -2317,7 +2409,7 @@ public class StoryProductionPage : ContentPage
         {
             line.IsSilent = !line.IsSilent;
             if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
-            await LoadLinesAsync(preserveScroll: true);
+            await LoadLinesAsync();
         };
         btnStack.Children.Add(silentBtn);
 
@@ -2489,7 +2581,7 @@ public class StoryProductionPage : ContentPage
                 await PromptAndLogTaskTimeAsync(line, 0, "visual_complete", $"Line {line.LineOrder}: Complete visual");
             }
             if (!await TryStoryWriteAsync(() => _storyService.ToggleVisualPreparedAsync(line.Id))) return;
-            await LoadLinesAsync(preserveScroll: true);
+            await LoadLinesAsync();
         };
         readyStack.Children.Add(readyCheckbox);
 
@@ -2545,7 +2637,7 @@ public class StoryProductionPage : ContentPage
         editShotsBtn.Clicked += async (s, e) =>
         {
             var shotBreakdownPage = new ShotBreakdownPage(_storyService, capturedLine);
-            shotBreakdownPage.Disappearing += async (sender, args) => await LoadLinesAsync(preserveScroll: true);
+            shotBreakdownPage.Disappearing += async (sender, args) => await LoadLinesAsync();
             await Navigation.PushAsync(shotBreakdownPage);
         };
         shotsRow.Children.Add(editShotsBtn);
@@ -2636,7 +2728,7 @@ public class StoryProductionPage : ContentPage
                 }
                 line.VisualAssetPath = "";
                 if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
-                await LoadLinesAsync(preserveScroll: true);
+                await LoadLinesAsync();
             };
             removeBtn.GestureRecognizers.Add(removeTap);
             imageStack.Children.Add(removeBtn);
@@ -2679,8 +2771,13 @@ public class StoryProductionPage : ContentPage
         return rowGrid;
     }
 
-    private void OnExpandAllClicked(object? sender, EventArgs e)
+    private async void OnExpandAllClicked(object? sender, EventArgs e)
     {
+        if (!_linesExpanded)
+        {
+            await ExpandLinesAsync();
+        }
+
         _allExpanded = !_allExpanded;
 
         foreach (var (collapsed, expanded, btn) in _expandableCards)
@@ -2811,7 +2908,7 @@ public class StoryProductionPage : ContentPage
             lineText.Trim(),
             visualDesc?.Trim() ?? ""))) return;
         
-        await LoadLinesAsync(preserveScroll: true);
+        await LoadLinesAsync();
     }
 
     private async Task AddVisualAtEndAsync()
@@ -2836,7 +2933,7 @@ public class StoryProductionPage : ContentPage
             await _storyService.UpdateLineAsync(newLine);
         })) return;
 
-        await LoadLinesAsync(preserveScroll: true);
+        await LoadLinesAsync();
     }
 
     private async Task InsertLineBeforeAsync(List<StoryLine> lines)
@@ -2881,7 +2978,7 @@ public class StoryProductionPage : ContentPage
             visualDesc?.Trim() ?? "",
             isSilent: false))) return;
         
-        await LoadLinesAsync(preserveScroll: true);
+        await LoadLinesAsync();
     }
 
     private async Task InsertVisualBeforeAsync(List<StoryLine> lines)
@@ -2918,7 +3015,7 @@ public class StoryProductionPage : ContentPage
             visualDesc.Trim(),
             isSilent: true))) return;
         
-        await LoadLinesAsync(preserveScroll: true);
+        await LoadLinesAsync();
     }
 
     private async void OnAddLineClicked(object? sender, EventArgs e)
@@ -2943,7 +3040,7 @@ public class StoryProductionPage : ContentPage
         
         line.LineText = newText.Trim();
         if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
-        await LoadLinesAsync(preserveScroll: true);
+        await LoadLinesAsync();
     }
 
     private async Task<string> ShowMultiLineInputAsync(string title, string message, string initialValue, string placeholder)
@@ -3070,7 +3167,7 @@ public class StoryProductionPage : ContentPage
         
         line.VisualDescription = newDesc.Trim();
         if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
-        await LoadLinesAsync(preserveScroll: true);
+        await LoadLinesAsync();
     }
 
     private async Task PickImageForLineAsync(StoryLine line)
@@ -3112,7 +3209,7 @@ public class StoryProductionPage : ContentPage
 
             line.VisualAssetPath = filePath;
             if (!await TryStoryWriteAsync(() => _storyService.UpdateLineAsync(line))) return;
-            await LoadLinesAsync(preserveScroll: true);
+            await LoadLinesAsync();
         }
         catch (Exception ex)
         {
@@ -5491,7 +5588,7 @@ Rules:
                 mainGrid.Children.Remove(overlay);
             
             await _storyService.CopyLineToComparisonAsync(_currentProject.Id, _compareToProject.Id, lineOrder);
-            await LoadLinesAsync(preserveScroll: true);
+            await LoadLinesAsync();
             tcs.TrySetResult(true);
         };
         btnRow.Children.Add(copyBtn);
