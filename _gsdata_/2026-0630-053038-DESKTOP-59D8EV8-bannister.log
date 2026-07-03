@@ -1,0 +1,370 @@
+2026-06-30 05:30:39: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-06-30 05:30:39: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-06-30 05:30:41: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-06-30 05:30:43: Changes: 4, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 21657
+2026-06-30 05:30:43: Left to Right: Copy File: 4 
+2026-06-30 05:30:43: == Sync Started by On Schedule Min=30 Hour=5 
+2026-06-30 05:30:43: ConnectCloned connected to file:///C:/rock/bannister
+2026-06-30 05:30:43: ConnectCloned connected to file:///C:/rock/bannister
+2026-06-30 05:30:43: ConnectCloned connected to file:///C:/rock/bannister
+2026-06-30 05:30:44: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-06-30 05:30:44: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-06-30 05:30:44: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-06-30 05:30:49: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (17,863)
+2026-06-30 05:30:49: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (83,968)
+2026-06-30 05:30:49: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (17,863)
+2026-06-30 05:30:53: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (71,899)
+2026-06-30 05:30:53: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-06-30 05:30:56: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-06-30 05:30:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ar/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:30:57: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ca/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:30:57: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/CommunityToolkit.Maui.Core.dll
+2026-06-30 05:30:58: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/CommunityToolkit.Maui.dll
+2026-06-30 05:30:58: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/CommunityToolkit.Mvvm.dll
+2026-06-30 05:30:59: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/cs/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:30:59: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/da/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:00: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/de/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:00: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/el/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:01: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/es/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:01: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/fi/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:02: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/fr/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:02: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/GoogleGson.dll
+2026-06-30 05:31:03: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/he/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:03: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/hi/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:04: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/hr/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:04: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/hu/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/id/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/it/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ja/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Java.Interop.dll
+2026-06-30 05:31:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Jsr305Binding.dll
+2026-06-30 05:31:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ko/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:08: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.CSharp.dll
+2026-06-30 05:31:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Extensions.Configuration.Abstractions.dll
+2026-06-30 05:31:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Extensions.Configuration.dll
+2026-06-30 05:31:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+2026-06-30 05:31:10: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Extensions.DependencyInjection.dll
+2026-06-30 05:31:10: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Extensions.Logging.Abstractions.dll
+2026-06-30 05:31:11: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Extensions.Logging.Debug.dll
+2026-06-30 05:31:11: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Extensions.Logging.dll
+2026-06-30 05:31:12: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Extensions.Options.dll
+2026-06-30 05:31:12: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Extensions.Primitives.dll
+2026-06-30 05:31:13: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Maui.Controls.Compatibility.dll
+2026-06-30 05:31:13: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Maui.Controls.dll
+2026-06-30 05:31:14: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Maui.Controls.Xaml.dll
+2026-06-30 05:31:14: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Maui.dll
+2026-06-30 05:31:15: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Maui.Essentials.dll
+2026-06-30 05:31:15: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Maui.Graphics.dll
+2026-06-30 05:31:16: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.VisualBasic.Core.dll
+2026-06-30 05:31:16: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.VisualBasic.dll
+2026-06-30 05:31:17: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Win32.Primitives.dll
+2026-06-30 05:31:17: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Microsoft.Win32.Registry.dll
+2026-06-30 05:31:18: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Mono.Android.dll
+2026-06-30 05:31:18: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Mono.Android.Export.dll
+2026-06-30 05:31:18: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Mono.Android.Runtime.dll
+2026-06-30 05:31:19: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ms/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:19: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/mscorlib.dll
+2026-06-30 05:31:20: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/nb/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:21: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/netstandard.dll
+2026-06-30 05:31:21: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/nl/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:21: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/pl/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:22: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/pt-BR/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:22: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/pt/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:23: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ro/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:24: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ru/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:24: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/sk/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:25: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/SkiaSharp.dll
+2026-06-30 05:31:25: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/SQLite-net.dll
+2026-06-30 05:31:26: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/SQLitePCLRaw.batteries_v2.dll
+2026-06-30 05:31:26: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/SQLitePCLRaw.core.dll
+2026-06-30 05:31:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/SQLitePCLRaw.lib.e_sqlcipher.android.dll
+2026-06-30 05:31:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/SQLitePCLRaw.lib.e_sqlite3.android.dll
+2026-06-30 05:31:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/SQLitePCLRaw.provider.e_sqlcipher.dll
+2026-06-30 05:31:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/SQLitePCLRaw.provider.e_sqlite3.dll
+2026-06-30 05:31:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/sv/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:31:29: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.AppContext.dll
+2026-06-30 05:31:30: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Buffers.dll
+2026-06-30 05:31:30: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Collections.Concurrent.dll
+2026-06-30 05:31:30: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Collections.dll
+2026-06-30 05:31:31: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Collections.Immutable.dll
+2026-06-30 05:31:31: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Collections.NonGeneric.dll
+2026-06-30 05:31:32: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Collections.Specialized.dll
+2026-06-30 05:31:33: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ComponentModel.Annotations.dll
+2026-06-30 05:31:33: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ComponentModel.DataAnnotations.dll
+2026-06-30 05:31:33: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ComponentModel.dll
+2026-06-30 05:31:34: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ComponentModel.EventBasedAsync.dll
+2026-06-30 05:31:34: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ComponentModel.Primitives.dll
+2026-06-30 05:31:35: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ComponentModel.TypeConverter.dll
+2026-06-30 05:31:35: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Configuration.dll
+2026-06-30 05:31:36: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Console.dll
+2026-06-30 05:31:36: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Core.dll
+2026-06-30 05:31:37: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Data.Common.dll
+2026-06-30 05:31:37: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Data.DataSetExtensions.dll
+2026-06-30 05:31:37: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Data.dll
+2026-06-30 05:31:38: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.Contracts.dll
+2026-06-30 05:31:39: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.Debug.dll
+2026-06-30 05:31:39: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.DiagnosticSource.dll
+2026-06-30 05:31:40: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.FileVersionInfo.dll
+2026-06-30 05:31:40: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.Process.dll
+2026-06-30 05:31:40: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.StackTrace.dll
+2026-06-30 05:31:41: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.TextWriterTraceListener.dll
+2026-06-30 05:31:42: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.Tools.dll
+2026-06-30 05:31:42: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.TraceSource.dll
+2026-06-30 05:31:42: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Diagnostics.Tracing.dll
+2026-06-30 05:31:43: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.dll
+2026-06-30 05:31:43: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Drawing.dll
+2026-06-30 05:31:44: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Drawing.Primitives.dll
+2026-06-30 05:31:45: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Dynamic.Runtime.dll
+2026-06-30 05:31:45: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Formats.Asn1.dll
+2026-06-30 05:31:46: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Formats.Tar.dll
+2026-06-30 05:31:46: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Globalization.Calendars.dll
+2026-06-30 05:31:46: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Globalization.dll
+2026-06-30 05:31:47: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Globalization.Extensions.dll
+2026-06-30 05:31:47: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.Compression.Brotli.dll
+2026-06-30 05:31:48: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.Compression.dll
+2026-06-30 05:31:48: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.Compression.FileSystem.dll
+2026-06-30 05:31:49: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.Compression.ZipFile.dll
+2026-06-30 05:31:49: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.dll
+2026-06-30 05:31:50: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.FileSystem.AccessControl.dll
+2026-06-30 05:31:50: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.FileSystem.dll
+2026-06-30 05:31:51: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.FileSystem.DriveInfo.dll
+2026-06-30 05:31:51: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.FileSystem.Primitives.dll
+2026-06-30 05:31:52: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.FileSystem.Watcher.dll
+2026-06-30 05:31:52: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.IsolatedStorage.dll
+2026-06-30 05:31:53: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.MemoryMappedFiles.dll
+2026-06-30 05:31:53: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.Pipes.AccessControl.dll
+2026-06-30 05:31:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.Pipes.dll
+2026-06-30 05:31:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.IO.UnmanagedMemoryStream.dll
+2026-06-30 05:31:55: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Linq.dll
+2026-06-30 05:31:55: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Linq.Expressions.dll
+2026-06-30 05:31:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Linq.Parallel.dll
+2026-06-30 05:31:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Linq.Queryable.dll
+2026-06-30 05:31:57: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Memory.dll
+2026-06-30 05:31:57: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.dll
+2026-06-30 05:31:58: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.Http.dll
+2026-06-30 05:31:58: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.Http.Json.dll
+2026-06-30 05:31:58: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.HttpListener.dll
+2026-06-30 05:31:59: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.Mail.dll
+2026-06-30 05:32:00: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.NameResolution.dll
+2026-06-30 05:32:00: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.NetworkInformation.dll
+2026-06-30 05:32:01: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.Ping.dll
+2026-06-30 05:32:01: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.Primitives.dll
+2026-06-30 05:32:01: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.Quic.dll
+2026-06-30 05:32:02: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.Requests.dll
+2026-06-30 05:32:02: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.Security.dll
+2026-06-30 05:32:03: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.ServicePoint.dll
+2026-06-30 05:32:03: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.Sockets.dll
+2026-06-30 05:32:04: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.WebClient.dll
+2026-06-30 05:32:04: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.WebHeaderCollection.dll
+2026-06-30 05:32:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.WebProxy.dll
+2026-06-30 05:32:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.WebSockets.Client.dll
+2026-06-30 05:32:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Net.WebSockets.dll
+2026-06-30 05:32:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Numerics.dll
+2026-06-30 05:32:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Numerics.Vectors.dll
+2026-06-30 05:32:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ObjectModel.dll
+2026-06-30 05:32:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Private.DataContractSerialization.dll
+2026-06-30 05:32:08: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Private.Uri.dll
+2026-06-30 05:32:08: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Private.Xml.dll
+2026-06-30 05:32:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Private.Xml.Linq.dll
+2026-06-30 05:32:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Reflection.DispatchProxy.dll
+2026-06-30 05:32:10: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Reflection.dll
+2026-06-30 05:32:10: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Reflection.Emit.dll
+2026-06-30 05:32:11: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Reflection.Emit.ILGeneration.dll
+2026-06-30 05:32:11: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Reflection.Emit.Lightweight.dll
+2026-06-30 05:32:12: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Reflection.Extensions.dll
+2026-06-30 05:32:12: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Reflection.Metadata.dll
+2026-06-30 05:32:13: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Reflection.Primitives.dll
+2026-06-30 05:32:13: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Reflection.TypeExtensions.dll
+2026-06-30 05:32:14: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Resources.Reader.dll
+2026-06-30 05:32:14: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Resources.ResourceManager.dll
+2026-06-30 05:32:15: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Resources.Writer.dll
+2026-06-30 05:32:15: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.CompilerServices.Unsafe.dll
+2026-06-30 05:32:16: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.CompilerServices.VisualC.dll
+2026-06-30 05:32:16: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.dll
+2026-06-30 05:32:17: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Extensions.dll
+2026-06-30 05:32:17: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Handles.dll
+2026-06-30 05:32:18: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.InteropServices.dll
+2026-06-30 05:32:18: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.InteropServices.JavaScript.dll
+2026-06-30 05:32:18: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.InteropServices.RuntimeInformation.dll
+2026-06-30 05:32:19: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Intrinsics.dll
+2026-06-30 05:32:19: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Loader.dll
+2026-06-30 05:32:20: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Numerics.dll
+2026-06-30 05:32:21: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Serialization.dll
+2026-06-30 05:32:21: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Serialization.Formatters.dll
+2026-06-30 05:32:21: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Serialization.Json.dll
+2026-06-30 05:32:22: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Serialization.Primitives.dll
+2026-06-30 05:32:22: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Runtime.Serialization.Xml.dll
+2026-06-30 05:32:23: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.AccessControl.dll
+2026-06-30 05:32:24: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Claims.dll
+2026-06-30 05:32:24: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Cryptography.Algorithms.dll
+2026-06-30 05:32:25: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Cryptography.Cng.dll
+2026-06-30 05:32:25: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Cryptography.Csp.dll
+2026-06-30 05:32:26: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Cryptography.dll
+2026-06-30 05:32:26: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Cryptography.Encoding.dll
+2026-06-30 05:32:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Cryptography.OpenSsl.dll
+2026-06-30 05:32:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Cryptography.Primitives.dll
+2026-06-30 05:32:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Cryptography.X509Certificates.dll
+2026-06-30 05:32:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.dll
+2026-06-30 05:32:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Principal.dll
+2026-06-30 05:32:29: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.Principal.Windows.dll
+2026-06-30 05:32:30: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Security.SecureString.dll
+2026-06-30 05:32:30: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ServiceModel.Web.dll
+2026-06-30 05:32:30: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ServiceProcess.dll
+2026-06-30 05:32:31: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Text.Encoding.CodePages.dll
+2026-06-30 05:32:31: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Text.Encoding.dll
+2026-06-30 05:32:32: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Text.Encoding.Extensions.dll
+2026-06-30 05:32:32: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Text.Encodings.Web.dll
+2026-06-30 05:32:33: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Text.Json.dll
+2026-06-30 05:32:33: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Text.RegularExpressions.dll
+2026-06-30 05:32:34: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.Channels.dll
+2026-06-30 05:32:34: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.dll
+2026-06-30 05:32:34: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.Overlapped.dll
+2026-06-30 05:32:35: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.Tasks.Dataflow.dll
+2026-06-30 05:32:36: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.Tasks.dll
+2026-06-30 05:32:36: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.Tasks.Extensions.dll
+2026-06-30 05:32:36: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.Tasks.Parallel.dll
+2026-06-30 05:32:37: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.Thread.dll
+2026-06-30 05:32:37: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.ThreadPool.dll
+2026-06-30 05:32:38: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Threading.Timer.dll
+2026-06-30 05:32:38: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Transactions.dll
+2026-06-30 05:32:39: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Transactions.Local.dll
+2026-06-30 05:32:39: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.ValueTuple.dll
+2026-06-30 05:32:40: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Web.dll
+2026-06-30 05:32:40: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Web.HttpUtility.dll
+2026-06-30 05:32:41: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Windows.dll
+2026-06-30 05:32:41: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Xml.dll
+2026-06-30 05:32:42: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Xml.Linq.dll
+2026-06-30 05:32:42: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Xml.ReaderWriter.dll
+2026-06-30 05:32:43: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Xml.Serialization.dll
+2026-06-30 05:32:43: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Xml.XDocument.dll
+2026-06-30 05:32:43: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Xml.XmlDocument.dll
+2026-06-30 05:32:44: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Xml.XmlSerializer.dll
+2026-06-30 05:32:44: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Xml.XPath.dll
+2026-06-30 05:32:45: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/System.Xml.XPath.XDocument.dll
+2026-06-30 05:32:45: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/th/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:32:46: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/tr/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:32:46: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/uk/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:32:47: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/vi/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:32:47: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/WindowsBase.dll
+2026-06-30 05:32:48: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Android.Glide.Annotations.dll
+2026-06-30 05:32:48: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Android.Glide.DiskLruCache.dll
+2026-06-30 05:32:49: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Android.Glide.dll
+2026-06-30 05:32:49: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Android.Glide.GifDecoder.dll
+2026-06-30 05:32:50: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Activity.dll
+2026-06-30 05:32:50: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Activity.Ktx.dll
+2026-06-30 05:32:51: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Annotation.dll
+2026-06-30 05:32:51: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Annotation.Experimental.dll
+2026-06-30 05:32:52: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Annotation.Jvm.dll
+2026-06-30 05:32:52: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.AppCompat.AppCompatResources.dll
+2026-06-30 05:32:53: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.AppCompat.dll
+2026-06-30 05:32:53: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Arch.Core.Common.dll
+2026-06-30 05:32:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Arch.Core.Runtime.dll
+2026-06-30 05:32:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Browser.dll
+2026-06-30 05:32:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.CardView.dll
+2026-06-30 05:32:55: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Collection.dll
+2026-06-30 05:32:55: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Collection.Ktx.dll
+2026-06-30 05:32:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Concurrent.Futures.dll
+2026-06-30 05:32:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.ConstraintLayout.Core.dll
+2026-06-30 05:32:57: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.ConstraintLayout.dll
+2026-06-30 05:32:57: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.CoordinatorLayout.dll
+2026-06-30 05:32:58: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Core.Core.Ktx.dll
+2026-06-30 05:32:58: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Core.dll
+2026-06-30 05:32:59: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.CursorAdapter.dll
+2026-06-30 05:32:59: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.CustomView.dll
+2026-06-30 05:33:00: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.CustomView.PoolingContainer.dll
+2026-06-30 05:33:00: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.DocumentFile.dll
+2026-06-30 05:33:01: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.DrawerLayout.dll
+2026-06-30 05:33:01: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.DynamicAnimation.dll
+2026-06-30 05:33:02: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Emoji2.dll
+2026-06-30 05:33:02: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Emoji2.ViewsHelper.dll
+2026-06-30 05:33:03: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.ExifInterface.dll
+2026-06-30 05:33:03: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Fragment.dll
+2026-06-30 05:33:04: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Fragment.Ktx.dll
+2026-06-30 05:33:04: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Interpolator.dll
+2026-06-30 05:33:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Legacy.Support.Core.Utils.dll
+2026-06-30 05:33:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.Common.dll
+2026-06-30 05:33:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.LiveData.Core.dll
+2026-06-30 05:33:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.LiveData.Core.Ktx.dll
+2026-06-30 05:33:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.LiveData.dll
+2026-06-30 05:33:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.Process.dll
+2026-06-30 05:33:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.Runtime.dll
+2026-06-30 05:33:08: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.Runtime.Ktx.dll
+2026-06-30 05:33:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.ViewModel.dll
+2026-06-30 05:33:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.ViewModel.Ktx.dll
+2026-06-30 05:33:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Lifecycle.ViewModelSavedState.dll
+2026-06-30 05:33:10: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Loader.dll
+2026-06-30 05:33:10: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.LocalBroadcastManager.dll
+2026-06-30 05:33:11: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Navigation.Common.dll
+2026-06-30 05:33:11: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Navigation.Fragment.dll
+2026-06-30 05:33:12: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Navigation.Runtime.dll
+2026-06-30 05:33:12: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Navigation.UI.dll
+2026-06-30 05:33:12: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Print.dll
+2026-06-30 05:33:13: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.ProfileInstaller.ProfileInstaller.dll
+2026-06-30 05:33:13: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.RecyclerView.dll
+2026-06-30 05:33:14: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.ResourceInspection.Annotation.dll
+2026-06-30 05:33:14: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.SavedState.dll
+2026-06-30 05:33:15: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.SavedState.SavedState.Ktx.dll
+2026-06-30 05:33:15: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Security.SecurityCrypto.dll
+2026-06-30 05:33:15: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.SlidingPaneLayout.dll
+2026-06-30 05:33:16: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Startup.StartupRuntime.dll
+2026-06-30 05:33:16: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.SwipeRefreshLayout.dll
+2026-06-30 05:33:17: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Tracing.Tracing.dll
+2026-06-30 05:33:17: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Transition.dll
+2026-06-30 05:33:18: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.VectorDrawable.Animated.dll
+2026-06-30 05:33:18: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.VectorDrawable.dll
+2026-06-30 05:33:19: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.VersionedParcelable.dll
+2026-06-30 05:33:19: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.ViewPager.dll
+2026-06-30 05:33:20: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.ViewPager2.dll
+2026-06-30 05:33:21: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Window.dll
+2026-06-30 05:33:21: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.AndroidX.Window.Extensions.Core.Core.dll
+2026-06-30 05:33:22: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Google.Android.Material.dll
+2026-06-30 05:33:22: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Google.Crypto.Tink.Android.dll
+2026-06-30 05:33:22: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Google.ErrorProne.Annotations.dll
+2026-06-30 05:33:23: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Google.Guava.ListenableFuture.dll
+2026-06-30 05:33:24: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Jetbrains.Annotations.dll
+2026-06-30 05:33:24: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Kotlin.StdLib.Common.dll
+2026-06-30 05:33:24: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Kotlin.StdLib.dll
+2026-06-30 05:33:25: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Kotlin.StdLib.Jdk7.dll
+2026-06-30 05:33:25: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.Kotlin.StdLib.Jdk8.dll
+2026-06-30 05:33:26: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.KotlinX.Coroutines.Android.dll
+2026-06-30 05:33:26: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/Xamarin.KotlinX.Coroutines.Core.Jvm.dll
+2026-06-30 05:33:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/zh-Hans/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:33:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/zh-Hant/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:33:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/zh-HK/Microsoft.Maui.Controls.resources.dll
+2026-06-30 05:33:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/php_files_on_hostgator/sync.php
+2026-06-30 05:33:31: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ar
+2026-06-30 05:33:31: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ca
+2026-06-30 05:33:31: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/cs
+2026-06-30 05:33:32: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/da
+2026-06-30 05:33:32: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/de
+2026-06-30 05:33:33: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/el
+2026-06-30 05:33:33: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/es
+2026-06-30 05:33:34: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/fi
+2026-06-30 05:33:34: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/fr
+2026-06-30 05:33:35: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/he
+2026-06-30 05:33:35: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/hi
+2026-06-30 05:33:36: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/hr
+2026-06-30 05:33:36: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/hu
+2026-06-30 05:33:37: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/id
+2026-06-30 05:33:37: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/it
+2026-06-30 05:33:38: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ja
+2026-06-30 05:33:38: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ko
+2026-06-30 05:33:39: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ms
+2026-06-30 05:33:39: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/nb
+2026-06-30 05:33:40: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/nl
+2026-06-30 05:33:40: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/pl
+2026-06-30 05:33:41: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/pt
+2026-06-30 05:33:41: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/pt-BR
+2026-06-30 05:33:41: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ro
+2026-06-30 05:33:42: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/ru
+2026-06-30 05:33:43: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/sk
+2026-06-30 05:33:43: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/sv
+2026-06-30 05:33:43: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/th
+2026-06-30 05:33:44: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/tr
+2026-06-30 05:33:44: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/uk
+2026-06-30 05:33:45: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/vi
+2026-06-30 05:33:45: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/zh-HK
+2026-06-30 05:33:46: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/zh-Hans
+2026-06-30 05:33:46: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/android/assets/zh-Hant
+2026-06-30 05:33:47: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/php_files_on_hostgator
+2026-06-30 05:33:47: == Sync Complete. Time: 00:03:04, Speed: 15.97 KB/s, OK: 4, Errors: 0

@@ -28,6 +28,7 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
 
     private readonly AuthService _auth;
     private readonly AssetLibraryService _assetService;
+    private readonly AssetThumbnailService _thumbnailService;
 
     private Label _rootFolderLabel = null!;
     private Label _lastScanLabel = null!;
@@ -52,10 +53,11 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
     private bool _isLoading;
     private bool _isLoadingLookupTemplate;
 
-    public AssetLibraryPage(AuthService auth, AssetLibraryService assetService)
+    public AssetLibraryPage(AuthService auth, AssetLibraryService assetService, AssetThumbnailService thumbnailService)
     {
         _auth = auth;
         _assetService = assetService;
+        _thumbnailService = thumbnailService;
         Title = "Asset Library";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -177,7 +179,7 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
 
         var categorizeSelectedButton = new Button
         {
-            Text = "Categorize selected",
+            Text = "Add category to selected",
             BackgroundColor = Color.FromArgb("#00838F"),
             TextColor = Colors.White,
             CornerRadius = 8
@@ -494,16 +496,26 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
 
     private static string BuildAssetsBlock(List<AssetLibraryItem> items)
     {
-        var sorted = items
-            .OrderBy(i => string.IsNullOrWhiteSpace(i.Category) ? "zzz_uncategorized" : i.Category, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(i => i.FileName, StringComparer.OrdinalIgnoreCase)
+        var enriched = items
+            .Select(i =>
+            {
+                var cats = AssetLibraryService.ParseCategories(i);
+                return new
+                {
+                    Item = i,
+                    Cats = cats,
+                    SortKey = cats.FirstOrDefault() ?? "zzz_uncategorized"
+                };
+            })
+            .OrderBy(x => x.SortKey, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Item.FileName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         var sb = new System.Text.StringBuilder();
-        foreach (var item in sorted)
+        foreach (var x in enriched)
         {
-            var category = string.IsNullOrWhiteSpace(item.Category) ? "uncategorized" : item.Category;
-            sb.AppendLine($"{item.FileName} | {category} | {item.FileType}");
+            var category = x.Cats.Count == 0 ? "uncategorized" : string.Join(", ", x.Cats);
+            sb.AppendLine($"{x.Item.FileName} | {category} | {x.Item.FileType}");
         }
 
         return sb.ToString();
@@ -678,7 +690,7 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
 
             _currentItems = ApplyFilter(allItems);
 
-            int uncategorizedCount = allItems.Count(i => string.IsNullOrWhiteSpace(i.Category));
+            int uncategorizedCount = allItems.Count(i => AssetLibraryService.ParseCategories(i).Count == 0);
             _filesCountLabel.Text = $"{allItems.Count} files indexed, {uncategorizedCount} uncategorized";
 
             RenderList();
@@ -692,10 +704,10 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
     private List<AssetLibraryItem> ApplyFilter(List<AssetLibraryItem> items)
     {
         if (_selectedCategoryFilter == "Uncategorized")
-            return items.Where(i => string.IsNullOrWhiteSpace(i.Category)).ToList();
+            return items.Where(i => AssetLibraryService.ParseCategories(i).Count == 0).ToList();
 
         if (_selectedCategoryFilter != "All")
-            return items.Where(i => string.Equals(i.Category, _selectedCategoryFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+            return items.Where(i => AssetLibraryService.ParseCategories(i).Contains(_selectedCategoryFilter, StringComparer.OrdinalIgnoreCase)).ToList();
 
         return items;
     }
@@ -735,6 +747,437 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
     }
 
     private View BuildAssetRow(AssetLibraryItem item)
+    {
+        var checkBox = new CheckBox
+        {
+            IsChecked = _selectedIds.Contains(item.Id),
+            VerticalOptions = LayoutOptions.Center
+        };
+        checkBox.CheckedChanged += (_, e) =>
+        {
+            if (e.Value)
+                _selectedIds.Add(item.Id);
+            else
+                _selectedIds.Remove(item.Id);
+
+            _bulkBar.IsVisible = _selectedIds.Count > 0;
+            _selectionCountLabel.Text = $"{_selectedIds.Count} selected";
+        };
+
+        var name = string.IsNullOrWhiteSpace(item.DescriptiveName) ? item.FileName : item.DescriptiveName;
+        var categoriesList = AssetLibraryService.ParseCategories(item);
+
+        var badges = new HorizontalStackLayout { Spacing = 4 };
+        if (categoriesList.Count == 0)
+        {
+            badges.Children.Add(BuildCategoryBadge("(uncategorized)", true));
+        }
+        else
+        {
+            foreach (var category in categoriesList.Take(3))
+                badges.Children.Add(BuildCategoryBadge(category, false));
+
+            if (categoriesList.Count > 3)
+            {
+                badges.Children.Add(new Label
+                {
+                    Text = $"+{categoriesList.Count - 3}",
+                    FontSize = 11,
+                    TextColor = Color.FromArgb("#666"),
+                    VerticalOptions = LayoutOptions.Center
+                });
+            }
+        }
+
+        if (item.MissingSince != null)
+        {
+            badges.Children.Add(new Frame
+            {
+                BackgroundColor = Color.FromArgb("#FFCDD2"),
+                BorderColor = Colors.Transparent,
+                Padding = new Thickness(8, 3),
+                CornerRadius = 8,
+                Content = new Label
+                {
+                    Text = "MISSING",
+                    FontSize = 10,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#B71C1C")
+                }
+            });
+        }
+
+        var openButton = new Button
+        {
+            Text = "Open",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 36
+        };
+        openButton.Clicked += async (_, _) => await OpenAssetAsync(item);
+
+        var menuButton = new Button
+        {
+            Text = "⋮",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#333"),
+            FontSize = 20,
+            WidthRequest = 44,
+            HeightRequest = 36
+        };
+        menuButton.Clicked += async (_, _) => await ShowAssetMenuAsync(item);
+
+        var middleColumn = new VerticalStackLayout
+        {
+            Spacing = 5,
+            Children =
+            {
+                new Label
+                {
+                    Text = name,
+                    FontSize = 14,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#222"),
+                    LineBreakMode = LineBreakMode.TailTruncation
+                },
+                badges,
+                new Label
+                {
+                    Text = $"{(item.FileType == "image" ? "🖼️ image" : "🎞️ video")} • {FormatBytes(item.FileSizeBytes)}",
+                    FontSize = 11,
+                    TextColor = Color.FromArgb("#666")
+                },
+                new Label
+                {
+                    Text = item.FilePath,
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#999"),
+                    LineBreakMode = LineBreakMode.MiddleTruncation
+                }
+            }
+        };
+
+        middleColumn.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await OpenCategoryModalAsync(item))
+        });
+
+        var rightActions = new HorizontalStackLayout
+        {
+            Spacing = 4,
+            VerticalOptions = LayoutOptions.Center,
+            Children = { openButton, menuButton }
+        };
+
+        var contentGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 10
+        };
+
+        contentGrid.Add(checkBox, 0, 0);
+        contentGrid.Add(BuildThumbnail(item), 1, 0);
+        contentGrid.Add(middleColumn, 2, 0);
+        contentGrid.Add(rightActions, 3, 0);
+
+        return new Frame
+        {
+            BackgroundColor = item.MissingSince == null ? Colors.White : Color.FromArgb("#FFEBEE"),
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            CornerRadius = 10,
+            Padding = 12,
+            HasShadow = false,
+            Content = contentGrid
+        };
+    }
+
+    private View BuildCategoryBadge(string text, bool uncategorized)
+    {
+        return new Frame
+        {
+            BackgroundColor = uncategorized ? Color.FromArgb("#ECEFF1") : Color.FromArgb("#E0F2F1"),
+            BorderColor = Colors.Transparent,
+            Padding = new Thickness(8, 3),
+            CornerRadius = 8,
+            Content = new Label
+            {
+                Text = text,
+                FontSize = 11,
+                TextColor = uncategorized ? Color.FromArgb("#777") : Color.FromArgb("#00695C"),
+                FontAttributes = uncategorized ? FontAttributes.Italic : FontAttributes.None
+            }
+        };
+    }
+
+    private View BuildThumbnail(AssetLibraryItem item)
+    {
+        var slot = new Grid
+        {
+            WidthRequest = 80,
+            HeightRequest = 80,
+            BackgroundColor = item.MissingSince != null ? Color.FromArgb("#EEEEEE") : Color.FromArgb("#F5F5F5")
+        };
+
+        slot.Children.Add(new Label
+        {
+            Text = item.MissingSince != null ? "❓" : item.FileType == "video" ? "🎞️" : "🖼️",
+            FontSize = 28,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        if (item.FileType == "image" && item.MissingSince == null)
+        {
+            var thumbPath = _thumbnailService.GetThumbnailPath(item.Id, item.FilePath);
+            if (!string.IsNullOrWhiteSpace(thumbPath))
+            {
+                slot.Children.Add(new Image
+                {
+                    Source = ImageSource.FromFile(thumbPath),
+                    Aspect = Aspect.AspectFill,
+                    WidthRequest = 80,
+                    HeightRequest = 80
+                });
+            }
+        }
+
+        return new Frame
+        {
+            Padding = 0,
+            CornerRadius = 8,
+            BackgroundColor = Colors.Transparent,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            HasShadow = false,
+            IsClippedToBounds = true,
+            Content = slot
+        };
+    }
+
+    private async Task OpenCategoryModalAsync(AssetLibraryItem item)
+    {
+        if (Content is not Grid root)
+            return;
+
+        var allCategories = await _assetService.GetDistinctCategoriesAsync(_auth.CurrentUsername);
+        var currentCategories = AssetLibraryService.ParseCategories(item);
+
+        var state = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        foreach (var category in allCategories)
+            state[category] = currentCategories.Contains(category, StringComparer.OrdinalIgnoreCase);
+        foreach (var category in currentCategories)
+            if (!state.ContainsKey(category))
+                state[category] = true;
+
+        var searchEntry = new Entry
+        {
+            Placeholder = "Filter categories...",
+            FontSize = 13
+        };
+
+        var categoryListStack = new VerticalStackLayout { Spacing = 4 };
+
+        void RenderCategoryList()
+        {
+            categoryListStack.Children.Clear();
+            var filter = searchEntry.Text?.Trim() ?? "";
+            var keys = state.Keys
+                .Where(k => string.IsNullOrWhiteSpace(filter) || k.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (keys.Count == 0)
+            {
+                categoryListStack.Children.Add(new Label
+                {
+                    Text = "No categories match.",
+                    FontSize = 12,
+                    FontAttributes = FontAttributes.Italic,
+                    TextColor = Color.FromArgb("#999")
+                });
+                return;
+            }
+
+            foreach (var key in keys)
+            {
+                var localKey = key;
+                var checkBox = new CheckBox
+                {
+                    IsChecked = state[localKey],
+                    VerticalOptions = LayoutOptions.Center
+                };
+                checkBox.CheckedChanged += (_, e) => state[localKey] = e.Value;
+
+                categoryListStack.Children.Add(new HorizontalStackLayout
+                {
+                    Spacing = 8,
+                    Children =
+                    {
+                        checkBox,
+                        new Label
+                        {
+                            Text = localKey,
+                            FontSize = 13,
+                            VerticalOptions = LayoutOptions.Center
+                        }
+                    }
+                });
+            }
+        }
+
+        searchEntry.TextChanged += (_, _) => RenderCategoryList();
+
+        var newCategoryEntry = new Entry
+        {
+            Placeholder = "New category name",
+            FontSize = 13,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+
+        var addNewButton = new Button
+        {
+            Text = "Add",
+            BackgroundColor = Color.FromArgb("#00838F"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 36,
+            WidthRequest = 80
+        };
+        addNewButton.Clicked += (_, _) =>
+        {
+            var name = newCategoryEntry.Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+
+            state[name] = true;
+            newCategoryEntry.Text = "";
+            RenderCategoryList();
+        };
+
+        var addRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 8
+        };
+        addRow.Add(newCategoryEntry, 0, 0);
+        addRow.Add(addNewButton, 1, 0);
+
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            HeightRequest = 42
+        };
+
+        var updateButton = new Button
+        {
+            Text = "Update",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42
+        };
+
+        var actionsRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 10
+        };
+        actionsRow.Add(cancelButton, 0, 0);
+        actionsRow.Add(updateButton, 1, 0);
+
+        RenderCategoryList();
+
+        var displayName = string.IsNullOrWhiteSpace(item.DescriptiveName) ? item.FileName : item.DescriptiveName;
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            Padding = 18,
+            CornerRadius = 12,
+            WidthRequest = 480,
+            MaximumHeightRequest = 640,
+            HasShadow = true,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = displayName,
+                        FontSize = 15,
+                        FontAttributes = FontAttributes.Bold,
+                        LineBreakMode = LineBreakMode.TailTruncation
+                    },
+                    new Label
+                    {
+                        Text = "Tick the categories this asset belongs to. Untick to remove.",
+                        FontSize = 11,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    searchEntry,
+                    new ScrollView
+                    {
+                        HeightRequest = 320,
+                        Content = categoryListStack
+                    },
+                    addRow,
+                    actionsRow
+                }
+            }
+        };
+
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            InputTransparent = false,
+            Children = { card }
+        };
+
+        var tcs = new TaskCompletionSource<bool>();
+
+        updateButton.Clicked += async (_, _) =>
+        {
+            var checkedCategories = state
+                .Where(kv => kv.Value)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            await _assetService.SetCategoriesAsync(item.Id, checkedCategories);
+            root.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+            await LoadAsync();
+        };
+
+        cancelButton.Clicked += (_, _) =>
+        {
+            root.Children.Remove(overlay);
+            tcs.TrySetResult(false);
+        };
+
+        root.Children.Add(overlay);
+        await tcs.Task;
+    }
+
+    private View BuildAssetRowLegacy(AssetLibraryItem item)
     {
         var checkBox = new CheckBox
         {
@@ -937,18 +1380,16 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
 
     private async Task ShowAssetMenuAsync(AssetLibraryItem item)
     {
+        // Category management moved to the middle-column tap modal.
         var choice = await DisplayActionSheet(
             item.FileName,
             "Cancel",
             null,
             "Edit name",
-            "Change category",
             "Delete from library");
 
         if (choice == "Edit name")
             await EditNameAsync(item);
-        else if (choice == "Change category")
-            await ChangeCategoryAsync(new[] { item.Id });
         else if (choice == "Delete from library")
             await DeleteFromLibraryAsync(item);
     }
@@ -972,20 +1413,19 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
         if (_selectedIds.Count == 0)
             return;
 
-        await ChangeCategoryAsync(_selectedIds.ToList());
+        await AddCategoryToSelectedAsync(_selectedIds.ToList());
         _selectedIds.Clear();
         await LoadAsync();
     }
 
-    private async Task ChangeCategoryAsync(IEnumerable<int> ids)
+    private async Task AddCategoryToSelectedAsync(IEnumerable<int> ids)
     {
         var idList = ids.ToList();
         var options = new List<string>();
         options.AddRange(_currentCategories);
         options.Add("New category...");
-        options.Add("Clear category");
 
-        var choice = await DisplayActionSheet("Change category", "Cancel", null, options.ToArray());
+        var choice = await DisplayActionSheet("Add category to selected", "Cancel", null, options.ToArray());
         if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel")
             return;
 
@@ -997,20 +1437,12 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
                 return;
             category = newCategory.Trim();
         }
-        else if (choice == "Clear category")
-        {
-            category = "";
-        }
         else
         {
             category = choice;
         }
 
-        if (idList.Count == 1)
-            await _assetService.SetCategoryAsync(idList[0], category);
-        else
-            await _assetService.SetCategoryBulkAsync(idList, category);
-
+        await _assetService.AddCategoryBulkAsync(idList, category);
         await LoadAsync();
     }
 

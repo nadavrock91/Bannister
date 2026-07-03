@@ -21,6 +21,8 @@ public class AssetLibraryItem
 
     public string Category { get; set; } = "";
 
+    public string Categories { get; set; } = "";
+
     public string DescriptiveName { get; set; } = "";
 
     public DateTime IndexedAt { get; set; } = DateTime.UtcNow;

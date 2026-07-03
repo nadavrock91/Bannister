@@ -26,7 +26,37 @@ public class AssetLibraryService
     private async Task EnsureTableAsync()
     {
         if (!_db.IsReadOnly)
+        {
             await _db.EnsureTableAsync<AssetLibraryItem>();
+            var conn = await _db.GetConnectionAsync();
+            try { await conn.ExecuteAsync("ALTER TABLE asset_library_items ADD COLUMN Categories TEXT NOT NULL DEFAULT ''"); }
+            catch { }
+        }
+    }
+
+    public static List<string> ParseCategories(AssetLibraryItem item)
+    {
+        var raw = string.IsNullOrWhiteSpace(item.Categories) ? item.Category : item.Categories;
+        if (string.IsNullOrWhiteSpace(raw))
+            return new List<string>();
+
+        return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public static string SerializeCategories(IEnumerable<string> categories)
+    {
+        var clean = categories
+            .Select(c => c?.Trim() ?? "")
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return string.Join(",", clean);
     }
 
     public async Task<List<AssetLibraryItem>> GetAllAsync(string username)
@@ -41,22 +71,21 @@ public class AssetLibraryService
 
     public async Task<List<AssetLibraryItem>> GetByCategoryAsync(string username, string category)
     {
-        await EnsureTableAsync();
-        var conn = await _db.GetConnectionAsync();
-        return await conn.Table<AssetLibraryItem>()
-            .Where(i => i.Username == username && i.Category == category)
-            .OrderBy(i => i.FileName)
-            .ToListAsync();
+        var items = await GetAllAsync(username);
+        return items
+            .Where(i => ParseCategories(i).Contains(category, StringComparer.OrdinalIgnoreCase))
+            .OrderBy(i => i.FileName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     public async Task<List<string>> GetDistinctCategoriesAsync(string username)
     {
         var items = await GetAllAsync(username);
         return items
-            .Select(i => i.Category?.Trim() ?? "")
+            .SelectMany(ParseCategories)
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(c => c)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
@@ -78,7 +107,21 @@ public class AssetLibraryService
         var item = await GetByIdAsync(id);
         if (item == null) return false;
 
-        item.Category = category?.Trim() ?? "";
+        item.Categories = SerializeCategories(new[] { category?.Trim() ?? "" });
+        await conn.UpdateAsync(item);
+        return true;
+    }
+
+    public async Task<bool> SetCategoriesAsync(int id, IEnumerable<string> categories)
+    {
+        await EnsureTableAsync();
+        if (_db.IsReadOnly) return false;
+
+        var conn = await _db.GetConnectionAsync();
+        var item = await GetByIdAsync(id);
+        if (item == null) return false;
+
+        item.Categories = SerializeCategories(categories);
         await conn.UpdateAsync(item);
         return true;
     }
@@ -98,7 +141,35 @@ public class AssetLibraryService
                 .FirstOrDefaultAsync();
             if (item == null) continue;
 
-            item.Category = trimmed;
+            item.Categories = SerializeCategories(new[] { trimmed });
+            await conn.UpdateAsync(item);
+            count++;
+        }
+
+        return count;
+    }
+
+    public async Task<int> AddCategoryBulkAsync(IEnumerable<int> ids, string category)
+    {
+        await EnsureTableAsync();
+        if (_db.IsReadOnly) return 0;
+
+        var trimmed = category?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return 0;
+
+        var conn = await _db.GetConnectionAsync();
+        int count = 0;
+        foreach (var id in ids.Distinct())
+        {
+            var item = await conn.Table<AssetLibraryItem>()
+                .Where(i => i.Id == id)
+                .FirstOrDefaultAsync();
+            if (item == null) continue;
+
+            var categories = ParseCategories(item);
+            categories.Add(trimmed);
+            item.Categories = SerializeCategories(categories);
             await conn.UpdateAsync(item);
             count++;
         }

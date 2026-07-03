@@ -1,0 +1,36 @@
+2026-07-03 05:30:44: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-07-03 05:30:44: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-07-03 05:30:47: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-07-03 05:30:49: Changes: 7, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 21658
+2026-07-03 05:30:49: Left to Right: Copy File: 6 Delete File: 1 
+2026-07-03 05:30:49: == Sync Started by On Schedule Min=30 Hour=5 
+2026-07-03 05:30:49: ConnectCloned connected to file:///C:/rock/bannister
+2026-07-03 05:30:49: ConnectCloned connected to file:///C:/rock/bannister
+2026-07-03 05:30:49: ConnectCloned connected to file:///C:/rock/bannister
+2026-07-03 05:30:49: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-07-03 05:30:49: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-07-03 05:30:49: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-07-03 05:30:54: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (17,863)
+2026-07-03 05:30:54: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (17,863)
+2026-07-03 05:30:55: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (83,968)
+2026-07-03 05:30:57: Copy New 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/.vs/Bannister/FileContentIndex/7e5ea8f6-a753-47fd-b3da-1ae645cd8222.vsidx' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/.vs/Bannister/FileContentIndex/7e5ea8f6-a753-47fd-b3da-1ae645cd8222.vsidx' (202)
+2026-07-03 05:30:59: Delete File goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/.vs/Bannister/FileContentIndex/efc8d491-5c52-4cfa-8a80-7c9b5728fb8c.vsidx
+2026-07-03 05:31:00: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (71,899)
+2026-07-03 05:31:01: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/.vs/Bannister/v18/.suo' (4,608)
+2026-07-03 05:31:01: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-07-03 05:31:03: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-07-03 05:31:04: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/4cccf0cc-1421-47d7-b0b4-6aeb15dcd753.vsidx
+2026-07-03 05:31:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/5fd4cac4-a7cd-4a97-8835-8fa79ca6645c.vsidx
+2026-07-03 05:31:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/60461d75-5be8-4685-8240-179bcede700c.vsidx
+2026-07-03 05:31:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/613c9d23-500e-4bfa-b33f-30976e6f80e3.vsidx
+2026-07-03 05:31:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/6faacbb7-537a-406d-99b0-8564328eeaed.vsidx
+2026-07-03 05:31:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Helpers/ActivityFilterHelper.cs
+2026-07-03 05:31:08: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Models/CasinoChip.cs
+2026-07-03 05:31:08: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Models/TaskItem.cs
+2026-07-03 05:31:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Debug/net8.0-android/devices.cache
+2026-07-03 05:31:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Services/CommandsCasinoService.cs
+2026-07-03 05:31:10: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Services/TaskService.cs
+2026-07-03 05:31:11: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Views/CalendarPage.cs
+2026-07-03 05:31:11: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Views/CommandsCasinoPage.cs
+2026-07-03 05:31:14: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/Helpers
+2026-07-03 05:31:17: == Sync Complete. Time: 00:00:28, Speed: 15.48 KB/s, OK: 7, Errors: 0

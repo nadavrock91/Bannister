@@ -64,6 +64,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<PromptService>();
         builder.Services.AddSingleton<StoryProductionService>();
         builder.Services.AddSingleton<AssetLibraryService>();
+        builder.Services.AddSingleton<AssetThumbnailService>();
         builder.Services.AddSingleton<MusicProductionService>();
         builder.Services.AddSingleton<CustomPromptService>();
         builder.Services.AddSingleton<TaskService>();
