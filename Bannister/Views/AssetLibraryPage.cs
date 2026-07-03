@@ -26,6 +26,33 @@ For each relevant moment or line in the source content:
 If multiple assets fit the same moment, list them grouped. If no asset fits any part of the content, say so plainly. Be honest about poor matches — better to suggest nothing than to suggest things that don't really fit.
 """;
 
+    private const string DefaultBulkCategorizePrompt = """
+You're categorizing image and video filenames from an asset library. Below are:
+- The existing categories in the library (prefer these when they fit)
+- A list of filenames that need categories assigned
+
+YOUR TASK: For each filename, assign one or more category names. The filename itself is the descriptive name — use it to judge what category the asset belongs to. Prefer existing categories when they fit; suggest new ones only when nothing existing applies. Multiple categories per file are fine (e.g. a video of a dragon flying might get both dragons and flying_creatures). Use lowercase snake_case for any new categories you invent.
+
+EXISTING CATEGORIES:
+
+{CATEGORIES}
+
+FILENAMES TO CATEGORIZE:
+
+{FILENAMES}
+
+Output ONLY a C# dictionary literal in this exact format, no explanation, no commentary, no code fences:
+
+new Dictionary<string, string[]>
+{
+    { "filename_one.jpg", new[] { "category_a", "category_b" } },
+    { "filename_two.mp4", new[] { "category_c" } },
+    { "filename_three.png", new[] { "category_a" } },
+}
+
+Include every filename from the list above. Each filename gets at least one category.
+""";
+
     private readonly AuthService _auth;
     private readonly AssetLibraryService _assetService;
     private readonly AssetThumbnailService _thumbnailService;
@@ -45,6 +72,7 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
     private VerticalStackLayout _lookupTemplateContainer = null!;
     private Button _lookupSectionToggle = null!;
     private Button _lookupTemplateToggle = null!;
+    private Editor _bulkCategorizeTemplateEditor = null!;
 
     private readonly HashSet<int> _selectedIds = new();
     private List<AssetLibraryItem> _currentItems = new();
@@ -52,6 +80,7 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
     private string _selectedCategoryFilter = "All";
     private bool _isLoading;
     private bool _isLoadingLookupTemplate;
+    private bool _isLoadingBulkCategorizeTemplate;
 
     public AssetLibraryPage(AuthService auth, AssetLibraryService assetService, AssetThumbnailService thumbnailService)
     {
@@ -68,6 +97,7 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
         base.OnAppearing();
         await LoadAsync();
         await LoadLookupTemplateAsync();
+        await LoadBulkCategorizeTemplateAsync();
     }
 
     private void BuildUI()
@@ -95,6 +125,8 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
 
         stack.Children.Add(BuildLookupSection());
         stack.Children.Add(BuildStoryDiscoveryButton());
+        stack.Children.Add(BuildBulkCategorizeButton());
+        stack.Children.Add(BuildBulkCategorizeTemplateExpander());
 
         _rootFolderLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#555"), LineBreakMode = LineBreakMode.WordWrap };
         _lastScanLabel = new Label { FontSize = 11, TextColor = Color.FromArgb("#777") };
@@ -444,6 +476,117 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
         return button;
     }
 
+    private Button BuildBulkCategorizeButton()
+    {
+        var button = new Button
+        {
+            Text = " Auto-categorize uncategorized",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontAttributes = FontAttributes.Bold
+        };
+
+        button.Clicked += async (_, _) => await ShowBulkCategorizeModalAsync();
+        return button;
+    }
+
+    private VerticalStackLayout BuildBulkCategorizeTemplateExpander()
+    {
+        _bulkCategorizeTemplateEditor = new Editor
+        {
+            HeightRequest = 220,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            FontSize = 12,
+            Text = DefaultBulkCategorizePrompt
+        };
+        _bulkCategorizeTemplateEditor.TextChanged += async (_, _) =>
+        {
+            if (_isLoadingBulkCategorizeTemplate)
+                return;
+
+            try
+            {
+                var key = GetBulkCategorizeTemplateKey();
+                var value = _bulkCategorizeTemplateEditor.Text ?? "";
+                if (string.IsNullOrWhiteSpace(value))
+                    SecureStorage.Remove(key);
+                else
+                    await SecureStorage.SetAsync(key, value);
+            }
+            catch { }
+        };
+
+        var resetButton = new Button
+        {
+            Text = "Reset to default",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#C62828"),
+            FontSize = 12,
+            HorizontalOptions = LayoutOptions.Start
+        };
+        resetButton.Clicked += async (_, _) =>
+        {
+            var reset = await DisplayAlert("Reset to default?", "Discard your custom prompt and restore the default.", "Reset", "Cancel");
+            if (!reset)
+                return;
+
+            try { SecureStorage.Remove(GetBulkCategorizeTemplateKey()); } catch { }
+            _bulkCategorizeTemplateEditor.Text = DefaultBulkCategorizePrompt;
+        };
+
+        var container = new VerticalStackLayout
+        {
+            IsVisible = false,
+            Spacing = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Prompt template (edit to customize):",
+                    FontSize = 12,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#333")
+                },
+                _bulkCategorizeTemplateEditor,
+                new Label
+                {
+                    Text = "Use {CATEGORIES} and {FILENAMES} as placeholders.",
+                    FontSize = 11,
+                    FontAttributes = FontAttributes.Italic,
+                    TextColor = Color.FromArgb("#666")
+                },
+                resetButton
+            }
+        };
+
+        var toggle = new Button
+        {
+            Text = "Show bulk-categorize prompt template",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        toggle.Clicked += (_, _) =>
+        {
+            container.IsVisible = !container.IsVisible;
+            toggle.Text = container.IsVisible
+                ? "Hide bulk-categorize prompt template"
+                : "Show bulk-categorize prompt template";
+        };
+
+        return new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children = { toggle, container }
+        };
+    }
+
     private async Task LoadLookupTemplateAsync()
     {
         if (_lookupTemplateEditor == null)
@@ -466,6 +609,29 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
     }
 
     private string GetLookupTemplateKey() => $"asset_library_lookup_prompt_custom_{_auth.CurrentUsername}";
+
+    private string GetBulkCategorizeTemplateKey() => $"bulk_categorize_prompt_{_auth.CurrentUsername}";
+
+    private async Task LoadBulkCategorizeTemplateAsync()
+    {
+        if (_bulkCategorizeTemplateEditor == null)
+            return;
+
+        _isLoadingBulkCategorizeTemplate = true;
+        try
+        {
+            var saved = await SecureStorage.GetAsync(GetBulkCategorizeTemplateKey());
+            _bulkCategorizeTemplateEditor.Text = string.IsNullOrWhiteSpace(saved) ? DefaultBulkCategorizePrompt : saved;
+        }
+        catch
+        {
+            _bulkCategorizeTemplateEditor.Text = DefaultBulkCategorizePrompt;
+        }
+        finally
+        {
+            _isLoadingBulkCategorizeTemplate = false;
+        }
+    }
 
     private async void OnCopyLookupPromptClicked(object? sender, EventArgs e)
     {
@@ -655,6 +821,304 @@ If multiple assets fit the same moment, list them grouped. If no asset fits any 
             modalEditor.IsVisible = false;
             applyButton.IsVisible = false;
             closeButton.Text = "Done";
+        };
+
+        closeButton.Clicked += (_, _) =>
+        {
+            root.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+        };
+
+        root.Children.Add(overlay);
+        await tcs.Task;
+    }
+
+    private async void OnCopyBulkCategorizePromptClicked(object? sender, EventArgs e)
+    {
+        var allItems = await _assetService.GetAllAsync(_auth.CurrentUsername);
+        var uncategorized = allItems
+            .Where(i => i.MissingSince == null && AssetLibraryService.ParseCategories(i).Count == 0)
+            .ToList();
+
+        if (uncategorized.Count == 0)
+        {
+            await DisplayAlert("Nothing to categorize", "No uncategorized items in the library.", "OK");
+            return;
+        }
+
+        const int cap = 500;
+        var batch = uncategorized.Take(cap).ToList();
+        var truncated = uncategorized.Count > cap;
+
+        var existingCategories = await _assetService.GetDistinctCategoriesAsync(_auth.CurrentUsername);
+        var categoriesBlock = existingCategories.Count == 0
+            ? "(none yet — invent categories as needed)"
+            : string.Join(", ", existingCategories);
+
+        var filenamesBlock = string.Join("\n", batch.Select(i => i.FileName));
+
+        var template = _bulkCategorizeTemplateEditor.Text ?? DefaultBulkCategorizePrompt;
+        var prompt = template
+            .Replace("{CATEGORIES}", categoriesBlock, StringComparison.Ordinal)
+            .Replace("{FILENAMES}", filenamesBlock, StringComparison.Ordinal);
+
+        if (prompt.Length > 100000)
+        {
+            var ok = await DisplayAlert(
+                "Large prompt",
+                $"Prompt is {prompt.Length:N0} chars. Continue?",
+                "Copy",
+                "Cancel");
+            if (!ok)
+                return;
+        }
+
+        await Clipboard.SetTextAsync(prompt);
+
+        if (truncated)
+        {
+            await DisplayAlert(
+                "Batch limit reached",
+                $"{batch.Count} of {uncategorized.Count} uncategorized filenames included. Apply this batch, then run again to categorize the next {Math.Min(cap, uncategorized.Count - batch.Count)}.",
+                "OK");
+        }
+
+        if (sender is Button btn)
+        {
+            var original = btn.Text;
+            btn.Text = "Copied!";
+            await Task.Delay(1000);
+            btn.Text = original;
+        }
+    }
+
+    private static Dictionary<string, List<string>>? ParseBulkCategorizeResponse(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+        var dictStart = raw.IndexOf("new Dictionary", StringComparison.OrdinalIgnoreCase);
+        var braceStart = dictStart >= 0 ? raw.IndexOf('{', dictStart) : raw.IndexOf('{');
+        if (braceStart < 0)
+            return null;
+
+        int depth = 0;
+        int braceEnd = -1;
+        for (int i = braceStart; i < raw.Length; i++)
+        {
+            if (raw[i] == '{')
+                depth++;
+            else if (raw[i] == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    braceEnd = i;
+                    break;
+                }
+            }
+        }
+        if (braceEnd < 0)
+            return null;
+
+        var body = raw.Substring(braceStart + 1, braceEnd - braceStart - 1);
+        var pattern = new System.Text.RegularExpressions.Regex(
+            "\\{\\s*\"([^\"]+)\"\\s*,\\s*new(?:\\s+string)?\\s*\\[\\s*\\]\\s*\\{([^}]*)\\}\\s*\\}",
+            System.Text.RegularExpressions.RegexOptions.Compiled);
+        var stringLit = new System.Text.RegularExpressions.Regex("\"([^\"]+)\"");
+
+        var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (System.Text.RegularExpressions.Match match in pattern.Matches(body))
+        {
+            var filename = match.Groups[1].Value.Trim();
+            var innerBody = match.Groups[2].Value;
+            var categories = new List<string>();
+            foreach (System.Text.RegularExpressions.Match stringMatch in stringLit.Matches(innerBody))
+            {
+                var name = stringMatch.Groups[1].Value.Trim();
+                if (!string.IsNullOrWhiteSpace(name))
+                    categories.Add(name);
+            }
+
+            if (categories.Count > 0)
+                result[filename] = categories;
+        }
+
+        return result.Count == 0 ? null : result;
+    }
+
+    private async Task<(int applied, int notFound, int noCategories)> ApplyBulkCategorizationAsync(Dictionary<string, List<string>> parsed)
+    {
+        var allItems = await _assetService.GetAllAsync(_auth.CurrentUsername);
+        var byFile = allItems
+            .Where(i => i.MissingSince == null)
+            .GroupBy(i => i.FileName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        int applied = 0;
+        int notFound = 0;
+        int noCategories = 0;
+
+        foreach (var kv in parsed)
+        {
+            if (!byFile.TryGetValue(kv.Key, out var item))
+            {
+                notFound++;
+                continue;
+            }
+
+            var cats = kv.Value
+                .Select(c => c?.Trim() ?? "")
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (cats.Count == 0)
+            {
+                noCategories++;
+                continue;
+            }
+
+            var existing = AssetLibraryService.ParseCategories(item);
+            var merged = existing.Concat(cats).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+            await _assetService.SetCategoriesAsync(item.Id, merged);
+            applied++;
+        }
+
+        return (applied, notFound, noCategories);
+    }
+
+    private async Task ShowBulkCategorizeModalAsync()
+    {
+        if (Content is not Grid root)
+            return;
+
+        var copyButton = new Button
+        {
+            Text = "Copy prompt to clipboard",
+            BackgroundColor = Color.FromArgb("#6A1B9A"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42
+        };
+        copyButton.Clicked += OnCopyBulkCategorizePromptClicked;
+
+        var pasteEditor = new Editor
+        {
+            Placeholder = "Paste the LLM's C# dictionary response here...",
+            HeightRequest = 300,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            FontSize = 13
+        };
+
+        var statusLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#2E7D32"),
+            IsVisible = false
+        };
+
+        var applyButton = new Button
+        {
+            Text = "Apply categorization",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42
+        };
+
+        var closeButton = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            HeightRequest = 42
+        };
+
+        var actionsRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 10
+        };
+        actionsRow.Add(closeButton, 0, 0);
+        actionsRow.Add(applyButton, 1, 0);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            Padding = 20,
+            CornerRadius = 12,
+            WidthRequest = 560,
+            MaximumHeightRequest = 700,
+            HasShadow = true,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Auto-categorize uncategorized",
+                        FontSize = 16,
+                        FontAttributes = FontAttributes.Bold
+                    },
+                    new Label
+                    {
+                        Text = "Send filenames of uncategorized items + your existing categories to the LLM. Paste the returned C# dictionary and tap Apply to categorize directly.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    copyButton,
+                    pasteEditor,
+                    statusLabel,
+                    actionsRow
+                }
+            }
+        };
+
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            InputTransparent = false,
+            Children = { card }
+        };
+
+        var tcs = new TaskCompletionSource<bool>();
+
+        applyButton.Clicked += async (_, _) =>
+        {
+            var text = pasteEditor.Text ?? "";
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                await DisplayAlert("Empty", "Paste the LLM response first.", "OK");
+                return;
+            }
+
+            var parsed = ParseBulkCategorizeResponse(text);
+            if (parsed == null || parsed.Count == 0)
+            {
+                await DisplayAlert("Could not parse", "Paste a C# dictionary literal mapping filenames to string[] of categories.", "OK");
+                return;
+            }
+
+            var (applied, notFound, noCategories) = await ApplyBulkCategorizationAsync(parsed);
+            statusLabel.Text = $"Applied categories to {applied} file(s). Not found: {notFound}. Skipped (no categories): {noCategories}.";
+            statusLabel.IsVisible = true;
+            applyButton.IsVisible = false;
+            closeButton.Text = "Done";
+
+            await LoadAsync();
         };
 
         closeButton.Clicked += (_, _) =>
