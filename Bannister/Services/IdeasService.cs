@@ -27,6 +27,9 @@ public class IdeasService
             await conn.CreateTableAsync<IdeaItem>();
             try { await conn.CreateTableAsync<IdeaCategoryClassification>(); } catch { }
             try { await conn.ExecuteAsync("ALTER TABLE ideas ADD COLUMN FullIdea TEXT DEFAULT ''"); } catch { }
+            try { await conn.ExecuteAsync("CREATE INDEX IF NOT EXISTS idx_ideas_username_status_created ON ideas (Username, Status, CreatedAt)"); } catch { }
+            try { await conn.ExecuteAsync("CREATE INDEX IF NOT EXISTS idx_ideas_username_category_status_created ON ideas (Username, Category COLLATE NOCASE, Status, CreatedAt)"); } catch { }
+            try { await conn.ExecuteAsync("CREATE INDEX IF NOT EXISTS idx_ideas_username_starred_status_created ON ideas (Username, IsStarred, Status, CreatedAt)"); } catch { }
         }
         _initialized = true;
     }
@@ -40,16 +43,13 @@ public class IdeasService
     {
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
-        var all = await conn.Table<IdeaItem>()
-            .Where(i => i.Username == username)
-            .ToListAsync();
-        
-        return all
-            .Where(i => i.Status != 3) // Exclude archived
-            .OrderByDescending(i => i.IsStarred)
-            .ThenByDescending(i => i.Priority)
-            .ThenByDescending(i => i.CreatedAt)
-            .ToList();
+        return await conn.QueryAsync<IdeaItem>(
+            """
+            SELECT * FROM ideas
+            WHERE Username = ? AND Status != 3
+            ORDER BY IsStarred DESC, Priority DESC, CreatedAt DESC
+            """,
+            username);
     }
 
     /// <summary>
@@ -60,15 +60,14 @@ public class IdeasService
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
         var ideas = await conn.QueryAsync<IdeaItem>(
-            "SELECT * FROM ideas WHERE Username = ? AND Category = ? COLLATE NOCASE AND Status != 3",
+            """
+            SELECT * FROM ideas
+            WHERE Username = ? AND Category = ? COLLATE NOCASE AND Status != 3
+            ORDER BY IsStarred DESC, Priority DESC, CreatedAt DESC
+            """,
             username,
             category);
-
-        return ideas
-            .OrderByDescending(i => i.IsStarred)
-            .ThenByDescending(i => i.Priority)
-            .ThenByDescending(i => i.CreatedAt)
-            .ToList();
+        return ideas;
     }
 
     /// <summary>
@@ -79,12 +78,13 @@ public class IdeasService
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
         var ideas = await conn.QueryAsync<IdeaItem>(
-            "SELECT * FROM ideas WHERE Username = ? AND Status = 3",
+            """
+            SELECT * FROM ideas
+            WHERE Username = ? AND Status = 3
+            ORDER BY COALESCE(ModifiedAt, CreatedAt) DESC
+            """,
             username);
-
-        return ideas
-            .OrderByDescending(i => i.ModifiedAt ?? i.CreatedAt)
-            .ToList();
+        return ideas;
     }
 
     /// <summary>
@@ -95,13 +95,13 @@ public class IdeasService
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
         var ideas = await conn.QueryAsync<IdeaItem>(
-            "SELECT * FROM ideas WHERE Username = ? AND IsStarred = 1 AND Status != 3",
+            """
+            SELECT * FROM ideas
+            WHERE Username = ? AND IsStarred = 1 AND Status != 3
+            ORDER BY Priority DESC, CreatedAt DESC
+            """,
             username);
-
-        return ideas
-            .OrderByDescending(i => i.Priority)
-            .ThenByDescending(i => i.CreatedAt)
-            .ToList();
+        return ideas;
     }
 
     /// <summary>
@@ -431,12 +431,33 @@ public class IdeasService
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
 
+        var rows = await conn.QueryAsync<IdeaStatsRow>(
+            """
+            SELECT
+                COUNT(CASE WHEN Status != 3 THEN 1 END) AS Total,
+                COUNT(CASE WHEN Status != 3 AND IsStarred = 1 THEN 1 END) AS Starred,
+                COUNT(CASE WHEN Status = 1 THEN 1 END) AS InProgress,
+                COUNT(CASE WHEN Status = 2 THEN 1 END) AS Done
+            FROM ideas
+            WHERE Username = ?
+            """,
+            username);
+
+        var stats = rows.FirstOrDefault();
         return (
-            await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM ideas WHERE Username = ? AND Status != 3", username),
-            await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM ideas WHERE Username = ? AND Status != 3 AND IsStarred = 1", username),
-            await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM ideas WHERE Username = ? AND Status = 1", username),
-            await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM ideas WHERE Username = ? AND Status = 2", username)
+            stats?.Total ?? 0,
+            stats?.Starred ?? 0,
+            stats?.InProgress ?? 0,
+            stats?.Done ?? 0
         );
+    }
+
+    private sealed class IdeaStatsRow
+    {
+        public int Total { get; set; }
+        public int Starred { get; set; }
+        public int InProgress { get; set; }
+        public int Done { get; set; }
     }
 
     #endregion

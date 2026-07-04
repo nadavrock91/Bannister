@@ -30,10 +30,14 @@ public class IdeasPage : ContentPage
     private Button _sortRatingBtn;
     private Label _pendingSyncLabel;
     private Button _syncQueuedIdeasBtn;
+    private ActivityIndicator _loadingIndicator = null!;
+    private Label _loadingLabel = null!;
+    private Label _emptyStateLabel = null!;
 
     // Grid area
     private VerticalStackLayout _toolbarContainer;
     private VerticalStackLayout _gridContainer;
+    private View? _ideasContentView;
 
     // Detail panel
     private Frame _detailPanel;
@@ -61,6 +65,9 @@ public class IdeasPage : ContentPage
     private Label? _phoneEmptyLabel;
     private bool _loadingCategories;
     private bool _isLoadingFilters;
+    private bool _hasLoadedIdeas;
+    private (int total, int starred, int inProgress, int done)? _cachedStats;
+    private bool _statsCacheDirty = true;
 
     public IdeasPage(AuthService auth, IdeasService ideas, IdeaLoggerService ideaLogger, DatabaseService db, OperationQueueService queue, SyncService sync)
     {
@@ -81,7 +88,6 @@ public class IdeasPage : ContentPage
     {
         base.OnAppearing();
         await LoadCategoriesAsync();
-        await RefreshIdeasAsync();
         await RefreshPendingSyncCountAsync();
     }
 
@@ -109,7 +115,8 @@ public class IdeasPage : ContentPage
             TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 230,
-            LineBreakMode = LineBreakMode.TailTruncation
+            LineBreakMode = LineBreakMode.TailTruncation,
+            IsVisible = false
         };
         headerRow.Children.Add(_headerLabel);
 
@@ -171,7 +178,7 @@ public class IdeasPage : ContentPage
         mainGrid.Add(BuildCategoryFilterSection(), 0, 1);
 
         // ====== ROW 2: Toolbar (fixed) ======
-        _toolbarContainer = new VerticalStackLayout { Padding = new Thickness(0, 2, 0, 4) };
+        _toolbarContainer = new VerticalStackLayout { Padding = new Thickness(0, 2, 0, 4), IsVisible = false };
         mainGrid.Add(_toolbarContainer, 0, 2);
 
         // ====== ROW 3: Content ======
@@ -181,10 +188,16 @@ public class IdeasPage : ContentPage
             ColumnSpacing = 12
         };
 
-        var scrollView = new ScrollView { Orientation = ScrollOrientation.Both };
+        var scrollView = new ScrollView { Orientation = ScrollOrientation.Both, IsVisible = false };
         _gridContainer = new VerticalStackLayout { Spacing = 4 };
         scrollView.Content = _gridContainer;
-        contentGrid.Add(scrollView, 0, 0);
+        _gridContainer.IsVisible = false;
+        _ideasContentView = scrollView;
+
+        var ideasArea = new Grid();
+        ideasArea.Add(scrollView);
+        ideasArea.Add(BuildLoadingAndEmptyState());
+        contentGrid.Add(ideasArea, 0, 0);
 
         BuildDetailPanel();
         contentGrid.Add(_detailPanel, 1, 0);
@@ -228,7 +241,8 @@ public class IdeasPage : ContentPage
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#333"),
-            VerticalOptions = LayoutOptions.Center
+            VerticalOptions = LayoutOptions.Center,
+            IsVisible = false
         };
         titleRow.Add(_headerLabel, 0, 0);
 
@@ -359,13 +373,75 @@ public class IdeasPage : ContentPage
             BackgroundColor = Color.FromArgb("#F5F5F5"),
             SelectionMode = SelectionMode.Single,
             ItemTemplate = new DataTemplate(CreatePhoneIdeaCard),
-            EmptyView = _phoneEmptyLabel
+            EmptyView = _phoneEmptyLabel,
+            IsVisible = false
         };
         _phoneIdeasView.SelectionChanged += OnPhoneIdeaSelected;
+        _ideasContentView = _phoneIdeasView;
 
         root.Add(header, 0, 0);
-        root.Add(_phoneIdeasView, 0, 1);
+        var phoneIdeasArea = new Grid();
+        phoneIdeasArea.Add(_phoneIdeasView);
+        phoneIdeasArea.Add(BuildLoadingAndEmptyState());
+        root.Add(phoneIdeasArea, 0, 1);
         Content = root;
+    }
+
+    private View BuildLoadingAndEmptyState()
+    {
+        _emptyStateLabel = new Label
+        {
+            Text = "Pick a category from the dropdowns above to load ideas.",
+            FontSize = 15,
+            TextColor = Color.FromArgb("#999"),
+            FontAttributes = FontAttributes.Italic,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 40)
+        };
+
+        _loadingIndicator = new ActivityIndicator
+        {
+            Color = Color.FromArgb("#1565C0"),
+            WidthRequest = 48,
+            HeightRequest = 48,
+            HorizontalOptions = LayoutOptions.Center,
+            IsVisible = false,
+            IsRunning = false
+        };
+
+        _loadingLabel = new Label
+        {
+            Text = "Loading ideas...",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666"),
+            HorizontalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            IsVisible = false,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        return new Grid
+        {
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            Children =
+            {
+                _emptyStateLabel,
+                new VerticalStackLayout
+                {
+                    Spacing = 0,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    Children =
+                    {
+                        _loadingIndicator,
+                        _loadingLabel
+                    }
+                }
+            }
+        };
     }
 
     private View CreatePhoneIdeaCard()
@@ -647,7 +723,7 @@ public class IdeasPage : ContentPage
 
     private async Task RefreshIdeasAsync()
     {
-        var (total, starred, inProgress, done) = await _ideas.GetStatsAsync(_auth.CurrentUsername);
+        var (total, starred, inProgress, done) = await GetCachedStatsAsync();
 
         if (string.IsNullOrEmpty(_selectedCategory) && !_showingArchived)
         {
@@ -684,6 +760,61 @@ public class IdeasPage : ContentPage
         }
 
         BuildDataGrid(ideas);
+    }
+
+    private async Task<(int total, int starred, int inProgress, int done)> GetCachedStatsAsync()
+    {
+        if (_cachedStats == null || _statsCacheDirty)
+        {
+            _cachedStats = await _ideas.GetStatsAsync(_auth.CurrentUsername);
+            _statsCacheDirty = false;
+        }
+
+        return _cachedStats.Value;
+    }
+
+    private void InvalidateStatsCache()
+    {
+        _cachedStats = null;
+        _statsCacheDirty = true;
+    }
+
+    private async Task FetchAndRenderIdeasAsync()
+    {
+        _hasLoadedIdeas = true;
+
+        _emptyStateLabel.IsVisible = false;
+        _headerLabel.IsVisible = false;
+        if (_ideasContentView != null)
+            _ideasContentView.IsVisible = false;
+        if (!_isPhoneLayout)
+        {
+            _toolbarContainer.IsVisible = false;
+            _gridContainer.IsVisible = false;
+        }
+
+        _loadingIndicator.IsRunning = true;
+        _loadingIndicator.IsVisible = true;
+        _loadingLabel.IsVisible = true;
+
+        try
+        {
+            await RefreshIdeasAsync();
+        }
+        finally
+        {
+            _loadingIndicator.IsRunning = false;
+            _loadingIndicator.IsVisible = false;
+            _loadingLabel.IsVisible = false;
+            _headerLabel.IsVisible = true;
+            if (_ideasContentView != null)
+                _ideasContentView.IsVisible = true;
+            if (!_isPhoneLayout)
+            {
+                _toolbarContainer.IsVisible = true;
+                _gridContainer.IsVisible = true;
+            }
+        }
     }
 
     private void ShowCategoryPrompt()
@@ -826,6 +957,8 @@ public class IdeasPage : ContentPage
         }
 
         await _ideas.UpdateIdeaAsync(idea);
+        if (columnName == "Starred")
+            InvalidateStatsCache();
         if (_selectedIdea?.Id == idea.Id) ShowDetail(idea);
         return true;
     }
@@ -965,6 +1098,7 @@ public class IdeasPage : ContentPage
         starBtn.Clicked += async (_, _) =>
         {
             await _ideas.ToggleStarAsync(idea.Id);
+            InvalidateStatsCache();
             idea.IsStarred = !idea.IsStarred;
             await RefreshIdeasAsync();
             await page.Navigation.PopModalAsync();
@@ -994,6 +1128,7 @@ public class IdeasPage : ContentPage
             if (idea.Status == 2) { idea.Status = 0; idea.CompletedAt = null; }
             else { idea.Status = 2; idea.CompletedAt = DateTime.Now; }
             await _ideas.UpdateIdeaAsync(idea);
+            InvalidateStatsCache();
             await RefreshIdeasAsync();
             await page.Navigation.PopModalAsync();
         };
@@ -1004,6 +1139,7 @@ public class IdeasPage : ContentPage
         {
             if (idea.Status == 3) await _ideas.RestoreIdeaAsync(idea.Id);
             else await _ideas.ArchiveIdeaAsync(idea.Id);
+            InvalidateStatsCache();
             await RefreshIdeasAsync();
             await page.Navigation.PopModalAsync();
         };
@@ -1015,6 +1151,7 @@ public class IdeasPage : ContentPage
             if (await DisplayAlert("Delete?", "Permanently delete?", "Delete", "Cancel"))
             {
                 await _ideas.DeleteIdeaAsync(idea.Id);
+                InvalidateStatsCache();
                 await RefreshIdeasAsync();
                 await page.Navigation.PopModalAsync();
             }
@@ -1086,6 +1223,7 @@ public class IdeasPage : ContentPage
             case "Star":
             case "Unstar":
                 await _ideas.ToggleStarAsync(idea.Id);
+                InvalidateStatsCache();
                 idea.IsStarred = !idea.IsStarred;
                 await RefreshIdeasAsync();
                 break;
@@ -1093,6 +1231,7 @@ public class IdeasPage : ContentPage
                 if (await DisplayAlert("Delete?", "Permanently delete?", "Delete", "Cancel"))
                 {
                     await _ideas.DeleteIdeaAsync(idea.Id);
+                    InvalidateStatsCache();
                     await RefreshIdeasAsync();
                 }
                 break;
@@ -1120,7 +1259,7 @@ public class IdeasPage : ContentPage
         _ratingLabel.Text = rating.ToString();
         UpdateRatingLabelColor(rating); UpdateRatingButtonSelection(rating);
         await _ideas.UpdateIdeaAsync(_selectedIdea);
-        await RefreshIdeasAsync();
+        await FetchAndRenderIdeasAsync();
     }
 
     private async void OnDetailContentSave(object? sender, FocusEventArgs e)
@@ -1149,7 +1288,7 @@ public class IdeasPage : ContentPage
             _isLoadingFilters = false;
         }
 
-        await RefreshIdeasAsync();
+        await FetchAndRenderIdeasAsync();
     }
 
     private async void OnNormalCategoryPickerChanged(object? sender, EventArgs e)
@@ -1174,7 +1313,7 @@ public class IdeasPage : ContentPage
             _isLoadingFilters = false;
         }
 
-        await RefreshIdeasAsync();
+        await FetchAndRenderIdeasAsync();
     }
 
     private async void OnLlmCategoryPickerChanged(object? sender, EventArgs e)
@@ -1199,7 +1338,7 @@ public class IdeasPage : ContentPage
             _isLoadingFilters = false;
         }
 
-        await RefreshIdeasAsync();
+        await FetchAndRenderIdeasAsync();
     }
 
     private async void OnCategoryChanged(object? sender, EventArgs e)
@@ -1208,20 +1347,22 @@ public class IdeasPage : ContentPage
         if (_categoryPicker.SelectedIndex < 0) return;
         _selectedCategory = _categoryPicker.Items[_categoryPicker.SelectedIndex] as string ?? "All";
         _showingArchived = false; _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
-        await RefreshIdeasAsync();
+        await FetchAndRenderIdeasAsync();
     }
 
     private async void OnSearchChanged(object? sender, TextChangedEventArgs e)
     {
         _searchText = e.NewTextValue?.ToLower() ?? "";
-        await RefreshIdeasAsync();
+        if (_hasLoadedIdeas)
+            await FetchAndRenderIdeasAsync();
     }
 
     private async void OnShowArchivedClicked(object? sender, EventArgs e)
     {
+        if (!_hasLoadedIdeas) return;
         _showingArchived = !_showingArchived;
         _showArchivedBtn.BackgroundColor = _showingArchived ? Color.FromArgb("#F57C00") : Color.FromArgb("#9E9E9E");
-        await RefreshIdeasAsync();
+        await FetchAndRenderIdeasAsync();
     }
 
     #region Actions
@@ -1230,7 +1371,14 @@ public class IdeasPage : ContentPage
     {
         string? cat = (_selectedCategory == "All" || _selectedCategory == "⭐ Starred" || string.IsNullOrEmpty(_selectedCategory)) ? null : _selectedCategory;
         var idea = await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, null, cat);
-        if (idea != null) { await LoadCategoriesAsync(); await RefreshIdeasAsync(); await RefreshPendingSyncCountAsync(); }
+        if (idea != null)
+        {
+            InvalidateStatsCache();
+            await LoadCategoriesAsync();
+            if (_hasLoadedIdeas)
+                await FetchAndRenderIdeasAsync();
+            await RefreshPendingSyncCountAsync();
+        }
     }
 
     private async void OnEditClicked(object? sender, EventArgs e)
@@ -1245,6 +1393,7 @@ public class IdeasPage : ContentPage
     {
         if (_selectedIdea == null) return;
         await _ideas.ToggleStarAsync(_selectedIdea.Id); _selectedIdea.IsStarred = !_selectedIdea.IsStarred;
+        InvalidateStatsCache();
         ShowDetail(_selectedIdea); await RefreshIdeasAsync();
     }
 
@@ -1263,7 +1412,7 @@ public class IdeasPage : ContentPage
         if (_selectedIdea == null) return;
         if (_selectedIdea.Status == 2) { _selectedIdea.Status = 0; _selectedIdea.CompletedAt = null; }
         else { _selectedIdea.Status = 2; _selectedIdea.CompletedAt = DateTime.Now; }
-        await _ideas.UpdateIdeaAsync(_selectedIdea); ShowDetail(_selectedIdea); await RefreshIdeasAsync();
+        await _ideas.UpdateIdeaAsync(_selectedIdea); InvalidateStatsCache(); ShowDetail(_selectedIdea); await RefreshIdeasAsync();
     }
 
     private async void OnArchiveClicked(object? sender, EventArgs e)
@@ -1271,6 +1420,7 @@ public class IdeasPage : ContentPage
         if (_selectedIdea == null) return;
         if (_selectedIdea.Status == 3) await _ideas.RestoreIdeaAsync(_selectedIdea.Id);
         else await _ideas.ArchiveIdeaAsync(_selectedIdea.Id);
+        InvalidateStatsCache();
         _detailPanel.IsVisible = false; _selectedIdea = null; await RefreshIdeasAsync();
     }
 
@@ -1278,19 +1428,23 @@ public class IdeasPage : ContentPage
     {
         if (_selectedIdea == null) return;
         if (await DisplayAlert("Delete?", "Permanently delete?", "Delete", "Cancel"))
-        { await _ideas.DeleteIdeaAsync(_selectedIdea.Id); _detailPanel.IsVisible = false; _selectedIdea = null; await RefreshIdeasAsync(); }
+        { await _ideas.DeleteIdeaAsync(_selectedIdea.Id); InvalidateStatsCache(); _detailPanel.IsVisible = false; _selectedIdea = null; await RefreshIdeasAsync(); }
     }
 
     private async void OnSortDateClicked(object? sender, EventArgs e)
     {
         if (_sortColumn == "Date") _sortDescending = !_sortDescending; else { _sortColumn = "Date"; _sortDescending = true; }
-        UpdateSortButtons(); await RefreshIdeasAsync();
+        UpdateSortButtons();
+        if (_hasLoadedIdeas)
+            await FetchAndRenderIdeasAsync();
     }
 
     private async void OnSortRatingClicked(object? sender, EventArgs e)
     {
         if (_sortColumn == "Rating") _sortDescending = !_sortDescending; else { _sortColumn = "Rating"; _sortDescending = true; }
-        UpdateSortButtons(); await RefreshIdeasAsync();
+        UpdateSortButtons();
+        if (_hasLoadedIdeas)
+            await FetchAndRenderIdeasAsync();
     }
 
     private void UpdateSortButtons()
