@@ -19,6 +19,7 @@ public class CalendarPage : ContentPage
     private readonly DatabaseService _db;
     private readonly LookoutService _lookoutService;
     private readonly RoutineService _routineService;
+    private readonly PostponedTaskService _postponedTaskService;
 
     private Label _monthLabel;
     private Grid _calendarGrid;
@@ -38,8 +39,9 @@ public class CalendarPage : ContentPage
     private Dictionary<int, int> _taskCounts = new();
     private Dictionary<int, int> _completedCounts = new();
     private Dictionary<int, int> _lookoutCounts = new();
+    private Dictionary<int, int> _postponedCounts = new();
 
-    public CalendarPage(AuthService auth, TaskService taskService, IdeasService? ideasService = null, DatabaseService? db = null, LookoutService? lookoutService = null, RoutineService? routineService = null)
+    public CalendarPage(AuthService auth, TaskService taskService, IdeasService? ideasService = null, DatabaseService? db = null, LookoutService? lookoutService = null, RoutineService? routineService = null, PostponedTaskService? postponedTaskService = null)
     {
         _auth = auth;
         _taskService = taskService;
@@ -47,6 +49,7 @@ public class CalendarPage : ContentPage
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _lookoutService = lookoutService ?? new LookoutService(_db);
         _routineService = routineService ?? new RoutineService(_db, _auth);
+        _postponedTaskService = postponedTaskService ?? new PostponedTaskService(_db);
         Title = "Calendar";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -147,6 +150,17 @@ public class CalendarPage : ContentPage
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(moveBtn, 6, 0);
 
+        var postponedBtn = new Button
+        {
+            Text = "Postponed Tasks", FontSize = 12, HeightRequest = 38,
+            BackgroundColor = Color.FromArgb("#FFF3E0"), TextColor = Color.FromArgb("#EF6C00"),
+            CornerRadius = 6, Padding = new Thickness(12, 0),
+            FontAttributes = FontAttributes.Bold
+        };
+        postponedBtn.Clicked += async (s, e) => await Navigation.PushAsync(new PostponedTasksManagementPage(_auth, _postponedTaskService));
+        navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        navRow.Add(postponedBtn, 7, 0);
+
         var routinesBtn = new Button
         {
             Text = "Routines", FontSize = 12, HeightRequest = 38,
@@ -155,7 +169,7 @@ public class CalendarPage : ContentPage
         };
         routinesBtn.Clicked += async (s, e) => await Navigation.PushAsync(new RoutinesPage(_auth, _routineService));
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        navRow.Add(routinesBtn, 7, 0);
+        navRow.Add(routinesBtn, 8, 0);
 
         _weekStartButton = new Button
         {
@@ -170,7 +184,7 @@ public class CalendarPage : ContentPage
         ToolTipProperties.SetText(_weekStartButton, "Change calendar week display order");
         _weekStartButton.Clicked += async (s, e) => await ChangeWeekStartAsync();
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        navRow.Add(_weekStartButton, 8, 0);
+        navRow.Add(_weekStartButton, 9, 0);
 
         mainStack.Children.Add(navRow);
 
@@ -329,6 +343,7 @@ public class CalendarPage : ContentPage
         _taskCounts.Clear();
         _completedCounts.Clear();
         _lookoutCounts.Clear();
+        _postponedCounts.Clear();
 
         try
         {
@@ -354,6 +369,12 @@ public class CalendarPage : ContentPage
             }
 
             _lookoutCounts = await _lookoutService.GetCountsByDayAsync(_auth.CurrentUsername, _year, _month);
+
+            var postponed = await _postponedTaskService.GetActiveAsync(_auth.CurrentUsername);
+            _postponedCounts = postponed
+                .Where(t => t.CurrentDate.Year == _year && t.CurrentDate.Month == _month)
+                .GroupBy(t => t.CurrentDate.Day)
+                .ToDictionary(g => g.Key, g => g.Count());
         }
         catch { }
 
@@ -391,11 +412,12 @@ public class CalendarPage : ContentPage
             int activeTasks = _taskCounts.GetValueOrDefault(day);
             int doneTasks = _completedCounts.GetValueOrDefault(day);
             int lookouts = _lookoutCounts.GetValueOrDefault(day);
+            int postponedTasks = _postponedCounts.GetValueOrDefault(day);
             bool isToday = isCurrentMonth && day == today;
             bool isWeekend = IsWeekendColumn(col);
             bool isPast = isCurrentMonth && day < today;
 
-            var card = BuildDayCard(day, activeTasks, doneTasks, lookouts, isToday, isWeekend, isPast);
+            var card = BuildDayCard(day, activeTasks, doneTasks, lookouts, postponedTasks, isToday, isWeekend, isPast);
             _calendarGrid.Add(card, col, row);
         }
     }
@@ -405,7 +427,7 @@ public class CalendarPage : ContentPage
         return _weekStartsSunday ? col == 0 || col == 6 : col >= 5;
     }
 
-    private Frame BuildDayCard(int day, int activeTasks, int doneTasks, int lookouts, bool isToday, bool isWeekend, bool isPast)
+    private Frame BuildDayCard(int day, int activeTasks, int doneTasks, int lookouts, int postponedTasks, bool isToday, bool isWeekend, bool isPast)
     {
         Color bg;
         Color border;
@@ -424,6 +446,11 @@ public class CalendarPage : ContentPage
         {
             bg = Color.FromArgb("#F3E5F5");
             border = Color.FromArgb("#6A1B9A");
+        }
+        else if (postponedTasks > 0)
+        {
+            bg = Color.FromArgb("#FFF3E0");
+            border = Color.FromArgb("#EF6C00");
         }
         else if (doneTasks > 0)
         {
@@ -486,7 +513,18 @@ public class CalendarPage : ContentPage
             });
         }
 
-        if (activeTasks == 0 && doneTasks == 0 && lookouts == 0)
+        if (postponedTasks > 0)
+        {
+            stack.Children.Add(new Label
+            {
+                Text = $"Postponed {postponedTasks}",
+                FontSize = 11,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#EF6C00")
+            });
+        }
+
+        if (activeTasks == 0 && doneTasks == 0 && lookouts == 0 && postponedTasks == 0)
         {
             stack.Children.Add(new Label
             {
@@ -509,7 +547,7 @@ public class CalendarPage : ContentPage
     private async Task NavigateToDayAsync(int day)
     {
         var date = new DateTime(_year, _month, day);
-        var page = new CalendarDayPage(_auth, _taskService, date, _ideasService, _lookoutService, _routineService);
+        var page = new CalendarDayPage(_auth, _taskService, date, _ideasService, _lookoutService, _routineService, _postponedTaskService);
         await Navigation.PushAsync(page);
     }
 
@@ -1642,20 +1680,23 @@ public class CalendarDayPage : ContentPage
     private readonly IdeasService? _ideasService;
     private readonly LookoutService _lookoutService;
     private readonly RoutineService _routineService;
+    private readonly PostponedTaskService _postponedTaskService;
 
     private VerticalStackLayout _activeStack;
     private VerticalStackLayout _completedStack;
     private VerticalStackLayout _urgentStack;
     private VerticalStackLayout _lookoutsStack;
+    private VerticalStackLayout _postponedStack;
     private Label _activeHeader;
     private Label _completedHeader;
     private Label _urgentHeader;
     private Label _lookoutsHeader;
+    private Label _postponedHeader;
     private int _loadTasksVersion;
     private bool _isAddingLookout;
     private Dictionary<int, Routine> _routineById = new();
 
-    public CalendarDayPage(AuthService auth, TaskService taskService, DateTime date, IdeasService? ideasService = null, LookoutService? lookoutService = null, RoutineService? routineService = null)
+    public CalendarDayPage(AuthService auth, TaskService taskService, DateTime date, IdeasService? ideasService = null, LookoutService? lookoutService = null, RoutineService? routineService = null, PostponedTaskService? postponedTaskService = null)
     {
         _auth = auth;
         _taskService = taskService;
@@ -1663,6 +1704,7 @@ public class CalendarDayPage : ContentPage
         _ideasService = ideasService;
         _lookoutService = lookoutService ?? throw new ArgumentNullException(nameof(lookoutService));
         _routineService = routineService ?? throw new ArgumentNullException(nameof(routineService));
+        _postponedTaskService = postponedTaskService ?? throw new ArgumentNullException(nameof(postponedTaskService));
         Title = date.ToString("MMM d, yyyy");
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -1762,6 +1804,19 @@ public class CalendarDayPage : ContentPage
         _lookoutsStack = new VerticalStackLayout { Spacing = 6 };
         mainStack.Children.Add(_lookoutsStack);
 
+        _postponedHeader = new Label
+        {
+            Text = "Postponed Tasks (0)",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#EF6C00"),
+            Margin = new Thickness(0, 8, 0, 4)
+        };
+        mainStack.Children.Add(_postponedHeader);
+
+        _postponedStack = new VerticalStackLayout { Spacing = 6 };
+        mainStack.Children.Add(_postponedStack);
+
         // Urgent tasks (above everything)
         _urgentHeader = new Label
         {
@@ -1809,6 +1864,7 @@ public class CalendarDayPage : ContentPage
         var dayActive = active.Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == _date).ToList();
         var dayCompleted = completed.Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == _date).ToList();
         var lookouts = await _lookoutService.GetForDateAsync(_auth.CurrentUsername, _date);
+        var postponedTasks = await _postponedTaskService.GetActiveForDateAsync(_auth.CurrentUsername, _date);
         await LoadRoutineLookupAsync(dayActive.Concat(dayCompleted));
 
         if (loadVersion != _loadTasksVersion)
@@ -1837,6 +1893,18 @@ public class CalendarDayPage : ContentPage
         {
             foreach (var card in lookoutCards)
                 _lookoutsStack.Children.Add(card);
+        }
+
+        _postponedHeader.Text = $"Postponed Tasks ({postponedTasks.Count})";
+        _postponedStack.Children.Clear();
+        if (postponedTasks.Count == 0)
+        {
+            _postponedStack.Children.Add(new Label { Text = "No postponed tasks for this day.", FontSize = 13, TextColor = Color.FromArgb("#999"), Margin = new Thickness(8, 4) });
+        }
+        else
+        {
+            foreach (var task in postponedTasks)
+                _postponedStack.Children.Add(BuildPostponedTaskCard(task));
         }
 
         // Urgent section
@@ -2108,6 +2176,175 @@ public class CalendarDayPage : ContentPage
 
         await _lookoutService.RemoveFromCalendarAsync(lookout);
         await LoadTasksAsync();
+    }
+
+    private Frame BuildPostponedTaskCard(PostponedTask task)
+    {
+        var frame = new Frame
+        {
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            BorderColor = Color.FromArgb("#EF6C00"),
+            CornerRadius = 8,
+            Padding = 12,
+            HasShadow = false
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8
+        };
+
+        var textStack = new VerticalStackLayout { Spacing = 3 };
+        textStack.Children.Add(new Label
+        {
+            Text = task.Title,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#E65100"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        if (task.TimesPostponed > 0)
+            textStack.Children.Add(new Label { Text = $"Postponed {task.TimesPostponed}x", FontSize = 11, TextColor = Color.FromArgb("#EF6C00"), FontAttributes = FontAttributes.Bold });
+
+        if (!string.IsNullOrWhiteSpace(task.Description))
+            textStack.Children.Add(new Label { Text = task.Description, FontSize = 12, TextColor = Color.FromArgb("#666"), MaxLines = 2, LineBreakMode = LineBreakMode.TailTruncation });
+
+        grid.Add(textStack, 0, 0);
+
+        var buttonStack = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
+
+        var postponeBtn = new Button
+        {
+            Text = "Postpone",
+            FontSize = 11,
+            WidthRequest = 82,
+            HeightRequest = 30,
+            BackgroundColor = Color.FromArgb("#FFE0B2"),
+            TextColor = Color.FromArgb("#EF6C00"),
+            CornerRadius = 4,
+            Padding = 0
+        };
+        postponeBtn.Clicked += async (s, e) => await PostponePostponedTaskAsync(task);
+        buttonStack.Children.Add(postponeBtn);
+
+        var doneBtn = new Button
+        {
+            Text = "Mark Done",
+            FontSize = 11,
+            WidthRequest = 82,
+            HeightRequest = 30,
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            TextColor = Color.FromArgb("#2E7D32"),
+            CornerRadius = 4,
+            Padding = 0
+        };
+        doneBtn.Clicked += async (s, e) => await MarkPostponedTaskDoneAsync(task);
+        buttonStack.Children.Add(doneBtn);
+
+        grid.Add(buttonStack, 1, 0);
+        frame.Content = grid;
+        return frame;
+    }
+
+    private async Task PostponePostponedTaskAsync(PostponedTask task)
+    {
+        var date = await ChoosePostponedTaskDateAsync("Postpone task", DateTime.Today.AddDays(1));
+        if (date == null) return;
+
+        await _postponedTaskService.PostponeAsync(task.Id, date.Value);
+        await LoadTasksAsync();
+    }
+
+    private async Task MarkPostponedTaskDoneAsync(PostponedTask task)
+    {
+        if (!await DisplayAlert("Mark done?", $"Mark \"{task.Title}\" done?", "Mark Done", "Cancel"))
+            return;
+
+        await _postponedTaskService.MarkDoneAsync(task.Id);
+        await LoadTasksAsync();
+    }
+
+    private async Task<DateTime?> ChoosePostponedTaskDateAsync(string title, DateTime defaultDate)
+    {
+        var action = await DisplayActionSheet(title, "Cancel", null, "Tomorrow", "In 1 week", "Pick a date...");
+        return action switch
+        {
+            "Tomorrow" => DateTime.Today.AddDays(1),
+            "In 1 week" => DateTime.Today.AddDays(7),
+            "Pick a date..." => await ShowPostponedTaskDatePickerAsync(title, defaultDate),
+            _ => null
+        };
+    }
+
+    private async Task<DateTime?> ShowPostponedTaskDatePickerAsync(string title, DateTime initialDate)
+    {
+        var tcs = new TaskCompletionSource<DateTime?>();
+
+        var popup = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+
+        var picker = new DatePicker
+        {
+            Date = initialDate.Date,
+            MinimumDate = DateTime.Today.AddDays(1),
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            FontSize = 14
+        };
+
+        var saveBtn = new Button { Text = "Save", FontSize = 13, HeightRequest = 38, BackgroundColor = Color.FromArgb("#EF6C00"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0), FontAttributes = FontAttributes.Bold };
+        var cancelBtn = new Button { Text = "Cancel", FontSize = 13, HeightRequest = 38, BackgroundColor = Color.FromArgb("#9E9E9E"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 400,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            HasShadow = true,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label { Text = title, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#EF6C00") },
+                    picker,
+                    new HorizontalStackLayout { Spacing = 10, Children = { cancelBtn, saveBtn } }
+                }
+            }
+        };
+
+        popup.Children.Add(card);
+
+        var originalContent = Content;
+        var wrapper = new Grid();
+        Content = wrapper;
+        wrapper.Children.Add(originalContent);
+        wrapper.Children.Add(popup);
+
+        void Dismiss(DateTime? result)
+        {
+            wrapper.Children.Remove(popup);
+            wrapper.Children.Remove(originalContent);
+            Content = originalContent;
+            tcs.TrySetResult(result);
+        }
+
+        saveBtn.Clicked += (s, e) => Dismiss(picker.Date);
+        cancelBtn.Clicked += (s, e) => Dismiss(null);
+
+        return await tcs.Task;
     }
 
     private async Task LoadRoutineLookupAsync(IEnumerable<TaskItem> tasks)

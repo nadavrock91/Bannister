@@ -33,6 +33,7 @@ public class NewHabitsPage : ContentPage
     private VerticalStackLayout _activeHabitsContainer;
     private VerticalStackLayout _pendingHabitsContainer;
     private VerticalStackLayout _graduatedHabitsContainer;
+    private VerticalStackLayout _allowanceChartContainer;
     private Button _btnAddHabit;
     private Button _btnAddPending;
     private Frame _allowanceFrame;
@@ -57,6 +58,7 @@ public class NewHabitsPage : ContentPage
     {
         base.OnAppearing();
         UpdateForFrequency();
+        await _newHabits.EnsureCurrentSnapshotAsync(_auth.CurrentUsername, _frequency);
         await LoadHabitsAsync();
     }
 
@@ -126,6 +128,16 @@ public class NewHabitsPage : ContentPage
             Opacity = 0.9
         };
         mainStack.Children.Add(_lblSubheader);
+
+        _allowanceChartContainer = new VerticalStackLayout { Spacing = 8 };
+        mainStack.Children.Add(new Frame
+        {
+            BackgroundColor = Colors.White,
+            Padding = 14,
+            CornerRadius = 12,
+            HasShadow = true,
+            Content = _allowanceChartContainer
+        });
 
         // Allowance display
         _allowanceFrame = new Frame
@@ -294,6 +306,44 @@ public class NewHabitsPage : ContentPage
 
         scrollView.Content = mainStack;
         Content = scrollView;
+    }
+
+    private async Task LoadAllowanceChartAsync()
+    {
+        _allowanceChartContainer.Children.Clear();
+
+        _allowanceChartContainer.Children.Add(new Label
+        {
+            Text = $"{_frequency} habit allowance over time",
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        var history = await _newHabits.GetSnapshotHistoryAsync(_auth.CurrentUsername, _frequency);
+        if (history.Count == 0)
+        {
+            _allowanceChartContainer.Children.Add(new Label
+            {
+                Text = "Allowance history will appear here as periods elapse.",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#777"),
+                FontAttributes = FontAttributes.Italic
+            });
+            return;
+        }
+
+        var chartData = history
+            .OrderBy(s => s.SnapshotAt)
+            .Select(s => new ChartDataPoint { Date = s.SnapshotAt, Value = s.Allowance })
+            .ToList();
+
+        _allowanceChartContainer.Children.Add(new GraphicsView
+        {
+            Drawable = new AllowanceChartDrawable(chartData),
+            HeightRequest = 150,
+            BackgroundColor = Colors.Transparent
+        });
     }
 
     private async void OnAllowanceTapped(object? sender, EventArgs e)
@@ -519,6 +569,8 @@ public class NewHabitsPage : ContentPage
                 _graduatedHabitsContainer.Children.Add(CreateGraduatedHabitCard(habit));
             }
         }
+
+        await LoadAllowanceChartAsync();
     }
 
     /// <summary>
@@ -1374,5 +1426,94 @@ public class NewHabitsPage : ContentPage
             "Let's go!");
 
         await LoadHabitsAsync();
+    }
+
+    private sealed class AllowanceChartDrawable : IDrawable
+    {
+        private readonly List<ChartDataPoint> _data;
+
+        public AllowanceChartDrawable(List<ChartDataPoint> data)
+        {
+            _data = data;
+        }
+
+        public void Draw(ICanvas canvas, RectF dirtyRect)
+        {
+            if (_data.Count == 0)
+            {
+                canvas.FontColor = Color.FromArgb("#777");
+                canvas.FontSize = 13;
+                canvas.DrawString("No allowance history", dirtyRect.Center.X, dirtyRect.Center.Y, HorizontalAlignment.Center);
+                return;
+            }
+
+            float leftMargin = 34;
+            float rightMargin = 12;
+            float topMargin = 12;
+            float bottomMargin = 28;
+            float chartWidth = dirtyRect.Width - leftMargin - rightMargin;
+            float chartHeight = dirtyRect.Height - topMargin - bottomMargin;
+            if (chartWidth <= 0 || chartHeight <= 0)
+                return;
+
+            var data = _data
+                .GroupBy(d => d.Date.Date)
+                .Select(g => new ChartDataPoint { Date = g.Key, Value = g.Last().Value })
+                .OrderBy(d => d.Date)
+                .ToList();
+
+            int minValue = 0;
+            int maxValue = Math.Max(1, data.Max(d => d.Value) + 1);
+
+            canvas.FillColor = Color.FromArgb("#FAFAFA");
+            canvas.FillRectangle(leftMargin, topMargin, chartWidth, chartHeight);
+
+            canvas.StrokeColor = Color.FromArgb("#E0E0E0");
+            canvas.StrokeSize = 1;
+            int gridLines = Math.Max(1, maxValue);
+            for (int i = 0; i <= gridLines; i++)
+            {
+                float y = topMargin + chartHeight * i / gridLines;
+                canvas.DrawLine(leftMargin, y, leftMargin + chartWidth, y);
+            }
+
+            canvas.StrokeColor = Color.FromArgb("#BDBDBD");
+            canvas.DrawLine(leftMargin, topMargin, leftMargin, topMargin + chartHeight);
+            canvas.DrawLine(leftMargin, topMargin + chartHeight, leftMargin + chartWidth, topMargin + chartHeight);
+
+            canvas.StrokeColor = Color.FromArgb("#2E7D32");
+            canvas.StrokeSize = 3;
+            var path = new PathF();
+            for (int i = 0; i < data.Count; i++)
+            {
+                float x = leftMargin + chartWidth * i / Math.Max(1, data.Count - 1);
+                float y = topMargin + chartHeight - chartHeight * (data[i].Value - minValue) / Math.Max(1, maxValue - minValue);
+
+                if (i == 0)
+                    path.MoveTo(x, y);
+                else
+                {
+                    path.LineTo(x, path.LastPoint.Y);
+                    path.LineTo(x, y);
+                }
+            }
+            canvas.DrawPath(path);
+
+            canvas.FillColor = Color.FromArgb("#2E7D32");
+            for (int i = 0; i < data.Count; i++)
+            {
+                float x = leftMargin + chartWidth * i / Math.Max(1, data.Count - 1);
+                float y = topMargin + chartHeight - chartHeight * (data[i].Value - minValue) / Math.Max(1, maxValue - minValue);
+                canvas.FillCircle(x, y, 4);
+            }
+
+            canvas.FontColor = Color.FromArgb("#555");
+            canvas.FontSize = 10;
+            canvas.DrawString($"{maxValue}", 4, topMargin + 4, HorizontalAlignment.Left);
+            canvas.DrawString("0", 4, topMargin + chartHeight - 2, HorizontalAlignment.Left);
+
+            canvas.DrawString(data[0].Date.ToString("MMM d"), leftMargin, topMargin + chartHeight + 14, HorizontalAlignment.Left);
+            canvas.DrawString(data[^1].Date.ToString("MMM d"), leftMargin + chartWidth, topMargin + chartHeight + 14, HorizontalAlignment.Right);
+        }
     }
 }

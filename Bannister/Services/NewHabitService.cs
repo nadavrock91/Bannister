@@ -22,6 +22,7 @@ public class NewHabitService
         if (!_db.IsReadOnly)
         {
             await conn.CreateTableAsync<HabitAllowance>();
+            await conn.CreateTableAsync<HabitAllowanceSnapshot>();
             await EnsureHabitAllowanceMigrationsAsync(conn);
             await BackfillCapAtOneSinceAsync(conn, username);
         }
@@ -41,6 +42,7 @@ public class NewHabitService
                 CapAtOneSince = DateTime.UtcNow
             };
             await conn.InsertAsync(allowance);
+            await RecordSnapshotAsync(username, frequency, GetPeriodKey(frequency, DateTime.UtcNow), allowance.CurrentAllowance);
         }
 
         return allowance;
@@ -104,6 +106,83 @@ public class NewHabitService
             allowance.HighestAllowance = allowance.CurrentAllowance;
         }
         await conn.UpdateAsync(allowance);
+
+        if (allowance.CurrentAllowance != oldCap)
+        {
+            await RecordSnapshotAsync(
+                allowance.Username,
+                allowance.Frequency,
+                GetPeriodKey(allowance.Frequency, DateTime.UtcNow),
+                allowance.CurrentAllowance);
+        }
+    }
+
+    public async Task<List<HabitAllowanceSnapshot>> GetSnapshotHistoryAsync(string username, string frequency)
+    {
+        var conn = await _db.GetConnectionAsync();
+        if (!_db.IsReadOnly)
+            await conn.CreateTableAsync<HabitAllowanceSnapshot>();
+
+        return await conn.Table<HabitAllowanceSnapshot>()
+            .Where(s => s.Username == username && s.Frequency == frequency)
+            .OrderBy(s => s.SnapshotAt)
+            .ToListAsync();
+    }
+
+    public async Task EnsureCurrentSnapshotAsync(string username, string frequency)
+    {
+        if (_db.IsReadOnly) return;
+
+        var history = await GetSnapshotHistoryAsync(username, frequency);
+        if (history.Count > 0) return;
+
+        var allowance = await GetOrCreateAllowanceAsync(username, frequency);
+        await RecordSnapshotAsync(
+            username,
+            frequency,
+            GetPeriodKey(frequency, DateTime.UtcNow),
+            allowance.CurrentAllowance);
+    }
+
+    private async Task RecordSnapshotAsync(string username, string frequency, string periodKey, int allowance)
+    {
+        if (_db.IsReadOnly) return;
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<HabitAllowanceSnapshot>();
+
+        var existing = await conn.Table<HabitAllowanceSnapshot>()
+            .Where(s => s.Username == username && s.Frequency == frequency && s.PeriodKey == periodKey)
+            .FirstOrDefaultAsync();
+
+        if (existing != null)
+        {
+            existing.Allowance = allowance;
+            existing.SnapshotAt = DateTime.UtcNow;
+            await conn.UpdateAsync(existing);
+        }
+        else
+        {
+            await conn.InsertAsync(new HabitAllowanceSnapshot
+            {
+                Username = username,
+                Frequency = frequency,
+                PeriodKey = periodKey,
+                Allowance = allowance,
+                SnapshotAt = DateTime.UtcNow
+            });
+        }
+    }
+
+    private static string GetPeriodKey(string frequency, DateTime date)
+    {
+        date = date.Date;
+        if (string.Equals(frequency, "Monthly", StringComparison.OrdinalIgnoreCase))
+            return date.ToString("yyyy-MM");
+
+        if (string.Equals(frequency, "Weekly", StringComparison.OrdinalIgnoreCase))
+            return $"{GetWeekStart(date):yyyy-MM-dd}";
+
+        return date.ToString("yyyy-MM-dd");
     }
 
     /// <summary>

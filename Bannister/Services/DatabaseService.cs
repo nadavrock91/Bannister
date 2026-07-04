@@ -477,6 +477,8 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<CustomGameInstance>();
             await _db!.CreateTableAsync<StreakGoal>();
             await _db!.CreateTableAsync<SubActivity>();
+            await _db!.CreateTableAsync<HabitAllowanceSnapshot>();
+            await _db!.CreateTableAsync<PostponedTask>();
             await _db!.CreateTableAsync<WebsiteProject>();
             await _db!.CreateTableAsync<WebsiteIdea>();
 

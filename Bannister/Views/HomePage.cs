@@ -43,6 +43,7 @@ public class HomePage : ContentPage
     private readonly RoutineService _routineService;
     private readonly DeadlineService _deadlineService;
     private readonly AllowanceService _allowanceService;
+    private readonly PostponedTaskService _postponedTaskService;
     private readonly CustomGameService _customGames;
     private readonly OperationApplierService _applier;
     private readonly PendingActivityIdeaService _pendingIdeas;
@@ -120,7 +121,7 @@ public class HomePage : ContentPage
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
-        AllowanceService allowanceService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
+        AllowanceService allowanceService, PostponedTaskService postponedTaskService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService)
     {
@@ -158,6 +159,7 @@ public class HomePage : ContentPage
         _routineService = routineService;
         _deadlineService = deadlineService;
         _allowanceService = allowanceService;
+        _postponedTaskService = postponedTaskService;
         _customGames = customGames;
         _openAIKeyService = openAIKeyService;
         _openAIImageService = openAIImageService;
@@ -2513,7 +2515,7 @@ public class HomePage : ContentPage
     private async Task OpenCalendarFromHomeAsync()
     {
         await MarkCalendarVisitedTodayAsync();
-        var page = new CalendarPage(_auth, _taskService, _ideas, _db, routineService: _routineService);
+        var page = new CalendarPage(_auth, _taskService, _ideas, _db, routineService: _routineService, postponedTaskService: _postponedTaskService);
         await Navigation.PushAsync(page);
     }
 
