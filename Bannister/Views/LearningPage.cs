@@ -109,32 +109,56 @@ public class LearningPage : ContentPage
         // Ensure Learning game exists (but don't auto-create activities)
         await EnsureLearningGameExistsAsync();
         
-        ApplyVideoOpenDefaults();
+        await RestoreFiltersOnAppearAsync();
         
         await RefreshDataAsync();
     }
 
-    private void ApplyVideoOpenDefaults()
+    private async Task RestoreFiltersOnAppearAsync()
     {
-        _selectedCategory = "All";
-        _selectedChannel = "All";
-        _selectedStatus = "Pending";
-        _currentVideoPage = 0;
+        string categoryFilter;
+        string statusFilter;
 
-        _isUpdatingPicker = true;
         try
         {
-            if (_statusPicker != null)
-            {
-                var pendingIndex = _statusPicker.Items.IndexOf("Pending");
-                if (pendingIndex >= 0)
-                    _statusPicker.SelectedIndex = pendingIndex;
-            }
+            var lastCategory = await SecureStorage.GetAsync(GetLastCategoryKey());
+            var lastStatus = await SecureStorage.GetAsync(GetLastStatusKey());
+
+            if (!string.IsNullOrWhiteSpace(lastCategory))
+                categoryFilter = lastCategory;
+            else
+                categoryFilter = await SecureStorage.GetAsync(GetDefaultCategoryKey()) ?? "All";
+
+            if (!string.IsNullOrWhiteSpace(lastStatus))
+                statusFilter = lastStatus;
+            else
+                statusFilter = await SecureStorage.GetAsync(GetDefaultStatusKey()) ?? "All";
         }
-        finally
+        catch
         {
-            _isUpdatingPicker = false;
+            categoryFilter = "All";
+            statusFilter = "All";
         }
+
+        _selectedCategory = categoryFilter;
+        _selectedChannel = "All";
+        _selectedStatus = statusFilter;
+        _currentVideoPage = 0;
+    }
+
+    private string GetLastCategoryKey() => $"learning_last_category_{_auth.CurrentUsername}";
+    private string GetLastStatusKey() => $"learning_last_status_{_auth.CurrentUsername}";
+    private string GetDefaultCategoryKey() => $"learning_default_category_{_auth.CurrentUsername}";
+    private string GetDefaultStatusKey() => $"learning_default_status_{_auth.CurrentUsername}";
+
+    private async Task SaveLastFiltersAsync()
+    {
+        try
+        {
+            await SecureStorage.SetAsync(GetLastCategoryKey(), _selectedCategory ?? "");
+            await SecureStorage.SetAsync(GetLastStatusKey(), _selectedStatus ?? "");
+        }
+        catch { }
     }
     
     /// <summary>
@@ -437,6 +461,7 @@ public class LearningPage : ContentPage
             if (_categoryPicker.SelectedIndex >= 0)
             {
                 _selectedCategory = _categoryPicker.Items[_categoryPicker.SelectedIndex];
+                _ = SaveLastFiltersAsync();
                 await RefreshVideosAsync();
             }
         };
@@ -507,6 +532,7 @@ public class LearningPage : ContentPage
             if (_statusPicker.SelectedIndex >= 0)
             {
                 _selectedStatus = _statusPicker.Items[_statusPicker.SelectedIndex];
+                _ = SaveLastFiltersAsync();
                 await RefreshVideosAsync();
             }
         };
@@ -538,6 +564,19 @@ public class LearningPage : ContentPage
         };
         creatorCountsBtn.Clicked += async (s, e) => await ShowCreatorMonthlyStatsAsync();
         filterRow2.Children.Add(creatorCountsBtn);
+
+        var setDefaultsBtn = new Button
+        {
+            Text = "Set current as defaults",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            HeightRequest = 32,
+            CornerRadius = 6,
+            Padding = new Thickness(10, 0),
+            FontSize = 11
+        };
+        setDefaultsBtn.Clicked += OnSetFilterDefaultsClicked;
+        filterRow2.Children.Add(setDefaultsBtn);
 
         videosContainer.Children.Add(filterRow2);
 
@@ -1202,6 +1241,9 @@ public class LearningPage : ContentPage
             
             int channelIndex = _channelPicker.Items.IndexOf(_selectedChannel);
             _channelPicker.SelectedIndex = channelIndex >= 0 ? channelIndex : 0;
+
+            var statusIndex = _statusPicker.Items.IndexOf(_selectedStatus);
+            _statusPicker.SelectedIndex = statusIndex >= 0 ? statusIndex : 0;
         }
         finally
         {
@@ -1679,15 +1721,22 @@ public class LearningPage : ContentPage
         if (video.Status != "NotStarted")
             options.Add("🎬 Mark as To Watch");
         
-        options.Add("📁 Change Category");
         options.Add("⬆️ Move Up");
         options.Add("⬇️ Move Down");
         options.Add("✏️ Edit");
+        options.Add("Change Creator");
+        options.Add("📁 Change Category");
         options.Add("🗑️ Delete");
 
         var result = await DisplayActionSheet($"🎬 {video.Title}", "Cancel", null, options.ToArray());
 
         if (result == null || result == "Cancel") return;
+        if (result == "Change Creator")
+        {
+            await ChangeVideoCreatorAsync(video);
+            return;
+        }
+
 
         if (result == "▶️ Watch Video")
         {
@@ -2497,6 +2546,49 @@ public class LearningPage : ContentPage
         await _learning.UpdateVideoAsync(video);
     }
 
+    private async Task ChangeVideoCreatorAsync(LearningVideo video)
+    {
+        var allVideos = await _learning.GetVideosAsync(_auth.CurrentUsername);
+        var existingCreators = allVideos
+            .Select(v => v.Creator ?? "")
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var options = new List<string>(existingCreators) { "New creator..." };
+
+        var pick = await DisplayActionSheet(
+            $"Change creator for {video.Title}",
+            "Cancel",
+            null,
+            options.ToArray());
+
+        if (string.IsNullOrWhiteSpace(pick) || pick == "Cancel") return;
+
+        string newName;
+        if (pick == "New creator...")
+        {
+            var typed = await DisplayPromptAsync(
+                "New creator",
+                "Enter the creator's channel name:",
+                initialValue: video.Creator ?? "");
+            if (string.IsNullOrWhiteSpace(typed)) return;
+            newName = typed.Trim();
+        }
+        else
+        {
+            newName = pick.Trim();
+        }
+
+        if (string.Equals(newName, video.Creator, StringComparison.Ordinal))
+            return;
+
+        video.Creator = newName;
+        await _learning.UpdateVideoAsync(video);
+        await RefreshVideosAsync();
+    }
+
     private static string FormatDurationFromSeconds(int totalSeconds)
     {
         if (totalSeconds <= 0) return "";
@@ -3247,6 +3339,23 @@ public class LearningPage : ContentPage
             _selectedStatus = "All";
             _statusPicker.SelectedIndex = 0;
             await RefreshVideosAsync();
+        }
+    }
+
+    private async void OnSetFilterDefaultsClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            await SecureStorage.SetAsync(GetDefaultCategoryKey(), _selectedCategory ?? "All");
+            await SecureStorage.SetAsync(GetDefaultStatusKey(), _selectedStatus ?? "All");
+            await DisplayAlert(
+                "Defaults saved",
+                $"Category = {_selectedCategory}, Status = {_selectedStatus} will be the defaults on first open of a fresh session.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Could not save defaults", ex.Message, "OK");
         }
     }
 
