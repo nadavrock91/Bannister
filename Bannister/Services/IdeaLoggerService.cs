@@ -366,9 +366,27 @@ public class IdeaLoggerService
         // ====== MAIN CATEGORY DROPDOWN ======
         mainStack.Children.Add(new Label { Text = "Category:", FontSize = 12, TextColor = Color.FromArgb("#666") });
 
-        Layout catRow = isPhone
-            ? new VerticalStackLayout { Spacing = 8 }
-            : new HorizontalStackLayout { Spacing = 8 };
+        var categorySection = new VerticalStackLayout { Spacing = 8 };
+
+        View pickerRow;
+        if (isPhone)
+        {
+            pickerRow = new VerticalStackLayout { Spacing = 8 };
+        }
+        else
+        {
+            pickerRow = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Star)
+                },
+                ColumnSpacing = 8
+            };
+        }
+
+        var categoryActionsRow = new HorizontalStackLayout { Spacing = 8 };
 
         var classifications = await _ideas.GetClassificationsAsync(username);
         var classificationMap = classifications
@@ -394,7 +412,7 @@ public class IdeaLoggerService
             BackgroundColor = Color.FromArgb("#E3F2FD"),
             TextColor = Color.FromArgb("#1565C0"),
             TitleColor = Color.FromArgb("#1565C0"),
-            WidthRequest = 200
+            HorizontalOptions = LayoutOptions.Fill
         };
         if (isPhone) normalCategoryPicker.WidthRequest = -1;
         StylePhonePicker(normalCategoryPicker);
@@ -406,7 +424,7 @@ public class IdeaLoggerService
             BackgroundColor = Color.FromArgb("#F3E5F5"),
             TextColor = Color.FromArgb("#6A1B9A"),
             TitleColor = Color.FromArgb("#6A1B9A"),
-            WidthRequest = 200
+            HorizontalOptions = LayoutOptions.Fill
         };
         if (isPhone) llmCategoryPicker.WidthRequest = -1;
         StylePhonePicker(llmCategoryPicker);
@@ -414,8 +432,18 @@ public class IdeaLoggerService
         foreach (var cat in normalCategories) normalCategoryPicker.Items.Add(cat);
         foreach (var cat in llmCategories) llmCategoryPicker.Items.Add(cat);
 
-        catRow.Children.Add(normalCategoryPicker);
-        catRow.Children.Add(llmCategoryPicker);
+        if (pickerRow is Grid pickerGrid)
+        {
+            pickerGrid.Add(normalCategoryPicker, 0, 0);
+            pickerGrid.Add(llmCategoryPicker, 1, 0);
+        }
+        else if (pickerRow is VerticalStackLayout pickerStack)
+        {
+            pickerStack.Children.Add(normalCategoryPicker);
+            pickerStack.Children.Add(llmCategoryPicker);
+        }
+
+        categorySection.Children.Add(pickerRow);
 
         // + New button
         var customEntry = new Entry
@@ -465,7 +493,7 @@ public class IdeaLoggerService
                 customEntry.Focus();
             }
         };
-        catRow.Children.Add(newBtn);
+        categoryActionsRow.Children.Add(newBtn);
 
         // ★ Add to favorites button
         var favBtn = new Button
@@ -487,7 +515,7 @@ public class IdeaLoggerService
                 await SaveFavoritesAsync(username);
             }
         };
-        catRow.Children.Add(favBtn);
+        categoryActionsRow.Children.Add(favBtn);
 
         // 🔗 Link categories button
         var linkBtn = new Button
@@ -511,9 +539,10 @@ public class IdeaLoggerService
 
             await ShowLinkSetupAsync(linkBtn, catToLink, existingCategories, username);
         };
-        catRow.Children.Add(linkBtn);
+        categoryActionsRow.Children.Add(linkBtn);
 
-        mainStack.Children.Add(catRow);
+        categorySection.Children.Add(categoryActionsRow);
+        mainStack.Children.Add(categorySection);
         mainStack.Children.Add(customEntry);
 
         // ====== SUBCATEGORY (optional, per-category) ======
