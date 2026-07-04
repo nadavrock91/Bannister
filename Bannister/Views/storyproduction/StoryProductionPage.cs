@@ -332,20 +332,20 @@ public class StoryProductionPage : ContentPage
         // Stats label
         _statsLabel = new Label
         {
-            Text = "",
+            Text = " Loading stats...",
             FontSize = 13,
             TextColor = Color.FromArgb("#666"),
-            IsVisible = false
+            IsVisible = true
         };
         projectStack.Children.Add(_statsLabel);
 
         // Time projection label
         _projectionLabel = new Label
         {
-            Text = "",
+            Text = "⏱️ Calculating time projection...",
             FontSize = 12,
             TextColor = Color.FromArgb("#1565C0"),
-            IsVisible = false
+            IsVisible = true
         };
         projectStack.Children.Add(_projectionLabel);
 
@@ -1937,8 +1937,6 @@ public class StoryProductionPage : ContentPage
         _importDraftBtn.IsVisible = false;
         _importVisualsBtn.IsVisible = false;
         _storyPointsBtn.IsVisible = false;
-        _statsLabel.IsVisible = false;
-        _projectionLabel.IsVisible = false;
         _draftLabel.IsVisible = false;
         _draftPicker.IsVisible = false;
         _renameDraftBtn.IsVisible = false;
@@ -2004,7 +2002,6 @@ public class StoryProductionPage : ContentPage
         {
             int percent = (int)(preparedLines * 100.0 / totalLines);
             _statsLabel.Text = $"📊 {preparedLines}/{totalLines} visuals prepared ({percent}%)";
-            _statsLabel.IsVisible = true;
             
             // Update time projection (don't let this fail the whole load)
             try
@@ -2014,14 +2011,13 @@ public class StoryProductionPage : ContentPage
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[STORY] Projection error: {ex.Message}");
-                _projectionLabel.IsVisible = false;
+                _projectionLabel.Text = "\u00A0";
             }
         }
         else
         {
             _statsLabel.Text = "No lines yet. Add your first line below.";
-            _statsLabel.IsVisible = true;
-            _projectionLabel.IsVisible = false;
+            _projectionLabel.Text = "\u00A0";
         }
 
         ResetLinesRegion(clearBuiltCards: true);
@@ -2942,8 +2938,6 @@ public class StoryProductionPage : ContentPage
         _currentProject = null;
         _addLineBtn.IsVisible = false;
         _deleteProjectBtn.IsVisible = false;
-        _statsLabel.IsVisible = false;
-        _projectionLabel.IsVisible = false;
         _linesContainer.Children.Clear();
         await LoadProjectsAsync();
     }
@@ -5971,7 +5965,7 @@ Rules:
     {
         if (_currentProject == null)
         {
-            _projectionLabel.IsVisible = false;
+            _projectionLabel.Text = "\u00A0";
             return;
         }
 
@@ -6002,11 +5996,10 @@ Rules:
                 _projectionLabel.Text = $"⏱️ Est. {timeStr} remaining ({remainingTasks} tasks)";
                 _projectionLabel.TextColor = Color.FromArgb("#1565C0");
             }
-            _projectionLabel.IsVisible = true;
         }
         catch
         {
-            _projectionLabel.IsVisible = false;
+            _projectionLabel.Text = "\u00A0";
         }
     }
 
