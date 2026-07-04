@@ -204,6 +204,20 @@ public partial class ActivityGamePage
         btnCalculateExp.Clicked += OnCalculateClicked;
         innerStack.Children.Add(btnCalculateExp);
 
+        btnNextGame = new Button
+        {
+            Text = "Next Game →",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 12,
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            HeightRequest = 56,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        btnNextGame.Clicked += OnNextGameClicked;
+        innerStack.Children.Add(btnNextGame);
+
         frame.Content = innerStack;
         stack.Children.Add(frame);
 

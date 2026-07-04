@@ -133,6 +133,50 @@ public partial class ActivityGamePage
         await PromptForAutoAwardSuggestionsAsync();
     }
 
+    private async void OnNextGameClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var username = _auth?.CurrentUsername ?? "";
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                await DisplayAlert("No user", "Cannot determine current user.", "OK");
+                return;
+            }
+
+            var games = await _games.GetGamesAsync(username);
+            if (games == null || games.Count == 0)
+            {
+                await DisplayAlert("No games", "No games available.", "OK");
+                return;
+            }
+
+            var currentId = _game?.GameId ?? _gameId ?? "";
+            var currentIndex = games.FindIndex(g =>
+                string.Equals(g.GameId, currentId, StringComparison.OrdinalIgnoreCase));
+
+            if (currentIndex < 0)
+                currentIndex = 0;
+
+            var nextIndex = (currentIndex + 1) % games.Count;
+            var nextGame = games[nextIndex];
+
+            if (string.Equals(nextGame.GameId, currentId, StringComparison.OrdinalIgnoreCase))
+            {
+                await DisplayAlert("Only one game", "There are no other games to navigate to.", "OK");
+                return;
+            }
+
+            await _games.UpdateLastVisitedAtAsync(username, nextGame.GameId, DateTime.Now);
+            var encodedGameId = Uri.EscapeDataString(nextGame.GameId);
+            await Shell.Current.GoToAsync($"../activitygrid?gameId={encodedGameId}");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Next Game error", ex.Message, "OK");
+        }
+    }
+
     private async Task PromptForAutoAwardSuggestionsAsync()
     {
         if (_db.IsReadOnly || _allActivities == null || _allActivities.Count == 0)

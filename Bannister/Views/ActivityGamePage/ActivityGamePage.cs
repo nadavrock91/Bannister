@@ -67,6 +67,7 @@ public partial class ActivityGamePage : ContentPage
     private Label lblDragonDesc;
     private Button btnDefineDragon;
     private Button btnCalculateExp;
+    private Button btnNextGame = null!;
     private Button btnPrevPage;
     private Button btnNextPage;
     private Label lblPageInfo;
