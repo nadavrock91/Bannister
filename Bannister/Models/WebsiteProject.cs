@@ -39,6 +39,8 @@ public class WebsiteProject
 
     public string PendingCommitMessage { get; set; } = "";
 
+    public int PendingBatchSize { get; set; } = 1;
+
     public string QueuedTasksJson { get; set; } = "";
 
     public int QueuedTasksIndex { get; set; } = 0;

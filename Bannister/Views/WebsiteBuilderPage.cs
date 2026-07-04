@@ -5,7 +5,6 @@ using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Storage;
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
@@ -58,7 +57,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
     private const string VisionRefinementPromptTemplate = "I'm building a website called {0}. Below is my raw description of what I want this site to be, written informally in my own words. Please rewrite this as a clear concise vision statement suitable for handing to other LLMs as context for development tasks. Keep the spirit of what I said but make it well-structured, complete, and actionable. Cover: target audience, core purpose, key features the site should have, the tone/feel, and what makes it different from alternatives. Output ONLY the rewritten vision text - no preamble, no follow-up offers.\n\nMY RAW DESCRIPTION:\n{1}";
 
-    private const string BatchNextTaskPromptTemplateHeader = """
+    private const string LegacyBatchNextTaskPromptTemplateHeader = """
 You're planning the next {BATCH_SIZE} tasks for a website project. Below is the project context. Instead of one task, propose {BATCH_SIZE} tasks in a coherent short arc where each task assumes the previous one landed. Order them so the arc makes sense.
 
 For each task output:
@@ -78,6 +77,27 @@ CODEX PROMPT:
 <multi-line codex prompt>
 
 ...continue through TASK {BATCH_SIZE}.
+
+PROJECT CONTEXT BELOW:
+
+""";
+
+    private const string BatchNextTaskPromptTemplateHeader = """
+You're planning the next {BATCH_SIZE} tasks worth of work for a website project as a single combined arc. Instead of returning {BATCH_SIZE} separate Codex prompts, return ONE Codex prompt that describes all {BATCH_SIZE} tasks' worth of changes bundled together. Codex will execute the whole thing in one session and output one commit message at the end.
+
+Plan a coherent arc where each piece of work builds on the previous. Order the changes so they compound sensibly. Be specific about file paths, function names, and expected behavior for every piece of the arc.
+
+Output format — return ONLY these two sections in this order, no explanation, no preamble, no closing remarks:
+
+ARC TITLE:
+<one short title, 6-12 words, summarizing the whole batch>
+
+CODEX PROMPT:
+<the full combined codex prompt covering all {BATCH_SIZE} tasks' worth of changes>
+
+The CODEX PROMPT section should end with the instruction telling Codex to output a single commit message covering all the changes:
+
+"At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing everything you did across all changes>"
 
 PROJECT CONTEXT BELOW:
 
@@ -104,9 +124,6 @@ PROJECT CONTEXT BELOW:
     private readonly Picker _batchSizePicker;
     private readonly HorizontalStackLayout _batchSizeRow;
     private readonly Button _copyBatchPromptButton;
-    private readonly Label _batchProgressLabel;
-    private readonly Button _upcomingTasksToggleButton;
-    private readonly VerticalStackLayout _upcomingTasksContainer;
     private readonly Button _pasteTaskPlanButton;
     private readonly Button _cancelWorkflowButton;
     private readonly Button _copyCodexPromptButton;
@@ -150,7 +167,6 @@ PROJECT CONTEXT BELOW:
     private int _currentProjectId;
     private bool _isRefreshingPickers;
     private bool _isLoadingBatchSize;
-    private bool _upcomingTasksExpanded;
 
     public WebsiteBuilderPage(AuthService auth, WebsiteProjectService projectService, WebsiteIdeaService ideaService, GameService gameService)
     {
@@ -485,37 +501,6 @@ PROJECT CONTEXT BELOW:
             }
         };
 
-        _batchProgressLabel = new Label
-        {
-            FontSize = 12,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#6A1B9A"),
-            IsVisible = false
-        };
-
-        _upcomingTasksToggleButton = new Button
-        {
-            Text = "Upcoming tasks",
-            BackgroundColor = Color.FromArgb("#F3E5F5"),
-            TextColor = Color.FromArgb("#6A1B9A"),
-            CornerRadius = 8,
-            HeightRequest = 36,
-            FontSize = 12,
-            FontAttributes = FontAttributes.Bold,
-            IsVisible = false
-        };
-        _upcomingTasksToggleButton.Clicked += async (_, _) =>
-        {
-            _upcomingTasksExpanded = !_upcomingTasksExpanded;
-            await RefreshCurrentProjectAsync();
-        };
-
-        _upcomingTasksContainer = new VerticalStackLayout
-        {
-            Spacing = 8,
-            IsVisible = false
-        };
-
         _projectTitleHeaderLabel = new Label
         {
             FontSize = 28,
@@ -817,9 +802,6 @@ PROJECT CONTEXT BELOW:
             Children =
             {
                 qaExplorationSection,
-                _batchProgressLabel,
-                _upcomingTasksToggleButton,
-                _upcomingTasksContainer,
                 _workflowStatusBanner,
                 _projectTitleHeaderLabel,
                 _projectIdeaReferenceLabel,
@@ -1452,7 +1434,6 @@ PROJECT CONTEXT BELOW:
         _decrementButton.IsEnabled = project.TaskCount > 0;
         _celebrationFrame.IsVisible = project.TaskCount >= project.TaskTarget;
         UpdateWorkflowDisplay(project);
-        UpdateBatchDisplay(project);
         UpdateQADisplay(project);
         UpdateVisionDisplay(project);
         UpdateProjectSummaryDisplay(project);
@@ -1498,7 +1479,7 @@ PROJECT CONTEXT BELOW:
         _editCodexPromptButton.IsVisible = false;
         _editCommitMessageButton.IsVisible = false;
         _commitAndPushButton.IsVisible = false;
-        _cancelWorkflowButton.Text = HasQueuedTasks(project) ? "Cancel Batch" : "Cancel (Back to Start)";
+        _cancelWorkflowButton.Text = "Cancel (Back to Start)";
 
         switch (state)
         {
@@ -1546,108 +1527,6 @@ PROJECT CONTEXT BELOW:
         _workflowStatusTitle.Text = title;
         _workflowStatusTitle.TextColor = Color.FromArgb(titleColor);
         _workflowStatusSubtitle.Text = subtitle;
-    }
-
-    private void UpdateBatchDisplay(WebsiteProject project)
-    {
-        var queue = DeserializeQueuedTasksForDisplay(project);
-        if (queue.Count == 0)
-        {
-            _batchProgressLabel.IsVisible = false;
-            _upcomingTasksToggleButton.IsVisible = false;
-            _upcomingTasksContainer.IsVisible = false;
-            _upcomingTasksContainer.Children.Clear();
-            _upcomingTasksExpanded = false;
-            return;
-        }
-
-        var currentIndex = Math.Clamp(project.QueuedTasksIndex, 0, queue.Count - 1);
-        _batchProgressLabel.Text = $"Batch task {currentIndex + 1} of {queue.Count}";
-        _batchProgressLabel.IsVisible = true;
-
-        var upcomingCount = Math.Max(0, queue.Count - currentIndex - 1);
-        _upcomingTasksToggleButton.IsVisible = upcomingCount > 0;
-        _upcomingTasksToggleButton.Text = _upcomingTasksExpanded
-            ? $"Hide upcoming tasks ({upcomingCount})"
-            : $"Upcoming tasks ({upcomingCount})";
-        _upcomingTasksContainer.IsVisible = upcomingCount > 0 && _upcomingTasksExpanded;
-        _upcomingTasksContainer.Children.Clear();
-
-        if (!_upcomingTasksContainer.IsVisible)
-            return;
-
-        for (var i = currentIndex + 1; i < queue.Count; i++)
-            _upcomingTasksContainer.Children.Add(CreateUpcomingTaskRow(project.Id, i, queue[i]));
-    }
-
-    private View CreateUpcomingTaskRow(int projectId, int index, WebsiteQueuedTask task)
-    {
-        var titleLabel = new Label
-        {
-            Text = $"{index + 1}. {task.Title}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#333"),
-            LineBreakMode = LineBreakMode.TailTruncation,
-            VerticalOptions = LayoutOptions.Center
-        };
-
-        var editButton = new Button
-        {
-            Text = "Edit",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
-            CornerRadius = 8,
-            HeightRequest = 32,
-            FontSize = 11,
-            WidthRequest = 70
-        };
-        editButton.Clicked += async (_, _) => await EditQueuedTaskAsync(projectId, index, task);
-
-        var grid = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Auto }
-            },
-            ColumnSpacing = 8
-        };
-        grid.Add(titleLabel, 0, 0);
-        grid.Add(editButton, 1, 0);
-
-        return new Frame
-        {
-            Padding = 10,
-            CornerRadius = 8,
-            HasShadow = false,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            Content = grid
-        };
-    }
-
-    private static bool HasQueuedTasks(WebsiteProject project)
-    {
-        return DeserializeQueuedTasksForDisplay(project).Count > 0;
-    }
-
-    private static List<WebsiteQueuedTask> DeserializeQueuedTasksForDisplay(WebsiteProject project)
-    {
-        if (string.IsNullOrWhiteSpace(project.QueuedTasksJson))
-            return new List<WebsiteQueuedTask>();
-
-        try
-        {
-            return JsonSerializer.Deserialize<List<WebsiteQueuedTask>>(
-                    project.QueuedTasksJson,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                ?.Where(task => !string.IsNullOrWhiteSpace(task.Title) && !string.IsNullOrWhiteSpace(task.CodexPrompt))
-                .ToList() ?? new List<WebsiteQueuedTask>();
-        }
-        catch
-        {
-            return new List<WebsiteQueuedTask>();
-        }
     }
 
     private static WebsiteWorkflowState ToWorkflowState(int state)
@@ -2081,21 +1960,12 @@ PROJECT CONTEXT BELOW:
         var batchSize = GetSelectedBatchSize();
         var prompt = BatchNextTaskPromptTemplateHeader
             .Replace("{BATCH_SIZE}", batchSize.ToString(), StringComparison.Ordinal)
-            + BuildProjectContextBlock(project)
-            + """
-
-IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
-- Each CODEX PROMPT must be complete, self-contained, and directly executable by Codex.
-- No markdown code fences.
-- End each CODEX PROMPT with this exact line:
-  At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing what you did>
-- Output each commit message as a single unbroken paragraph with no line breaks inside the COMMIT MESSAGE: section.
-""";
+            + BuildProjectContextBlock(project);
 
         await Clipboard.SetTextAsync(prompt);
         await DisplayAlert(
             "Batch prompt copied",
-            $"Batch prompt copied. Paste it into Claude or ChatGPT. The LLM should return TASK 1 through TASK {batchSize}. Copy the entire response and tap Paste Task Plan back in Bannister.",
+            $"Batch prompt copied. Paste it into Claude or ChatGPT. The LLM should return ARC TITLE and one combined CODEX PROMPT covering {batchSize} tasks worth of work. Copy the entire response and tap Paste Task Plan back in Bannister.",
             "OK");
 
         try
@@ -2124,17 +1994,15 @@ IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
         if (result == null)
             return;
 
-        var batchTasks = ParseBatchTaskResponse(result);
-        if (batchTasks != null && batchTasks.Count > 0)
+        var batchPlan = ParseBatchTaskResponse(result);
+        if (batchPlan != null)
         {
             try
             {
-                await _projectService.SetQueuedTasksAsync(project.Id, batchTasks, 0);
-                if (await _projectService.LoadNextQueuedTaskAsync(project.Id))
+                if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, batchPlan.Value.ArcTitle, batchPlan.Value.CodexPrompt, GetSelectedBatchSize()))
                 {
-                    _upcomingTasksExpanded = false;
                     await RefreshCurrentProjectAsync();
-                    await DisplayAlert("Batch parsed", $"Parsed {batchTasks.Count} queued task(s). Task 1 is ready to execute.", "OK");
+                    await DisplayAlert("Batch parsed", $"Parsed combined batch arc. Bannister stored the arc title and one Codex prompt worth {GetSelectedBatchSize()} task(s).", "OK");
                     return;
                 }
             }
@@ -2150,7 +2018,7 @@ IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
         {
             await DisplayAlert(
                 "Could not parse",
-                "Could not parse the LLM response. Expected either TASK 1 / TITLE / CODEX PROMPT batch sections, or single-task NEXT TASK: and CODEX PROMPT: sections.",
+                "Could not parse the LLM response. Expected either batch ARC TITLE: and CODEX PROMPT: sections, or single-task NEXT TASK: and CODEX PROMPT: sections.",
                 "OK");
             return;
         }
@@ -2331,130 +2199,6 @@ IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
         }
     }
 
-    private async Task EditQueuedTaskAsync(int projectId, int index, WebsiteQueuedTask task)
-    {
-        var edited = await ShowQueuedTaskEditorAsync(task);
-        if (edited == null)
-            return;
-
-        try
-        {
-            if (await _projectService.UpdateQueuedTaskAsync(projectId, index, edited.Value.Title, edited.Value.CodexPrompt))
-                await RefreshCurrentProjectAsync();
-        }
-        catch (ReadOnlyDatabaseException)
-        {
-            await ShowReadOnlyAlertAsync();
-        }
-    }
-
-    private async Task<(string Title, string CodexPrompt)?> ShowQueuedTaskEditorAsync(WebsiteQueuedTask task)
-    {
-        var titleEntry = new Entry
-        {
-            Text = task.Title,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            Placeholder = "Task title"
-        };
-
-        var promptEditor = new Editor
-        {
-            Text = task.CodexPrompt,
-            AutoSize = EditorAutoSizeOption.TextChanges,
-            MinimumHeightRequest = 260,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            Placeholder = "Codex prompt..."
-        };
-
-        var saveButton = CreatePrimaryButton("Save", Color.FromArgb("#2E7D32"));
-        var cancelButton = CreateSecondaryButton("Cancel");
-
-        var page = new ContentPage
-        {
-            Title = "Edit queued task",
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
-
-        var tcs = new TaskCompletionSource<(string Title, string CodexPrompt)?>();
-
-        saveButton.Clicked += async (_, _) =>
-        {
-            var title = titleEntry.Text?.Trim() ?? "";
-            var prompt = promptEditor.Text?.Trim() ?? "";
-            if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(prompt))
-            {
-                await page.DisplayAlert("Missing content", "Both title and Codex prompt are required.", "OK");
-                return;
-            }
-
-            await Navigation.PopModalAsync();
-            tcs.TrySetResult((title, prompt));
-        };
-
-        cancelButton.Clicked += async (_, _) =>
-        {
-            await Navigation.PopModalAsync();
-            tcs.TrySetResult(null);
-        };
-
-        page.Content = new ScrollView
-        {
-            Content = new VerticalStackLayout
-            {
-                Padding = 20,
-                Spacing = 12,
-                Children =
-                {
-                    new Label
-                    {
-                        Text = "Edit queued task",
-                        FontSize = 20,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
-                    new Label
-                    {
-                        Text = "Title",
-                        FontSize = 13,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333")
-                    },
-                    titleEntry,
-                    new Label
-                    {
-                        Text = "Codex prompt",
-                        FontSize = 13,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333")
-                    },
-                    promptEditor,
-                    new Grid
-                    {
-                        ColumnDefinitions =
-                        {
-                            new ColumnDefinition { Width = GridLength.Star },
-                            new ColumnDefinition { Width = GridLength.Star }
-                        },
-                        ColumnSpacing = 10,
-                        Children =
-                        {
-                            cancelButton,
-                            saveButton
-                        }
-                    }
-                }
-            }
-        };
-
-        Grid.SetColumn(cancelButton, 0);
-        Grid.SetColumn(saveButton, 1);
-
-        await Navigation.PushModalAsync(page);
-        return await tcs.Task;
-    }
-
     private async Task CommitAndPushAsync()
     {
         if (!IsWindows())
@@ -2542,51 +2286,11 @@ IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
             {
                 try
                 {
-                    var queuedTasks = await _projectService.GetQueuedTasksAsync(project.Id);
-                    var queuedTotal = queuedTasks.Count;
-                    var completedQueueIndex = project.QueuedTasksIndex;
-
                     if (await _projectService.CompleteWorkflowAsync(project.Id, project.PendingTaskTitle))
                     {
                         var updated = await _projectService.GetByIdAsync(project.Id);
-                        var updatedCount = updated?.TaskCount ?? project.TaskCount + 1;
-
-                        if (queuedTotal > 0)
-                        {
-                            if (await _projectService.AdvanceQueueIndexAsync(project.Id))
-                            {
-                                var continueChoice = await DisplayAlert(
-                                    "Task complete",
-                                    $"Task {completedQueueIndex + 1} of {queuedTotal} committed. Counter incremented to {updatedCount}. Continue to the next queued task?",
-                                    "Continue to next",
-                                    "Stop batch");
-
-                                if (continueChoice)
-                                {
-                                    await _projectService.LoadNextQueuedTaskAsync(project.Id);
-                                    _upcomingTasksExpanded = false;
-                                    await RefreshCurrentProjectAsync();
-                                }
-                                else
-                                {
-                                    await _projectService.ClearQueueAsync(project.Id);
-                                    _upcomingTasksExpanded = false;
-                                    await RefreshCurrentProjectAsync();
-                                }
-                            }
-                            else
-                            {
-                                await _projectService.ClearQueueAsync(project.Id);
-                                _upcomingTasksExpanded = false;
-                                await RefreshCurrentProjectAsync();
-                                await DisplayAlert("Batch complete", $"Committed and pushed task {queuedTotal} of {queuedTotal}. Counter incremented to {updatedCount}. Batch cleared.", "OK");
-                            }
-                        }
-                        else
-                        {
-                            await RefreshCurrentProjectAsync();
-                            await DisplayAlert("Committed and pushed!", $"Committed and pushed! Counter incremented to {updatedCount}.", "OK");
-                        }
+                        await RefreshCurrentProjectAsync();
+                        await DisplayAlert("Committed and pushed!", $"Committed and pushed! Counter incremented to {updated?.TaskCount ?? project.TaskCount + Math.Max(1, project.PendingBatchSize)}.", "OK");
                     }
                 }
                 catch (ReadOnlyDatabaseException)
@@ -2804,50 +2508,35 @@ IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
         return (taskTitle, codexPrompt);
     }
 
-    private static List<WebsiteQueuedTask>? ParseBatchTaskResponse(string raw)
+    private static (string ArcTitle, string CodexPrompt)? ParseBatchTaskResponse(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
             return null;
 
         raw = raw.Replace("\r\n", "\n").Replace("\r", "\n");
 
-        var taskMatches = Regex.Matches(
+        var arcTitleMatch = Regex.Match(
             raw,
-            @"(?im)^\s*TASK\s+(\d+)\s*:",
+            @"(?im)^\s*ARC\s+TITLE\s*:\s*(?<title>.+?)\s*$",
             RegexOptions.CultureInvariant);
-
-        if (taskMatches.Count == 0)
+        if (!arcTitleMatch.Success)
             return null;
 
-        var tasks = new List<WebsiteQueuedTask>();
-        for (var i = 0; i < taskMatches.Count; i++)
-        {
-            var sectionStart = taskMatches[i].Index;
-            var sectionEnd = i + 1 < taskMatches.Count
-                ? taskMatches[i + 1].Index
-                : raw.Length;
-            var section = raw[sectionStart..sectionEnd];
+        var promptMarkerMatch = Regex.Match(
+            raw,
+            @"(?im)^\s*CODEX\s+PROMPT\s*:\s*$",
+            RegexOptions.CultureInvariant);
+        if (!promptMarkerMatch.Success)
+            return null;
 
-            var titleMatch = Regex.Match(
-                section,
-                @"(?im)^\s*TITLE\s*:\s*(?<title>.+?)\s*$",
-                RegexOptions.CultureInvariant);
-            var promptMarkerMatch = Regex.Match(
-                section,
-                @"(?im)^\s*CODEX\s+PROMPT\s*:\s*",
-                RegexOptions.CultureInvariant);
+        var arcTitle = arcTitleMatch.Groups["title"].Value.Trim();
+        var codexPromptStart = promptMarkerMatch.Index + promptMarkerMatch.Length;
+        var codexPrompt = raw[codexPromptStart..].Trim();
 
-            if (!titleMatch.Success || !promptMarkerMatch.Success)
-                continue;
+        if (string.IsNullOrWhiteSpace(arcTitle) || string.IsNullOrWhiteSpace(codexPrompt))
+            return null;
 
-            var title = titleMatch.Groups["title"].Value.Trim();
-            var codexPrompt = section[(promptMarkerMatch.Index + promptMarkerMatch.Length)..].Trim();
-
-            if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(codexPrompt))
-                tasks.Add(new WebsiteQueuedTask(title, codexPrompt));
-        }
-
-        return tasks.Count == 0 ? null : tasks;
+        return (arcTitle, codexPrompt);
     }
 
     private static string? ParseCodexCommitMessage(string codexOutput)

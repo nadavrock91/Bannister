@@ -423,7 +423,7 @@ public class WebsiteProjectService
         return true;
     }
 
-    public async Task<bool> AdvanceToReadyToExecuteAsync(int projectId, string taskTitle, string codexPrompt)
+    public async Task<bool> AdvanceToReadyToExecuteAsync(int projectId, string taskTitle, string codexPrompt, int pendingBatchSize = 1)
     {
         EnsureWritable();
         var project = await GetByIdAsync(projectId);
@@ -433,6 +433,7 @@ public class WebsiteProjectService
         project.PendingTaskTitle = taskTitle;
         project.PendingCodexPrompt = codexPrompt;
         project.PendingCommitMessage = "";
+        project.PendingBatchSize = Math.Max(1, pendingBatchSize);
         project.WorkflowState = 2;
         await SaveAsync(project);
         return true;
@@ -461,6 +462,7 @@ public class WebsiteProjectService
         project.PendingTaskTitle = "";
         project.PendingCodexPrompt = "";
         project.PendingCommitMessage = "";
+        project.PendingBatchSize = 1;
         project.QueuedTasksJson = "";
         project.QueuedTasksIndex = 0;
         project.WorkflowState = 0;
@@ -483,11 +485,13 @@ public class WebsiteProjectService
                 : $"{entry}\n{project.CompletedTaskTitles}";
         }
 
-        project.TaskCount++;
-        project.TasksSinceSummaryUpdate++;
+        var incrementBy = Math.Max(1, project.PendingBatchSize);
+        project.TaskCount += incrementBy;
+        project.TasksSinceSummaryUpdate += incrementBy;
         project.PendingTaskTitle = "";
         project.PendingCodexPrompt = "";
         project.PendingCommitMessage = "";
+        project.PendingBatchSize = 1;
         project.LatestQAReport = "";
         project.LatestQAReportCapturedAt = null;
         project.WorkflowState = 0;
