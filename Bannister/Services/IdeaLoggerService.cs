@@ -200,8 +200,8 @@ public class IdeaLoggerService
         _lastUsedCategory = category;
 
         var idea = _db.IsReadOnly
-            ? await _ideas.CreateIdeaAsync(username, title, category, subcategory: subcategory, rating: rating, fullIdea: fullIdea)
-            : await _ideas.CreateIdeaAsync(username, title, category, fullIdea: fullIdea);
+            ? await _ideas.CreateIdeaAsync(username, title, category, subcategory: subcategory, rating: rating, fullIdea: fullIdea, isLlmSource: result.Value.isLlmSource)
+            : await _ideas.CreateIdeaAsync(username, title, category, fullIdea: fullIdea, isLlmSource: result.Value.isLlmSource);
         idea.Rating = rating;
         idea.Subcategory = subcategory;
         if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(idea);
@@ -243,10 +243,10 @@ public class IdeaLoggerService
         return idea;
     }
 
-    private async Task<(string title, string fullIdea, string category, string? subcategory, int rating)?> ShowIdeaPopupAsync(
+    private async Task<(string title, string fullIdea, string category, string? subcategory, int rating, bool isLlmSource)?> ShowIdeaPopupAsync(
         Page page, string username, List<string> existingCategories, string? prefillText, string? suggestedCategory)
     {
-        var tcs = new TaskCompletionSource<(string title, string fullIdea, string category, string? subcategory, int rating)?>();
+        var tcs = new TaskCompletionSource<(string title, string fullIdea, string category, string? subcategory, int rating, bool isLlmSource)?>();
         bool isPhone = DeviceInfo.Idiom == DeviceIdiom.Phone ||
             DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density < 600;
 
@@ -370,25 +370,52 @@ public class IdeaLoggerService
             ? new VerticalStackLayout { Spacing = 8 }
             : new HorizontalStackLayout { Spacing = 8 };
 
-        var categoryPicker = new Picker
+        var classifications = await _ideas.GetClassificationsAsync(username);
+        var classificationMap = classifications
+            .GroupBy(c => c.CategoryName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Classification, StringComparer.OrdinalIgnoreCase);
+
+        var normalCategories = existingCategories
+            .Where(c => !classificationMap.TryGetValue(c, out var cls) ||
+                        string.Equals(cls, "normal", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var llmCategories = existingCategories
+            .Where(c => classificationMap.TryGetValue(c, out var cls) &&
+                        string.Equals(cls, "llm", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var normalCategoryPicker = new Picker
         {
-            Title = "Select category...", FontSize = 13,
-            BackgroundColor = Color.FromArgb("#F5F5F5"), WidthRequest = 220
+            Title = "Normal category",
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            TitleColor = Color.FromArgb("#1565C0"),
+            WidthRequest = 200
         };
-        if (isPhone) categoryPicker.WidthRequest = -1;
-        StylePhonePicker(categoryPicker);
+        if (isPhone) normalCategoryPicker.WidthRequest = -1;
+        StylePhonePicker(normalCategoryPicker);
 
-        foreach (var cat in existingCategories)
-            categoryPicker.Items.Add(cat);
-
-        // Pre-select
-        if (!string.IsNullOrEmpty(initialCategory))
+        var llmCategoryPicker = new Picker
         {
-            int ci = existingCategories.IndexOf(initialCategory);
-            if (ci >= 0) categoryPicker.SelectedIndex = ci;
-        }
+            Title = "LLM category",
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            TitleColor = Color.FromArgb("#6A1B9A"),
+            WidthRequest = 200
+        };
+        if (isPhone) llmCategoryPicker.WidthRequest = -1;
+        StylePhonePicker(llmCategoryPicker);
 
-        catRow.Children.Add(categoryPicker);
+        foreach (var cat in normalCategories) normalCategoryPicker.Items.Add(cat);
+        foreach (var cat in llmCategories) llmCategoryPicker.Items.Add(cat);
+
+        catRow.Children.Add(normalCategoryPicker);
+        catRow.Children.Add(llmCategoryPicker);
 
         // + New button
         var customEntry = new Entry
@@ -399,6 +426,29 @@ public class IdeaLoggerService
         if (isPhone) customEntry.WidthRequest = -1;
         StylePhoneEntry(customEntry);
 
+        string? GetCurrentCategory()
+        {
+            if (customEntry.IsVisible && !string.IsNullOrWhiteSpace(customEntry.Text))
+                return customEntry.Text.Trim();
+
+            if (normalCategoryPicker.SelectedIndex >= 0)
+                return normalCategoryPicker.Items[normalCategoryPicker.SelectedIndex];
+
+            if (llmCategoryPicker.SelectedIndex >= 0)
+                return llmCategoryPicker.Items[llmCategoryPicker.SelectedIndex];
+
+            if (favPicker != null && favPicker.SelectedIndex >= 0)
+                return favPicker.Items[favPicker.SelectedIndex];
+
+            return string.IsNullOrWhiteSpace(holder[0]) ? null : holder[0];
+        }
+
+        bool IsLlmCategory(string category)
+        {
+            return classificationMap.TryGetValue(category, out var cls) &&
+                   string.Equals(cls, "llm", StringComparison.OrdinalIgnoreCase);
+        }
+
         var newBtn = new Button
         {
             Text = "+ New", BackgroundColor = Color.FromArgb("#4CAF50"), TextColor = Colors.White,
@@ -407,7 +457,13 @@ public class IdeaLoggerService
         newBtn.Clicked += (s, e) =>
         {
             customEntry.IsVisible = !customEntry.IsVisible;
-            if (customEntry.IsVisible) customEntry.Focus();
+            if (customEntry.IsVisible)
+            {
+                normalCategoryPicker.SelectedIndex = -1;
+                llmCategoryPicker.SelectedIndex = -1;
+                if (favPicker != null) favPicker.SelectedIndex = -1;
+                customEntry.Focus();
+            }
         };
         catRow.Children.Add(newBtn);
 
@@ -420,13 +476,7 @@ public class IdeaLoggerService
         };
         favBtn.Clicked += async (s, e) =>
         {
-            string? catToFav = null;
-            if (categoryPicker.SelectedIndex >= 0)
-                catToFav = categoryPicker.Items[categoryPicker.SelectedIndex];
-            if (!string.IsNullOrWhiteSpace(customEntry.Text))
-                catToFav = customEntry.Text.Trim();
-            if (catToFav == null && favPicker != null && favPicker.SelectedIndex >= 0)
-                catToFav = favPicker.Items[favPicker.SelectedIndex];
+            string? catToFav = GetCurrentCategory();
 
             if (!string.IsNullOrEmpty(catToFav) && !_favoriteCategories.Contains(catToFav))
             {
@@ -449,13 +499,7 @@ public class IdeaLoggerService
         linkBtn.Clicked += async (s, e) =>
         {
             // Get current category
-            string? catToLink = null;
-            if (categoryPicker.SelectedIndex >= 0)
-                catToLink = categoryPicker.Items[categoryPicker.SelectedIndex];
-            if (!string.IsNullOrWhiteSpace(customEntry.Text))
-                catToLink = customEntry.Text.Trim();
-            if (catToLink == null && favPicker != null && favPicker.SelectedIndex >= 0)
-                catToLink = favPicker.Items[favPicker.SelectedIndex];
+            string? catToLink = GetCurrentCategory();
 
             if (string.IsNullOrEmpty(catToLink))
             {
@@ -552,12 +596,34 @@ public class IdeaLoggerService
         // ====== WIRE UP CROSS-PICKER SYNC ======
 
         // When main category picker changes → update holder, deselect favorites, refresh subcategories
-        categoryPicker.SelectedIndexChanged += (s, e) =>
+        bool suppressPickerSync = false;
+
+        normalCategoryPicker.SelectedIndexChanged += (s, e) =>
         {
-            if (categoryPicker.SelectedIndex >= 0)
+            if (suppressPickerSync) return;
+            if (normalCategoryPicker.SelectedIndex >= 0)
             {
-                holder[0] = categoryPicker.Items[categoryPicker.SelectedIndex];
+                holder[0] = normalCategoryPicker.Items[normalCategoryPicker.SelectedIndex];
+                suppressPickerSync = true;
+                llmCategoryPicker.SelectedIndex = -1;
+                suppressPickerSync = false;
                 if (favPicker != null) favPicker.SelectedIndex = -1;
+                customEntry.IsVisible = false;
+                RefreshSubPicker(subPicker, holder[0]);
+            }
+        };
+
+        llmCategoryPicker.SelectedIndexChanged += (s, e) =>
+        {
+            if (suppressPickerSync) return;
+            if (llmCategoryPicker.SelectedIndex >= 0)
+            {
+                holder[0] = llmCategoryPicker.Items[llmCategoryPicker.SelectedIndex];
+                suppressPickerSync = true;
+                normalCategoryPicker.SelectedIndex = -1;
+                suppressPickerSync = false;
+                if (favPicker != null) favPicker.SelectedIndex = -1;
+                customEntry.IsVisible = false;
                 RefreshSubPicker(subPicker, holder[0]);
             }
         };
@@ -570,8 +636,10 @@ public class IdeaLoggerService
                 if (favPicker.SelectedIndex >= 0)
                 {
                     holder[0] = favPicker.Items[favPicker.SelectedIndex];
-                    int mainIdx = existingCategories.IndexOf(holder[0]);
-                    categoryPicker.SelectedIndex = mainIdx;
+                    suppressPickerSync = true;
+                    normalCategoryPicker.SelectedIndex = normalCategories.FindIndex(c => string.Equals(c, holder[0], StringComparison.OrdinalIgnoreCase));
+                    llmCategoryPicker.SelectedIndex = llmCategories.FindIndex(c => string.Equals(c, holder[0], StringComparison.OrdinalIgnoreCase));
+                    suppressPickerSync = false;
                     RefreshSubPicker(subPicker, holder[0]);
                 }
             };
@@ -583,12 +651,33 @@ public class IdeaLoggerService
             if (!string.IsNullOrWhiteSpace(e.NewTextValue))
             {
                 holder[0] = e.NewTextValue;
-                categoryPicker.SelectedIndex = -1;
+                suppressPickerSync = true;
+                normalCategoryPicker.SelectedIndex = -1;
+                llmCategoryPicker.SelectedIndex = -1;
+                suppressPickerSync = false;
                 if (favPicker != null) favPicker.SelectedIndex = -1;
                 subSection.IsVisible = false;
                 subHolder[0] = "";
             }
         };
+
+        if (!string.IsNullOrWhiteSpace(initialCategory))
+        {
+            var normalIdx = normalCategories.FindIndex(c =>
+                string.Equals(c, initialCategory, StringComparison.OrdinalIgnoreCase));
+            var llmIdx = llmCategories.FindIndex(c =>
+                string.Equals(c, initialCategory, StringComparison.OrdinalIgnoreCase));
+
+            if (normalIdx >= 0)
+                normalCategoryPicker.SelectedIndex = normalIdx;
+            else if (llmIdx >= 0)
+                llmCategoryPicker.SelectedIndex = llmIdx;
+            else
+            {
+                customEntry.Text = initialCategory;
+                customEntry.IsVisible = true;
+            }
+        }
 
         // Show subcategories if initial category has them
         if (!string.IsNullOrEmpty(initialCategory) && _subcategories.ContainsKey(initialCategory))
@@ -714,8 +803,30 @@ public class IdeaLoggerService
                 return;
             }
 
+            var finalCategory = GetCurrentCategory()?.Trim() ?? "";
+            bool isKnownCategory = !string.IsNullOrWhiteSpace(finalCategory) && existingCategories.Any(c =>
+                string.Equals(c, finalCategory, StringComparison.OrdinalIgnoreCase));
+            bool isLlmSource = !string.IsNullOrWhiteSpace(finalCategory) && IsLlmCategory(finalCategory);
+
+            if (!string.IsNullOrWhiteSpace(finalCategory) && !isKnownCategory)
+            {
+                var classChoice = await page.DisplayActionSheet(
+                    $"Classify new category '{finalCategory}':",
+                    "Cancel",
+                    null,
+                    "Normal category",
+                    "LLM category");
+
+                if (classChoice == "Cancel" || string.IsNullOrWhiteSpace(classChoice))
+                    return;
+
+                var classString = classChoice == "LLM category" ? "llm" : "normal";
+                isLlmSource = classString == "llm";
+                await _ideas.SetClassificationAsync(username, finalCategory, classString);
+            }
+
             container.Children.Remove(popup);
-            tcs.TrySetResult((title, fullIdea, holder[0], string.IsNullOrWhiteSpace(subHolder[0]) ? null : subHolder[0], selectedRating));
+            tcs.TrySetResult((title, fullIdea, finalCategory, string.IsNullOrWhiteSpace(subHolder[0]) ? null : subHolder[0], selectedRating, isLlmSource));
         }
 
         if (contentPage.Content is Grid pageGrid)
