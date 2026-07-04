@@ -135,9 +135,11 @@ public partial class ActivityGamePage
 
     private async void OnNextGameClicked(object? sender, EventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine("[NEXT_GAME] Button clicked");
         try
         {
             var username = _auth?.CurrentUsername ?? "";
+            System.Diagnostics.Debug.WriteLine($"[NEXT_GAME] username={username}");
             if (string.IsNullOrWhiteSpace(username))
             {
                 await DisplayAlert("No user", "Cannot determine current user.", "OK");
@@ -145,6 +147,7 @@ public partial class ActivityGamePage
             }
 
             var games = await _games.GetGamesAsync(username);
+            System.Diagnostics.Debug.WriteLine($"[NEXT_GAME] games count={games?.Count ?? 0}");
             if (games == null || games.Count == 0)
             {
                 await DisplayAlert("No games", "No games available.", "OK");
@@ -152,14 +155,19 @@ public partial class ActivityGamePage
             }
 
             var currentId = _game?.GameId ?? _gameId ?? "";
+            System.Diagnostics.Debug.WriteLine($"[NEXT_GAME] currentId={currentId}");
             var currentIndex = games.FindIndex(g =>
                 string.Equals(g.GameId, currentId, StringComparison.OrdinalIgnoreCase));
 
             if (currentIndex < 0)
+            {
+                System.Diagnostics.Debug.WriteLine("[NEXT_GAME] current game not found in list; defaulting index to 0");
                 currentIndex = 0;
+            }
 
             var nextIndex = (currentIndex + 1) % games.Count;
             var nextGame = games[nextIndex];
+            System.Diagnostics.Debug.WriteLine($"[NEXT_GAME] nextGameId={nextGame.GameId} displayName={nextGame.DisplayName}");
 
             if (string.Equals(nextGame.GameId, currentId, StringComparison.OrdinalIgnoreCase))
             {
@@ -168,12 +176,17 @@ public partial class ActivityGamePage
             }
 
             await _games.UpdateLastVisitedAtAsync(username, nextGame.GameId, DateTime.Now);
+            System.Diagnostics.Debug.WriteLine("[NEXT_GAME] Updated last-visited");
             var encodedGameId = Uri.EscapeDataString(nextGame.GameId);
-            await Shell.Current.GoToAsync($"../activitygrid?gameId={encodedGameId}");
+            System.Diagnostics.Debug.WriteLine($"[NEXT_GAME] About to navigate, encodedGameId={encodedGameId}");
+            await Shell.Current.GoToAsync($"activitygrid?gameId={encodedGameId}");
+            System.Diagnostics.Debug.WriteLine("[NEXT_GAME] Navigation call completed");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Next Game error", ex.Message, "OK");
+            System.Diagnostics.Debug.WriteLine($"[NEXT_GAME] EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[NEXT_GAME] Stack: {ex.StackTrace}");
+            await DisplayAlert("Next Game error", $"{ex.GetType().Name}: {ex.Message}", "OK");
         }
     }
 
