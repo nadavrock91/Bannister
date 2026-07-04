@@ -25,6 +25,7 @@ public class IdeasService
         if (!_db.IsReadOnly)
         {
             await conn.CreateTableAsync<IdeaItem>();
+            try { await conn.CreateTableAsync<IdeaCategoryClassification>(); } catch { }
             try { await conn.ExecuteAsync("ALTER TABLE ideas ADD COLUMN FullIdea TEXT DEFAULT ''"); } catch { }
         }
         _initialized = true;
@@ -119,6 +120,151 @@ public class IdeasService
             .ToList();
     }
 
+    public async Task<List<IdeaCategoryClassification>> GetClassificationsAsync(string username)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        List<IdeaCategoryClassification> rows;
+        try
+        {
+            rows = await conn.Table<IdeaCategoryClassification>()
+                .Where(c => c.Username == username)
+                .ToListAsync();
+        }
+        catch
+        {
+            return new List<IdeaCategoryClassification>();
+        }
+
+        return rows
+            .OrderBy(c => c.CategoryName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<string> GetClassificationForCategoryAsync(string username, string categoryName)
+    {
+        await EnsureInitializedAsync();
+        if (string.IsNullOrWhiteSpace(categoryName))
+            return "normal";
+
+        var conn = await _db.GetConnectionAsync();
+        var normalized = categoryName.Trim();
+        IdeaCategoryClassification? row;
+        try
+        {
+            row = await conn.Table<IdeaCategoryClassification>()
+                .Where(c => c.Username == username && c.CategoryName == normalized)
+                .FirstOrDefaultAsync();
+        }
+        catch
+        {
+            return "normal";
+        }
+
+        return NormalizeClassification(row?.Classification);
+    }
+
+    public async Task<bool> SetClassificationAsync(string username, string categoryName, string classification)
+    {
+        if (_db.IsReadOnly)
+            return false;
+
+        await EnsureInitializedAsync();
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(categoryName))
+            return false;
+
+        var conn = await _db.GetConnectionAsync();
+        var normalizedCategory = categoryName.Trim();
+        var normalizedClassification = NormalizeClassification(classification);
+        var now = DateTime.UtcNow;
+
+        var row = await conn.Table<IdeaCategoryClassification>()
+            .Where(c => c.Username == username && c.CategoryName == normalizedCategory)
+            .FirstOrDefaultAsync();
+
+        if (row == null)
+        {
+            await conn.InsertAsync(new IdeaCategoryClassification
+            {
+                Username = username,
+                CategoryName = normalizedCategory,
+                Classification = normalizedClassification,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+        }
+        else
+        {
+            row.Classification = normalizedClassification;
+            row.UpdatedAt = now;
+            await conn.UpdateAsync(row);
+        }
+
+        return true;
+    }
+
+    public async Task<int> BackfillMissingClassificationsAsync(string username)
+    {
+        if (_db.IsReadOnly)
+            return 0;
+
+        await EnsureInitializedAsync();
+        var categories = await GetCategoriesAsync(username);
+        var existing = await GetClassificationsAsync(username);
+        var existingNames = existing
+            .Select(c => c.CategoryName.Trim())
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        int inserted = 0;
+        foreach (var category in categories)
+        {
+            if (existingNames.Contains(category))
+                continue;
+
+            if (await SetClassificationAsync(username, category, "normal"))
+            {
+                existingNames.Add(category);
+                inserted++;
+            }
+        }
+
+        return inserted;
+    }
+
+    private static string NormalizeClassification(string? classification)
+    {
+        return string.Equals(classification, "llm", StringComparison.OrdinalIgnoreCase)
+            ? "llm"
+            : "normal";
+    }
+
+    private async Task EnsureCategoryClassificationAsync(string username, string categoryName, bool isLlmSource)
+    {
+        if (_db.IsReadOnly || string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(categoryName))
+            return;
+
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var normalizedCategory = categoryName.Trim();
+        var existing = await conn.Table<IdeaCategoryClassification>()
+            .Where(c => c.Username == username && c.CategoryName == normalizedCategory)
+            .FirstOrDefaultAsync();
+
+        if (existing != null)
+            return;
+
+        var now = DateTime.UtcNow;
+        await conn.InsertAsync(new IdeaCategoryClassification
+        {
+            Username = username,
+            CategoryName = normalizedCategory,
+            Classification = isLlmSource ? "llm" : "normal",
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+    }
+
     /// <summary>
     /// Create a new idea
     /// </summary>
@@ -132,7 +278,8 @@ public class IdeasService
         bool isStarred = false,
         int status = 0,
         DateTime? createdAt = null,
-        string? fullIdea = null)
+        string? fullIdea = null,
+        bool isLlmSource = false)
     {
         if (_db.IsReadOnly)
         {
@@ -186,6 +333,7 @@ public class IdeasService
         
         var conn = await _db.GetConnectionAsync();
         await conn.InsertAsync(idea);
+        await EnsureCategoryClassificationAsync(username, idea.Category, isLlmSource);
         return idea;
     }
 
