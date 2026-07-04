@@ -129,6 +129,8 @@ public static class MauiProgram
         builder.Services.AddTransient<HabitsHomePage>();
         builder.Services.AddTransient<LearningPage>();
         builder.Services.AddTransient<PromptsPage>();
+        builder.Services.AddTransient<PromptsHubPage>();
+        builder.Services.AddTransient<PromptsLibraryPage>();
         builder.Services.AddTransient<PromptsEditPage>();
         builder.Services.AddTransient<StoryProductionPage>();
         builder.Services.AddTransient<AssetLibraryPage>();

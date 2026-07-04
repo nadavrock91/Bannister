@@ -2319,7 +2319,7 @@ public class HomePage : ContentPage
 
     private async void OnPromptsClicked(object? sender, EventArgs e)
     {
-        var page = new PromptsPage(_auth, _prompts, _ideaLogger, _ideas);
+        var page = new PromptsHubPage(_auth, _customPrompts, _prompts, _ideaLogger, _ideas);
         await Navigation.PushAsync(page);
     }
 
