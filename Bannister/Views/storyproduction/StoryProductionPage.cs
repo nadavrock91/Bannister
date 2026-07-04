@@ -173,9 +173,25 @@ public class StoryProductionPage : ContentPage
             BorderColor = Colors.Transparent
         };
 
-        var projectStack = new VerticalStackLayout { Spacing = 12 };
+        var projectSelectionGrid = new Grid
+        {
+            HeightRequest = 220,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
+            },
+            ColumnSpacing = 16,
+            RowDefinitions = { new RowDefinition { Height = GridLength.Auto } }
+        };
+
+        var leftColumn = new VerticalStackLayout { Spacing = 8 };
+        var rightColumn = new VerticalStackLayout { Spacing = 4 };
+
+        projectSelectionGrid.Add(leftColumn, 0, 0);
+        projectSelectionGrid.Add(rightColumn, 1, 0);
         
-        projectStack.Children.Add(new Label
+        leftColumn.Children.Add(new Label
         {
             Text = "Select Project",
             FontSize = 14,
@@ -208,7 +224,7 @@ public class StoryProductionPage : ContentPage
         categoryRow.Children.Add(_projectCategoryBtn);
 
         ApplyWrapMargins(categoryRow);
-        projectStack.Children.Add(categoryRow);
+        leftColumn.Children.Add(categoryRow);
 
         var pickerRow = CreateWrappingRow();
         
@@ -247,7 +263,7 @@ public class StoryProductionPage : ContentPage
         pickerRow.Children.Add(_deleteProjectBtn);
         
         ApplyWrapMargins(pickerRow);
-        projectStack.Children.Add(pickerRow);
+        leftColumn.Children.Add(pickerRow);
 
         // Draft picker row
         _draftLabel = new Label
@@ -258,7 +274,7 @@ public class StoryProductionPage : ContentPage
             TextColor = Color.FromArgb("#666"),
             IsVisible = false
         };
-        projectStack.Children.Add(_draftLabel);
+        leftColumn.Children.Add(_draftLabel);
 
         var draftRow = CreateWrappingRow();
         
@@ -326,7 +342,7 @@ public class StoryProductionPage : ContentPage
         draftRow.Children.Add(_compareToBtn);
         
         ApplyWrapMargins(draftRow);
-        projectStack.Children.Add(draftRow);
+        leftColumn.Children.Add(draftRow);
 
         // Current draft name display (shows full name + latest indicator + comparison info)
         _currentDraftLabel = new Label
@@ -337,18 +353,11 @@ public class StoryProductionPage : ContentPage
             TextColor = Color.FromArgb("#7B1FA2"),
             IsVisible = false
         };
-        projectStack.Children.Add(_currentDraftLabel);
+        rightColumn.Children.Add(_currentDraftLabel);
+        rightColumn.Children.Add(_statsLabel);
+        rightColumn.Children.Add(_projectionLabel);
 
-        var statsContainer = new VerticalStackLayout
-        {
-            HeightRequest = 44,
-            Spacing = 2,
-            IsVisible = true,
-            Children = { _statsLabel, _projectionLabel }
-        };
-        projectStack.Children.Add(statsContainer);
-
-        projectFrame.Content = projectStack;
+        projectFrame.Content = projectSelectionGrid;
         topStack.Children.Add(projectFrame);
 
         // Lines section header with action buttons
