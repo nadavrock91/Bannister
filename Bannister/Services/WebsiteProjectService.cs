@@ -1,10 +1,15 @@
 using Bannister.Models;
+using System.Text.Json;
 
 namespace Bannister.Services;
 
 public class WebsiteProjectService
 {
     private readonly DatabaseService _db;
+    private static readonly JsonSerializerOptions QueuedTasksJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     public WebsiteProjectService(DatabaseService db)
     {
@@ -285,6 +290,114 @@ public class WebsiteProjectService
         return true;
     }
 
+    public async Task<bool> SetQueuedTasksAsync(int projectId, List<WebsiteQueuedTask> tasks, int startingIndex)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        var normalized = NormalizeQueuedTasks(tasks);
+        project.QueuedTasksJson = normalized.Count == 0
+            ? ""
+            : JsonSerializer.Serialize(normalized, QueuedTasksJsonOptions);
+        project.QueuedTasksIndex = normalized.Count == 0
+            ? 0
+            : Math.Clamp(startingIndex, 0, normalized.Count - 1);
+
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<List<WebsiteQueuedTask>> GetQueuedTasksAsync(int projectId)
+    {
+        var project = await GetByIdAsync(projectId);
+        return DeserializeQueuedTasks(project?.QueuedTasksJson);
+    }
+
+    public async Task<bool> AdvanceQueueIndexAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        var queue = DeserializeQueuedTasks(project.QueuedTasksJson);
+        if (queue.Count == 0)
+        {
+            project.QueuedTasksJson = "";
+            project.QueuedTasksIndex = 0;
+            await SaveAsync(project);
+            return false;
+        }
+
+        project.QueuedTasksIndex++;
+        await SaveAsync(project);
+        return project.QueuedTasksIndex < queue.Count;
+    }
+
+    public async Task<bool> UpdateQueuedTaskAsync(int projectId, int index, string title, string codexPrompt)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        var queue = DeserializeQueuedTasks(project.QueuedTasksJson);
+        if (index < 0 || index >= queue.Count)
+            return false;
+
+        var cleanTitle = title.Trim();
+        var cleanPrompt = codexPrompt.Trim();
+        if (string.IsNullOrWhiteSpace(cleanTitle) || string.IsNullOrWhiteSpace(cleanPrompt))
+            return false;
+
+        queue[index] = new WebsiteQueuedTask(cleanTitle, cleanPrompt);
+        project.QueuedTasksJson = JsonSerializer.Serialize(queue, QueuedTasksJsonOptions);
+
+        if (index == project.QueuedTasksIndex)
+        {
+            project.PendingTaskTitle = cleanTitle;
+            project.PendingCodexPrompt = cleanPrompt;
+        }
+
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> ClearQueueAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.QueuedTasksJson = "";
+        project.QueuedTasksIndex = 0;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> LoadNextQueuedTaskAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        var queue = DeserializeQueuedTasks(project.QueuedTasksJson);
+        if (queue.Count == 0 || project.QueuedTasksIndex < 0 || project.QueuedTasksIndex >= queue.Count)
+            return false;
+
+        var nextTask = queue[project.QueuedTasksIndex];
+        project.PendingTaskTitle = nextTask.Title;
+        project.PendingCodexPrompt = nextTask.CodexPrompt;
+        project.PendingCommitMessage = "";
+        project.WorkflowState = 2;
+        await SaveAsync(project);
+        return true;
+    }
+
     public async Task<bool> ClearLatestQAReportAsync(int projectId)
     {
         EnsureWritable();
@@ -348,6 +461,8 @@ public class WebsiteProjectService
         project.PendingTaskTitle = "";
         project.PendingCodexPrompt = "";
         project.PendingCommitMessage = "";
+        project.QueuedTasksJson = "";
+        project.QueuedTasksIndex = 0;
         project.WorkflowState = 0;
         await SaveAsync(project);
         return true;
@@ -378,5 +493,32 @@ public class WebsiteProjectService
         project.WorkflowState = 0;
         await SaveAsync(project);
         return true;
+    }
+
+    private static List<WebsiteQueuedTask> NormalizeQueuedTasks(IEnumerable<WebsiteQueuedTask>? tasks)
+    {
+        if (tasks == null)
+            return new List<WebsiteQueuedTask>();
+
+        return tasks
+            .Select(task => new WebsiteQueuedTask(task.Title.Trim(), task.CodexPrompt.Trim()))
+            .Where(task => !string.IsNullOrWhiteSpace(task.Title) && !string.IsNullOrWhiteSpace(task.CodexPrompt))
+            .ToList();
+    }
+
+    private static List<WebsiteQueuedTask> DeserializeQueuedTasks(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new List<WebsiteQueuedTask>();
+
+        try
+        {
+            var tasks = JsonSerializer.Deserialize<List<WebsiteQueuedTask>>(json, QueuedTasksJsonOptions);
+            return NormalizeQueuedTasks(tasks);
+        }
+        catch
+        {
+            return new List<WebsiteQueuedTask>();
+        }
     }
 }

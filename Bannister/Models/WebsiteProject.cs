@@ -39,6 +39,10 @@ public class WebsiteProject
 
     public string PendingCommitMessage { get; set; } = "";
 
+    public string QueuedTasksJson { get; set; } = "";
+
+    public int QueuedTasksIndex { get; set; } = 0;
+
     public string LatestQAReport { get; set; } = "";
 
     public DateTime? LatestQAReportCapturedAt { get; set; }
@@ -47,3 +51,5 @@ public class WebsiteProject
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+
+public sealed record WebsiteQueuedTask(string Title, string CodexPrompt);

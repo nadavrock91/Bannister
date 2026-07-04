@@ -5,6 +5,8 @@ using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Storage;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
@@ -56,6 +58,31 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
     private const string VisionRefinementPromptTemplate = "I'm building a website called {0}. Below is my raw description of what I want this site to be, written informally in my own words. Please rewrite this as a clear concise vision statement suitable for handing to other LLMs as context for development tasks. Keep the spirit of what I said but make it well-structured, complete, and actionable. Cover: target audience, core purpose, key features the site should have, the tone/feel, and what makes it different from alternatives. Output ONLY the rewritten vision text - no preamble, no follow-up offers.\n\nMY RAW DESCRIPTION:\n{1}";
 
+    private const string BatchNextTaskPromptTemplateHeader = """
+You're planning the next {BATCH_SIZE} tasks for a website project. Below is the project context. Instead of one task, propose {BATCH_SIZE} tasks in a coherent short arc where each task assumes the previous one landed. Order them so the arc makes sense.
+
+For each task output:
+- A short TITLE (5-10 words) describing the change.
+- A CODEX PROMPT ready to paste directly into codex with all the context Codex needs to execute the change alone.
+
+Output format — return ONLY this block, one section per task numbered TASK 1 through TASK {BATCH_SIZE}, no explanation, no preamble, no closing remarks:
+
+TASK 1:
+TITLE: <short title>
+CODEX PROMPT:
+<multi-line codex prompt>
+
+TASK 2:
+TITLE: <short title>
+CODEX PROMPT:
+<multi-line codex prompt>
+
+...continue through TASK {BATCH_SIZE}.
+
+PROJECT CONTEXT BELOW:
+
+""";
+
     private readonly AuthService _auth;
     private readonly WebsiteProjectService _projectService;
     private readonly WebsiteIdeaService _ideaService;
@@ -74,6 +101,12 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private readonly Label _workflowStatusTitle;
     private readonly Label _workflowStatusSubtitle;
     private readonly Button _workflowCopyNextTaskPromptButton;
+    private readonly Picker _batchSizePicker;
+    private readonly HorizontalStackLayout _batchSizeRow;
+    private readonly Button _copyBatchPromptButton;
+    private readonly Label _batchProgressLabel;
+    private readonly Button _upcomingTasksToggleButton;
+    private readonly VerticalStackLayout _upcomingTasksContainer;
     private readonly Button _pasteTaskPlanButton;
     private readonly Button _cancelWorkflowButton;
     private readonly Button _copyCodexPromptButton;
@@ -116,6 +149,8 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private int _currentIdeaId;
     private int _currentProjectId;
     private bool _isRefreshingPickers;
+    private bool _isLoadingBatchSize;
+    private bool _upcomingTasksExpanded;
 
     public WebsiteBuilderPage(AuthService auth, WebsiteProjectService projectService, WebsiteIdeaService ideaService, GameService gameService)
     {
@@ -249,6 +284,44 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         };
         _workflowCopyNextTaskPromptButton.Clicked += async (_, _) => await CopyNextTaskPromptAsync();
 
+        _batchSizePicker = CreatePicker("Batch size");
+        _batchSizePicker.ItemsSource = new List<string> { "3", "5", "7", "10" };
+        _batchSizePicker.SelectedIndex = 1;
+        _batchSizePicker.WidthRequest = 110;
+        _batchSizePicker.SelectedIndexChanged += async (_, _) =>
+        {
+            UpdateCopyBatchPromptButtonText();
+            await SaveBatchSizeSelectionAsync();
+        };
+
+        _batchSizeRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            VerticalOptions = LayoutOptions.Center,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Batch size:",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#555"),
+                    VerticalOptions = LayoutOptions.Center
+                },
+                _batchSizePicker
+            }
+        };
+
+        _copyBatchPromptButton = new Button
+        {
+            Text = "Copy Batch Prompt (5 tasks)",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            HeightRequest = 46,
+            FontAttributes = FontAttributes.Bold
+        };
+        _copyBatchPromptButton.Clicked += async (_, _) => await CopyBatchNextTaskPromptAsync();
+
         _pasteTaskPlanButton = new Button
         {
             Text = "Paste Task Plan",
@@ -344,6 +417,8 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                 {
                     workflowHeader,
                     _workflowCopyNextTaskPromptButton,
+                    _batchSizeRow,
+                    _copyBatchPromptButton,
                     _pasteTaskPlanButton,
                     _copyCodexPromptButton,
                     _pasteCodexResultButton,
@@ -408,6 +483,37 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
                 _qaStatusLabel,
                 qaButtonRow
             }
+        };
+
+        _batchProgressLabel = new Label
+        {
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#6A1B9A"),
+            IsVisible = false
+        };
+
+        _upcomingTasksToggleButton = new Button
+        {
+            Text = "Upcoming tasks",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            IsVisible = false
+        };
+        _upcomingTasksToggleButton.Clicked += async (_, _) =>
+        {
+            _upcomingTasksExpanded = !_upcomingTasksExpanded;
+            await RefreshCurrentProjectAsync();
+        };
+
+        _upcomingTasksContainer = new VerticalStackLayout
+        {
+            Spacing = 8,
+            IsVisible = false
         };
 
         _projectTitleHeaderLabel = new Label
@@ -711,6 +817,9 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             Children =
             {
                 qaExplorationSection,
+                _batchProgressLabel,
+                _upcomingTasksToggleButton,
+                _upcomingTasksContainer,
                 _workflowStatusBanner,
                 _projectTitleHeaderLabel,
                 _projectIdeaReferenceLabel,
@@ -793,6 +902,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await LoadBatchSizeSelectionAsync();
         await RefreshPickersAsync();
         await TryLoadLastSelectedProjectAsync();
         RefreshStateVisibility();
@@ -961,6 +1071,59 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
     private string GetLastProjectStorageKey()
     {
         return $"website_builder_last_project_id_{_auth.CurrentUsername}";
+    }
+
+    private string GetBatchSizeStorageKey()
+    {
+        return $"website_builder_batch_size_{_auth.CurrentUsername}";
+    }
+
+    private int GetSelectedBatchSize()
+    {
+        var selected = _batchSizePicker.SelectedItem?.ToString();
+        return int.TryParse(selected, out var size) && (size == 3 || size == 5 || size == 7 || size == 10)
+            ? size
+            : 5;
+    }
+
+    private async Task LoadBatchSizeSelectionAsync()
+    {
+        _isLoadingBatchSize = true;
+        try
+        {
+            var saved = await SecureStorage.GetAsync(GetBatchSizeStorageKey());
+            var items = new List<string> { "3", "5", "7", "10" };
+            var index = items.IndexOf(saved ?? "5");
+            _batchSizePicker.SelectedIndex = index >= 0 ? index : 1;
+        }
+        catch
+        {
+            _batchSizePicker.SelectedIndex = 1;
+        }
+        finally
+        {
+            _isLoadingBatchSize = false;
+            UpdateCopyBatchPromptButtonText();
+        }
+    }
+
+    private async Task SaveBatchSizeSelectionAsync()
+    {
+        if (_isLoadingBatchSize)
+            return;
+
+        try
+        {
+            await SecureStorage.SetAsync(GetBatchSizeStorageKey(), GetSelectedBatchSize().ToString());
+        }
+        catch
+        {
+        }
+    }
+
+    private void UpdateCopyBatchPromptButtonText()
+    {
+        _copyBatchPromptButton.Text = $"Copy Batch Prompt ({GetSelectedBatchSize()} tasks)";
     }
 
     private async Task TryLoadLastSelectedProjectAsync()
@@ -1289,6 +1452,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _decrementButton.IsEnabled = project.TaskCount > 0;
         _celebrationFrame.IsVisible = project.TaskCount >= project.TaskTarget;
         UpdateWorkflowDisplay(project);
+        UpdateBatchDisplay(project);
         UpdateQADisplay(project);
         UpdateVisionDisplay(project);
         UpdateProjectSummaryDisplay(project);
@@ -1324,6 +1488,8 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         var isWindows = IsWindows();
 
         _workflowCopyNextTaskPromptButton.IsVisible = false;
+        _batchSizeRow.IsVisible = false;
+        _copyBatchPromptButton.IsVisible = false;
         _pasteTaskPlanButton.IsVisible = false;
         _cancelWorkflowButton.IsVisible = false;
         _copyCodexPromptButton.IsVisible = false;
@@ -1332,6 +1498,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _editCodexPromptButton.IsVisible = false;
         _editCommitMessageButton.IsVisible = false;
         _commitAndPushButton.IsVisible = false;
+        _cancelWorkflowButton.Text = HasQueuedTasks(project) ? "Cancel Batch" : "Cancel (Back to Start)";
 
         switch (state)
         {
@@ -1363,8 +1530,10 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
             default:
                 ApplyWorkflowBanner("#F5F5F5", "#BBBBBB", "#555555", "⚪", "Ready for next task",
-                    "Tap Copy Next Task Prompt to get the next task from an LLM.");
+                    "Tap Copy Next Task Prompt for one task, or use Batch Prompt to queue a short arc.");
                 _workflowCopyNextTaskPromptButton.IsVisible = true;
+                _batchSizeRow.IsVisible = true;
+                _copyBatchPromptButton.IsVisible = true;
                 break;
         }
     }
@@ -1377,6 +1546,108 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         _workflowStatusTitle.Text = title;
         _workflowStatusTitle.TextColor = Color.FromArgb(titleColor);
         _workflowStatusSubtitle.Text = subtitle;
+    }
+
+    private void UpdateBatchDisplay(WebsiteProject project)
+    {
+        var queue = DeserializeQueuedTasksForDisplay(project);
+        if (queue.Count == 0)
+        {
+            _batchProgressLabel.IsVisible = false;
+            _upcomingTasksToggleButton.IsVisible = false;
+            _upcomingTasksContainer.IsVisible = false;
+            _upcomingTasksContainer.Children.Clear();
+            _upcomingTasksExpanded = false;
+            return;
+        }
+
+        var currentIndex = Math.Clamp(project.QueuedTasksIndex, 0, queue.Count - 1);
+        _batchProgressLabel.Text = $"Batch task {currentIndex + 1} of {queue.Count}";
+        _batchProgressLabel.IsVisible = true;
+
+        var upcomingCount = Math.Max(0, queue.Count - currentIndex - 1);
+        _upcomingTasksToggleButton.IsVisible = upcomingCount > 0;
+        _upcomingTasksToggleButton.Text = _upcomingTasksExpanded
+            ? $"Hide upcoming tasks ({upcomingCount})"
+            : $"Upcoming tasks ({upcomingCount})";
+        _upcomingTasksContainer.IsVisible = upcomingCount > 0 && _upcomingTasksExpanded;
+        _upcomingTasksContainer.Children.Clear();
+
+        if (!_upcomingTasksContainer.IsVisible)
+            return;
+
+        for (var i = currentIndex + 1; i < queue.Count; i++)
+            _upcomingTasksContainer.Children.Add(CreateUpcomingTaskRow(project.Id, i, queue[i]));
+    }
+
+    private View CreateUpcomingTaskRow(int projectId, int index, WebsiteQueuedTask task)
+    {
+        var titleLabel = new Label
+        {
+            Text = $"{index + 1}. {task.Title}",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.TailTruncation,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var editButton = new Button
+        {
+            Text = "Edit",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            HeightRequest = 32,
+            FontSize = 11,
+            WidthRequest = 70
+        };
+        editButton.Clicked += async (_, _) => await EditQueuedTaskAsync(projectId, index, task);
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 8
+        };
+        grid.Add(titleLabel, 0, 0);
+        grid.Add(editButton, 1, 0);
+
+        return new Frame
+        {
+            Padding = 10,
+            CornerRadius = 8,
+            HasShadow = false,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            Content = grid
+        };
+    }
+
+    private static bool HasQueuedTasks(WebsiteProject project)
+    {
+        return DeserializeQueuedTasksForDisplay(project).Count > 0;
+    }
+
+    private static List<WebsiteQueuedTask> DeserializeQueuedTasksForDisplay(WebsiteProject project)
+    {
+        if (string.IsNullOrWhiteSpace(project.QueuedTasksJson))
+            return new List<WebsiteQueuedTask>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<WebsiteQueuedTask>>(
+                    project.QueuedTasksJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                ?.Where(task => !string.IsNullOrWhiteSpace(task.Title) && !string.IsNullOrWhiteSpace(task.CodexPrompt))
+                .ToList() ?? new List<WebsiteQueuedTask>();
+        }
+        catch
+        {
+            return new List<WebsiteQueuedTask>();
+        }
     }
 
     private static WebsiteWorkflowState ToWorkflowState(int state)
@@ -1795,6 +2066,49 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         }
     }
 
+    private async Task CopyBatchNextTaskPromptAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        if (ToWorkflowState(project.WorkflowState) != WebsiteWorkflowState.Idle)
+        {
+            await DisplayAlert("Task already in progress", "Finish or cancel the current workflow before starting a new batch.", "OK");
+            return;
+        }
+
+        var batchSize = GetSelectedBatchSize();
+        var prompt = BatchNextTaskPromptTemplateHeader
+            .Replace("{BATCH_SIZE}", batchSize.ToString(), StringComparison.Ordinal)
+            + BuildProjectContextBlock(project)
+            + """
+
+IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
+- Each CODEX PROMPT must be complete, self-contained, and directly executable by Codex.
+- No markdown code fences.
+- End each CODEX PROMPT with this exact line:
+  At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing what you did>
+- Output each commit message as a single unbroken paragraph with no line breaks inside the COMMIT MESSAGE: section.
+""";
+
+        await Clipboard.SetTextAsync(prompt);
+        await DisplayAlert(
+            "Batch prompt copied",
+            $"Batch prompt copied. Paste it into Claude or ChatGPT. The LLM should return TASK 1 through TASK {batchSize}. Copy the entire response and tap Paste Task Plan back in Bannister.",
+            "OK");
+
+        try
+        {
+            if (await _projectService.AdvanceToWaitingForLLMAsync(project.Id))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
     private async Task PasteTaskPlanAsync()
     {
         var project = await GetCurrentProjectOrAlertAsync();
@@ -1810,12 +2124,33 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         if (result == null)
             return;
 
+        var batchTasks = ParseBatchTaskResponse(result);
+        if (batchTasks != null && batchTasks.Count > 0)
+        {
+            try
+            {
+                await _projectService.SetQueuedTasksAsync(project.Id, batchTasks, 0);
+                if (await _projectService.LoadNextQueuedTaskAsync(project.Id))
+                {
+                    _upcomingTasksExpanded = false;
+                    await RefreshCurrentProjectAsync();
+                    await DisplayAlert("Batch parsed", $"Parsed {batchTasks.Count} queued task(s). Task 1 is ready to execute.", "OK");
+                    return;
+                }
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+                return;
+            }
+        }
+
         var parsed = ParseLlmTaskResponse(result);
         if (parsed == null)
         {
             await DisplayAlert(
                 "Could not parse",
-                "Could not parse the LLM response. Expected sections NEXT TASK: and CODEX PROMPT:. Try pasting again or edit the response to include those headers.",
+                "Could not parse the LLM response. Expected either TASK 1 / TITLE / CODEX PROMPT batch sections, or single-task NEXT TASK: and CODEX PROMPT: sections.",
                 "OK");
             return;
         }
@@ -1996,6 +2331,130 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         }
     }
 
+    private async Task EditQueuedTaskAsync(int projectId, int index, WebsiteQueuedTask task)
+    {
+        var edited = await ShowQueuedTaskEditorAsync(task);
+        if (edited == null)
+            return;
+
+        try
+        {
+            if (await _projectService.UpdateQueuedTaskAsync(projectId, index, edited.Value.Title, edited.Value.CodexPrompt))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task<(string Title, string CodexPrompt)?> ShowQueuedTaskEditorAsync(WebsiteQueuedTask task)
+    {
+        var titleEntry = new Entry
+        {
+            Text = task.Title,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            Placeholder = "Task title"
+        };
+
+        var promptEditor = new Editor
+        {
+            Text = task.CodexPrompt,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            MinimumHeightRequest = 260,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            Placeholder = "Codex prompt..."
+        };
+
+        var saveButton = CreatePrimaryButton("Save", Color.FromArgb("#2E7D32"));
+        var cancelButton = CreateSecondaryButton("Cancel");
+
+        var page = new ContentPage
+        {
+            Title = "Edit queued task",
+            BackgroundColor = Color.FromArgb("#F5F5F5")
+        };
+
+        var tcs = new TaskCompletionSource<(string Title, string CodexPrompt)?>();
+
+        saveButton.Clicked += async (_, _) =>
+        {
+            var title = titleEntry.Text?.Trim() ?? "";
+            var prompt = promptEditor.Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(prompt))
+            {
+                await page.DisplayAlert("Missing content", "Both title and Codex prompt are required.", "OK");
+                return;
+            }
+
+            await Navigation.PopModalAsync();
+            tcs.TrySetResult((title, prompt));
+        };
+
+        cancelButton.Clicked += async (_, _) =>
+        {
+            await Navigation.PopModalAsync();
+            tcs.TrySetResult(null);
+        };
+
+        page.Content = new ScrollView
+        {
+            Content = new VerticalStackLayout
+            {
+                Padding = 20,
+                Spacing = 12,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Edit queued task",
+                        FontSize = 20,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#222")
+                    },
+                    new Label
+                    {
+                        Text = "Title",
+                        FontSize = 13,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#333")
+                    },
+                    titleEntry,
+                    new Label
+                    {
+                        Text = "Codex prompt",
+                        FontSize = 13,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#333")
+                    },
+                    promptEditor,
+                    new Grid
+                    {
+                        ColumnDefinitions =
+                        {
+                            new ColumnDefinition { Width = GridLength.Star },
+                            new ColumnDefinition { Width = GridLength.Star }
+                        },
+                        ColumnSpacing = 10,
+                        Children =
+                        {
+                            cancelButton,
+                            saveButton
+                        }
+                    }
+                }
+            }
+        };
+
+        Grid.SetColumn(cancelButton, 0);
+        Grid.SetColumn(saveButton, 1);
+
+        await Navigation.PushModalAsync(page);
+        return await tcs.Task;
+    }
+
     private async Task CommitAndPushAsync()
     {
         if (!IsWindows())
@@ -2083,11 +2542,51 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             {
                 try
                 {
+                    var queuedTasks = await _projectService.GetQueuedTasksAsync(project.Id);
+                    var queuedTotal = queuedTasks.Count;
+                    var completedQueueIndex = project.QueuedTasksIndex;
+
                     if (await _projectService.CompleteWorkflowAsync(project.Id, project.PendingTaskTitle))
                     {
                         var updated = await _projectService.GetByIdAsync(project.Id);
-                        await RefreshCurrentProjectAsync();
-                        await DisplayAlert("Committed and pushed!", $"Committed and pushed! Counter incremented to {updated?.TaskCount ?? project.TaskCount + 1}.", "OK");
+                        var updatedCount = updated?.TaskCount ?? project.TaskCount + 1;
+
+                        if (queuedTotal > 0)
+                        {
+                            if (await _projectService.AdvanceQueueIndexAsync(project.Id))
+                            {
+                                var continueChoice = await DisplayAlert(
+                                    "Task complete",
+                                    $"Task {completedQueueIndex + 1} of {queuedTotal} committed. Counter incremented to {updatedCount}. Continue to the next queued task?",
+                                    "Continue to next",
+                                    "Stop batch");
+
+                                if (continueChoice)
+                                {
+                                    await _projectService.LoadNextQueuedTaskAsync(project.Id);
+                                    _upcomingTasksExpanded = false;
+                                    await RefreshCurrentProjectAsync();
+                                }
+                                else
+                                {
+                                    await _projectService.ClearQueueAsync(project.Id);
+                                    _upcomingTasksExpanded = false;
+                                    await RefreshCurrentProjectAsync();
+                                }
+                            }
+                            else
+                            {
+                                await _projectService.ClearQueueAsync(project.Id);
+                                _upcomingTasksExpanded = false;
+                                await RefreshCurrentProjectAsync();
+                                await DisplayAlert("Batch complete", $"Committed and pushed task {queuedTotal} of {queuedTotal}. Counter incremented to {updatedCount}. Batch cleared.", "OK");
+                            }
+                        }
+                        else
+                        {
+                            await RefreshCurrentProjectAsync();
+                            await DisplayAlert("Committed and pushed!", $"Committed and pushed! Counter incremented to {updatedCount}.", "OK");
+                        }
                     }
                 }
                 catch (ReadOnlyDatabaseException)
@@ -2217,7 +2716,7 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
         return prompt.ToString();
     }
 
-    private static string BuildNextTaskPrompt(WebsiteProject project)
+    private static string BuildProjectContextBlock(WebsiteProject project)
     {
         var vision = GetProjectVisionContext(project);
         var summary = !string.IsNullOrWhiteSpace(project.ProjectSummary)
@@ -2228,8 +2727,6 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             : "(no tasks logged yet - this is the first task)";
 
         var prompt = new StringBuilder();
-        prompt.AppendLine("You are helping me build a website step by step using Codex CLI. Suggest the next concrete development task.");
-        prompt.AppendLine();
         prompt.AppendLine($"PROJECT: {project.Title}");
         prompt.AppendLine($"PROGRESS: {project.TaskCount} of {project.TaskTarget} tasks completed");
         prompt.AppendLine();
@@ -2251,6 +2748,15 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             prompt.AppendLine("Weight the QA findings heavily when choosing the next task. Prioritize BROKEN items above MISSING items, MISSING items above ROUGH items, and ROUGH items above net new ideas.");
             prompt.AppendLine();
         }
+        return prompt.ToString();
+    }
+
+    private static string BuildNextTaskPrompt(WebsiteProject project)
+    {
+        var prompt = new StringBuilder();
+        prompt.AppendLine("You are helping me build a website step by step using Codex CLI. Suggest the next concrete development task.");
+        prompt.AppendLine();
+        prompt.Append(BuildProjectContextBlock(project));
         prompt.AppendLine("YOUR JOB:");
         prompt.AppendLine("Pick ONE concrete next task that advances this project. Be specific: which file or feature, what to add, why this step matters. Then write a ready-to-paste Codex prompt for the task. Respond in this exact format:");
         prompt.AppendLine();
@@ -2296,6 +2802,50 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
             return null;
 
         return (taskTitle, codexPrompt);
+    }
+
+    private static List<WebsiteQueuedTask>? ParseBatchTaskResponse(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+        var taskMatches = Regex.Matches(
+            raw,
+            @"(?im)^\s*TASK\s+\d+\s*:\s*$",
+            RegexOptions.CultureInvariant);
+
+        if (taskMatches.Count == 0)
+            return null;
+
+        var tasks = new List<WebsiteQueuedTask>();
+        for (var i = 0; i < taskMatches.Count; i++)
+        {
+            var sectionStart = taskMatches[i].Index + taskMatches[i].Length;
+            var sectionEnd = i + 1 < taskMatches.Count
+                ? taskMatches[i + 1].Index
+                : raw.Length;
+            var section = raw[sectionStart..sectionEnd];
+
+            var titleMatch = Regex.Match(
+                section,
+                @"(?is)TITLE\s*:\s*(?<title>.*?)(?:\r?\n)\s*CODEX\s+PROMPT\s*:",
+                RegexOptions.CultureInvariant);
+            var promptMatch = Regex.Match(
+                section,
+                @"(?is)CODEX\s+PROMPT\s*:\s*(?<prompt>.*)$",
+                RegexOptions.CultureInvariant);
+
+            if (!titleMatch.Success || !promptMatch.Success)
+                continue;
+
+            var title = ExtractFirstMeaningfulLine(titleMatch.Groups["title"].Value);
+            var codexPrompt = promptMatch.Groups["prompt"].Value.Trim();
+
+            if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(codexPrompt))
+                tasks.Add(new WebsiteQueuedTask(title, codexPrompt));
+        }
+
+        return tasks.Count == 0 ? null : tasks;
     }
 
     private static string? ParseCodexCommitMessage(string codexOutput)

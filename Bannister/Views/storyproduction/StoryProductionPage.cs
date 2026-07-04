@@ -35,6 +35,7 @@ public class StoryProductionPage : ContentPage
     private Button _addLineBtn;
     private Button _addVisualBtn;
     private Button _insertLineBtn;
+    private Button _linesToggleButton = null!;
     private Button _deleteProjectBtn;
     private Button _expandAllBtn;
     private Button _conversationLogBtn;
@@ -49,6 +50,7 @@ public class StoryProductionPage : ContentPage
     private List<(Label collapsed, Label expanded, Button expandBtn)> _expandableCards = new();
     private ScrollView _mainScrollView;
     private bool _linesExpanded = false;
+    private bool _linesBuilt = false;
     private List<StoryLine> _cachedLines = new();
     private HashSet<int> _cachedChangedOrders = new();
     private int _cachedTotalLines = 0;
@@ -381,6 +383,19 @@ public class StoryProductionPage : ContentPage
         _insertLineBtn.Clicked += OnAddMenuClicked;
         linesHeaderStack.Children.Add(_insertLineBtn);
 
+        _linesToggleButton = new Button
+        {
+            Text = "▶ Expand Lines (0)",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            Padding = new Thickness(12, 6),
+            FontSize = 14,
+            IsVisible = false
+        };
+        _linesToggleButton.Clicked += OnLinesToggleClicked;
+        linesHeaderStack.Children.Add(_linesToggleButton);
+
         _expandAllBtn = new Button
         {
             Text = "▶ Expand All",
@@ -476,7 +491,7 @@ public class StoryProductionPage : ContentPage
         topStack.Children.Add(linesHeaderStack);
 
         // === BOTTOM SECTION (scrollable cards) ===
-        _linesContainer = new VerticalStackLayout { Spacing = 8 };
+        _linesContainer = new VerticalStackLayout { Spacing = 8, IsVisible = false };
 
         // Info when no project selected
         _linesContainer.Children.Add(new Label
@@ -544,8 +559,6 @@ public class StoryProductionPage : ContentPage
     private async Task LoadProjectsAsync()
     {
         System.Diagnostics.Debug.WriteLine("[STORY] LoadProjectsAsync START");
-        _loadingLabel.Text = "Loading projects...";
-        _loadingOverlay.IsVisible = true;
         
         try
         {
@@ -601,19 +614,16 @@ public class StoryProductionPage : ContentPage
                 {
                     System.Diagnostics.Debug.WriteLine($"[STORY] Setting picker index to {index}, this will trigger OnProjectSelected");
                     _projectPicker.SelectedIndex = index;
-                    System.Diagnostics.Debug.WriteLine("[STORY] LoadProjectsAsync returning (OnProjectSelected will hide overlay)");
-                    return; // OnProjectSelected will hide the overlay
+                    System.Diagnostics.Debug.WriteLine("[STORY] LoadProjectsAsync returning (OnProjectSelected will load selection)");
+                    return;
                 }
             }
             
-            // No project to select - hide overlay now
-            System.Diagnostics.Debug.WriteLine("[STORY] No project to select, hiding overlay");
-            _loadingOverlay.IsVisible = false;
+            System.Diagnostics.Debug.WriteLine("[STORY] No project to select");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[STORY] LoadProjects ERROR: {ex.Message}\n{ex.StackTrace}");
-            _loadingOverlay.IsVisible = false;
         }
         System.Diagnostics.Debug.WriteLine("[STORY] LoadProjectsAsync END");
     }
@@ -705,12 +715,8 @@ public class StoryProductionPage : ContentPage
             System.Diagnostics.Debug.WriteLine("[STORY] Invalid index, hiding controls");
             _currentProject = null;
             HideProjectControls();
-            _loadingOverlay.IsVisible = false;
             return;
         }
-        
-        _loadingLabel.Text = "Loading draft...";
-        _loadingOverlay.IsVisible = true;
         
         try
         {
@@ -729,7 +735,6 @@ public class StoryProductionPage : ContentPage
             if (_currentProject != null)
                 Preferences.Set($"StoryProd_LastProject_{_auth.CurrentUsername}", _currentProject.Id);
             
-            _loadingLabel.Text = "Loading lines...";
             System.Diagnostics.Debug.WriteLine("[STORY] Loading lines...");
             await LoadLinesAsync();
             System.Diagnostics.Debug.WriteLine("[STORY] Lines loaded");
@@ -738,11 +743,6 @@ public class StoryProductionPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"[STORY] OnProjectSelected ERROR: {ex.Message}\n{ex.StackTrace}");
             await DisplayAlert("Error", $"Failed to load project: {ex.Message}", "OK");
-        }
-        finally
-        {
-            System.Diagnostics.Debug.WriteLine("[STORY] OnProjectSelected hiding overlay");
-            _loadingOverlay.IsVisible = false;
         }
         System.Diagnostics.Debug.WriteLine("[STORY] OnProjectSelected END");
     }
@@ -943,17 +943,7 @@ public class StoryProductionPage : ContentPage
         // Remember selected draft
         Preferences.Set($"StoryProd_LastProject_{_auth.CurrentUsername}", _currentProject.Id);
         
-        _loadingLabel.Text = "Loading lines...";
-        _loadingOverlay.IsVisible = true;
-        
-        try
-        {
-            await LoadLinesAsync();
-        }
-        finally
-        {
-            _loadingOverlay.IsVisible = false;
-        }
+        await LoadLinesAsync();
     }
 
     private async void OnSetLatestClicked(object? sender, EventArgs e)
@@ -1937,6 +1927,7 @@ public class StoryProductionPage : ContentPage
     private void HideProjectControls()
     {
         _insertLineBtn.IsVisible = false;
+        _linesToggleButton.IsVisible = false;
         _deleteProjectBtn.IsVisible = false;
         _projectCategoryBtn.IsVisible = false;
         _expandAllBtn.IsVisible = false;
@@ -1960,6 +1951,7 @@ public class StoryProductionPage : ContentPage
     private void ShowProjectControls()
     {
         _insertLineBtn.IsVisible = true;
+        _linesToggleButton.IsVisible = true;
         _deleteProjectBtn.IsVisible = true;
         _projectCategoryBtn.IsVisible = true;
         _expandAllBtn.IsVisible = true;
@@ -2032,18 +2024,13 @@ public class StoryProductionPage : ContentPage
             _projectionLabel.IsVisible = false;
         }
 
-        _linesExpanded = false;
-        RenderLinesContainer();
+        ResetLinesRegion(clearBuiltCards: true);
+        UpdateLinesToggleButton();
 
         System.Diagnostics.Debug.WriteLine("[STORY] LoadLinesAsync END");
     }
 
-    private void RenderLinesContainer()
-    {
-        RenderCollapsedPlaceholder();
-    }
-
-    private void RenderCollapsedPlaceholder()
+    private void RenderCollapsedPlaceholderLegacyUnused()
     {
         _linesContainer.Children.Clear();
 
@@ -2081,14 +2068,25 @@ public class StoryProductionPage : ContentPage
         else
         {
             var tap = new TapGestureRecognizer();
-            tap.Tapped += async (_, _) => await ExpandLinesAsync();
+            bool tapConsumed = false;
+            tap.Tapped += async (_, _) =>
+            {
+                if (tapConsumed) return;
+                tapConsumed = true;
+
+                label.Text = $"⏳ Preparing {count} line cards...";
+                label.TextColor = Color.FromArgb("#F57C00");
+                frame.BackgroundColor = Color.FromArgb("#FFF3E0");
+
+                await ExpandLinesAsyncLegacyUnused();
+            };
             frame.GestureRecognizers.Add(tap);
         }
 
         _linesContainer.Children.Add(frame);
     }
 
-    private async Task ExpandLinesAsync()
+    private async Task ExpandLinesAsyncLegacyUnused()
     {
         if (_linesExpanded) return;
         if (_cachedLines.Count == 0) return;
@@ -2098,8 +2096,8 @@ public class StoryProductionPage : ContentPage
         _allExpanded = false;
         _expandAllBtn.Text = "▶ Expand All";
 
-        ShowLoadingOverlay($"Building {_cachedLines.Count} line cards...");
-        await Task.Yield();
+        _loadingLabel.Text = $"Building {_cachedLines.Count} line cards...";
+        await Task.Delay(50);
 
         try
         {
@@ -2115,11 +2113,11 @@ public class StoryProductionPage : ContentPage
                 FontSize = 12,
                 Margin = new Thickness(0, 0, 0, 8)
             };
-            collapseButton.Clicked += (_, _) => CollapseLines();
+            collapseButton.Clicked += (_, _) => CollapseLinesLegacyUnused();
             _linesContainer.Children.Add(collapseButton);
 
             int built = 0;
-            const int batchSize = 5;
+            const int batchSize = 2;
             int totalLines = _cachedLines.Count;
 
             foreach (var line in _cachedLines)
@@ -2129,10 +2127,103 @@ public class StoryProductionPage : ContentPage
                 _linesContainer.Children.Add(card);
 
                 built++;
-                UpdateLoadingOverlay($"Building {built}/{totalLines} line cards...");
+                _loadingLabel.Text = $"Building {built}/{totalLines} line cards...";
 
                 if (built % batchSize == 0)
+                    await Task.Delay(1);
+            }
+        }
+        finally
+        {
+            _loadingOverlay.IsVisible = false;
+        }
+    }
+
+    private void CollapseLinesLegacyUnused()
+    {
+        _linesExpanded = false;
+        _expandableCards.Clear();
+        _allExpanded = false;
+        _expandAllBtn.Text = "▶ Expand All";
+        RenderCollapsedPlaceholderLegacyUnused();
+    }
+
+    private async void OnLinesToggleClicked(object? sender, EventArgs e)
+    {
+        if (_linesExpanded)
+        {
+            _linesContainer.IsVisible = false;
+            _linesExpanded = false;
+            UpdateLinesToggleButton();
+            return;
+        }
+
+        if (_linesBuilt)
+        {
+            _linesContainer.IsVisible = true;
+            _linesExpanded = true;
+            UpdateLinesToggleButton();
+            return;
+        }
+
+        await BuildLineCardsAsync();
+        _linesContainer.IsVisible = true;
+        _linesExpanded = true;
+        _linesBuilt = true;
+        UpdateLinesToggleButton();
+    }
+
+    private void UpdateLinesToggleButton()
+    {
+        if (_linesToggleButton == null) return;
+
+        int count = _cachedLines?.Count ?? 0;
+        string changedSuffix = _cachedChangedOrders.Count > 0 ? $" ({_cachedChangedOrders.Count} changed)" : "";
+        _linesToggleButton.Text = _linesExpanded
+            ? "▲ Collapse Lines"
+            : $"▶ Expand Lines ({count}){changedSuffix}";
+    }
+
+    private async Task BuildLineCardsAsync()
+    {
+        _linesContainer.Children.Clear();
+
+        if (_cachedLines.Count == 0)
+        {
+            _linesContainer.Children.Add(new Label
+            {
+                Text = "(no lines in this draft)",
+                FontSize = 13,
+                FontAttributes = FontAttributes.Italic,
+                TextColor = Color.FromArgb("#777"),
+                Margin = new Thickness(0, 8)
+            });
+            return;
+        }
+
+        ShowLoadingOverlay($"Building 0 of {_cachedLines.Count} line cards...");
+        await Task.Delay(50);
+
+        try
+        {
+            _expandableCards.Clear();
+            _allExpanded = false;
+            _expandAllBtn.Text = "▶ Expand All";
+
+            int totalLines = _cachedLines.Count;
+            for (int i = 0; i < totalLines; i++)
+            {
+                var line = _cachedLines[i];
+                bool isChanged = _cachedChangedOrders.Contains(line.LineOrder);
+                _linesContainer.Children.Add(CreateLineCard(line, totalLines, isChanged));
+
+                UpdateLoadingOverlay($"Building {i + 1} of {totalLines} line cards...");
+
+                if ((i + 1) % 5 == 0 || i == totalLines - 1)
+                {
                     await Task.Yield();
+                    await Task.Delay(1);
+                }
             }
         }
         finally
@@ -2141,13 +2232,18 @@ public class StoryProductionPage : ContentPage
         }
     }
 
-    private void CollapseLines()
+    private void ResetLinesRegion(bool clearBuiltCards)
     {
+        if (clearBuiltCards)
+            _linesContainer.Children.Clear();
+
+        _linesContainer.IsVisible = false;
         _linesExpanded = false;
+        _linesBuilt = !clearBuiltCards && _linesBuilt;
         _expandableCards.Clear();
         _allExpanded = false;
         _expandAllBtn.Text = "▶ Expand All";
-        RenderCollapsedPlaceholder();
+        UpdateLinesToggleButton();
     }
 
     private void ShowLoadingOverlay(string message)
@@ -2775,7 +2871,15 @@ public class StoryProductionPage : ContentPage
     {
         if (!_linesExpanded)
         {
-            await ExpandLinesAsync();
+            if (!_linesBuilt)
+            {
+                await BuildLineCardsAsync();
+                _linesBuilt = true;
+            }
+
+            _linesContainer.IsVisible = true;
+            _linesExpanded = true;
+            UpdateLinesToggleButton();
         }
 
         _allExpanded = !_allExpanded;

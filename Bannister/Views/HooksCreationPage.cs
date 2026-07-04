@@ -18,7 +18,15 @@ public class HooksCreationPage : ContentPage
     private Editor _oneShotTemplateEditor = null!;
     private bool _isLoadingTemplates;
 
-    private const string DefaultStage1Prompt = "Give me a flat list of exactly 100 random English words. Choose words from a broad mix of categories: physical objects, abstract concepts, emotions, animals, foods, materials, places, actions, sensations, colors, sounds, professions, time periods, weather phenomena, body parts, tools, textures, and feelings. Mix high-concept and low-concept, ordinary and strange. Return ONLY the words, numbered 1 to 100, one per line. No commentary, no headers, no grouping. Just the numbered list.";
+    private const string DefaultStage1Prompt = """
+SEED: {SEED}
+
+Use the seed above to shape your word generation. Different seeds must produce meaningfully different word lists.
+
+Generate 100 English words biased by the SEED. The words should span domains adjacent to the seed's terms plus additional specific domains: natural history, obscure trades, obscure materials, unusual body parts, taxonomies, historical objects, ecological niches, forgotten technologies, textile chemistry, geological processes, entomological forms, ecclesiastical objects, cartographic terms. Avoid generic household objects, generic emotions, and common animals — the seed is meant to push you into unusual territory. Mix concrete and abstract, ordinary and strange.
+
+Output the 100 words as a single comma-separated list. No numbering, no explanation, no commentary — just the words.
+""";
 
     private const string DefaultStage2Prompt = """
 Below is a list of 100 random words.
@@ -77,7 +85,7 @@ Continue through 20. Return only those 20 blocks. No commentary, no preamble, no
 
     private const string DefaultGridSuffix = "Create the result as a single 9:16 vertical concept sheet containing 20 numbered variations arranged in a 4x5 grid. Each panel must show a completely different idea, composition, story moment, camera angle, environment, mood, and visual hook. Prioritize variety of ideas over small visual changes. Large visible numbers 1-20. Cinematic realistic, high detail, easy side-by-side comparison, no text except numbers.";
 
-    private const string DefaultOneShotPrompt = """
+    private const string DefaultOneShotPromptLegacy = """
 You're going to run a 4-stage hook image prompt generation pipeline internally. Do all four stages in order, but ONLY return the final output (the 20 image prompts). Do not show intermediate stages, do not explain your reasoning, do not output the words or hook ideas — only the final 20 prompts.
 Stage 1 — Internally generate 100 random English words spanning physical objects, abstract concepts, emotions, animals, foods, materials, places, actions, sensations, colors, sounds, professions, time periods, weather phenomena, body parts, tools, textures, and feelings. Mix high-concept and low-concept, ordinary and strange.
 Stage 2 — Internally use those 100 words to generate 100 ideas for SCROLL-STOPPING HOOK IMAGES. A scroll-stopping hook image is the first frame of a short-form video that makes the viewer involuntarily stop scrolling — through visual incongruity, emotional immediacy, mystery, danger, beauty, taboo, scale, or pattern interruption. Each idea is a one-sentence visual description of an image, not a description of the video. Mix the 100 words freely, combining 2 or 3 random words per image idea.
@@ -105,6 +113,89 @@ PICKED WORD: ...
 ...
 Continue through 20. No preamble, no commentary, no closing remark — just the 20 numbered blocks.
 """;
+
+    private const string DefaultOneShotPrompt = """
+SEED: {SEED}
+
+Use the seed above to shape your Stage 1 word generation. Different seeds must produce meaningfully different word lists. Do not ignore it. Draw domain, mood, and specificity from the seed's terms and numeric suffix.
+
+You're going to run a 4-stage hook image prompt generation pipeline internally. Do all four stages in order, but ONLY return the final output (the 20 image prompts). Do not show intermediate stages, do not explain your reasoning, do not output the words or hook ideas — only the final 20 prompts.
+
+Stage 1 — Internally generate 100 English words biased by the SEED above. The words should span domains adjacent to the seed's terms plus additional specific domains (natural history, obscure trades, obscure materials, unusual body parts, taxonomies, historical objects, ecological niches, forgotten technologies, textile chemistry, geological processes, entomological forms, ecclesiastical objects, cartographic terms). Avoid generic household objects, generic emotions, and common animals — the seed is meant to push you into unusual territory. Mix concrete and abstract, ordinary and strange.
+
+Stage 2 — Internally use those 100 words to generate 100 ideas for SCROLL-STOPPING HOOK IMAGES. A scroll-stopping hook image is the first frame of a short-form video that makes the viewer involuntarily stop scrolling — through visual incongruity, emotional immediacy, mystery, danger, beauty, taboo, scale, or pattern interruption. Each idea is a one-sentence visual description of an image, not a description of the video. Mix the 100 words freely, combining 2 or 3 random words per image idea.
+
+Stage 3 — Internally annotate each of the 100 image ideas with its CONCEPTUAL HOOK — the underlying psychological or perceptual mechanic that makes it scroll-stopping. Examples: visual incongruity, scale violation, taboo proximity, hidden danger, beauty in unexpected context, pattern interruption, emotional immediacy on a face, time-frozen impossibility, scale of suffering, scale of joy, body horror at a distance, the uncanny valley, recognition of a forbidden act, recognition of a private moment.
+
+Stage 4 — From your 100 internal hook ideas, randomly pick 20 different combinations spanning maximum variety (no clustering, no near-duplicates). For each, synthesize a single IMAGE PROMPT (40 to 80 words) integrating one random word and one conceptual hook mechanic.
+
+FORBIDDEN DEFAULTS — these are the LLM's usual outputs and I've seen them many times. Avoid:
+- babies or infants in strange places
+- oversized food or drink
+- close-up of a face reacting in shock
+- a mirror or reflection showing something different
+- someone underwater fully clothed
+- knives, blood, or teeth as the central subject
+- doll parts, mannequins, or plastic figurines
+- a small door in an unexpected location
+- a single eye reflecting something
+- perfectly symmetrical uncanny geometry
+
+VARIANCE REQUIREMENT — at least 8 of the 20 final prompts must depict something that the LLM would classify as unusual, uncomfortable, or aesthetically difficult. Push toward the strange, the specific, and the taxonomically weird. If your 20 prompts feel Instagram-friendly or safe, you have failed the assignment.
+
+Each prompt must be:
+- A scroll-stopping first frame for a short-form video.
+- Visually specific — describe composition, subject, lighting, mood, color, and one or two unexpected details.
+- Image-only — do not describe motion, sound, or what happens next.
+
+Output format — return ONLY this block, nothing else:
+
+PICKED WORD: {the word}
+PICKED HOOK: {the conceptual hook phrase}
+IMAGE PROMPT: {40-80 word image prompt}
+
+PICKED WORD: ...
+...
+
+Continue through 20. No preamble, no commentary, no closing remark — just the 20 numbered blocks.
+""";
+
+    private static readonly string[] SeedWordPool = new[]
+    {
+        "mycology", "copper", "cathedral", "antler", "lithography", "brine", "salt-marsh",
+        "cartouche", "vellum", "chitin", "keratin", "muscovite", "flint", "obsidian",
+        "beeswax", "resin", "chrysalis", "midden", "peat", "loess", "clay",
+        "bloomery", "forge", "anvil", "quench", "solder", "tinder", "kindling",
+        "psalter", "codex", "palimpsest", "cuneiform", "papyrus",
+        "spinneret", "silk", "worsted", "warp", "weft", "loom", "shuttle",
+        "moth", "beetle", "carapace", "elytra", "molt", "instar", "pupa",
+        "reliquary", "monstrance", "narthex", "transept", "apse", "clerestory",
+        "adit", "shaft", "gangue", "matte", "slag", "flux", "assay",
+        "graticule", "meridian", "isobath", "contour", "cadastre", "azimuth",
+        "solstice", "equinox", "tide", "gyre", "eddy", "bore", "levee",
+        "malachite", "cinnabar", "orpiment", "verdigris", "carmine", "ochre",
+        "sinew", "gut", "hide", "leather", "tanning", "curing",
+        "necropolis", "ossuary", "cenotaph", "cairn", "barrow", "kist",
+        "murmuration", "swarm", "shoal", "colony", "hive", "warren", "sett",
+        "petrichor", "geosmin", "musk", "loam", "silt",
+        "quartzite", "gneiss", "schist", "basalt", "pumice", "tuff",
+        "sextant", "astrolabe", "quadrant", "gnomon", "orrery",
+        "philology", "etymology", "onomastics", "epigraphy", "paleography",
+        "haruspex", "augur", "oracle", "sibyl", "pythia",
+        "cochineal", "madder", "indigo", "woad", "logwood",
+        "abacus", "quipu", "tally", "hieroglyph", "runes",
+        "furrier", "cooper", "fletcher", "cordwainer", "wheelwright",
+        "peregrine", "corvid", "raptor", "passerine", "columbid",
+        "trilobite", "ammonite", "nautilus", "brachiopod", "crinoid",
+        "manuscript", "colophon", "incunabula", "quire", "signature",
+        "botulinum", "penicillium", "aspergillus", "candida", "saccharomyces",
+        "reticulum", "spleen", "duodenum", "sternum", "clavicle",
+        "gutta-percha", "shellac", "damask", "brocade", "chintz",
+        "estuary", "delta", "fjord", "atoll", "archipelago",
+        "malacology", "conchology", "helminthology", "acarology",
+        "kinnikinnick", "sassafras", "sarsaparilla", "burdock", "yarrow",
+        "grimoire", "bestiary", "herbarium", "compendium", "florilegium"
+    };
 
     public HooksCreationPage(AuthService auth)
     {
@@ -549,6 +640,22 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     private static string ReplaceToken(string template, string token, string value) =>
         (template ?? "").Replace(token, value ?? "", StringComparison.Ordinal);
 
+    private static string GenerateSeed()
+    {
+        var rng = new Random();
+        int wordCount = rng.Next(4, 7);
+        var picks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        while (picks.Count < wordCount)
+            picks.Add(SeedWordPool[rng.Next(SeedWordPool.Length)]);
+
+        var suffix = rng.Next(1000, 10000).ToString();
+        return string.Join("-", picks) + "-" + suffix;
+    }
+
+    private static string ApplySeed(string template) =>
+        ReplaceToken(template, "{SEED}", GenerateSeed());
+
     private static string BuildStage2Prompt(string template, string words) =>
         ReplaceToken(template, "{WORDS}", words);
 
@@ -561,7 +668,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     private async void OnCopyStage1PromptClicked(object? sender, EventArgs e)
     {
         _stage1Editor.Text = "";
-        await Clipboard.SetTextAsync(_stage1TemplateEditor.Text ?? DefaultStage1Prompt);
+        await Clipboard.SetTextAsync(ApplySeed(_stage1TemplateEditor.Text ?? DefaultStage1Prompt));
         if (sender is Button btn) await FlashCopiedAsync(btn, "Copy Stage 1 prompt");
         await ShowPasteResultModalAsync("Stage 1 (100 words)", _stage1Editor);
     }
@@ -621,7 +728,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     private async void OnCopyOneShotPromptClicked(object? sender, EventArgs e)
     {
         _stage4Editor.Text = "";
-        await Clipboard.SetTextAsync(_oneShotTemplateEditor.Text ?? DefaultOneShotPrompt);
+        await Clipboard.SetTextAsync(ApplySeed(_oneShotTemplateEditor.Text ?? DefaultOneShotPrompt));
         if (sender is Button btn) await FlashCopiedAsync(btn, " One-shot: all 4 stages in a single LLM call");
         await ShowPasteResultModalAsync("20 image prompts", _stage4Editor);
     }
