@@ -293,7 +293,7 @@ public class PostponedTasksManagementPage : ContentPage
 
     private async Task PostponeTaskAsync(PostponedTask task)
     {
-        var date = await ChooseScheduledDateAsync("Postpone task", DateTime.Today.AddDays(1), includeToday: false);
+        var date = await ChooseScheduledDateAsync("Postpone task", task.CurrentDate.Date);
         if (date == null) return;
 
         await _postponedTasks.PostponeAsync(task.Id, date.Value);
@@ -320,25 +320,33 @@ public class PostponedTasksManagementPage : ContentPage
 
     private async Task ReactivateAsync(PostponedTask task)
     {
-        var date = await ChooseScheduledDateAsync("Reactivate task", DateTime.Today, includeToday: true);
+        var date = await ChooseScheduledDateAsync("Reactivate task", DateTime.Today);
         if (date == null) return;
 
         await _postponedTasks.ReactivateAsync(task.Id, date.Value);
         await LoadAsync();
     }
 
-    private async Task<DateTime?> ChooseScheduledDateAsync(string title, DateTime defaultDate, bool includeToday)
+    private async Task<DateTime?> ChooseScheduledDateAsync(string title, DateTime baseDate)
     {
-        var options = includeToday
-            ? new[] { "Today", "Tomorrow", "In 1 week", "Pick a date..." }
-            : new[] { "Tomorrow", "In 1 week", "Pick a date..." };
-        var action = await DisplayActionSheet(title, "Cancel", null, options);
+        var action = await DisplayActionSheet(
+            title,
+            "Cancel",
+            null,
+            "7 days",
+            "30 days",
+            "90 days",
+            "180 days",
+            "365 days",
+            "Pick a date...");
         return action switch
         {
-            "Today" => DateTime.Today,
-            "Tomorrow" => DateTime.Today.AddDays(1),
-            "In 1 week" => DateTime.Today.AddDays(7),
-            "Pick a date..." => await ShowDatePickerModalAsync(title, defaultDate),
+            "7 days" => baseDate.AddDays(7),
+            "30 days" => baseDate.AddDays(30),
+            "90 days" => baseDate.AddDays(90),
+            "180 days" => baseDate.AddDays(180),
+            "365 days" => baseDate.AddDays(365),
+            "Pick a date..." => await ShowDatePickerModalAsync(title, baseDate),
             _ => null
         };
     }

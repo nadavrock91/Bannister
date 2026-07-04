@@ -2254,7 +2254,7 @@ public class CalendarDayPage : ContentPage
 
     private async Task PostponePostponedTaskAsync(PostponedTask task)
     {
-        var date = await ChoosePostponedTaskDateAsync("Postpone task", DateTime.Today.AddDays(1));
+        var date = await ChoosePostponedTaskDateAsync("Postpone task", task.CurrentDate.Date);
         if (date == null) return;
 
         await _postponedTaskService.PostponeAsync(task.Id, date.Value);
@@ -2270,14 +2270,26 @@ public class CalendarDayPage : ContentPage
         await LoadTasksAsync();
     }
 
-    private async Task<DateTime?> ChoosePostponedTaskDateAsync(string title, DateTime defaultDate)
+    private async Task<DateTime?> ChoosePostponedTaskDateAsync(string title, DateTime baseDate)
     {
-        var action = await DisplayActionSheet(title, "Cancel", null, "Tomorrow", "In 1 week", "Pick a date...");
+        var action = await DisplayActionSheet(
+            title,
+            "Cancel",
+            null,
+            "7 days",
+            "30 days",
+            "90 days",
+            "180 days",
+            "365 days",
+            "Pick a date...");
         return action switch
         {
-            "Tomorrow" => DateTime.Today.AddDays(1),
-            "In 1 week" => DateTime.Today.AddDays(7),
-            "Pick a date..." => await ShowPostponedTaskDatePickerAsync(title, defaultDate),
+            "7 days" => baseDate.AddDays(7),
+            "30 days" => baseDate.AddDays(30),
+            "90 days" => baseDate.AddDays(90),
+            "180 days" => baseDate.AddDays(180),
+            "365 days" => baseDate.AddDays(365),
+            "Pick a date..." => await ShowPostponedTaskDatePickerAsync(title, baseDate),
             _ => null
         };
     }
