@@ -132,26 +132,57 @@ public class StoryProductionPage : ContentPage
         // === TOP SECTION ===
         var topStack = new VerticalStackLayout { Spacing = 12 };
 
-        // Header
-        var headerStack = new HorizontalStackLayout { Spacing = 12 };
-        
-        headerStack.Children.Add(new Label
+        // Stats label
+        _statsLabel = new Label
         {
-            Text = "🎬",
-            FontSize = 28,
-            VerticalOptions = LayoutOptions.Center
-        });
-        
-        headerStack.Children.Add(new Label
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.TailTruncation,
+            MaxLines = 1,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        // Time projection label
+        _projectionLabel = new Label
+        {
+            FontSize = 12,
+            TextColor = Color.FromArgb("#1565C0"),
+            LineBreakMode = LineBreakMode.TailTruncation,
+            MaxLines = 1,
+            HorizontalOptions = LayoutOptions.End
+        };
+
+        var titleRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 12,
+            Padding = new Thickness(0, 0, 0, 8)
+        };
+
+        var titleLabel = new Label
         {
             Text = "Story Production",
-            FontSize = 24,
+            FontSize = 22,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#7B1FA2"),
+            TextColor = Color.FromArgb("#1565C0"),
             VerticalOptions = LayoutOptions.Center
-        });
-        
-        topStack.Children.Add(headerStack);
+        };
+
+        var headerStats = new VerticalStackLayout
+        {
+            Spacing = 2,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.End,
+            Children = { _statsLabel, _projectionLabel }
+        };
+
+        titleRow.Add(titleLabel, 0, 0);
+        titleRow.Add(headerStats, 1, 0);
+        topStack.Children.Add(titleRow);
 
         // Project selection frame
         var projectFrame = new Frame
@@ -328,32 +359,6 @@ public class StoryProductionPage : ContentPage
             IsVisible = false
         };
         projectStack.Children.Add(_currentDraftLabel);
-
-        // Stats label
-        _statsLabel = new Label
-        {
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 1
-        };
-
-        // Time projection label
-        _projectionLabel = new Label
-        {
-            FontSize = 12,
-            TextColor = Color.FromArgb("#1565C0"),
-            LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 1
-        };
-
-        var statsContainer = new VerticalStackLayout
-        {
-            HeightRequest = 44,
-            Spacing = 2,
-            Children = { _statsLabel, _projectionLabel }
-        };
-        projectStack.Children.Add(statsContainer);
 
         projectFrame.Content = projectStack;
         topStack.Children.Add(projectFrame);
