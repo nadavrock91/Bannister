@@ -95,9 +95,10 @@ ARC TITLE:
 CODEX PROMPT:
 <the full combined codex prompt covering all {BATCH_SIZE} tasks' worth of changes>
 
-The CODEX PROMPT section should end with the instruction telling Codex to output a single commit message covering all the changes:
+The CODEX PROMPT section should end with these instructions to Codex verbatim:
 
-"At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing everything you did across all changes>"
+"IMPORTANT: Do NOT run git add, git commit, git push, or any other git command. Do NOT stage or commit changes. Only edit files. Bannister will run the commit and push for you after you output the commit message below.
+At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing everything you did across all changes>"
 
 PROJECT CONTEXT BELOW:
 
@@ -2475,7 +2476,8 @@ PROJECT CONTEXT BELOW:
         prompt.AppendLine("- Do this so the user can copy your entire response in one block and paste it into Bannister, which will parse out the CODEX PROMPT portion for them.");
         prompt.AppendLine("- NEXT TASK should be ONE LINE (max 100 chars) - this becomes the task title.");
         prompt.AppendLine("- CODEX PROMPT should be a complete self-contained prompt Codex can execute directly. Write it as flowing plain text with paragraph breaks and indented sub-points if needed, but NO code fences.");
-        prompt.AppendLine("- End your CODEX PROMPT with this exact line (no formatting):");
+        prompt.AppendLine("- End your CODEX PROMPT with these exact lines (no formatting):");
+        prompt.AppendLine("  IMPORTANT: Do NOT run git add, git commit, git push, or any other git command. Do NOT stage or commit changes. Only edit files. Bannister will run the commit and push for you after you output the commit message below.");
         prompt.AppendLine("  At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing what you did>");
         prompt.AppendLine("- Output the commit message as a single unbroken paragraph with no line breaks anywhere inside the COMMIT MESSAGE: section. The parser reads only the first line after the marker.");
         prompt.AppendLine("- This lets the automation extract the commit message after Codex finishes.");
