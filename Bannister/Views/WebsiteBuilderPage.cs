@@ -2809,9 +2809,11 @@ IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
         if (string.IsNullOrWhiteSpace(raw))
             return null;
 
+        raw = raw.Replace("\r\n", "\n").Replace("\r", "\n");
+
         var taskMatches = Regex.Matches(
             raw,
-            @"(?im)^\s*TASK\s+\d+\s*:\s*$",
+            @"(?im)^\s*TASK\s+(\d+)\s*:",
             RegexOptions.CultureInvariant);
 
         if (taskMatches.Count == 0)
@@ -2820,7 +2822,7 @@ IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
         var tasks = new List<WebsiteQueuedTask>();
         for (var i = 0; i < taskMatches.Count; i++)
         {
-            var sectionStart = taskMatches[i].Index + taskMatches[i].Length;
+            var sectionStart = taskMatches[i].Index;
             var sectionEnd = i + 1 < taskMatches.Count
                 ? taskMatches[i + 1].Index
                 : raw.Length;
@@ -2828,18 +2830,18 @@ IMPORTANT FORMATTING FOR EVERY CODEX PROMPT:
 
             var titleMatch = Regex.Match(
                 section,
-                @"(?is)TITLE\s*:\s*(?<title>.*?)(?:\r?\n)\s*CODEX\s+PROMPT\s*:",
+                @"(?im)^\s*TITLE\s*:\s*(?<title>.+?)\s*$",
                 RegexOptions.CultureInvariant);
-            var promptMatch = Regex.Match(
+            var promptMarkerMatch = Regex.Match(
                 section,
-                @"(?is)CODEX\s+PROMPT\s*:\s*(?<prompt>.*)$",
+                @"(?im)^\s*CODEX\s+PROMPT\s*:\s*",
                 RegexOptions.CultureInvariant);
 
-            if (!titleMatch.Success || !promptMatch.Success)
+            if (!titleMatch.Success || !promptMarkerMatch.Success)
                 continue;
 
-            var title = ExtractFirstMeaningfulLine(titleMatch.Groups["title"].Value);
-            var codexPrompt = promptMatch.Groups["prompt"].Value.Trim();
+            var title = titleMatch.Groups["title"].Value.Trim();
+            var codexPrompt = section[(promptMarkerMatch.Index + promptMarkerMatch.Length)..].Trim();
 
             if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(codexPrompt))
                 tasks.Add(new WebsiteQueuedTask(title, codexPrompt));
