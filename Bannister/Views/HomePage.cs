@@ -26,6 +26,7 @@ public class HomePage : ContentPage
     private readonly StoryProductionService _storyProduction;
     private readonly MusicProductionService _musicProduction;
     private readonly CustomPromptService _customPrompts;
+    private readonly PromptLibraryService _promptLibraryService;
     private readonly TaskService _taskService;
     private readonly WeeklyChallengeService _challengeService;
     private readonly IdeasService _ideas;
@@ -119,7 +120,7 @@ public class HomePage : ContentPage
         SubActivityService subActivityService, AudioLibraryService audioLibService,
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
-        PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, DesignationService designationService,
+        PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, PromptLibraryService promptLibraryService, DesignationService designationService,
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
         AllowanceService allowanceService, PostponedTaskService postponedTaskService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
@@ -140,6 +141,7 @@ public class HomePage : ContentPage
         _storyProduction = storyProduction;
         _musicProduction = musicProduction;
         _customPrompts = customPrompts;
+        _promptLibraryService = promptLibraryService;
         _taskService = taskService;
         _challengeService = challengeService;
         _ideas = ideas;
@@ -2319,7 +2321,7 @@ public class HomePage : ContentPage
 
     private async void OnPromptsClicked(object? sender, EventArgs e)
     {
-        var page = new PromptsHubPage(_auth, _customPrompts, _prompts, _ideaLogger, _ideas);
+        var page = new PromptsHubPage(_auth, _customPrompts, _prompts, _ideaLogger, _ideas, _promptLibraryService);
         await Navigation.PushAsync(page);
     }
 

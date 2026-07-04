@@ -9,19 +9,22 @@ public class PromptsHubPage : ContentPage
     private readonly PromptService _prompts;
     private readonly IdeaLoggerService _ideaLogger;
     private readonly IdeasService _ideas;
+    private readonly PromptLibraryService _libraryService;
 
     public PromptsHubPage(
         AuthService auth,
         CustomPromptService customPrompts,
         PromptService prompts,
         IdeaLoggerService ideaLogger,
-        IdeasService ideas)
+        IdeasService ideas,
+        PromptLibraryService libraryService)
     {
         _auth = auth;
         _customPrompts = customPrompts;
         _prompts = prompts;
         _ideaLogger = ideaLogger;
         _ideas = ideas;
+        _libraryService = libraryService;
 
         Title = "Prompts";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -63,7 +66,7 @@ public class PromptsHubPage : ContentPage
             " Prompts Library",
             "Browse and organize your prompt collection.",
             Color.FromArgb("#00838F"),
-            async () => await Navigation.PushAsync(new PromptsLibraryPage(_auth))));
+            async () => await Navigation.PushAsync(new PromptsLibraryPage(_auth, _libraryService))));
 
         Content = new ScrollView { Content = stack };
     }
