@@ -10,6 +10,7 @@ public class PromptsLibraryPage : ContentPage
     private VerticalStackLayout _categoriesStack = null!;
     private Grid _root = null!;
     private readonly HashSet<int> _expandedCategoryIds = new();
+    private readonly HashSet<int> _expandedPromptIds = new();
 
     public PromptsLibraryPage(AuthService auth, PromptLibraryService libraryService)
     {
@@ -226,7 +227,7 @@ public class PromptsLibraryPage : ContentPage
 
     private Frame BuildPromptCard(PromptLibraryPrompt prompt, List<PromptLibraryCategory> allCategories)
     {
-        var preview = prompt.Body.Length > 100 ? prompt.Body[..100] + "…" : prompt.Body;
+        var isBodyExpanded = _expandedPromptIds.Contains(prompt.Id);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
         stack.Children.Add(new Label
@@ -236,29 +237,74 @@ public class PromptsLibraryPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#222")
         });
-        stack.Children.Add(new Label
+
+        var bodyRow = new Grid
         {
-            Text = preview,
-            FontSize = 12,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8
+        };
+
+        var bodyLabel = new Label
+        {
+            Text = prompt.Body,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#333"),
             FontAttributes = FontAttributes.Italic,
+            LineBreakMode = isBodyExpanded ? LineBreakMode.WordWrap : LineBreakMode.TailTruncation,
+            MaxLines = isBodyExpanded ? int.MaxValue : 2
+        };
+
+        void ToggleBodyExpansion()
+        {
+            if (_expandedPromptIds.Contains(prompt.Id))
+                _expandedPromptIds.Remove(prompt.Id);
+            else
+                _expandedPromptIds.Add(prompt.Id);
+            _ = LoadAsync();
+        }
+
+        var bodyTap = new TapGestureRecognizer();
+        bodyTap.Tapped += (_, _) => ToggleBodyExpansion();
+        bodyLabel.GestureRecognizers.Add(bodyTap);
+
+        var rowTap = new TapGestureRecognizer();
+        rowTap.Tapped += (_, _) => ToggleBodyExpansion();
+        bodyRow.GestureRecognizers.Add(rowTap);
+
+        bodyRow.Add(bodyLabel, 0, 0);
+        bodyRow.Add(new Label
+        {
+            Text = isBodyExpanded ? "▲" : "▼",
+            FontSize = 12,
             TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 2
-        });
+            VerticalOptions = LayoutOptions.Start
+        }, 1, 0);
+        stack.Children.Add(bodyRow);
 
         var total = prompt.SuccessCount + prompt.FailureCount;
-        var percent = total == 0 ? 0 : (int)Math.Round(prompt.SuccessCount * 100.0 / total);
-        stack.Children.Add(new Label
+        var percent = total > 0 ? (int)Math.Round(prompt.SuccessCount * 100.0 / total) : 0;
+        var statsGrid = new Grid
         {
-            Text = total == 0
-                ? "No results yet."
-                : $"{prompt.SuccessCount} success · {prompt.FailureCount} fail · {percent}% success ({total} total)",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#666"),
-            FontAttributes = FontAttributes.Italic,
-            LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 1
-        });
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 8,
+            Padding = new Thickness(0, 4)
+        };
+
+        statsGrid.Add(BuildStatCell("Success", prompt.SuccessCount.ToString(), Color.FromArgb("#2E7D32")), 0, 0);
+        statsGrid.Add(BuildStatCell("Failure", prompt.FailureCount.ToString(), Color.FromArgb("#C62828")), 1, 0);
+        statsGrid.Add(BuildStatCell("Total", total.ToString(), Color.FromArgb("#333")), 2, 0);
+        statsGrid.Add(BuildStatCell("% Success", total > 0 ? $"{percent}%" : "—", Color.FromArgb("#1565C0")), 3, 0);
+        stack.Children.Add(statsGrid);
 
         var statsButtons = new Grid
         {
@@ -376,6 +422,33 @@ public class PromptsLibraryPage : ContentPage
             HeightRequest = 32,
             FontSize = 11,
             Padding = new Thickness(10, 0)
+        };
+    }
+
+    private static View BuildStatCell(string caption, string value, Color valueColor)
+    {
+        return new VerticalStackLayout
+        {
+            Spacing = 2,
+            HorizontalOptions = LayoutOptions.Center,
+            Children =
+            {
+                new Label
+                {
+                    Text = value,
+                    FontSize = 15,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = valueColor,
+                    HorizontalOptions = LayoutOptions.Center
+                },
+                new Label
+                {
+                    Text = caption,
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#666"),
+                    HorizontalOptions = LayoutOptions.Center
+                }
+            }
         };
     }
 
