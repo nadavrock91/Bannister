@@ -477,6 +477,8 @@ public class IdeaLoggerService
                    string.Equals(cls, "llm", StringComparison.OrdinalIgnoreCase);
         }
 
+        bool suppressPickerSync = false;
+
         var newBtn = new Button
         {
             Text = "+ New", BackgroundColor = Color.FromArgb("#4CAF50"), TextColor = Colors.White,
@@ -540,6 +542,98 @@ public class IdeaLoggerService
             await ShowLinkSetupAsync(linkBtn, catToLink, existingCategories, username);
         };
         categoryActionsRow.Children.Add(linkBtn);
+
+        var reclassifyBtn = new Button
+        {
+            Text = "⇄ Reclassify",
+            BackgroundColor = Color.FromArgb("#FFE0B2"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 6,
+            Padding = new Thickness(10, 6),
+            FontSize = 12,
+            HeightRequest = 32
+        };
+        reclassifyBtn.Clicked += async (_, _) =>
+        {
+            string? selectedCategory = null;
+            string currentClassification = "";
+
+            if (normalCategoryPicker.SelectedIndex >= 0)
+            {
+                selectedCategory = normalCategoryPicker.Items[normalCategoryPicker.SelectedIndex];
+                currentClassification = "normal";
+            }
+            else if (llmCategoryPicker.SelectedIndex >= 0)
+            {
+                selectedCategory = llmCategoryPicker.Items[llmCategoryPicker.SelectedIndex];
+                currentClassification = "llm";
+            }
+
+            if (string.IsNullOrWhiteSpace(selectedCategory))
+            {
+                await page.DisplayAlert(
+                    "No category selected",
+                    "Select a category from the Normal or LLM dropdown first, then tap Reclassify.",
+                    "OK");
+                return;
+            }
+
+            var newClassification = currentClassification == "normal" ? "llm" : "normal";
+            var fromLabel = currentClassification == "normal" ? "Normal" : "LLM";
+            var toLabel = newClassification == "normal" ? "Normal" : "LLM";
+
+            var confirm = await page.DisplayAlert(
+                "Reclassify category?",
+                $"Move '{selectedCategory}' from {fromLabel} to {toLabel}?",
+                "Move",
+                "Cancel");
+
+            if (!confirm) return;
+
+            await _ideas.SetClassificationAsync(username, selectedCategory, newClassification);
+
+            var updatedClassifications = await _ideas.GetClassificationsAsync(username);
+            classificationMap = updatedClassifications
+                .GroupBy(c => c.CategoryName, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().Classification, StringComparer.OrdinalIgnoreCase);
+
+            normalCategories = existingCategories
+                .Where(c => !classificationMap.TryGetValue(c, out var cls) ||
+                            string.Equals(cls, "normal", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            llmCategories = existingCategories
+                .Where(c => classificationMap.TryGetValue(c, out var cls) &&
+                            string.Equals(cls, "llm", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            suppressPickerSync = true;
+            normalCategoryPicker.Items.Clear();
+            foreach (var cat in normalCategories) normalCategoryPicker.Items.Add(cat);
+            llmCategoryPicker.Items.Clear();
+            foreach (var cat in llmCategories) llmCategoryPicker.Items.Add(cat);
+
+            if (newClassification == "normal")
+            {
+                var idx = normalCategories.FindIndex(c =>
+                    string.Equals(c, selectedCategory, StringComparison.OrdinalIgnoreCase));
+                normalCategoryPicker.SelectedIndex = idx;
+                llmCategoryPicker.SelectedIndex = -1;
+            }
+            else
+            {
+                var idx = llmCategories.FindIndex(c =>
+                    string.Equals(c, selectedCategory, StringComparison.OrdinalIgnoreCase));
+                llmCategoryPicker.SelectedIndex = idx;
+                normalCategoryPicker.SelectedIndex = -1;
+            }
+            suppressPickerSync = false;
+
+            holder[0] = selectedCategory;
+        };
+        categoryActionsRow.Children.Add(reclassifyBtn);
 
         categorySection.Children.Add(categoryActionsRow);
         mainStack.Children.Add(categorySection);
@@ -625,8 +719,6 @@ public class IdeaLoggerService
         // ====== WIRE UP CROSS-PICKER SYNC ======
 
         // When main category picker changes → update holder, deselect favorites, refresh subcategories
-        bool suppressPickerSync = false;
-
         normalCategoryPicker.SelectedIndexChanged += (s, e) =>
         {
             if (suppressPickerSync) return;

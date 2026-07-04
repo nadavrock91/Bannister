@@ -165,10 +165,6 @@ public class IdeasPage : ContentPage
         importBtn.Clicked += OnImportClicked;
         headerRow.Children.Add(importBtn);
 
-        var manageCategoriesBtn = new Button { Text = "⚙️ Manage categories", BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F"), CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0) };
-        manageCategoriesBtn.Clicked += OnManageCategoriesClicked;
-        headerRow.Children.Add(manageCategoriesBtn);
-
         mainGrid.Add(headerRow, 0, 0);
 
         // ====== ROW 1: Category filters ======
@@ -348,18 +344,6 @@ public class IdeasPage : ContentPage
         };
         importBtn.Clicked += OnImportClicked;
         header.Children.Add(importBtn);
-
-        var manageCategoriesBtn = new Button
-        {
-            Text = "⚙️ Manage categories",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
-            CornerRadius = 8,
-            HeightRequest = 40,
-            FontSize = 13
-        };
-        manageCategoriesBtn.Clicked += OnManageCategoriesClicked;
-        header.Children.Add(manageCategoriesBtn);
 
         _phoneEmptyLabel = new Label
         {
@@ -1144,142 +1128,6 @@ public class IdeasPage : ContentPage
         if (_selectedIdea == null) return;
         _selectedIdea.Notes = _detailContent.Text;
         await _ideas.UpdateIdeaAsync(_selectedIdea);
-    }
-
-    private async void OnManageCategoriesClicked(object? sender, EventArgs e)
-    {
-        await ShowManageCategoriesModalAsync();
-    }
-
-    private async Task ShowManageCategoriesModalAsync()
-    {
-        await _ideas.BackfillMissingClassificationsAsync(_auth.CurrentUsername);
-        _categories = await _ideas.GetCategoriesAsync(_auth.CurrentUsername);
-        var classifications = await _ideas.GetClassificationsAsync(_auth.CurrentUsername);
-        var classificationMap = classifications
-            .GroupBy(c => c.CategoryName, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First().Classification, StringComparer.OrdinalIgnoreCase);
-
-        var overlay = new Grid
-        {
-            BackgroundColor = Color.FromArgb("#80000000"),
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill
-        };
-
-        var card = new Frame
-        {
-            Padding = 18,
-            CornerRadius = 12,
-            BackgroundColor = Colors.White,
-            HasShadow = true,
-            BorderColor = Colors.Transparent,
-            WidthRequest = Math.Min(620, DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density - 32),
-            VerticalOptions = LayoutOptions.Center,
-            HorizontalOptions = LayoutOptions.Center
-        };
-
-        var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(new Label
-        {
-            Text = "Manage category classifications",
-            FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        stack.Children.Add(new Label
-        {
-            Text = "Toggle each category between Normal (your custom taxonomy) and LLM (auto-generated from Analyze For Ideas).",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
-        var rowsStack = new VerticalStackLayout { Spacing = 8 };
-        foreach (var categoryName in _categories.OrderBy(c => c, StringComparer.OrdinalIgnoreCase))
-        {
-            var currentClassification = classificationMap.TryGetValue(categoryName, out var c) &&
-                                        string.Equals(c, "llm", StringComparison.OrdinalIgnoreCase)
-                ? "llm"
-                : "normal";
-
-            var row = new Grid
-            {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Auto }
-                },
-                ColumnSpacing = 12,
-                Padding = new Thickness(0, 4)
-            };
-
-            row.Add(new Label
-            {
-                Text = categoryName,
-                FontSize = 14,
-                TextColor = Color.FromArgb("#333"),
-                VerticalOptions = LayoutOptions.Center,
-                LineBreakMode = LineBreakMode.TailTruncation
-            }, 0, 0);
-
-            var toggle = new Button
-            {
-                Text = currentClassification == "llm" ? "LLM" : "Normal",
-                BackgroundColor = currentClassification == "llm" ? Color.FromArgb("#F3E5F5") : Color.FromArgb("#E3F2FD"),
-                TextColor = currentClassification == "llm" ? Color.FromArgb("#6A1B9A") : Color.FromArgb("#1565C0"),
-                CornerRadius = 8,
-                HeightRequest = 32,
-                WidthRequest = 80,
-                FontSize = 12
-            };
-            toggle.Clicked += async (_, _) =>
-            {
-                var newClass = toggle.Text == "LLM" ? "normal" : "llm";
-                await _ideas.SetClassificationAsync(_auth.CurrentUsername, categoryName, newClass);
-                toggle.Text = newClass == "llm" ? "LLM" : "Normal";
-                toggle.BackgroundColor = newClass == "llm" ? Color.FromArgb("#F3E5F5") : Color.FromArgb("#E3F2FD");
-                toggle.TextColor = newClass == "llm" ? Color.FromArgb("#6A1B9A") : Color.FromArgb("#1565C0");
-            };
-
-            row.Add(toggle, 1, 0);
-            rowsStack.Children.Add(row);
-        }
-
-        stack.Children.Add(new ScrollView
-        {
-            HeightRequest = 360,
-            Content = rowsStack
-        });
-
-        var closeBtn = new Button
-        {
-            Text = "Close",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            HeightRequest = 40,
-            HorizontalOptions = LayoutOptions.End,
-            Padding = new Thickness(20, 0)
-        };
-        closeBtn.Clicked += async (_, _) =>
-        {
-            if (Content is Grid root)
-                root.Children.Remove(overlay);
-
-            await LoadCategoriesAsync();
-            await RefreshIdeasAsync();
-        };
-        stack.Children.Add(closeBtn);
-
-        card.Content = stack;
-        overlay.Children.Add(card);
-
-        if (Content is Grid pageGrid)
-        {
-            Grid.SetRowSpan(overlay, Math.Max(1, pageGrid.RowDefinitions.Count));
-            pageGrid.Children.Add(overlay);
-        }
     }
 
     // ===================== HEADER EVENTS =====================
