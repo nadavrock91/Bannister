@@ -22,10 +22,9 @@ public class IdeasPage : ContentPage
     private Label _headerLabel;
     private Picker _categoryPicker;
     private Entry _searchEntry;
-    private HorizontalStackLayout _normalCategoryTabs = null!;
-    private HorizontalStackLayout _llmCategoryTabs = null!;
-    private Label _llmSectionLabel = null!;
-    private ScrollView _llmCategoryTabsScroll = null!;
+    private Picker _normalCategoryPicker = null!;
+    private Picker _llmCategoryPicker = null!;
+    private Button _allButton = null!;
     private Button _showArchivedBtn;
     private Button _sortDateBtn;
     private Button _sortRatingBtn;
@@ -61,6 +60,7 @@ public class IdeasPage : ContentPage
     private CollectionView? _phoneIdeasView;
     private Label? _phoneEmptyLabel;
     private bool _loadingCategories;
+    private bool _isLoadingFilters;
 
     public IdeasPage(AuthService auth, IdeasService ideas, IdeaLoggerService ideaLogger, DatabaseService db, OperationQueueService queue, SyncService sync)
     {
@@ -171,8 +171,8 @@ public class IdeasPage : ContentPage
 
         mainGrid.Add(headerRow, 0, 0);
 
-        // ====== ROW 1: Category tabs ======
-        mainGrid.Add(BuildCategoryTabsSection(), 0, 1);
+        // ====== ROW 1: Category filters ======
+        mainGrid.Add(BuildCategoryFilterSection(), 0, 1);
 
         // ====== ROW 2: Toolbar (fixed) ======
         _toolbarContainer = new VerticalStackLayout { Padding = new Thickness(0, 2, 0, 4) };
@@ -286,7 +286,7 @@ public class IdeasPage : ContentPage
         _categoryPicker = new Picker { IsVisible = false };
         _categoryPicker.SelectedIndexChanged += OnCategoryChanged;
 
-        header.Children.Add(BuildCategoryTabsSection());
+        header.Children.Add(BuildCategoryFilterSection());
 
         var controlsRow = new Grid
         {
@@ -518,52 +518,63 @@ public class IdeasPage : ContentPage
         CornerRadius = 4, WidthRequest = 36, HeightRequest = 32, Padding = 0, Margin = new Thickness(0, 0, 4, 4)
     };
 
-    private View BuildCategoryTabsSection()
+    private View BuildCategoryFilterSection()
     {
-        _normalCategoryTabs = new HorizontalStackLayout { Spacing = 8 };
-        var normalScroll = new ScrollView
+        var filterRow = new Grid
         {
-            Orientation = ScrollOrientation.Horizontal,
-            Content = _normalCategoryTabs
-        };
-
-        _llmSectionLabel = new Label
-        {
-            Text = "LLM Categories",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            FontAttributes = FontAttributes.Italic,
-            Margin = new Thickness(0, 8, 0, 4),
-            IsVisible = false
-        };
-
-        _llmCategoryTabs = new HorizontalStackLayout { Spacing = 8 };
-        _llmCategoryTabsScroll = new ScrollView
-        {
-            Orientation = ScrollOrientation.Horizontal,
-            Content = _llmCategoryTabs,
-            IsVisible = false
-        };
-
-        return new VerticalStackLayout
-        {
-            Spacing = 4,
-            Children =
+            ColumnDefinitions =
             {
-                normalScroll,
-                _llmSectionLabel,
-                _llmCategoryTabsScroll
-            }
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 8,
+            Padding = new Thickness(0, 8)
         };
+
+        _allButton = new Button
+        {
+            Text = "All",
+            BackgroundColor = Color.FromArgb("#1976D2"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            WidthRequest = 60,
+            FontSize = 12
+        };
+        _allButton.Clicked += OnAllButtonClicked;
+
+        _normalCategoryPicker = new Picker
+        {
+            Title = "Normal category",
+            HeightRequest = 40,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            TitleColor = Color.FromArgb("#1565C0")
+        };
+        _normalCategoryPicker.SelectedIndexChanged += OnNormalCategoryPickerChanged;
+
+        _llmCategoryPicker = new Picker
+        {
+            Title = "LLM category",
+            HeightRequest = 40,
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            TitleColor = Color.FromArgb("#6A1B9A")
+        };
+        _llmCategoryPicker.SelectedIndexChanged += OnLlmCategoryPickerChanged;
+
+        filterRow.Add(_allButton, 0, 0);
+        filterRow.Add(_normalCategoryPicker, 1, 0);
+        filterRow.Add(_llmCategoryPicker, 2, 0);
+
+        return filterRow;
     }
 
-    private void RenderCategoryTabs(Dictionary<string, string> classificationMap)
+    private void PopulateCategoryPickerItems(Dictionary<string, string> classificationMap)
     {
-        if (_normalCategoryTabs == null || _llmCategoryTabs == null)
+        if (_normalCategoryPicker == null || _llmCategoryPicker == null)
             return;
-
-        _normalCategoryTabs.Children.Clear();
-        _llmCategoryTabs.Children.Clear();
 
         var normalCategories = _categories
             .Where(c => !classificationMap.TryGetValue(c, out var classification) ||
@@ -577,49 +588,32 @@ public class IdeasPage : ContentPage
             .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        _normalCategoryTabs.Children.Add(BuildCategoryTab("All", "All", Color.FromArgb("#1565C0")));
-        _normalCategoryTabs.Children.Add(BuildCategoryTab("⭐ Starred", "⭐ Starred", Color.FromArgb("#F57F17")));
-        foreach (var category in normalCategories)
-            _normalCategoryTabs.Children.Add(BuildCategoryTab(category, category, Color.FromArgb("#1565C0")));
-
-        foreach (var category in llmCategories)
-            _llmCategoryTabs.Children.Add(BuildCategoryTab(category, category, Color.FromArgb("#6A1B9A")));
-
-        bool hasLlmCategories = llmCategories.Count > 0;
-        _llmSectionLabel.IsVisible = hasLlmCategories;
-        _llmCategoryTabsScroll.IsVisible = hasLlmCategories;
-    }
-
-    private Button BuildCategoryTab(string text, string category, Color accent)
-    {
-        bool selected = string.Equals(_selectedCategory, category, StringComparison.OrdinalIgnoreCase) && !_showingArchived;
-        var button = new Button
+        _isLoadingFilters = true;
+        try
         {
-            Text = text,
-            BackgroundColor = selected ? accent : Colors.White,
-            TextColor = selected ? Colors.White : accent,
-            BorderColor = accent,
-            BorderWidth = 1,
-            CornerRadius = 14,
-            HeightRequest = 34,
-            Padding = new Thickness(14, 0),
-            FontSize = 12
-        };
-        button.Clicked += async (_, _) => await SelectCategoryTabAsync(category);
-        return button;
-    }
+            _normalCategoryPicker.SelectedIndex = -1;
+            _llmCategoryPicker.SelectedIndex = -1;
+            _normalCategoryPicker.ItemsSource = normalCategories;
+            _llmCategoryPicker.ItemsSource = llmCategories;
 
-    private async Task SelectCategoryTabAsync(string category)
-    {
-        _selectedCategory = category;
-        _showingArchived = false;
-        _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
-        await RefreshIdeasAsync();
+            if (!_showingArchived && !string.IsNullOrWhiteSpace(_selectedCategory) && _selectedCategory != "All" && _selectedCategory != "â­ Starred")
+            {
+                var normalIndex = normalCategories.FindIndex(c => string.Equals(c, _selectedCategory, StringComparison.OrdinalIgnoreCase));
+                if (normalIndex >= 0)
+                {
+                    _normalCategoryPicker.SelectedIndex = normalIndex;
+                    return;
+                }
 
-        var classifications = await _ideas.GetClassificationsAsync(_auth.CurrentUsername);
-        RenderCategoryTabs(classifications
-            .GroupBy(c => c.CategoryName, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First().Classification, StringComparer.OrdinalIgnoreCase));
+                var llmIndex = llmCategories.FindIndex(c => string.Equals(c, _selectedCategory, StringComparison.OrdinalIgnoreCase));
+                if (llmIndex >= 0)
+                    _llmCategoryPicker.SelectedIndex = llmIndex;
+            }
+        }
+        finally
+        {
+            _isLoadingFilters = false;
+        }
     }
 
     // ===================== DATA =====================
@@ -663,7 +657,7 @@ public class IdeasPage : ContentPage
         if (string.IsNullOrWhiteSpace(_selectedCategory))
             _selectedCategory = "All";
 
-        RenderCategoryTabs(classificationMap);
+        PopulateCategoryPickerItems(classificationMap);
         _loadingCategories = false;
     }
 
@@ -1289,6 +1283,76 @@ public class IdeasPage : ContentPage
     }
 
     // ===================== HEADER EVENTS =====================
+
+    private async void OnAllButtonClicked(object? sender, EventArgs e)
+    {
+        _selectedCategory = "All";
+        _showingArchived = false;
+        _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
+
+        _isLoadingFilters = true;
+        try
+        {
+            _normalCategoryPicker.SelectedIndex = -1;
+            _llmCategoryPicker.SelectedIndex = -1;
+        }
+        finally
+        {
+            _isLoadingFilters = false;
+        }
+
+        await RefreshIdeasAsync();
+    }
+
+    private async void OnNormalCategoryPickerChanged(object? sender, EventArgs e)
+    {
+        if (_isLoadingFilters) return;
+        if (_normalCategoryPicker.SelectedIndex < 0) return;
+
+        var selected = _normalCategoryPicker.SelectedItem as string;
+        if (string.IsNullOrWhiteSpace(selected)) return;
+
+        _selectedCategory = selected;
+        _showingArchived = false;
+        _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
+
+        _isLoadingFilters = true;
+        try
+        {
+            _llmCategoryPicker.SelectedIndex = -1;
+        }
+        finally
+        {
+            _isLoadingFilters = false;
+        }
+
+        await RefreshIdeasAsync();
+    }
+
+    private async void OnLlmCategoryPickerChanged(object? sender, EventArgs e)
+    {
+        if (_isLoadingFilters) return;
+        if (_llmCategoryPicker.SelectedIndex < 0) return;
+
+        var selected = _llmCategoryPicker.SelectedItem as string;
+        if (string.IsNullOrWhiteSpace(selected)) return;
+
+        _selectedCategory = selected;
+        _showingArchived = false;
+        _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
+
+        _isLoadingFilters = true;
+        try
+        {
+            _normalCategoryPicker.SelectedIndex = -1;
+        }
+        finally
+        {
+            _isLoadingFilters = false;
+        }
+
+        await RefreshIdeasAsync();
+    }
 
     private async void OnCategoryChanged(object? sender, EventArgs e)
     {
