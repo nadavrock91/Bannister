@@ -46,14 +46,19 @@ public class StoryProductionPage : ContentPage
     private Button _storyPointsBtn;
     private Grid _loadingOverlay;
     private Label _loadingLabel;
+    private ActivityIndicator _loadingIndicator = null!;
     private bool _allExpanded = false;
     private List<(Label collapsed, Label expanded, Button expandBtn)> _expandableCards = new();
     private ScrollView _mainScrollView;
+    private bool _uiBuilt = false;
+    private bool _suppressSelectionEvents = false;
     private bool _linesExpanded = false;
     private bool _linesBuilt = false;
     private List<StoryLine> _cachedLines = new();
     private HashSet<int> _cachedChangedOrders = new();
     private int _cachedTotalLines = 0;
+    private int _cachedPreparedLines = 0;
+    private string _cachedProjectionText = "";
     
     private List<StoryProject> _projects = new();        // Original projects only
     private List<StoryProject> _allOriginalProjects = new();
@@ -78,20 +83,65 @@ public class StoryProductionPage : ContentPage
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         
-        BuildUI();
+        BuildLoadingScreen();
 
-        // Attach floating process checklist
         if (_subActivityService != null)
         {
             _checklist = new FloatingChecklist(_auth, _subActivityService);
-            _checklist.AttachTo(this);
         }
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadProjectsAsync();
+
+        if (!_uiBuilt)
+        {
+            await LoadInitialDataAsync();
+            BuildFullUI();
+            _checklist?.AttachTo(this);
+            _uiBuilt = true;
+        }
+        else
+        {
+            await LoadLinesAsync();
+        }
+    }
+
+    private void BuildLoadingScreen()
+    {
+        _loadingIndicator = new ActivityIndicator
+        {
+            IsRunning = true,
+            Color = Color.FromArgb("#1565C0"),
+            WidthRequest = 48,
+            HeightRequest = 48
+        };
+
+        Content = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            Children =
+            {
+                new VerticalStackLayout
+                {
+                    Spacing = 12,
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Children =
+                    {
+                        _loadingIndicator,
+                        new Label
+                        {
+                            Text = "Loading story production...",
+                            FontSize = 14,
+                            TextColor = Color.FromArgb("#666"),
+                            HorizontalOptions = LayoutOptions.Center
+                        }
+                    }
+                }
+            }
+        };
     }
 
     private static FlexLayout CreateWrappingRow(Thickness? margin = null)
@@ -116,7 +166,7 @@ public class StoryProductionPage : ContentPage
         }
     }
 
-    private void BuildUI()
+    private void BuildFullUI()
     {
         // Main layout: scrollable page content + overlay layer
         var pageGrid = new Grid
@@ -332,20 +382,18 @@ public class StoryProductionPage : ContentPage
         // Stats label
         _statsLabel = new Label
         {
-            Text = " Loading stats...",
+            Text = GetCachedStatsText(),
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
-            IsVisible = true
+            TextColor = Color.FromArgb("#666")
         };
         projectStack.Children.Add(_statsLabel);
 
         // Time projection label
         _projectionLabel = new Label
         {
-            Text = "⏱️ Calculating time projection...",
+            Text = _cachedProjectionText,
             FontSize = 12,
-            TextColor = Color.FromArgb("#1565C0"),
-            IsVisible = true
+            TextColor = Color.FromArgb("#1565C0")
         };
         projectStack.Children.Add(_projectionLabel);
 
@@ -554,6 +602,200 @@ public class StoryProductionPage : ContentPage
         pageGrid.Children.Add(_loadingOverlay);
 
         Content = pageGrid;
+        ApplyInitialUiStateFromCache();
+    }
+
+    private async Task LoadInitialDataAsync()
+    {
+        System.Diagnostics.Debug.WriteLine("[STORY] LoadInitialDataAsync START");
+
+        try
+        {
+            var allProjects = await _storyService.GetProjectsAsync(_auth.CurrentUsername);
+
+            _allOriginalProjects = allProjects
+                .Where(p => p.ParentProjectId == null)
+                .OrderBy(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "zzz" : p.ProjectCategory, StringComparer.OrdinalIgnoreCase)
+                .ThenByDescending(p => p.CreatedAt)
+                .ToList();
+
+            await LoadSelectedProjectCategoryAsync();
+            _projects = FilterProjectsBySelectedCategory(_allOriginalProjects);
+
+            int targetId = _currentProject?.Id ??
+                Preferences.Get($"StoryProd_LastProject_{_auth.CurrentUsername}", -1);
+
+            if (targetId > 0)
+            {
+                var targetProject = allProjects.FirstOrDefault(p => p.Id == targetId);
+                if (targetProject?.ParentProjectId != null)
+                    targetId = targetProject.ParentProjectId.Value;
+            }
+
+            StoryProject? selectedProject = null;
+            if (targetId > 0)
+                selectedProject = _projects.FirstOrDefault(p => p.Id == targetId);
+
+            if (selectedProject == null && _projects.Count > 0)
+                selectedProject = _projects[0];
+
+            if (selectedProject == null)
+            {
+                _currentProject = null;
+                _drafts.Clear();
+                _cachedLines.Clear();
+                _cachedChangedOrders.Clear();
+                _changedLineOrders.Clear();
+                _compareToProject = null;
+                _cachedTotalLines = 0;
+                _cachedPreparedLines = 0;
+                _cachedProjectionText = "";
+                System.Diagnostics.Debug.WriteLine("[STORY] LoadInitialDataAsync END - no project");
+                return;
+            }
+
+            var draftSelectId = Preferences.Get($"StoryProd_LastProject_{_auth.CurrentUsername}", -1);
+            _drafts = await _storyService.GetProjectDraftsAsync(selectedProject.Id);
+
+            int draftIndex = 0;
+            if (draftSelectId > 0)
+            {
+                draftIndex = _drafts.FindIndex(d => d.Id == draftSelectId);
+                if (draftIndex < 0) draftIndex = 0;
+            }
+            else
+            {
+                draftIndex = _drafts.FindIndex(d => d.IsLatest);
+                if (draftIndex < 0) draftIndex = 0;
+            }
+
+            if (_drafts.Count == 0)
+            {
+                _currentProject = selectedProject;
+                _cachedLines.Clear();
+                _cachedTotalLines = 0;
+                _cachedPreparedLines = 0;
+                _cachedProjectionText = "";
+                return;
+            }
+
+            _currentProject = _drafts[draftIndex];
+            Preferences.Set($"StoryProd_LastProject_{_auth.CurrentUsername}", _currentProject.Id);
+
+            var lines = await _storyService.GetLinesAsync(_currentProject.Id);
+            var (totalLines, preparedLines) = await _storyService.GetProjectStatsAsync(_currentProject.Id);
+            _cachedLines = lines;
+            _cachedTotalLines = totalLines;
+            _cachedPreparedLines = preparedLines;
+
+            _compareToProject = await _storyService.GetComparisonProjectAsync(_currentProject);
+            _changedLineOrders.Clear();
+
+            if (_compareToProject != null)
+            {
+                _changedLineOrders = await _storyService.GetChangedLineOrdersAsync(
+                    _currentProject.Id, _compareToProject.Id);
+            }
+
+            _cachedChangedOrders = new HashSet<int>(_changedLineOrders);
+
+            try
+            {
+                _cachedProjectionText = totalLines > 0
+                    ? await ComputeProjectionTextAsync()
+                    : "";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[STORY] Initial projection error: {ex.Message}");
+                _cachedProjectionText = "";
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STORY] Initial load failed: {ex.Message}\n{ex.StackTrace}");
+            _currentProject = null;
+            _cachedLines.Clear();
+            _cachedTotalLines = 0;
+            _cachedPreparedLines = 0;
+            _cachedProjectionText = "";
+        }
+
+        System.Diagnostics.Debug.WriteLine("[STORY] LoadInitialDataAsync END");
+    }
+
+    private void ApplyInitialUiStateFromCache()
+    {
+        RefreshProjectCategoryPicker();
+
+        _projectPicker.Items.Clear();
+        foreach (var project in _projects)
+        {
+            string name = project.Name;
+            if (!string.IsNullOrWhiteSpace(project.ProjectCategory))
+                name = $"[{project.ProjectCategory}] {name}";
+            if (project.IsPublished) name += " ✓";
+            else if (project.Status == "completed") name += " (done)";
+            _projectPicker.Items.Add(name);
+        }
+
+        _draftPicker.Items.Clear();
+        foreach (var draft in _drafts)
+        {
+            string label = draft.DraftVersion == 1
+                ? "Original" + (draft.IsLatest ? " ⭐" : "")
+                : draft.Name + (draft.IsLatest ? " ⭐" : "");
+            _draftPicker.Items.Add(label);
+        }
+
+        _suppressSelectionEvents = true;
+        try
+        {
+            if (_currentProject == null)
+            {
+                HideProjectControls();
+                _statsLabel.Text = "";
+                _projectionLabel.Text = "";
+                ResetLinesRegion(clearBuiltCards: true);
+                return;
+            }
+
+            var rootId = _currentProject.ParentProjectId ?? _currentProject.Id;
+            var projectIndex = _projects.FindIndex(p => p.Id == rootId);
+            if (projectIndex >= 0)
+                _projectPicker.SelectedIndex = projectIndex;
+
+            var draftIndex = _drafts.FindIndex(d => d.Id == _currentProject.Id);
+            if (draftIndex >= 0)
+                _draftPicker.SelectedIndex = draftIndex;
+        }
+        finally
+        {
+            _suppressSelectionEvents = false;
+        }
+
+        bool showDrafts = _drafts.Count > 1;
+        _draftLabel.IsVisible = showDrafts;
+        _draftPicker.IsVisible = showDrafts;
+
+        ShowProjectControls();
+        UpdateCurrentDraftDisplay();
+        _statsLabel.Text = GetCachedStatsText();
+        _projectionLabel.Text = _cachedProjectionText;
+        ResetLinesRegion(clearBuiltCards: true);
+        UpdateLinesToggleButton();
+    }
+
+    private string GetCachedStatsText()
+    {
+        if (_currentProject == null)
+            return "";
+
+        if (_cachedTotalLines <= 0)
+            return "No lines yet. Add your first line below.";
+
+        int percent = (int)(_cachedPreparedLines * 100.0 / _cachedTotalLines);
+        return $"📊 {_cachedPreparedLines}/{_cachedTotalLines} visuals prepared ({percent}%)";
     }
 
     private async Task LoadProjectsAsync()
@@ -708,6 +950,9 @@ public class StoryProductionPage : ContentPage
 
     private async void OnProjectSelected(object? sender, EventArgs e)
     {
+        if (_suppressSelectionEvents)
+            return;
+
         System.Diagnostics.Debug.WriteLine($"[STORY] OnProjectSelected START - SelectedIndex: {_projectPicker.SelectedIndex}");
         
         if (_projectPicker.SelectedIndex < 0 || _projectPicker.SelectedIndex >= _projects.Count)
@@ -934,6 +1179,9 @@ public class StoryProductionPage : ContentPage
 
     private async void OnDraftSelected(object? sender, EventArgs e)
     {
+        if (_suppressSelectionEvents)
+            return;
+
         if (_draftPicker.SelectedIndex < 0 || _draftPicker.SelectedIndex >= _drafts.Count)
             return;
         
@@ -1963,6 +2211,9 @@ public class StoryProductionPage : ContentPage
 
     private async Task LoadLinesAsync()
     {
+        if (!_uiBuilt)
+            return;
+
         System.Diagnostics.Debug.WriteLine("[STORY] LoadLinesAsync START");
         
         if (_currentProject == null) 
@@ -1981,6 +2232,7 @@ public class StoryProductionPage : ContentPage
         var (totalLines, preparedLines) = await _storyService.GetProjectStatsAsync(_currentProject.Id);
         _cachedLines = lines;
         _cachedTotalLines = totalLines;
+        _cachedPreparedLines = preparedLines;
 
         // Load comparison data
         _compareToProject = await _storyService.GetComparisonProjectAsync(_currentProject);
@@ -2011,13 +2263,13 @@ public class StoryProductionPage : ContentPage
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[STORY] Projection error: {ex.Message}");
-                _projectionLabel.Text = "\u00A0";
+                _projectionLabel.Text = "";
             }
         }
         else
         {
             _statsLabel.Text = "No lines yet. Add your first line below.";
-            _projectionLabel.Text = "\u00A0";
+            _projectionLabel.Text = "";
         }
 
         ResetLinesRegion(clearBuiltCards: true);
@@ -5965,42 +6217,48 @@ Rules:
     {
         if (_currentProject == null)
         {
-            _projectionLabel.Text = "\u00A0";
+            _projectionLabel.Text = "";
             return;
         }
 
         try
         {
-            var (estimatedMinutes, remainingTasks, breakdown) = 
-                await _storyService.GetProjectTimeEstimateAsync(_auth.CurrentUsername, _currentProject.Id);
-
-            if (remainingTasks == 0)
-            {
-                _projectionLabel.Text = "⏱️ All tasks complete!";
-                _projectionLabel.TextColor = Color.FromArgb("#4CAF50");
-            }
-            else
-            {
-                string timeStr;
-                if (estimatedMinutes < 60)
-                {
-                    timeStr = $"{estimatedMinutes} min";
-                }
-                else
-                {
-                    int hours = estimatedMinutes / 60;
-                    int mins = estimatedMinutes % 60;
-                    timeStr = mins > 0 ? $"{hours}h {mins}m" : $"{hours}h";
-                }
-
-                _projectionLabel.Text = $"⏱️ Est. {timeStr} remaining ({remainingTasks} tasks)";
-                _projectionLabel.TextColor = Color.FromArgb("#1565C0");
-            }
+            var projectionText = await ComputeProjectionTextAsync();
+            _projectionLabel.Text = projectionText;
+            _projectionLabel.TextColor = projectionText.Contains("All tasks complete", StringComparison.OrdinalIgnoreCase)
+                ? Color.FromArgb("#4CAF50")
+                : Color.FromArgb("#1565C0");
         }
         catch
         {
-            _projectionLabel.Text = "\u00A0";
+            _projectionLabel.Text = "";
         }
+    }
+
+    private async Task<string> ComputeProjectionTextAsync()
+    {
+        if (_currentProject == null)
+            return "";
+
+        var (estimatedMinutes, remainingTasks, breakdown) =
+            await _storyService.GetProjectTimeEstimateAsync(_auth.CurrentUsername, _currentProject.Id);
+
+        if (remainingTasks == 0)
+            return "⏱️ All tasks complete!";
+
+        string timeStr;
+        if (estimatedMinutes < 60)
+        {
+            timeStr = $"{estimatedMinutes} min";
+        }
+        else
+        {
+            int hours = estimatedMinutes / 60;
+            int mins = estimatedMinutes % 60;
+            timeStr = mins > 0 ? $"{hours}h {mins}m" : $"{hours}h";
+        }
+
+        return $"⏱️ Est. {timeStr} remaining ({remainingTasks} tasks)";
     }
 
     #endregion
