@@ -135,19 +135,23 @@ public class StoryProductionPage : ContentPage
         // Stats label
         _statsLabel = new Label
         {
+            Text = " Loading stats...",
             FontSize = 13,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 1
+            MaxLines = 1,
+            IsVisible = true
         };
 
         // Time projection label
         _projectionLabel = new Label
         {
+            Text = "⏱️ Calculating time projection...",
             FontSize = 12,
             TextColor = Color.FromArgb("#1565C0"),
             LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 1
+            MaxLines = 1,
+            IsVisible = true
         };
 
         topStack.Children.Add(new Label
@@ -339,6 +343,7 @@ public class StoryProductionPage : ContentPage
         {
             HeightRequest = 44,
             Spacing = 2,
+            IsVisible = true,
             Children = { _statsLabel, _projectionLabel }
         };
         projectStack.Children.Add(statsContainer);
