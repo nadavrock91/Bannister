@@ -172,6 +172,18 @@ public partial class ActivityGamePage
         btnNextGame.Clicked += OnNextGameClicked;
         stack.Children.Add(btnNextGame);
 
+        btnHome = new Button
+        {
+            Text = " Home",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            FontSize = 13,
+            Margin = new Thickness(0, 6, 0, 0)
+        };
+        btnHome.Clicked += OnHomeClicked;
+        stack.Children.Add(btnHome);
+
         var btnSelectAll = new Button
         {
             Text = "Select All",

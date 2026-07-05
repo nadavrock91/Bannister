@@ -218,6 +218,20 @@ public partial class ActivityGamePage
         btnNextGame.Clicked += OnNextGameClicked;
         innerStack.Children.Add(btnNextGame);
 
+        btnHome = new Button
+        {
+            Text = " Home",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 12,
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            HeightRequest = 56,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        btnHome.Clicked += OnHomeClicked;
+        innerStack.Children.Add(btnHome);
+
         frame.Content = innerStack;
         stack.Children.Add(frame);
 

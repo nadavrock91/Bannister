@@ -190,6 +190,32 @@ public partial class ActivityGamePage
         }
     }
 
+    private async void OnHomeClicked(object? sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("[HOME] Button clicked");
+        try
+        {
+            try
+            {
+                await Shell.Current.GoToAsync("//home");
+                System.Diagnostics.Debug.WriteLine("[HOME] Shell GoToAsync //home completed");
+                return;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HOME] Shell GoToAsync failed: {ex.Message}, trying PopToRootAsync");
+            }
+
+            await Navigation.PopToRootAsync();
+            System.Diagnostics.Debug.WriteLine("[HOME] PopToRootAsync completed");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[HOME] EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            await DisplayAlert("Home error", $"{ex.GetType().Name}: {ex.Message}", "OK");
+        }
+    }
+
     private async Task PromptForAutoAwardSuggestionsAsync()
     {
         if (_db.IsReadOnly || _allActivities == null || _allActivities.Count == 0)
