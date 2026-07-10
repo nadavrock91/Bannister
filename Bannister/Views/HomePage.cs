@@ -2572,7 +2572,9 @@ public class HomePage : ContentPage
             "Action type:",
             "Cancel",
             null,
-            "Open video");
+            "Open video",
+            "Prompt wrap (prefix)",
+            "Prompt wrap (suffix)");
 
         if (actionType == "Cancel" || string.IsNullOrWhiteSpace(actionType)) return;
 
@@ -2622,6 +2624,111 @@ public class HomePage : ContentPage
             await _quickAccessService.CreateAsync(_auth.CurrentUsername, title.Trim(), "open_video", filePath);
             await DisplayAlert("Added", $"Quick access action '{title.Trim()}' saved.", "OK");
         }
+
+        if (actionType == "Prompt wrap (prefix)" || actionType == "Prompt wrap (suffix)")
+        {
+            var promptType = actionType == "Prompt wrap (prefix)" ? "prefix" : "suffix";
+
+            var title = await DisplayPromptAsync(
+                "Action title",
+                "Give this action a display name:",
+                initialValue: "");
+
+            if (string.IsNullOrWhiteSpace(title)) return;
+
+            var promptText = await ShowFixedPromptEditorAsync(
+                $"{(promptType == "prefix" ? "Prefix" : "Suffix")} prompt text",
+                $"Enter the fixed prompt that will be {(promptType == "prefix" ? "prepended to" : "appended to")} the pasted content:",
+                "");
+
+            if (string.IsNullOrWhiteSpace(promptText)) return;
+
+            await _quickAccessService.CreateAsync(
+                _auth.CurrentUsername,
+                title.Trim(),
+                "prompt_wrap",
+                "",
+                promptType,
+                promptText);
+
+            await DisplayAlert("Added", $"Quick access action '{title.Trim()}' saved.", "OK");
+        }
+    }
+
+    private async Task<string?> ShowFixedPromptEditorAsync(string title, string instruction, string initialText)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+        var parent = Content as Grid;
+        if (parent == null) return null;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var editor = new Editor
+        {
+            Text = initialText,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 300,
+            BackgroundColor = Colors.White,
+            Placeholder = "Paste or type the fixed prompt text here..."
+        };
+
+        var saveBtn = new Button
+        {
+            Text = "Save",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White
+        };
+
+        saveBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(editor.Text ?? "");
+        };
+
+        cancelBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(null);
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 520,
+            MinimumHeightRequest = 420,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold },
+                    new Label { Text = instruction, FontSize = 13, TextColor = Color.FromArgb("#666") },
+                    editor,
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 8,
+                        HorizontalOptions = LayoutOptions.End,
+                        Children = { cancelBtn, saveBtn }
+                    }
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        return await tcs.Task;
     }
 
     private async Task ExecuteQuickAccessActionAsync(QuickAccessAction action)
@@ -2655,10 +2762,152 @@ public class HomePage : ContentPage
                 await DisplayAlert("Open failed", $"Could not open the file:\n{ex.Message}", "OK");
             }
         }
+        else if (action.ActionType == "prompt_wrap")
+        {
+            if (string.IsNullOrWhiteSpace(action.PromptText))
+            {
+                await DisplayAlert("Action broken", "This wrap action has no fixed prompt text. Delete and recreate it.", "OK");
+                return;
+            }
+
+            await ShowPromptWrapModalAsync(action);
+        }
         else
         {
             await DisplayAlert("Unsupported action", $"Action type '{action.ActionType}' is not supported.", "OK");
         }
+    }
+
+    private async Task ShowPromptWrapModalAsync(QuickAccessAction action)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        var parent = Content as Grid;
+        if (parent == null) return;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var isPrefix = action.PromptType == "prefix";
+        var typeLabel = isPrefix ? "prefix" : "suffix";
+
+        var userEditor = new Editor
+        {
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 300,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            Placeholder = "Paste content to wrap here, or use the button below..."
+        };
+
+        var pasteBtn = new Button
+        {
+            Text = " Paste from clipboard",
+            BackgroundColor = Color.FromArgb("#1976D2"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        pasteBtn.Clicked += async (_, _) =>
+        {
+            try
+            {
+                var clip = await Clipboard.GetTextAsync();
+                if (!string.IsNullOrWhiteSpace(clip))
+                    userEditor.Text = clip;
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Clipboard error", ex.Message, "OK");
+            }
+        };
+
+        var wrapBtn = new Button
+        {
+            Text = "✂️ Wrap and copy",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        wrapBtn.Clicked += async (_, _) =>
+        {
+            var userText = (userEditor.Text ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(userText))
+            {
+                await DisplayAlert("Nothing to wrap", "Paste or type some text first.", "OK");
+                return;
+            }
+
+            var fixedText = action.PromptText ?? "";
+            var separator = "\n\n";
+            var wrapped = isPrefix
+                ? $"{fixedText}{separator}{userText}"
+                : $"{userText}{separator}{fixedText}";
+
+            try
+            {
+                await Clipboard.SetTextAsync(wrapped);
+                parent.Children.Remove(overlay);
+                tcs.TrySetResult(true);
+                await DisplayAlert("Copied", "Wrapped text copied to clipboard.", "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Copy failed", ex.Message, "OK");
+            }
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        cancelBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(false);
+        };
+
+        var buttonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.End,
+            Children = { cancelBtn, pasteBtn, wrapBtn }
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 560,
+            MinimumHeightRequest = 460,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new Label { Text = action.Title, FontSize = 18, FontAttributes = FontAttributes.Bold },
+                    new Label
+                    {
+                        Text = $"Type: {typeLabel} — paste content and tap Wrap and copy.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666"),
+                        FontAttributes = FontAttributes.Italic
+                    },
+                    userEditor,
+                    buttonRow
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        await tcs.Task;
     }
 
     private async Task NavigateToSettingsAsync()

@@ -18,6 +18,11 @@ public class QuickAccessAction
 
     public string FilePath { get; set; } = "";
 
+    // For "prompt_wrap" actions.
+    public string? PromptType { get; set; } // "prefix" or "suffix"
+
+    public string? PromptText { get; set; }
+
     public int SortOrder { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

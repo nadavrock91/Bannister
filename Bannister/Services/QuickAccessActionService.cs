@@ -19,6 +19,8 @@ public class QuickAccessActionService
         if (_db.IsReadOnly) return;
         var conn = await _db.GetConnectionAsync();
         try { await conn.CreateTableAsync<QuickAccessAction>(); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE quick_access_actions ADD COLUMN PromptType TEXT"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE quick_access_actions ADD COLUMN PromptText TEXT"); } catch { }
     }
 
     public async Task<List<QuickAccessAction>> GetAllAsync(string username)
@@ -38,7 +40,13 @@ public class QuickAccessActionService
         }
     }
 
-    public async Task<int> CreateAsync(string username, string title, string actionType, string filePath)
+    public async Task<int> CreateAsync(
+        string username,
+        string title,
+        string actionType,
+        string filePath,
+        string? promptType = null,
+        string? promptText = null)
     {
         await EnsureTableAsync();
         if (_db.IsReadOnly) return 0;
@@ -61,6 +69,8 @@ public class QuickAccessActionService
             Title = title,
             ActionType = actionType,
             FilePath = filePath,
+            PromptType = promptType,
+            PromptText = promptText,
             SortOrder = existingMax + 1
         };
         await conn.InsertAsync(action);
