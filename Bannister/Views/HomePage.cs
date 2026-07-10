@@ -2544,9 +2544,10 @@ public class HomePage : ContentPage
     {
         var actions = await _quickAccessService.GetAllAsync(_auth.CurrentUsername);
         var options = new List<string> { "➕ Add new quick access action" };
-        options.AddRange(actions.Select(a => a.Title));
         if (actions.Count > 0)
             options.Add("⚙️ Manage actions");
+
+        options.AddRange(actions.Select(a => a.Title));
 
         var pick = await DisplayActionSheet(
             "Quick Access",
