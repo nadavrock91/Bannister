@@ -9,6 +9,11 @@ public class ChatGptImageGenerationPage : ContentPage
     private const string CostPerImageNote = "as of June 2026";
     private const decimal VisionRenameEstimatedCostUsd = 0.001m;
     private const string RenameLastFolderKey = "chatgpt_image_rename_last_folder";
+    private const string RenameRetryCapKey = "chatgpt_rename_retry_cap";
+    private const int DefaultRetryCap = 5;
+    private const int MinRetryCap = 1;
+    private const int MaxRetryCap = 20;
+    private const double AssumedSuccessRatePerPass = 0.6;
 
     private enum QueueStatus
     {
@@ -69,12 +74,17 @@ public class ChatGptImageGenerationPage : ContentPage
     private List<RenamePreviewItem>? _renamePreview;
     private bool _renameDryRunRunning;
     private bool _renameExecuteRunning;
+    private CancellationTokenSource? _dryRunCts;
+    private int _renameRetryCap = DefaultRetryCap;
+    private bool _updatingRenameRetryCapEntry;
     private readonly Label _renameFolderLabel;
     private readonly Label _renameCountLabel;
     private readonly Label _renameProgressLabel;
+    private readonly Entry _renameRetryCapEntry;
     private readonly Button _renamePickFolderButton;
     private readonly Button _renameDryRunButton;
     private readonly Button _renameExecuteButton;
+    private readonly Button _renameCancelButton;
     private readonly VerticalStackLayout _renamePreviewStack;
     private readonly List<QueuedPrompt> _queue = new();
     private bool _isGenerating;
@@ -276,6 +286,15 @@ public class ChatGptImageGenerationPage : ContentPage
             TextColor = Color.FromArgb("#1565C0"),
             IsVisible = false
         };
+        _renameRetryCapEntry = new Entry
+        {
+            Text = _renameRetryCap.ToString(),
+            Keyboard = Keyboard.Numeric,
+            WidthRequest = 60,
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            HeightRequest = 36
+        };
+        _renameRetryCapEntry.TextChanged += OnRetryCapChanged;
         _renamePickFolderButton = new Button
         {
             Text = "Pick folder",
@@ -305,6 +324,16 @@ public class ChatGptImageGenerationPage : ContentPage
             IsEnabled = false
         };
         _renameExecuteButton.Clicked += OnExecuteRenamesClicked;
+        _renameCancelButton = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#B71C1C"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 36,
+            IsVisible = false
+        };
+        _renameCancelButton.Clicked += (_, _) => _dryRunCts?.Cancel();
         _renamePreviewStack = new VerticalStackLayout
         {
             Spacing = 6
@@ -380,6 +409,7 @@ public class ChatGptImageGenerationPage : ContentPage
 
         Content = _normalContent;
         await RefreshKeyStatusAsync();
+        await LoadRetryCapAsync();
         await LoadRenameLastFolderAsync();
     }
 
@@ -544,6 +574,19 @@ public class ChatGptImageGenerationPage : ContentPage
         folderRow.Add(_renameFolderLabel, 0, 0);
         folderRow.Add(_renamePickFolderButton, 1, 0);
 
+        var retryCapLabel = new Label
+        {
+            Text = "Max retry passes:",
+            FontSize = 12,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var retryCapRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children = { retryCapLabel, _renameRetryCapEntry }
+        };
+
         var actionsGrid = new Grid
         {
             ColumnDefinitions =
@@ -582,8 +625,10 @@ public class ChatGptImageGenerationPage : ContentPage
                         TextColor = Color.FromArgb("#666")
                     },
                     folderRow,
+                    retryCapRow,
                     _renameCountLabel,
                     _renameProgressLabel,
+                    _renameCancelButton,
                     actionsGrid,
                     new ScrollView
                     {
@@ -898,6 +943,65 @@ public class ChatGptImageGenerationPage : ContentPage
         }
     }
 
+    private async Task LoadRetryCapAsync()
+    {
+        try
+        {
+            var raw = await SecureStorage.GetAsync(RenameRetryCapKey);
+            if (int.TryParse(raw, out var val))
+            {
+                val = Math.Clamp(val, MinRetryCap, MaxRetryCap);
+                _renameRetryCap = val;
+                _updatingRenameRetryCapEntry = true;
+                _renameRetryCapEntry.Text = val.ToString();
+                _updatingRenameRetryCapEntry = false;
+                UpdateCostEstimate();
+            }
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _updatingRenameRetryCapEntry = false;
+        }
+    }
+
+    private async void OnRetryCapChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (_updatingRenameRetryCapEntry)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_renameRetryCapEntry.Text))
+            return;
+
+        if (!int.TryParse(_renameRetryCapEntry.Text, out var val))
+        {
+            UpdateCostEstimate();
+            return;
+        }
+
+        val = Math.Clamp(val, MinRetryCap, MaxRetryCap);
+        _renameRetryCap = val;
+
+        if (_renameRetryCapEntry.Text != val.ToString())
+        {
+            _updatingRenameRetryCapEntry = true;
+            _renameRetryCapEntry.Text = val.ToString();
+            _updatingRenameRetryCapEntry = false;
+        }
+
+        try
+        {
+            await SecureStorage.SetAsync(RenameRetryCapKey, val.ToString());
+        }
+        catch
+        {
+        }
+
+        UpdateCostEstimate();
+    }
+
     private async void OnPickRenameFolderClicked(object? sender, EventArgs e)
     {
         if (_renameDryRunRunning || _renameExecuteRunning)
@@ -943,14 +1047,40 @@ public class ChatGptImageGenerationPage : ContentPage
         _renameFolderPath = folderPath;
         var count = CountRenameableImages(folderPath);
         _renameFolderLabel.Text = $"Folder: {folderPath}";
-        _renameCountLabel.Text = count == 0
-            ? "No images found at top level."
-            : $"Found {count} image{(count == 1 ? "" : "s")}. Estimated cost: ${count * VisionRenameEstimatedCostUsd:0.000} USD.";
+        UpdateCostEstimate();
 
         _renameDryRunButton.IsEnabled = count > 0 && !_renameDryRunRunning && !_renameExecuteRunning;
         _renamePreview = null;
         _renamePreviewStack.Children.Clear();
         _renameExecuteButton.IsEnabled = false;
+    }
+
+    private void UpdateCostEstimate()
+    {
+        if (string.IsNullOrWhiteSpace(_renameFolderPath) || !Directory.Exists(_renameFolderPath))
+        {
+            _renameCountLabel.Text = "";
+            return;
+        }
+
+        var count = GetRenameableImageFiles(_renameFolderPath).Count;
+        if (count == 0)
+        {
+            _renameCountLabel.Text = "No images found at top level.";
+            return;
+        }
+
+        var cap = Math.Clamp(_renameRetryCap, MinRetryCap, MaxRetryCap);
+        var bestCase = count * VisionRenameEstimatedCostUsd;
+        var maxCase = count * cap * VisionRenameEstimatedCostUsd;
+        var q = 1.0 - AssumedSuccessRatePerPass;
+        var expectedFactor = (1.0 - Math.Pow(q, cap)) / AssumedSuccessRatePerPass;
+        var expectedCase = (decimal)(count * expectedFactor) * VisionRenameEstimatedCostUsd;
+
+        _renameCountLabel.Text =
+            $"Found {count} image{(count == 1 ? "" : "s")}. " +
+            $"Est. cost: ${expectedCase:0.000} " +
+            $"(best ${bestCase:0.000}, max ${maxCase:0.000} at {cap} passes)";
     }
 
     private async void OnRunDryRunClicked(object? sender, EventArgs e)
@@ -974,10 +1104,18 @@ public class ChatGptImageGenerationPage : ContentPage
             return;
         }
 
+        var cap = Math.Clamp(_renameRetryCap, MinRetryCap, MaxRetryCap);
+        var q = 1.0 - AssumedSuccessRatePerPass;
+        var expectedFactor = (1.0 - Math.Pow(q, cap)) / AssumedSuccessRatePerPass;
+        var expectedCost = (decimal)(files.Count * expectedFactor) * VisionRenameEstimatedCostUsd;
+        var maxCost = files.Count * cap * VisionRenameEstimatedCostUsd;
+
         var confirm = await DisplayAlert(
             "Confirm dry-run",
-            $"Send {files.Count} image(s) to OpenAI Vision for an estimated ${files.Count * VisionRenameEstimatedCostUsd:0.000} USD?\n\n" +
-            "(Estimated at $0.001 per image. Actual cost may vary.)",
+            $"Send {files.Count} image(s) to OpenAI Vision.\n\n" +
+            $"Est. cost: ${expectedCost:0.000} (assumes 60% success per pass, {cap} max passes).\n" +
+            $"Max cost if all passes hit cap: ${maxCost:0.000}.\n\n" +
+            "Retries continue until all files are named or the cap is reached.",
             "Run",
             "Cancel");
 
@@ -989,45 +1127,138 @@ public class ChatGptImageGenerationPage : ContentPage
         _renameDryRunButton.IsEnabled = false;
         _renameExecuteButton.IsEnabled = false;
         _renameProgressLabel.IsVisible = true;
+        _renameCancelButton.IsVisible = true;
         _renamePreview = new List<RenamePreviewItem>();
         _renamePreviewStack.Children.Clear();
 
+        foreach (var file in files)
+        {
+            var item = new RenamePreviewItem
+            {
+                OriginalPath = file,
+                OriginalName = Path.GetFileName(file),
+                Extension = Path.GetExtension(file),
+                Selected = false,
+                SuggestedName = "",
+                Error = null
+            };
+
+            _renamePreview.Add(item);
+            _renamePreviewStack.Children.Add(BuildPreviewRow(item));
+        }
+
+        _dryRunCts = new CancellationTokenSource();
+        var ct = _dryRunCts.Token;
+        var totalApiCalls = 0;
+        var passNumber = 0;
+        var cancelled = false;
+
         try
         {
-            for (var i = 0; i < files.Count; i++)
+            while (passNumber < cap)
             {
-                var path = files[i];
-                _renameProgressLabel.Text = $"Naming {i + 1}/{files.Count}...";
-                await Task.Yield();
-
-                var result = await _visionService.SuggestImageNameAsync(path);
-                var item = new RenamePreviewItem
+                if (ct.IsCancellationRequested)
                 {
-                    OriginalPath = path,
-                    OriginalName = Path.GetFileName(path),
-                    Extension = Path.GetExtension(path),
-                    Selected = result.Success,
-                    SuggestedName = result.Success ? result.SuggestedName! : "",
-                    Error = result.Success ? null : result.ErrorMessage
-                };
+                    cancelled = true;
+                    break;
+                }
 
-                _renamePreview.Add(item);
-                _renamePreviewStack.Children.Add(BuildPreviewRow(item));
+                passNumber++;
+
+                var pending = _renamePreview
+                    .Where(p => string.IsNullOrWhiteSpace(p.SuggestedName))
+                    .ToList();
+
+                if (pending.Count == 0)
+                    break;
+
+                for (var i = 0; i < pending.Count; i++)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        cancelled = true;
+                        break;
+                    }
+
+                    var item = pending[i];
+                    _renameProgressLabel.Text =
+                        $"Pass {passNumber}/{cap} - {i + 1}/{pending.Count} " +
+                        $"({_renamePreview.Count(p => !string.IsNullOrWhiteSpace(p.SuggestedName))}/{_renamePreview.Count} named)";
+                    await Task.Yield();
+
+                    var result = await _visionService.SuggestImageNameAsync(item.OriginalPath);
+                    totalApiCalls++;
+
+                    if (result.Success && !string.IsNullOrWhiteSpace(result.SuggestedName))
+                    {
+                        item.Selected = true;
+                        item.SuggestedName = result.SuggestedName!;
+                        item.Error = null;
+                    }
+                    else
+                    {
+                        item.Selected = false;
+                        item.Error = result.ErrorMessage;
+                    }
+
+                    RefreshPreviewRow(item);
+                }
+
+                if (cancelled)
+                    break;
+
+                var stillPending = _renamePreview.Count(p => string.IsNullOrWhiteSpace(p.SuggestedName));
+                if (stillPending == 0)
+                    break;
+
+                _renameProgressLabel.Text = $"Pass {passNumber} done. {stillPending} unnamed. Pausing before next pass...";
+                try
+                {
+                    await Task.Delay(1000, ct);
+                }
+                catch (OperationCanceledException)
+                {
+                    cancelled = true;
+                    break;
+                }
             }
         }
         finally
         {
+            _dryRunCts?.Dispose();
+            _dryRunCts = null;
             _renameDryRunRunning = false;
             _renamePickFolderButton.IsEnabled = true;
             _renameDryRunButton.IsEnabled = true;
             _renameProgressLabel.IsVisible = false;
+            _renameCancelButton.IsVisible = false;
             _renameExecuteButton.IsEnabled = _renamePreview?.Any(p => p.Selected) == true;
         }
 
+        var namedCount = _renamePreview.Count(p => p.Selected);
+        var unnamedCount = _renamePreview.Count - namedCount;
+        var actualCost = totalApiCalls * VisionRenameEstimatedCostUsd;
+        var summary = cancelled
+            ? $"Cancelled after pass {passNumber}.\n\nNamed: {namedCount}\nUnnamed: {unnamedCount}\nAPI calls: {totalApiCalls} (~${actualCost:0.000})"
+            : $"Complete after {passNumber} pass(es).\n\nNamed: {namedCount}\nUnnamed: {unnamedCount}\nAPI calls: {totalApiCalls} (~${actualCost:0.000})";
+
         await DisplayAlert(
-            "Dry-run complete",
-            $"Generated {_renamePreview.Count(p => p.Selected)} name suggestions. Review and edit, then Execute.",
+            "Dry-run finished",
+            summary,
             "OK");
+    }
+
+    private void RefreshPreviewRow(RenamePreviewItem item)
+    {
+        if (_renamePreview == null)
+            return;
+
+        var index = _renamePreview.IndexOf(item);
+        if (index < 0 || index >= _renamePreviewStack.Children.Count)
+            return;
+
+        _renamePreviewStack.Children.RemoveAt(index);
+        _renamePreviewStack.Children.Insert(index, BuildPreviewRow(item));
     }
 
     private View BuildPreviewRow(RenamePreviewItem item)
