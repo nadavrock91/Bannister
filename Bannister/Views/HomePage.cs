@@ -221,9 +221,11 @@ public class HomePage : ContentPage
         _quickAccessBtn = new Button
         {
             Text = "⋮",
-            BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#37474F"),
-            FontSize = 22,
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            BackgroundColor = Color.FromArgb("#FBC02D"),
+            TextColor = Colors.White,
+            CornerRadius = 22,
             WidthRequest = 44,
             HeightRequest = 44,
             Padding = new Thickness(0),
@@ -2583,29 +2585,39 @@ public class HomePage : ContentPage
 
             if (string.IsNullOrWhiteSpace(title)) return;
 
-            var lastFolder = await SecureStorage.GetAsync("quick_access_last_video_folder") ?? "";
+            var fileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+            {
+                { DevicePlatform.WinUI, new[] { ".mp4", ".mkv", ".avi", ".mov", ".webm", ".wmv", ".m4v" } },
+                { DevicePlatform.Android, new[] { "video/*" } },
+                { DevicePlatform.iOS, new[] { "public.movie" } }
+            });
 
-            var filePath = await DisplayPromptAsync(
-                "Video file path",
-                "Paste the full path to the video file:",
-                initialValue: lastFolder);
+            var pickOptions = new PickOptions
+            {
+                PickerTitle = "Pick video file",
+                FileTypes = fileTypes
+            };
 
-            if (string.IsNullOrWhiteSpace(filePath)) return;
-            filePath = filePath.Trim().Trim('"');
+            FileResult? result;
+            try
+            {
+                result = await FilePicker.Default.PickAsync(pickOptions);
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Picker error", $"Could not open file picker:\n{ex.Message}", "OK");
+                return;
+            }
+
+            if (result == null) return;
+
+            var filePath = result.FullPath;
 
             if (!File.Exists(filePath))
             {
                 await DisplayAlert("File not found", "That file does not exist.", "OK");
                 return;
             }
-
-            try
-            {
-                var folder = Path.GetDirectoryName(filePath);
-                if (!string.IsNullOrWhiteSpace(folder))
-                    await SecureStorage.SetAsync("quick_access_last_video_folder", folder);
-            }
-            catch { }
 
             await _quickAccessService.CreateAsync(_auth.CurrentUsername, title.Trim(), "open_video", filePath);
             await DisplayAlert("Added", $"Quick access action '{title.Trim()}' saved.", "OK");
