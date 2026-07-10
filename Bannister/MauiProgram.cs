@@ -88,6 +88,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DeadlineService>();
         builder.Services.AddSingleton<AllowanceService>();
         builder.Services.AddSingleton<PostponedTaskService>();
+        builder.Services.AddSingleton<QuickAccessActionService>();
         builder.Services.AddSingleton<ListsService>();
         builder.Services.AddSingleton<CustomGameService>();
         builder.Services.AddSingleton<OpenAIKeyService>();

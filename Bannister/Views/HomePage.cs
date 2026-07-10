@@ -45,6 +45,7 @@ public class HomePage : ContentPage
     private readonly DeadlineService _deadlineService;
     private readonly AllowanceService _allowanceService;
     private readonly PostponedTaskService _postponedTaskService;
+    private readonly QuickAccessActionService _quickAccessService;
     private readonly CustomGameService _customGames;
     private readonly OperationApplierService _applier;
     private readonly PendingActivityIdeaService _pendingIdeas;
@@ -102,6 +103,7 @@ public class HomePage : ContentPage
     private Button _btnVideoGeneration;
     private Button _btnWebsiteBuilder;
     private Button _btnZeroCounts;
+    private Button _quickAccessBtn = null!;
     private VerticalStackLayout _buttonSectionsStack;
     private List<HomeNavButton> _allHomeNavButtons = new();
     private List<HomeNavButton> _homeNavButtons = new();
@@ -123,7 +125,7 @@ public class HomePage : ContentPage
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, PromptLibraryService promptLibraryService, DesignationService designationService,
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
-        AllowanceService allowanceService, PostponedTaskService postponedTaskService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
+        AllowanceService allowanceService, PostponedTaskService postponedTaskService, QuickAccessActionService quickAccessService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService)
     {
@@ -163,6 +165,7 @@ public class HomePage : ContentPage
         _deadlineService = deadlineService;
         _allowanceService = allowanceService;
         _postponedTaskService = postponedTaskService;
+        _quickAccessService = quickAccessService;
         _customGames = customGames;
         _openAIKeyService = openAIKeyService;
         _openAIImageService = openAIImageService;
@@ -198,9 +201,10 @@ public class HomePage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
-            ColumnSpacing = 12
+            ColumnSpacing = 8
         };
 
         var headerLabel = new Label
@@ -213,6 +217,21 @@ public class HomePage : ContentPage
         };
         Grid.SetColumn(headerLabel, 0);
         headerGrid.Children.Add(headerLabel);
+
+        _quickAccessBtn = new Button
+        {
+            Text = "⋮",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#37474F"),
+            FontSize = 22,
+            WidthRequest = 44,
+            HeightRequest = 44,
+            Padding = new Thickness(0),
+            VerticalOptions = LayoutOptions.Center
+        };
+        _quickAccessBtn.Clicked += OnQuickAccessClicked;
+        Grid.SetColumn(_quickAccessBtn, 1);
+        headerGrid.Children.Add(_quickAccessBtn);
 
         var btnHomeMenu = new Button
         {
@@ -228,7 +247,7 @@ public class HomePage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         btnHomeMenu.Clicked += OnHomeMenuClicked;
-        Grid.SetColumn(btnHomeMenu, 1);
+        Grid.SetColumn(btnHomeMenu, 2);
         headerGrid.Children.Add(btnHomeMenu);
 
         mainStack.Children.Add(headerGrid);
@@ -2516,6 +2535,117 @@ public class HomePage : ContentPage
             case "Logout":
                 await LogoutAsync();
                 break;
+        }
+    }
+
+    private async void OnQuickAccessClicked(object? sender, EventArgs e)
+    {
+        var actions = await _quickAccessService.GetAllAsync(_auth.CurrentUsername);
+        var options = new List<string> { "➕ Add new quick access action" };
+        options.AddRange(actions.Select(a => a.Title));
+
+        var pick = await DisplayActionSheet(
+            "Quick Access",
+            "Cancel",
+            null,
+            options.ToArray());
+
+        if (string.IsNullOrWhiteSpace(pick) || pick == "Cancel") return;
+
+        if (pick == "➕ Add new quick access action")
+        {
+            await ShowAddQuickAccessActionFlowAsync();
+            return;
+        }
+
+        var action = actions.FirstOrDefault(a => a.Title == pick);
+        if (action == null) return;
+
+        await ExecuteQuickAccessActionAsync(action);
+    }
+
+    private async Task ShowAddQuickAccessActionFlowAsync()
+    {
+        var actionType = await DisplayActionSheet(
+            "Action type:",
+            "Cancel",
+            null,
+            "Open video");
+
+        if (actionType == "Cancel" || string.IsNullOrWhiteSpace(actionType)) return;
+
+        if (actionType == "Open video")
+        {
+            var title = await DisplayPromptAsync(
+                "Action title",
+                "Give this action a display name:",
+                initialValue: "");
+
+            if (string.IsNullOrWhiteSpace(title)) return;
+
+            var lastFolder = await SecureStorage.GetAsync("quick_access_last_video_folder") ?? "";
+
+            var filePath = await DisplayPromptAsync(
+                "Video file path",
+                "Paste the full path to the video file:",
+                initialValue: lastFolder);
+
+            if (string.IsNullOrWhiteSpace(filePath)) return;
+            filePath = filePath.Trim().Trim('"');
+
+            if (!File.Exists(filePath))
+            {
+                await DisplayAlert("File not found", "That file does not exist.", "OK");
+                return;
+            }
+
+            try
+            {
+                var folder = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrWhiteSpace(folder))
+                    await SecureStorage.SetAsync("quick_access_last_video_folder", folder);
+            }
+            catch { }
+
+            await _quickAccessService.CreateAsync(_auth.CurrentUsername, title.Trim(), "open_video", filePath);
+            await DisplayAlert("Added", $"Quick access action '{title.Trim()}' saved.", "OK");
+        }
+    }
+
+    private async Task ExecuteQuickAccessActionAsync(QuickAccessAction action)
+    {
+        if (action.ActionType == "open_video")
+        {
+            if (!File.Exists(action.FilePath))
+            {
+                var delete = await DisplayAlert(
+                    "File not found",
+                    $"The file for '{action.Title}' is missing:\n{action.FilePath}\n\nDelete this action?",
+                    "Delete",
+                    "Keep");
+                if (delete)
+                {
+                    await _quickAccessService.DeleteAsync(action.Id);
+                }
+                return;
+            }
+
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = action.FilePath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Open failed", $"Could not open the file:\n{ex.Message}", "OK");
+            }
+        }
+        else
+        {
+            await DisplayAlert("Unsupported action", $"Action type '{action.ActionType}' is not supported.", "OK");
         }
     }
 

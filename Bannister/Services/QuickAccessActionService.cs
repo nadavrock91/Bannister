@@ -1,0 +1,78 @@
+using Bannister.Models;
+using SQLite;
+
+namespace Bannister.Services;
+
+public class QuickAccessActionService
+{
+    private readonly DatabaseService _db;
+
+    public QuickAccessActionService(DatabaseService db)
+    {
+        _db = db;
+    }
+
+    public bool IsReadOnly => _db.IsReadOnly;
+
+    private async Task EnsureTableAsync()
+    {
+        if (_db.IsReadOnly) return;
+        var conn = await _db.GetConnectionAsync();
+        try { await conn.CreateTableAsync<QuickAccessAction>(); } catch { }
+    }
+
+    public async Task<List<QuickAccessAction>> GetAllAsync(string username)
+    {
+        await EnsureTableAsync();
+        var conn = await _db.GetConnectionAsync();
+        try
+        {
+            return await conn.Table<QuickAccessAction>()
+                .Where(a => a.Username == username)
+                .OrderBy(a => a.SortOrder)
+                .ToListAsync();
+        }
+        catch (SQLiteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+        {
+            return new List<QuickAccessAction>();
+        }
+    }
+
+    public async Task<int> CreateAsync(string username, string title, string actionType, string filePath)
+    {
+        await EnsureTableAsync();
+        if (_db.IsReadOnly) return 0;
+        var conn = await _db.GetConnectionAsync();
+
+        var existingMax = 0;
+        try
+        {
+            var last = await conn.Table<QuickAccessAction>()
+                .Where(a => a.Username == username)
+                .OrderByDescending(a => a.SortOrder)
+                .FirstOrDefaultAsync();
+            if (last != null) existingMax = last.SortOrder;
+        }
+        catch { }
+
+        var action = new QuickAccessAction
+        {
+            Username = username,
+            Title = title,
+            ActionType = actionType,
+            FilePath = filePath,
+            SortOrder = existingMax + 1
+        };
+        await conn.InsertAsync(action);
+        return action.Id;
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        await EnsureTableAsync();
+        if (_db.IsReadOnly) return false;
+        var conn = await _db.GetConnectionAsync();
+        var rows = await conn.DeleteAsync<QuickAccessAction>(id);
+        return rows > 0;
+    }
+}
