@@ -14,6 +14,10 @@ public class OpenAIVisionService
     private const string VisionModel = "gpt-4o-mini";
     private const int MaxImageLongEdge = 1024;
     private const int JpegQuality = 80;
+    private const int BaselineDelayMs = 250;
+    private const int InitialBackoffMs = 2000;
+    private const int MaxBackoffMs = 30000;
+    private const int MaxRateLimitRetries = 5;
     private const string NamingPrompt =
         "You are naming an image file. Look at this image and produce a short descriptive lowercase snake_case filename (no extension). Use only lowercase letters, digits, and underscores. Keep it to 3-7 words maximum. Be specific about the visible subject. Examples: red_sneakers_on_concrete, woman_drinking_coffee_window, abandoned_warehouse_interior_dusk. Output ONLY the filename, no explanation, no quotes, no extension.";
 
@@ -27,6 +31,8 @@ public class OpenAIVisionService
 
     private readonly OpenAIKeyService _keyService;
     private readonly HttpClient _apiClient;
+    private DateTime _lastCallStartedAt = DateTime.MinValue;
+    private readonly object _pacingLock = new();
 
     public OpenAIVisionService(OpenAIKeyService keyService)
     {
@@ -53,9 +59,6 @@ public class OpenAIVisionService
                 return VisionNameResult.Fail("Could not read image.");
 
             var base64 = Convert.ToBase64String(imageBytes);
-
-            using var request = new HttpRequestMessage(HttpMethod.Post, ChatCompletionsUrl);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
             var requestBody = new
             {
@@ -86,16 +89,54 @@ public class OpenAIVisionService
                 max_tokens = 60
             };
 
-            request.Content = new StringContent(
-                JsonSerializer.Serialize(requestBody),
-                Encoding.UTF8,
-                "application/json");
+            string responseJson;
+            var backoffMs = InitialBackoffMs;
+            var attempt = 0;
 
-            using var response = await _apiClient.SendAsync(request);
-            var responseJson = await response.Content.ReadAsStringAsync();
+            while (true)
+            {
+                attempt++;
+                await EnforceBaselinePacingAsync();
 
-            if (!response.IsSuccessStatusCode)
-                return VisionNameResult.Fail(MapError(response.StatusCode, responseJson), TruncateRawResponse(responseJson));
+                using var request = BuildRequest(apiKey, requestBody);
+                using var response = await _apiClient.SendAsync(request);
+
+                if ((int)response.StatusCode == 429)
+                {
+                    responseJson = await response.Content.ReadAsStringAsync();
+
+                    if (attempt >= MaxRateLimitRetries)
+                    {
+                        return VisionNameResult.Fail(
+                            $"Rate limit persists after {MaxRateLimitRetries} retries. Check your OpenAI plan tier or lower request volume.",
+                            TruncateRawResponse(responseJson));
+                    }
+
+                    var waitMs = GetRateLimitWaitMs(response, backoffMs);
+                    try
+                    {
+                        await Task.Delay(waitMs);
+                    }
+                    catch
+                    {
+                    }
+
+                    backoffMs = Math.Min(backoffMs * 2, MaxBackoffMs);
+                    lock (_pacingLock)
+                    {
+                        _lastCallStartedAt = DateTime.UtcNow;
+                    }
+
+                    continue;
+                }
+
+                responseJson = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                    return VisionNameResult.Fail(MapError(response.StatusCode, responseJson), TruncateRawResponse(responseJson));
+
+                break;
+            }
 
             var parsed = JsonSerializer.Deserialize<ChatCompletionResponse>(responseJson);
             var rawName = parsed?.Choices?.FirstOrDefault()?.Message?.Content;
@@ -129,6 +170,48 @@ public class OpenAIVisionService
         {
             return VisionNameResult.Fail($"Vision naming failed: {ex.Message}");
         }
+    }
+
+    private async Task EnforceBaselinePacingAsync(CancellationToken ct = default)
+    {
+        TimeSpan waitFor;
+        lock (_pacingLock)
+        {
+            var elapsed = DateTime.UtcNow - _lastCallStartedAt;
+            var remaining = TimeSpan.FromMilliseconds(BaselineDelayMs) - elapsed;
+            waitFor = remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+            _lastCallStartedAt = DateTime.UtcNow + waitFor;
+        }
+
+        if (waitFor > TimeSpan.Zero)
+            await Task.Delay(waitFor, ct);
+    }
+
+    private static HttpRequestMessage BuildRequest(string apiKey, object requestBody)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, ChatCompletionsUrl);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        request.Content = new StringContent(
+            JsonSerializer.Serialize(requestBody),
+            Encoding.UTF8,
+            "application/json");
+        return request;
+    }
+
+    private static int GetRateLimitWaitMs(HttpResponseMessage response, int backoffMs)
+    {
+        var waitMs = backoffMs;
+        if (response.Headers.RetryAfter?.Delta is TimeSpan delta)
+        {
+            waitMs = Math.Max((int)delta.TotalMilliseconds, backoffMs);
+        }
+        else if (response.Headers.RetryAfter?.Date is DateTimeOffset date)
+        {
+            var untilDate = (int)(date - DateTimeOffset.UtcNow).TotalMilliseconds;
+            waitMs = Math.Max(untilDate, backoffMs);
+        }
+
+        return Math.Min(Math.Max(waitMs, 0), MaxBackoffMs);
     }
 
     private static byte[]? EncodeDownscaledJpeg(string imagePath)
