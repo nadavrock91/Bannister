@@ -95,15 +95,27 @@ public class OpenAIVisionService
             var responseJson = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
-                return VisionNameResult.Fail(MapError(response.StatusCode, responseJson));
+                return VisionNameResult.Fail(MapError(response.StatusCode, responseJson), TruncateRawResponse(responseJson));
 
             var parsed = JsonSerializer.Deserialize<ChatCompletionResponse>(responseJson);
             var rawName = parsed?.Choices?.FirstOrDefault()?.Message?.Content;
-            var sanitized = SanitizeFilename(rawName ?? "");
+            var raw = rawName ?? "";
+            var sanitized = SanitizeFilename(raw);
 
-            return string.IsNullOrWhiteSpace(sanitized)
-                ? VisionNameResult.Fail("Vision response did not contain a usable filename.")
-                : VisionNameResult.Ok(sanitized);
+            if (string.IsNullOrWhiteSpace(sanitized))
+            {
+                string reason;
+                if (string.IsNullOrWhiteSpace(raw))
+                    reason = "Empty response from API";
+                else if (LooksLikeRefusal(raw))
+                    reason = "Model declined to name image";
+                else
+                    reason = "Response sanitized to empty";
+
+                return VisionNameResult.Fail(reason, raw);
+            }
+
+            return VisionNameResult.Ok(sanitized, raw);
         }
         catch (TaskCanceledException ex)
         {
@@ -170,6 +182,27 @@ public class OpenAIVisionService
         return s;
     }
 
+    private static bool LooksLikeRefusal(string raw)
+    {
+        var lower = raw.ToLowerInvariant();
+        return lower.Contains("i cannot") ||
+               lower.Contains("i can't") ||
+               lower.Contains("i am unable") ||
+               lower.Contains("i'm unable") ||
+               lower.Contains("i'm sorry") ||
+               lower.Contains("i am sorry") ||
+               lower.Contains("not appropriate") ||
+               lower.Contains("cannot assist");
+    }
+
+    private static string TruncateRawResponse(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return "";
+
+        return raw.Length > 1000 ? raw.Substring(0, 1000) + "..." : raw;
+    }
+
     private static string MapError(HttpStatusCode statusCode, string responseJson)
     {
         var apiMessage = TryGetApiErrorMessage(responseJson);
@@ -229,9 +262,16 @@ public class OpenAIVisionService
     }
 }
 
-public sealed record VisionNameResult(bool Success, string? SuggestedName, string? ErrorMessage)
+public sealed class VisionNameResult
 {
-    public static VisionNameResult Ok(string name) => new(true, name, null);
+    public bool Success { get; init; }
+    public string? SuggestedName { get; init; }
+    public string? ErrorMessage { get; init; }
+    public string? RawResponse { get; init; }
 
-    public static VisionNameResult Fail(string error) => new(false, null, error);
+    public static VisionNameResult Ok(string suggestedName, string? rawResponse = null) =>
+        new() { Success = true, SuggestedName = suggestedName, RawResponse = rawResponse };
+
+    public static VisionNameResult Fail(string errorMessage, string? rawResponse = null) =>
+        new() { Success = false, ErrorMessage = errorMessage, RawResponse = rawResponse };
 }

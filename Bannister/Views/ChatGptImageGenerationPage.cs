@@ -1104,7 +1104,7 @@ public class ChatGptImageGenerationPage : ContentPage
         var totalRenamed = 0;
         var passNumber = 0;
         var cancelled = false;
-        var failures = new List<string>();
+        var failureReasons = new List<(string fileName, int passNumber, string reason, string rawSnippet)>();
 
         try
         {
@@ -1149,13 +1149,27 @@ public class ChatGptImageGenerationPage : ContentPage
                     totalApiCalls++;
 
                     if (!result.Success || string.IsNullOrWhiteSpace(result.SuggestedName))
+                    {
+                        failureReasons.Add((
+                            Path.GetFileName(path),
+                            passNumber,
+                            result.ErrorMessage ?? "Unknown failure",
+                            BuildRawSnippet(result.RawResponse)));
                         continue;
+                    }
 
                     try
                     {
                         var sanitized = SanitizeForFilename(result.SuggestedName);
                         if (string.IsNullOrWhiteSpace(sanitized))
+                        {
+                            failureReasons.Add((
+                                Path.GetFileName(path),
+                                passNumber,
+                                "Suggested name sanitized to empty",
+                                BuildRawSnippet(result.RawResponse)));
                             continue;
+                        }
 
                         var ext = Path.GetExtension(path);
                         var targetPath = Path.Combine(renamedDir, sanitized + ext);
@@ -1174,7 +1188,11 @@ public class ChatGptImageGenerationPage : ContentPage
                     }
                     catch (Exception ex)
                     {
-                        failures.Add($"{Path.GetFileName(path)}: {ex.Message}");
+                        failureReasons.Add((
+                            Path.GetFileName(path),
+                            passNumber,
+                            $"Disk error: {ex.Message}",
+                            "(disk operation)"));
                     }
                 }
 
@@ -1217,15 +1235,68 @@ public class ChatGptImageGenerationPage : ContentPage
             $"Still unnamed in source: {stillUnnamed}\n" +
             $"API calls: {totalApiCalls} (~${actualCost:0.000})";
 
-        if (failures.Count > 0)
+        await DisplayAlert("Bulk rename finished", summary, "OK");
+
+        if (failureReasons.Count > 0)
+            await DisplayAlert("Failure details", BuildFailureDetails(failureReasons), "OK");
+
+        UpdateCostEstimate();
+    }
+
+    private static string BuildRawSnippet(string? rawResponse)
+    {
+        if (string.IsNullOrWhiteSpace(rawResponse))
+            return "(no response)";
+
+        var cleaned = rawResponse.Replace("\r", " ").Replace("\n", " ").Trim();
+        return cleaned.Length > 200 ? cleaned.Substring(0, 200) + "..." : cleaned;
+    }
+
+    private static string BuildFailureDetails(List<(string fileName, int passNumber, string reason, string rawSnippet)> failureReasons)
+    {
+        var grouped = failureReasons
+            .GroupBy(f => f.fileName)
+            .Select(g => new
+            {
+                FileName = g.Key,
+                AttemptCount = g.Count(),
+                Reasons = g.Select(f => (f.reason, f.rawSnippet)).ToList()
+            })
+            .OrderByDescending(g => g.AttemptCount)
+            .ThenBy(g => g.FileName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"{grouped.Count} file(s) failed at least once.");
+        sb.AppendLine();
+
+        foreach (var g in grouped.Take(15))
         {
-            summary += "\n\nErrors:\n" + string.Join("\n", failures.Take(10));
-            if (failures.Count > 10)
-                summary += $"\n...and {failures.Count - 10} more.";
+            sb.AppendLine($"- {g.FileName} ({g.AttemptCount} failed attempt(s))");
+            var uniqueReasons = g.Reasons
+                .GroupBy(r => r.reason)
+                .Select(rg => new { Reason = rg.Key, Count = rg.Count(), Sample = rg.First().rawSnippet })
+                .OrderByDescending(x => x.Count)
+                .Take(3);
+
+            foreach (var ur in uniqueReasons)
+            {
+                sb.AppendLine($"    - {ur.Reason} (x{ur.Count})");
+                if (!string.IsNullOrWhiteSpace(ur.Sample) &&
+                    ur.Sample != "(no response)" &&
+                    ur.Sample != "(disk operation)")
+                {
+                    sb.AppendLine($"      \"{ur.Sample}\"");
+                }
+            }
+
+            sb.AppendLine();
         }
 
-        await DisplayAlert("Bulk rename finished", summary, "OK");
-        UpdateCostEstimate();
+        if (grouped.Count > 15)
+            sb.AppendLine($"...and {grouped.Count - 15} more files with failures.");
+
+        return sb.ToString();
     }
 
     private void RefreshQueueDisplay()
