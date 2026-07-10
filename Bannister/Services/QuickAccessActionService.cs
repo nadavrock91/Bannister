@@ -85,4 +85,52 @@ public class QuickAccessActionService
         var rows = await conn.DeleteAsync<QuickAccessAction>(id);
         return rows > 0;
     }
+
+    public async Task<bool> MoveUpAsync(int actionId)
+    {
+        if (_db.IsReadOnly) return false;
+        await EnsureTableAsync();
+        var conn = await _db.GetConnectionAsync();
+
+        var current = await conn.Table<QuickAccessAction>().FirstOrDefaultAsync(a => a.Id == actionId);
+        if (current == null) return false;
+
+        var above = await conn.Table<QuickAccessAction>()
+            .Where(a => a.Username == current.Username && a.SortOrder < current.SortOrder)
+            .OrderByDescending(a => a.SortOrder)
+            .FirstOrDefaultAsync();
+
+        if (above == null) return false;
+
+        var tmp = current.SortOrder;
+        current.SortOrder = above.SortOrder;
+        above.SortOrder = tmp;
+        await conn.UpdateAsync(current);
+        await conn.UpdateAsync(above);
+        return true;
+    }
+
+    public async Task<bool> MoveDownAsync(int actionId)
+    {
+        if (_db.IsReadOnly) return false;
+        await EnsureTableAsync();
+        var conn = await _db.GetConnectionAsync();
+
+        var current = await conn.Table<QuickAccessAction>().FirstOrDefaultAsync(a => a.Id == actionId);
+        if (current == null) return false;
+
+        var below = await conn.Table<QuickAccessAction>()
+            .Where(a => a.Username == current.Username && a.SortOrder > current.SortOrder)
+            .OrderBy(a => a.SortOrder)
+            .FirstOrDefaultAsync();
+
+        if (below == null) return false;
+
+        var tmp = current.SortOrder;
+        current.SortOrder = below.SortOrder;
+        below.SortOrder = tmp;
+        await conn.UpdateAsync(current);
+        await conn.UpdateAsync(below);
+        return true;
+    }
 }

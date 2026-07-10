@@ -2545,6 +2545,8 @@ public class HomePage : ContentPage
         var actions = await _quickAccessService.GetAllAsync(_auth.CurrentUsername);
         var options = new List<string> { "➕ Add new quick access action" };
         options.AddRange(actions.Select(a => a.Title));
+        if (actions.Count > 0)
+            options.Add("⚙️ Manage actions");
 
         var pick = await DisplayActionSheet(
             "Quick Access",
@@ -2557,6 +2559,12 @@ public class HomePage : ContentPage
         if (pick == "➕ Add new quick access action")
         {
             await ShowAddQuickAccessActionFlowAsync();
+            return;
+        }
+
+        if (pick == "⚙️ Manage actions")
+        {
+            await ShowManageActionsModalAsync();
             return;
         }
 
@@ -2574,7 +2582,8 @@ public class HomePage : ContentPage
             null,
             "Open video",
             "Prompt wrap (prefix)",
-            "Prompt wrap (suffix)");
+            "Prompt wrap (suffix)",
+            "Copy to clipboard");
 
         if (actionType == "Cancel" || string.IsNullOrWhiteSpace(actionType)) return;
 
@@ -2650,6 +2659,33 @@ public class HomePage : ContentPage
                 "",
                 promptType,
                 promptText);
+
+            await DisplayAlert("Added", $"Quick access action '{title.Trim()}' saved.", "OK");
+        }
+
+        if (actionType == "Copy to clipboard")
+        {
+            var title = await DisplayPromptAsync(
+                "Action title",
+                "Give this action a display name:",
+                initialValue: "");
+
+            if (string.IsNullOrWhiteSpace(title)) return;
+
+            var text = await ShowFixedPromptEditorAsync(
+                "Clipboard text",
+                "Enter the text this action will copy to clipboard when tapped:",
+                "");
+
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            await _quickAccessService.CreateAsync(
+                _auth.CurrentUsername,
+                title.Trim(),
+                "copy_to_clipboard",
+                "",
+                promptType: null,
+                promptText: text);
 
             await DisplayAlert("Added", $"Quick access action '{title.Trim()}' saved.", "OK");
         }
@@ -2771,6 +2807,24 @@ public class HomePage : ContentPage
             }
 
             await ShowPromptWrapModalAsync(action);
+        }
+        else if (action.ActionType == "copy_to_clipboard")
+        {
+            if (string.IsNullOrWhiteSpace(action.PromptText))
+            {
+                await DisplayAlert("Action broken", "This copy action has no text. Delete and recreate it.", "OK");
+                return;
+            }
+
+            try
+            {
+                await Clipboard.SetTextAsync(action.PromptText);
+                await DisplayAlert("Copied", "Text copied to clipboard.", "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Copy failed", ex.Message, "OK");
+            }
         }
         else
         {
@@ -2909,6 +2963,189 @@ public class HomePage : ContentPage
 
         await tcs.Task;
     }
+
+    private async Task ShowManageActionsModalAsync()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        var parent = Content as Grid;
+        if (parent == null) return;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var listStack = new VerticalStackLayout { Spacing = 6 };
+
+        async Task RebuildListAsync()
+        {
+            listStack.Children.Clear();
+            var actions = await _quickAccessService.GetAllAsync(_auth.CurrentUsername);
+            if (actions.Count == 0)
+            {
+                listStack.Children.Add(new Label
+                {
+                    Text = "No actions to manage.",
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#999"),
+                    FontAttributes = FontAttributes.Italic,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(0, 20)
+                });
+                return;
+            }
+
+            for (var i = 0; i < actions.Count; i++)
+            {
+                var a = actions[i];
+                var isFirst = i == 0;
+                var isLast = i == actions.Count - 1;
+
+                var row = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = GridLength.Auto }
+                    },
+                    Padding = new Thickness(8, 6),
+                    BackgroundColor = Color.FromArgb("#FAFAFA")
+                };
+
+                var titleLabel = new Label
+                {
+                    Text = $"{a.Title} ({TypeToDisplay(a.ActionType)})",
+                    FontSize = 14,
+                    VerticalOptions = LayoutOptions.Center
+                };
+
+                var upBtn = new Button
+                {
+                    Text = "⬆️",
+                    FontSize = 14,
+                    WidthRequest = 36,
+                    HeightRequest = 32,
+                    BackgroundColor = isFirst ? Color.FromArgb("#EEEEEE") : Color.FromArgb("#E3F2FD"),
+                    IsEnabled = !isFirst
+                };
+
+                var downBtn = new Button
+                {
+                    Text = "⬇️",
+                    FontSize = 14,
+                    WidthRequest = 36,
+                    HeightRequest = 32,
+                    BackgroundColor = isLast ? Color.FromArgb("#EEEEEE") : Color.FromArgb("#E3F2FD"),
+                    IsEnabled = !isLast
+                };
+
+                var delBtn = new Button
+                {
+                    Text = "🗑️",
+                    FontSize = 14,
+                    WidthRequest = 36,
+                    HeightRequest = 32,
+                    BackgroundColor = Color.FromArgb("#FFCDD2")
+                };
+
+                upBtn.Clicked += async (_, _) =>
+                {
+                    await _quickAccessService.MoveUpAsync(a.Id);
+                    await RebuildListAsync();
+                };
+
+                downBtn.Clicked += async (_, _) =>
+                {
+                    await _quickAccessService.MoveDownAsync(a.Id);
+                    await RebuildListAsync();
+                };
+
+                delBtn.Clicked += async (_, _) =>
+                {
+                    var confirm = await DisplayAlert(
+                        "Delete action?",
+                        $"Delete '{a.Title}'? This cannot be undone.",
+                        "Delete",
+                        "Cancel");
+                    if (!confirm) return;
+                    await _quickAccessService.DeleteAsync(a.Id);
+                    await RebuildListAsync();
+                };
+
+                var buttonRow = new HorizontalStackLayout
+                {
+                    Spacing = 4,
+                    Children = { upBtn, downBtn, delBtn }
+                };
+
+                row.Add(titleLabel, 0, 0);
+                row.Add(buttonRow, 1, 0);
+                listStack.Children.Add(row);
+            }
+        }
+
+        await RebuildListAsync();
+
+        var closeBtn = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        closeBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+        };
+
+        var scroll = new ScrollView
+        {
+            HeightRequest = 400,
+            Content = listStack
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 520,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new Label { Text = "⚙️ Manage quick access actions", FontSize = 18, FontAttributes = FontAttributes.Bold },
+                    new Label
+                    {
+                        Text = "Reorder with ⬆️/⬇️, delete with 🗑️. Order controls how they appear in the quick access menu.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    scroll,
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 8,
+                        HorizontalOptions = LayoutOptions.End,
+                        Children = { closeBtn }
+                    }
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        await tcs.Task;
+    }
+
+    private static string TypeToDisplay(string actionType) => actionType switch
+    {
+        "open_video" => "video",
+        "prompt_wrap" => "wrap",
+        "copy_to_clipboard" => "copy",
+        _ => actionType
+    };
 
     private async Task NavigateToSettingsAsync()
     {
