@@ -42,6 +42,8 @@
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 		<PackageReference Include="SQLitePCLRaw.bundle_e_sqlcipher" Version="2.1.11" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.100" />
+		<PackageReference Include="Xabe.FFmpeg" Version="5.2.6" />
+		<PackageReference Include="Xabe.FFmpeg.Downloader" Version="5.2.6" />
 	</ItemGroup>
 	<ItemGroup>
 		<MauiXaml Update="Views\EditActivityPage.xaml">

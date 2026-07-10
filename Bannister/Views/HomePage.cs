@@ -99,6 +99,7 @@ public class HomePage : ContentPage
     private Button _btnMoneyManagement;
     private Button _btnLists;
     private Button _btnToBeTested;
+    private Button _btnVideoGeneration;
     private Button _btnWebsiteBuilder;
     private Button _btnZeroCounts;
     private VerticalStackLayout _buttonSectionsStack;
@@ -353,6 +354,10 @@ public class HomePage : ContentPage
         _btnToBeTested = CreateButton("To Be Tested", Color.FromArgb("#FFF9C4"), Color.FromArgb("#F57C00"));
         _btnToBeTested.Clicked += OnToBeTestedClicked;
         navButtons.Add(("To Be Tested", _btnToBeTested));
+
+        _btnVideoGeneration = CreateButton(" Video Generation", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C2185B"));
+        _btnVideoGeneration.Clicked += OnVideoGenerationClicked;
+        navButtons.Add(("Video Generation", _btnVideoGeneration));
 
         _btnAudioLibrary = CreateButton("🔊 Audio Library", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
         _btnAudioLibrary.Clicked += OnAudioLibraryClicked;
@@ -793,6 +798,7 @@ public class HomePage : ContentPage
             "SubActivities" => OnSubActivitiesClicked,
             "Tasks" => OnTasksClicked,
             "To Be Tested" => OnToBeTestedClicked,
+            "Video Generation" => OnVideoGenerationClicked,
             "Website Builder" => OnWebsiteBuilderClicked,
             "Zero Counts" => OnZeroCountsClicked,
             _ => (_, _) => { }
@@ -2362,6 +2368,11 @@ public class HomePage : ContentPage
         }
 
         await Navigation.PushAsync(new ImageGenerationHubPage(_openAIKeyService, _openAIImageService, _ownerMode));
+    }
+
+    private async void OnVideoGenerationClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new VideoGenerationHubPage(_auth));
     }
 
     private async void OnCalendarClicked(object? sender, EventArgs e)

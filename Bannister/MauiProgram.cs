@@ -141,6 +141,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ImageEditPage>();
         builder.Services.AddTransient<ImageGenerationHubPage>();
         builder.Services.AddTransient<ChatGptImageGenerationPage>();
+        builder.Services.AddTransient<VideoGenerationHubPage>();
+        builder.Services.AddTransient<SlideshowPage>();
         builder.Services.AddTransient<WebsiteBuilderPage>();
         builder.Services.AddTransient<WebsiteBuilderSetupGuidePage>();
         builder.Services.AddTransient<ZeroCountsPage>();
