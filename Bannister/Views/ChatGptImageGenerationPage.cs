@@ -34,16 +34,6 @@ public class ChatGptImageGenerationPage : ContentPage
         public string? SavedPath { get; set; }
     }
 
-    private sealed class RenamePreviewItem
-    {
-        public string OriginalPath { get; init; } = "";
-        public string OriginalName { get; init; } = "";
-        public string SuggestedName { get; set; } = "";
-        public string Extension { get; init; } = "";
-        public bool Selected { get; set; } = true;
-        public string? Error { get; set; }
-    }
-
     private readonly OpenAIKeyService _keyService;
     private readonly OpenAIImageService _imageService;
     private readonly OpenAIVisionService _visionService;
@@ -71,10 +61,8 @@ public class ChatGptImageGenerationPage : ContentPage
     private readonly Button _clearQueueButton;
     private readonly VerticalStackLayout _batchGalleryStack;
     private string? _renameFolderPath;
-    private List<RenamePreviewItem>? _renamePreview;
-    private bool _renameDryRunRunning;
-    private bool _renameExecuteRunning;
-    private CancellationTokenSource? _dryRunCts;
+    private bool _renameRunning;
+    private CancellationTokenSource? _renameCts;
     private int _renameRetryCap = DefaultRetryCap;
     private bool _updatingRenameRetryCapEntry;
     private readonly Label _renameFolderLabel;
@@ -82,10 +70,8 @@ public class ChatGptImageGenerationPage : ContentPage
     private readonly Label _renameProgressLabel;
     private readonly Entry _renameRetryCapEntry;
     private readonly Button _renamePickFolderButton;
-    private readonly Button _renameDryRunButton;
-    private readonly Button _renameExecuteButton;
+    private readonly Button _renameRunButton;
     private readonly Button _renameCancelButton;
-    private readonly VerticalStackLayout _renamePreviewStack;
     private readonly List<QueuedPrompt> _queue = new();
     private bool _isGenerating;
     private bool _isQueueRunning;
@@ -304,26 +290,17 @@ public class ChatGptImageGenerationPage : ContentPage
             HeightRequest = 40
         };
         _renamePickFolderButton.Clicked += OnPickRenameFolderClicked;
-        _renameDryRunButton = new Button
+        _renameRunButton = new Button
         {
-            Text = "Run Dry-Run",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            HeightRequest = 42,
-            IsEnabled = false
-        };
-        _renameDryRunButton.Clicked += OnRunDryRunClicked;
-        _renameExecuteButton = new Button
-        {
-            Text = "Execute Renames",
+            Text = "▶ Run",
             BackgroundColor = Color.FromArgb("#2E7D32"),
             TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42,
-            IsEnabled = false
+            IsEnabled = false,
+            FontAttributes = FontAttributes.Bold
         };
-        _renameExecuteButton.Clicked += OnExecuteRenamesClicked;
+        _renameRunButton.Clicked += OnRunRenameClicked;
         _renameCancelButton = new Button
         {
             Text = "Cancel",
@@ -333,11 +310,7 @@ public class ChatGptImageGenerationPage : ContentPage
             HeightRequest = 36,
             IsVisible = false
         };
-        _renameCancelButton.Clicked += (_, _) => _dryRunCts?.Cancel();
-        _renamePreviewStack = new VerticalStackLayout
-        {
-            Spacing = 6
-        };
+        _renameCancelButton.Clicked += (_, _) => _renameCts?.Cancel();
 
         _normalContent = new ScrollView
         {
@@ -587,18 +560,6 @@ public class ChatGptImageGenerationPage : ContentPage
             Children = { retryCapLabel, _renameRetryCapEntry }
         };
 
-        var actionsGrid = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star }
-            },
-            ColumnSpacing = 10
-        };
-        actionsGrid.Add(_renameDryRunButton, 0, 0);
-        actionsGrid.Add(_renameExecuteButton, 1, 0);
-
         return new Frame
         {
             Padding = 14,
@@ -620,21 +581,16 @@ public class ChatGptImageGenerationPage : ContentPage
                     },
                     new Label
                     {
-                        Text = "Pick a folder. The vision API suggests a descriptive filename for each image at the top level. Review the preview, then execute the renames on disk.",
+                        Text = "Pick a folder. The vision API names each top-level image, renames successful files, and moves them into a 'renamed' subfolder. Unnamed files remain in the source folder for retries.",
                         FontSize = 12,
                         TextColor = Color.FromArgb("#666")
                     },
                     folderRow,
                     retryCapRow,
                     _renameCountLabel,
+                    _renameRunButton,
                     _renameProgressLabel,
-                    _renameCancelButton,
-                    actionsGrid,
-                    new ScrollView
-                    {
-                        HeightRequest = 280,
-                        Content = _renamePreviewStack
-                    }
+                    _renameCancelButton
                 }
             }
         };
@@ -1004,7 +960,7 @@ public class ChatGptImageGenerationPage : ContentPage
 
     private async void OnPickRenameFolderClicked(object? sender, EventArgs e)
     {
-        if (_renameDryRunRunning || _renameExecuteRunning)
+        if (_renameRunning)
             return;
 
         string? last = null;
@@ -1048,11 +1004,7 @@ public class ChatGptImageGenerationPage : ContentPage
         var count = CountRenameableImages(folderPath);
         _renameFolderLabel.Text = $"Folder: {folderPath}";
         UpdateCostEstimate();
-
-        _renameDryRunButton.IsEnabled = count > 0 && !_renameDryRunRunning && !_renameExecuteRunning;
-        _renamePreview = null;
-        _renamePreviewStack.Children.Clear();
-        _renameExecuteButton.IsEnabled = false;
+        _renameRunButton.IsEnabled = count > 0 && !_renameRunning && Directory.Exists(folderPath);
     }
 
     private void UpdateCostEstimate()
@@ -1083,9 +1035,9 @@ public class ChatGptImageGenerationPage : ContentPage
             $"(best ${bestCase:0.000}, max ${maxCase:0.000} at {cap} passes)";
     }
 
-    private async void OnRunDryRunClicked(object? sender, EventArgs e)
+    private async void OnRunRenameClicked(object? sender, EventArgs e)
     {
-        if (_renameDryRunRunning || _renameExecuteRunning)
+        if (_renameRunning)
             return;
 
         if (string.IsNullOrWhiteSpace(_renameFolderPath) || !Directory.Exists(_renameFolderPath))
@@ -1097,8 +1049,8 @@ public class ChatGptImageGenerationPage : ContentPage
             return;
         }
 
-        var files = GetRenameableImageFiles(_renameFolderPath);
-        if (files.Count == 0)
+        var initialFiles = GetRenameableImageFiles(_renameFolderPath);
+        if (initialFiles.Count == 0)
         {
             await DisplayAlert("No images", "No images found at the top level of that folder.", "OK");
             return;
@@ -1107,51 +1059,52 @@ public class ChatGptImageGenerationPage : ContentPage
         var cap = Math.Clamp(_renameRetryCap, MinRetryCap, MaxRetryCap);
         var q = 1.0 - AssumedSuccessRatePerPass;
         var expectedFactor = (1.0 - Math.Pow(q, cap)) / AssumedSuccessRatePerPass;
-        var expectedCost = (decimal)(files.Count * expectedFactor) * VisionRenameEstimatedCostUsd;
-        var maxCost = files.Count * cap * VisionRenameEstimatedCostUsd;
+        var expectedCost = (decimal)(initialFiles.Count * expectedFactor) * VisionRenameEstimatedCostUsd;
+        var maxCost = initialFiles.Count * cap * VisionRenameEstimatedCostUsd;
 
         var confirm = await DisplayAlert(
-            "Confirm dry-run",
-            $"Send {files.Count} image(s) to OpenAI Vision.\n\n" +
-            $"Est. cost: ${expectedCost:0.000} (assumes 60% success per pass, {cap} max passes).\n" +
-            $"Max cost if all passes hit cap: ${maxCost:0.000}.\n\n" +
-            "Retries continue until all files are named or the cap is reached.",
+            "Run bulk rename",
+            $"Rename {initialFiles.Count} image(s) automatically.\n\n" +
+            $"Est. cost: ${expectedCost:0.000} (60% success/pass, {cap} max passes).\n" +
+            $"Max cost: ${maxCost:0.000}.\n\n" +
+            "Successfully renamed files will move to a 'renamed' subfolder. Unnamed files remain in the source folder.",
             "Run",
             "Cancel");
 
         if (!confirm)
             return;
 
-        _renameDryRunRunning = true;
+        _renameRunning = true;
         _renamePickFolderButton.IsEnabled = false;
-        _renameDryRunButton.IsEnabled = false;
-        _renameExecuteButton.IsEnabled = false;
+        _renameRunButton.IsEnabled = false;
         _renameProgressLabel.IsVisible = true;
         _renameCancelButton.IsVisible = true;
-        _renamePreview = new List<RenamePreviewItem>();
-        _renamePreviewStack.Children.Clear();
+        _renameCts = new CancellationTokenSource();
+        var ct = _renameCts.Token;
 
-        foreach (var file in files)
+        var renamedDir = Path.Combine(_renameFolderPath, "renamed");
+        try
         {
-            var item = new RenamePreviewItem
-            {
-                OriginalPath = file,
-                OriginalName = Path.GetFileName(file),
-                Extension = Path.GetExtension(file),
-                Selected = false,
-                SuggestedName = "",
-                Error = null
-            };
-
-            _renamePreview.Add(item);
-            _renamePreviewStack.Children.Add(BuildPreviewRow(item));
+            Directory.CreateDirectory(renamedDir);
+        }
+        catch (Exception ex)
+        {
+            _renameCts.Dispose();
+            _renameCts = null;
+            _renameRunning = false;
+            _renamePickFolderButton.IsEnabled = true;
+            _renameRunButton.IsEnabled = Directory.Exists(_renameFolderPath);
+            _renameProgressLabel.IsVisible = false;
+            _renameCancelButton.IsVisible = false;
+            await DisplayAlert("Cannot create output folder", ex.Message, "OK");
+            return;
         }
 
-        _dryRunCts = new CancellationTokenSource();
-        var ct = _dryRunCts.Token;
         var totalApiCalls = 0;
+        var totalRenamed = 0;
         var passNumber = 0;
         var cancelled = false;
+        var failures = new List<string>();
 
         try
         {
@@ -1165,10 +1118,7 @@ public class ChatGptImageGenerationPage : ContentPage
 
                 passNumber++;
 
-                var pending = _renamePreview
-                    .Where(p => string.IsNullOrWhiteSpace(p.SuggestedName))
-                    .ToList();
-
+                var pending = GetRenameableImageFiles(_renameFolderPath);
                 if (pending.Count == 0)
                     break;
 
@@ -1180,38 +1130,62 @@ public class ChatGptImageGenerationPage : ContentPage
                         break;
                     }
 
-                    var item = pending[i];
+                    var path = pending[i];
                     _renameProgressLabel.Text =
                         $"Pass {passNumber}/{cap} - {i + 1}/{pending.Count} " +
-                        $"({_renamePreview.Count(p => !string.IsNullOrWhiteSpace(p.SuggestedName))}/{_renamePreview.Count} named)";
+                        $"({totalRenamed}/{initialFiles.Count} renamed)";
                     await Task.Yield();
 
-                    var result = await _visionService.SuggestImageNameAsync(item.OriginalPath);
+                    VisionNameResult result;
+                    try
+                    {
+                        result = await _visionService.SuggestImageNameAsync(path);
+                    }
+                    catch (Exception ex)
+                    {
+                        result = VisionNameResult.Fail($"API error: {ex.Message}");
+                    }
+
                     totalApiCalls++;
 
-                    if (result.Success && !string.IsNullOrWhiteSpace(result.SuggestedName))
-                    {
-                        item.Selected = true;
-                        item.SuggestedName = result.SuggestedName!;
-                        item.Error = null;
-                    }
-                    else
-                    {
-                        item.Selected = false;
-                        item.Error = result.ErrorMessage;
-                    }
+                    if (!result.Success || string.IsNullOrWhiteSpace(result.SuggestedName))
+                        continue;
 
-                    RefreshPreviewRow(item);
+                    try
+                    {
+                        var sanitized = SanitizeForFilename(result.SuggestedName);
+                        if (string.IsNullOrWhiteSpace(sanitized))
+                            continue;
+
+                        var ext = Path.GetExtension(path);
+                        var targetPath = Path.Combine(renamedDir, sanitized + ext);
+                        var collisionCounter = 2;
+                        while (File.Exists(targetPath))
+                        {
+                            if (collisionCounter > 100)
+                                throw new InvalidOperationException("Could not find available filename.");
+
+                            targetPath = Path.Combine(renamedDir, $"{sanitized}_{collisionCounter}{ext}");
+                            collisionCounter++;
+                        }
+
+                        File.Move(path, targetPath);
+                        totalRenamed++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failures.Add($"{Path.GetFileName(path)}: {ex.Message}");
+                    }
                 }
 
                 if (cancelled)
                     break;
 
-                var stillPending = _renamePreview.Count(p => string.IsNullOrWhiteSpace(p.SuggestedName));
-                if (stillPending == 0)
+                var stillPendingCount = GetRenameableImageFiles(_renameFolderPath).Count;
+                if (stillPendingCount == 0)
                     break;
 
-                _renameProgressLabel.Text = $"Pass {passNumber} done. {stillPending} unnamed. Pausing before next pass...";
+                _renameProgressLabel.Text = $"Pass {passNumber} done. {stillPendingCount} unnamed. Pausing before next pass...";
                 try
                 {
                     await Task.Delay(1000, ct);
@@ -1225,231 +1199,33 @@ public class ChatGptImageGenerationPage : ContentPage
         }
         finally
         {
-            _dryRunCts?.Dispose();
-            _dryRunCts = null;
-            _renameDryRunRunning = false;
+            _renameCts?.Dispose();
+            _renameCts = null;
+            _renameRunning = false;
             _renamePickFolderButton.IsEnabled = true;
-            _renameDryRunButton.IsEnabled = true;
+            _renameRunButton.IsEnabled = Directory.Exists(_renameFolderPath);
             _renameProgressLabel.IsVisible = false;
             _renameCancelButton.IsVisible = false;
-            _renameExecuteButton.IsEnabled = _renamePreview?.Any(p => p.Selected) == true;
         }
 
-        var namedCount = _renamePreview.Count(p => p.Selected);
-        var unnamedCount = _renamePreview.Count - namedCount;
         var actualCost = totalApiCalls * VisionRenameEstimatedCostUsd;
-        var summary = cancelled
-            ? $"Cancelled after pass {passNumber}.\n\nNamed: {namedCount}\nUnnamed: {unnamedCount}\nAPI calls: {totalApiCalls} (~${actualCost:0.000})"
-            : $"Complete after {passNumber} pass(es).\n\nNamed: {namedCount}\nUnnamed: {unnamedCount}\nAPI calls: {totalApiCalls} (~${actualCost:0.000})";
+        var stillUnnamed = GetRenameableImageFiles(_renameFolderPath).Count;
+        var status = cancelled ? "Cancelled" : "Complete";
+        var summary =
+            $"{status} after {passNumber} pass(es).\n\n" +
+            $"Renamed: {totalRenamed} -> 'renamed' subfolder\n" +
+            $"Still unnamed in source: {stillUnnamed}\n" +
+            $"API calls: {totalApiCalls} (~${actualCost:0.000})";
 
-        await DisplayAlert(
-            "Dry-run finished",
-            summary,
-            "OK");
-    }
-
-    private void RefreshPreviewRow(RenamePreviewItem item)
-    {
-        if (_renamePreview == null)
-            return;
-
-        var index = _renamePreview.IndexOf(item);
-        if (index < 0 || index >= _renamePreviewStack.Children.Count)
-            return;
-
-        _renamePreviewStack.Children.RemoveAt(index);
-        _renamePreviewStack.Children.Insert(index, BuildPreviewRow(item));
-    }
-
-    private View BuildPreviewRow(RenamePreviewItem item)
-    {
-        var checkbox = new CheckBox
-        {
-            IsChecked = item.Selected,
-            VerticalOptions = LayoutOptions.Center
-        };
-        checkbox.CheckedChanged += (_, e) =>
-        {
-            item.Selected = e.Value;
-            _renameExecuteButton.IsEnabled = _renamePreview?.Any(p => p.Selected) == true;
-        };
-
-        var original = new Label
-        {
-            Text = item.OriginalName,
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            VerticalOptions = LayoutOptions.Center,
-            LineBreakMode = LineBreakMode.TailTruncation
-        };
-
-        var arrow = new Label
-        {
-            Text = "→",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#999"),
-            VerticalOptions = LayoutOptions.Center
-        };
-
-        var entry = new Entry
-        {
-            Text = item.SuggestedName,
-            FontSize = 12,
-            HorizontalOptions = LayoutOptions.Fill,
-            IsEnabled = item.Error == null
-        };
-        entry.TextChanged += (_, e) => item.SuggestedName = e.NewTextValue ?? "";
-
-        var grid = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = GridLength.Auto },
-                new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) },
-                new ColumnDefinition { Width = GridLength.Auto },
-                new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) }
-            },
-            ColumnSpacing = 6,
-            Padding = new Thickness(0, 4)
-        };
-        grid.Add(checkbox, 0, 0);
-        grid.Add(original, 1, 0);
-        grid.Add(arrow, 2, 0);
-        grid.Add(entry, 3, 0);
-
-        if (item.Error == null)
-            return grid;
-
-        return new VerticalStackLayout
-        {
-            Spacing = 0,
-            Children =
-            {
-                grid,
-                new Label
-                {
-                    Text = $"Error: {item.Error}",
-                    FontSize = 10,
-                    TextColor = Color.FromArgb("#C62828"),
-                    Margin = new Thickness(30, 0, 0, 4)
-                }
-            }
-        };
-    }
-
-    private async void OnExecuteRenamesClicked(object? sender, EventArgs e)
-    {
-        if (_renameExecuteRunning || _renameDryRunRunning)
-            return;
-
-        if (_renamePreview == null || string.IsNullOrWhiteSpace(_renameFolderPath))
-            return;
-
-        var selected = _renamePreview
-            .Where(p => p.Selected && !string.IsNullOrWhiteSpace(p.SuggestedName))
-            .ToList();
-
-        if (selected.Count == 0)
-        {
-            await DisplayAlert("Nothing to rename", "No files selected with a non-empty suggested name.", "OK");
-            return;
-        }
-
-        var confirm = await DisplayAlert(
-            "Rename files on disk?",
-            $"Rename {selected.Count} file(s) on disk in:\n{_renameFolderPath}\n\nThis cannot be undone automatically.",
-            "Rename",
-            "Cancel");
-
-        if (!confirm)
-            return;
-
-        _renameExecuteRunning = true;
-        _renamePickFolderButton.IsEnabled = false;
-        _renameDryRunButton.IsEnabled = false;
-        _renameExecuteButton.IsEnabled = false;
-        _renameProgressLabel.IsVisible = true;
-
-        var folder = _renameFolderPath;
-        var renamed = 0;
-        var skipped = 0;
-        var failed = 0;
-        var failures = new List<string>();
-
-        try
-        {
-            await Task.Run(() =>
-            {
-                for (var i = 0; i < selected.Count; i++)
-                {
-                    var item = selected[i];
-                    var current = i + 1;
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        _renameProgressLabel.Text = $"Renaming {current}/{selected.Count}...";
-                    });
-
-                    try
-                    {
-                        var sanitized = SanitizeForFilename(item.SuggestedName);
-                        if (string.IsNullOrWhiteSpace(sanitized))
-                        {
-                            skipped++;
-                            continue;
-                        }
-
-                        var newPath = Path.Combine(folder, sanitized + item.Extension);
-                        var collisionCounter = 2;
-                        while (File.Exists(newPath) &&
-                               !string.Equals(newPath, item.OriginalPath, StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (collisionCounter > 100)
-                                throw new InvalidOperationException("Could not find an available filename.");
-
-                            newPath = Path.Combine(folder, $"{sanitized}_{collisionCounter}{item.Extension}");
-                            collisionCounter++;
-                        }
-
-                        if (string.Equals(newPath, item.OriginalPath, StringComparison.OrdinalIgnoreCase))
-                        {
-                            skipped++;
-                            continue;
-                        }
-
-                        File.Move(item.OriginalPath, newPath);
-                        renamed++;
-                    }
-                    catch (Exception ex)
-                    {
-                        failed++;
-                        failures.Add($"{item.OriginalName}: {ex.Message}");
-                    }
-                }
-            });
-        }
-        finally
-        {
-            _renameExecuteRunning = false;
-            _renamePickFolderButton.IsEnabled = true;
-            _renameDryRunButton.IsEnabled = true;
-            _renameProgressLabel.IsVisible = false;
-            _renamePreview = null;
-            _renamePreviewStack.Children.Clear();
-            _renameExecuteButton.IsEnabled = false;
-        }
-
-        var summary = $"Renamed: {renamed}\nSkipped: {skipped}\nFailed: {failed}";
         if (failures.Count > 0)
         {
-            summary += "\n\nFailures:\n" + string.Join("\n", failures.Take(10));
+            summary += "\n\nErrors:\n" + string.Join("\n", failures.Take(10));
             if (failures.Count > 10)
                 summary += $"\n...and {failures.Count - 10} more.";
         }
 
-        await DisplayAlert("Rename complete", summary, "OK");
-
-        if (Directory.Exists(folder))
-            SetRenameFolder(folder);
+        await DisplayAlert("Bulk rename finished", summary, "OK");
+        UpdateCostEstimate();
     }
 
     private void RefreshQueueDisplay()
@@ -1768,3 +1544,4 @@ public class ChatGptImageGenerationPage : ContentPage
 #endif
     }
 }
+
