@@ -1,31 +1,30 @@
 using Bannister.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bannister.Views;
 
 public class HooksCreationPage : ContentPage
 {
     private readonly AuthService _auth;
+    private readonly HookWordService _hookWordService;
 
     private Editor _stage1Editor = null!;
     private Editor _stage2Editor = null!;
     private Editor _stage3Editor = null!;
     private Editor _stage4Editor = null!;
-    private Editor _stage1TemplateEditor = null!;
+    private Editor _getWordsTemplateEditor = null!;
     private Editor _stage2TemplateEditor = null!;
     private Editor _stage3TemplateEditor = null!;
     private Editor _stage4TemplateEditor = null!;
     private Editor _gridSuffixTemplateEditor = null!;
     private Editor _oneShotTemplateEditor = null!;
+    private Label _poolStatusLabel = null!;
     private bool _isLoadingTemplates;
 
-    private const string DefaultStage1Prompt = """
-SEED: {SEED}
+    private const string DefaultGetWordsPrompt = """
+Give me 1000 common evocative English words. Concrete nouns, actions, feelings, places, weather, animals, food, people, textures, colors, body parts. Not obscure vocabulary. Words a text-to-image AI can easily visualize.
 
-Use the seed above to shape your word generation. Different seeds must produce meaningfully different word lists.
-
-Generate 100 English words biased by the SEED. The words should span domains adjacent to the seed's terms plus additional specific domains: natural history, obscure trades, obscure materials, unusual body parts, taxonomies, historical objects, ecological niches, forgotten technologies, textile chemistry, geological processes, entomological forms, ecclesiastical objects, cartographic terms. Avoid generic household objects, generic emotions, and common animals — the seed is meant to push you into unusual territory. Mix concrete and abstract, ordinary and strange.
-
-Output the 100 words as a single comma-separated list. No numbering, no explanation, no commentary — just the words.
+Output as one comma-separated list. No numbering, no explanation, no preamble, no closing remarks — just the 1000 words.
 """;
 
     private const string DefaultStage2Prompt = """
@@ -67,63 +66,25 @@ Image-only — do not describe motion, sound, or what happens next.
 
 Output format — numbered 1 to 20, one block per variation:
 
-
-
 PICKED WORD: {the word}
-
 PICKED HOOK: {the conceptual hook phrase}
-
 IMAGE PROMPT: {the 40–80 word image prompt}
 
-
-
 PICKED WORD: ...
-
 ...
 Continue through 20. Return only those 20 blocks. No commentary, no preamble, no closing remark.
 """;
 
     private const string DefaultGridSuffix = "Create the result as a single 9:16 vertical concept sheet containing 20 numbered variations arranged in a 4x5 grid. Each panel must show a completely different idea, composition, story moment, camera angle, environment, mood, and visual hook. Prioritize variety of ideas over small visual changes. Large visible numbers 1-20. Cinematic realistic, high detail, easy side-by-side comparison, no text except numbers.";
 
-    private const string DefaultOneShotPromptLegacy = """
-You're going to run a 4-stage hook image prompt generation pipeline internally. Do all four stages in order, but ONLY return the final output (the 20 image prompts). Do not show intermediate stages, do not explain your reasoning, do not output the words or hook ideas — only the final 20 prompts.
-Stage 1 — Internally generate 100 random English words spanning physical objects, abstract concepts, emotions, animals, foods, materials, places, actions, sensations, colors, sounds, professions, time periods, weather phenomena, body parts, tools, textures, and feelings. Mix high-concept and low-concept, ordinary and strange.
-Stage 2 — Internally use those 100 words to generate 100 ideas for SCROLL-STOPPING HOOK IMAGES. A scroll-stopping hook image is the first frame of a short-form video that makes the viewer involuntarily stop scrolling — through visual incongruity, emotional immediacy, mystery, danger, beauty, taboo, scale, or pattern interruption. Each idea is a one-sentence visual description of an image, not a description of the video. Mix the 100 words freely, combining 2 or 3 random words per image idea.
-Stage 3 — Internally annotate each of the 100 image ideas with its CONCEPTUAL HOOK — the underlying psychological or perceptual mechanic that makes it scroll-stopping. Examples: visual incongruity, scale violation, taboo proximity, hidden danger, beauty in unexpected context, pattern interruption, emotional immediacy on a face, time-frozen impossibility, scale of suffering, scale of joy, body horror at a distance, the uncanny valley, recognition of a forbidden act, recognition of a private moment.
-Stage 4 — From your 100 internal hook ideas, randomly pick 20 different combinations spanning maximum variety (no clustering, no near-duplicates). For each, synthesize a single IMAGE PROMPT (40 to 80 words) integrating one random word and one conceptual hook mechanic. Each prompt must be:
-A scroll-stopping first frame for a short-form video.
-
-Visually specific — describe composition, subject, lighting, mood, color, and one or two unexpected details.
-
-Image-only — do not describe motion, sound, or what happens next.
-Output format — return ONLY this block, nothing else:
-
-
-
-PICKED WORD: {the word}
-
-PICKED HOOK: {the conceptual hook phrase}
-
-IMAGE PROMPT: {40–80 word image prompt}
-
-
-
-PICKED WORD: ...
-
-...
-Continue through 20. No preamble, no commentary, no closing remark — just the 20 numbered blocks.
-""";
-
     private const string DefaultOneShotPrompt = """
-SEED: {SEED}
-
-Use the seed above to shape your Stage 1 word generation. Different seeds must produce meaningfully different word lists. Do not ignore it. Draw domain, mood, and specificity from the seed's terms and numeric suffix.
-
 You're going to run a 4-stage hook image prompt generation pipeline internally. Do all four stages in order, but ONLY return the final output (the 20 image prompts). Do not show intermediate stages, do not explain your reasoning, do not output the words or hook ideas — only the final 20 prompts.
 
-Stage 1 — Internally generate 100 English words biased by the SEED above. The words should span domains adjacent to the seed's terms plus additional specific domains (natural history, obscure trades, obscure materials, unusual body parts, taxonomies, historical objects, ecological niches, forgotten technologies, textile chemistry, geological processes, entomological forms, ecclesiastical objects, cartographic terms). Avoid generic household objects, generic emotions, and common animals — the seed is meant to push you into unusual territory. Mix concrete and abstract, ordinary and strange.
+Stage 1 — Use the following 100 words as your source vocabulary. Do not generate additional words. Work only with these:
 
-Stage 2 — Internally use those 100 words to generate 100 ideas for SCROLL-STOPPING HOOK IMAGES. A scroll-stopping hook image is the first frame of a short-form video that makes the viewer involuntarily stop scrolling — through visual incongruity, emotional immediacy, mystery, danger, beauty, taboo, scale, or pattern interruption. Each idea is a one-sentence visual description of an image, not a description of the video. Mix the 100 words freely, combining 2 or 3 random words per image idea.
+{WORDS}
+
+Stage 2 — Use those 100 words to generate 100 ideas for SCROLL-STOPPING HOOK IMAGES. A scroll-stopping hook image is the first frame of a short-form video that makes the viewer involuntarily stop scrolling — through visual incongruity, emotional immediacy, mystery, danger, beauty, taboo, scale, or pattern interruption. Each idea is a one-sentence visual description of an image, not a description of the video. Mix the 100 words freely, combining 2 or 3 random words per image idea.
 
 Stage 3 — Internally annotate each of the 100 image ideas with its CONCEPTUAL HOOK — the underlying psychological or perceptual mechanic that makes it scroll-stopping. Examples: visual incongruity, scale violation, taboo proximity, hidden danger, beauty in unexpected context, pattern interruption, emotional immediacy on a face, time-frozen impossibility, scale of suffering, scale of joy, body horror at a distance, the uncanny valley, recognition of a forbidden act, recognition of a private moment.
 
@@ -160,46 +121,13 @@ PICKED WORD: ...
 Continue through 20. No preamble, no commentary, no closing remark — just the 20 numbered blocks.
 """;
 
-    private static readonly string[] SeedWordPool = new[]
-    {
-        "mycology", "copper", "cathedral", "antler", "lithography", "brine", "salt-marsh",
-        "cartouche", "vellum", "chitin", "keratin", "muscovite", "flint", "obsidian",
-        "beeswax", "resin", "chrysalis", "midden", "peat", "loess", "clay",
-        "bloomery", "forge", "anvil", "quench", "solder", "tinder", "kindling",
-        "psalter", "codex", "palimpsest", "cuneiform", "papyrus",
-        "spinneret", "silk", "worsted", "warp", "weft", "loom", "shuttle",
-        "moth", "beetle", "carapace", "elytra", "molt", "instar", "pupa",
-        "reliquary", "monstrance", "narthex", "transept", "apse", "clerestory",
-        "adit", "shaft", "gangue", "matte", "slag", "flux", "assay",
-        "graticule", "meridian", "isobath", "contour", "cadastre", "azimuth",
-        "solstice", "equinox", "tide", "gyre", "eddy", "bore", "levee",
-        "malachite", "cinnabar", "orpiment", "verdigris", "carmine", "ochre",
-        "sinew", "gut", "hide", "leather", "tanning", "curing",
-        "necropolis", "ossuary", "cenotaph", "cairn", "barrow", "kist",
-        "murmuration", "swarm", "shoal", "colony", "hive", "warren", "sett",
-        "petrichor", "geosmin", "musk", "loam", "silt",
-        "quartzite", "gneiss", "schist", "basalt", "pumice", "tuff",
-        "sextant", "astrolabe", "quadrant", "gnomon", "orrery",
-        "philology", "etymology", "onomastics", "epigraphy", "paleography",
-        "haruspex", "augur", "oracle", "sibyl", "pythia",
-        "cochineal", "madder", "indigo", "woad", "logwood",
-        "abacus", "quipu", "tally", "hieroglyph", "runes",
-        "furrier", "cooper", "fletcher", "cordwainer", "wheelwright",
-        "peregrine", "corvid", "raptor", "passerine", "columbid",
-        "trilobite", "ammonite", "nautilus", "brachiopod", "crinoid",
-        "manuscript", "colophon", "incunabula", "quire", "signature",
-        "botulinum", "penicillium", "aspergillus", "candida", "saccharomyces",
-        "reticulum", "spleen", "duodenum", "sternum", "clavicle",
-        "gutta-percha", "shellac", "damask", "brocade", "chintz",
-        "estuary", "delta", "fjord", "atoll", "archipelago",
-        "malacology", "conchology", "helminthology", "acarology",
-        "kinnikinnick", "sassafras", "sarsaparilla", "burdock", "yarrow",
-        "grimoire", "bestiary", "herbarium", "compendium", "florilegium"
-    };
-
-    public HooksCreationPage(AuthService auth)
+    public HooksCreationPage(AuthService auth, HookWordService? hookWordService = null)
     {
         _auth = auth;
+        _hookWordService = hookWordService
+            ?? Application.Current?.Handler?.MauiContext?.Services.GetService<HookWordService>()
+            ?? throw new InvalidOperationException("HookWordService is not available.");
+
         Title = "Hooks Creation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -209,6 +137,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     {
         base.OnAppearing();
         await LoadPromptTemplatesAsync();
+        await RefreshPoolStatusAsync();
     }
 
     private void BuildUI()
@@ -228,39 +157,31 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                 },
                 new Label
                 {
-                    Text = "Generate scroll-stopping hook image prompts through a 4-stage variety amplifier. Copy each prompt to your LLM, paste the response, then run the next stage.",
+                    Text = "Generate scroll-stopping hook image prompts through a 4-stage variety amplifier. Stage 1 now samples from your persistent local word pool.",
                     FontSize = 14,
                     TextColor = Color.FromArgb("#666")
                 }
             }
         };
 
-        _stage1Editor = CreateResponseEditor("Paste the LLM's 100 random words here...");
+        _stage1Editor = CreateResponseEditor("Sampled words from your pool will appear here...");
         _stage2Editor = CreateResponseEditor("Paste the LLM's 100 hook image ideas here...");
         _stage3Editor = CreateResponseEditor("Paste the LLM's conceptual hook analysis here...");
         _stage4Editor = CreateResponseEditor("Paste the LLM's 20 image prompts here.");
 
-        _stage1TemplateEditor = CreatePromptTemplateEditor("stage1");
+        _getWordsTemplateEditor = CreatePromptTemplateEditor("get_words");
         _stage2TemplateEditor = CreatePromptTemplateEditor("stage2");
         _stage3TemplateEditor = CreatePromptTemplateEditor("stage3");
         _stage4TemplateEditor = CreatePromptTemplateEditor("stage4");
         _gridSuffixTemplateEditor = CreatePromptTemplateEditor("grid_suffix");
         _oneShotTemplateEditor = CreatePromptTemplateEditor("one_shot");
 
+        stack.Children.Add(BuildWordPoolSection());
         stack.Children.Add(BuildOneShotSection());
-        stack.Children.Add(CreateStageSection(
-            "Stage 1 — 100 Random Words",
-            "Get a list of 100 random words that will seed the rest of the flow.",
-            "Copy Stage 1 prompt",
-            OnCopyStage1PromptClicked,
-            _stage1Editor,
-            _stage1TemplateEditor,
-            "stage1",
-            DefaultStage1Prompt,
-            null));
+        stack.Children.Add(CreateStage1Section());
         stack.Children.Add(CreateStageSection(
             "Stage 2 — 100 Hook Ideas",
-            "Use the random words to generate 100 hook image ideas.",
+            "Use the sampled words to generate 100 hook image ideas.",
             "Copy Stage 2 prompt",
             OnCopyStage2PromptClicked,
             _stage2Editor,
@@ -280,7 +201,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             "Use {HOOK_IDEAS} as the placeholder for Stage 2 content."));
         stack.Children.Add(CreateStageSection(
             "Stage 4 — Integrated Image Prompt",
-            "Combine a random word and a conceptual hook into a finished image prompt. Re-run as many times as you want for infinite variety.",
+            "Combine a sampled word and a conceptual hook into a finished image prompt. Re-run as many times as you want for variety.",
             "Copy Stage 4 prompt",
             OnCopyStage4PromptClicked,
             _stage4Editor,
@@ -304,22 +225,82 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         Content = rootGrid;
     }
 
-    private async Task LoadPromptTemplatesAsync()
+    private Frame BuildWordPoolSection()
     {
-        _isLoadingTemplates = true;
-        try
+        var getWordsButton = new Button
         {
-            _stage1TemplateEditor.Text = await GetCustomPromptAsync("stage1") ?? DefaultStage1Prompt;
-            _stage2TemplateEditor.Text = await GetCustomPromptAsync("stage2") ?? DefaultStage2Prompt;
-            _stage3TemplateEditor.Text = await GetCustomPromptAsync("stage3") ?? DefaultStage3Prompt;
-            _stage4TemplateEditor.Text = await GetCustomPromptAsync("stage4") ?? DefaultStage4Prompt;
-            _gridSuffixTemplateEditor.Text = await GetCustomPromptAsync("grid_suffix") ?? DefaultGridSuffix;
-            _oneShotTemplateEditor.Text = await GetCustomPromptAsync("one_shot") ?? DefaultOneShotPrompt;
-        }
-        finally
+            Text = " Get 1000 more words",
+            BackgroundColor = Color.FromArgb("#4CAF50"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontAttributes = FontAttributes.Bold,
+            HeightRequest = 42
+        };
+        getWordsButton.Clicked += OnGet1000WordsClicked;
+
+        var manageWordsButton = new Button
         {
-            _isLoadingTemplates = false;
-        }
+            Text = "⚙️ Manage word pool",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            HeightRequest = 36
+        };
+        manageWordsButton.Clicked += async (_, _) =>
+        {
+            await Navigation.PushAsync(new HookWordManagementPage(_auth, _hookWordService));
+        };
+
+        _poolStatusLabel = new Label
+        {
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            FontAttributes = FontAttributes.Italic
+        };
+
+        var getWordsExpander = CreatePromptTemplateExpander(
+            _getWordsTemplateEditor,
+            "get_words",
+            DefaultGetWordsPrompt,
+            null,
+            out var getWordsToggle);
+
+        return new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#C8E6C9"),
+            CornerRadius = 10,
+            Padding = 16,
+            HasShadow = false,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Word pool",
+                        FontSize = 16,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#2E7D32")
+                    },
+                    new Label
+                    {
+                        Text = "Populate a persistent pool once, then Stage 1 samples locally instead of asking the LLM to generate fresh words.",
+                        FontSize = 13,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 10,
+                        Children = { getWordsButton, manageWordsButton }
+                    },
+                    _poolStatusLabel,
+                    getWordsToggle,
+                    getWordsExpander
+                }
+            }
+        };
     }
 
     private Frame BuildOneShotSection()
@@ -339,7 +320,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
 
         var subtitle = new Label
         {
-            Text = "Skip the 4-stage flow. Copies a single prompt that asks the LLM to do everything internally — produce 100 words, 100 hook ideas, conceptual analysis, and 20 final image prompts. Paste the LLM's response directly into the Stage 4 box below.",
+            Text = "Copies a single prompt that samples 100 words from your pool, then asks the LLM to run the remaining stages internally.",
             FontSize = 12,
             TextColor = Color.FromArgb("#666")
         };
@@ -348,7 +329,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             _oneShotTemplateEditor,
             "one_shot",
             DefaultOneShotPrompt,
-            null,
+            "Use {WORDS} as the placeholder for a local 100-word sample.",
             out var toggleButton);
 
         return new Frame
@@ -361,12 +342,51 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             Content = new VerticalStackLayout
             {
                 Spacing = 10,
+                Children = { oneShotButton, subtitle, toggleButton, expander }
+            }
+        };
+    }
+
+    private Frame CreateStage1Section()
+    {
+        var sampleButton = new Button
+        {
+            Text = " Sample 100 words from pool",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 42,
+            HorizontalOptions = LayoutOptions.Start
+        };
+        sampleButton.Clicked += OnSampleWordsClicked;
+
+        return new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            CornerRadius = 10,
+            Padding = 16,
+            HasShadow = false,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
                 Children =
                 {
-                    oneShotButton,
-                    subtitle,
-                    toggleButton,
-                    expander
+                    new Label
+                    {
+                        Text = "Stage 1 — 100 Random Words",
+                        FontSize = 16,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#222")
+                    },
+                    new Label
+                    {
+                        Text = "Sample 100 words locally from the active pool. This box feeds Stage 2 through {WORDS}.",
+                        FontSize = 13,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    sampleButton,
+                    _stage1Editor
                 }
             }
         };
@@ -448,12 +468,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         string? placeholderHint,
         out Button toggleButton)
     {
-        var container = new VerticalStackLayout
-        {
-            Spacing = 8,
-            IsVisible = false
-        };
-
+        var container = new VerticalStackLayout { Spacing = 8, IsVisible = false };
         container.Children.Add(new Label
         {
             Text = "Prompt template (edit to customize):",
@@ -486,23 +501,13 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         };
         resetButton.Clicked += async (_, _) =>
         {
-            var reset = await DisplayAlert(
-                "Reset to default?",
-                "This will discard your custom prompt and restore the built-in default.",
-                "Reset",
-                "Cancel");
+            var reset = await DisplayAlert("Reset to default?", "This will discard your custom prompt and restore the built-in default.", "Reset", "Cancel");
             if (!reset) return;
 
             await SetCustomPromptAsync(storageSuffix, "");
             _isLoadingTemplates = true;
-            try
-            {
-                templateEditor.Text = defaultPrompt;
-            }
-            finally
-            {
-                _isLoadingTemplates = false;
-            }
+            try { templateEditor.Text = defaultPrompt; }
+            finally { _isLoadingTemplates = false; }
         };
         container.Children.Add(resetButton);
 
@@ -528,12 +533,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
 
     private View CreateStage4TrailingBlock()
     {
-        var gridSuffixExpander = CreatePromptTemplateExpander(
-            _gridSuffixTemplateEditor,
-            "grid_suffix",
-            DefaultGridSuffix,
-            null,
-            out var gridToggle);
+        var gridSuffixExpander = CreatePromptTemplateExpander(_gridSuffixTemplateEditor, "grid_suffix", DefaultGridSuffix, null, out var gridToggle);
 
         return new VerticalStackLayout
         {
@@ -600,11 +600,36 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         FontSize = 13
     };
 
+    private async Task LoadPromptTemplatesAsync()
+    {
+        _isLoadingTemplates = true;
+        try
+        {
+            _getWordsTemplateEditor.Text = await GetCustomPromptAsync("get_words") ?? DefaultGetWordsPrompt;
+            _stage2TemplateEditor.Text = await GetCustomPromptAsync("stage2") ?? DefaultStage2Prompt;
+            _stage3TemplateEditor.Text = await GetCustomPromptAsync("stage3") ?? DefaultStage3Prompt;
+            _stage4TemplateEditor.Text = await GetCustomPromptAsync("stage4") ?? DefaultStage4Prompt;
+            _gridSuffixTemplateEditor.Text = await GetCustomPromptAsync("grid_suffix") ?? DefaultGridSuffix;
+            _oneShotTemplateEditor.Text = await GetCustomPromptAsync("one_shot") ?? DefaultOneShotPrompt;
+        }
+        finally
+        {
+            _isLoadingTemplates = false;
+        }
+    }
+
+    private async Task RefreshPoolStatusAsync()
+    {
+        var count = await _hookWordService.CountActiveAsync(_auth.CurrentUsername);
+        _poolStatusLabel.Text = count == 0
+            ? "⚠️ Word pool is empty. Tap 'Get 1000 more words' to start."
+            : $"✅ {count} active words in pool.";
+    }
+
     private async Task<string?> GetCustomPromptAsync(string suffix)
     {
         var username = _auth.CurrentUsername;
-        if (string.IsNullOrWhiteSpace(username))
-            return null;
+        if (string.IsNullOrWhiteSpace(username)) return null;
 
         try
         {
@@ -620,8 +645,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     private async Task SetCustomPromptAsync(string suffix, string value)
     {
         var username = _auth.CurrentUsername;
-        if (string.IsNullOrWhiteSpace(username))
-            return;
+        if (string.IsNullOrWhiteSpace(username)) return;
 
         try
         {
@@ -640,22 +664,6 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     private static string ReplaceToken(string template, string token, string value) =>
         (template ?? "").Replace(token, value ?? "", StringComparison.Ordinal);
 
-    private static string GenerateSeed()
-    {
-        var rng = new Random();
-        int wordCount = rng.Next(4, 7);
-        var picks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        while (picks.Count < wordCount)
-            picks.Add(SeedWordPool[rng.Next(SeedWordPool.Length)]);
-
-        var suffix = rng.Next(1000, 10000).ToString();
-        return string.Join("-", picks) + "-" + suffix;
-    }
-
-    private static string ApplySeed(string template) =>
-        ReplaceToken(template, "{SEED}", GenerateSeed());
-
     private static string BuildStage2Prompt(string template, string words) =>
         ReplaceToken(template, "{WORDS}", words);
 
@@ -665,12 +673,58 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     private static string BuildStage4Prompt(string template, string words, string conceptualHooks) =>
         ReplaceToken(ReplaceToken(template, "{WORDS}", words), "{CONCEPTUAL_HOOKS}", conceptualHooks);
 
-    private async void OnCopyStage1PromptClicked(object? sender, EventArgs e)
+    private async Task<string?> BuildWordSampleAsync()
     {
-        _stage1Editor.Text = "";
-        await Clipboard.SetTextAsync(ApplySeed(_stage1TemplateEditor.Text ?? DefaultStage1Prompt));
-        if (sender is Button btn) await FlashCopiedAsync(btn, "Copy Stage 1 prompt");
-        await ShowPasteResultModalAsync("Stage 1 (100 words)", _stage1Editor);
+        var words = await _hookWordService.GetActiveWordsAsync(_auth.CurrentUsername);
+        if (words.Count == 0)
+        {
+            await DisplayAlert("Word pool empty", "Your word pool is empty. Tap 'Get 1000 more words' at the top to add words first.", "OK");
+            return null;
+        }
+
+        var rng = new Random();
+        var sampleSize = Math.Min(100, words.Count);
+        var sampled = words.OrderBy(_ => rng.Next()).Take(sampleSize).ToList();
+        return string.Join(", ", sampled);
+    }
+
+    private async void OnSampleWordsClicked(object? sender, EventArgs e)
+    {
+        var sample = await BuildWordSampleAsync();
+        if (string.IsNullOrWhiteSpace(sample)) return;
+        _stage1Editor.Text = sample;
+        if (sender is Button btn) await FlashCopiedAsync(btn, " Sample 100 words from pool");
+    }
+
+    private async void OnGet1000WordsClicked(object? sender, EventArgs e)
+    {
+        var prompt = _getWordsTemplateEditor.Text ?? DefaultGetWordsPrompt;
+        await Clipboard.SetTextAsync(prompt);
+        if (sender is Button btn) await FlashCopiedAsync(btn, " Get 1000 more words");
+
+        var pasted = await ShowPasteModalAsync("Paste LLM response", "Paste the 1000 words from the LLM response below:");
+        if (string.IsNullOrWhiteSpace(pasted)) return;
+
+        var words = pasted
+            .Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => w.Trim().ToLowerInvariant())
+            .Where(w => !string.IsNullOrWhiteSpace(w) && w.Length < 100)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (words.Count == 0)
+        {
+            await DisplayAlert("No words found", "Could not parse any words from the response.", "OK");
+            return;
+        }
+
+        var (added, skippedDupe, skippedRemoved) = await _hookWordService.BulkAddAsync(_auth.CurrentUsername, words);
+        await RefreshPoolStatusAsync();
+
+        await DisplayAlert(
+            "Word pool updated",
+            $"Added {added} new words. Skipped {skippedDupe} duplicates ({skippedRemoved} were previously removed).",
+            "OK");
     }
 
     private async void OnCopyStage2PromptClicked(object? sender, EventArgs e)
@@ -679,7 +733,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         var words = _stage1Editor.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(words))
         {
-            await DisplayAlert("Stage 1 needed", "Paste the Stage 1 result first.", "OK");
+            await DisplayAlert("Stage 1 needed", "Sample words from the pool first.", "OK");
             return;
         }
 
@@ -709,7 +763,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         var words = _stage1Editor.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(words))
         {
-            await DisplayAlert("Stage 1 needed", "Paste the Stage 1 result first.", "OK");
+            await DisplayAlert("Stage 1 needed", "Sample words from the pool first.", "OK");
             return;
         }
 
@@ -728,7 +782,10 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     private async void OnCopyOneShotPromptClicked(object? sender, EventArgs e)
     {
         _stage4Editor.Text = "";
-        await Clipboard.SetTextAsync(ApplySeed(_oneShotTemplateEditor.Text ?? DefaultOneShotPrompt));
+        var sample = await BuildWordSampleAsync();
+        if (string.IsNullOrWhiteSpace(sample)) return;
+
+        await Clipboard.SetTextAsync(ReplaceToken(_oneShotTemplateEditor.Text ?? DefaultOneShotPrompt, "{WORDS}", sample));
         if (sender is Button btn) await FlashCopiedAsync(btn, " One-shot: all 4 stages in a single LLM call");
         await ShowPasteResultModalAsync("20 image prompts", _stage4Editor);
     }
@@ -754,10 +811,61 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         btn.Text = original;
     }
 
+    private async Task<string?> ShowPasteModalAsync(string title, string subtitle)
+    {
+        if (Content is not Grid root) return null;
+
+        var modalEditor = new Editor
+        {
+            Placeholder = subtitle,
+            HeightRequest = 280,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            FontSize = 13
+        };
+
+        var applyButton = new Button
+        {
+            Text = "Apply",
+            BackgroundColor = Color.FromArgb("#00838F"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 42,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+
+        var closeButton = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            HeightRequest = 42,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+
+        var tcs = new TaskCompletionSource<string?>();
+        var overlay = BuildPasteOverlay(title, subtitle, modalEditor, closeButton, applyButton);
+        applyButton.Clicked += (_, _) =>
+        {
+            var text = modalEditor.Text ?? "";
+            root.Children.Remove(overlay);
+            tcs.TrySetResult(text);
+        };
+        closeButton.Clicked += (_, _) =>
+        {
+            root.Children.Remove(overlay);
+            tcs.TrySetResult(null);
+        };
+
+        root.Children.Add(overlay);
+        return await tcs.Task;
+    }
+
     private async Task ShowPasteResultModalAsync(string stageLabel, Editor targetEditor)
     {
-        if (Content is not Grid root)
-            return;
+        if (Content is not Grid root) return;
 
         var modalEditor = new Editor
         {
@@ -789,6 +897,32 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             HorizontalOptions = LayoutOptions.Fill
         };
 
+        var overlay = BuildPasteOverlay(
+            $"Paste the {stageLabel} result",
+            "When you have the LLM's response, paste it here and tap Apply. Or tap Close and paste directly into the page.",
+            modalEditor,
+            closeButton,
+            applyButton);
+
+        var tcs = new TaskCompletionSource<bool>();
+        applyButton.Clicked += (_, _) =>
+        {
+            targetEditor.Text = modalEditor.Text ?? "";
+            root.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+        };
+        closeButton.Clicked += (_, _) =>
+        {
+            root.Children.Remove(overlay);
+            tcs.TrySetResult(false);
+        };
+
+        root.Children.Add(overlay);
+        await tcs.Task;
+    }
+
+    private static Grid BuildPasteOverlay(string title, string subtitle, Editor modalEditor, Button closeButton, Button applyButton)
+    {
         var buttonsRow = new Grid
         {
             ColumnDefinitions =
@@ -815,45 +949,19 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                 Spacing = 14,
                 Children =
                 {
-                    new Label
-                    {
-                        Text = $"Paste the {stageLabel} result",
-                        FontSize = 16,
-                        FontAttributes = FontAttributes.Bold
-                    },
-                    new Label
-                    {
-                        Text = "When you have the LLM's response, paste it here and tap Apply. Or tap Close and paste directly into the page.",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#666")
-                    },
+                    new Label { Text = title, FontSize = 16, FontAttributes = FontAttributes.Bold },
+                    new Label { Text = subtitle, FontSize = 12, TextColor = Color.FromArgb("#666") },
                     modalEditor,
                     buttonsRow
                 }
             }
         };
 
-        var overlay = new Grid
+        return new Grid
         {
             BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false,
             Children = { card }
         };
-
-        var tcs = new TaskCompletionSource<bool>();
-        applyButton.Clicked += (_, _) =>
-        {
-            targetEditor.Text = modalEditor.Text ?? "";
-            root.Children.Remove(overlay);
-            tcs.TrySetResult(true);
-        };
-        closeButton.Clicked += (_, _) =>
-        {
-            root.Children.Remove(overlay);
-            tcs.TrySetResult(false);
-        };
-
-        root.Children.Add(overlay);
-        await tcs.Task;
     }
 }

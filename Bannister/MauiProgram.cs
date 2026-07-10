@@ -89,6 +89,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AllowanceService>();
         builder.Services.AddSingleton<PostponedTaskService>();
         builder.Services.AddSingleton<QuickAccessActionService>();
+        builder.Services.AddSingleton<HookWordService>();
         builder.Services.AddSingleton<ListsService>();
         builder.Services.AddSingleton<CustomGameService>();
         builder.Services.AddSingleton<OpenAIKeyService>();
@@ -163,6 +164,7 @@ public static class MauiProgram
         builder.Services.AddTransient<DeadlinesPage>();
         builder.Services.AddTransient<AllowancesPage>();
         builder.Services.AddTransient<PostponedTasksManagementPage>();
+        builder.Services.AddTransient<HookWordManagementPage>();
         builder.Services.AddTransient<MoneyManagementHubPage>();
         builder.Services.AddTransient<MoneyManagementPage>();
         builder.Services.AddTransient<AssetsPage>();
