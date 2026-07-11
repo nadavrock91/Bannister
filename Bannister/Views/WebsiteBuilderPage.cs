@@ -120,6 +120,53 @@ THE 5 PICKED ITEMS:
 {PICKED_ITEMS}
 """;
 
+    private const string DefaultQAPromptTemplate = """
+I need a QA report of the current state of the website.
+
+Test the site thoroughly. Report findings in a specific C# format that my Bannister tool parses.
+
+=== REPORT FORMAT ===
+
+Output ONLY a single C# code block. No preamble, no closing remarks, no commentary outside the code block.
+
+```csharp
+qaReport.CapturedAt = "<ISO 8601 UTC timestamp>";
+
+qaReport.Working[1] = "One-line summary of what works.";
+qaReport.Working[2] = "Next working item.";
+
+qaReport.Broken[1].Title = "One-line summary of what's broken";
+qaReport.Broken[1].Steps = "Step 1 | Step 2 | Step 3";
+qaReport.Broken[1].Detail = "Impact and context.";
+qaReport.Broken[1].Url = "https://the-url-where-issue-lives.com";
+
+qaReport.Broken[2].Title = "...";
+
+qaReport.Rough[1].Title = "...";
+qaReport.Rough[1].Detail = "...";
+qaReport.Rough[1].Url = "...";
+
+qaReport.Missing[1].Title = "No user accounts";
+qaReport.Missing[2].Title = "No personal watchlists";
+```
+
+=== RULES ===
+
+- Sections: Working, Broken, Rough, Missing.
+- Working items: single string per index — just a Title-like sentence.
+- Broken items: Title (required), Steps (required, pipe-separated with " | "), Detail (required), Url (required).
+- Rough items: Title (required), Detail (required), Url (required). Steps optional.
+- Missing items: Title (required). Steps/Detail/Url optional.
+- Number items sequentially per section starting at 1.
+- Escape any double quotes inside strings with \\".
+- No line breaks inside strings — one line per assignment.
+- Steps use " | " (space-pipe-space) as separator.
+- No trailing commas, no comments inside the code block.
+- Include ALL findings. Do not summarize or omit.
+
+Output ONLY the C# code block.
+""";
+
     private readonly AuthService _auth;
     private readonly WebsiteProjectService _projectService;
     private readonly WebsiteIdeaService _ideaService;
@@ -139,6 +186,7 @@ THE 5 PICKED ITEMS:
     private readonly Label _workflowStatusSubtitle;
     private readonly Grid _workflowStartRow;
     private readonly Button _pasteQaReportWorkflowButton;
+    private readonly Button _copyQaTemplateBtn;
     private readonly Button _pickFromQaBtn;
     private readonly Button _investigateBtn;
     private readonly Button _workflowCopyNextTaskPromptButton;
@@ -334,6 +382,24 @@ THE 5 PICKED ITEMS:
         };
         _pasteQaReportWorkflowButton.Clicked += OnPasteQaReportClicked;
 
+        _copyQaTemplateBtn = new Button
+        {
+            Text = " Copy QA Prompt Template",
+            BackgroundColor = Color.FromArgb("#F1F8E9"),
+            TextColor = Color.FromArgb("#33691E"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        _copyQaTemplateBtn.Clicked += async (_, _) =>
+        {
+            await Clipboard.SetTextAsync(DefaultQAPromptTemplate);
+            await DisplayAlert(
+                "QA prompt template copied",
+                "Paste into your QA agent (Grok, Claude, ChatGPT, whatever). The agent will produce a report in the strict C# format Bannister parses cleanly.",
+                "OK");
+        };
+
         _pickFromQaBtn = new Button
         {
             Text = " Pick 5 from QA report",
@@ -363,14 +429,16 @@ THE 5 PICKED ITEMS:
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star }
             },
             ColumnSpacing = 8
         };
         _workflowStartRow.Add(_pasteQaReportWorkflowButton, 0, 0);
-        _workflowStartRow.Add(_pickFromQaBtn, 1, 0);
-        _workflowStartRow.Add(_investigateBtn, 2, 0);
-        _workflowStartRow.Add(_workflowCopyNextTaskPromptButton, 3, 0);
+        _workflowStartRow.Add(_copyQaTemplateBtn, 1, 0);
+        _workflowStartRow.Add(_pickFromQaBtn, 2, 0);
+        _workflowStartRow.Add(_investigateBtn, 3, 0);
+        _workflowStartRow.Add(_workflowCopyNextTaskPromptButton, 4, 0);
 
         _batchSizePicker = CreatePicker("Batch size");
         _batchSizePicker.ItemsSource = new List<string> { "3", "5", "7", "10" };
@@ -1555,6 +1623,7 @@ THE 5 PICKED ITEMS:
 
         _workflowStartRow.IsVisible = false;
         _pasteQaReportWorkflowButton.IsVisible = false;
+        _copyQaTemplateBtn.IsVisible = false;
         _pickFromQaBtn.IsVisible = false;
         _investigateBtn.IsVisible = false;
         _workflowCopyNextTaskPromptButton.IsVisible = false;
@@ -1603,6 +1672,7 @@ THE 5 PICKED ITEMS:
                     "Tap Copy Next Task Prompt for one task, or use Batch Prompt to queue a short arc.");
                 _workflowStartRow.IsVisible = true;
                 _pasteQaReportWorkflowButton.IsVisible = true;
+                _copyQaTemplateBtn.IsVisible = true;
                 _pickFromQaBtn.IsVisible = true;
                 _investigateBtn.IsVisible = true;
                 _workflowCopyNextTaskPromptButton.IsVisible = true;
@@ -2019,7 +2089,7 @@ THE 5 PICKED ITEMS:
             BackgroundColor = Color.FromArgb("#FAFAFA"),
             TextColor = Color.FromArgb("#222"),
             PlaceholderColor = Color.FromArgb("#888"),
-            Placeholder = "Paste the full QA report (WORKING, BROKEN, ROUGH, MISSING sections) here."
+            Placeholder = "Paste the strict C# qaReport code block here."
         };
 
         var saveBtn = new Button
@@ -2464,7 +2534,7 @@ THE 5 PICKED ITEMS:
         {
             await DisplayAlert(
                 "Could not parse",
-                "The stored QA report has no items under BROKEN, ROUGH, or MISSING headers. Re-paste it via Paste QA Report.",
+                "The stored QA report has no strict qaReport C# assignments. Re-paste using the Copy QA Prompt Template output.",
                 "OK");
             return;
         }
@@ -2487,7 +2557,7 @@ THE 5 PICKED ITEMS:
             BackgroundColor = Color.FromArgb("#FAFAFA"),
             TextColor = Color.FromArgb("#222"),
             PlaceholderColor = Color.FromArgb("#888"),
-            Placeholder = "Paste the QA report here. Include BROKEN, ROUGH, MISSING section headers."
+            Placeholder = "Paste the strict C# qaReport code block here."
         };
 
         var parseBtn = new Button
@@ -2663,7 +2733,7 @@ THE 5 PICKED ITEMS:
             {
                 await DisplayAlert(
                     "No items parsed",
-                    "Could not find any items under BROKEN, ROUGH, or MISSING headers. Check that the report has those section headers and top-level list items starting with *, -, or •.",
+                    "Could not parse strict qaReport C# assignments. Re-paste using the Copy QA Prompt Template output.",
                     "OK");
                 return;
             }
@@ -2679,86 +2749,105 @@ THE 5 PICKED ITEMS:
     private static List<(string Category, string Body)> ParseQAReport(string report)
     {
         var items = new List<(string Category, string Body)>();
-        if (string.IsNullOrWhiteSpace(report))
-            return items;
+        if (string.IsNullOrWhiteSpace(report)) return items;
 
-        var lines = report.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
-        var sectionRegex = new Regex(@"^(BROKEN|ROUGH|MISSING)\s*$", RegexOptions.IgnoreCase);
-        var workingRegex = new Regex(@"^WORKING\s*$", RegexOptions.IgnoreCase);
-        var citationOnlyRegex = new Regex(@"^\(\[[^\]]+\]\[\d+\]\)\s*$");
+        // Strip code fences if present (```csharp ... ``` or bare ``` ... ```)
+        var trimmed = report.Trim().Replace("\r\n", "\n").Replace("\r", "\n");
+        trimmed = Regex.Replace(trimmed, @"^```(?:csharp|c#|cs)?\s*\n", "", RegexOptions.IgnoreCase);
+        trimmed = Regex.Replace(trimmed, @"\n```\s*$", "");
 
-        string? currentCategory = null;
-        var currentItemLines = new List<string>();
+        // Group patterns:
+        //   qaReport.Working[N] = "value";
+        //   qaReport.Broken[N].Title = "value";
+        //   qaReport.Broken[N].Steps = "value";
+        //   qaReport.Broken[N].Detail = "value";
+        //   qaReport.Broken[N].Url = "value";
+        // Section is one of Working / Broken / Rough / Missing (case-insensitive).
+        var assignmentRegex = new Regex(
+            @"qaReport\.(?<section>Working|Broken|Rough|Missing)\[(?<idx>\d+)\](?:\.(?<field>Title|Steps|Detail|Url))?\s*=\s*""(?<value>(?:[^""\\]|\\.)*)""\s*;",
+            RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
-        static bool IsTopLevelItemStart(string line) =>
-            line.StartsWith("* ", StringComparison.Ordinal) ||
-            line.StartsWith("- ", StringComparison.Ordinal) ||
-            line.StartsWith("• ", StringComparison.Ordinal);
+        // Bucket by (section, index) so multiple fields for the same item combine into one body.
+        var bucket = new Dictionary<(string Section, int Index), Dictionary<string, string>>();
 
-        string StripCitationOnlyLines(IEnumerable<string> sourceLines)
+        foreach (Match match in assignmentRegex.Matches(trimmed))
         {
-            var cleaned = sourceLines
-                .Where(l => !citationOnlyRegex.IsMatch(l.Trim()))
-                .Select(l => l.TrimEnd())
-                .ToList();
+            var section = match.Groups["section"].Value.ToUpperInvariant();
+            if (section == "WORKING")
+                continue;
 
-            while (cleaned.Count > 0 && string.IsNullOrWhiteSpace(cleaned[0]))
-                cleaned.RemoveAt(0);
-            while (cleaned.Count > 0 && string.IsNullOrWhiteSpace(cleaned[^1]))
-                cleaned.RemoveAt(cleaned.Count - 1);
+            if (!int.TryParse(match.Groups["idx"].Value, out var idx))
+                continue;
 
-            return string.Join("\n", cleaned).Trim();
+            var field = match.Groups["field"].Success ? match.Groups["field"].Value : "";
+            var rawValue = match.Groups["value"].Value;
+
+            // Unescape common C# string escapes.
+            var value = rawValue
+                .Replace("\\\"", "\"")
+                .Replace("\\\\", "\\")
+                .Replace("\\n", "\n")
+                .Replace("\\t", "\t");
+
+            var key = (section, idx);
+            if (!bucket.TryGetValue(key, out var fields))
+            {
+                fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                bucket[key] = fields;
+            }
+
+            // For sections with sub-fields (Broken, Rough, Missing), use the field name.
+            // If no field suffix is supplied, treat the assignment as Title.
+            var fieldKey = string.IsNullOrEmpty(field) ? "Title" : field;
+            fields[fieldKey] = value;
         }
 
-        void FlushCurrent()
+        static int SectionPriority(string section) => section switch
         {
-            if (currentCategory == null || currentItemLines.Count == 0)
-                return;
+            "BROKEN" => 0,
+            "ROUGH" => 1,
+            "MISSING" => 2,
+            _ => 3
+        };
 
-            var body = StripCitationOnlyLines(currentItemLines);
-            if (!string.IsNullOrWhiteSpace(body))
-                items.Add((currentCategory, body));
+        foreach (var kvp in bucket
+            .OrderBy(k => SectionPriority(k.Key.Section))
+            .ThenBy(k => k.Key.Index))
+        {
+            var (section, _) = kvp.Key;
+            var fields = kvp.Value;
 
-            currentItemLines.Clear();
+            if (!fields.ContainsKey("Title") || string.IsNullOrWhiteSpace(fields["Title"]))
+                continue;
+
+            var sb = new StringBuilder();
+            sb.Append(fields["Title"]);
+
+            if (fields.TryGetValue("Steps", out var steps) && !string.IsNullOrWhiteSpace(steps))
+            {
+                sb.AppendLine();
+                sb.AppendLine();
+                sb.Append("Steps to reproduce: ");
+                sb.Append(steps.Replace(" | ", "\n  - "));
+            }
+
+            if (fields.TryGetValue("Detail", out var detail) && !string.IsNullOrWhiteSpace(detail))
+            {
+                sb.AppendLine();
+                sb.AppendLine();
+                sb.Append(detail);
+            }
+
+            if (fields.TryGetValue("Url", out var url) && !string.IsNullOrWhiteSpace(url))
+            {
+                sb.AppendLine();
+                sb.Append("URL: ");
+                sb.Append(url);
+            }
+
+            items.Add((section, sb.ToString().Trim()));
         }
 
-        foreach (var line in lines)
-        {
-            var trimmed = line.Trim();
-            var sectionMatch = sectionRegex.Match(trimmed);
-            if (sectionMatch.Success)
-            {
-                FlushCurrent();
-                currentCategory = sectionMatch.Groups[1].Value.ToUpperInvariant();
-                continue;
-            }
-
-            if (workingRegex.IsMatch(trimmed))
-            {
-                FlushCurrent();
-                currentCategory = null;
-                continue;
-            }
-
-            if (currentCategory == null)
-                continue;
-
-            if (IsTopLevelItemStart(line))
-            {
-                FlushCurrent();
-                currentItemLines.Add(line[2..].TrimEnd());
-                continue;
-            }
-
-            if (currentItemLines.Count > 0)
-            {
-                currentItemLines.Add(line);
-                continue;
-            }
-
-        }
-
-        FlushCurrent();
         return items;
     }
 
@@ -2888,7 +2977,7 @@ THE 5 PICKED ITEMS:
         {
             await DisplayAlert(
                 "Could not parse",
-                "The stored QA report has no items under BROKEN, ROUGH, or MISSING headers. Re-paste it via Paste QA Report.",
+                "The stored QA report has no strict qaReport C# assignments. Re-paste using the Copy QA Prompt Template output.",
                 "OK");
             return;
         }
