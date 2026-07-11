@@ -188,21 +188,39 @@ public class SubActivityDailyPromptPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"[SubActivityPrompt] Radio default-checked at construction: stepIndex={stepIndex} state={state}");
         }
 
-        return new HorizontalStackLayout
+        var labelView = new Label
+        {
+            Text = label,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#374151"),
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var labelTap = new TapGestureRecognizer();
+        labelTap.Tapped += (_, _) =>
+        {
+            radio.IsChecked = true;
+        };
+        labelView.GestureRecognizers.Add(labelTap);
+
+        var wrapper = new HorizontalStackLayout
         {
             Spacing = 4,
             Children =
             {
                 radio,
-                new Label
-                {
-                    Text = label,
-                    FontSize = 13,
-                    TextColor = Color.FromArgb("#374151"),
-                    VerticalOptions = LayoutOptions.Center
-                }
+                labelView
             }
         };
+
+        var wrapperTap = new TapGestureRecognizer();
+        wrapperTap.Tapped += (_, _) =>
+        {
+            radio.IsChecked = true;
+        };
+        wrapper.GestureRecognizers.Add(wrapperTap);
+
+        return wrapper;
     }
 
     private async Task SubmitAsync()
