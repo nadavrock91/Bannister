@@ -28,7 +28,7 @@ public class SubActivityDailyPromptPage : ContentPage
 
         foreach (var step in steps)
         {
-            _stepStates[step.StepIndex] = (int)SubActivityStepSubmissionState.NotDone;
+            _stepStates[step.StepIndex] = (int)SubActivityStepSubmissionState.Done;
         }
 
         var card = new Frame
@@ -63,7 +63,7 @@ public class SubActivityDailyPromptPage : ContentPage
         });
         content.Children.Add(new Label
         {
-            Text = "Mark each step for today. Not Relevant counts as complete for the daily streak.",
+            Text = "All steps are marked Done by default. Change any that you didn't complete.",
             FontSize = 13,
             TextColor = Color.FromArgb("#6B7280"),
             LineBreakMode = LineBreakMode.WordWrap
@@ -157,8 +157,8 @@ public class SubActivityDailyPromptPage : ContentPage
             Spacing = 14
         };
 
-        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Done", SubActivityStepSubmissionState.Done, false));
-        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Not Done", SubActivityStepSubmissionState.NotDone, true));
+        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Done", SubActivityStepSubmissionState.Done, true));
+        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Not Done", SubActivityStepSubmissionState.NotDone, false));
         options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Not Relevant", SubActivityStepSubmissionState.NotRelevant, false));
         row.Children.Add(options);
 
