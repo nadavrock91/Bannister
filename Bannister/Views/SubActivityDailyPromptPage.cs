@@ -152,14 +152,25 @@ public class SubActivityDailyPromptPage : ContentPage
             LineBreakMode = LineBreakMode.WordWrap
         });
 
-        var options = new HorizontalStackLayout
+        var options = new Grid
         {
-            Spacing = 14
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 8,
+            Padding = new Thickness(0, 4)
         };
 
-        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Done", SubActivityStepSubmissionState.Done, true));
-        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Not Done", SubActivityStepSubmissionState.NotDone, false));
-        options.Children.Add(CreateStateRadio(step.StepIndex, groupName, "Not Relevant", SubActivityStepSubmissionState.NotRelevant, false));
+        var doneCol = CreateStateRadio(step.StepIndex, groupName, "Done", SubActivityStepSubmissionState.Done, true);
+        var notDoneCol = CreateStateRadio(step.StepIndex, groupName, "Not Done", SubActivityStepSubmissionState.NotDone, false);
+        var notRelevantCol = CreateStateRadio(step.StepIndex, groupName, "Not Relevant", SubActivityStepSubmissionState.NotRelevant, false);
+
+        options.Add(doneCol, 0, 0);
+        options.Add(notDoneCol, 1, 0);
+        options.Add(notRelevantCol, 2, 0);
         row.Children.Add(options);
 
         return row;
@@ -171,7 +182,7 @@ public class SubActivityDailyPromptPage : ContentPage
         {
             GroupName = groupName,
             IsChecked = selected,
-            VerticalOptions = LayoutOptions.Center
+            HorizontalOptions = LayoutOptions.Center
         };
         radio.CheckedChanged += (_, e) =>
         {
@@ -192,8 +203,10 @@ public class SubActivityDailyPromptPage : ContentPage
         {
             Text = label,
             FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#374151"),
-            VerticalOptions = LayoutOptions.Center
+            HorizontalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.Center
         };
 
         var labelTap = new TapGestureRecognizer();
@@ -203,13 +216,16 @@ public class SubActivityDailyPromptPage : ContentPage
         };
         labelView.GestureRecognizers.Add(labelTap);
 
-        var wrapper = new HorizontalStackLayout
+        var wrapper = new VerticalStackLayout
         {
-            Spacing = 4,
+            Spacing = 6,
+            HorizontalOptions = LayoutOptions.Center,
+            WidthRequest = 100,
+            Padding = new Thickness(4, 6),
             Children =
             {
-                radio,
-                labelView
+                labelView,
+                radio
             }
         };
 
