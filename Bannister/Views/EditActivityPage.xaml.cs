@@ -732,11 +732,18 @@ public partial class EditActivityPage : ContentPage
             _activity.ImagePath = _selectedImageFilename ?? "";
             _activity.StartDate = startDateTime;
             _activity.EndDate = endDateTime;
-            _activity.IsPossible = chkIsPossible.IsChecked;
-            _activity.IsZeroCount = chkIsZeroCount.IsChecked;
-            if (chkIsZeroCount.IsChecked && !_activity.IsStreakContainer)
+
+            bool wasZeroCountBefore = _activity.IsZeroCount;
+            bool isZeroCountNow = chkIsZeroCount.IsChecked && !_activity.IsStreakContainer;
+
+            _activity.IsZeroCount = isZeroCountNow;
+            _activity.IsPossible = isZeroCountNow ? false : chkIsPossible.IsChecked;
+            if (isZeroCountNow && !wasZeroCountBefore)
             {
+                _activity.TimesCompleted = 0;
+                _activity.ZeroCountCompletedAt = null;
                 _activity.Category = "Zero Counts";
+                chkIsPossible.IsChecked = false;
             }
             _activity.ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked;
             _activity.ShowStreakAsDaysSinceStarted = chkShowStreakAsDaysSinceStarted.IsChecked;
