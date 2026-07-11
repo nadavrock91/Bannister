@@ -16,7 +16,8 @@ public class HomePopupPreferenceService
         "quick_input",
         "days_since_escalation",
         "missed_activities",
-        "habit_scolding"
+        "habit_scolding",
+        "pending_prompts"
     };
 
     public HomePopupPreferenceService(DatabaseService db)

@@ -56,6 +56,8 @@ public class HomePage : ContentPage
     private readonly WebsiteIdeaService _websiteIdeas;
     private readonly AssetLibraryService _assetLibraryService;
     private readonly AssetThumbnailService _assetThumbnailService;
+    private readonly HomePopupPreferenceService _popupPreferences;
+    private readonly DeviceModeService _deviceMode;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -127,7 +129,8 @@ public class HomePage : ContentPage
         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
         AllowanceService allowanceService, PostponedTaskService postponedTaskService, QuickAccessActionService quickAccessService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
-        WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService)
+        WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
+        HomePopupPreferenceService popupPreferences, DeviceModeService deviceMode)
     {
         _auth = auth;
         _games = games;
@@ -174,6 +177,8 @@ public class HomePage : ContentPage
         _websiteIdeas = websiteIdeas;
         _assetLibraryService = assetLibraryService;
         _assetThumbnailService = assetThumbnailService;
+        _popupPreferences = popupPreferences;
+        _deviceMode = deviceMode;
         _ownerMode.StateChanged += OnOwnerModeStateChanged;
 
         Title = "Bannister";
@@ -1023,6 +1028,21 @@ public class HomePage : ContentPage
 
     private async Task<bool> ShowHomePromptManagerIfNeededAsync(int promptRunId)
     {
+        try
+        {
+            var username = _auth.CurrentUsername;
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                var deviceRole = _deviceMode.IsReadOnly ? "secondary" : "primary";
+                if (!await _popupPreferences.IsEnabledAsync(username, "pending_prompts", deviceRole))
+                    return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking pending prompts popup preference: {ex.Message}");
+        }
+
         bool promptShown = false;
         while (IsHomePromptRunActive(promptRunId))
         {
