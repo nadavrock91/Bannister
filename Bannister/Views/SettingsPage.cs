@@ -181,6 +181,19 @@ public class SettingsPage : ContentPage
         };
         homeStack.Children.Add(_calendarBeforeGamesStatus);
 
+        var btnHomePopups = new Button
+        {
+            Text = " HomePage Popups",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold
+        };
+        btnHomePopups.Clicked += OnHomePopupsSettingsClicked;
+        homeStack.Children.Add(btnHomePopups);
+
         homeFrame.Content = homeStack;
         mainStack.Children.Add(homeFrame);
 
@@ -477,6 +490,19 @@ public class SettingsPage : ContentPage
     private async void OnSyncSettingsClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("syncsettings");
+    }
+
+    private async void OnHomePopupsSettingsClicked(object? sender, EventArgs e)
+    {
+        var service = Application.Current?.Handler?.MauiContext?.Services
+            .GetService(typeof(HomePopupPreferenceService)) as HomePopupPreferenceService;
+        if (service == null)
+        {
+            await DisplayAlert("Unavailable", "HomePage popup settings are unavailable.", "OK");
+            return;
+        }
+
+        await Navigation.PushAsync(new HomePopupsSettingsPage(_auth, service));
     }
 
     private async Task LoadHomeSettingsAsync()
