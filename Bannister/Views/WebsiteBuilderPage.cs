@@ -3000,6 +3000,16 @@ Output ONLY the C# code block.
             $"Total parsed: {parsed.Count} ({brokenCount} BROKEN, {roughCount} ROUGH, {missingCount} MISSING).\n\n" +
             $"Picked breakdown: {pickedBrokenCount} BROKEN, {pickedRoughCount} ROUGH, {pickedMissingCount} MISSING.",
             "OK");
+
+        try
+        {
+            if (await _projectService.AdvanceToWaitingForLLMAsync(project.Id))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task PasteTaskPlanAsync()
