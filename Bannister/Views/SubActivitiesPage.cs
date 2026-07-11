@@ -203,6 +203,30 @@ public class SubActivitiesPage : ContentPage
             }
         });
 
+        // Streak (ConsecutiveAllDoneDays toward 3-day milestone)
+        if (item.ConsecutiveAllDoneDays > 0 || item.LastSubmissionDate.HasValue)
+        {
+            var streakBadge = new Frame
+            {
+                Padding = new Thickness(8, 2),
+                CornerRadius = 10,
+                BackgroundColor = item.ConsecutiveAllDoneDays >= 3
+                    ? Color.FromArgb("#7B1FA2")
+                    : Color.FromArgb("#E1BEE7"),
+                BorderColor = Colors.Transparent,
+                Content = new Label
+                {
+                    Text = $"🔥 {item.ConsecutiveAllDoneDays}/3 streak",
+                    FontSize = 11,
+                    TextColor = item.ConsecutiveAllDoneDays >= 3
+                        ? Colors.White
+                        : Color.FromArgb("#4A148C"),
+                    FontAttributes = FontAttributes.Bold
+                }
+            };
+            badgeRow.Children.Add(streakBadge);
+        }
+
         // Reset mode badge
         badgeRow.Children.Add(new Frame
         {
@@ -744,6 +768,8 @@ public class SubActivitiesPage : ContentPage
                 $"Pending Steps: {pending.Count}\n" +
                 $"Total Completions: {item.TotalCompletions}\n" +
                 $"Completions Since Last Addition: {item.CompletionsSinceLastAddition}\n" +
+                $"Consecutive All-Done Days: {item.ConsecutiveAllDoneDays} / 3\n" +
+                $"Last Submission: {(item.LastSubmissionDate.HasValue ? item.LastSubmissionDate.Value.ToString("MMM d, yyyy") : "never")}\n" +
                 $"Created: {item.CreatedAt:MMM d, yyyy}",
                 "OK");
         }
