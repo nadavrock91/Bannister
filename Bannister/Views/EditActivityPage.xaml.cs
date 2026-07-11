@@ -75,6 +75,7 @@ public partial class EditActivityPage : ContentPage
 
         // Set possible status
         chkIsPossible.IsChecked = _activity.IsPossible;
+        chkIsZeroCount.IsChecked = _activity.IsZeroCount;
 
         // Set show times completed badge
         chkShowTimesCompleted.IsChecked = _activity.ShowTimesCompletedBadge;
@@ -732,6 +733,11 @@ public partial class EditActivityPage : ContentPage
             _activity.StartDate = startDateTime;
             _activity.EndDate = endDateTime;
             _activity.IsPossible = chkIsPossible.IsChecked;
+            _activity.IsZeroCount = chkIsZeroCount.IsChecked;
+            if (chkIsZeroCount.IsChecked && !_activity.IsStreakContainer)
+            {
+                _activity.Category = "Zero Counts";
+            }
             _activity.ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked;
             _activity.ShowStreakAsDaysSinceStarted = chkShowStreakAsDaysSinceStarted.IsChecked;
             _activity.StreakTargetDays = newStreakTracked ? streakTargetDays : 365;

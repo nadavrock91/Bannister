@@ -128,6 +128,12 @@
                        FontAttributes="Italic" />
             </VerticalStackLayout>
 
+                <HorizontalStackLayout Spacing="12">
+                    <CheckBox x:Name="chkIsZeroCount" />
+                    <Label Text="Mark as Zero Count (never done - 10x EXP first time)"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+
             <!-- Show Times Completed Badge -->
             <VerticalStackLayout Spacing="8">
                 <Label Text="Times Completed Badge" FontAttributes="Bold" />
