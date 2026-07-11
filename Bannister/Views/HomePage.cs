@@ -836,6 +836,11 @@ public class HomePage : ContentPage
         base.OnAppearing();
         System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing fired, sequence-running={_homePromptSequenceRunning}, run-id-before={_homePromptRunId}, is-visible-before={_isHomeVisible}");
         _isHomeVisible = true;
+
+        // Clear Learning's "last filter" keys whenever the user returns to Home.
+        // The next LearningPage entry will fall back to the user's saved learning_default_* filters.
+        await ClearLearningLastFiltersAsync();
+
         if (_homePromptSequenceRunning)
         {
             System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing returning because prompt sequence is already running, run-id={_homePromptRunId}");
@@ -899,6 +904,28 @@ public class HomePage : ContentPage
             _homePromptSequenceRunning = false;
             System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing prompt sequence finished/reset, promptRunId={promptRunId}, current-run-id={_homePromptRunId}, is-visible={_isHomeVisible}");
         }
+    }
+
+    private async Task ClearLearningLastFiltersAsync()
+    {
+        var username = _auth?.CurrentUsername;
+        if (string.IsNullOrWhiteSpace(username)) return;
+
+        var categoryKey = $"learning_last_category_{username}";
+        var statusKey = $"learning_last_status_{username}";
+
+        try
+        {
+            SecureStorage.Remove(categoryKey);
+            SecureStorage.Remove(statusKey);
+        }
+        catch
+        {
+            try { await SecureStorage.SetAsync(categoryKey, ""); } catch { }
+            try { await SecureStorage.SetAsync(statusKey, ""); } catch { }
+        }
+
+        await Task.CompletedTask;
     }
 
     protected override void OnDisappearing()
