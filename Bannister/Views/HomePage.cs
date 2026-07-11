@@ -76,6 +76,7 @@ public class HomePage : ContentPage
     private Button _btnGames;
     private Button _btnNewHabits;
     private Button _btnCharts;
+    private Button _btnProgress;
     private Button _btnAllowances;
     private Button _btnCommandsCasino;
     private Button _btnConversationPractice;
@@ -280,6 +281,10 @@ public class HomePage : ContentPage
         _btnCharts = CreateButton("📊 Charts", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
         _btnCharts.Clicked += OnChartsClicked;
         navButtons.Add(("Charts", _btnCharts));
+
+        _btnProgress = CreateButton(" Progress", Color.FromArgb("#EDE7F6"), Color.FromArgb("#5E35B1"));
+        _btnProgress.Clicked += OnProgressClicked;
+        navButtons.Add(("Progress", _btnProgress));
 
         _btnCommandsCasino = CreateButton("Commands Casino", Color.FromArgb("#FFF3E0"), Color.FromArgb("#BF360C"));
         _btnCommandsCasino.Clicked += OnCommandsCasinoClicked;
@@ -799,6 +804,7 @@ public class HomePage : ContentPage
             "Audio Library" => OnAudioLibraryClicked,
             "Calendar" => OnCalendarClicked,
             "Charts" => OnChartsClicked,
+            "Progress" => OnProgressClicked,
             "Commands Casino" => OnCommandsCasinoClicked,
             "Conversation Practice" => OnConversationPracticeClicked,
             "Custom Games" => OnCustomGamesClicked,
@@ -2376,6 +2382,12 @@ public class HomePage : ContentPage
     private async void OnChartsClicked(object? sender, EventArgs e)
     {
         var page = new ChartsHubPage(_auth, _games, _exp, _db);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnProgressClicked(object? sender, EventArgs e)
+    {
+        var page = new ProgressHubPage(_auth, _games, _exp, _db);
         await Navigation.PushAsync(page);
     }
 
