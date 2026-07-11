@@ -104,6 +104,44 @@ PROJECT CONTEXT BELOW:
 
 """;
 
+    private const string DefaultInvestigationPrompt = """
+INVESTIGATION TASK — no code changes, no builds, no git. Read-only.
+
+Report findings under a REPORT heading. Read the codebase carefully. Do not attempt to fix anything in this pass.
+
+The following symptom has recurred multiple times across previous fix attempts:
+
+{SYMPTOM_DESCRIPTION}
+
+Related files/code paths (if the user has surfaced any):
+{RELATED_PATHS}
+
+Your task:
+
+1. Locate the code paths involved in this symptom. Report file paths, class names, method names, and quote the current implementation.
+
+2. Read prior fix attempts (recent commits or code comments referencing the symptom) and report what was previously tried. This is critical — if the same fix keeps being re-attempted, that pattern is itself evidence of a wrong root-cause hypothesis.
+
+3. Trace the actual data flow: what does the code EXPECT to happen, what could ACTUALLY happen at each step, and where does the assumption break down. Consider:
+   - API endpoint responses may differ from documentation.
+   - Rate limits, timeouts, or empty responses.
+   - Race conditions on client-side hydration.
+   - Cached stale data.
+   - Silent try/catch swallowing errors.
+   - Type coercion issues.
+   - Off-by-one on pagination or timestamps.
+
+4. Propose a ROOT-CAUSE hypothesis, not a symptom-level patch. Explain what is fundamentally wrong. If multiple hypotheses fit the evidence, list them ranked by likelihood.
+
+5. Propose a structural fix. Describe what to change and why. Do NOT write the code — this is a diagnosis, not a fix. The user will submit a follow-up fix task based on your findings.
+
+6. If the true root cause is undiagnosable without more evidence, list what evidence would clarify it (specific log lines to add, specific test cases to run, specific API responses to capture).
+
+Report format: numbered sections matching the questions above. Quote code where relevant. At the end, one short paragraph with your best-guess root cause and the single most important next diagnostic or fix step.
+
+Do not modify any files. Do not run builds. Do not run git.
+""";
+
     private readonly AuthService _auth;
     private readonly WebsiteProjectService _projectService;
     private readonly WebsiteIdeaService _ideaService;
@@ -121,6 +159,8 @@ PROJECT CONTEXT BELOW:
     private readonly Label _workflowStatusIcon;
     private readonly Label _workflowStatusTitle;
     private readonly Label _workflowStatusSubtitle;
+    private readonly Grid _workflowStartRow;
+    private readonly Button _investigateBtn;
     private readonly Button _workflowCopyNextTaskPromptButton;
     private readonly Picker _batchSizePicker;
     private readonly HorizontalStackLayout _batchSizeRow;
@@ -301,6 +341,29 @@ PROJECT CONTEXT BELOW:
         };
         _workflowCopyNextTaskPromptButton.Clicked += async (_, _) => await CopyNextTaskPromptAsync();
 
+        _investigateBtn = new Button
+        {
+            Text = " Investigate stuck symptom",
+            BackgroundColor = Color.FromArgb("#FFE0B2"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        _investigateBtn.Clicked += OnInvestigateStuckClicked;
+
+        _workflowStartRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 8
+        };
+        _workflowStartRow.Add(_investigateBtn, 0, 0);
+        _workflowStartRow.Add(_workflowCopyNextTaskPromptButton, 1, 0);
+
         _batchSizePicker = CreatePicker("Batch size");
         _batchSizePicker.ItemsSource = new List<string> { "3", "5", "7", "10" };
         _batchSizePicker.SelectedIndex = 1;
@@ -433,7 +496,7 @@ PROJECT CONTEXT BELOW:
                 Children =
                 {
                     workflowHeader,
-                    _workflowCopyNextTaskPromptButton,
+                    _workflowStartRow,
                     _batchSizeRow,
                     _copyBatchPromptButton,
                     _pasteTaskPlanButton,
@@ -833,7 +896,7 @@ PROJECT CONTEXT BELOW:
         };
         setupGuideButton.Clicked += async (_, _) => await Navigation.PushAsync(new WebsiteBuilderSetupGuidePage(_auth, _projectService));
 
-        Content = new ScrollView
+        var mainScroll = new ScrollView
         {
             Content = new VerticalStackLayout
             {
@@ -854,6 +917,14 @@ PROJECT CONTEXT BELOW:
                     _ideaSection,
                     _domainSection
                 }
+            }
+        };
+
+        Content = new Grid
+        {
+            Children =
+            {
+                mainScroll
             }
         };
     }
@@ -1059,6 +1130,11 @@ PROJECT CONTEXT BELOW:
     private string GetBatchSizeStorageKey()
     {
         return $"website_builder_batch_size_{_auth.CurrentUsername}";
+    }
+
+    private string GetInvestigationPromptStorageKey()
+    {
+        return $"website_builder_investigation_prompt_{_auth.CurrentUsername}";
     }
 
     private int GetSelectedBatchSize()
@@ -1469,6 +1545,8 @@ PROJECT CONTEXT BELOW:
         var state = ToWorkflowState(project.WorkflowState);
         var isWindows = IsWindows();
 
+        _workflowStartRow.IsVisible = false;
+        _investigateBtn.IsVisible = false;
         _workflowCopyNextTaskPromptButton.IsVisible = false;
         _batchSizeRow.IsVisible = false;
         _copyBatchPromptButton.IsVisible = false;
@@ -1513,6 +1591,8 @@ PROJECT CONTEXT BELOW:
             default:
                 ApplyWorkflowBanner("#F5F5F5", "#BBBBBB", "#555555", "⚪", "Ready for next task",
                     "Tap Copy Next Task Prompt for one task, or use Batch Prompt to queue a short arc.");
+                _workflowStartRow.IsVisible = true;
+                _investigateBtn.IsVisible = true;
                 _workflowCopyNextTaskPromptButton.IsVisible = true;
                 _batchSizeRow.IsVisible = true;
                 _copyBatchPromptButton.IsVisible = true;
@@ -1914,6 +1994,306 @@ PROJECT CONTEXT BELOW:
         {
             await ShowReadOnlyAlertAsync();
         }
+    }
+
+    private async void OnInvestigateStuckClicked(object? sender, EventArgs e)
+    {
+        await ShowInvestigateStuckModalAsync();
+    }
+
+    private async Task ShowInvestigateStuckModalAsync()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        if (Content is not Grid parent)
+        {
+            await DisplayAlert("Layout error", "Investigation modal requires the page root grid.", "OK");
+            return;
+        }
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var symptomEditor = new Editor
+        {
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 200,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#888"),
+            Placeholder = "Example: 'Price history has been broken and re-attempted daily for 6 consecutive days. Chart appears empty, sometimes partial. Related: pages/collections/[slug]/history.tsx.'"
+        };
+
+        var pathsEntry = new Entry
+        {
+            Placeholder = "e.g. pages/collections/[slug]/history.tsx, lib/atomicmarket.ts",
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#888")
+        };
+
+        var copyBtn = new Button
+        {
+            Text = " Copy investigation prompt",
+            BackgroundColor = Color.FromArgb("#E65100"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        copyBtn.Clicked += async (_, _) =>
+        {
+            var symptom = (symptomEditor.Text ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(symptom))
+            {
+                await DisplayAlert("Empty description", "Describe the stuck symptom before copying.", "OK");
+                return;
+            }
+
+            var pathsRaw = (pathsEntry.Text ?? "").Trim();
+            var pathsFormatted = string.IsNullOrWhiteSpace(pathsRaw) ? "(none provided)" : pathsRaw;
+
+            string template;
+            try
+            {
+                template = await SecureStorage.GetAsync(GetInvestigationPromptStorageKey()) ?? DefaultInvestigationPrompt;
+            }
+            catch
+            {
+                template = DefaultInvestigationPrompt;
+            }
+
+            var assembled = template
+                .Replace("{SYMPTOM_DESCRIPTION}", symptom, StringComparison.Ordinal)
+                .Replace("{RELATED_PATHS}", pathsFormatted, StringComparison.Ordinal);
+
+            try
+            {
+                await Clipboard.SetTextAsync(assembled);
+                parent.Children.Remove(overlay);
+                tcs.TrySetResult(true);
+                await DisplayAlert(
+                    "Investigation prompt copied",
+                    "Paste into Codex. It will investigate and return a written diagnosis without code changes. Use the findings to inform a follow-up fix task.",
+                    "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Copy failed", ex.Message, "OK");
+            }
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        cancelBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(false);
+        };
+
+        var editTemplateBtn = new Button
+        {
+            Text = "Edit template",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            FontSize = 12,
+            HeightRequest = 32
+        };
+        editTemplateBtn.Clicked += async (_, _) => await ShowInvestigationTemplateEditorAsync();
+
+        var buttonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.End,
+            Children = { editTemplateBtn, cancelBtn, copyBtn }
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 640,
+            MinimumHeightRequest = 500,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label { Text = " Investigate Stuck Symptom", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
+                    new Label
+                    {
+                        Text = "Break out of the fix-loop. Ask Codex to diagnose a recurring issue without making changes.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666"),
+                        FontAttributes = FontAttributes.Italic
+                    },
+                    new Label { Text = "Describe the stuck symptom and its history:", FontSize = 13, TextColor = Color.FromArgb("#333") },
+                    symptomEditor,
+                    new Label { Text = "Related files or code paths (optional):", FontSize = 13, TextColor = Color.FromArgb("#333") },
+                    pathsEntry,
+                    buttonRow
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        await tcs.Task;
+    }
+
+    private async Task ShowInvestigationTemplateEditorAsync()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        if (Content is not Grid parent)
+        {
+            await DisplayAlert("Layout error", "Template editor requires the page root grid.", "OK");
+            return;
+        }
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#90000000") };
+        var templateKey = GetInvestigationPromptStorageKey();
+        string currentTemplate;
+        try
+        {
+            currentTemplate = await SecureStorage.GetAsync(templateKey) ?? DefaultInvestigationPrompt;
+        }
+        catch
+        {
+            currentTemplate = DefaultInvestigationPrompt;
+        }
+
+        var editor = new Editor
+        {
+            Text = currentTemplate,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 420,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#888"),
+            Placeholder = "Investigation prompt template..."
+        };
+
+        var saveBtn = new Button
+        {
+            Text = "Save",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        saveBtn.Clicked += async (_, _) =>
+        {
+            var value = editor.Text ?? "";
+            if (!value.Contains("{SYMPTOM_DESCRIPTION}", StringComparison.Ordinal) ||
+                !value.Contains("{RELATED_PATHS}", StringComparison.Ordinal))
+            {
+                await DisplayAlert(
+                    "Placeholders required",
+                    "The template must include {SYMPTOM_DESCRIPTION} and {RELATED_PATHS}.",
+                    "OK");
+                return;
+            }
+
+            try
+            {
+                await SecureStorage.SetAsync(templateKey, value);
+                parent.Children.Remove(overlay);
+                tcs.TrySetResult(true);
+                await DisplayAlert("Saved", "Investigation template saved.", "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Save failed", ex.Message, "OK");
+            }
+        };
+
+        var resetBtn = new Button
+        {
+            Text = "Reset to Default",
+            BackgroundColor = Color.FromArgb("#FFE0B2"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8
+        };
+        resetBtn.Clicked += async (_, _) =>
+        {
+            var confirm = await DisplayAlert(
+                "Reset template?",
+                "Replace your custom investigation template with the default?",
+                "Reset",
+                "Cancel");
+            if (!confirm)
+                return;
+
+            try
+            {
+                SecureStorage.Remove(templateKey);
+            }
+            catch
+            {
+            }
+
+            editor.Text = DefaultInvestigationPrompt;
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        cancelBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(false);
+        };
+
+        var buttonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.End,
+            Children = { resetBtn, cancelBtn, saveBtn }
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 720,
+            MinimumHeightRequest = 560,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label { Text = "Edit Investigation Template", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
+                    new Label
+                    {
+                        Text = "Keep both placeholders: {SYMPTOM_DESCRIPTION} and {RELATED_PATHS}.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666"),
+                        FontAttributes = FontAttributes.Italic
+                    },
+                    editor,
+                    buttonRow
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        await tcs.Task;
     }
 
     private async Task CopyNextTaskPromptAsync()
