@@ -89,6 +89,30 @@ public class SubActivityService
             .ToList();
     }
 
+    public async Task<int> ResetTodaySubmissionsAsync(string username)
+    {
+        if (_db.IsReadOnly) return 0;
+
+        var conn = await _db.GetConnectionAsync();
+        var today = DateTime.Today;
+        var items = await conn.Table<SubActivity>()
+            .Where(x => x.Username == username && x.PromptDailyOnHome)
+            .ToListAsync();
+
+        int cleared = 0;
+        foreach (var item in items)
+        {
+            if (item.LastSubmissionDate?.Date == today)
+            {
+                item.LastSubmissionDate = null;
+                await conn.UpdateAsync(item);
+                cleared++;
+            }
+        }
+
+        return cleared;
+    }
+
     public async Task<SubActivity?> GetByIdAsync(int id)
     {
         await EnsureTableAsync();

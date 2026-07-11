@@ -6,6 +6,7 @@ namespace Bannister.Services;
 public class HomePopupPreferenceService
 {
     private readonly DatabaseService _db;
+    private readonly SubActivityService _subActivityService;
     private readonly HashSet<string> _seededUsers = new();
 
     public static readonly string[] AllPopupKeys =
@@ -17,12 +18,14 @@ public class HomePopupPreferenceService
         "days_since_escalation",
         "missed_activities",
         "habit_scolding",
+        "subactivity",
         "pending_prompts"
     };
 
-    public HomePopupPreferenceService(DatabaseService db)
+    public HomePopupPreferenceService(DatabaseService db, SubActivityService subActivityService)
     {
         _db = db;
+        _subActivityService = subActivityService;
     }
 
     public bool IsReadOnly => _db.IsReadOnly;
@@ -157,6 +160,12 @@ public class HomePopupPreferenceService
 
                 return true;
             }
+
+            if (popupKey == "subactivity")
+            {
+                var today = DateTime.Today.ToString("yyyy-MM-dd");
+                return await SecureStorage.GetAsync($"subactivity_daily_prompt_{username}") == today;
+            }
         }
         catch
         {
@@ -214,6 +223,24 @@ public class HomePopupPreferenceService
 
                 return true;
             }
+
+            if (popupKey == "subactivity")
+            {
+                var today = DateTime.Today.ToString("yyyy-MM-dd");
+                var key = $"subactivity_daily_prompt_{username}";
+
+                if (seen)
+                {
+                    await SecureStorage.SetAsync(key, today);
+                }
+                else
+                {
+                    SecureStorage.Remove(key);
+                    await _subActivityService.ResetTodaySubmissionsAsync(username);
+                }
+
+                return true;
+            }
         }
         catch
         {
@@ -228,6 +255,7 @@ public class HomePopupPreferenceService
         return popupKey switch
         {
             "habit_scolding" => true,
+            "subactivity" => true,
             "pending_prompts" => true,
             _ => false
         };
@@ -327,7 +355,6 @@ public class HomePopupPreferenceService
     private static string[] GetPendingPromptDailyKeys(string username) => new[]
     {
         $"daily_login_prompts_shown_{username}",
-        $"subactivity_daily_prompt_{username}",
         $"allowance_daily_prompt_{username}",
         $"deadlines_checkin_{username}",
         $"expired_activities_prompt_{username}",

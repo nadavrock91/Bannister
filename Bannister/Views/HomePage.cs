@@ -1450,11 +1450,16 @@ public class HomePage : ContentPage
         if (_db.IsReadOnly)
             return false;
 
-        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        if (await ReadSecureStorageAsync($"subactivity_daily_prompt_{_auth.CurrentUsername}") == today)
+        var username = _auth.CurrentUsername;
+        var deviceRole = _deviceMode.IsReadOnly ? "secondary" : "primary";
+        if (!await _popupPreferences.IsEnabledAsync(username, "subactivity", deviceRole))
             return false;
 
-        var processes = await _subActivityService.GetDailyPromptProcessesAsync(_auth.CurrentUsername);
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (await ReadSecureStorageAsync($"subactivity_daily_prompt_{username}") == today)
+            return false;
+
+        var processes = await _subActivityService.GetDailyPromptProcessesAsync(username);
         return processes.Count > 0;
     }
 
