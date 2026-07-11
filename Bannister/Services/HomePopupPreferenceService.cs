@@ -119,6 +119,120 @@ public class HomePopupPreferenceService
         return true;
     }
 
+    public async Task<bool> IsSeenTodayAsync(string username, string popupKey)
+    {
+        try
+        {
+            if (popupKey == "habit_scolding")
+            {
+                var conn = await _db.GetConnectionAsync();
+                try { await conn.CreateTableAsync<HabitAllowance>(); } catch { }
+                try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN LastScoldedOn TEXT"); } catch { }
+
+                var allowances = await conn.Table<HabitAllowance>()
+                    .Where(a => a.Username == username && a.LastScoldedOn != null)
+                    .ToListAsync();
+                return allowances.Any(a => a.LastScoldedOn?.Date == DateTime.Today);
+            }
+
+            if (popupKey == "pending_prompts")
+            {
+                var today = DateTime.Today.ToString("yyyy-MM-dd");
+                var thisMonth = DateTime.Today.ToString("yyyy-MM");
+
+                var dailyKeys = GetPendingPromptDailyKeys(username);
+                var monthlyKeys = GetPendingPromptMonthlyKeys(username);
+
+                foreach (var key in dailyKeys)
+                {
+                    if (await SecureStorage.GetAsync(key) != today)
+                        return false;
+                }
+
+                foreach (var key in monthlyKeys)
+                {
+                    if (await SecureStorage.GetAsync(key) != thisMonth)
+                        return false;
+                }
+
+                return true;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        return false;
+    }
+
+    public async Task<bool> SetSeenTodayAsync(string username, string popupKey, bool seen)
+    {
+        try
+        {
+            if (popupKey == "habit_scolding")
+            {
+                if (_db.IsReadOnly) return false;
+
+                var conn = await _db.GetConnectionAsync();
+                try { await conn.CreateTableAsync<HabitAllowance>(); } catch { }
+                try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN LastScoldedOn TEXT"); } catch { }
+
+                var allowances = await conn.Table<HabitAllowance>()
+                    .Where(a => a.Username == username)
+                    .ToListAsync();
+
+                foreach (var allowance in allowances)
+                {
+                    allowance.LastScoldedOn = seen ? DateTime.UtcNow : null;
+                    await conn.UpdateAsync(allowance);
+                }
+
+                return true;
+            }
+
+            if (popupKey == "pending_prompts")
+            {
+                var today = DateTime.Today.ToString("yyyy-MM-dd");
+                var thisMonth = DateTime.Today.ToString("yyyy-MM");
+
+                foreach (var key in GetPendingPromptDailyKeys(username))
+                {
+                    if (seen)
+                        await SecureStorage.SetAsync(key, today);
+                    else
+                        SecureStorage.Remove(key);
+                }
+
+                foreach (var key in GetPendingPromptMonthlyKeys(username))
+                {
+                    if (seen)
+                        await SecureStorage.SetAsync(key, thisMonth);
+                    else
+                        SecureStorage.Remove(key);
+                }
+
+                return true;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        return false;
+    }
+
+    public bool HasSeenTodayGate(string popupKey)
+    {
+        return popupKey switch
+        {
+            "habit_scolding" => true,
+            "pending_prompts" => true,
+            _ => false
+        };
+    }
+
     private async Task EnsurePreferencesSeededAsync(string username)
     {
         if (_db.IsReadOnly) return;
@@ -209,4 +323,21 @@ public class HomePopupPreferenceService
             ? "secondary"
             : "primary";
     }
+
+    private static string[] GetPendingPromptDailyKeys(string username) => new[]
+    {
+        $"daily_login_prompts_shown_{username}",
+        $"subactivity_daily_prompt_{username}",
+        $"allowance_daily_prompt_{username}",
+        $"deadlines_checkin_{username}",
+        $"expired_activities_prompt_{username}",
+        $"daily_habit_allowance_prompt_{username}",
+        $"weekly_commitment_prompt_{username}"
+    };
+
+    private static string[] GetPendingPromptMonthlyKeys(string username) => new[]
+    {
+        $"weekly_habit_allowance_prompt_{username}",
+        $"monthly_habit_allowance_prompt_{username}"
+    };
 }

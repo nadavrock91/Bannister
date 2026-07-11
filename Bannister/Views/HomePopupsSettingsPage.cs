@@ -69,16 +69,23 @@ public class HomePopupsSettingsPage : ContentPage
     private async Task LoadAsync()
     {
         var prefs = await _service.GetAllPreferencesAsync(_auth.CurrentUsername);
+        var seenMap = new Dictionary<string, bool>();
+
+        foreach (var meta in PopupMeta)
+        {
+            seenMap[meta.Key] = _service.HasSeenTodayGate(meta.Key) &&
+                await _service.IsSeenTodayAsync(_auth.CurrentUsername, meta.Key);
+        }
 
         _cardsStack.Children.Clear();
         foreach (var meta in PopupMeta)
         {
             var (primary, secondary) = prefs[meta.Key];
-            _cardsStack.Children.Add(BuildPopupCard(meta.Key, meta.Title, meta.Description, primary, secondary));
+            _cardsStack.Children.Add(BuildPopupCard(meta.Key, meta.Title, meta.Description, primary, secondary, seenMap[meta.Key]));
         }
     }
 
-    private View BuildPopupCard(string key, string title, string description, bool primary, bool secondary)
+    private View BuildPopupCard(string key, string title, string description, bool primary, bool secondary, bool seenToday)
     {
         var primarySwitch = new Switch
         {
@@ -102,10 +109,24 @@ public class HomePopupsSettingsPage : ContentPage
             await _service.SetPreferenceAsync(_auth.CurrentUsername, key, "secondary", e.Value);
         };
 
+        var hasSeenTodayGate = _service.HasSeenTodayGate(key);
+        var seenTodaySwitch = new Switch
+        {
+            IsToggled = seenToday,
+            IsEnabled = hasSeenTodayGate,
+            OnColor = Color.FromArgb("#9E9E9E"),
+            ThumbColor = Colors.White
+        };
+        seenTodaySwitch.Toggled += async (_, e) =>
+        {
+            await _service.SetSeenTodayAsync(_auth.CurrentUsername, key, e.Value);
+        };
+
         var switchRow = new Grid
         {
             ColumnDefinitions =
             {
+                new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star }
             },
@@ -131,6 +152,34 @@ public class HomePopupsSettingsPage : ContentPage
                 secondarySwitch
             }
         }, 1, 0);
+
+        var seenTodayColumn = new VerticalStackLayout
+        {
+            Spacing = 4,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Seen today",
+                    FontSize = 12,
+                    TextColor = hasSeenTodayGate ? Color.FromArgb("#666") : Color.FromArgb("#BBB")
+                },
+                seenTodaySwitch
+            }
+        };
+
+        if (!hasSeenTodayGate)
+        {
+            seenTodayColumn.Children.Add(new Label
+            {
+                Text = "(no gate)",
+                FontSize = 10,
+                TextColor = Color.FromArgb("#BBB"),
+                FontAttributes = FontAttributes.Italic
+            });
+        }
+
+        switchRow.Add(seenTodayColumn, 2, 0);
 
         return new Frame
         {
