@@ -153,18 +153,32 @@ public class StreakService
             }
             else if (daysSinceLastUse > 1)
             {
-                // Streak broken! End this one and start a new one
-                await LogTargetStatResetForAttemptAsync(conn, activeStreak, "reset", "Streak reset after a missed day");
+                // ShowStreakAsDaysSinceStarted activities do not reset on missed days —
+                // the streak is calendar days since StartedAt, not consecutive-use days.
+                if (activity?.ShowStreakAsDaysSinceStarted == true)
+                {
+                    int daysBefore = activeStreak.DaysAchieved;
+                    activeStreak.DaysAchieved = GetNextDaysAchieved(activeStreak, activity, today);
+                    activeStreak.LastUsedDate = today;
+                    await conn.UpdateAsync(activeStreak);
+                    await LogStreakChangeAsync(activeStreak.Id, daysBefore, activeStreak.DaysAchieved, "increment",
+                        "Days-since-started update after gap");
+                }
+                else
+                {
+                    // Streak broken! End this one and start a new one
+                    await LogTargetStatResetForAttemptAsync(conn, activeStreak, "reset", "Streak reset after a missed day");
 
-                activeStreak.IsActive = false;
-                activeStreak.EndedAt = activeStreak.LastUsedDate.Value.AddDays(1); // Day after last use
-                await conn.UpdateAsync(activeStreak);
+                    activeStreak.IsActive = false;
+                    activeStreak.EndedAt = activeStreak.LastUsedDate.Value.AddDays(1); // Day after last use
+                    await conn.UpdateAsync(activeStreak);
 
-                await LogStreakChangeAsync(activeStreak.Id, activeStreak.DaysAchieved, activeStreak.DaysAchieved, "reset",
-                    "Streak reset after a missed day");
+                    await LogStreakChangeAsync(activeStreak.Id, activeStreak.DaysAchieved, activeStreak.DaysAchieved, "reset",
+                        "Streak reset after a missed day");
 
-                // Start a new streak
-                await GetOrCreateActiveStreakAsync(username, game, activityId, activityName, usedAt);
+                    // Start a new streak
+                    await GetOrCreateActiveStreakAsync(username, game, activityId, activityName, usedAt);
+                }
             }
             // daysSinceLastUse == 0 means same day, already handled above
         }
@@ -212,7 +226,9 @@ public class StreakService
         foreach (var streak in activeStreaks)
         {
             // Skip auto-increment streaks - they don't break from non-use
-            if (activityDict.TryGetValue(streak.ActivityId, out var activity) && activity.IsStreakAutoIncrement)
+            // Also skip ShowStreakAsDaysSinceStarted - those track calendar days from StartedAt, not consecutive-use
+            if (activityDict.TryGetValue(streak.ActivityId, out var activity)
+                && (activity.IsStreakAutoIncrement || activity.ShowStreakAsDaysSinceStarted))
             {
                 continue;
             }
