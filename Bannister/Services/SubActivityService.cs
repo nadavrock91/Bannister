@@ -396,9 +396,11 @@ public class SubActivityService
         today = today.Date;
         int previousStreak = item.ConsecutiveAllDoneDays;
         bool incrementedToday = false;
+        System.Diagnostics.Debug.WriteLine($"[SubActivity] ApplyAllDoneStreakAsync ENTRY name={item.Name} today={today:yyyy-MM-dd} lastSubmission={item.LastSubmissionDate} pre-streak={item.ConsecutiveAllDoneDays}");
 
         if (item.LastSubmissionDate == null)
         {
+            System.Diagnostics.Debug.WriteLine($"[SubActivity] Branch: LastSubmissionDate is null, setting streak=1");
             item.ConsecutiveAllDoneDays = 1;
             incrementedToday = true;
         }
@@ -407,11 +409,13 @@ public class SubActivityService
             var lastDate = item.LastSubmissionDate.Value.Date;
             if (lastDate < today.AddDays(-1))
             {
+                System.Diagnostics.Debug.WriteLine($"[SubActivity] Branch: lastDate {lastDate:yyyy-MM-dd} < yesterday, resetting streak=1");
                 item.ConsecutiveAllDoneDays = 1;
                 incrementedToday = true;
             }
             else if (lastDate == today.AddDays(-1))
             {
+                System.Diagnostics.Debug.WriteLine($"[SubActivity] Branch: lastDate {lastDate:yyyy-MM-dd} == yesterday, incrementing streak to {item.ConsecutiveAllDoneDays + 1}");
                 item.ConsecutiveAllDoneDays++;
                 incrementedToday = true;
             }
@@ -419,10 +423,12 @@ public class SubActivityService
             {
                 // Same-day re-completion, future date, or any other unusual state:
                 // record today but do not increment the streak again.
+                System.Diagnostics.Debug.WriteLine($"[SubActivity] Branch: same-day or future re-completion, lastDate={lastDate:yyyy-MM-dd} today={today:yyyy-MM-dd}, streak NOT incremented");
             }
         }
 
         item.LastSubmissionDate = today;
+        System.Diagnostics.Debug.WriteLine($"[SubActivity] ApplyAllDoneStreakAsync EXIT streak={item.ConsecutiveAllDoneDays} incrementedToday={incrementedToday} return={incrementedToday && previousStreak < 3 && item.ConsecutiveAllDoneDays >= 3}");
         return incrementedToday && previousStreak < 3 && item.ConsecutiveAllDoneDays >= 3;
     }
 
@@ -469,6 +475,7 @@ public class SubActivityService
 
         item.StepsJson = JsonSerializer.Serialize(steps);
 
+        System.Diagnostics.Debug.WriteLine($"[SubActivity] SubmitDailySubAsync processId={processId} name={item.Name} allDone={allDone} pre-streak={item.ConsecutiveAllDoneDays} pre-lastSubmission={item.LastSubmissionDate}");
         if (allDone)
         {
             item.TotalCompletions++;
@@ -481,11 +488,13 @@ public class SubActivityService
         }
 
         bool milestoneReached = allDone && await ApplyAllDoneStreakAsync(item, today);
+        System.Diagnostics.Debug.WriteLine($"[SubActivity] After ApplyAllDoneStreakAsync: milestoneReached={milestoneReached} new-streak={item.ConsecutiveAllDoneDays} new-lastSubmission={item.LastSubmissionDate}");
         if (milestoneReached)
         {
             item.Allowance++;
         }
 
+        System.Diagnostics.Debug.WriteLine($"[SubActivity] Persisting: streak={item.ConsecutiveAllDoneDays} lastSubmission={item.LastSubmissionDate} totalCompletions={item.TotalCompletions}");
         await UpdateAsync(item);
         return new SubActivityDailySubmissionResult(true, milestoneReached, item);
     }
