@@ -142,6 +142,14 @@ Report format: numbered sections matching the questions above. Quote code where 
 Do not modify any files. Do not run builds. Do not run git.
 """;
 
+    private class QAItem
+    {
+        public string Category { get; set; } = "";
+        public string Text { get; set; } = "";
+    }
+
+    private static readonly Random _rng = new();
+
     private readonly AuthService _auth;
     private readonly WebsiteProjectService _projectService;
     private readonly WebsiteIdeaService _ideaService;
@@ -160,6 +168,7 @@ Do not modify any files. Do not run builds. Do not run git.
     private readonly Label _workflowStatusTitle;
     private readonly Label _workflowStatusSubtitle;
     private readonly Grid _workflowStartRow;
+    private readonly Button _pickFromQABtn;
     private readonly Button _investigateBtn;
     private readonly Button _workflowCopyNextTaskPromptButton;
     private readonly Picker _batchSizePicker;
@@ -341,6 +350,17 @@ Do not modify any files. Do not run builds. Do not run git.
         };
         _workflowCopyNextTaskPromptButton.Clicked += async (_, _) => await CopyNextTaskPromptAsync();
 
+        _pickFromQABtn = new Button
+        {
+            Text = " Pick 5 from QA report",
+            BackgroundColor = Color.FromArgb("#FFF9C4"),
+            TextColor = Color.FromArgb("#F57F17"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        _pickFromQABtn.Clicked += OnPickFromQAClicked;
+
         _investigateBtn = new Button
         {
             Text = " Investigate stuck symptom",
@@ -357,12 +377,14 @@ Do not modify any files. Do not run builds. Do not run git.
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star }
             },
             ColumnSpacing = 8
         };
-        _workflowStartRow.Add(_investigateBtn, 0, 0);
-        _workflowStartRow.Add(_workflowCopyNextTaskPromptButton, 1, 0);
+        _workflowStartRow.Add(_pickFromQABtn, 0, 0);
+        _workflowStartRow.Add(_investigateBtn, 1, 0);
+        _workflowStartRow.Add(_workflowCopyNextTaskPromptButton, 2, 0);
 
         _batchSizePicker = CreatePicker("Batch size");
         _batchSizePicker.ItemsSource = new List<string> { "3", "5", "7", "10" };
@@ -1546,6 +1568,7 @@ Do not modify any files. Do not run builds. Do not run git.
         var isWindows = IsWindows();
 
         _workflowStartRow.IsVisible = false;
+        _pickFromQABtn.IsVisible = false;
         _investigateBtn.IsVisible = false;
         _workflowCopyNextTaskPromptButton.IsVisible = false;
         _batchSizeRow.IsVisible = false;
@@ -1592,6 +1615,7 @@ Do not modify any files. Do not run builds. Do not run git.
                 ApplyWorkflowBanner("#F5F5F5", "#BBBBBB", "#555555", "⚪", "Ready for next task",
                     "Tap Copy Next Task Prompt for one task, or use Batch Prompt to queue a short arc.");
                 _workflowStartRow.IsVisible = true;
+                _pickFromQABtn.IsVisible = true;
                 _investigateBtn.IsVisible = true;
                 _workflowCopyNextTaskPromptButton.IsVisible = true;
                 _batchSizeRow.IsVisible = true;
@@ -2294,6 +2318,375 @@ Do not modify any files. Do not run builds. Do not run git.
         parent.Children.Add(overlay);
 
         await tcs.Task;
+    }
+
+    private async void OnPickFromQAClicked(object? sender, EventArgs e)
+    {
+        await ShowPickFromQAModalAsync();
+    }
+
+    private async Task ShowPickFromQAModalAsync()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        if (Content is not Grid parent)
+        {
+            await DisplayAlert("Layout error", "QA picker modal requires the page root grid.", "OK");
+            return;
+        }
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var qaEditor = new Editor
+        {
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 300,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#888"),
+            Placeholder = "Paste the QA report here. Include BROKEN, ROUGH, MISSING section headers."
+        };
+
+        var parseBtn = new Button
+        {
+            Text = "Parse and pick 5",
+            BackgroundColor = Color.FromArgb("#F57F17"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        Button BuildCancelButton()
+        {
+            var button = new Button
+            {
+                Text = "Cancel",
+                BackgroundColor = Color.FromArgb("#9E9E9E"),
+                TextColor = Colors.White,
+                CornerRadius = 8
+            };
+            button.Clicked += (_, _) =>
+            {
+                parent.Children.Remove(overlay);
+                tcs.TrySetResult(false);
+            };
+            return button;
+        }
+
+        var pasteButtonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.End,
+            Children = { BuildCancelButton(), parseBtn }
+        };
+
+        var pasteContent = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                new Label { Text = " Pick 5 items from QA report", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
+                new Label
+                {
+                    Text = "Paste your QA report. Bannister extracts all items and picks 5 at random, giving equal probability to BROKEN, ROUGH, and MISSING categories.",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#666"),
+                    FontAttributes = FontAttributes.Italic
+                },
+                new Label { Text = "QA report:", FontSize = 13, TextColor = Color.FromArgb("#333") },
+                qaEditor,
+                pasteButtonRow
+            }
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 700,
+            MinimumHeightRequest = 500,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = pasteContent
+        };
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        List<QAItem> allItems = new();
+        List<QAItem> currentPicks = new();
+
+        void RenderPreview()
+        {
+            var brokenCount = allItems.Count(x => x.Category == "BROKEN");
+            var roughCount = allItems.Count(x => x.Category == "ROUGH");
+            var missingCount = allItems.Count(x => x.Category == "MISSING");
+
+            var picksStack = new VerticalStackLayout { Spacing = 8 };
+            for (int i = 0; i < currentPicks.Count; i++)
+            {
+                var p = currentPicks[i];
+                var badgeColor = p.Category switch
+                {
+                    "BROKEN" => Color.FromArgb("#EF5350"),
+                    "ROUGH" => Color.FromArgb("#FFA726"),
+                    "MISSING" => Color.FromArgb("#42A5F5"),
+                    _ => Color.FromArgb("#9E9E9E")
+                };
+
+                var badge = new Frame
+                {
+                    BackgroundColor = badgeColor,
+                    CornerRadius = 4,
+                    Padding = new Thickness(6, 2),
+                    HasShadow = false,
+                    HorizontalOptions = LayoutOptions.Start,
+                    Content = new Label
+                    {
+                        Text = p.Category,
+                        FontSize = 10,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Colors.White
+                    }
+                };
+
+                var displayText = p.Text.Length > 300 ? p.Text[..300] + "..." : p.Text;
+                var itemStack = new VerticalStackLayout
+                {
+                    Spacing = 4,
+                    Padding = new Thickness(0, 4),
+                    Children =
+                    {
+                        badge,
+                        new Label
+                        {
+                            Text = displayText,
+                            FontSize = 12,
+                            TextColor = Color.FromArgb("#333"),
+                            LineBreakMode = LineBreakMode.WordWrap
+                        }
+                    }
+                };
+                picksStack.Children.Add(itemStack);
+            }
+
+            var picksScroll = new ScrollView
+            {
+                HeightRequest = 300,
+                Content = picksStack
+            };
+
+            var repickBtn = new Button
+            {
+                Text = " Re-pick",
+                BackgroundColor = Color.FromArgb("#FFF9C4"),
+                TextColor = Color.FromArgb("#F57F17"),
+                CornerRadius = 8
+            };
+            repickBtn.Clicked += (_, _) =>
+            {
+                currentPicks = PickFive(allItems);
+                RenderPreview();
+            };
+
+            var copyBtn = new Button
+            {
+                Text = " Copy arc prompt with these 5",
+                BackgroundColor = Color.FromArgb("#2E7D32"),
+                TextColor = Colors.White,
+                CornerRadius = 8
+            };
+            copyBtn.Clicked += async (_, _) =>
+            {
+                var prompt = AssembleArcPromptWithPicks(currentPicks);
+                try
+                {
+                    await Clipboard.SetTextAsync(prompt);
+                    parent.Children.Remove(overlay);
+                    tcs.TrySetResult(true);
+                    await DisplayAlert(
+                        "Arc prompt copied",
+                        "Paste into your LLM to generate the arc.",
+                        "OK");
+                }
+                catch (Exception ex)
+                {
+                    await DisplayAlert("Copy failed", ex.Message, "OK");
+                }
+            };
+
+            var backBtn = new Button
+            {
+                Text = "Back",
+                BackgroundColor = Color.FromArgb("#9E9E9E"),
+                TextColor = Colors.White,
+                CornerRadius = 8
+            };
+            backBtn.Clicked += (_, _) =>
+            {
+                card.Content = pasteContent;
+            };
+
+            var previewButtonRow = new HorizontalStackLayout
+            {
+                Spacing = 8,
+                HorizontalOptions = LayoutOptions.End,
+                Children = { backBtn, BuildCancelButton(), repickBtn, copyBtn }
+            };
+
+            var previewContent = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label { Text = "Preview of picked items", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
+                    new Label
+                    {
+                        Text = $"Found {allItems.Count} items total: {brokenCount} BROKEN, {roughCount} ROUGH, {missingCount} MISSING",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    picksScroll,
+                    previewButtonRow
+                }
+            };
+            card.Content = previewContent;
+        }
+
+        parseBtn.Clicked += async (_, _) =>
+        {
+            var report = qaEditor.Text ?? "";
+            if (string.IsNullOrWhiteSpace(report))
+            {
+                await DisplayAlert("Empty report", "Paste a QA report first.", "OK");
+                return;
+            }
+
+            allItems = ParseQAReport(report);
+            if (allItems.Count == 0)
+            {
+                await DisplayAlert(
+                    "No items parsed",
+                    "Could not find any items under BROKEN, ROUGH, or MISSING headers. Check that the report has those section headers and list items starting with * or -.",
+                    "OK");
+                return;
+            }
+
+            currentPicks = PickFive(allItems);
+            RenderPreview();
+        };
+
+        await tcs.Task;
+    }
+
+    private static List<QAItem> ParseQAReport(string report)
+    {
+        var items = new List<QAItem>();
+        if (string.IsNullOrWhiteSpace(report))
+            return items;
+
+        var lines = report.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+
+        string? currentCategory = null;
+        var currentItemLines = new List<string>();
+
+        void FlushCurrent()
+        {
+            if (currentCategory == null)
+                return;
+            if (currentItemLines.Count == 0)
+                return;
+
+            var text = string.Join("\n", currentItemLines).Trim();
+            if (!string.IsNullOrWhiteSpace(text))
+                items.Add(new QAItem { Category = currentCategory, Text = text });
+
+            currentItemLines.Clear();
+        }
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            var upper = trimmed.ToUpperInvariant();
+
+            if (upper == "BROKEN" || upper == "ROUGH" || upper == "MISSING")
+            {
+                FlushCurrent();
+                currentCategory = upper;
+                continue;
+            }
+
+            if (upper == "WORKING")
+            {
+                FlushCurrent();
+                currentCategory = null;
+                continue;
+            }
+
+            if (currentCategory != null)
+            {
+                if (trimmed.StartsWith("* ") || trimmed.StartsWith("- ") || trimmed.StartsWith("• "))
+                {
+                    FlushCurrent();
+                    currentItemLines.Add(trimmed[2..].Trim());
+                }
+                else if (currentItemLines.Count > 0)
+                {
+                    currentItemLines.Add(line);
+                }
+            }
+        }
+
+        FlushCurrent();
+        return items;
+    }
+
+    private static List<QAItem> PickFive(List<QAItem> pool)
+    {
+        if (pool.Count <= 5)
+            return pool.ToList();
+
+        var indices = Enumerable.Range(0, pool.Count).ToList();
+        var picked = new List<QAItem>();
+        for (int i = 0; i < 5; i++)
+        {
+            var idx = _rng.Next(indices.Count);
+            picked.Add(pool[indices[idx]]);
+            indices.RemoveAt(idx);
+        }
+
+        return picked;
+    }
+
+    private static string AssembleArcPromptWithPicks(List<QAItem> picks)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("You're planning the next 5 tasks worth of work for a website project as a single combined arc.");
+        sb.AppendLine();
+        sb.AppendLine("The following 5 items were randomly picked from the QA report across BROKEN, ROUGH, and MISSING categories with equal probability. Build one coherent arc addressing all 5. Do not add other items from prior QA context; work only with these 5.");
+        sb.AppendLine();
+        sb.AppendLine("If any picked item is large enough to consume the whole arc's scope (typically true for MISSING items like accounts or watchlists), dedicate the arc to that single item and note that the remaining picks were skipped for scope reasons.");
+        sb.AppendLine();
+        sb.AppendLine("PICKED ITEMS:");
+        sb.AppendLine();
+        for (int i = 0; i < picks.Count; i++)
+        {
+            sb.AppendLine($"--- Pick {i + 1} ({picks[i].Category}) ---");
+            sb.AppendLine(picks[i].Text);
+            sb.AppendLine();
+        }
+        sb.AppendLine();
+        sb.AppendLine("Output format — return ONLY these two sections in this order, no explanation, no preamble, no closing remarks:");
+        sb.AppendLine();
+        sb.AppendLine("ARC TITLE:");
+        sb.AppendLine("<one short title, 6-12 words, summarizing the whole batch>");
+        sb.AppendLine();
+        sb.AppendLine("CODEX PROMPT:");
+        sb.AppendLine("<the full combined codex prompt covering all changes>");
+        sb.AppendLine();
+        sb.AppendLine("The CODEX PROMPT section should end with these instructions to Codex verbatim:");
+        sb.AppendLine();
+        sb.AppendLine("\"IMPORTANT: Do NOT run git add, git commit, git push, or any other git command. Do NOT stage or commit changes. Only edit files. Bannister will run the commit and push for you after you output the commit message below.");
+        sb.AppendLine("At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing everything you did across all changes>\"");
+        return sb.ToString();
     }
 
     private async Task CopyNextTaskPromptAsync()
