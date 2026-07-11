@@ -57,53 +57,6 @@ Output as a plain numbered list 1 to 20, one domain per line, with the TLD inclu
 
     private const string VisionRefinementPromptTemplate = "I'm building a website called {0}. Below is my raw description of what I want this site to be, written informally in my own words. Please rewrite this as a clear concise vision statement suitable for handing to other LLMs as context for development tasks. Keep the spirit of what I said but make it well-structured, complete, and actionable. Cover: target audience, core purpose, key features the site should have, the tone/feel, and what makes it different from alternatives. Output ONLY the rewritten vision text - no preamble, no follow-up offers.\n\nMY RAW DESCRIPTION:\n{1}";
 
-    private const string LegacyBatchNextTaskPromptTemplateHeader = """
-You're planning the next {BATCH_SIZE} tasks for a website project. Below is the project context. Instead of one task, propose {BATCH_SIZE} tasks in a coherent short arc where each task assumes the previous one landed. Order them so the arc makes sense.
-
-For each task output:
-- A short TITLE (5-10 words) describing the change.
-- A CODEX PROMPT ready to paste directly into codex with all the context Codex needs to execute the change alone.
-
-Output format — return ONLY this block, one section per task numbered TASK 1 through TASK {BATCH_SIZE}, no explanation, no preamble, no closing remarks:
-
-TASK 1:
-TITLE: <short title>
-CODEX PROMPT:
-<multi-line codex prompt>
-
-TASK 2:
-TITLE: <short title>
-CODEX PROMPT:
-<multi-line codex prompt>
-
-...continue through TASK {BATCH_SIZE}.
-
-PROJECT CONTEXT BELOW:
-
-""";
-
-    private const string BatchNextTaskPromptTemplateHeader = """
-You're planning the next {BATCH_SIZE} tasks worth of work for a website project as a single combined arc. Instead of returning {BATCH_SIZE} separate Codex prompts, return ONE Codex prompt that describes all {BATCH_SIZE} tasks' worth of changes bundled together. Codex will execute the whole thing in one session and output one commit message at the end.
-
-Plan a coherent arc where each piece of work builds on the previous. Order the changes so they compound sensibly. Be specific about file paths, function names, and expected behavior for every piece of the arc.
-
-Output format — return ONLY these two sections in this order, no explanation, no preamble, no closing remarks:
-
-ARC TITLE:
-<one short title, 6-12 words, summarizing the whole batch>
-
-CODEX PROMPT:
-<the full combined codex prompt covering all {BATCH_SIZE} tasks' worth of changes>
-
-The CODEX PROMPT section should end with these instructions to Codex verbatim:
-
-"IMPORTANT: Do NOT run git add, git commit, git push, or any other git command. Do NOT stage or commit changes. Only edit files. Bannister will run the commit and push for you after you output the commit message below.
-At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing everything you did across all changes>"
-
-PROJECT CONTEXT BELOW:
-
-""";
-
     private const string DefaultInvestigationPrompt = """
 INVESTIGATION TASK — no code changes, no builds, no git. Read-only.
 
@@ -185,6 +138,7 @@ THE 5 PICKED ITEMS:
     private readonly Label _workflowStatusTitle;
     private readonly Label _workflowStatusSubtitle;
     private readonly Grid _workflowStartRow;
+    private readonly Button _pasteQaReportWorkflowButton;
     private readonly Button _pickFromQaBtn;
     private readonly Button _investigateBtn;
     private readonly Button _workflowCopyNextTaskPromptButton;
@@ -369,6 +323,17 @@ THE 5 PICKED ITEMS:
         };
         _workflowCopyNextTaskPromptButton.Clicked += async (_, _) => await CopyNextTaskPromptAsync();
 
+        _pasteQaReportWorkflowButton = new Button
+        {
+            Text = " Paste QA Report",
+            BackgroundColor = Color.FromArgb("#E1F5FE"),
+            TextColor = Color.FromArgb("#0277BD"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        _pasteQaReportWorkflowButton.Clicked += OnPasteQaReportClicked;
+
         _pickFromQaBtn = new Button
         {
             Text = " Pick 5 from QA report",
@@ -397,13 +362,15 @@ THE 5 PICKED ITEMS:
             {
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star }
             },
             ColumnSpacing = 8
         };
-        _workflowStartRow.Add(_pickFromQaBtn, 0, 0);
-        _workflowStartRow.Add(_investigateBtn, 1, 0);
-        _workflowStartRow.Add(_workflowCopyNextTaskPromptButton, 2, 0);
+        _workflowStartRow.Add(_pasteQaReportWorkflowButton, 0, 0);
+        _workflowStartRow.Add(_pickFromQaBtn, 1, 0);
+        _workflowStartRow.Add(_investigateBtn, 2, 0);
+        _workflowStartRow.Add(_workflowCopyNextTaskPromptButton, 3, 0);
 
         _batchSizePicker = CreatePicker("Batch size");
         _batchSizePicker.ItemsSource = new List<string> { "3", "5", "7", "10" };
@@ -434,14 +401,14 @@ THE 5 PICKED ITEMS:
 
         _copyBatchPromptButton = new Button
         {
-            Text = "Copy Batch Prompt (5 tasks)",
+            Text = " Copy Batch Prompt (5 random from QA)",
             BackgroundColor = Color.FromArgb("#F3E5F5"),
             TextColor = Color.FromArgb("#6A1B9A"),
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
         };
-        _copyBatchPromptButton.Clicked += async (_, _) => await CopyBatchNextTaskPromptAsync();
+        _copyBatchPromptButton.Clicked += OnCopyBatchPromptClicked;
 
         _pasteTaskPlanButton = new Button
         {
@@ -1223,7 +1190,7 @@ THE 5 PICKED ITEMS:
 
     private void UpdateCopyBatchPromptButtonText()
     {
-        _copyBatchPromptButton.Text = $"Copy Batch Prompt ({GetSelectedBatchSize()} tasks)";
+        _copyBatchPromptButton.Text = " Copy Batch Prompt (5 random from QA)";
     }
 
     private async Task TryLoadLastSelectedProjectAsync()
@@ -1587,6 +1554,7 @@ THE 5 PICKED ITEMS:
         var isWindows = IsWindows();
 
         _workflowStartRow.IsVisible = false;
+        _pasteQaReportWorkflowButton.IsVisible = false;
         _pickFromQaBtn.IsVisible = false;
         _investigateBtn.IsVisible = false;
         _workflowCopyNextTaskPromptButton.IsVisible = false;
@@ -1634,6 +1602,7 @@ THE 5 PICKED ITEMS:
                 ApplyWorkflowBanner("#F5F5F5", "#BBBBBB", "#555555", "⚪", "Ready for next task",
                     "Tap Copy Next Task Prompt for one task, or use Batch Prompt to queue a short arc.");
                 _workflowStartRow.IsVisible = true;
+                _pasteQaReportWorkflowButton.IsVisible = true;
                 _pickFromQaBtn.IsVisible = true;
                 _investigateBtn.IsVisible = true;
                 _workflowCopyNextTaskPromptButton.IsVisible = true;
@@ -1985,6 +1954,137 @@ THE 5 PICKED ITEMS:
         {
             await ShowReadOnlyAlertAsync();
         }
+    }
+
+    private async void OnPasteQaReportClicked(object? sender, EventArgs e)
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        var current = project.LatestQAReport ?? "";
+        var pasted = await ShowQaReportEditorAsync(current);
+        if (pasted == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(pasted))
+        {
+            var confirm = await DisplayAlert(
+                "Clear stored QA report?",
+                "Save an empty report? This will delete the stored QA report for this project.",
+                "Clear",
+                "Cancel");
+            if (!confirm)
+                return;
+        }
+
+        try
+        {
+            var success = await _projectService.SetLatestQAReportAsync(project.Id, pasted);
+            if (success)
+            {
+                project.LatestQAReport = pasted;
+                await RefreshCurrentProjectAsync();
+                await DisplayAlert(
+                    "QA report saved",
+                    string.IsNullOrWhiteSpace(pasted)
+                        ? "Stored QA report cleared."
+                        : $"Saved QA report ({pasted.Length} characters). Copy Batch Prompt will now pick 5 random items from it.",
+                    "OK");
+            }
+            else
+            {
+                await DisplayAlert("Save failed", "Could not save QA report. Read-only device?", "OK");
+            }
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task<string?> ShowQaReportEditorAsync(string initialText)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+        if (Content is not Grid parent)
+            return null;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var editor = new Editor
+        {
+            Text = initialText,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 400,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#888"),
+            Placeholder = "Paste the full QA report (WORKING, BROKEN, ROUGH, MISSING sections) here."
+        };
+
+        var saveBtn = new Button
+        {
+            Text = "Save",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        saveBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(editor.Text ?? "");
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        cancelBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(null);
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 700,
+            MinimumHeightRequest = 540,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new Label { Text = " Paste QA Report", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
+                    new Label
+                    {
+                        Text = "Saves per-project. Batch Prompt uses this stored report to pick 5 random items across BROKEN, ROUGH, MISSING with equal probability.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666"),
+                        FontAttributes = FontAttributes.Italic
+                    },
+                    editor,
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 8,
+                        HorizontalOptions = LayoutOptions.End,
+                        Children = { cancelBtn, saveBtn }
+                    }
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        return await tcs.Task;
     }
 
     private async Task ClearQAReportAsync()
@@ -2346,6 +2446,30 @@ THE 5 PICKED ITEMS:
 
     private async Task ShowPickFromQaModalAsync()
     {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(project.LatestQAReport))
+        {
+            await DisplayAlert(
+                "No QA report",
+                "Paste a QA report first via the Paste QA Report button.",
+                "OK");
+            return;
+        }
+
+        _parsedItems = ParseQAReport(project.LatestQAReport);
+        if (_parsedItems.Count == 0)
+        {
+            await DisplayAlert(
+                "Could not parse",
+                "The stored QA report has no items under BROKEN, ROUGH, or MISSING headers. Re-paste it via Paste QA Report.",
+                "OK");
+            return;
+        }
+        _pickedItems = PickFive(_parsedItems);
+
         var tcs = new TaskCompletionSource<bool>();
         if (Content is not Grid parent)
         {
@@ -2357,6 +2481,7 @@ THE 5 PICKED ITEMS:
 
         var qaEditor = new Editor
         {
+            Text = project.LatestQAReport,
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 300,
             BackgroundColor = Color.FromArgb("#FAFAFA"),
@@ -2547,6 +2672,7 @@ THE 5 PICKED ITEMS:
             RenderPreview();
         };
 
+        RenderPreview();
         await tcs.Task;
     }
 
@@ -2736,7 +2862,7 @@ THE 5 PICKED ITEMS:
         }
     }
 
-    private async Task CopyBatchNextTaskPromptAsync()
+    private async void OnCopyBatchPromptClicked(object? sender, EventArgs e)
     {
         var project = await GetCurrentProjectOrAlertAsync();
         if (project == null)
@@ -2748,26 +2874,43 @@ THE 5 PICKED ITEMS:
             return;
         }
 
-        var batchSize = GetSelectedBatchSize();
-        var prompt = BatchNextTaskPromptTemplateHeader
-            .Replace("{BATCH_SIZE}", batchSize.ToString(), StringComparison.Ordinal)
-            + BuildProjectContextBlock(project);
+        if (string.IsNullOrWhiteSpace(project.LatestQAReport))
+        {
+            await DisplayAlert(
+                "No QA report",
+                "Paste a QA report for this project first via the Paste QA Report button. Then the batch prompt can pick 5 random items from it.",
+                "OK");
+            return;
+        }
+
+        var parsed = ParseQAReport(project.LatestQAReport);
+        if (parsed.Count == 0)
+        {
+            await DisplayAlert(
+                "Could not parse",
+                "The stored QA report has no items under BROKEN, ROUGH, or MISSING headers. Re-paste it via Paste QA Report.",
+                "OK");
+            return;
+        }
+
+        var picks = PickFive(parsed);
+        var prompt = AssembleArcPromptWithPicks(picks);
 
         await Clipboard.SetTextAsync(prompt);
+
+        var brokenCount = parsed.Count(i => i.Category == "BROKEN");
+        var roughCount = parsed.Count(i => i.Category == "ROUGH");
+        var missingCount = parsed.Count(i => i.Category == "MISSING");
+        var pickedBrokenCount = picks.Count(p => p.Category == "BROKEN");
+        var pickedRoughCount = picks.Count(p => p.Category == "ROUGH");
+        var pickedMissingCount = picks.Count(p => p.Category == "MISSING");
+
         await DisplayAlert(
             "Batch prompt copied",
-            $"Batch prompt copied. Paste it into Claude or ChatGPT. The LLM should return ARC TITLE and one combined CODEX PROMPT covering {batchSize} tasks worth of work. Copy the entire response and tap Paste Task Plan back in Bannister.",
+            $"Copied arc prompt with 5 randomly picked items from the stored QA report.\n\n" +
+            $"Total parsed: {parsed.Count} ({brokenCount} BROKEN, {roughCount} ROUGH, {missingCount} MISSING).\n\n" +
+            $"Picked breakdown: {pickedBrokenCount} BROKEN, {pickedRoughCount} ROUGH, {pickedMissingCount} MISSING.",
             "OK");
-
-        try
-        {
-            if (await _projectService.AdvanceToWaitingForLLMAsync(project.Id))
-                await RefreshCurrentProjectAsync();
-        }
-        catch (ReadOnlyDatabaseException)
-        {
-            await ShowReadOnlyAlertAsync();
-        }
     }
 
     private async Task PasteTaskPlanAsync()

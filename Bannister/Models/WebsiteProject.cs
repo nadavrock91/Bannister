@@ -45,7 +45,7 @@ public class WebsiteProject
 
     public int QueuedTasksIndex { get; set; } = 0;
 
-    public string LatestQAReport { get; set; } = "";
+    public string? LatestQAReport { get; set; }
 
     public DateTime? LatestQAReportCapturedAt { get; set; }
 

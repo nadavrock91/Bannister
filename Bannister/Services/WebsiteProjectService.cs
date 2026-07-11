@@ -274,14 +274,14 @@ public class WebsiteProjectService
         return true;
     }
 
-    public async Task<bool> SetLatestQAReportAsync(int projectId, string report)
+    public async Task<bool> SetLatestQAReportAsync(int projectId, string? report)
     {
         EnsureWritable();
         var project = await GetByIdAsync(projectId);
         if (project == null)
             return false;
 
-        var trimmedReport = report.Trim();
+        var trimmedReport = (report ?? "").Trim();
         project.LatestQAReport = trimmedReport;
         project.LatestQAReportCapturedAt = string.IsNullOrWhiteSpace(trimmedReport)
             ? null
