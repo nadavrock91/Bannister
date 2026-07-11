@@ -175,11 +175,18 @@ public class SubActivityDailyPromptPage : ContentPage
         };
         radio.CheckedChanged += (_, e) =>
         {
+            System.Diagnostics.Debug.WriteLine($"[SubActivityPrompt] Radio CheckedChanged stepIndex={stepIndex} state={state} newValue={e.Value}");
             if (e.Value)
             {
                 _stepStates[stepIndex] = (int)state;
+                System.Diagnostics.Debug.WriteLine($"[SubActivityPrompt] _stepStates[{stepIndex}] set to {(int)state} ({state})");
             }
         };
+
+        if (selected)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SubActivityPrompt] Radio default-checked at construction: stepIndex={stepIndex} state={state}");
+        }
 
         return new HorizontalStackLayout
         {
@@ -200,6 +207,12 @@ public class SubActivityDailyPromptPage : ContentPage
 
     private async Task SubmitAsync()
     {
+        System.Diagnostics.Debug.WriteLine($"[SubActivityPrompt] SubmitAsync _stepStates contents ({_stepStates.Count} entries):");
+        foreach (var kvp in _stepStates)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SubActivityPrompt]   [{kvp.Key}] = {kvp.Value} ({(SubActivityStepSubmissionState)kvp.Value})");
+        }
+
         var result = await _subActivityService.SubmitDailySubAsync(_process.Id, _stepStates);
 
         if (result.MilestoneReached)
