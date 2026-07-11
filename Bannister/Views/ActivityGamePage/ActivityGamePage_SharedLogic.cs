@@ -609,19 +609,28 @@ public partial class ActivityGamePage
         await RefreshActivitiesAsync();
     }
 
-    private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? activityVM)
-    {
-        const string newCategoryOption = "+ New Category...";
+private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? activityVM)
+{
+    const string newCategoryOption = "+ New Category...";
 
-        var categories = await _activities.GetCategoriesAsync(_auth.CurrentUsername, GetActivityGameId(activity));
-        categories = categories
-            .Where(c => !string.IsNullOrWhiteSpace(c))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        categories.Add(newCategoryOption);
+    // Aggregate categories from real activities in THIS game only.
+    // Do NOT use ActivityService.GetCategoriesAsync — it appends hardcoded defaults
+    // (Misc, Food, Exercise, Learning, Health) even when the current game has none of them.
+    var gameActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, GetActivityGameId(activity));
+    var categories = gameActivities
+        .Select(a => a.Category ?? "Misc")
+        .Where(c => !string.IsNullOrWhiteSpace(c))
+        .Where(c => !c.Equals("Auto", StringComparison.OrdinalIgnoreCase)
+                 && !c.Equals("Expired", StringComparison.OrdinalIgnoreCase)
+                 && !c.Equals("Stale", StringComparison.OrdinalIgnoreCase))
+        .GroupBy(c => c.ToLowerInvariant())
+        .Select(g => g.First())  // preserve first-occurrence casing
+        .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+        .ToList();
 
-        string selected = await DisplayActionSheet(
+    categories.Add(newCategoryOption);
+
+    string selected = await DisplayActionSheet(
             "Select Category",
             "Cancel",
             null,
