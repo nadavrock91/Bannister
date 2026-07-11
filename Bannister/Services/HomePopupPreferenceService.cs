@@ -15,7 +15,8 @@ public class HomePopupPreferenceService
         "missed_fragments",
         "quick_input",
         "days_since_escalation",
-        "missed_activities"
+        "missed_activities",
+        "habit_scolding"
     };
 
     public HomePopupPreferenceService(DatabaseService db)

@@ -15,7 +15,8 @@ public class HomePopupsSettingsPage : ContentPage
         ("missed_fragments", "Missed Fragments", "Reminder about idea fragments that haven't been reviewed."),
         ("quick_input", "Quick Input", "Prompt to log a quick idea or thought."),
         ("days_since_escalation", "Days Since Escalation", "Alert when an activity hasn't been used in too long."),
-        ("missed_activities", "Missed Activities", "Reminder about scheduled activities that were skipped.")
+        ("missed_activities", "Missed Activities", "Reminder about scheduled activities that were skipped."),
+        ("habit_scolding", "Habit Scolding", "Nudge when your habit allowance has been stuck at 1 for too long.")
     };
 
     public HomePopupsSettingsPage(AuthService auth, HomePopupPreferenceService service)
