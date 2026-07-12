@@ -25,6 +25,7 @@ public class NewHabitService
             await conn.CreateTableAsync<HabitAllowanceSnapshot>();
             await EnsureHabitAllowanceMigrationsAsync(conn);
             await BackfillCapAtOneSinceAsync(conn, username);
+            await DeduplicateAllowancesAsync(conn, username);
         }
         
         var allowance = await conn.Table<HabitAllowance>()
@@ -54,6 +55,39 @@ public class NewHabitService
         try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN ScoldImagePath TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN ScoldingDisabled INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN LastScoldedOn TEXT"); } catch { }
+    }
+
+    private async Task DeduplicateAllowancesAsync(ISQLiteAsyncConnection conn, string username)
+    {
+        if (_db.IsReadOnly) return;
+
+        var allRows = await conn.Table<HabitAllowance>()
+            .Where(a => a.Username == username)
+            .ToListAsync();
+
+        // Group by frequency and keep the canonical row per group.
+        var byFrequency = allRows.GroupBy(a => a.Frequency, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in byFrequency)
+        {
+            var rows = group.ToList();
+            if (rows.Count <= 1) continue;
+
+            // Canonical row: highest CurrentAllowance, then lowest Id as tiebreaker.
+            var canonical = rows
+                .OrderByDescending(r => r.CurrentAllowance)
+                .ThenBy(r => r.Id)
+                .First();
+
+            foreach (var row in rows)
+            {
+                if (row.Id != canonical.Id)
+                {
+                    await conn.DeleteAsync<HabitAllowance>(row.Id);
+                    System.Diagnostics.Debug.WriteLine($"[NEW HABIT] Deduped stale {group.Key} allowance row Id={row.Id} CurrentAllowance={row.CurrentAllowance} CapAtOneSince={row.CapAtOneSince}");
+                }
+            }
+        }
     }
 
     private static string GetCapAtOneBackfillKey(string username) => $"bannister_habit_capatonesince_backfill_done_{username}";
@@ -367,14 +401,18 @@ public class NewHabitService
             await conn.CreateTableAsync<HabitAllowance>();
             await EnsureHabitAllowanceMigrationsAsync(conn);
             await BackfillCapAtOneSinceAsync(conn, username);
+            await DeduplicateAllowancesAsync(conn, username);
         }
 
         var today = DateTime.UtcNow.Date;
         var allowances = await conn.Table<HabitAllowance>()
-            .Where(a => a.Username == username && !a.ScoldingDisabled && a.CapAtOneSince != null)
+            .Where(a => a.Username == username && !a.ScoldingDisabled)
             .ToListAsync();
 
         return allowances
+            .GroupBy(a => a.Frequency, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderByDescending(r => r.CurrentAllowance).ThenBy(r => r.Id).First())
+            .Where(a => a.CapAtOneSince != null)
             .Where(a =>
             {
                 int threshold = GetScoldingThresholdDays(a.Frequency);
