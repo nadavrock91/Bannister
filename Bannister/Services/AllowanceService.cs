@@ -146,6 +146,23 @@ public class AllowanceService
         });
     }
 
+    public async Task<bool> SetSuccessStreakAsync(int allowanceId, int newStreak)
+    {
+        if (_db.IsReadOnly) return false;
+        if (newStreak < 0) newStreak = 0;
+        if (newStreak > 3) newStreak = 3;
+
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var allowance = await conn.FindAsync<Allowance>(allowanceId);
+        if (allowance == null) return false;
+
+        allowance.SuccessStreak = newStreak;
+        allowance.UpdatedAt = DateTime.UtcNow;
+        await conn.UpdateAsync(allowance);
+        return true;
+    }
+
     public async Task UpdateTitleAsync(int id, string title)
     {
         await UpdateAllowanceAsync(id, allowance =>

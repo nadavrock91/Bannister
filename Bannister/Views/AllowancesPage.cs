@@ -230,6 +230,7 @@ public class AllowancesPage : ContentPage
             null,
             "Rename",
             "Change Cap",
+            "Change Streak",
             $"Daily Prompt ({(allowance.PromptDailyOnHome ? "On" : "Off")})",
             "Delete");
 
@@ -240,6 +241,10 @@ public class AllowancesPage : ContentPage
         else if (action == "Change Cap")
         {
             await SetTotalAsync(allowance);
+        }
+        else if (action == "Change Streak")
+        {
+            await SetStreakAsync(allowance);
         }
         else if (action?.StartsWith("Daily Prompt", StringComparison.Ordinal) == true)
         {
@@ -282,6 +287,34 @@ public class AllowancesPage : ContentPage
         catch (ReadOnlyDatabaseException)
         {
             await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task SetStreakAsync(Allowance allowance)
+    {
+        string? value = await DisplayPromptAsync(
+            "Change Streak",
+            "Streak (0 to 3):",
+            "Save",
+            "Cancel",
+            keyboard: Keyboard.Numeric,
+            initialValue: allowance.SuccessStreak.ToString());
+
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        if (!int.TryParse(value, out int newStreak))
+            return;
+
+        var success = await _allowances.SetSuccessStreakAsync(allowance.Id, newStreak);
+        if (success)
+        {
+            allowance.SuccessStreak = Math.Clamp(newStreak, 0, 3);
+            await RefreshAsync();
+        }
+        else
+        {
+            await DisplayAlert("Save failed", "Could not update streak. Read-only device?", "OK");
         }
     }
 
