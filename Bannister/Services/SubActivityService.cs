@@ -535,6 +535,34 @@ public class SubActivityService
         await UpdateAsync(item);
     }
 
+    public async Task<bool> SetAllowanceAsync(int processId, int newAllowance)
+    {
+        if (_db.IsReadOnly) return false;
+        if (newAllowance < 1) newAllowance = 1;
+
+        var conn = await _db.GetConnectionAsync();
+        var item = await conn.FindAsync<SubActivity>(processId);
+        if (item == null) return false;
+
+        item.Allowance = newAllowance;
+        await conn.UpdateAsync(item);
+        return true;
+    }
+
+    public async Task<bool> SetConsecutiveAllDoneDaysAsync(int processId, int newStreak)
+    {
+        if (_db.IsReadOnly) return false;
+        if (newStreak < 0) newStreak = 0;
+
+        var conn = await _db.GetConnectionAsync();
+        var item = await conn.FindAsync<SubActivity>(processId);
+        if (item == null) return false;
+
+        item.ConsecutiveAllDoneDays = newStreak;
+        await conn.UpdateAsync(item);
+        return true;
+    }
+
     public async Task<SubActivityCompletionResult?> CompleteAllStepsAsync(SubActivity item)
     {
         if (_db.IsReadOnly) return null;

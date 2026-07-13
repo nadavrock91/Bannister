@@ -293,7 +293,7 @@ public class SubActivitiesPage : ContentPage
             HeightRequest = 40,
             Padding = 0
         };
-        settingsBtn.Clicked += async (s, e) => await ShowProcessSettingsAsync(item);
+        settingsBtn.Clicked += async (s, e) => await ShowProcessMenuAsync(item);
         Grid.SetColumn(settingsBtn, 1);
         headerRow.Children.Add(settingsBtn);
 
@@ -632,25 +632,30 @@ public class SubActivitiesPage : ContentPage
     private async Task EditAllowanceAsync(SubActivity item)
     {
         int stepCount = _subActivityService.GetSteps(item).Count;
-        string? result = await DisplayPromptAsync(
+        string? value = await DisplayPromptAsync(
             "Edit Allowance",
-            $"Current steps: {stepCount}\n\nEnter the max number of active steps allowed:",
+            $"Current allowance: {item.Allowance}\nSteps in process: {stepCount}\n\nNew allowance (max steps allowed to unlock):",
             "Save",
             "Cancel",
             initialValue: item.Allowance.ToString(),
             keyboard: Keyboard.Numeric);
 
-        if (string.IsNullOrWhiteSpace(result))
+        if (string.IsNullOrWhiteSpace(value))
             return;
 
-        if (!int.TryParse(result, out int allowance) || allowance < stepCount)
+        if (!int.TryParse(value, out int newAllowance))
+            return;
+
+        var success = await _subActivityService.SetAllowanceAsync(item.Id, newAllowance);
+        if (success)
         {
-            await DisplayAlert("Invalid Allowance", $"Allowance must be at least the current step count ({stepCount}).", "OK");
-            return;
+            item.Allowance = Math.Max(1, newAllowance);
+            await LoadDataAsync();
         }
-
-        await _subActivityService.SetAllowanceAsync(item, allowance);
-        await LoadDataAsync();
+        else
+        {
+            await DisplayAlert("Save failed", "Could not update allowance. Read-only device?", "OK");
+        }
     }
 
     private async Task HandleMilestoneAsync(SubActivity item)
@@ -688,6 +693,51 @@ public class SubActivitiesPage : ContentPage
         }
 
         await _subActivityService.RevertAllowanceAsync(item.Id);
+    }
+
+    private async Task ShowProcessMenuAsync(SubActivity item)
+    {
+        string action = await DisplayActionSheet(
+            item.Name,
+            "Cancel",
+            null,
+            "Edit Allowance",
+            "Edit Streak");
+
+        if (string.IsNullOrEmpty(action) || action == "Cancel") return;
+
+        if (action == "Edit Allowance")
+            await EditAllowanceAsync(item);
+        else if (action == "Edit Streak")
+            await EditStreakAsync(item);
+    }
+
+    private async Task EditStreakAsync(SubActivity item)
+    {
+        string? value = await DisplayPromptAsync(
+            "Edit Streak",
+            $"Current streak: {item.ConsecutiveAllDoneDays}\nStreak needed for next allowance: 3\n\nNew streak value:",
+            "Save",
+            "Cancel",
+            keyboard: Keyboard.Numeric,
+            initialValue: item.ConsecutiveAllDoneDays.ToString());
+
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        if (!int.TryParse(value, out int newStreak))
+            return;
+
+        var success = await _subActivityService.SetConsecutiveAllDoneDaysAsync(item.Id, newStreak);
+        if (success)
+        {
+            item.ConsecutiveAllDoneDays = Math.Max(0, newStreak);
+            await LoadDataAsync();
+        }
+        else
+        {
+            await DisplayAlert("Save failed", "Could not update streak. Read-only device?", "OK");
+        }
     }
 
     private async Task ShowProcessSettingsAsync(SubActivity item)
