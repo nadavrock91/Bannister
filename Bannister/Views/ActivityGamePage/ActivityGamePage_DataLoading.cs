@@ -253,9 +253,30 @@ public partial class ActivityGamePage
         // (unless showAllActivities is true, then all categories are navigable)
         await UpdateNavigableCategoriesAsync(allActivities);
 
-        // Clear any temp category and start at index 0 of navigable categories
+        // Preserve current category position if possible
+        string? previousCategory = null;
+        if (_tempNonNavigableCategory != null)
+        {
+            previousCategory = _tempNonNavigableCategory;
+        }
+        else if (_currentCategoryIndex >= 0 && _currentCategoryIndex < _navigableCategories.Count)
+        {
+            previousCategory = _navigableCategories[_currentCategoryIndex];
+        }
+
         _tempNonNavigableCategory = null;
-        _currentCategoryIndex = 0;
+
+        // Try to restore previous category index; fall back to 0
+        if (previousCategory != null)
+        {
+            int restoredIndex = _navigableCategories.FindIndex(c =>
+                string.Equals(c, previousCategory, StringComparison.OrdinalIgnoreCase));
+            _currentCategoryIndex = restoredIndex >= 0 ? restoredIndex : 0;
+        }
+        else
+        {
+            _currentCategoryIndex = 0;
+        }
 
         if (_categories.Count == 0)
         {
