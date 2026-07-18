@@ -675,12 +675,12 @@ public class NewHabitsPage : ContentPage
                     allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
                     await _newHabits.UpdateAllowanceAsync(allowance);
                     anyLoss = true;
-                    double chance = (1.0 - Math.Pow(0.7, missedDays)) * 100;
+                    double chance = (1.0 - Math.Pow(0.9, missedDays)) * 100;
                     results.Add($"'{habit.HabitName}': {appCount}/7 — Forgot to apply. Dice roll LOST ({chance:F0}% chance). Allowance reduced to {allowance.CurrentAllowance}.");
                 }
                 else
                 {
-                    double chance = (1.0 - Math.Pow(0.7, missedDays)) * 100;
+                    double chance = (1.0 - Math.Pow(0.9, missedDays)) * 100;
                     results.Add($"'{habit.HabitName}': {appCount}/7 — Forgot to apply. Dice roll WON ({chance:F0}% chance). Allowance preserved.");
                 }
             }

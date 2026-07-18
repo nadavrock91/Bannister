@@ -548,7 +548,7 @@ public class NewHabitService
     public static bool RollDiceForForgotToApply(int missedDays)
     {
         if (missedDays <= 0) return false;
-        double loseChance = 1.0 - Math.Pow(0.7, missedDays);
+        double loseChance = 1.0 - Math.Pow(0.9, missedDays);
         var roll = new Random().NextDouble();
         System.Diagnostics.Debug.WriteLine($"[WEEK CONCLUDED] Dice roll: missedDays={missedDays}, loseChance={loseChance:P1}, roll={roll:F3}, lost={roll < loseChance}");
         return roll < loseChance;
