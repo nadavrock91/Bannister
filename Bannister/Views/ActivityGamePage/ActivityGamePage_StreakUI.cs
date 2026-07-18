@@ -534,6 +534,10 @@ public partial class ActivityGamePage
 
     private int GetAttemptDisplayDays(Activity activity, StreakAttempt attempt)
     {
+        if (activity.ShowStreakAsDaysSinceStarted && attempt.StartedAt.HasValue)
+        {
+            return Math.Max(0, (DateTime.UtcNow.Date - attempt.StartedAt.Value.ToLocalTime().Date).Days);
+        }
         return attempt.DaysAchieved;
     }
 
@@ -1004,10 +1008,20 @@ public partial class ActivityGamePage
             }
         }
 
+        // For days-since-started activities, recalculate DaysAchieved from new StartedAt
+        var activity = attemptVM.GetActivity();
+        if (activity.ShowStreakAsDaysSinceStarted && attempt.StartedAt.HasValue)
+        {
+            int daysBefore = attempt.DaysAchieved;
+            attempt.DaysAchieved = Math.Max(0, (DateTime.UtcNow.Date - attempt.StartedAt.Value.ToLocalTime().Date).Days);
+            System.Diagnostics.Debug.WriteLine($"[STREAK] Days-since recalculated: {daysBefore} -> {attempt.DaysAchieved} (StartedAt={attempt.StartedAt.Value:yyyy-MM-dd})");
+        }
+
         var conn = await _db.GetConnectionAsync();
         await conn.UpdateAsync(attempt);
 
-        await DisplayAlert("Updated", "Dates updated.", "OK");
+        int displayDays = GetAttemptDisplayDays(activity, attempt);
+        await DisplayAlert("Updated", $"Dates updated.\nCurrent value: {displayDays} days.", "OK");
         await RefreshActivitiesAsync();
     }
 
