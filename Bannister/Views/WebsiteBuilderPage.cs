@@ -206,6 +206,7 @@ Output ONLY the C# code block.
     private readonly Button _deploymentFailedButton;
     private readonly Button _checkDeploymentButton;
     private readonly Button _editDeploymentUrlButton;
+    private readonly Button _deploymentErrorButton;
     private readonly Label _projectTitleHeaderLabel;
     private readonly Label _projectIdeaReferenceLabel;
     private readonly Label _visionStatusLabel;
@@ -555,6 +556,9 @@ Output ONLY the C# code block.
         _editDeploymentUrlButton = CreateSecondaryButton("Edit Deployment URL");
         _editDeploymentUrlButton.Clicked += async (_, _) => await EditDeploymentUrlAsync();
 
+        _deploymentErrorButton = CreateSecondaryButton("Deployment Error");
+        _deploymentErrorButton.Clicked += async (_, _) => await HandleDeploymentErrorAsync();
+
         var workflowHeader = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -597,6 +601,7 @@ Output ONLY the C# code block.
                     _commitAndPushButton,
                     _checkDeploymentButton,
                     _editDeploymentUrlButton,
+                    _deploymentErrorButton,
                     _verifyDeploymentButton,
                     _deploymentFailedButton,
                     _cancelWorkflowButton
@@ -1604,6 +1609,7 @@ Output ONLY the C# code block.
         _deploymentFailedButton.IsVisible = false;
         _checkDeploymentButton.IsVisible = false;
         _editDeploymentUrlButton.IsVisible = false;
+        _deploymentErrorButton.IsVisible = false;
         _cancelWorkflowButton.Text = "Cancel (Back to Start)";
 
         switch (state)
@@ -1642,6 +1648,7 @@ Output ONLY the C# code block.
                 _checkDeploymentButton.Text = hasDeployUrl ? $"Check Deployment ({project.DeploymentUrl})" : "Check Deployment";
                 _editDeploymentUrlButton.IsVisible = true;
                 _editDeploymentUrlButton.Text = hasDeployUrl ? "Edit Deployment URL" : "Set Deployment URL";
+                _deploymentErrorButton.IsVisible = true;
                 _verifyDeploymentButton.IsVisible = true;
                 _deploymentFailedButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
@@ -3372,6 +3379,66 @@ Output ONLY the C# code block.
         await RefreshCurrentProjectAsync();
     }
 
+    private async Task HandleDeploymentErrorAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        string? errorText = await DisplayPromptAsync(
+            "Paste Deployment Error",
+            "Paste the error from Vercel build log, browser console, or terminal:",
+            maxLength: 10000,
+            initialValue: "",
+            placeholder: "Paste error output here...");
+
+        if (string.IsNullOrWhiteSpace(errorText)) return;
+
+        string projectContext = GetProjectVisionContext(project);
+        string recentTasks = string.Join("\n", GetRecentCompletedTaskTitles(project, 5).Select(t => $"- {t}"));
+
+        var prompt = new StringBuilder();
+        prompt.AppendLine("A deployment error occurred after committing and pushing the latest changes. Diagnose the error and provide a fix.");
+        prompt.AppendLine();
+        prompt.AppendLine("PROJECT CONTEXT:");
+        prompt.AppendLine(projectContext);
+        prompt.AppendLine();
+        if (!string.IsNullOrWhiteSpace(recentTasks))
+        {
+            prompt.AppendLine("RECENT COMPLETED TASKS:");
+            prompt.AppendLine(recentTasks);
+            prompt.AppendLine();
+        }
+        if (!string.IsNullOrWhiteSpace(project.PendingTaskTitle))
+        {
+            prompt.AppendLine($"TASK THAT CAUSED THE ERROR: {project.PendingTaskTitle}");
+            prompt.AppendLine();
+        }
+        prompt.AppendLine("DEPLOYMENT ERROR:");
+        prompt.AppendLine(errorText.Trim());
+        prompt.AppendLine();
+        prompt.AppendLine("INSTRUCTIONS:");
+        prompt.AppendLine("1. Diagnose the root cause of this deployment error.");
+        prompt.AppendLine("2. Provide the fix as a Codex CLI prompt in the standard format.");
+        prompt.AppendLine("3. Format your entire response as a QA report using this exact C# object-literal format:");
+        prompt.AppendLine();
+        prompt.AppendLine("qaReport.Broken[0].Title = \"Short description of the deployment error\";");
+        prompt.AppendLine("qaReport.Broken[0].Detail = \"Detailed explanation of root cause and the fix. Include file paths and code changes needed.\";");
+        prompt.AppendLine();
+        prompt.AppendLine("Use qaReport.Broken for errors that prevent deployment. If the fix reveals additional issues, add them as qaReport.Rough entries.");
+        prompt.AppendLine("After the QA report block, provide the Codex prompt under an ARC TITLE and CODEX PROMPT heading in the standard format:");
+        prompt.AppendLine();
+        prompt.AppendLine("ARC TITLE: ...");
+        prompt.AppendLine("CODEX PROMPT:");
+        prompt.AppendLine("```");
+        prompt.AppendLine("...");
+        prompt.AppendLine("```");
+
+        await Clipboard.SetTextAsync(prompt.ToString());
+        await DisplayAlert("Copied!",
+            "Deployment error prompt copied to clipboard. Paste it into Claude or ChatGPT, then use the response to fix the issue.",
+            "OK");
+    }
+
     private async Task DeploymentVerifiedAsync()
     {
         if (_projectService.IsReadOnly)
@@ -3411,12 +3478,20 @@ Output ONLY the C# code block.
         var project = await GetCurrentProjectOrAlertAsync();
         if (project == null) return;
 
-        bool confirm = await DisplayAlert("Deployment Failed",
-            "The Vercel deployment failed. This will move the workflow back to Ready to Commit so you can investigate and re-push.\n\nThe commit message and task title are preserved.",
-            "Go Back to Commit Step",
-            "Cancel");
+        string choice = await DisplayActionSheet(
+            "Deployment Failed",
+            "Cancel",
+            null,
+            "Paste error and get fix prompt",
+            "Go back to commit step (no error to paste)");
 
-        if (!confirm) return;
+        if (string.IsNullOrEmpty(choice) || choice == "Cancel") return;
+
+        if (choice == "Paste error and get fix prompt")
+        {
+            await HandleDeploymentErrorAsync();
+            return;
+        }
 
         try
         {
