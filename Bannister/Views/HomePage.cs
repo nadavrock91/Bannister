@@ -632,6 +632,7 @@ public class HomePage : ContentPage
     }
 
     private string GetQuickAccessPreferencesKey() => $"home_quick_access_{_auth.CurrentUsername}";
+    private string GetPromptWrapLastInputKey(int actionId) => $"prompt_wrap_last_input_{_auth.CurrentUsername}_{actionId}";
 
     private HashSet<string> GetQuickAccessButtons()
     {
@@ -2905,6 +2906,213 @@ public class HomePage : ContentPage
 
         var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
 
+        // Load last input from Preferences
+        string lastInput = Preferences.Default.Get(GetPromptWrapLastInputKey(action.Id), "");
+
+        var userEditor = new Editor
+        {
+            AutoSize = EditorAutoSizeOption.Disabled,
+#if ANDROID
+            HeightRequest = 150,
+#else
+            HeightRequest = 300,
+#endif
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222222"),
+            FontSize = 14,
+            Placeholder = "Paste content to wrap here, or use the button below...",
+            Text = ""
+        };
+
+        // Status label for feedback
+        var statusLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#2E7D32"),
+            IsVisible = false
+        };
+
+        var pasteButton = new Button
+        {
+            Text = " Paste from Clipboard",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        pasteButton.Clicked += async (_, _) =>
+        {
+            try
+            {
+                if (Clipboard.HasText)
+                {
+                    var text = await Clipboard.GetTextAsync();
+                    if (!string.IsNullOrEmpty(text))
+                        userEditor.Text = text;
+                }
+            }
+            catch { }
+        };
+
+        var clearButton = new Button
+        {
+            Text = "️ Clear",
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        clearButton.Clicked += (_, _) =>
+        {
+            userEditor.Text = "";
+        };
+
+        var restoreButton = new Button
+        {
+            Text = "↩️ Restore Last",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13,
+            IsVisible = !string.IsNullOrWhiteSpace(lastInput)
+        };
+        restoreButton.Clicked += (_, _) =>
+        {
+            userEditor.Text = lastInput;
+            statusLabel.Text = "Restored last input.";
+            statusLabel.IsVisible = true;
+        };
+
+        var wrapAndCopyButton = new Button
+        {
+            Text = "✅ Wrap and Copy",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            FontAttributes = FontAttributes.Bold,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 14
+        };
+        wrapAndCopyButton.Clicked += async (_, _) =>
+        {
+            var userText = userEditor.Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(userText))
+            {
+                statusLabel.Text = "Nothing to wrap — paste or type something first.";
+                statusLabel.TextColor = Color.FromArgb("#C62828");
+                statusLabel.IsVisible = true;
+                return;
+            }
+
+            // Save to Preferences for next time
+            Preferences.Default.Set(GetPromptWrapLastInputKey(action.Id), userText);
+
+            string wrapped;
+            if (action.PromptType == "prefix")
+                wrapped = $"{action.PromptText}\n\n{userText}";
+            else
+                wrapped = $"{userText}\n\n{action.PromptText}";
+
+            try
+            {
+                await Clipboard.SetTextAsync(wrapped);
+                statusLabel.Text = "Copied to clipboard!";
+                statusLabel.TextColor = Color.FromArgb("#2E7D32");
+                statusLabel.IsVisible = true;
+            }
+            catch (Exception ex)
+            {
+                statusLabel.Text = $"Copy failed: {ex.Message}";
+                statusLabel.TextColor = Color.FromArgb("#C62828");
+                statusLabel.IsVisible = true;
+            }
+        };
+
+        var closeButton = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        closeButton.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+        };
+
+        var promptPreview = new Label
+        {
+            Text = $"Fixed {action.PromptType}: {(action.PromptText?.Length > 80 ? action.PromptText[..80] + "..." : action.PromptText)}",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#888"),
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+
+        var buttonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children = { pasteButton, clearButton, restoreButton }
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 16,
+#if ANDROID
+            WidthRequest = 340,
+#else
+            WidthRequest = 560,
+#endif
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new ScrollView
+            {
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 10,
+                    Children =
+                    {
+                        new Label
+                        {
+                            Text = action.Title,
+                            FontSize = 18,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = Color.FromArgb("#222")
+                        },
+                        promptPreview,
+                        userEditor,
+                        buttonRow,
+                        statusLabel,
+                        wrapAndCopyButton,
+                        closeButton
+                    }
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        await tcs.Task;
+    }
+
+    /*
+    private async Task ShowPromptWrapModalAsync_Old(QuickAccessAction action)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        var parent = Content as Grid;
+        if (parent == null) return;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
         var isPrefix = action.PromptType == "prefix";
         var typeLabel = isPrefix ? "prefix" : "suffix";
 
@@ -3029,6 +3237,7 @@ public class HomePage : ContentPage
         await tcs.Task;
     }
 
+    */
     private async Task ShowManageActionsModalAsync()
     {
         var tcs = new TaskCompletionSource<bool>();
