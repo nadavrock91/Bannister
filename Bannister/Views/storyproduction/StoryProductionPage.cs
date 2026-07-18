@@ -29,6 +29,10 @@ public class StoryProductionPage : ContentPage
     private Button _compareToBtn;
     private Button _addProjectBtn;
     private Button _projectCategoryBtn;
+    private Picker _writingProcessPicker;
+    private Button _writingProcessBtn;
+    private string _selectedWritingProcess = "All";
+    private bool _isLoadingWritingProcesses;
     private VerticalStackLayout _linesContainer;
     private Label _statsLabel;
     private Label _projectionLabel;
@@ -65,6 +69,8 @@ public class StoryProductionPage : ContentPage
     private bool _isLoadingProjectCategories;
 
     private static string GetProjectCategoryFilterKey(string username) => $"story_production_category_filter_{username}";
+
+    private static string GetWritingProcessFilterKey(string username) => $"story_production_writing_process_filter_{username}";
 
     public StoryProductionPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null)
     {
@@ -225,6 +231,33 @@ public class StoryProductionPage : ContentPage
 
         ApplyWrapMargins(categoryRow);
         leftColumn.Children.Add(categoryRow);
+
+        var processRow = CreateWrappingRow();
+
+        _writingProcessPicker = new Picker
+        {
+            Title = "Writing Process",
+            WidthRequest = 180,
+            BackgroundColor = Color.FromArgb("#F5F5F5")
+        };
+        _writingProcessPicker.SelectedIndexChanged += OnWritingProcessFilterChanged;
+        processRow.Children.Add(_writingProcessPicker);
+
+        _writingProcessBtn = new Button
+        {
+            Text = "Set Process",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#7B1FA2"),
+            CornerRadius = 8,
+            Padding = new Thickness(12, 8),
+            FontSize = 12,
+            IsVisible = false
+        };
+        _writingProcessBtn.Clicked += OnSetWritingProcessClicked;
+        processRow.Children.Add(_writingProcessBtn);
+
+        ApplyWrapMargins(processRow);
+        leftColumn.Children.Add(processRow);
 
         var pickerRow = CreateWrappingRow();
         
@@ -586,7 +619,10 @@ public class StoryProductionPage : ContentPage
                 .ToList();
             await LoadSelectedProjectCategoryAsync();
             RefreshProjectCategoryPicker();
-            _projects = FilterProjectsBySelectedCategory(_allOriginalProjects);
+            await LoadSelectedWritingProcessAsync();
+            RefreshWritingProcessPicker();
+            var categoryFiltered = FilterProjectsBySelectedCategory(_allOriginalProjects);
+            _projects = FilterProjectsBySelectedWritingProcess(categoryFiltered);
             System.Diagnostics.Debug.WriteLine($"[STORY] Found {_projects.Count} original projects");
             
             _projectPicker.Items.Clear();
@@ -596,6 +632,8 @@ public class StoryProductionPage : ContentPage
                 string name = project.Name;
                 if (!string.IsNullOrWhiteSpace(project.ProjectCategory))
                     name = $"[{project.ProjectCategory}] {name}";
+                if (!string.IsNullOrWhiteSpace(project.WritingProcess))
+                    name = $"({project.WritingProcess}) {name}";
                 if (project.IsPublished) name += " ✓";
                 else if (project.Status == "completed") name += " (done)";
                 _projectPicker.Items.Add(name);
@@ -702,6 +740,77 @@ public class StoryProductionPage : ContentPage
         catch
         {
         }
+    }
+
+    private async Task LoadSelectedWritingProcessAsync()
+    {
+        try
+        {
+            var saved = await SecureStorage.GetAsync(GetWritingProcessFilterKey(_auth.CurrentUsername));
+            if (!string.IsNullOrWhiteSpace(saved))
+                _selectedWritingProcess = saved;
+        }
+        catch { }
+    }
+
+    private async Task SaveSelectedWritingProcessAsync()
+    {
+        try
+        {
+            await SecureStorage.SetAsync(GetWritingProcessFilterKey(_auth.CurrentUsername), _selectedWritingProcess);
+        }
+        catch { }
+    }
+
+    private void RefreshWritingProcessPicker()
+    {
+        _isLoadingWritingProcesses = true;
+        var previous = _selectedWritingProcess;
+
+        var processes = _allOriginalProjects
+            .Select(p => string.IsNullOrWhiteSpace(p.WritingProcess) ? "No Process" : p.WritingProcess.Trim())
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(c => c).First())
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        _writingProcessPicker.Items.Clear();
+        _writingProcessPicker.Items.Add("All");
+        foreach (var process in processes)
+            _writingProcessPicker.Items.Add(process);
+
+        int index = _writingProcessPicker.Items.IndexOf(previous);
+        if (index < 0)
+        {
+            _selectedWritingProcess = "All";
+            index = 0;
+        }
+
+        _writingProcessPicker.SelectedIndex = index;
+        _isLoadingWritingProcesses = false;
+    }
+
+    private List<StoryProject> FilterProjectsBySelectedWritingProcess(List<StoryProject> projects)
+    {
+        if (_selectedWritingProcess == "All")
+            return projects.ToList();
+
+        if (_selectedWritingProcess == "No Process")
+            return projects.Where(p => string.IsNullOrWhiteSpace(p.WritingProcess)).ToList();
+
+        return projects
+            .Where(p => string.Equals(p.WritingProcess?.Trim(), _selectedWritingProcess, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private async void OnWritingProcessFilterChanged(object? sender, EventArgs e)
+    {
+        if (_isLoadingWritingProcesses || _writingProcessPicker.SelectedIndex < 0)
+            return;
+
+        _selectedWritingProcess = _writingProcessPicker.Items[_writingProcessPicker.SelectedIndex];
+        await SaveSelectedWritingProcessAsync();
+        await LoadProjectsAsync();
     }
 
     private async void OnProjectCategoryFilterChanged(object? sender, EventArgs e)
@@ -834,6 +943,79 @@ public class StoryProductionPage : ContentPage
             _selectedProjectCategory = "Uncategorized";
 
         await SaveSelectedProjectCategoryAsync();
+
+        await LoadProjectsAsync();
+    }
+
+    private async void OnSetWritingProcessClicked(object? sender, EventArgs e)
+    {
+        if (_currentProject == null)
+            return;
+
+        int rootId = _currentProject.ParentProjectId ?? _currentProject.Id;
+        var rootProject = await _storyService.GetProjectByIdAsync(rootId);
+        if (rootProject == null)
+            return;
+
+        var processes = _allOriginalProjects
+            .Select(p => p.WritingProcess?.Trim() ?? "")
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(c => c).First())
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var options = processes
+            .Where(c => !string.Equals(c, rootProject.WritingProcess, StringComparison.OrdinalIgnoreCase))
+            .Concat(new[] { "+ New Process", "No Process" })
+            .ToArray();
+
+        string? selected = await DisplayActionSheet(
+            "Writing Process",
+            "Cancel",
+            null,
+            options);
+
+        if (string.IsNullOrWhiteSpace(selected) || selected == "Cancel")
+            return;
+
+        string process;
+        if (selected == "+ New Process")
+        {
+            string? newProcess = await DisplayPromptAsync(
+                "New Writing Process",
+                "Process name:",
+                "Save",
+                "Cancel",
+                placeholder: "Process...");
+
+            if (string.IsNullOrWhiteSpace(newProcess))
+                return;
+
+            process = newProcess.Trim();
+        }
+        else if (selected == "No Process")
+        {
+            process = "";
+        }
+        else
+        {
+            process = selected.Trim();
+        }
+
+        var family = await _storyService.GetProjectDraftsAsync(rootId);
+        bool saved = await TryStoryWriteAsync(async () =>
+        {
+            foreach (var project in family)
+            {
+                project.WritingProcess = process;
+                await _storyService.UpdateProjectAsync(project);
+            }
+        });
+        if (!saved) return;
+
+        if (_currentProject != null)
+            _currentProject.WritingProcess = process;
 
         await LoadProjectsAsync();
     }
@@ -1941,6 +2123,7 @@ public class StoryProductionPage : ContentPage
         _linesToggleButton.IsVisible = false;
         _deleteProjectBtn.IsVisible = false;
         _projectCategoryBtn.IsVisible = false;
+        _writingProcessBtn.IsVisible = false;
         _expandAllBtn.IsVisible = false;
         _conversationLogBtn.IsVisible = false;
         _exportPromptBtn.IsVisible = false;
@@ -1963,6 +2146,7 @@ public class StoryProductionPage : ContentPage
         _linesToggleButton.IsVisible = true;
         _deleteProjectBtn.IsVisible = true;
         _projectCategoryBtn.IsVisible = true;
+        _writingProcessBtn.IsVisible = true;
         _expandAllBtn.IsVisible = true;
         _conversationLogBtn.IsVisible = true;
         _exportPromptBtn.IsVisible = true;
@@ -2916,13 +3100,53 @@ public class StoryProductionPage : ContentPage
             placeholder: "Brief description of this story...",
             initialValue: "");
         
+        // Prompt for writing process
+        var existingProcesses = _allOriginalProjects
+            .Select(p => p.WritingProcess?.Trim() ?? "")
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(c => c).First())
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var processOptions = existingProcesses
+            .Concat(new[] { "+ New Process", "Skip (no process)" })
+            .ToArray();
+
+        string? selectedProcess = await DisplayActionSheet(
+            "Writing Process",
+            "Cancel",
+            null,
+            processOptions);
+
+        if (selectedProcess == "Cancel" || string.IsNullOrWhiteSpace(selectedProcess)) return;
+
+        string writingProcess = "";
+        if (selectedProcess == "+ New Process")
+        {
+            string? newProcess = await DisplayPromptAsync(
+                "New Writing Process",
+                "Process name:",
+                "Save",
+                "Cancel",
+                placeholder: "e.g., Fable, Video Essay, Documentary...");
+
+            if (string.IsNullOrWhiteSpace(newProcess)) return;
+            writingProcess = newProcess.Trim();
+        }
+        else if (selectedProcess != "Skip (no process)")
+        {
+            writingProcess = selectedProcess.Trim();
+        }
+
         StoryProject? project = null;
         if (!await TryStoryWriteAsync(async () =>
         {
             project = await _storyService.CreateProjectAsync(
                 _auth.CurrentUsername,
                 name.Trim(),
-                description?.Trim() ?? "");
+                description?.Trim() ?? "",
+                writingProcess);
         })) return;
         
         await LoadProjectsAsync();

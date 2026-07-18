@@ -18,6 +18,8 @@ public class StoryProject
     public string LlmConversationLog { get; set; } = "";
 
     public string ProjectCategory { get; set; } = "";
+
+    public string WritingProcess { get; set; } = "";
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     

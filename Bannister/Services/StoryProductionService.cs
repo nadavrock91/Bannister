@@ -63,6 +63,7 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN IsProduced INTEGER DEFAULT 0"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN ProducedAt TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN StatsSourceDraftProjectId INTEGER"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN WritingProcess TEXT DEFAULT ''"); } catch { }
     }
 
     private async Task BackfillProducedStateAsync(ISQLiteAsyncConnection conn, string username)
@@ -128,7 +129,7 @@ public class StoryProductionService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<StoryProject> CreateProjectAsync(string username, string name, string description = "")
+    public async Task<StoryProject> CreateProjectAsync(string username, string name, string description = "", string writingProcess = "")
     {
         EnsureWritable();
         var conn = await _db.GetConnectionAsync();
@@ -139,12 +140,13 @@ public class StoryProductionService
             Username = username,
             Name = name,
             Description = description,
+            WritingProcess = writingProcess,
             CreatedAt = DateTime.UtcNow,
             Status = "active"
         };
         
         await conn.InsertAsync(project);
-        System.Diagnostics.Debug.WriteLine($"[STORY] Created project: {name}");
+        System.Diagnostics.Debug.WriteLine($"[STORY] Created project: {name} (process: {writingProcess})");
         
         return project;
     }

@@ -18,8 +18,13 @@ public class ProductionStatsPage : ContentPage
     private Picker _categoryPicker;
     private bool _isLoadingCategories;
     private string _selectedCategory = "All";
+    private Picker _writingProcessPicker;
+    private bool _isLoadingWritingProcesses;
+    private string _selectedWritingProcess = "All";
 
     private static string GetProjectCategoryFilterKey(string username) => $"story_production_category_filter_{username}";
+
+    private static string GetWritingProcessFilterKey(string username) => $"production_stats_writing_process_filter_{username}";
 
     public ProductionStatsPage(AuthService auth, StoryProductionService storyService)
     {
@@ -111,6 +116,34 @@ public class ProductionStatsPage : ContentPage
         categoryRow.Children.Add(_categoryPicker);
         mainStack.Children.Add(categoryRow);
 
+        var processRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 10
+        };
+        processRow.Children.Add(new Label
+        {
+            Text = "Process:",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#555"),
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        _writingProcessPicker = new Picker
+        {
+            Title = "Writing Process",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        _writingProcessPicker.SelectedIndexChanged += OnWritingProcessFilterChanged;
+        Grid.SetColumn(_writingProcessPicker, 1);
+        processRow.Children.Add(_writingProcessPicker);
+        mainStack.Children.Add(processRow);
+
         _statsStack = new VerticalStackLayout { Spacing = 12 };
         mainStack.Children.Add(_statsStack);
 
@@ -149,7 +182,10 @@ public class ProductionStatsPage : ContentPage
             var originalProjects = allProjects.Where(p => p.ParentProjectId == null).OrderByDescending(p => p.CreatedAt).ToList();
             await LoadSelectedCategoryAsync();
             RefreshCategoryPicker(originalProjects);
+            await LoadSelectedWritingProcessAsync();
+            RefreshWritingProcessPicker(originalProjects);
             var filteredProjects = FilterProjectsBySelectedCategory(originalProjects);
+            filteredProjects = FilterProjectsBySelectedWritingProcess(filteredProjects);
 
             if (originalProjects.Count == 0)
             {
@@ -341,6 +377,77 @@ public class ProductionStatsPage : ContentPage
         _selectedCategory = _categoryPicker.Items[_categoryPicker.SelectedIndex];
         await SaveSelectedCategoryAsync();
         await LoadStatsAsync();
+    }
+
+    private async void OnWritingProcessFilterChanged(object? sender, EventArgs e)
+    {
+        if (_isLoadingWritingProcesses || _writingProcessPicker.SelectedIndex < 0)
+            return;
+
+        _selectedWritingProcess = _writingProcessPicker.Items[_writingProcessPicker.SelectedIndex];
+        await SaveSelectedWritingProcessAsync();
+        await LoadStatsAsync();
+    }
+
+    private void RefreshWritingProcessPicker(List<StoryProject> projects)
+    {
+        _isLoadingWritingProcesses = true;
+        var previous = _selectedWritingProcess;
+
+        var processes = projects
+            .Select(p => string.IsNullOrWhiteSpace(p.WritingProcess) ? "No Process" : p.WritingProcess.Trim())
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(c => c).First())
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        _writingProcessPicker.Items.Clear();
+        _writingProcessPicker.Items.Add("All");
+        foreach (var process in processes)
+            _writingProcessPicker.Items.Add(process);
+
+        int index = _writingProcessPicker.Items.IndexOf(previous);
+        if (index < 0)
+        {
+            _selectedWritingProcess = "All";
+            index = 0;
+        }
+
+        _writingProcessPicker.SelectedIndex = index;
+        _isLoadingWritingProcesses = false;
+    }
+
+    private List<StoryProject> FilterProjectsBySelectedWritingProcess(List<StoryProject> projects)
+    {
+        if (_selectedWritingProcess == "All")
+            return projects.ToList();
+
+        if (_selectedWritingProcess == "No Process")
+            return projects.Where(p => string.IsNullOrWhiteSpace(p.WritingProcess)).ToList();
+
+        return projects
+            .Where(p => string.Equals(p.WritingProcess?.Trim(), _selectedWritingProcess, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private async Task LoadSelectedWritingProcessAsync()
+    {
+        try
+        {
+            var saved = await SecureStorage.GetAsync(GetWritingProcessFilterKey(_auth.CurrentUsername));
+            if (!string.IsNullOrWhiteSpace(saved))
+                _selectedWritingProcess = saved;
+        }
+        catch { }
+    }
+
+    private async Task SaveSelectedWritingProcessAsync()
+    {
+        try
+        {
+            await SecureStorage.SetAsync(GetWritingProcessFilterKey(_auth.CurrentUsername), _selectedWritingProcess);
+        }
+        catch { }
     }
 
     private Task<Frame> BuildProjectCardAsync(StoryProject project)
