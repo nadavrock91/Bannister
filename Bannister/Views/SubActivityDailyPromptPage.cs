@@ -249,40 +249,103 @@ public class SubActivityDailyPromptPage : ContentPage
 
         var result = await _subActivityService.SubmitDailySubAsync(_process.Id, _stepStates);
 
+        // Refresh process to get updated values
+        var refreshed = await _subActivityService.GetByIdAsync(_process.Id);
+        if (refreshed == null)
+        {
+            await CloseAsync(result.Submitted);
+            return;
+        }
+
+        // Always show status after submission (like allowance check-in does)
+        int activeSteps = _subActivityService.GetSteps(refreshed).Count;
+        string statusMessage = $"Streak: {refreshed.ConsecutiveAllDoneDays}/3 days\n" +
+                               $"Allowance: {refreshed.Allowance} (active steps: {activeSteps})\n" +
+                               $"Total completions: {refreshed.TotalCompletions}";
+
         if (result.MilestoneReached)
         {
-            string action = await DisplayActionSheet(
-                $"Add a step to {_process.Name}?",
-                "Cancel",
-                null,
-                "Yes",
-                "No");
+            // Allowance already incremented by SubmitDailySubAsync — do NOT revert if user skips adding
+            await DisplayAlert(
+                "3-Day Streak! Allowance Increased",
+                $"'{refreshed.Name}' allowance raised to {refreshed.Allowance}!\n\n{statusMessage}\n\nYou can fill the new slot now or leave it empty for later.",
+                "OK");
 
-            if (action == "Yes")
-            {
-                string? stepName = await DisplayPromptAsync(
-                    "New Step",
-                    $"Enter a new step for {_process.Name}:",
-                    "Save",
-                    "Cancel");
+            // Offer to fill the new slot
+            await OfferFillNewSlotAsync(refreshed);
 
-                if (!string.IsNullOrWhiteSpace(stepName) &&
-                    await _subActivityService.TryAddStepAsync(_process.Id, stepName.Trim()))
-                {
-                    await _subActivityService.ResetConsecutiveAllDoneDaysAsync(_process.Id);
-                    await CloseAsync(true);
-                    return;
-                }
-
-                await _subActivityService.RevertAllowanceAsync(_process.Id);
-            }
-            else
-            {
-                await _subActivityService.RevertAllowanceAsync(_process.Id);
-            }
+            // Reset streak regardless of whether slot was filled
+            await _subActivityService.ResetConsecutiveAllDoneDaysAsync(refreshed.Id);
+        }
+        else
+        {
+            await DisplayAlert(
+                $"{refreshed.Name} — Status",
+                statusMessage,
+                "OK");
         }
 
         await CloseAsync(result.Submitted);
+    }
+
+    private async Task OfferFillNewSlotAsync(SubActivity process)
+    {
+        var pendingSteps = _subActivityService.GetPendingSteps(process);
+        var activeSteps = _subActivityService.GetSteps(process);
+
+        // Build options list
+        var options = new List<string>();
+
+        if (pendingSteps.Count > 0)
+        {
+            foreach (var step in pendingSteps)
+                options.Add($"Pending: {step.Name}");
+        }
+
+        options.Add("Type manually");
+        options.Add("Leave empty for now");
+
+        string choice = await DisplayActionSheet(
+            $"Fill new slot in '{process.Name}'?",
+            null, // no cancel — must choose
+            null,
+            options.ToArray());
+
+        if (string.IsNullOrEmpty(choice) || choice == "Leave empty for now")
+            return;
+
+        if (choice == "Type manually")
+        {
+            string? stepName = await DisplayPromptAsync(
+                "New Step",
+                $"Enter a new step for {process.Name}:",
+                "Save",
+                "Cancel");
+
+            if (!string.IsNullOrWhiteSpace(stepName))
+            {
+                await _subActivityService.TryAddStepAsync(process.Id, stepName.Trim());
+            }
+            return;
+        }
+
+        // Selected a pending step — find which one
+        if (choice.StartsWith("Pending: "))
+        {
+            string selectedName = choice.Substring("Pending: ".Length);
+            int pendingIndex = pendingSteps.FindIndex(s =>
+                string.Equals(s.Name, selectedName, StringComparison.Ordinal));
+
+            if (pendingIndex >= 0)
+            {
+                // Re-fetch process to ensure fresh state
+                var freshProcess = await _subActivityService.GetByIdAsync(process.Id);
+                if (freshProcess != null)
+                {
+                    await _subActivityService.ActivatePendingStepAsync(freshProcess, pendingIndex);
+                }
+            }
+        }
     }
 
     protected override bool OnBackButtonPressed()
