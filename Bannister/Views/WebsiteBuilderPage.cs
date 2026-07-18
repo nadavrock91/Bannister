@@ -204,6 +204,8 @@ Output ONLY the C# code block.
     private readonly Button _commitAndPushButton;
     private readonly Button _verifyDeploymentButton;
     private readonly Button _deploymentFailedButton;
+    private readonly Button _checkDeploymentButton;
+    private readonly Button _editDeploymentUrlButton;
     private readonly Label _projectTitleHeaderLabel;
     private readonly Label _projectIdeaReferenceLabel;
     private readonly Label _visionStatusLabel;
@@ -547,6 +549,12 @@ Output ONLY the C# code block.
         _deploymentFailedButton = CreateDangerButton("Deployment Failed (Revert)");
         _deploymentFailedButton.Clicked += async (_, _) => await DeploymentFailedAsync();
 
+        _checkDeploymentButton = CreatePrimaryButton("Check Deployment", Color.FromArgb("#1565C0"));
+        _checkDeploymentButton.Clicked += async (_, _) => await CheckDeploymentAsync();
+
+        _editDeploymentUrlButton = CreateSecondaryButton("Edit Deployment URL");
+        _editDeploymentUrlButton.Clicked += async (_, _) => await EditDeploymentUrlAsync();
+
         var workflowHeader = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -587,6 +595,8 @@ Output ONLY the C# code block.
                     _editCodexPromptButton,
                     _editCommitMessageButton,
                     _commitAndPushButton,
+                    _checkDeploymentButton,
+                    _editDeploymentUrlButton,
                     _verifyDeploymentButton,
                     _deploymentFailedButton,
                     _cancelWorkflowButton
@@ -1592,6 +1602,8 @@ Output ONLY the C# code block.
         _commitAndPushButton.IsVisible = false;
         _verifyDeploymentButton.IsVisible = false;
         _deploymentFailedButton.IsVisible = false;
+        _checkDeploymentButton.IsVisible = false;
+        _editDeploymentUrlButton.IsVisible = false;
         _cancelWorkflowButton.Text = "Cancel (Back to Start)";
 
         switch (state)
@@ -1625,6 +1637,11 @@ Output ONLY the C# code block.
             case WebsiteWorkflowState.VerifyDeployment:
                 ApplyWorkflowBanner("#E3F2FD", "#1565C0", "#0D47A1", "🔵", "Verify Vercel deployment",
                     $"Task '{project.PendingTaskTitle}' was committed and pushed. Check the Vercel dashboard to confirm successful deployment before continuing.");
+                bool hasDeployUrl = !string.IsNullOrWhiteSpace(project.DeploymentUrl);
+                _checkDeploymentButton.IsVisible = hasDeployUrl;
+                _checkDeploymentButton.Text = hasDeployUrl ? $"Check Deployment ({project.DeploymentUrl})" : "Check Deployment";
+                _editDeploymentUrlButton.IsVisible = true;
+                _editDeploymentUrlButton.Text = hasDeployUrl ? "Edit Deployment URL" : "Set Deployment URL";
                 _verifyDeploymentButton.IsVisible = true;
                 _deploymentFailedButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
@@ -3304,6 +3321,55 @@ Output ONLY the C# code block.
         {
             await DisplayAlert("Could not run git", $"Could not run git: {ex.Message}", "OK");
         }
+    }
+
+    private async Task CheckDeploymentAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        if (string.IsNullOrWhiteSpace(project.DeploymentUrl))
+        {
+            await DisplayAlert("No URL", "No deployment URL set. Tap Set Deployment URL first.", "OK");
+            return;
+        }
+
+        try
+        {
+            var uri = project.DeploymentUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? project.DeploymentUrl
+                : $"https://{project.DeploymentUrl}";
+            await Launcher.OpenAsync(new Uri(uri));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Could not open URL", $"Could not open '{project.DeploymentUrl}': {ex.Message}", "OK");
+        }
+    }
+
+    private async Task EditDeploymentUrlAsync()
+    {
+        if (_projectService.IsReadOnly)
+        {
+            await ShowReadOnlyAlertAsync();
+            return;
+        }
+
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        string current = project.DeploymentUrl ?? "";
+        string? result = await DisplayPromptAsync(
+            "Deployment URL",
+            "Enter the URL to check deployment (e.g. https://your-app.vercel.app or your Vercel dashboard link):",
+            initialValue: current,
+            placeholder: "https://your-app.vercel.app");
+
+        if (result == null) return;
+
+        result = result.Trim();
+        await _projectService.SetDeploymentUrlAsync(project.Id, result);
+        await RefreshCurrentProjectAsync();
     }
 
     private async Task DeploymentVerifiedAsync()

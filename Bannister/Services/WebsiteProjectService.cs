@@ -24,8 +24,18 @@ public class WebsiteProjectService
             throw new ReadOnlyDatabaseException("Website projects are read-only on secondary devices.");
     }
 
+    private async Task EnsureDeploymentUrlColumnAsync()
+    {
+        if (_db.IsReadOnly)
+            return;
+
+        var conn = await _db.GetConnectionAsync();
+        try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN DeploymentUrl TEXT DEFAULT ''"); } catch { }
+    }
+
     public async Task<List<WebsiteProject>> GetAllForUserAsync(string username)
     {
+        await EnsureDeploymentUrlColumnAsync();
         var conn = await _db.GetConnectionAsync();
         var projects = await conn.Table<WebsiteProject>()
             .Where(project => project.Username == username)
@@ -40,6 +50,7 @@ public class WebsiteProjectService
     public async Task<int> SaveAsync(WebsiteProject project)
     {
         EnsureWritable();
+        await EnsureDeploymentUrlColumnAsync();
         var conn = await _db.GetConnectionAsync();
         project.UpdatedAt = DateTime.UtcNow;
 
@@ -58,6 +69,7 @@ public class WebsiteProjectService
 
     public async Task<WebsiteProject?> GetByIdAsync(int id)
     {
+        await EnsureDeploymentUrlColumnAsync();
         var conn = await _db.GetConnectionAsync();
         return await conn.Table<WebsiteProject>().FirstOrDefaultAsync(project => project.Id == id);
     }
@@ -155,6 +167,18 @@ public class WebsiteProjectService
             return false;
 
         project.CodebasePath = path;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetDeploymentUrlAsync(int projectId, string url)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.DeploymentUrl = url ?? "";
         await SaveAsync(project);
         return true;
     }

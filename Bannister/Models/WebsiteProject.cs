@@ -21,6 +21,8 @@ public class WebsiteProject
 
     public string CodebasePath { get; set; } = "";
 
+    public string DeploymentUrl { get; set; } = "";
+
     public string ProjectSummary { get; set; } = "";
 
     public int TasksSinceSummaryUpdate { get; set; } = 0;
