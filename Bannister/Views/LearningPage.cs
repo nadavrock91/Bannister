@@ -66,6 +66,11 @@ public class LearningPage : ContentPage
     private HashSet<string> _lockedCreators = new();
     private FocusSettings _currentFocus;
 
+    // Filter shortcut buttons
+    private Button _shortcut1Btn;
+    private Button _shortcut2Btn;
+    private Button _shortcut3Btn;
+
     private sealed class CreatorLimitStatus
     {
         public int MonthlyCount { get; set; }
@@ -112,6 +117,7 @@ public class LearningPage : ContentPage
         await RestoreFiltersOnAppearAsync();
         
         await RefreshDataAsync();
+        await UpdateShortcutLabelsAsync();
     }
 
     private async Task RestoreFiltersOnAppearAsync()
@@ -151,6 +157,47 @@ public class LearningPage : ContentPage
     private string GetDefaultCategoryKey() => $"learning_default_category_{_auth.CurrentUsername}";
     private string GetDefaultStatusKey() => $"learning_default_status_{_auth.CurrentUsername}";
 
+    private string GetShortcutKey(int index) => $"learning_shortcut_{index}_{_auth.CurrentUsername}";
+
+    private async Task<(string Category, string Status)> GetShortcutAsync(int index)
+    {
+        try
+        {
+            var value = await SecureStorage.GetAsync(GetShortcutKey(index));
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                var parts = value.Split('|');
+                if (parts.Length == 2) return (parts[0], parts[1]);
+            }
+        }
+        catch { }
+
+        // Defaults
+        return index switch
+        {
+            1 => ("All", "Pending"),
+            2 => ("All", "Top Picks"),
+            3 => ("All", "To Watch"),
+            _ => ("All", "All")
+        };
+    }
+
+    private async Task SaveShortcutAsync(int index, string category, string status)
+    {
+        try { await SecureStorage.SetAsync(GetShortcutKey(index), $"{category}|{status}"); } catch { }
+    }
+
+    private static string ShortcutLabel(string category, string status)
+    {
+        string catPart = category == "All" ? "" : category;
+        string statusPart = status == "All" ? "" : status;
+        if (!string.IsNullOrEmpty(catPart) && !string.IsNullOrEmpty(statusPart))
+            return $"{catPart} / {statusPart}";
+        if (!string.IsNullOrEmpty(catPart)) return catPart;
+        if (!string.IsNullOrEmpty(statusPart)) return statusPart;
+        return "All / All";
+    }
+
     private async Task SaveLastFiltersAsync()
     {
         try
@@ -159,6 +206,77 @@ public class LearningPage : ContentPage
             await SecureStorage.SetAsync(GetLastStatusKey(), _selectedStatus ?? "");
         }
         catch { }
+    }
+
+    private async Task ApplyShortcutAsync(int index)
+    {
+        var (category, status) = await GetShortcutAsync(index);
+
+        _selectedCategory = category;
+        _selectedStatus = status;
+
+        _isUpdatingPicker = true;
+        try
+        {
+            int catIdx = _categoryPicker.Items.IndexOf(category);
+            if (catIdx >= 0) _categoryPicker.SelectedIndex = catIdx;
+
+            int statusIdx = _statusPicker.Items.IndexOf(status);
+            if (statusIdx >= 0) _statusPicker.SelectedIndex = statusIdx;
+        }
+        finally
+        {
+            _isUpdatingPicker = false;
+        }
+
+        _ = SaveLastFiltersAsync();
+        await RefreshVideosAsync();
+    }
+
+    private async Task EditShortcutAsync(int index)
+    {
+        var (currentCat, currentStatus) = await GetShortcutAsync(index);
+
+        // Build category options from current picker items
+        var categories = new List<string>();
+        for (int i = 0; i < _categoryPicker.Items.Count; i++)
+            categories.Add(_categoryPicker.Items[i]);
+
+        if (categories.Count == 0) categories.Add("All");
+
+        string chosenCategory = await DisplayActionSheet(
+            $"Shortcut {index}: Choose Category (current: {currentCat})",
+            "Cancel", null, categories.ToArray());
+
+        if (string.IsNullOrEmpty(chosenCategory) || chosenCategory == "Cancel") return;
+
+        // Build status options from current picker items
+        var statuses = new List<string>();
+        for (int i = 0; i < _statusPicker.Items.Count; i++)
+            statuses.Add(_statusPicker.Items[i]);
+
+        if (statuses.Count == 0) statuses.Add("All");
+
+        string chosenStatus = await DisplayActionSheet(
+            $"Shortcut {index}: Choose Status (current: {currentStatus})",
+            "Cancel", null, statuses.ToArray());
+
+        if (string.IsNullOrEmpty(chosenStatus) || chosenStatus == "Cancel") return;
+
+        await SaveShortcutAsync(index, chosenCategory, chosenStatus);
+        await UpdateShortcutLabelsAsync();
+    }
+
+    private async Task UpdateShortcutLabelsAsync()
+    {
+        var (cat1, status1) = await GetShortcutAsync(1);
+        _shortcut1Btn.Text = ShortcutLabel(cat1, status1);
+
+        var (cat2, status2) = await GetShortcutAsync(2);
+        _shortcut2Btn.Text = ShortcutLabel(cat2, status2);
+
+        var (cat3, status3) = await GetShortcutAsync(3);
+        _shortcut3Btn.Text = ShortcutLabel(cat3, status3);
     }
     
     /// <summary>
@@ -493,6 +611,90 @@ public class LearningPage : ContentPage
         };
         filterRow1.Children.Add(_channelPicker);
 
+        // Filter shortcut buttons row
+        var shortcutRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Padding = new Thickness(12, 4, 12, 4)
+        };
+
+        _shortcut1Btn = new Button
+        {
+            Text = "...",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            Padding = new Thickness(10, 0)
+        };
+        _shortcut1Btn.Clicked += async (_, _) => await ApplyShortcutAsync(1);
+        var shortcut1Dots = new Button
+        {
+            Text = "⋮",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#999"),
+            WidthRequest = 30,
+            HeightRequest = 36,
+            FontSize = 16,
+            Padding = new Thickness(0)
+        };
+        shortcut1Dots.Clicked += async (_, _) => await EditShortcutAsync(1);
+
+        _shortcut2Btn = new Button
+        {
+            Text = "...",
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            TextColor = Color.FromArgb("#2E7D32"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            Padding = new Thickness(10, 0)
+        };
+        _shortcut2Btn.Clicked += async (_, _) => await ApplyShortcutAsync(2);
+        var shortcut2Dots = new Button
+        {
+            Text = "⋮",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#999"),
+            WidthRequest = 30,
+            HeightRequest = 36,
+            FontSize = 16,
+            Padding = new Thickness(0)
+        };
+        shortcut2Dots.Clicked += async (_, _) => await EditShortcutAsync(2);
+
+        _shortcut3Btn = new Button
+        {
+            Text = "...",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            Padding = new Thickness(10, 0)
+        };
+        _shortcut3Btn.Clicked += async (_, _) => await ApplyShortcutAsync(3);
+        var shortcut3Dots = new Button
+        {
+            Text = "⋮",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#999"),
+            WidthRequest = 30,
+            HeightRequest = 36,
+            FontSize = 16,
+            Padding = new Thickness(0)
+        };
+        shortcut3Dots.Clicked += async (_, _) => await EditShortcutAsync(3);
+
+        shortcutRow.Children.Add(_shortcut1Btn);
+        shortcutRow.Children.Add(shortcut1Dots);
+        shortcutRow.Children.Add(_shortcut2Btn);
+        shortcutRow.Children.Add(shortcut2Dots);
+        shortcutRow.Children.Add(_shortcut3Btn);
+        shortcutRow.Children.Add(shortcut3Dots);
+
+        videosContainer.Children.Add(shortcutRow);
         videosContainer.Children.Add(filterRow1);
 
         // Filter row 2: Status and Settings
