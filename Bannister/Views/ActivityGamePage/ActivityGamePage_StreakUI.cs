@@ -451,41 +451,73 @@ public partial class ActivityGamePage
         var today = DateTime.UtcNow.Date;
         if (attempt.LastUsedDate.HasValue && attempt.LastUsedDate.Value.Date == today)
         {
-            await DisplayAlert("Already Recorded", 
+            await DisplayAlert("Already Recorded",
                 $"You've already recorded today.\n\nCurrent streak: {attemptVM.DisplayDaysAchieved} days",
                 "OK");
             return;
         }
 
-        // Calculate EXP
+        // Check for gap before proceeding
+        string gameId = GetActivityGameId(activity);
+        int gapDays = await _streaks.GetActiveStreakGapDaysAsync(_auth.CurrentUsername, gameId, activity.Id);
+        bool streakBroke = false;
+
+        if (gapDays > 1 && activity.ShowStreakAsDaysSinceStarted != true)
+        {
+            // Gap detected — ask user if streak broke
+            streakBroke = await DisplayAlert(
+                "Streak Gap Detected",
+                $"It's been {gapDays} days since your last use of '{activity.Name}'.\n\n" +
+                $"Current streak: {attempt.DaysAchieved} days.\n\n" +
+                "Did the streak break?",
+                "Yes, It Broke",
+                "No, Keep Going");
+
+            if (streakBroke)
+            {
+                // End the current streak — ProcessActivityCompletionAsync will create a new one
+                await _streaks.EndStreakAsync(attempt.Id);
+            }
+        }
+
+        // Calculate EXP — always single application amount
         int expAmount = attemptVM.ExpGain * activity.Multiplier;
-        
-        // Use SHARED completion logic - this handles all the common stuff:
-        // - Apply EXP
-        // - Record streak usage (increments DaysAchieved via _streaks.RecordActivityUsageAsync)
-        // - Record habit completion
-        // - Record display day streak  
-        // - Increment times completed
-        // - Update NewHabit progress
-        // - Check for streak milestone bonus
+
+        // Compute day label for EXP log
+        string dayLabel;
+        if (streakBroke)
+        {
+            dayLabel = $"{activity.Name} (Day 1)";
+        }
+        else if (activity.ShowStreakAsDaysSinceStarted == true && attempt.StartedAt.HasValue)
+        {
+            int calendarDays = (today - attempt.StartedAt.Value.ToLocalTime().Date).Days;
+            dayLabel = $"{activity.Name} (Day {calendarDays})";
+        }
+        else
+        {
+            dayLabel = $"{activity.Name} (Day {attempt.DaysAchieved + 1})";
+        }
+
         var (totalExp, bonusDetails) = await ProcessActivityCompletionAsync(
-            activity, 
-            expAmount, 
-            $"{activity.Name} (Day {attempt.DaysAchieved + 1})");
+            activity,
+            expAmount,
+            dayLabel);
 
         await RefreshExpAsync();
         await RefreshActivitiesAsync();
         await LoadChartDataAsync();
 
-        var updatedAttempt = (await _streaks.GetStreakAttemptsAsync(_auth.CurrentUsername, GetActivityGameId(activity), activity.Id))
+        var updatedAttempt = (await _streaks.GetStreakAttemptsAsync(_auth.CurrentUsername, gameId, activity.Id))
             .FirstOrDefault(a => a.IsActive);
-        
+
         string bonusMessage = !string.IsNullOrEmpty(bonusDetails) ? $"\n{bonusDetails}" : "";
-        
+
         if (updatedAttempt != null)
         {
             int displayDays = GetAttemptDisplayDays(activity, updatedAttempt);
-            await DisplayAlert("Day Recorded! 🔥", 
+            string streakNote = streakBroke ? " (new attempt)" : "";
+            await DisplayAlert($"Day Recorded! {streakNote}",
                 $"+{totalExp} EXP{bonusMessage}\n\n" +
                 $"Streak: {displayDays} / {GetStreakTargetDays(activity)} days\n" +
                 $"Display Day Streak: {activity.DisplayDayStreak} days",

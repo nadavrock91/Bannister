@@ -107,6 +107,26 @@ public class StreakService
     }
 
     /// <summary>
+    /// Check how many days since the active streak was last used.
+    /// Returns 0 if used today, 1 if yesterday (consecutive), >1 if gap, -1 if no active streak.
+    /// </summary>
+    public async Task<int> GetActiveStreakGapDaysAsync(string username, string game, int activityId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        var activeStreak = await conn.Table<StreakAttempt>()
+            .Where(s => s.Username == username && s.Game == game && s.ActivityId == activityId && s.IsActive)
+            .FirstOrDefaultAsync();
+
+        if (activeStreak == null) return -1;
+
+        var today = DateTime.UtcNow.Date;
+        if (!activeStreak.LastUsedDate.HasValue) return -1;
+        if (activeStreak.LastUsedDate.Value.Date == today) return 0;
+
+        return (today - activeStreak.LastUsedDate.Value.Date).Days;
+    }
+
+    /// <summary>
     /// Record activity usage and update streak
     /// Called when an activity is used (EXP awarded)
     /// </summary>
@@ -166,18 +186,15 @@ public class StreakService
                 }
                 else
                 {
-                    // Streak broken! End this one and start a new one
-                    await LogTargetStatResetForAttemptAsync(conn, activeStreak, "reset", "Streak reset after a missed day");
-
-                    activeStreak.IsActive = false;
-                    activeStreak.EndedAt = activeStreak.LastUsedDate.Value.AddDays(1); // Day after last use
+                    // Gap detected but UI has already decided whether to break or not.
+                    // If the streak was broken by the UI, no active streak exists here (we returned early above).
+                    // If we reach here, the user chose NOT to break — increment by 1 for regular streaks.
+                    int daysBefore = activeStreak.DaysAchieved;
+                    activeStreak.DaysAchieved++;
+                    activeStreak.LastUsedDate = today;
                     await conn.UpdateAsync(activeStreak);
-
-                    await LogStreakChangeAsync(activeStreak.Id, activeStreak.DaysAchieved, activeStreak.DaysAchieved, "reset",
-                        "Streak reset after a missed day");
-
-                    // Start a new streak
-                    await GetOrCreateActiveStreakAsync(username, game, activityId, activityName, usedAt);
+                    await LogStreakChangeAsync(activeStreak.Id, daysBefore, activeStreak.DaysAchieved, "increment",
+                        $"Incremented after {daysSinceLastUse}-day gap (user confirmed no break)");
                 }
             }
             // daysSinceLastUse == 0 means same day, already handled above
