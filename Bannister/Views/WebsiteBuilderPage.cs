@@ -1609,7 +1609,6 @@ Output ONLY the C# code block.
         _deploymentFailedButton.IsVisible = false;
         _checkDeploymentButton.IsVisible = false;
         _editDeploymentUrlButton.IsVisible = false;
-        _deploymentErrorButton.IsVisible = false;
         _cancelWorkflowButton.Text = "Cancel (Back to Start)";
 
         switch (state)
@@ -1648,7 +1647,6 @@ Output ONLY the C# code block.
                 _checkDeploymentButton.Text = hasDeployUrl ? $"Check Deployment ({project.DeploymentUrl})" : "Check Deployment";
                 _editDeploymentUrlButton.IsVisible = true;
                 _editDeploymentUrlButton.Text = hasDeployUrl ? "Edit Deployment URL" : "Set Deployment URL";
-                _deploymentErrorButton.IsVisible = true;
                 _verifyDeploymentButton.IsVisible = true;
                 _deploymentFailedButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
@@ -1667,6 +1665,9 @@ Output ONLY the C# code block.
                 _copyBatchPromptButton.IsVisible = true;
                 break;
         }
+
+        // Deployment Error is always available when a project is loaded
+        _deploymentErrorButton.IsVisible = _currentProjectId > 0;
     }
 
     private void ApplyWorkflowBanner(string background, string border, string titleColor, string icon, string title, string subtitle)
