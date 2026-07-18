@@ -474,7 +474,7 @@ public class WebsiteProjectService
     {
         EnsureWritable();
         var project = await GetByIdAsync(projectId);
-        if (project == null || project.WorkflowState != 3)
+        if (project == null || (project.WorkflowState != 3 && project.WorkflowState != 4))
             return false;
 
         if (!string.IsNullOrWhiteSpace(taskTitle))

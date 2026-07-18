@@ -16,7 +16,8 @@ public class WebsiteBuilderPage : ContentPage
         Idle = 0,
         WaitingForLLM = 1,
         ReadyToExecute = 2,
-        ReadyToCommit = 3
+        ReadyToCommit = 3,
+        VerifyDeployment = 4
     }
 
     private const string IdeasPrompt = @"I'm looking for 100 website ideas to build for the purpose of making money online.
@@ -201,6 +202,8 @@ Output ONLY the C# code block.
     private readonly Button _editCodexPromptButton;
     private readonly Button _editCommitMessageButton;
     private readonly Button _commitAndPushButton;
+    private readonly Button _verifyDeploymentButton;
+    private readonly Button _deploymentFailedButton;
     private readonly Label _qaStatusLabel;
     private readonly Button _copyQAExplorationPromptButton;
     private readonly Button _pasteQAReportButton;
@@ -542,6 +545,12 @@ Output ONLY the C# code block.
         };
         _commitAndPushButton.Clicked += async (_, _) => await CommitAndPushAsync();
 
+        _verifyDeploymentButton = CreatePrimaryButton("Deployment Verified", Color.FromArgb("#2E7D32"));
+        _verifyDeploymentButton.Clicked += async (_, _) => await DeploymentVerifiedAsync();
+
+        _deploymentFailedButton = CreateDangerButton("Deployment Failed (Revert)");
+        _deploymentFailedButton.Clicked += async (_, _) => await DeploymentFailedAsync();
+
         var workflowHeader = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -582,6 +591,8 @@ Output ONLY the C# code block.
                     _editCodexPromptButton,
                     _editCommitMessageButton,
                     _commitAndPushButton,
+                    _verifyDeploymentButton,
+                    _deploymentFailedButton,
                     _cancelWorkflowButton
                 }
             }
@@ -1637,6 +1648,8 @@ Output ONLY the C# code block.
         _editCodexPromptButton.IsVisible = false;
         _editCommitMessageButton.IsVisible = false;
         _commitAndPushButton.IsVisible = false;
+        _verifyDeploymentButton.IsVisible = false;
+        _deploymentFailedButton.IsVisible = false;
         _cancelWorkflowButton.Text = "Cancel (Back to Start)";
 
         switch (state)
@@ -1664,6 +1677,14 @@ Output ONLY the C# code block.
                 _commitAndPushButton.IsVisible = isWindows;
                 _editCommitMessageButton.IsVisible = true;
                 _editTaskTitleButton.IsVisible = true;
+                _cancelWorkflowButton.IsVisible = true;
+                break;
+
+            case WebsiteWorkflowState.VerifyDeployment:
+                ApplyWorkflowBanner("#E3F2FD", "#1565C0", "#0D47A1", "🔵", "Verify Vercel deployment",
+                    $"Task '{project.PendingTaskTitle}' was committed and pushed. Check the Vercel dashboard to confirm successful deployment before continuing.");
+                _verifyDeploymentButton.IsVisible = true;
+                _deploymentFailedButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
                 break;
 
@@ -3319,12 +3340,11 @@ Output ONLY the C# code block.
             {
                 try
                 {
-                    if (await _projectService.CompleteWorkflowAsync(project.Id, project.PendingTaskTitle))
-                    {
-                        var updated = await _projectService.GetByIdAsync(project.Id);
-                        await RefreshCurrentProjectAsync();
-                        await DisplayAlert("Committed and pushed!", $"Committed and pushed! Counter incremented to {updated?.TaskCount ?? project.TaskCount + Math.Max(1, project.PendingBatchSize)}.", "OK");
-                    }
+                    await _projectService.SetWorkflowStateAsync(project.Id, 4);
+                    await RefreshCurrentProjectAsync();
+                    await DisplayAlert("Committed and pushed!",
+                        "Code pushed to GitHub. Check Vercel to confirm successful deployment before continuing.",
+                        "OK");
                 }
                 catch (ReadOnlyDatabaseException)
                 {
@@ -3341,6 +3361,63 @@ Output ONLY the C# code block.
         catch (Exception ex)
         {
             await DisplayAlert("Could not run git", $"Could not run git: {ex.Message}", "OK");
+        }
+    }
+
+    private async Task DeploymentVerifiedAsync()
+    {
+        if (_projectService.IsReadOnly)
+        {
+            await ShowReadOnlyAlertAsync();
+            return;
+        }
+
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        try
+        {
+            if (await _projectService.CompleteWorkflowAsync(project.Id, project.PendingTaskTitle))
+            {
+                var updated = await _projectService.GetByIdAsync(project.Id);
+                await RefreshCurrentProjectAsync();
+                await DisplayAlert("Deployment verified!",
+                    $"Task complete! Counter incremented to {updated?.TaskCount ?? project.TaskCount + Math.Max(1, project.PendingBatchSize)}.",
+                    "OK");
+            }
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task DeploymentFailedAsync()
+    {
+        if (_projectService.IsReadOnly)
+        {
+            await ShowReadOnlyAlertAsync();
+            return;
+        }
+
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        bool confirm = await DisplayAlert("Deployment Failed",
+            "The Vercel deployment failed. This will move the workflow back to Ready to Commit so you can investigate and re-push.\n\nThe commit message and task title are preserved.",
+            "Go Back to Commit Step",
+            "Cancel");
+
+        if (!confirm) return;
+
+        try
+        {
+            await _projectService.SetWorkflowStateAsync(project.Id, 3);
+            await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
         }
     }
 
