@@ -22,6 +22,8 @@ public class SettingsPage : ContentPage
     private Image _defaultScoldImage;
     private Button _resetDefaultScoldImageButton;
     private VerticalStackLayout _frequencyOverridesStack;
+    private Switch _diceModeSwitch;
+    private Label _diceModeStatus;
     private bool _loadingSettings;
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup)
@@ -267,6 +269,7 @@ public class SettingsPage : ContentPage
         mainStack.Children.Add(gamesInterruptFrame);
 
         mainStack.Children.Add(BuildHabitScoldingSection());
+        mainStack.Children.Add(BuildDiceModeSection());
 
         // Sync & Devices section
         var syncFrame = new Frame
@@ -481,6 +484,83 @@ public class SettingsPage : ContentPage
         return frame;
     }
 
+    private Frame BuildDiceModeSection()
+    {
+        var frame = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 14 };
+        stack.Children.Add(new Label
+        {
+            Text = "Habit Week Concluded: Dice Mode",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        var toggleRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+
+        var toggleText = new VerticalStackLayout { Spacing = 4 };
+        toggleText.Children.Add(new Label
+        {
+            Text = "Enable dice mode for forgot-to-apply",
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+        toggleText.Children.Add(new Label
+        {
+            Text = "When enabled, forgetting to apply rolls a dice instead of automatic allowance loss. More missed days = higher chance of losing.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        toggleRow.Add(toggleText, 0, 0);
+
+        _diceModeSwitch = new Switch
+        {
+            IsToggled = false,
+            VerticalOptions = LayoutOptions.Center
+        };
+        _diceModeSwitch.Toggled += OnDiceModeToggled;
+        toggleRow.Add(_diceModeSwitch, 1, 0);
+        stack.Children.Add(toggleRow);
+
+        _diceModeStatus = new Label
+        {
+            Text = "Strict mode: forgot to apply = automatic loss",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        };
+        stack.Children.Add(_diceModeStatus);
+
+        frame.Content = stack;
+        return frame;
+    }
+
+    private async void OnDiceModeToggled(object? sender, ToggledEventArgs e)
+    {
+        if (_loadingSettings) return;
+        await NewHabitService.SetDiceModeEnabledAsync(_auth.CurrentUsername, e.Value);
+        _diceModeStatus.Text = e.Value
+            ? "Dice mode: forgot to apply = random chance based on missed days"
+            : "Strict mode: forgot to apply = automatic loss";
+    }
+
     private async void OnChangePasswordClicked(object? sender, EventArgs e)
     {
         var page = new ChangePasswordPage(_auth, _db, _backup);
@@ -517,6 +597,13 @@ public class SettingsPage : ContentPage
         UpdateWebsiteBuilderInterruptStatus(websiteBuilderInterruptEnabled);
 
         await LoadHabitScoldingSettingsAsync();
+
+        var diceModeEnabled = await NewHabitService.IsDiceModeEnabledAsync(_auth.CurrentUsername);
+        _diceModeSwitch.IsToggled = diceModeEnabled;
+        _diceModeStatus.Text = diceModeEnabled
+            ? "Dice mode: forgot to apply = random chance based on missed days"
+            : "Strict mode: forgot to apply = automatic loss";
+
         _loadingSettings = false;
     }
 

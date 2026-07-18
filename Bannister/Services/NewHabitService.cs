@@ -518,6 +518,86 @@ public class NewHabitService
         }
     }
 
+    /// <summary>
+    /// Count how many distinct days a habit's positive activity was applied in a date range,
+    /// by querying ExpLog entries for the habit's PositiveActivityId.
+    /// </summary>
+    public async Task<int> GetWeeklyApplicationCountAsync(string username, NewHabit habit, DateTime weekStart, DateTime weekEnd)
+    {
+        var conn = await _db.GetConnectionAsync();
+
+        // Query exp_log for this activity in the date range
+        var logs = await conn.Table<ExpLog>()
+            .Where(x => x.Username == username
+                && x.ActivityId == habit.PositiveActivityId
+                && x.LoggedAt >= weekStart
+                && x.LoggedAt < weekEnd)
+            .ToListAsync();
+
+        // Count distinct local dates (a habit done twice same day = 1 application)
+        return logs.Select(l => l.LoggedAt.ToLocalTime().Date).Distinct().Count();
+    }
+
+    /// <summary>
+    /// Run the dice roll for "forgot to apply" in dice mode.
+    /// Each missed day adds probability of losing. Returns true if user loses.
+    /// missedDays: how many days out of 7 were not applied.
+    /// Formula: probability of losing = 1 - (0.7 ^ missedDays)
+    /// So 1 missed day = 30% chance of loss, 2 = 51%, 3 = 66%, 4 = 76%, 5 = 83%, 6 = 88%, 7 = 92%
+    /// </summary>
+    public static bool RollDiceForForgotToApply(int missedDays)
+    {
+        if (missedDays <= 0) return false;
+        double loseChance = 1.0 - Math.Pow(0.7, missedDays);
+        var roll = new Random().NextDouble();
+        System.Diagnostics.Debug.WriteLine($"[WEEK CONCLUDED] Dice roll: missedDays={missedDays}, loseChance={loseChance:P1}, roll={roll:F3}, lost={roll < loseChance}");
+        return roll < loseChance;
+    }
+
+    // Settings keys for Week Concluded feature
+    private static string GetDiceModeKey(string username) => $"bannister_habit_dice_mode_{username}";
+    private static string GetWeekConcludedKey(string username) => $"bannister_week_concluded_{username}";
+
+    /// <summary>
+    /// Whether "Dice Mode" is enabled for forgot-to-apply (default: false = strict mode).
+    /// Strict mode: forgot to apply = automatic allowance loss.
+    /// Dice mode: forgot to apply = random chance based on missed days.
+    /// </summary>
+    public static async Task<bool> IsDiceModeEnabledAsync(string username)
+    {
+        try
+        {
+            var value = await SecureStorage.GetAsync(GetDiceModeKey(username));
+            return value == "true";
+        }
+        catch { return false; }
+    }
+
+    public static async Task SetDiceModeEnabledAsync(string username, bool enabled)
+    {
+        try { await SecureStorage.SetAsync(GetDiceModeKey(username), enabled ? "true" : "false"); } catch { }
+    }
+
+    /// <summary>
+    /// Get the week-start key for which the user last concluded.
+    /// Prevents double-concluding the same week.
+    /// </summary>
+    public static async Task<DateTime?> GetLastWeekConcludedAsync(string username)
+    {
+        try
+        {
+            var value = await SecureStorage.GetAsync(GetWeekConcludedKey(username));
+            if (DateTime.TryParse(value, out var dt)) return dt;
+            return null;
+        }
+        catch { return null; }
+    }
+
+    public static async Task SetLastWeekConcludedAsync(string username, DateTime weekStart)
+    {
+        try { await SecureStorage.SetAsync(GetWeekConcludedKey(username), weekStart.ToString("o")); } catch { }
+    }
+
     #endregion
 
     #region Habit CRUD

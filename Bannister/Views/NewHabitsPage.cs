@@ -36,6 +36,7 @@ public class NewHabitsPage : ContentPage
     private VerticalStackLayout _allowanceChartContainer;
     private Button _btnAddHabit;
     private Button _btnAddPending;
+    private Button _btnWeekConcluded;
     private Frame _allowanceFrame;
 
     public NewHabitsPage(AuthService auth, GameService games, NewHabitService newHabits, 
@@ -185,6 +186,21 @@ public class NewHabitsPage : ContentPage
             HorizontalTextAlignment = TextAlignment.Center
         };
         allowanceStack.Children.Add(_lblAllowanceCountdown);
+
+        // Week Concluded button (Daily frequency only)
+        _btnWeekConcluded = new Button
+        {
+            Text = "Week Concluded",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontAttributes = FontAttributes.Bold,
+            IsVisible = false,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        _btnWeekConcluded.Clicked += OnWeekConcludedClicked;
+        allowanceStack.Children.Add(_btnWeekConcluded);
 
         allowanceStack.Children.Add(new Label
         {
@@ -490,6 +506,18 @@ public class NewHabitsPage : ContentPage
             _lblAllowanceCountdown.IsVisible = false;
         }
 
+        // Show Week Concluded button only for Daily, and only if not already concluded this week
+        if (_frequency == "Daily" && frequencyHabits.Count > 0)
+        {
+            var currentWeekStart = NewHabitService.GetWeekStart(DateTime.Today);
+            var lastConcluded = await NewHabitService.GetLastWeekConcludedAsync(_auth.CurrentUsername);
+            _btnWeekConcluded.IsVisible = !lastConcluded.HasValue || lastConcluded.Value < currentWeekStart;
+        }
+        else
+        {
+            _btnWeekConcluded.IsVisible = false;
+        }
+
         _btnAddHabit.IsEnabled = availableSlots > 0;
         _btnAddHabit.BackgroundColor = availableSlots > 0
             ? Color.FromArgb("#FF9800")
@@ -571,6 +599,112 @@ public class NewHabitsPage : ContentPage
         }
 
         await LoadAllowanceChartAsync();
+    }
+
+    private async void OnWeekConcludedClicked(object? sender, EventArgs e)
+    {
+        var currentWeekStart = NewHabitService.GetWeekStart(DateTime.Today);
+        var weekEnd = currentWeekStart.AddDays(7);
+
+        // Double-check not already concluded
+        var lastConcluded = await NewHabitService.GetLastWeekConcludedAsync(_auth.CurrentUsername);
+        if (lastConcluded.HasValue && lastConcluded.Value >= currentWeekStart)
+        {
+            await DisplayAlert("Already Concluded", "You have already concluded this week.", "OK");
+            return;
+        }
+
+        var activeHabits = (await _newHabits.GetAllActiveHabitsAsync(_auth.CurrentUsername))
+            .Where(h => h.Frequency == "Daily").ToList();
+
+        if (activeHabits.Count == 0)
+        {
+            await DisplayAlert("No Habits", "No active daily habits to conclude.", "OK");
+            return;
+        }
+
+        bool diceMode = await NewHabitService.IsDiceModeEnabledAsync(_auth.CurrentUsername);
+        bool anyLoss = false;
+        var results = new List<string>();
+
+        foreach (var habit in activeHabits)
+        {
+            int appCount = await _newHabits.GetWeeklyApplicationCountAsync(_auth.CurrentUsername, habit, currentWeekStart, weekEnd);
+            int missedDays = Math.Max(0, 7 - appCount);
+
+            if (appCount >= 7)
+            {
+                results.Add($"'{habit.HabitName}': {appCount}/7 days applied. Allowance rewarded.");
+                continue;
+            }
+
+            // Less than 7 — ask reason
+            string reason = await DisplayActionSheet(
+                $"{habit.HabitName} ({appCount}/7 days applied)",
+                null, // no cancel — must choose
+                null,
+                "Forgot to log (still counts)",
+                "No opportunity (still counts)",
+                "Forgot to apply",
+                "Too weak to apply");
+
+            if (reason == "Forgot to log (still counts)" || reason == "No opportunity (still counts)")
+            {
+                results.Add($"'{habit.HabitName}': {appCount}/7 — {reason}. Allowance preserved.");
+                continue;
+            }
+
+            if (reason == "Too weak to apply")
+            {
+                // Always lose allowance
+                var allowance = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername, "Daily");
+                allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
+                await _newHabits.UpdateAllowanceAsync(allowance);
+                anyLoss = true;
+                results.Add($"'{habit.HabitName}': {appCount}/7 — Too weak. Allowance reduced to {allowance.CurrentAllowance}.");
+                continue;
+            }
+
+            // "Forgot to apply"
+            if (diceMode)
+            {
+                bool lost = NewHabitService.RollDiceForForgotToApply(missedDays);
+                if (lost)
+                {
+                    var allowance = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername, "Daily");
+                    allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
+                    await _newHabits.UpdateAllowanceAsync(allowance);
+                    anyLoss = true;
+                    double chance = (1.0 - Math.Pow(0.7, missedDays)) * 100;
+                    results.Add($"'{habit.HabitName}': {appCount}/7 — Forgot to apply. Dice roll LOST ({chance:F0}% chance). Allowance reduced to {allowance.CurrentAllowance}.");
+                }
+                else
+                {
+                    double chance = (1.0 - Math.Pow(0.7, missedDays)) * 100;
+                    results.Add($"'{habit.HabitName}': {appCount}/7 — Forgot to apply. Dice roll WON ({chance:F0}% chance). Allowance preserved.");
+                }
+            }
+            else
+            {
+                // Strict mode — automatic loss
+                var allowance = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername, "Daily");
+                allowance.CurrentAllowance = Math.Max(1, allowance.CurrentAllowance - 1);
+                await _newHabits.UpdateAllowanceAsync(allowance);
+                anyLoss = true;
+                results.Add($"'{habit.HabitName}': {appCount}/7 — Forgot to apply. Allowance reduced to {allowance.CurrentAllowance}.");
+            }
+        }
+
+        // Mark week as concluded
+        await NewHabitService.SetLastWeekConcludedAsync(_auth.CurrentUsername, currentWeekStart);
+
+        // Show summary
+        string summary = string.Join("\n\n", results);
+        string title = anyLoss ? "Week Concluded (with losses)" : "Week Concluded";
+        await DisplayAlert(title, summary, "OK");
+
+        // Refresh UI
+        await LoadHabitsAsync();
     }
 
     /// <summary>
