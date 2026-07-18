@@ -204,10 +204,6 @@ Output ONLY the C# code block.
     private readonly Button _commitAndPushButton;
     private readonly Button _verifyDeploymentButton;
     private readonly Button _deploymentFailedButton;
-    private readonly Label _qaStatusLabel;
-    private readonly Button _copyQAExplorationPromptButton;
-    private readonly Button _pasteQAReportButton;
-    private readonly Button _clearQAReportButton;
     private readonly Label _projectTitleHeaderLabel;
     private readonly Label _projectIdeaReferenceLabel;
     private readonly Label _visionStatusLabel;
@@ -437,8 +433,8 @@ Output ONLY the C# code block.
             },
             ColumnSpacing = 8
         };
-        _workflowStartRow.Add(_pasteQaReportWorkflowButton, 0, 0);
-        _workflowStartRow.Add(_copyQaTemplateBtn, 1, 0);
+        _workflowStartRow.Add(_copyQaTemplateBtn, 0, 0);
+        _workflowStartRow.Add(_pasteQaReportWorkflowButton, 1, 0);
         _workflowStartRow.Add(_pickFromQaBtn, 2, 0);
         _workflowStartRow.Add(_investigateBtn, 3, 0);
         _workflowStartRow.Add(_workflowCopyNextTaskPromptButton, 4, 0);
@@ -595,60 +591,6 @@ Output ONLY the C# code block.
                     _deploymentFailedButton,
                     _cancelWorkflowButton
                 }
-            }
-        };
-
-        _qaStatusLabel = new Label
-        {
-            FontSize = 12,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#555555"),
-            LineBreakMode = LineBreakMode.WordWrap
-        };
-
-        _copyQAExplorationPromptButton = CreateSecondaryButton("Copy QA Exploration Prompt");
-        _copyQAExplorationPromptButton.Clicked += async (_, _) => await CopyQAExplorationPromptAsync();
-
-        _pasteQAReportButton = CreateSecondaryButton("Paste QA Report");
-        _pasteQAReportButton.Clicked += async (_, _) => await PasteQAReportAsync();
-
-        _clearQAReportButton = new Button
-        {
-            Text = "Clear QA Report",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333333"),
-            CornerRadius = 8,
-            HeightRequest = 40,
-            FontSize = 12,
-            Padding = new Thickness(12, 0)
-        };
-        _clearQAReportButton.Clicked += async (_, _) => await ClearQAReportAsync();
-
-        var qaButtonRow = new HorizontalStackLayout
-        {
-            Spacing = 8,
-            Children =
-            {
-                _copyQAExplorationPromptButton,
-                _pasteQAReportButton,
-                _clearQAReportButton
-            }
-        };
-
-        var qaExplorationSection = new VerticalStackLayout
-        {
-            Spacing = 8,
-            Children =
-            {
-                new Label
-                {
-                    Text = "QA Exploration (optional)",
-                    FontSize = 13,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#00695C")
-                },
-                _qaStatusLabel,
-                qaButtonRow
             }
         };
 
@@ -952,7 +894,6 @@ Output ONLY the C# code block.
             IsVisible = false,
             Children =
             {
-                qaExplorationSection,
                 _workflowStatusBanner,
                 _projectTitleHeaderLabel,
                 _projectIdeaReferenceLabel,
@@ -1598,12 +1539,12 @@ Output ONLY the C# code block.
         _decrementButton.IsEnabled = project.TaskCount > 0;
         _celebrationFrame.IsVisible = project.TaskCount >= project.TaskTarget;
         UpdateWorkflowDisplay(project);
-        UpdateQADisplay(project);
         UpdateVisionDisplay(project);
         UpdateProjectSummaryDisplay(project);
         UpdateCodebasePathDisplay(project);
     }
 
+    /*
     private void UpdateQADisplay(WebsiteProject project)
     {
         var hasReport = !string.IsNullOrWhiteSpace(project.LatestQAReport);
@@ -1620,6 +1561,7 @@ Output ONLY the C# code block.
             : "unknown time";
     }
 
+    */
     private static string FormatQAReportUtc(DateTime? capturedAt)
     {
         return capturedAt.HasValue
