@@ -291,30 +291,147 @@ public class SubActivityDailyPromptPage : ContentPage
     private async Task OfferFillNewSlotAsync(SubActivity process)
     {
         var pendingSteps = _subActivityService.GetPendingSteps(process);
-        var activeSteps = _subActivityService.GetSteps(process);
 
-        // Build options list
-        var options = new List<string>();
+        var tcs = new TaskCompletionSource<string?>();
 
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var contentStack = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Padding = 0
+        };
+
+        contentStack.Children.Add(new Label
+        {
+            Text = $"Fill new slot in '{process.Name}'",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222"),
+            Margin = new Thickness(0, 0, 0, 4)
+        });
+
+        contentStack.Children.Add(new Label
+        {
+            Text = "Choose a pending step to activate, type a new one, or leave empty.",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap,
+            Margin = new Thickness(0, 0, 0, 8)
+        });
+
+        // Pending step buttons - full width, wrapping text
         if (pendingSteps.Count > 0)
         {
+            contentStack.Children.Add(new Label
+            {
+                Text = "Pending Steps:",
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#333"),
+                Margin = new Thickness(0, 4, 0, 2)
+            });
+
             foreach (var step in pendingSteps)
-                options.Add($"Pending: {step.Name}");
+            {
+                var stepBtn = new Button
+                {
+                    Text = step.Name,
+                    BackgroundColor = Color.FromArgb("#E3F2FD"),
+                    TextColor = Color.FromArgb("#1565C0"),
+                    CornerRadius = 8,
+                    FontSize = 14,
+                    Padding = new Thickness(12, 10),
+                    HorizontalOptions = LayoutOptions.Fill,
+                    LineBreakMode = LineBreakMode.WordWrap
+                };
+                var capturedName = step.Name;
+                stepBtn.Clicked += (_, _) => tcs.TrySetResult($"pending:{capturedName}");
+                contentStack.Children.Add(stepBtn);
+            }
         }
 
-        options.Add("Type manually");
-        options.Add("Leave empty for now");
+        // Action buttons
+        var typeManualBtn = new Button
+        {
+            Text = "✏️ Type Manually",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            FontSize = 14,
+            HeightRequest = 44,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        typeManualBtn.Clicked += (_, _) => tcs.TrySetResult("manual");
+        contentStack.Children.Add(typeManualBtn);
 
-        string choice = await DisplayActionSheet(
-            $"Fill new slot in '{process.Name}'?",
-            null, // no cancel — must choose
-            null,
-            options.ToArray());
+        var leaveEmptyBtn = new Button
+        {
+            Text = "Leave Empty for Now",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#555"),
+            CornerRadius = 8,
+            FontSize = 14,
+            HeightRequest = 44,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        leaveEmptyBtn.Clicked += (_, _) => tcs.TrySetResult(null);
+        contentStack.Children.Add(leaveEmptyBtn);
 
-        if (string.IsNullOrEmpty(choice) || choice == "Leave empty for now")
+        var scrollView = new ScrollView
+        {
+            Content = contentStack,
+            MaximumHeightRequest = 500
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 420,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = scrollView
+        };
+
+        // Clicking overlay background = leave empty (prevents stuck state)
+        var backgroundTap = new TapGestureRecognizer();
+        backgroundTap.Tapped += (_, _) => tcs.TrySetResult(null);
+        overlay.GestureRecognizers.Add(backgroundTap);
+
+        overlay.Children.Add(card);
+
+        // Add overlay to page content
+        if (Content is Grid pageGrid)
+        {
+            pageGrid.Children.Add(overlay);
+        }
+        else
+        {
+            // Wrap existing content in a grid if needed
+            var existingContent = Content;
+            var wrapperGrid = new Grid();
+            Content = wrapperGrid;
+            wrapperGrid.Children.Add(existingContent);
+            wrapperGrid.Children.Add(overlay);
+        }
+
+        // Wait for user choice
+        string? result = await tcs.Task;
+
+        // Remove overlay
+        if (Content is Grid grid && grid.Children.Contains(overlay))
+        {
+            grid.Children.Remove(overlay);
+        }
+
+        if (result == null)
             return;
 
-        if (choice == "Type manually")
+        if (result == "manual")
         {
             string? stepName = await DisplayPromptAsync(
                 "New Step",
@@ -329,16 +446,16 @@ public class SubActivityDailyPromptPage : ContentPage
             return;
         }
 
-        // Selected a pending step — find which one
-        if (choice.StartsWith("Pending: "))
+        if (result.StartsWith("pending:"))
         {
-            string selectedName = choice.Substring("Pending: ".Length);
-            int pendingIndex = pendingSteps.FindIndex(s =>
+            string selectedName = result.Substring("pending:".Length);
+            var freshPending = _subActivityService.GetPendingSteps(
+                await _subActivityService.GetByIdAsync(process.Id) ?? process);
+            int pendingIndex = freshPending.FindIndex(s =>
                 string.Equals(s.Name, selectedName, StringComparison.Ordinal));
 
             if (pendingIndex >= 0)
             {
-                // Re-fetch process to ensure fresh state
                 var freshProcess = await _subActivityService.GetByIdAsync(process.Id);
                 if (freshProcess != null)
                 {
