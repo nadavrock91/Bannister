@@ -23,6 +23,7 @@ public class StoryProductionPage : ContentPage
     private Picker _draftPicker;
     private Label _draftLabel;
     private Label _currentDraftLabel;
+    private Label _projectMetaLabel;
     private Button _renameDraftBtn;
     private Button _setLatestBtn;
     private Button _deleteDraftBtn;
@@ -137,6 +138,15 @@ public class StoryProductionPage : ContentPage
 
         // === TOP SECTION ===
         var topStack = new VerticalStackLayout { Spacing = 12 };
+
+        _projectMetaLabel = new Label
+        {
+            Text = "",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#7B1FA2"),
+            IsVisible = false,
+            Margin = new Thickness(0, 0, 0, 0)
+        };
 
         // Stats label
         _statsLabel = new Label
@@ -387,6 +397,7 @@ public class StoryProductionPage : ContentPage
             IsVisible = false
         };
         rightColumn.Children.Add(_currentDraftLabel);
+        rightColumn.Children.Add(_projectMetaLabel);
         rightColumn.Children.Add(_statsLabel);
         rightColumn.Children.Add(_projectionLabel);
 
@@ -630,10 +641,6 @@ public class StoryProductionPage : ContentPage
             {
                 // Show status indicator for completed/published projects
                 string name = project.Name;
-                if (!string.IsNullOrWhiteSpace(project.ProjectCategory))
-                    name = $"[{project.ProjectCategory}] {name}";
-                if (!string.IsNullOrWhiteSpace(project.WritingProcess))
-                    name = $"({project.WritingProcess}) {name}";
                 if (project.IsPublished) name += " ✓";
                 else if (project.Status == "completed") name += " (done)";
                 _projectPicker.Items.Add(name);
@@ -1088,6 +1095,7 @@ public class StoryProductionPage : ContentPage
             _setLatestBtn.IsVisible = false;
             _deleteDraftBtn.IsVisible = false;
             _compareToBtn.IsVisible = false;
+            _projectMetaLabel.IsVisible = false;
             return;
         }
 
@@ -1123,6 +1131,37 @@ public class StoryProductionPage : ContentPage
         
         // Show Compare button when there are multiple drafts (can compare any version)
         _compareToBtn.IsVisible = _drafts.Count > 1;
+        UpdateProjectMetaLabel();
+    }
+
+    private void UpdateProjectMetaLabel()
+    {
+        if (_currentProject == null)
+        {
+            _projectMetaLabel.IsVisible = false;
+            return;
+        }
+
+        var parts = new List<string>();
+
+        int rootId = _currentProject.ParentProjectId ?? _currentProject.Id;
+        var rootProject = _allOriginalProjects.FirstOrDefault(p => p.Id == rootId) ?? _currentProject;
+
+        if (!string.IsNullOrWhiteSpace(rootProject.ProjectCategory))
+            parts.Add($"Category: {rootProject.ProjectCategory}");
+
+        if (!string.IsNullOrWhiteSpace(rootProject.WritingProcess))
+            parts.Add($"Process: {rootProject.WritingProcess}");
+
+        if (parts.Count > 0)
+        {
+            _projectMetaLabel.Text = string.Join("  •  ", parts);
+            _projectMetaLabel.IsVisible = true;
+        }
+        else
+        {
+            _projectMetaLabel.IsVisible = false;
+        }
     }
 
     private async void OnDraftSelected(object? sender, EventArgs e)
@@ -2138,6 +2177,7 @@ public class StoryProductionPage : ContentPage
         _deleteDraftBtn.IsVisible = false;
         _compareToBtn.IsVisible = false;
         _currentDraftLabel.IsVisible = false;
+        _projectMetaLabel.IsVisible = false;
     }
 
     private void ShowProjectControls()
