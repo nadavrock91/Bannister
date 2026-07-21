@@ -31,6 +31,8 @@ public class WebsiteProjectService
 
         var conn = await _db.GetConnectionAsync();
         try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN DeploymentUrl TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingPickedItemsJson TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN BatchVerificationHistoryJson TEXT DEFAULT ''"); } catch { }
     }
 
     public async Task<List<WebsiteProject>> GetAllForUserAsync(string username)
@@ -179,6 +181,38 @@ public class WebsiteProjectService
             return false;
 
         project.DeploymentUrl = url ?? "";
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetPendingPickedItemsAsync(int projectId, string json)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null) return false;
+        project.PendingPickedItemsJson = json ?? "";
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> AppendBatchVerificationAsync(int projectId, string entryJson)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null) return false;
+
+        var history = new List<string>();
+        if (!string.IsNullOrWhiteSpace(project.BatchVerificationHistoryJson))
+        {
+            try
+            {
+                history = System.Text.Json.JsonSerializer.Deserialize<List<string>>(project.BatchVerificationHistoryJson) ?? new();
+            }
+            catch { }
+        }
+
+        history.Insert(0, entryJson);
+        project.BatchVerificationHistoryJson = System.Text.Json.JsonSerializer.Serialize(history);
         await SaveAsync(project);
         return true;
     }
@@ -517,6 +551,7 @@ public class WebsiteProjectService
         project.PendingCommitMessage = "";
         project.PendingBatchSize = 1;
         project.LatestQAReport = "";
+        project.PendingPickedItemsJson = "";
         project.LatestQAReportCapturedAt = null;
         project.WorkflowState = 0;
         await SaveAsync(project);

@@ -47,6 +47,12 @@ public class WebsiteProject
 
     public int QueuedTasksIndex { get; set; } = 0;
 
+    // Stores JSON of the picked QA items for the current batch: [{Category, Title, Body}]
+    public string PendingPickedItemsJson { get; set; } = "";
+
+    // Stores JSON array of past batch verification results
+    public string BatchVerificationHistoryJson { get; set; } = "";
+
     public string? LatestQAReport { get; set; }
 
     public DateTime? LatestQAReportCapturedAt { get; set; }

@@ -191,7 +191,6 @@ public class StoryProductionPage : ContentPage
 
         var projectSelectionGrid = new Grid
         {
-            HeightRequest = 260,
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },

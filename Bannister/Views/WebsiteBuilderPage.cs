@@ -207,6 +207,8 @@ Output ONLY the C# code block.
     private readonly Button _checkDeploymentButton;
     private readonly Button _editDeploymentUrlButton;
     private readonly Button _deploymentErrorButton;
+    private readonly Button _verifyCodexOutputButton;
+    private readonly Button _viewBatchHistoryButton;
     private readonly Label _projectTitleHeaderLabel;
     private readonly Label _projectIdeaReferenceLabel;
     private readonly Label _visionStatusLabel;
@@ -559,6 +561,12 @@ Output ONLY the C# code block.
         _deploymentErrorButton = CreateSecondaryButton("Deployment Error");
         _deploymentErrorButton.Clicked += async (_, _) => await HandleDeploymentErrorAsync();
 
+        _verifyCodexOutputButton = CreatePrimaryButton("Verify Codex Output Against QA", Color.FromArgb("#6A1B9A"));
+        _verifyCodexOutputButton.Clicked += async (_, _) => await VerifyCodexOutputAsync();
+
+        _viewBatchHistoryButton = CreateSecondaryButton("View Batch History");
+        _viewBatchHistoryButton.Clicked += async (_, _) => await ViewBatchHistoryAsync();
+
         var workflowHeader = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -602,6 +610,8 @@ Output ONLY the C# code block.
                     _checkDeploymentButton,
                     _editDeploymentUrlButton,
                     _deploymentErrorButton,
+                    _verifyCodexOutputButton,
+                    _viewBatchHistoryButton,
                     _verifyDeploymentButton,
                     _deploymentFailedButton,
                     _cancelWorkflowButton
@@ -1609,6 +1619,7 @@ Output ONLY the C# code block.
         _deploymentFailedButton.IsVisible = false;
         _checkDeploymentButton.IsVisible = false;
         _editDeploymentUrlButton.IsVisible = false;
+        _verifyCodexOutputButton.IsVisible = false;
         _cancelWorkflowButton.Text = "Cancel (Back to Start)";
 
         switch (state)
@@ -1636,6 +1647,7 @@ Output ONLY the C# code block.
                 _commitAndPushButton.IsVisible = isWindows;
                 _editCommitMessageButton.IsVisible = true;
                 _editTaskTitleButton.IsVisible = true;
+                _verifyCodexOutputButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
                 break;
 
@@ -1649,6 +1661,7 @@ Output ONLY the C# code block.
                 _editDeploymentUrlButton.Text = hasDeployUrl ? "Edit Deployment URL" : "Set Deployment URL";
                 _verifyDeploymentButton.IsVisible = true;
                 _deploymentFailedButton.IsVisible = true;
+                _verifyCodexOutputButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
                 break;
 
@@ -1668,6 +1681,7 @@ Output ONLY the C# code block.
 
         // Deployment Error is always available when a project is loaded
         _deploymentErrorButton.IsVisible = _currentProjectId > 0;
+        _viewBatchHistoryButton.IsVisible = _currentProjectId > 0;
     }
 
     private void ApplyWorkflowBanner(string background, string border, string titleColor, string icon, string title, string subtitle)
@@ -2975,6 +2989,15 @@ Output ONLY the C# code block.
 
         await Clipboard.SetTextAsync(prompt);
 
+        // Persist picked items for later verification
+        var pickedItemsForStorage = picks.Select(p => new { Category = p.Category, Title = p.Body.Split('\n')[0].Trim() }).ToList();
+        try
+        {
+            var pickedJson = System.Text.Json.JsonSerializer.Serialize(pickedItemsForStorage);
+            await _projectService.SetPendingPickedItemsAsync(project.Id, pickedJson);
+        }
+        catch { }
+
         var brokenCount = parsed.Count(i => i.Category == "BROKEN");
         var roughCount = parsed.Count(i => i.Category == "ROUGH");
         var missingCount = parsed.Count(i => i.Category == "MISSING");
@@ -3503,6 +3526,322 @@ Output ONLY the C# code block.
         {
             await ShowReadOnlyAlertAsync();
         }
+    }
+
+    private async Task VerifyCodexOutputAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        // Get the Codex output from user
+        var codexOutput = await ShowMultilineEditorAsync(
+            "Paste Codex Output",
+            "Paste the entire Codex output to verify against the QA items that were picked for this batch.",
+            "",
+            "Paste full Codex output here...");
+
+        if (string.IsNullOrWhiteSpace(codexOutput)) return;
+
+        // Build verification prompt
+        var sb = new StringBuilder();
+        sb.AppendLine("You are verifying whether a code change (Codex output) successfully addressed the QA items it was supposed to fix.");
+        sb.AppendLine();
+
+        // Include task prompt
+        if (!string.IsNullOrWhiteSpace(project.PendingTaskTitle))
+        {
+            sb.AppendLine($"TASK TITLE: {project.PendingTaskTitle}");
+            sb.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(project.PendingCodexPrompt))
+        {
+            sb.AppendLine("TASK PROMPT GIVEN TO CODEX:");
+            sb.AppendLine(project.PendingCodexPrompt);
+            sb.AppendLine();
+        }
+
+        // Include picked QA items
+        sb.AppendLine("QA ITEMS THIS BATCH WAS SUPPOSED TO ADDRESS:");
+        if (!string.IsNullOrWhiteSpace(project.PendingPickedItemsJson))
+        {
+            sb.AppendLine(project.PendingPickedItemsJson);
+        }
+        else
+        {
+            sb.AppendLine("(No picked items stored — batch may have been started before this feature was added.)");
+        }
+        sb.AppendLine();
+
+        sb.AppendLine("CODEX OUTPUT:");
+        sb.AppendLine(codexOutput.Trim());
+        sb.AppendLine();
+
+        sb.AppendLine("INSTRUCTIONS:");
+        sb.AppendLine("For each QA item listed above, determine whether the Codex output addressed it.");
+        sb.AppendLine("Respond ONLY with a C# code block in this exact format:");
+        sb.AppendLine();
+        sb.AppendLine("```csharp");
+        sb.AppendLine("verification.Item[0].Category = \"BROKEN\";");
+        sb.AppendLine("verification.Item[0].Title = \"Short title of the QA item\";");
+        sb.AppendLine("verification.Item[0].Done = true;  // true if addressed, false if not");
+        sb.AppendLine("verification.Item[0].Notes = \"Brief explanation\";");
+        sb.AppendLine();
+        sb.AppendLine("verification.Item[1].Category = \"ROUGH\";");
+        sb.AppendLine("verification.Item[1].Title = \"Another item title\";");
+        sb.AppendLine("verification.Item[1].Done = false;");
+        sb.AppendLine("verification.Item[1].Notes = \"Why it was not addressed\";");
+        sb.AppendLine("```");
+        sb.AppendLine();
+        sb.AppendLine("Include ALL QA items from the list above. No commentary outside the code block.");
+
+        await Clipboard.SetTextAsync(sb.ToString());
+        await DisplayAlert("Verification Prompt Copied",
+            "Paste this into Claude or ChatGPT. Then use Paste Verification Result to import the response.",
+            "OK");
+
+        // Now show paste option immediately
+        var verificationResult = await ShowMultilineEditorAsync(
+            "Paste Verification Result",
+            "Paste the LLM verification response (the C# code block).",
+            "",
+            "Paste verification result here...");
+
+        if (string.IsNullOrWhiteSpace(verificationResult)) return;
+
+        await ParseAndStoreVerificationAsync(project, verificationResult);
+    }
+
+    private async Task ParseAndStoreVerificationAsync(WebsiteProject project, string result)
+    {
+        var trimmed = result.Trim().Replace("\r\n", "\n").Replace("\r", "\n");
+        trimmed = Regex.Replace(trimmed, @"^```(?:csharp|c#|cs)?\s*\n", "", RegexOptions.IgnoreCase);
+        trimmed = Regex.Replace(trimmed, @"\n```\s*$", "");
+
+        var itemRegex = new Regex(
+            @"verification\.Item\[(?<idx>\d+)\]\.(?<field>Category|Title|Done|Notes)\s*=\s*(?:""(?<strval>(?:[^""\\]|\\.)*)""|(?<boolval>true|false))\s*;",
+            RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+        var bucket = new Dictionary<int, Dictionary<string, string>>();
+
+        foreach (Match match in itemRegex.Matches(trimmed))
+        {
+            if (!int.TryParse(match.Groups["idx"].Value, out var idx)) continue;
+
+            var field = match.Groups["field"].Value;
+            var value = match.Groups["strval"].Success
+                ? match.Groups["strval"].Value.Replace("\\\"", "\"").Replace("\\\\", "\\")
+                : match.Groups["boolval"].Value;
+
+            if (!bucket.TryGetValue(idx, out var fields))
+            {
+                fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                bucket[idx] = fields;
+            }
+            fields[field] = value;
+        }
+
+        if (bucket.Count == 0)
+        {
+            await DisplayAlert("Parse Failed", "Could not find any verification.Item[N] entries in the response.", "OK");
+            return;
+        }
+
+        var items = new List<object>();
+        int doneCount = 0;
+        int totalCount = 0;
+
+        foreach (var kvp in bucket.OrderBy(k => k.Key))
+        {
+            var fields = kvp.Value;
+            var category = fields.GetValueOrDefault("Category", "UNKNOWN");
+            var title = fields.GetValueOrDefault("Title", "");
+            var done = string.Equals(fields.GetValueOrDefault("Done", "false"), "true", StringComparison.OrdinalIgnoreCase);
+            var notes = fields.GetValueOrDefault("Notes", "");
+
+            items.Add(new { Category = category, Title = title, Done = done, Notes = notes });
+            totalCount++;
+            if (done) doneCount++;
+        }
+
+        var entry = new
+        {
+            Date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
+            TaskTitle = project.PendingTaskTitle ?? "",
+            DoneCount = doneCount,
+            TotalCount = totalCount,
+            Items = items
+        };
+
+        var entryJson = System.Text.Json.JsonSerializer.Serialize(entry);
+
+        try
+        {
+            await _projectService.AppendBatchVerificationAsync(project.Id, entryJson);
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+            return;
+        }
+
+        await DisplayAlert("Verification Saved",
+            $"{doneCount}/{totalCount} items addressed.\n\nView details in Batch History.",
+            "OK");
+    }
+
+    private async Task ViewBatchHistoryAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        if (string.IsNullOrWhiteSpace(project.BatchVerificationHistoryJson))
+        {
+            await DisplayAlert("No History", "No batch verification history for this project yet.", "OK");
+            return;
+        }
+
+        List<string> history;
+        try
+        {
+            history = System.Text.Json.JsonSerializer.Deserialize<List<string>>(project.BatchVerificationHistoryJson) ?? new();
+        }
+        catch
+        {
+            await DisplayAlert("Error", "Could not parse batch history.", "OK");
+            return;
+        }
+
+        if (history.Count == 0)
+        {
+            await DisplayAlert("No History", "No batch verification history for this project yet.", "OK");
+            return;
+        }
+
+        var tcs = new TaskCompletionSource<bool>();
+        var parent = Content as Grid;
+        if (parent == null) return;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var listStack = new VerticalStackLayout { Spacing = 12 };
+
+        for (int batchIdx = 0; batchIdx < history.Count; batchIdx++)
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(history[batchIdx]);
+                var root = doc.RootElement;
+
+                var date = root.TryGetProperty("Date", out var dateProp) ? dateProp.GetString() ?? "" : "";
+                var taskTitle = root.TryGetProperty("TaskTitle", out var titleProp) ? titleProp.GetString() ?? "" : "";
+                var doneCount = root.TryGetProperty("DoneCount", out var doneProp) ? doneProp.GetInt32() : 0;
+                var totalCount = root.TryGetProperty("TotalCount", out var totalProp) ? totalProp.GetInt32() : 0;
+
+                var batchFrame = new Frame
+                {
+                    BackgroundColor = Color.FromArgb("#FAFAFA"),
+                    Padding = 12,
+                    CornerRadius = 8,
+                    HasShadow = false
+                };
+
+                var batchStack = new VerticalStackLayout { Spacing = 6 };
+                batchStack.Children.Add(new Label
+                {
+                    Text = $"Batch {history.Count - batchIdx}: {date}",
+                    FontSize = 15,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#333")
+                });
+
+                if (!string.IsNullOrWhiteSpace(taskTitle))
+                {
+                    batchStack.Children.Add(new Label
+                    {
+                        Text = taskTitle,
+                        FontSize = 13,
+                        TextColor = Color.FromArgb("#555"),
+                        LineBreakMode = LineBreakMode.WordWrap
+                    });
+                }
+
+                batchStack.Children.Add(new Label
+                {
+                    Text = $"{doneCount}/{totalCount} items addressed",
+                    FontSize = 13,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = doneCount == totalCount ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828")
+                });
+
+                if (root.TryGetProperty("Items", out var itemsArray))
+                {
+                    foreach (var item in itemsArray.EnumerateArray())
+                    {
+                        var cat = item.TryGetProperty("Category", out var catP) ? catP.GetString() ?? "" : "";
+                        var title = item.TryGetProperty("Title", out var titP) ? titP.GetString() ?? "" : "";
+                        var done = item.TryGetProperty("Done", out var doneP) && doneP.GetBoolean();
+                        var notes = item.TryGetProperty("Notes", out var notP) ? notP.GetString() ?? "" : "";
+
+                        string icon = done ? "✅" : "❌";
+                        string notesSuffix = !string.IsNullOrWhiteSpace(notes) ? $" — {notes}" : "";
+
+                        batchStack.Children.Add(new Label
+                        {
+                            Text = $"  {icon} [{cat}] {title}{notesSuffix}",
+                            FontSize = 12,
+                            TextColor = Color.FromArgb("#444"),
+                            LineBreakMode = LineBreakMode.WordWrap
+                        });
+                    }
+                }
+
+                batchFrame.Content = batchStack;
+                listStack.Children.Add(batchFrame);
+            }
+            catch
+            {
+                listStack.Children.Add(new Label { Text = $"Batch {history.Count - batchIdx}: (parse error)", FontSize = 12 });
+            }
+        }
+
+        var closeBtn = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        closeBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 600,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new Label { Text = " Batch Verification History", FontSize = 20, FontAttributes = FontAttributes.Bold },
+                    new ScrollView { HeightRequest = 500, Content = listStack },
+                    closeBtn
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        await tcs.Task;
     }
 
     private async Task ViewTaskLogAsync()
