@@ -101,7 +101,7 @@ You're planning the next arc of work for a website project as a single combined 
 
 Plan the arc so each piece of work builds on the previous where possible. Order the changes so they compound sensibly. Be specific about file paths, function names, and expected behavior for every piece of the arc.
 
-If a MISSING item is large enough that it would consume the whole arc's scope, dedicate the arc to that single MISSING item and note that the other picks were deferred. Do not add net-new items — work only from the 5 below.
+MISSING items must always make progress — never fully defer a MISSING item. If a MISSING item is too large for a single arc, break it into a tractable first step: define the data model, create the UI skeleton, add a placeholder page, build the API route, or scaffold the feature with a clear TODO for the next arc. Explicitly state what this arc accomplishes toward the MISSING item and what remains for future arcs. The goal is incremental progress every time a MISSING item is picked, not infinite deferral. Do not add net-new items — work only from the 5 below.
 
 Output format — return ONLY these two sections in this order, no explanation, no preamble, no closing remarks:
 
@@ -2856,8 +2856,44 @@ Output ONLY the C# code block.
     private static List<(string Category, string Body)> PickFive(List<(string Category, string Body)> items)
     {
         var rng = new Random();
-        var shuffled = items.OrderBy(_ => rng.Next()).ToList();
-        return shuffled.Take(Math.Min(5, shuffled.Count)).ToList();
+        var broken = items.Where(i => i.Category == "BROKEN").OrderBy(_ => rng.Next()).ToList();
+        var rough = items.Where(i => i.Category == "ROUGH").OrderBy(_ => rng.Next()).ToList();
+        var missing = items.Where(i => i.Category == "MISSING").OrderBy(_ => rng.Next()).ToList();
+
+        var picks = new List<(string Category, string Body)>();
+        int target = Math.Min(5, items.Count);
+
+        // Guarantee at least 1 MISSING if any exist
+        if (missing.Count > 0)
+        {
+            picks.Add(missing[0]);
+            missing.RemoveAt(0);
+        }
+
+        // Guarantee at least 1 BROKEN if any exist
+        if (broken.Count > 0 && picks.Count < target)
+        {
+            picks.Add(broken[0]);
+            broken.RemoveAt(0);
+        }
+
+        // Guarantee at least 1 ROUGH if any exist
+        if (rough.Count > 0 && picks.Count < target)
+        {
+            picks.Add(rough[0]);
+            rough.RemoveAt(0);
+        }
+
+        // Fill remaining slots from all remaining items randomly
+        var remaining = broken.Concat(rough).Concat(missing).OrderBy(_ => rng.Next()).ToList();
+        foreach (var item in remaining)
+        {
+            if (picks.Count >= target) break;
+            picks.Add(item);
+        }
+
+        // Shuffle final picks so order is random
+        return picks.OrderBy(_ => rng.Next()).ToList();
     }
 
     private static string AssembleArcPromptWithPicks(List<(string Category, string Body)> picks)
