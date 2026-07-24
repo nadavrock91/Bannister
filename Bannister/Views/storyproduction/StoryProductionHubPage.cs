@@ -115,6 +115,19 @@ public class StoryProductionHubPage : ContentPage
         });
         mainStack.Children.Add(assetLibraryBtn);
 
+        // Writing Processes button
+        var processesBtn = CreateMenuButton(
+            "Writing Processes",
+            "Define and manage writing process types for your projects",
+            Color.FromArgb("#F3E5F5"),
+            Color.FromArgb("#7B1FA2"));
+        processesBtn.GestureRecognizers.Clear();
+        processesBtn.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await OnProcessesClicked())
+        });
+        mainStack.Children.Add(processesBtn);
+
         Content = new ScrollView { Content = mainStack };
     }
 
@@ -201,6 +214,12 @@ public class StoryProductionHubPage : ContentPage
     private async Task OnAssetLibraryClicked()
     {
         var page = new AssetLibraryPage(_auth, _assetLibraryService, _assetThumbnailService);
+        await Navigation.PushAsync(page);
+    }
+
+    private async Task OnProcessesClicked()
+    {
+        var page = new WritingProcessesPage(_auth, _storyService);
         await Navigation.PushAsync(page);
     }
 }

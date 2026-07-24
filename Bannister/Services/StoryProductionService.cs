@@ -64,6 +64,7 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN ProducedAt TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN StatsSourceDraftProjectId INTEGER"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN WritingProcess TEXT DEFAULT ''"); } catch { }
+        try { await conn.CreateTableAsync<WritingProcessDefinition>(); } catch { }
     }
 
     private async Task BackfillProducedStateAsync(ISQLiteAsyncConnection conn, string username)
@@ -150,6 +151,50 @@ public class StoryProductionService
         
         return project;
     }
+
+    #region Writing Process Definitions
+
+    public async Task<List<WritingProcessDefinition>> GetWritingProcessesAsync(string username)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await EnsureProjectTableAsync(conn);
+        return await conn.Table<WritingProcessDefinition>()
+            .Where(p => p.Username == username)
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+    }
+
+    public async Task<WritingProcessDefinition> AddWritingProcessAsync(string username, string name)
+    {
+        EnsureWritable();
+        var conn = await _db.GetConnectionAsync();
+        await EnsureProjectTableAsync(conn);
+
+        var process = new WritingProcessDefinition
+        {
+            Username = username,
+            Name = name.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+        await conn.InsertAsync(process);
+        return process;
+    }
+
+    public async Task<bool> DeleteWritingProcessAsync(int id)
+    {
+        EnsureWritable();
+        var conn = await _db.GetConnectionAsync();
+        var rows = await conn.DeleteAsync<WritingProcessDefinition>(id);
+        return rows > 0;
+    }
+
+    public async Task<List<string>> GetWritingProcessNamesAsync(string username)
+    {
+        var processes = await GetWritingProcessesAsync(username);
+        return processes.Select(p => p.Name).ToList();
+    }
+
+    #endregion
 
     public async Task UpdateProjectAsync(StoryProject project)
     {

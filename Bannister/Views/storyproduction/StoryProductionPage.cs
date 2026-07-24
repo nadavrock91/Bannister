@@ -963,9 +963,21 @@ public class StoryProductionPage : ContentPage
         if (rootProject == null)
             return;
 
-        var processes = _allOriginalProjects
+        // Merge defined processes from SQLite with inferred ones from existing projects
+        var definedProcesses = new List<string>();
+        try
+        {
+            definedProcesses = await _storyService.GetWritingProcessNamesAsync(_auth.CurrentUsername);
+        }
+        catch { }
+
+        var inferredProcesses = _allOriginalProjects
             .Select(p => p.WritingProcess?.Trim() ?? "")
             .Where(c => !string.IsNullOrWhiteSpace(c))
+            .ToList();
+
+        var processes = definedProcesses
+            .Concat(inferredProcesses)
             .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
             .Select(g => g.OrderBy(c => c).First())
             .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
@@ -3140,9 +3152,21 @@ public class StoryProductionPage : ContentPage
             initialValue: "");
         
         // Prompt for writing process
-        var existingProcesses = _allOriginalProjects
+        // Merge defined processes from SQLite with inferred ones from existing projects
+        var definedProcesses = new List<string>();
+        try
+        {
+            definedProcesses = await _storyService.GetWritingProcessNamesAsync(_auth.CurrentUsername);
+        }
+        catch { }
+
+        var inferredProcesses = _allOriginalProjects
             .Select(p => p.WritingProcess?.Trim() ?? "")
             .Where(c => !string.IsNullOrWhiteSpace(c))
+            .ToList();
+
+        var existingProcesses = definedProcesses
+            .Concat(inferredProcesses)
             .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
             .Select(g => g.OrderBy(c => c).First())
             .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)

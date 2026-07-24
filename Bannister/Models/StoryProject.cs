@@ -221,3 +221,16 @@ public class VisualShot
     // Computed
     public bool AllTasksDone => Task1_ImageGenerated && Task2_VideoGenerated;
 }
+
+public sealed class WritingProcessDefinition
+{
+    [SQLite.PrimaryKey, SQLite.AutoIncrement]
+    public int Id { get; set; }
+
+    [SQLite.Indexed]
+    public string Username { get; set; } = "";
+
+    public string Name { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
