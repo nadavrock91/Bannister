@@ -7,12 +7,14 @@ public class WritingProcessesPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
+    private readonly IdeasService? _ideasService;
     private VerticalStackLayout _listStack;
 
-    public WritingProcessesPage(AuthService auth, StoryProductionService storyService)
+    public WritingProcessesPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null)
     {
         _auth = auth;
         _storyService = storyService;
+        _ideasService = ideasService;
 
         Title = "Writing Processes";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -179,6 +181,32 @@ public class WritingProcessesPage : ContentPage
         try
         {
             await _storyService.AddWritingProcessAsync(_auth.CurrentUsername, name.Trim());
+
+            // Offer to add as idea under Story Production Processes category
+            if (_ideasService != null)
+            {
+                bool addAsIdea = await DisplayAlert(
+                    "Add to Ideas?",
+                    $"Add '{name.Trim()}' as an idea under the 'Story Production Processes' category?",
+                    "Yes",
+                    "No");
+
+                if (addAsIdea)
+                {
+                    try
+                    {
+                        await _ideasService.CreateIdeaAsync(
+                            _auth.CurrentUsername,
+                            name.Trim(),
+                            "Story Production Processes");
+                    }
+                    catch (Exception ex)
+                    {
+                        await DisplayAlert("Could not add idea", ex.Message, "OK");
+                    }
+                }
+            }
+
             await LoadProcessesAsync();
         }
         catch (ReadOnlyDatabaseException)
