@@ -7,14 +7,14 @@ public class WritingProcessesPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
-    private readonly IdeasService? _ideasService;
+    private readonly IdeaLoggerService? _ideaLogger;
     private VerticalStackLayout _listStack;
 
-    public WritingProcessesPage(AuthService auth, StoryProductionService storyService, IdeasService? ideasService = null)
+    public WritingProcessesPage(AuthService auth, StoryProductionService storyService, IdeaLoggerService? ideaLogger = null)
     {
         _auth = auth;
         _storyService = storyService;
-        _ideasService = ideasService;
+        _ideaLogger = ideaLogger;
 
         Title = "Writing Processes";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -183,27 +183,21 @@ public class WritingProcessesPage : ContentPage
             await _storyService.AddWritingProcessAsync(_auth.CurrentUsername, name.Trim());
 
             // Offer to add as idea under Story Production Processes category
-            if (_ideasService != null)
+            if (_ideaLogger != null)
             {
                 bool addAsIdea = await DisplayAlert(
-                    "Add to Ideas?",
-                    $"Add '{name.Trim()}' as an idea under the 'Story Production Processes' category?",
+                    "Log as Idea?",
+                    $"Open the idea logger to log '{name.Trim()}' under 'Story Production Processes'?",
                     "Yes",
                     "No");
 
                 if (addAsIdea)
                 {
-                    try
-                    {
-                        await _ideasService.CreateIdeaAsync(
-                            _auth.CurrentUsername,
-                            name.Trim(),
-                            "Story Production Processes");
-                    }
-                    catch (Exception ex)
-                    {
-                        await DisplayAlert("Could not add idea", ex.Message, "OK");
-                    }
+                    await _ideaLogger.LogIdeaAsync(
+                        this,
+                        _auth.CurrentUsername,
+                        name.Trim(),
+                        "Story Production Processes");
                 }
             }
 

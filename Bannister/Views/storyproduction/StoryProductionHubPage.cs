@@ -219,7 +219,7 @@ public class StoryProductionHubPage : ContentPage
 
     private async Task OnProcessesClicked()
     {
-        var page = new WritingProcessesPage(_auth, _storyService, _ideasService);
+        var page = new WritingProcessesPage(_auth, _storyService, _ideaLogger);
         await Navigation.PushAsync(page);
     }
 }
