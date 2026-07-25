@@ -56,6 +56,20 @@ public class WebsiteProject
     // JSON array of blocked QA item titles that should be skipped by PickFive
     public string BlockedQAItemsJson { get; set; } = "";
 
+    // === ADD MISSING FOCUS MODE ===
+
+    // The selected MISSING item title being actively worked on
+    public string ActiveMissingTitle { get; set; } = "";
+
+    // Detailed description of the MISSING item
+    public string ActiveMissingDetail { get; set; } = "";
+
+    // Number of task cycles completed toward this missing item
+    public int ActiveMissingTaskCount { get; set; } = 0;
+
+    // QA report specific to progress on the active missing item
+    public string ActiveMissingQAReport { get; set; } = "";
+
     public string? LatestQAReport { get; set; }
 
     public DateTime? LatestQAReportCapturedAt { get; set; }

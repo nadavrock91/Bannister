@@ -34,6 +34,10 @@ public class WebsiteProjectService
         try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingPickedItemsJson TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN BatchVerificationHistoryJson TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN BlockedQAItemsJson TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN ActiveMissingTitle TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN ActiveMissingDetail TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN ActiveMissingTaskCount INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN ActiveMissingQAReport TEXT DEFAULT ''"); } catch { }
     }
 
     public async Task<List<WebsiteProject>> GetAllForUserAsync(string username)
@@ -239,6 +243,56 @@ public class WebsiteProjectService
         if (project == null) return false;
 
         project.BlockedQAItemsJson = System.Text.Json.JsonSerializer.Serialize(blockedTitles.ToList());
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetActiveMissingAsync(int projectId, string title, string detail)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.ActiveMissingTitle = title ?? "";
+        project.ActiveMissingDetail = detail ?? "";
+        project.ActiveMissingTaskCount = 0;
+        project.ActiveMissingQAReport = "";
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> IncrementMissingTaskCountAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.ActiveMissingTaskCount++;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetActiveMissingQAReportAsync(int projectId, string report)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.ActiveMissingQAReport = report ?? "";
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> ClearActiveMissingAsync(int projectId)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.ActiveMissingTitle = "";
+        project.ActiveMissingDetail = "";
+        project.ActiveMissingTaskCount = 0;
+        project.ActiveMissingQAReport = "";
         await SaveAsync(project);
         return true;
     }

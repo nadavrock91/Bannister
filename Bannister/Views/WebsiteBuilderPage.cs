@@ -121,6 +121,71 @@ THE 5 PICKED ITEMS:
 {PICKED_ITEMS}
 """;
 
+    private const string MissingFocusQAPromptTemplate = """
+I need a focused QA report on a specific MISSING feature being actively developed.
+
+MISSING FEATURE: {MISSING_TITLE}
+
+DESCRIPTION: {MISSING_DETAIL}
+
+TASKS COMPLETED SO FAR: {TASK_COUNT}
+
+Visit the live site and evaluate ONLY the progress toward implementing this specific missing feature.
+
+Report in strict C# format:
+
+```csharp
+qaReport.CapturedAt = "<ISO 8601 UTC timestamp>";
+
+// What parts of the missing feature are now working
+qaReport.Working[1] = "...";
+
+// What is broken in the implementation so far (bugs blocking progress)
+qaReport.Broken[1].Title = "...";
+qaReport.Broken[1].Detail = "...";
+
+// What is rough/incomplete in the implementation
+qaReport.Rough[1].Title = "...";
+qaReport.Rough[1].Detail = "...";
+
+// What sub-parts of this feature are still missing
+qaReport.Missing[1].Title = "...";
+qaReport.Missing[1].Detail = "...";
+```
+
+Focus ONLY on this feature. Do not report on unrelated site issues.
+""";
+
+    private const string MissingFocusArcPromptTemplate = """
+You are planning the next task toward implementing a specific MISSING feature for a website project.
+
+MISSING FEATURE: {MISSING_TITLE}
+
+DESCRIPTION: {MISSING_DETAIL}
+
+TASKS COMPLETED SO FAR: {TASK_COUNT}
+
+CURRENT PROGRESS QA REPORT:
+{PROGRESS_QA}
+
+RULE: Every task MUST advance this missing feature. The only exception is if a BROKEN item in the progress QA is a fatal bug that blocks further progress — in that case, fix that bug as the task, then continue toward the missing feature in the next cycle.
+
+Break the next step into a single tractable Codex task. Be specific about file paths, function names, and expected behavior.
+
+Output format — return ONLY these two sections in this order, no explanation, no preamble, no closing remarks:
+
+ARC TITLE:
+<one short title, 6-12 words>
+
+CODEX PROMPT:
+<the full codex prompt for this single task>
+
+The CODEX PROMPT section should end with these instructions to Codex verbatim:
+
+"IMPORTANT: Do NOT run git add, git commit, git push, or any other git command. Do NOT stage or commit changes. Only edit files. Bannister will run the commit and push for you after you output the commit message below.
+At the end of your work, output a single line in this format: COMMIT MESSAGE: <one-line git commit message describing everything you did across all changes>"
+""";
+
     private const string DefaultQAPromptTemplate = """
 I need a QA report of the current state of the website.
 
@@ -210,6 +275,12 @@ Output ONLY the C# code block.
     private readonly Button _verifyCodexOutputButton;
     private readonly Button _viewBatchHistoryButton;
     private readonly Button _manageBlockedItemsButton;
+    private readonly Button _addMissingButton;
+    private readonly Button _missingFocusQAButton;
+    private readonly Button _missingFocusNextTaskButton;
+    private readonly Button _markMissingDoneButton;
+    private readonly Button _abandonMissingButton;
+    private Label _missingFocusInfoLabel;
     private readonly Label _projectTitleHeaderLabel;
     private readonly Label _projectIdeaReferenceLabel;
     private readonly Label _visionStatusLabel;
@@ -571,6 +642,30 @@ Output ONLY the C# code block.
         _manageBlockedItemsButton = CreateSecondaryButton("Manage Blocked Items");
         _manageBlockedItemsButton.Clicked += async (_, _) => await ManageBlockedItemsAsync();
 
+        _addMissingButton = CreatePrimaryButton("Add Missing Feature", Color.FromArgb("#E65100"));
+        _addMissingButton.Clicked += async (_, _) => await StartAddMissingFlowAsync();
+
+        _missingFocusQAButton = CreateSecondaryButton("Copy Missing Progress QA");
+        _missingFocusQAButton.Clicked += async (_, _) => await CopyMissingProgressQAAsync();
+
+        _missingFocusNextTaskButton = CreatePrimaryButton("Copy Next Missing Task", Color.FromArgb("#E65100"));
+        _missingFocusNextTaskButton.Clicked += async (_, _) => await CopyNextMissingTaskAsync();
+
+        _markMissingDoneButton = CreatePrimaryButton("Mark Missing Done", Color.FromArgb("#2E7D32"));
+        _markMissingDoneButton.Clicked += async (_, _) => await MarkMissingDoneAsync();
+
+        _abandonMissingButton = CreateSecondaryButton("Abandon Missing Focus");
+        _abandonMissingButton.Clicked += async (_, _) => await AbandonMissingFocusAsync();
+
+        _missingFocusInfoLabel = new Label
+        {
+            Text = "",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#E65100"),
+            FontAttributes = FontAttributes.Bold,
+            IsVisible = false
+        };
+
         var workflowHeader = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -617,6 +712,12 @@ Output ONLY the C# code block.
                     _verifyCodexOutputButton,
                     _viewBatchHistoryButton,
                     _manageBlockedItemsButton,
+                    _addMissingButton,
+                    _missingFocusInfoLabel,
+                    _missingFocusQAButton,
+                    _missingFocusNextTaskButton,
+                    _markMissingDoneButton,
+                    _abandonMissingButton,
                     _verifyDeploymentButton,
                     _deploymentFailedButton,
                     _cancelWorkflowButton
@@ -1625,6 +1726,12 @@ Output ONLY the C# code block.
         _checkDeploymentButton.IsVisible = false;
         _editDeploymentUrlButton.IsVisible = false;
         _verifyCodexOutputButton.IsVisible = false;
+        _addMissingButton.IsVisible = false;
+        _missingFocusInfoLabel.IsVisible = false;
+        _missingFocusQAButton.IsVisible = false;
+        _missingFocusNextTaskButton.IsVisible = false;
+        _markMissingDoneButton.IsVisible = false;
+        _abandonMissingButton.IsVisible = false;
         _cancelWorkflowButton.Text = "Cancel (Back to Start)";
 
         switch (state)
@@ -1681,6 +1788,7 @@ Output ONLY the C# code block.
                 _workflowCopyNextTaskPromptButton.IsVisible = true;
                 _batchSizeRow.IsVisible = true;
                 _copyBatchPromptButton.IsVisible = true;
+                _addMissingButton.IsVisible = true;
                 break;
         }
 
@@ -1688,6 +1796,22 @@ Output ONLY the C# code block.
         _deploymentErrorButton.IsVisible = _currentProjectId > 0;
         _viewBatchHistoryButton.IsVisible = _currentProjectId > 0;
         _manageBlockedItemsButton.IsVisible = _currentProjectId > 0;
+
+        // Missing focus mode overlay
+        if (_currentProjectId > 0)
+        {
+            var proj = _projectsCache.FirstOrDefault(p => p.Id == _currentProjectId);
+            if (proj != null && !string.IsNullOrWhiteSpace(proj.ActiveMissingTitle))
+            {
+                _missingFocusInfoLabel.Text = $" MISSING FOCUS: {proj.ActiveMissingTitle} ({proj.ActiveMissingTaskCount} tasks completed)";
+                _missingFocusInfoLabel.IsVisible = true;
+                _missingFocusQAButton.IsVisible = true;
+                _missingFocusNextTaskButton.IsVisible = true;
+                _markMissingDoneButton.IsVisible = true;
+                _abandonMissingButton.IsVisible = true;
+                _addMissingButton.IsVisible = false; // hide Add Missing when already focused
+            }
+        }
     }
 
     private void ApplyWorkflowBanner(string background, string border, string titleColor, string icon, string title, string subtitle)
@@ -3548,6 +3672,12 @@ Output ONLY the C# code block.
         {
             if (await _projectService.CompleteWorkflowAsync(project.Id, project.PendingTaskTitle))
             {
+                // Increment missing focus task count if in missing focus mode
+                if (!string.IsNullOrWhiteSpace(project.ActiveMissingTitle))
+                {
+                    try { await _projectService.IncrementMissingTaskCountAsync(project.Id); } catch { }
+                }
+
                 var updated = await _projectService.GetByIdAsync(project.Id);
                 await RefreshCurrentProjectAsync();
                 await DisplayAlert("Deployment verified!",
@@ -4302,6 +4432,267 @@ Output ONLY the C# code block.
         parent.Children.Add(overlay);
 
         await tcs.Task;
+    }
+
+    private async Task StartAddMissingFlowAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        if (!string.IsNullOrWhiteSpace(project.ActiveMissingTitle))
+        {
+            await DisplayAlert("Already Focused",
+                $"You are already working on: {project.ActiveMissingTitle}\n\nMark it done or abandon it before starting a new missing feature.",
+                "OK");
+            return;
+        }
+
+        // Get MISSING items from QA report
+        if (string.IsNullOrWhiteSpace(project.LatestQAReport))
+        {
+            await DisplayAlert("No QA Report",
+                "Paste a QA report first. The Add Missing flow picks from MISSING items in the stored QA report.",
+                "OK");
+            return;
+        }
+
+        var parsed = ParseQAReport(project.LatestQAReport);
+        var missingItems = parsed.Where(i => i.Category == "MISSING").ToList();
+
+        if (missingItems.Count == 0)
+        {
+            await DisplayAlert("No Missing Items",
+                "The stored QA report has no MISSING items.",
+                "OK");
+            return;
+        }
+
+        // Let user select one
+        var options = missingItems
+            .Select(m => m.Body.Split('\n')[0].Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .ToArray();
+
+        if (options.Length == 0)
+        {
+            await DisplayAlert("No Missing Items", "Could not extract MISSING item titles.", "OK");
+            return;
+        }
+
+        string? selected = await DisplayActionSheet(
+            "Select a MISSING feature to focus on:",
+            "Cancel",
+            null,
+            options);
+
+        if (string.IsNullOrWhiteSpace(selected) || selected == "Cancel") return;
+
+        var selectedItem = missingItems.FirstOrDefault(m => m.Body.Split('\n')[0].Trim() == selected);
+        string title = selected;
+        string detail = selectedItem.Body ?? selected;
+
+        try
+        {
+            await _projectService.SetActiveMissingAsync(project.Id, title, detail);
+            await RefreshCurrentProjectAsync();
+            await DisplayAlert("Missing Focus Started",
+                $"Now focused on: {title}\n\nUse 'Copy Missing Progress QA' to get a focused QA, then 'Copy Next Missing Task' to generate the next task toward implementing this feature.",
+                "OK");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task CopyMissingProgressQAAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        if (string.IsNullOrWhiteSpace(project.ActiveMissingTitle))
+        {
+            await DisplayAlert("No Missing Focus", "Start a missing focus first via Add Missing Feature.", "OK");
+            return;
+        }
+
+        string prompt = MissingFocusQAPromptTemplate
+            .Replace("{MISSING_TITLE}", project.ActiveMissingTitle)
+            .Replace("{MISSING_DETAIL}", project.ActiveMissingDetail)
+            .Replace("{TASK_COUNT}", project.ActiveMissingTaskCount.ToString());
+
+        await Clipboard.SetTextAsync(prompt);
+        await DisplayAlert("Progress QA Prompt Copied",
+            $"Paste into your QA agent to check progress on '{project.ActiveMissingTitle}'.\n\nThen paste the result back via Paste QA Report — it will be stored as the missing-focus progress QA.",
+            "OK");
+
+        // After copying, wait for paste
+        var result = await ShowMultilineEditorAsync(
+            "Paste Progress QA Result",
+            $"Paste the QA agent's progress report for '{project.ActiveMissingTitle}'.",
+            "",
+            "Paste progress QA here...");
+
+        if (!string.IsNullOrWhiteSpace(result))
+        {
+            try
+            {
+                await _projectService.SetActiveMissingQAReportAsync(project.Id, result.Trim());
+                await RefreshCurrentProjectAsync();
+                await DisplayAlert("Progress QA Saved",
+                    "Progress QA saved. Now use 'Copy Next Missing Task' to generate the next task.",
+                    "OK");
+            }
+            catch (ReadOnlyDatabaseException)
+            {
+                await ShowReadOnlyAlertAsync();
+            }
+        }
+    }
+
+    private async Task CopyNextMissingTaskAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        if (string.IsNullOrWhiteSpace(project.ActiveMissingTitle))
+        {
+            await DisplayAlert("No Missing Focus", "Start a missing focus first.", "OK");
+            return;
+        }
+
+        if (ToWorkflowState(project.WorkflowState) != WebsiteWorkflowState.Idle)
+        {
+            await DisplayAlert("Task In Progress",
+                "Finish or cancel the current workflow task before generating the next missing task.",
+                "OK");
+            return;
+        }
+
+        string progressQA = !string.IsNullOrWhiteSpace(project.ActiveMissingQAReport)
+            ? project.ActiveMissingQAReport
+            : "(No progress QA yet — this is the first task.)";
+
+        string prompt = MissingFocusArcPromptTemplate
+            .Replace("{MISSING_TITLE}", project.ActiveMissingTitle)
+            .Replace("{MISSING_DETAIL}", project.ActiveMissingDetail)
+            .Replace("{TASK_COUNT}", project.ActiveMissingTaskCount.ToString())
+            .Replace("{PROGRESS_QA}", progressQA);
+
+        await Clipboard.SetTextAsync(prompt);
+
+        await DisplayAlert("Missing Task Prompt Copied",
+            $"Paste into Claude/ChatGPT to get the next task toward '{project.ActiveMissingTitle}'.\n\nTask #{project.ActiveMissingTaskCount + 1}.\n\nPaste the response via Paste Task Plan as usual.",
+            "OK");
+
+        // Advance to WaitingForLLM to enter the normal workflow
+        try
+        {
+            if (await _projectService.AdvanceToWaitingForLLMAsync(project.Id))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task MarkMissingDoneAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        if (string.IsNullOrWhiteSpace(project.ActiveMissingTitle))
+        {
+            await DisplayAlert("No Missing Focus", "No active missing feature to mark done.", "OK");
+            return;
+        }
+
+        bool confirm = await DisplayAlert(
+            "Mark Missing Done?",
+            $"Mark '{project.ActiveMissingTitle}' as completed?\n\n{project.ActiveMissingTaskCount} task(s) were completed toward this feature.\n\nThis will also remove it from the stored QA report if present.",
+            "Yes, Done",
+            "Cancel");
+
+        if (!confirm) return;
+
+        // Remove from QA report
+        if (!string.IsNullOrWhiteSpace(project.LatestQAReport))
+        {
+            var parsed = ParseQAReport(project.LatestQAReport);
+            var remaining = parsed.Where(item =>
+            {
+                var firstLine = item.Body.Split('\n')[0].Trim();
+                return !string.Equals(firstLine, project.ActiveMissingTitle, StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+
+            if (remaining.Count < parsed.Count)
+            {
+                var sb = new System.Text.StringBuilder();
+                int idx = 0;
+                var grouped = remaining.GroupBy(r => r.Category).OrderBy(g => g.Key switch { "BROKEN" => 0, "ROUGH" => 1, "MISSING" => 2, _ => 3 });
+                foreach (var group in grouped)
+                {
+                    foreach (var item in group)
+                    {
+                        string title = item.Body.Split('\n')[0].Trim();
+                        sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Title = \"{EscapeQAString(title)}\";");
+                        var detail = string.Join("\n", item.Body.Split('\n').Skip(1)).Trim();
+                        if (!string.IsNullOrWhiteSpace(detail))
+                        {
+                            detail = detail.Replace("Steps to reproduce: ", "").Trim();
+                            sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Detail = \"{EscapeQAString(detail)}\";");
+                        }
+                        idx++;
+                    }
+                }
+
+                try { await _projectService.SetLatestQAReportAsync(project.Id, sb.ToString()); } catch { }
+            }
+        }
+
+        string completionMessage = $"'{project.ActiveMissingTitle}' marked as done after {project.ActiveMissingTaskCount} task(s).";
+
+        try
+        {
+            await _projectService.ClearActiveMissingAsync(project.Id);
+            await RefreshCurrentProjectAsync();
+            await DisplayAlert("Missing Feature Done!", completionMessage, "OK");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task AbandonMissingFocusAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        if (string.IsNullOrWhiteSpace(project.ActiveMissingTitle))
+        {
+            await DisplayAlert("No Missing Focus", "No active missing feature to abandon.", "OK");
+            return;
+        }
+
+        bool confirm = await DisplayAlert(
+            "Abandon Missing Focus?",
+            $"Stop working on '{project.ActiveMissingTitle}'?\n\n{project.ActiveMissingTaskCount} task(s) completed so far.\n\nThe feature will remain in the QA report for future picks.",
+            "Abandon",
+            "Cancel");
+
+        if (!confirm) return;
+
+        try
+        {
+            await _projectService.ClearActiveMissingAsync(project.Id);
+            await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task ViewTaskLogAsync()
