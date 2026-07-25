@@ -184,7 +184,9 @@ public class RoutineService
         if (existingOpen != null)
             return;
 
-        var completionDate = (task.CompletedAt?.ToLocalTime().Date ?? DateTime.Today);
+        var completionDate = task.CompletedAt.HasValue
+            ? AdjustForLateNight(task.CompletedAt.Value)
+            : AdjustForLateNight(DateTime.Now);
         await CreateRoutineTaskAsync(conn, routine, ComputeNextInstanceDate(routine, completionDate));
     }
 
@@ -204,7 +206,7 @@ public class RoutineService
 
         task.DueDate = routine.FrequencyType == 0
             ? (task.DueDate?.Date ?? DateTime.Today).AddDays(Math.Max(1, routine.FrequencyDays))
-            : ComputeNextInstanceDate(routine, DateTime.Today);
+            : ComputeNextInstanceDate(routine, AdjustForLateNight(DateTime.Now));
         await conn.UpdateAsync(task);
     }
 
@@ -231,6 +233,21 @@ public class RoutineService
         };
 
         await conn.InsertAsync(task);
+    }
+
+    /// <summary>
+    /// Adjusts a timestamp so that completions between midnight and 4 AM
+    /// count as the previous day. This prevents weekly routines from shifting
+    /// their day-of-week pattern when completed after midnight.
+    /// </summary>
+    private static DateTime AdjustForLateNight(DateTime dateTime)
+    {
+        var local = dateTime.ToLocalTime();
+        if (local.Hour < 4)
+        {
+            return local.AddDays(-1).Date;
+        }
+        return local.Date;
     }
 
     public static DateTime ComputeNextInstanceDate(Routine routine, DateTime fromDate)
