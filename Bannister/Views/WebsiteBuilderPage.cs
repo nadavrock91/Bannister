@@ -209,6 +209,7 @@ Output ONLY the C# code block.
     private readonly Button _deploymentErrorButton;
     private readonly Button _verifyCodexOutputButton;
     private readonly Button _viewBatchHistoryButton;
+    private readonly Button _manageBlockedItemsButton;
     private readonly Label _projectTitleHeaderLabel;
     private readonly Label _projectIdeaReferenceLabel;
     private readonly Label _visionStatusLabel;
@@ -567,6 +568,9 @@ Output ONLY the C# code block.
         _viewBatchHistoryButton = CreateSecondaryButton("View Batch History");
         _viewBatchHistoryButton.Clicked += async (_, _) => await ViewBatchHistoryAsync();
 
+        _manageBlockedItemsButton = CreateSecondaryButton("Manage Blocked Items");
+        _manageBlockedItemsButton.Clicked += async (_, _) => await ManageBlockedItemsAsync();
+
         var workflowHeader = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -612,6 +616,7 @@ Output ONLY the C# code block.
                     _deploymentErrorButton,
                     _verifyCodexOutputButton,
                     _viewBatchHistoryButton,
+                    _manageBlockedItemsButton,
                     _verifyDeploymentButton,
                     _deploymentFailedButton,
                     _cancelWorkflowButton
@@ -1682,6 +1687,7 @@ Output ONLY the C# code block.
         // Deployment Error is always available when a project is loaded
         _deploymentErrorButton.IsVisible = _currentProjectId > 0;
         _viewBatchHistoryButton.IsVisible = _currentProjectId > 0;
+        _manageBlockedItemsButton.IsVisible = _currentProjectId > 0;
     }
 
     private void ApplyWorkflowBanner(string background, string border, string titleColor, string icon, string title, string subtitle)
@@ -2853,6 +2859,16 @@ Output ONLY the C# code block.
         return items;
     }
 
+    private static string EscapeQAString(string value)
+    {
+        return value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\n", "\\n")
+            .Replace("\r", "")
+            .Replace("\t", "\\t");
+    }
+
     private static List<(string Category, string Body)> PickFive(List<(string Category, string Body)> items)
     {
         var rng = new Random();
@@ -3011,6 +3027,18 @@ Output ONLY the C# code block.
         }
 
         var parsed = ParseQAReport(project.LatestQAReport);
+
+        // Filter out blocked/external items
+        HashSet<string> blockedItems;
+        try { blockedItems = await _projectService.GetBlockedQAItemsAsync(project.Id); }
+        catch { blockedItems = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
+
+        var pickable = parsed.Where(item =>
+        {
+            var firstLine = item.Body.Split('\n')[0].Trim();
+            return !blockedItems.Contains(firstLine);
+        }).ToList();
+
         if (parsed.Count == 0)
         {
             await DisplayAlert(
@@ -3020,7 +3048,7 @@ Output ONLY the C# code block.
             return;
         }
 
-        var picks = PickFive(parsed);
+        var picks = PickFive(pickable);
         var prompt = AssembleArcPromptWithPicks(picks);
 
         await Clipboard.SetTextAsync(prompt);
@@ -3040,12 +3068,18 @@ Output ONLY the C# code block.
         var pickedBrokenCount = picks.Count(p => p.Category == "BROKEN");
         var pickedRoughCount = picks.Count(p => p.Category == "ROUGH");
         var pickedMissingCount = picks.Count(p => p.Category == "MISSING");
+        int blockedCount = parsed.Count - pickable.Count;
+
+        string blockedNote = blockedCount > 0
+            ? $"\n\nBlocked/external items skipped: {blockedCount}"
+            : "";
 
         await DisplayAlert(
             "Batch prompt copied",
-            $"Copied arc prompt with 5 randomly picked items from the stored QA report.\n\n" +
-            $"Total parsed: {parsed.Count} ({brokenCount} BROKEN, {roughCount} ROUGH, {missingCount} MISSING).\n\n" +
-            $"Picked breakdown: {pickedBrokenCount} BROKEN, {pickedRoughCount} ROUGH, {pickedMissingCount} MISSING.",
+            $"Copied arc prompt with {picks.Count} items from the stored QA report.\n\n" +
+            $"Total parsed: {parsed.Count} ({brokenCount} BROKEN, {roughCount} ROUGH, {missingCount} MISSING).\n" +
+            $"Pickable (after excluding blocked): {pickable.Count}.\n\n" +
+            $"Picked breakdown: {pickedBrokenCount} BROKEN, {pickedRoughCount} ROUGH, {pickedMissingCount} MISSING.{blockedNote}",
             "OK");
 
         try
@@ -3724,6 +3758,111 @@ Output ONLY the C# code block.
         await DisplayAlert("Verification Saved",
             $"{doneCount}/{totalCount} items addressed.\n\nView details in Batch History.",
             "OK");
+
+        // Auto-remove DONE items from stored QA report
+        var refreshedProject = await _projectService.GetByIdAsync(project.Id);
+        if (refreshedProject != null && !string.IsNullOrWhiteSpace(refreshedProject.LatestQAReport))
+        {
+            var doneTitles = items
+                .Where(i => ((dynamic)i).Done == true)
+                .Select(i => ((string)((dynamic)i).Title).Trim())
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (doneTitles.Count > 0)
+            {
+                var currentParsed = ParseQAReport(refreshedProject.LatestQAReport);
+                var remaining = currentParsed.Where(item =>
+                {
+                    var firstLine = item.Body.Split('\n')[0].Trim();
+                    return !doneTitles.Contains(firstLine);
+                }).ToList();
+
+                int removedCount = currentParsed.Count - remaining.Count;
+                if (removedCount > 0)
+                {
+                    // Rebuild QA report without done items
+                    var sb = new System.Text.StringBuilder();
+                    var grouped = remaining.GroupBy(r => r.Category).OrderBy(g => g.Key switch { "BROKEN" => 0, "ROUGH" => 1, "MISSING" => 2, _ => 3 });
+                    int idx = 0;
+                    foreach (var group in grouped)
+                    {
+                        foreach (var item in group)
+                        {
+                            var lines = item.Body.Split('\n');
+                            string title = lines[0].Trim();
+                            sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Title = \"{EscapeQAString(title)}\";");
+
+                            // Try to extract detail from the rest
+                            if (lines.Length > 1)
+                            {
+                                var detail = string.Join("\n", lines.Skip(1)).Trim();
+                                if (!string.IsNullOrWhiteSpace(detail))
+                                {
+                                    // Remove "Steps to reproduce: " prefix if present
+                                    detail = detail.Replace("Steps to reproduce: ", "").Trim();
+                                    sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Detail = \"{EscapeQAString(detail)}\";");
+                                }
+                            }
+                            idx++;
+                        }
+                    }
+
+                    try
+                    {
+                        await _projectService.SetLatestQAReportAsync(refreshedProject.Id, sb.ToString());
+                    }
+                    catch { }
+
+                    await DisplayAlert("QA Report Updated",
+                        $"Removed {removedCount} completed item(s) from the stored QA report.\n{remaining.Count} item(s) remain.",
+                        "OK");
+                }
+            }
+        }
+
+        // Offer to block NOT DONE items that are external/infrastructure
+        var notDoneItems = items
+            .Where(i => ((dynamic)i).Done == false)
+            .Select(i => new { Title = (string)((dynamic)i).Title, Notes = (string)((dynamic)i).Notes })
+            .Where(i => !string.IsNullOrWhiteSpace(i.Title))
+            .ToList();
+
+        if (notDoneItems.Count > 0)
+        {
+            bool blockSome = await DisplayAlert(
+                "Block External Items?",
+                $"{notDoneItems.Count} item(s) were NOT addressed. Some may be infrastructure/external issues that Codex can never fix.\n\nWould you like to review and block any from future picks?",
+                "Review",
+                "Skip");
+
+            if (blockSome)
+            {
+                HashSet<string> currentBlocked;
+                try { currentBlocked = await _projectService.GetBlockedQAItemsAsync(project.Id); }
+                catch { currentBlocked = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
+
+                foreach (var notDone in notDoneItems)
+                {
+                    if (currentBlocked.Contains(notDone.Title)) continue;
+
+                    string notePreview = !string.IsNullOrWhiteSpace(notDone.Notes) ? $"\n\nLast note: {notDone.Notes}" : "";
+                    bool block = await DisplayAlert(
+                        "Block This Item?",
+                        $"{notDone.Title}{notePreview}\n\nBlock from future batch picks? (You can unblock later via Manage Blocked Items.)",
+                        "Block",
+                        "Keep");
+
+                    if (block)
+                    {
+                        currentBlocked.Add(notDone.Title);
+                    }
+                }
+
+                try { await _projectService.SetBlockedQAItemsAsync(project.Id, currentBlocked); }
+                catch { }
+            }
+        }
     }
 
     private async Task ViewBatchHistoryAsync()
@@ -4030,6 +4169,131 @@ Output ONLY the C# code block.
                     dateFilterRow,
                     new ScrollView { HeightRequest = 450, Content = listStack },
                     buttonRow
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        await tcs.Task;
+    }
+
+    private async Task ManageBlockedItemsAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        HashSet<string> blocked;
+        try { blocked = await _projectService.GetBlockedQAItemsAsync(project.Id); }
+        catch { blocked = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
+
+        if (blocked.Count == 0)
+        {
+            await DisplayAlert("No Blocked Items", "No QA items are currently blocked from batch picks.", "OK");
+            return;
+        }
+
+        var tcs = new TaskCompletionSource<bool>();
+        var parent = Content as Grid;
+        if (parent == null) return;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var listStack = new VerticalStackLayout { Spacing = 8 };
+
+        void RebuildList()
+        {
+            listStack.Children.Clear();
+            foreach (var item in blocked.OrderBy(b => b))
+            {
+                var row = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = GridLength.Auto }
+                    },
+                    Padding = new Thickness(8, 6),
+                    BackgroundColor = Color.FromArgb("#FAFAFA")
+                };
+
+                row.Add(new Label
+                {
+                    Text = item,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#333"),
+                    VerticalOptions = LayoutOptions.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
+                }, 0, 0);
+
+                var unblockBtn = new Button
+                {
+                    Text = "Unblock",
+                    BackgroundColor = Color.FromArgb("#E8F5E9"),
+                    TextColor = Color.FromArgb("#2E7D32"),
+                    CornerRadius = 8,
+                    HeightRequest = 32,
+                    FontSize = 12,
+                    Padding = new Thickness(10, 0)
+                };
+                var capturedItem = item;
+                unblockBtn.Clicked += async (_, _) =>
+                {
+                    blocked.Remove(capturedItem);
+                    try { await _projectService.SetBlockedQAItemsAsync(project.Id, blocked); } catch { }
+                    RebuildList();
+                };
+                row.Add(unblockBtn, 1, 0);
+
+                listStack.Children.Add(row);
+            }
+
+            if (blocked.Count == 0)
+            {
+                listStack.Children.Add(new Label
+                {
+                    Text = "All items unblocked.",
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#999"),
+                    FontAttributes = FontAttributes.Italic,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(0, 20)
+                });
+            }
+        }
+
+        RebuildList();
+
+        var closeBtn = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        closeBtn.Clicked += (_, _) =>
+        {
+            parent.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 560,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new Label { Text = " Blocked QA Items", FontSize = 20, FontAttributes = FontAttributes.Bold },
+                    new Label { Text = "These items are excluded from batch picks. Unblock to include them again.", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                    new ScrollView { HeightRequest = 400, Content = listStack },
+                    closeBtn
                 }
             }
         };

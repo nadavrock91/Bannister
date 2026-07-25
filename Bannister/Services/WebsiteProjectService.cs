@@ -33,6 +33,7 @@ public class WebsiteProjectService
         try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN DeploymentUrl TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingPickedItemsJson TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN BatchVerificationHistoryJson TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN BlockedQAItemsJson TEXT DEFAULT ''"); } catch { }
     }
 
     public async Task<List<WebsiteProject>> GetAllForUserAsync(string username)
@@ -213,6 +214,31 @@ public class WebsiteProjectService
 
         history.Insert(0, entryJson);
         project.BatchVerificationHistoryJson = System.Text.Json.JsonSerializer.Serialize(history);
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<HashSet<string>> GetBlockedQAItemsAsync(int projectId)
+    {
+        var project = await GetByIdAsync(projectId);
+        if (project == null || string.IsNullOrWhiteSpace(project.BlockedQAItemsJson))
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            var list = System.Text.Json.JsonSerializer.Deserialize<List<string>>(project.BlockedQAItemsJson);
+            return new HashSet<string>(list ?? new(), StringComparer.OrdinalIgnoreCase);
+        }
+        catch { return new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
+    }
+
+    public async Task<bool> SetBlockedQAItemsAsync(int projectId, HashSet<string> blockedTitles)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.BlockedQAItemsJson = System.Text.Json.JsonSerializer.Serialize(blockedTitles.ToList());
         await SaveAsync(project);
         return true;
     }

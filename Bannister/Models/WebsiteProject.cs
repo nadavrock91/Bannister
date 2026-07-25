@@ -53,6 +53,9 @@ public class WebsiteProject
     // Stores JSON array of past batch verification results
     public string BatchVerificationHistoryJson { get; set; } = "";
 
+    // JSON array of blocked QA item titles that should be skipped by PickFive
+    public string BlockedQAItemsJson { get; set; } = "";
+
     public string? LatestQAReport { get; set; }
 
     public DateTime? LatestQAReportCapturedAt { get; set; }
