@@ -1011,6 +1011,32 @@ public class StoryProductionPage : ContentPage
                 return;
 
             process = newProcess.Trim();
+
+            // Also save to WritingProcessDefinition table
+            try
+            {
+                var existingDefined = await _storyService.GetWritingProcessNamesAsync(_auth.CurrentUsername);
+                if (!existingDefined.Any(n => string.Equals(n, process, StringComparison.OrdinalIgnoreCase)))
+                {
+                    await _storyService.AddWritingProcessAsync(_auth.CurrentUsername, process);
+                }
+            }
+            catch { }
+
+            // Offer idea logger
+            if (_ideaLogger != null)
+            {
+                bool logIdea = await DisplayAlert(
+                    "Log as Idea?",
+                    $"Open the idea logger to log '{process}' under 'Story Production Processes'?",
+                    "Yes",
+                    "No");
+
+                if (logIdea)
+                {
+                    await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, process, "Story Production Processes");
+                }
+            }
         }
         else if (selected == "No Process")
         {
@@ -3196,6 +3222,32 @@ public class StoryProductionPage : ContentPage
 
             if (string.IsNullOrWhiteSpace(newProcess)) return;
             writingProcess = newProcess.Trim();
+
+            // Also save to WritingProcessDefinition table
+            try
+            {
+                var existingDefined = await _storyService.GetWritingProcessNamesAsync(_auth.CurrentUsername);
+                if (!existingDefined.Any(n => string.Equals(n, writingProcess, StringComparison.OrdinalIgnoreCase)))
+                {
+                    await _storyService.AddWritingProcessAsync(_auth.CurrentUsername, writingProcess);
+                }
+            }
+            catch { }
+
+            // Offer idea logger
+            if (_ideaLogger != null)
+            {
+                bool logIdea = await DisplayAlert(
+                    "Log as Idea?",
+                    $"Open the idea logger to log '{writingProcess}' under 'Story Production Processes'?",
+                    "Yes",
+                    "No");
+
+                if (logIdea)
+                {
+                    await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, writingProcess, "Story Production Processes");
+                }
+            }
         }
         else if (selectedProcess != "Skip (no process)")
         {
