@@ -65,6 +65,20 @@ public class RoutineService
         return routines.Where(r => r.IsActive).OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    /// <summary>
+    /// Get the current open (incomplete) TaskItem for a routine, if any.
+    /// This is the task currently assigned on the calendar.
+    /// </summary>
+    public async Task<TaskItem?> GetOpenTaskForRoutineAsync(int routineId)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<TaskItem>()
+            .Where(t => t.RoutineId == routineId && !t.IsCompleted)
+            .OrderBy(t => t.DueDate)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<Routine> AddRoutineAsync(
         string username,
         string name,

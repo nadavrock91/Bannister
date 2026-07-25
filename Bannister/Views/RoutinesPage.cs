@@ -85,27 +85,35 @@ public class RoutinesPage : ContentPage
 
     private async Task LoadAsync()
     {
-        var routines = await _routines.GetRoutinesAsync(_auth.CurrentUsername);
         _activeStack.Children.Clear();
         _inactiveStack.Children.Clear();
 
-        var active = routines.Where(r => r.IsActive).ToList();
-        var inactive = routines.Where(r => !r.IsActive).ToList();
+        var routines = await _routines.GetRoutinesAsync(_auth.CurrentUsername);
+
+        // Fetch open tasks for all routines in one pass
+        var openTasks = new Dictionary<int, TaskItem?>();
+        foreach (var routine in routines)
+        {
+            openTasks[routine.Id] = await _routines.GetOpenTaskForRoutineAsync(routine.Id);
+        }
+
+        var active = routines.Where(r => r.IsActive).OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        var inactive = routines.Where(r => !r.IsActive).OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
         if (active.Count == 0)
             _activeStack.Children.Add(EmptyLabel("No active routines."));
-        else
-            foreach (var routine in active)
-                _activeStack.Children.Add(BuildRoutineRow(routine));
+
+        foreach (var routine in active)
+            _activeStack.Children.Add(BuildRoutineRow(routine, openTasks.GetValueOrDefault(routine.Id)));
 
         if (inactive.Count == 0)
             _inactiveStack.Children.Add(EmptyLabel("No inactive routines."));
-        else
-            foreach (var routine in inactive)
-                _inactiveStack.Children.Add(BuildRoutineRow(routine));
+
+        foreach (var routine in inactive)
+            _inactiveStack.Children.Add(BuildRoutineRow(routine, openTasks.GetValueOrDefault(routine.Id)));
     }
 
-    private View BuildRoutineRow(Routine routine)
+    private View BuildRoutineRow(Routine routine, TaskItem? openTask)
     {
         var frame = new Frame
         {
@@ -141,6 +149,56 @@ public class RoutinesPage : ContentPage
             FontSize = 12,
             TextColor = Color.FromArgb("#666")
         });
+
+        if (routine.IsActive && openTask != null && openTask.DueDate.HasValue)
+        {
+            var dueDate = openTask.DueDate.Value.Date;
+            var today = DateTime.Today;
+            var daysUntil = (dueDate - today).Days;
+
+            string dateText;
+            Color dateColor;
+
+            if (daysUntil < 0)
+            {
+                dateText = $" Overdue: {dueDate:MMM d, yyyy} ({Math.Abs(daysUntil)} day(s) ago)";
+                dateColor = Color.FromArgb("#C62828");
+            }
+            else if (daysUntil == 0)
+            {
+                dateText = $" Due today";
+                dateColor = Color.FromArgb("#E65100");
+            }
+            else if (daysUntil == 1)
+            {
+                dateText = $" Due tomorrow";
+                dateColor = Color.FromArgb("#F57C00");
+            }
+            else
+            {
+                dateText = $" Next: {dueDate:MMM d, yyyy} ({daysUntil} days)";
+                dateColor = Color.FromArgb("#1565C0");
+            }
+
+            text.Children.Add(new Label
+            {
+                Text = dateText,
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = dateColor
+            });
+        }
+        else if (routine.IsActive)
+        {
+            text.Children.Add(new Label
+            {
+                Text = " No open occurrence",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#999"),
+                FontAttributes = FontAttributes.Italic
+            });
+        }
+
         grid.Add(text, 0, 0);
 
         var actions = new FlexLayout
