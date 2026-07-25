@@ -3758,18 +3758,62 @@ Output ONLY the C# code block.
         var parent = Content as Grid;
         if (parent == null) return;
 
+        var fromDate = new DatePicker
+        {
+            Date = DateTime.Today.AddDays(-30),
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            MinimumDate = DateTime.Today.AddYears(-2),
+            MaximumDate = DateTime.Today,
+            FontSize = 13
+        };
+
+        var toDate = new DatePicker
+        {
+            Date = DateTime.Today,
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            MinimumDate = DateTime.Today.AddYears(-2),
+            MaximumDate = DateTime.Today,
+            FontSize = 13
+        };
+
+        var dateFilterRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                new Label { Text = "From:", FontSize = 12, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center },
+                fromDate,
+                new Label { Text = "To:", FontSize = 12, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center },
+                toDate
+            }
+        };
+
         var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
 
         var listStack = new VerticalStackLayout { Spacing = 12 };
 
-        for (int batchIdx = 0; batchIdx < history.Count; batchIdx++)
+        void RebuildFilteredList()
         {
-            try
-            {
-                using var doc = System.Text.Json.JsonDocument.Parse(history[batchIdx]);
-                var root = doc.RootElement;
+            listStack.Children.Clear();
+            var fromFilter = fromDate.Date;
+            var toFilter = toDate.Date.AddDays(1); // inclusive end
 
-                var date = root.TryGetProperty("Date", out var dateProp) ? dateProp.GetString() ?? "" : "";
+            int visibleCount = 0;
+            for (int batchIdx = 0; batchIdx < history.Count; batchIdx++)
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(history[batchIdx]);
+                    var root = doc.RootElement;
+
+                    var dateStr = root.TryGetProperty("Date", out var dateProp) ? dateProp.GetString() ?? "" : "";
+                    if (DateTime.TryParse(dateStr, out var batchDate))
+                    {
+                        if (batchDate < fromFilter || batchDate >= toFilter)
+                            continue;
+                    }
+
+                    visibleCount++;
                 var taskTitle = root.TryGetProperty("TaskTitle", out var titleProp) ? titleProp.GetString() ?? "" : "";
                 var doneCount = root.TryGetProperty("DoneCount", out var doneProp) ? doneProp.GetInt32() : 0;
                 var totalCount = root.TryGetProperty("TotalCount", out var totalProp) ? totalProp.GetInt32() : 0;
@@ -3785,7 +3829,7 @@ Output ONLY the C# code block.
                 var batchStack = new VerticalStackLayout { Spacing = 6 };
                 batchStack.Children.Add(new Label
                 {
-                    Text = $"Batch {history.Count - batchIdx}: {date}",
+                    Text = $"Batch: {dateStr}",
                     FontSize = 15,
                     FontAttributes = FontAttributes.Bold,
                     TextColor = Color.FromArgb("#333")
@@ -3834,12 +3878,31 @@ Output ONLY the C# code block.
 
                 batchFrame.Content = batchStack;
                 listStack.Children.Add(batchFrame);
+                }
+                catch
+                {
+                    listStack.Children.Add(new Label { Text = $"Batch (parse error)", FontSize = 12 });
+                }
             }
-            catch
+
+            if (visibleCount == 0)
             {
-                listStack.Children.Add(new Label { Text = $"Batch {history.Count - batchIdx}: (parse error)", FontSize = 12 });
+                listStack.Children.Add(new Label
+                {
+                    Text = "No batches in selected date range.",
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#999"),
+                    FontAttributes = FontAttributes.Italic,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(0, 20)
+                });
             }
         }
+
+        RebuildFilteredList();
+
+        fromDate.DateSelected += (_, _) => RebuildFilteredList();
+        toDate.DateSelected += (_, _) => RebuildFilteredList();
 
         var closeBtn = new Button
         {
@@ -3852,6 +3915,102 @@ Output ONLY the C# code block.
         {
             parent.Children.Remove(overlay);
             tcs.TrySetResult(true);
+        };
+
+        var exportBtn = new Button
+        {
+            Text = " Export",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            FontSize = 13
+        };
+        exportBtn.Clicked += async (_, _) =>
+        {
+            var sb = new System.Text.StringBuilder();
+            var fromFilter = fromDate.Date;
+            var toFilter = toDate.Date.AddDays(1);
+
+            sb.AppendLine($"Batch Verification History Export");
+            sb.AppendLine($"Project: {project.Title}");
+            sb.AppendLine($"Date Range: {fromFilter:yyyy-MM-dd} to {toDate.Date:yyyy-MM-dd}");
+            sb.AppendLine(new string('=', 60));
+            sb.AppendLine();
+
+            int batchNum = 0;
+            for (int i = 0; i < history.Count; i++)
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(history[i]);
+                    var root = doc.RootElement;
+
+                    var dateStr = root.TryGetProperty("Date", out var dateProp) ? dateProp.GetString() ?? "" : "";
+                    if (DateTime.TryParse(dateStr, out var batchDate))
+                    {
+                        if (batchDate < fromFilter || batchDate >= toFilter)
+                            continue;
+                    }
+
+                    batchNum++;
+                    var taskTitle = root.TryGetProperty("TaskTitle", out var titleProp) ? titleProp.GetString() ?? "" : "";
+                    var doneCount = root.TryGetProperty("DoneCount", out var doneProp) ? doneProp.GetInt32() : 0;
+                    var totalCount = root.TryGetProperty("TotalCount", out var totalProp) ? totalProp.GetInt32() : 0;
+
+                    sb.AppendLine($"BATCH {batchNum} — {dateStr}");
+                    if (!string.IsNullOrWhiteSpace(taskTitle))
+                        sb.AppendLine($"Task: {taskTitle}");
+                    sb.AppendLine($"Result: {doneCount}/{totalCount} items addressed");
+                    sb.AppendLine();
+
+                    if (root.TryGetProperty("Items", out var itemsArray))
+                    {
+                        foreach (var item in itemsArray.EnumerateArray())
+                        {
+                            var cat = item.TryGetProperty("Category", out var catP) ? catP.GetString() ?? "" : "";
+                            var title = item.TryGetProperty("Title", out var titP) ? titP.GetString() ?? "" : "";
+                            var done = item.TryGetProperty("Done", out var doneP) && doneP.GetBoolean();
+                            var notes = item.TryGetProperty("Notes", out var notP) ? notP.GetString() ?? "" : "";
+
+                            string status = done ? "DONE" : "NOT DONE";
+                            sb.AppendLine($"  [{status}] [{cat}] {title}");
+                            if (!string.IsNullOrWhiteSpace(notes))
+                                sb.AppendLine($"           Notes: {notes}");
+                        }
+                    }
+
+                    sb.AppendLine();
+                    sb.AppendLine(new string('-', 40));
+                    sb.AppendLine();
+                }
+                catch { }
+            }
+
+            if (batchNum == 0)
+            {
+                sb.AppendLine("No batches in selected date range.");
+            }
+            else
+            {
+                sb.AppendLine($"SUMMARY: {batchNum} batch(es) exported.");
+            }
+
+            try
+            {
+                await Clipboard.SetTextAsync(sb.ToString());
+                await DisplayAlert("Exported", $"Batch history ({batchNum} batches) copied to clipboard.", "OK");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Export Failed", ex.Message, "OK");
+            }
+        };
+
+        var buttonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.End,
+            Children = { exportBtn, closeBtn }
         };
 
         var card = new Frame
@@ -3868,8 +4027,9 @@ Output ONLY the C# code block.
                 Children =
                 {
                     new Label { Text = " Batch Verification History", FontSize = 20, FontAttributes = FontAttributes.Bold },
-                    new ScrollView { HeightRequest = 500, Content = listStack },
-                    closeBtn
+                    dateFilterRow,
+                    new ScrollView { HeightRequest = 450, Content = listStack },
+                    buttonRow
                 }
             }
         };
