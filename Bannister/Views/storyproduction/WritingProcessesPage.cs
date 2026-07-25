@@ -89,14 +89,29 @@ public class WritingProcessesPage : ContentPage
             return;
         }
 
-        // Also count how many projects use each process
-        var projects = await _storyService.GetProjectsAsync(_auth.CurrentUsername);
-        var originalProjects = projects.Where(p => p.ParentProjectId == null).ToList();
+        var allProjects = await _storyService.GetProjectsAsync(_auth.CurrentUsername);
+        var originalProjects = allProjects.Where(p => p.ParentProjectId == null).ToList();
 
         foreach (var process in processes)
         {
-            int usageCount = originalProjects.Count(p =>
-                string.Equals(p.WritingProcess?.Trim(), process.Name, StringComparison.OrdinalIgnoreCase));
+            var processProjects = originalProjects
+                .Where(p => string.Equals(p.WritingProcess?.Trim(), process.Name, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            int totalCount = processProjects.Count;
+
+            // Projects with any stats logged
+            var withStats = processProjects.Where(p =>
+                p.YouTubeStatsCapturedAt.HasValue ||
+                p.FacebookStatsCapturedAt.HasValue ||
+                p.TikTokStatsCapturedAt.HasValue).ToList();
+
+            int statsCount = withStats.Count;
+
+            // Compute averages per platform (only from projects that have that platform's stats)
+            var ytProjects = withStats.Where(p => p.YouTubeStatsCapturedAt.HasValue).ToList();
+            var fbProjects = withStats.Where(p => p.FacebookStatsCapturedAt.HasValue).ToList();
+            var ttProjects = withStats.Where(p => p.TikTokStatsCapturedAt.HasValue).ToList();
 
             var row = new Frame
             {
@@ -107,7 +122,10 @@ public class WritingProcessesPage : ContentPage
                 BorderColor = Colors.Transparent
             };
 
-            var grid = new Grid
+            var cardStack = new VerticalStackLayout { Spacing = 6 };
+
+            // Header row with name and delete
+            var headerGrid = new Grid
             {
                 ColumnDefinitions =
                 {
@@ -117,24 +135,13 @@ public class WritingProcessesPage : ContentPage
                 ColumnSpacing = 12
             };
 
-            var infoStack = new VerticalStackLayout { Spacing = 4 };
-            infoStack.Children.Add(new Label
+            headerGrid.Add(new Label
             {
                 Text = process.Name,
                 FontSize = 16,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#333")
-            });
-
-            string usageText = usageCount == 1 ? "1 project" : $"{usageCount} projects";
-            infoStack.Children.Add(new Label
-            {
-                Text = usageText,
-                FontSize = 12,
-                TextColor = Color.FromArgb("#888")
-            });
-
-            grid.Add(infoStack, 0, 0);
+            }, 0, 0);
 
             var deleteBtn = new Button
             {
@@ -147,16 +154,132 @@ public class WritingProcessesPage : ContentPage
                 Padding = new Thickness(12, 0),
                 VerticalOptions = LayoutOptions.Center
             };
-
             var capturedProcess = process;
-            var capturedUsageCount = usageCount;
+            var capturedUsageCount = totalCount;
             deleteBtn.Clicked += async (_, _) => await DeleteProcessAsync(capturedProcess, capturedUsageCount);
+            headerGrid.Add(deleteBtn, 1, 0);
 
-            grid.Add(deleteBtn, 1, 0);
+            cardStack.Children.Add(headerGrid);
 
-            row.Content = grid;
+            // Project counts
+            string statsText = statsCount == 1 ? "1 has stats" : $"{statsCount} have stats";
+            cardStack.Children.Add(new Label
+            {
+                Text = $"{totalCount} project(s) · {statsText}",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#888")
+            });
+
+            // Platform stats sections
+            if (statsCount > 0)
+            {
+                if (ytProjects.Count > 0)
+                {
+                    var topYt = ytProjects.OrderByDescending(p => p.YouTubeViews).First();
+                    double avgViews = ytProjects.Average(p => p.YouTubeViews);
+                    double avgLikes = ytProjects.Average(p => p.YouTubeLikes);
+                    double avgComments = ytProjects.Average(p => p.YouTubeComments);
+                    double avgDuration = ytProjects.Average(p => p.YouTubeAverageViewDurationSeconds);
+
+                    cardStack.Children.Add(BuildPlatformStats(
+                        "YouTube",
+                        "#C62828",
+                        ytProjects.Count,
+                        avgViews, avgLikes, avgComments, avgDuration,
+                        topYt.Name, topYt.YouTubeViews, topYt.YouTubeLikes));
+                }
+
+                if (fbProjects.Count > 0)
+                {
+                    var topFb = fbProjects.OrderByDescending(p => p.FacebookViews).First();
+                    double avgViews = fbProjects.Average(p => p.FacebookViews);
+                    double avgLikes = fbProjects.Average(p => p.FacebookLikes);
+                    double avgComments = fbProjects.Average(p => p.FacebookComments);
+                    double avgDuration = fbProjects.Average(p => p.FacebookAverageViewDurationSeconds);
+
+                    cardStack.Children.Add(BuildPlatformStats(
+                        "Facebook",
+                        "#1565C0",
+                        fbProjects.Count,
+                        avgViews, avgLikes, avgComments, avgDuration,
+                        topFb.Name, topFb.FacebookViews, topFb.FacebookLikes));
+                }
+
+                if (ttProjects.Count > 0)
+                {
+                    var topTt = ttProjects.OrderByDescending(p => p.TikTokViews).First();
+                    double avgViews = ttProjects.Average(p => p.TikTokViews);
+                    double avgLikes = ttProjects.Average(p => p.TikTokLikes);
+                    double avgComments = ttProjects.Average(p => p.TikTokComments);
+                    double avgWatchTime = ttProjects.Average(p => p.TikTokAverageWatchTimeSeconds);
+
+                    cardStack.Children.Add(BuildPlatformStats(
+                        "TikTok",
+                        "#000000",
+                        ttProjects.Count,
+                        avgViews, avgLikes, avgComments, avgWatchTime,
+                        topTt.Name, topTt.TikTokViews, topTt.TikTokLikes));
+                }
+            }
+            else if (totalCount > 0)
+            {
+                cardStack.Children.Add(new Label
+                {
+                    Text = "No stats logged yet for any project in this process.",
+                    FontSize = 11,
+                    TextColor = Color.FromArgb("#AAA"),
+                    FontAttributes = FontAttributes.Italic
+                });
+            }
+
+            row.Content = cardStack;
             _listStack.Children.Add(row);
         }
+    }
+
+    private static View BuildPlatformStats(
+        string platform,
+        string color,
+        int projectCount,
+        double avgViews,
+        double avgLikes,
+        double avgComments,
+        double avgDurationSeconds,
+        string topProjectName,
+        int topViews,
+        int topLikes)
+    {
+        var stack = new VerticalStackLayout { Spacing = 2, Margin = new Thickness(0, 4, 0, 0) };
+
+        stack.Children.Add(new Label
+        {
+            Text = $"{platform} ({projectCount} logged)",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb(color)
+        });
+
+        string durationDisplay = avgDurationSeconds >= 60
+            ? $"{(int)(avgDurationSeconds / 60)}m {(int)(avgDurationSeconds % 60)}s"
+            : $"{(int)avgDurationSeconds}s";
+
+        stack.Children.Add(new Label
+        {
+            Text = $"Avg: {avgViews:F0} views · {avgLikes:F0} likes · {avgComments:F0} comments · {durationDisplay} avg watch",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        string topName = topProjectName.Length > 30 ? topProjectName[..27] + "..." : topProjectName;
+        stack.Children.Add(new Label
+        {
+            Text = $"Top: \"{topName}\" ({topViews} views, {topLikes} likes)",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#444"),
+            FontAttributes = FontAttributes.Italic
+        });
+
+        return stack;
     }
 
     private async void OnAddClicked(object? sender, EventArgs e)
