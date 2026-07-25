@@ -250,14 +250,14 @@ Output ONLY the C# code block.
     private readonly Label _workflowStatusIcon;
     private readonly Label _workflowStatusTitle;
     private readonly Label _workflowStatusSubtitle;
-    private readonly Grid _workflowStartRow;
+    // _workflowStartRow removed — buttons now live in _batchSectionFrame
     private readonly Button _pasteQaReportWorkflowButton;
     private readonly Button _copyQaTemplateBtn;
     private readonly Button _pickFromQaBtn;
     private readonly Button _investigateBtn;
     private readonly Button _workflowCopyNextTaskPromptButton;
-    private readonly Picker _batchSizePicker;
-    private readonly HorizontalStackLayout _batchSizeRow;
+    private Picker _batchSizePicker;
+    // _batchSizeRow removed — picker now lives in _batchSectionFrame
     private readonly Button _copyBatchPromptButton;
     private readonly Button _pasteTaskPlanButton;
     private readonly Button _cancelWorkflowButton;
@@ -281,6 +281,12 @@ Output ONLY the C# code block.
     private readonly Button _markMissingDoneButton;
     private readonly Button _abandonMissingButton;
     private Label _missingFocusInfoLabel;
+    // Two-section layout for Idle
+    private Frame _batchSectionFrame;
+    private VerticalStackLayout _batchSectionStack;
+    private Frame _missingSectionFrame;
+    private VerticalStackLayout _missingSectionStack;
+    private HorizontalStackLayout _utilityButtonRow;
     private readonly Label _projectTitleHeaderLabel;
     private readonly Label _projectIdeaReferenceLabel;
     private readonly Label _visionStatusLabel;
@@ -498,51 +504,6 @@ Output ONLY the C# code block.
         };
         _investigateBtn.Clicked += OnInvestigateStuckClicked;
 
-        _workflowStartRow = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star }
-            },
-            ColumnSpacing = 8
-        };
-        _workflowStartRow.Add(_copyQaTemplateBtn, 0, 0);
-        _workflowStartRow.Add(_pasteQaReportWorkflowButton, 1, 0);
-        _workflowStartRow.Add(_pickFromQaBtn, 2, 0);
-        _workflowStartRow.Add(_investigateBtn, 3, 0);
-        _workflowStartRow.Add(_workflowCopyNextTaskPromptButton, 4, 0);
-
-        _batchSizePicker = CreatePicker("Batch size");
-        _batchSizePicker.ItemsSource = new List<string> { "3", "5", "7", "10" };
-        _batchSizePicker.SelectedIndex = 1;
-        _batchSizePicker.WidthRequest = 110;
-        _batchSizePicker.SelectedIndexChanged += async (_, _) =>
-        {
-            UpdateCopyBatchPromptButtonText();
-            await SaveBatchSizeSelectionAsync();
-        };
-
-        _batchSizeRow = new HorizontalStackLayout
-        {
-            Spacing = 8,
-            VerticalOptions = LayoutOptions.Center,
-            Children =
-            {
-                new Label
-                {
-                    Text = "Batch size:",
-                    FontSize = 12,
-                    TextColor = Color.FromArgb("#555"),
-                    VerticalOptions = LayoutOptions.Center
-                },
-                _batchSizePicker
-            }
-        };
-
         _copyBatchPromptButton = new Button
         {
             Text = " Copy Batch Prompt (5 random from QA)",
@@ -666,6 +627,119 @@ Output ONLY the C# code block.
             IsVisible = false
         };
 
+        // === BATCH WORKFLOW SECTION ===
+        _batchSectionStack = new VerticalStackLayout { Spacing = 8 };
+
+        var batchHeader = new Label
+        {
+            Text = " Batch Workflow (fix broken/rough + progress missing)",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1565C0")
+        };
+
+        var batchStep1Row = new HorizontalStackLayout { Spacing = 8 };
+        batchStep1Row.Children.Add(new Label { Text = "Step 1:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        batchStep1Row.Children.Add(_copyQaTemplateBtn);
+        batchStep1Row.Children.Add(_pasteQaReportWorkflowButton);
+
+        var batchStep2Row = new HorizontalStackLayout { Spacing = 8 };
+        batchStep2Row.Children.Add(new Label { Text = "Step 2:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        batchStep2Row.Children.Add(_pickFromQaBtn);
+
+        _batchSizePicker = CreatePicker("Batch size");
+        _batchSizePicker.ItemsSource = new List<string> { "3", "5", "7", "10" };
+        _batchSizePicker.SelectedIndex = 1;
+        _batchSizePicker.WidthRequest = 80;
+        _batchSizePicker.SelectedIndexChanged += async (_, _) =>
+        {
+            UpdateCopyBatchPromptButtonText();
+            await SaveBatchSizeSelectionAsync();
+        };
+
+        var batchStep3Row = new HorizontalStackLayout { Spacing = 8 };
+        batchStep3Row.Children.Add(new Label { Text = "Step 3:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        batchStep3Row.Children.Add(_batchSizePicker);
+        batchStep3Row.Children.Add(_copyBatchPromptButton);
+
+        var batchStep4Label = new Label { Text = "Step 4: Paste Task Plan → Codex → Commit → Verify (guided)", FontSize = 12, TextColor = Color.FromArgb("#888") };
+
+        var batchExtrasRow = new HorizontalStackLayout { Spacing = 8 };
+        batchExtrasRow.Children.Add(_investigateBtn);
+        batchExtrasRow.Children.Add(_workflowCopyNextTaskPromptButton);
+
+        _batchSectionStack.Children.Add(batchHeader);
+        _batchSectionStack.Children.Add(batchStep1Row);
+        _batchSectionStack.Children.Add(batchStep2Row);
+        _batchSectionStack.Children.Add(batchStep3Row);
+        _batchSectionStack.Children.Add(batchStep4Label);
+        _batchSectionStack.Children.Add(batchExtrasRow);
+
+        _batchSectionFrame = new Frame
+        {
+            Padding = 12,
+            CornerRadius = 10,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            BorderColor = Color.FromArgb("#1565C0"),
+            HasShadow = false,
+            Content = _batchSectionStack
+        };
+
+        // === MISSING FOCUS SECTION ===
+        _missingSectionStack = new VerticalStackLayout { Spacing = 8 };
+
+        var missingHeader = new Label
+        {
+            Text = " Add Missing Feature (focused iteration)",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#E65100")
+        };
+
+        _missingSectionStack.Children.Add(missingHeader);
+        _missingSectionStack.Children.Add(_missingFocusInfoLabel);
+        _missingSectionStack.Children.Add(_addMissingButton);
+
+        var missingStep1Row = new HorizontalStackLayout { Spacing = 8 };
+        missingStep1Row.Children.Add(new Label { Text = "Step 1:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        missingStep1Row.Children.Add(_missingFocusQAButton);
+
+        var missingStep2Row = new HorizontalStackLayout { Spacing = 8 };
+        missingStep2Row.Children.Add(new Label { Text = "Step 2:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        missingStep2Row.Children.Add(_missingFocusNextTaskButton);
+
+        var missingStep3Label = new Label { Text = "Step 3: Paste Task Plan → Codex → Commit → Verify (guided)", FontSize = 12, TextColor = Color.FromArgb("#888") };
+
+        var missingActionsRow = new HorizontalStackLayout { Spacing = 8 };
+        missingActionsRow.Children.Add(_markMissingDoneButton);
+        missingActionsRow.Children.Add(_abandonMissingButton);
+
+        _missingSectionStack.Children.Add(missingStep1Row);
+        _missingSectionStack.Children.Add(missingStep2Row);
+        _missingSectionStack.Children.Add(missingStep3Label);
+        _missingSectionStack.Children.Add(missingActionsRow);
+
+        _missingSectionFrame = new Frame
+        {
+            Padding = 12,
+            CornerRadius = 10,
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            BorderColor = Color.FromArgb("#E65100"),
+            HasShadow = false,
+            Content = _missingSectionStack
+        };
+
+        // === UTILITY ROW (always visible when project loaded) ===
+        _utilityButtonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                _viewBatchHistoryButton,
+                _manageBlockedItemsButton
+            }
+        };
+
         var workflowHeader = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -696,9 +770,9 @@ Output ONLY the C# code block.
                 Children =
                 {
                     workflowHeader,
-                    _workflowStartRow,
-                    _batchSizeRow,
-                    _copyBatchPromptButton,
+                    _batchSectionFrame,
+                    _missingSectionFrame,
+                    _utilityButtonRow,
                     _pasteTaskPlanButton,
                     _copyCodexPromptButton,
                     _pasteCodexResultButton,
@@ -710,14 +784,6 @@ Output ONLY the C# code block.
                     _editDeploymentUrlButton,
                     _deploymentErrorButton,
                     _verifyCodexOutputButton,
-                    _viewBatchHistoryButton,
-                    _manageBlockedItemsButton,
-                    _addMissingButton,
-                    _missingFocusInfoLabel,
-                    _missingFocusQAButton,
-                    _missingFocusNextTaskButton,
-                    _markMissingDoneButton,
-                    _abandonMissingButton,
                     _verifyDeploymentButton,
                     _deploymentFailedButton,
                     _cancelWorkflowButton
@@ -1705,14 +1771,9 @@ Output ONLY the C# code block.
         var state = ToWorkflowState(project.WorkflowState);
         var isWindows = IsWindows();
 
-        _workflowStartRow.IsVisible = false;
-        _pasteQaReportWorkflowButton.IsVisible = false;
-        _copyQaTemplateBtn.IsVisible = false;
-        _pickFromQaBtn.IsVisible = false;
-        _investigateBtn.IsVisible = false;
-        _workflowCopyNextTaskPromptButton.IsVisible = false;
-        _batchSizeRow.IsVisible = false;
-        _copyBatchPromptButton.IsVisible = false;
+        _batchSectionFrame.IsVisible = false;
+        _missingSectionFrame.IsVisible = false;
+        _utilityButtonRow.IsVisible = false;
         _pasteTaskPlanButton.IsVisible = false;
         _cancelWorkflowButton.IsVisible = false;
         _copyCodexPromptButton.IsVisible = false;
@@ -1726,12 +1787,6 @@ Output ONLY the C# code block.
         _checkDeploymentButton.IsVisible = false;
         _editDeploymentUrlButton.IsVisible = false;
         _verifyCodexOutputButton.IsVisible = false;
-        _addMissingButton.IsVisible = false;
-        _missingFocusInfoLabel.IsVisible = false;
-        _missingFocusQAButton.IsVisible = false;
-        _missingFocusNextTaskButton.IsVisible = false;
-        _markMissingDoneButton.IsVisible = false;
-        _abandonMissingButton.IsVisible = false;
         _cancelWorkflowButton.Text = "Cancel (Back to Start)";
 
         switch (state)
@@ -1779,37 +1834,32 @@ Output ONLY the C# code block.
 
             default:
                 ApplyWorkflowBanner("#F5F5F5", "#BBBBBB", "#555555", "⚪", "Ready for next task",
-                    "Tap Copy Next Task Prompt for one task, or use Batch Prompt to queue a short arc.");
-                _workflowStartRow.IsVisible = true;
-                _pasteQaReportWorkflowButton.IsVisible = true;
-                _copyQaTemplateBtn.IsVisible = true;
-                _pickFromQaBtn.IsVisible = true;
-                _investigateBtn.IsVisible = true;
-                _workflowCopyNextTaskPromptButton.IsVisible = true;
-                _batchSizeRow.IsVisible = true;
-                _copyBatchPromptButton.IsVisible = true;
-                _addMissingButton.IsVisible = true;
+                    "Choose a workflow below. Steps 1-3 are in the section, then the guided task cycle runs above.");
+                _batchSectionFrame.IsVisible = true;
+                _missingSectionFrame.IsVisible = true;
                 break;
         }
 
-        // Deployment Error is always available when a project is loaded
+        // Utility row always visible when project loaded
+        _utilityButtonRow.IsVisible = _currentProjectId > 0;
         _deploymentErrorButton.IsVisible = _currentProjectId > 0;
-        _viewBatchHistoryButton.IsVisible = _currentProjectId > 0;
-        _manageBlockedItemsButton.IsVisible = _currentProjectId > 0;
 
-        // Missing focus mode overlay
+        // Missing focus mode: update info label and toggle Add vs focus controls inside the section
         if (_currentProjectId > 0)
         {
             var proj = _projectsCache.FirstOrDefault(p => p.Id == _currentProjectId);
-            if (proj != null && !string.IsNullOrWhiteSpace(proj.ActiveMissingTitle))
+            bool hasMissingFocus = proj != null && !string.IsNullOrWhiteSpace(proj.ActiveMissingTitle);
+
+            _addMissingButton.IsVisible = !hasMissingFocus;
+            _missingFocusInfoLabel.IsVisible = hasMissingFocus;
+            _missingFocusQAButton.IsVisible = hasMissingFocus;
+            _missingFocusNextTaskButton.IsVisible = hasMissingFocus;
+            _markMissingDoneButton.IsVisible = hasMissingFocus;
+            _abandonMissingButton.IsVisible = hasMissingFocus;
+
+            if (hasMissingFocus)
             {
-                _missingFocusInfoLabel.Text = $" MISSING FOCUS: {proj.ActiveMissingTitle} ({proj.ActiveMissingTaskCount} tasks completed)";
-                _missingFocusInfoLabel.IsVisible = true;
-                _missingFocusQAButton.IsVisible = true;
-                _missingFocusNextTaskButton.IsVisible = true;
-                _markMissingDoneButton.IsVisible = true;
-                _abandonMissingButton.IsVisible = true;
-                _addMissingButton.IsVisible = false; // hide Add Missing when already focused
+                _missingFocusInfoLabel.Text = $" FOCUS: {proj!.ActiveMissingTitle} ({proj.ActiveMissingTaskCount} tasks done)";
             }
         }
     }
