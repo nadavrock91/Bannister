@@ -79,6 +79,26 @@ public class RoutineService
             .FirstOrDefaultAsync();
     }
 
+    /// <summary>
+    /// Change the due date of the current open task for a routine.
+    /// </summary>
+    public async Task<bool> SetOpenTaskDueDateAsync(int routineId, DateTime newDate)
+    {
+        EnsureWritable();
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+
+        var task = await conn.Table<TaskItem>()
+            .Where(t => t.RoutineId == routineId && !t.IsCompleted)
+            .FirstOrDefaultAsync();
+
+        if (task == null) return false;
+
+        task.DueDate = newDate.Date;
+        await conn.UpdateAsync(task);
+        return true;
+    }
+
     public async Task<Routine> AddRoutineAsync(
         string username,
         string name,

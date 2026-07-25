@@ -214,6 +214,26 @@ public class RoutinesPage : ContentPage
 
         if (routine.IsActive)
         {
+            if (openTask != null && openTask.DueDate.HasValue)
+            {
+                var editDate = SmallButton("Edit Date", "#1565C0");
+                var capturedRoutine = routine;
+                var capturedTask = openTask;
+                editDate.Clicked += async (_, _) =>
+                {
+                    var newDate = await ShowDatePickerModalAsync(
+                        $"Edit date for '{capturedRoutine.Name}'",
+                        capturedTask.DueDate!.Value.Date);
+
+                    if (newDate.HasValue)
+                    {
+                        await _routines.SetOpenTaskDueDateAsync(capturedRoutine.Id, newDate.Value);
+                        await LoadAsync();
+                    }
+                };
+                actions.Children.Add(editDate);
+            }
+
             var inactive = SmallButton("Make Inactive", "#795548");
             inactive.Clicked += async (_, _) =>
             {

@@ -2485,6 +2485,36 @@ public class CalendarDayPage : ContentPage
             };
             btnStack.Children.Add(postponeBtn);
 
+            if (task.RoutineId.HasValue)
+            {
+                var editDateBtn = new Button
+                {
+                    Text = "📅",
+                    FontSize = 14,
+                    WidthRequest = 38,
+                    HeightRequest = 38,
+                    BackgroundColor = Color.FromArgb("#E3F2FD"),
+                    TextColor = Color.FromArgb("#1565C0"),
+                    CornerRadius = 6,
+                    Padding = 0,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                ToolTipProperties.SetText(editDateBtn, "Change routine date");
+                var capturedTask = task;
+                editDateBtn.Clicked += async (_, _) =>
+                {
+                    var newDate = await ShowRoutineDatePickerAsync(capturedTask);
+                    if (newDate.HasValue)
+                    {
+                        await _routineService.SetOpenTaskDueDateAsync(
+                            capturedTask.RoutineId!.Value,
+                            newDate.Value);
+                        await LoadTasksAsync();
+                    }
+                };
+                btnStack.Children.Add(editDateBtn);
+            }
+
             if (!isRoutine)
             {
                 var unplaceBtn = new Button
@@ -2554,6 +2584,26 @@ public class CalendarDayPage : ContentPage
         grid.Add(btnStack, 1, 0);
         frame.Content = grid;
         return frame;
+    }
+
+    private async Task<DateTime?> ShowRoutineDatePickerAsync(TaskItem task)
+    {
+        var initialDate = task.DueDate?.Date ?? DateTime.Today;
+
+        string result = await DisplayPromptAsync(
+            "Edit Routine Date",
+            $"Current date: {initialDate:yyyy-MM-dd}\n\nEnter new date (YYYY-MM-DD):",
+            "Save",
+            "Cancel",
+            initialValue: initialDate.ToString("yyyy-MM-dd"));
+
+        if (string.IsNullOrEmpty(result)) return null;
+
+        if (DateTime.TryParse(result, out DateTime newDate))
+            return newDate;
+
+        await DisplayAlert("Invalid Date", "Please enter a valid date in YYYY-MM-DD format.", "OK");
+        return null;
     }
 
     private async Task MoveTaskToNotYetPlacedAsync(TaskItem task)
