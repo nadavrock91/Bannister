@@ -1562,7 +1562,7 @@ public class HomePage : ContentPage
 
     private async Task<bool> IsWeeklyCommitmentsPromptPendingAsync()
     {
-        if (DateTime.Today.DayOfWeek != DayOfWeek.Saturday)
+        if (DateTime.Today.DayOfWeek != DayOfWeek.Friday)
             return false;
 
         var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
@@ -1992,8 +1992,8 @@ public class HomePage : ContentPage
 
         try
         {
-            // Only check on Saturday (last day to designate before Sunday reset)
-            if (DateTime.Today.DayOfWeek != DayOfWeek.Saturday) return;
+            // Only check on Friday (last day to designate — Saturday is too late)
+            if (DateTime.Today.DayOfWeek != DayOfWeek.Friday) return;
 
             var challengeService = Application.Current?.Handler?.MauiContext?.Services
                 .GetService<WeeklyChallengeService>();
@@ -2023,8 +2023,9 @@ public class HomePage : ContentPage
             bool goToTasks = await DisplayAlert(
                 "⚠️ Last Day to Designate Tasks",
                 $"You have designated {committed}/{required} tasks for your focus '{challenge.FocusCategory}' this week.\n\n" +
-                $"Today is your last chance! If you don't designate {required} task(s) by end of day, " +
-                $"you'll lose allowance (currently {challenge.CurrentAllowance}).\n\n" +
+                $"Today (Friday) is your last chance! If you don't designate {required} " +
+                $"task(s) by end of today, Saturday will be too late and you'll lose allowance " +
+                $"(currently {challenge.CurrentAllowance}).\n\n" +
                 "Would you like to designate tasks now?",
                 "Yes, Go to Tasks",
                 "Later");

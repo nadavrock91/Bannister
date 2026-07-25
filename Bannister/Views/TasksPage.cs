@@ -1076,6 +1076,15 @@ public class TasksPage : ContentPage
 
     private async void OnAddCommitmentClicked(object? sender, EventArgs e)
     {
+        var dayOfWeek = DateTime.Today.DayOfWeek;
+        if (dayOfWeek == DayOfWeek.Saturday)
+        {
+            await DisplayAlert("Deadline Passed",
+                "The designation deadline was Friday. You can designate tasks again starting tomorrow (Sunday) for the new week.",
+                "OK");
+            return;
+        }
+
         var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
         if (challenge == null) return;
 

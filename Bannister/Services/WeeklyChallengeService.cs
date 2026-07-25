@@ -97,6 +97,14 @@ public class WeeklyChallengeService
     {
         await EnsureInitializedAsync();
         var weekStart = GetWeekStart(DateTime.Today);
+
+        // Block new designations on Saturday — Friday is the deadline, Sunday starts a new week
+        var today = DateTime.Today.DayOfWeek;
+        if (today == DayOfWeek.Saturday)
+        {
+            System.Diagnostics.Debug.WriteLine("[WEEKLY CHALLENGE] Commitment blocked — past Friday deadline");
+            return null;
+        }
         
         // Check if already committed
         var conn = await _db.GetConnectionAsync();
