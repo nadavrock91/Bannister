@@ -4638,6 +4638,9 @@ Output ONLY the C# code block.
         // Advance to WaitingForLLM to enter the normal workflow
         try
         {
+            // Single task in missing focus mode — override batch size
+            project.PendingBatchSize = 1;
+            await _projectService.SaveAsync(project);
             if (await _projectService.AdvanceToWaitingForLLMAsync(project.Id))
                 await RefreshCurrentProjectAsync();
         }
