@@ -4641,6 +4641,16 @@ Output ONLY the C# code block.
             // Single task in missing focus mode — override batch size
             project.PendingBatchSize = 1;
             await _projectService.SaveAsync(project);
+
+            // Store missing feature as the "picked item" so Verify Codex Output works
+            var missingPickedItem = new[] { new { Category = "MISSING", Title = project.ActiveMissingTitle, Body = project.ActiveMissingDetail } };
+            try
+            {
+                var pickedJson = System.Text.Json.JsonSerializer.Serialize(missingPickedItem);
+                await _projectService.SetPendingPickedItemsAsync(project.Id, pickedJson);
+            }
+            catch { }
+
             if (await _projectService.AdvanceToWaitingForLLMAsync(project.Id))
                 await RefreshCurrentProjectAsync();
         }
