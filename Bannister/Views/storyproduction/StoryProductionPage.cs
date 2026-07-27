@@ -30,10 +30,9 @@ public class StoryProductionPage : ContentPage
     private Button _compareToBtn;
     private Button _addProjectBtn;
     private Button _projectCategoryBtn;
-    private Picker _writingProcessPicker;
+    private Button _writingProcessFilterBtn;
     private Button _writingProcessBtn;
     private string _selectedWritingProcess = "All";
-    private bool _isLoadingWritingProcesses;
     private VerticalStackLayout _linesContainer;
     private Label _statsLabel;
     private Label _projectionLabel;
@@ -243,14 +242,18 @@ public class StoryProductionPage : ContentPage
 
         var processRow = CreateWrappingRow();
 
-        _writingProcessPicker = new Picker
+        _writingProcessFilterBtn = new Button
         {
-            Title = "Writing Process",
-            WidthRequest = 320,
-            BackgroundColor = Color.FromArgb("#F5F5F5")
+            Text = "Process: All",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#7B1FA2"),
+            CornerRadius = 8,
+            FontSize = 13,
+            Padding = new Thickness(12, 8),
+            HorizontalOptions = LayoutOptions.Start
         };
-        _writingProcessPicker.SelectedIndexChanged += OnWritingProcessFilterChanged;
-        processRow.Children.Add(_writingProcessPicker);
+        _writingProcessFilterBtn.Clicked += OnWritingProcessFilterClicked;
+        processRow.Children.Add(_writingProcessFilterBtn);
 
         _writingProcessBtn = new Button
         {
@@ -770,30 +773,9 @@ public class StoryProductionPage : ContentPage
 
     private void RefreshWritingProcessPicker()
     {
-        _isLoadingWritingProcesses = true;
-        var previous = _selectedWritingProcess;
-
-        var processes = _allOriginalProjects
-            .Select(p => string.IsNullOrWhiteSpace(p.WritingProcess) ? "No Process" : p.WritingProcess.Trim())
-            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.OrderBy(c => c).First())
-            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        _writingProcessPicker.Items.Clear();
-        _writingProcessPicker.Items.Add("All");
-        foreach (var process in processes)
-            _writingProcessPicker.Items.Add(process);
-
-        int index = _writingProcessPicker.Items.IndexOf(previous);
-        if (index < 0)
-        {
-            _selectedWritingProcess = "All";
-            index = 0;
-        }
-
-        _writingProcessPicker.SelectedIndex = index;
-        _isLoadingWritingProcesses = false;
+        _writingProcessFilterBtn.Text = _selectedWritingProcess == "All"
+            ? "Process: All"
+            : $"Process: {_selectedWritingProcess}";
     }
 
     private List<StoryProject> FilterProjectsBySelectedWritingProcess(List<StoryProject> projects)
@@ -809,12 +791,28 @@ public class StoryProductionPage : ContentPage
             .ToList();
     }
 
-    private async void OnWritingProcessFilterChanged(object? sender, EventArgs e)
+    private async void OnWritingProcessFilterClicked(object? sender, EventArgs e)
     {
-        if (_isLoadingWritingProcesses || _writingProcessPicker.SelectedIndex < 0)
-            return;
+        var processes = _allOriginalProjects
+            .Select(p => string.IsNullOrWhiteSpace(p.WritingProcess) ? "No Process" : p.WritingProcess.Trim())
+            .GroupBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(c => c).First())
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
-        _selectedWritingProcess = _writingProcessPicker.Items[_writingProcessPicker.SelectedIndex];
+        var options = new List<string> { "All" };
+        options.AddRange(processes);
+
+        string? selected = await DisplayActionSheet(
+            "Filter by Writing Process",
+            "Cancel",
+            null,
+            options.ToArray());
+
+        if (string.IsNullOrWhiteSpace(selected) || selected == "Cancel") return;
+
+        _selectedWritingProcess = selected;
+        _writingProcessFilterBtn.Text = selected == "All" ? "Process: All" : $"Process: {selected}";
         await SaveSelectedWritingProcessAsync();
         await LoadProjectsAsync();
     }
