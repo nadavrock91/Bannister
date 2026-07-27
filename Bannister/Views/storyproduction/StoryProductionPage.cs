@@ -817,6 +817,99 @@ public class StoryProductionPage : ContentPage
         await LoadProjectsAsync();
     }
 
+    private async Task<string?> ShowProcessSelectionOverlayAsync(string title, List<string> options)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+        var parent = Content as Grid;
+        if (parent == null)
+        {
+            // Fallback to action sheet
+            return await DisplayActionSheet(title, "Cancel", null, options.ToArray());
+        }
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var listStack = new VerticalStackLayout { Spacing = 6 };
+
+        foreach (var option in options)
+        {
+            var btn = new Button
+            {
+                Text = option,
+                BackgroundColor = option == "+ New Process" ? Color.FromArgb("#E8F5E9") :
+                                  option == "Skip (no process)" || option == "No Process" ? Color.FromArgb("#ECEFF1") :
+                                  Color.FromArgb("#F3E5F5"),
+                TextColor = option == "+ New Process" ? Color.FromArgb("#2E7D32") :
+                            option == "Skip (no process)" || option == "No Process" ? Color.FromArgb("#555") :
+                            Color.FromArgb("#7B1FA2"),
+                CornerRadius = 8,
+                FontSize = 14,
+                Padding = new Thickness(12, 10),
+                HorizontalOptions = LayoutOptions.Fill,
+                LineBreakMode = LineBreakMode.WordWrap
+            };
+            var capturedOption = option;
+            btn.Clicked += (_, _) => tcs.TrySetResult(capturedOption);
+            listStack.Children.Add(btn);
+        }
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 14,
+            HeightRequest = 44,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        cancelBtn.Clicked += (_, _) => tcs.TrySetResult(null);
+
+        var backgroundTap = new TapGestureRecognizer();
+        backgroundTap.Tapped += (_, _) => tcs.TrySetResult(null);
+        overlay.GestureRecognizers.Add(backgroundTap);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 16,
+            WidthRequest = 500,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = title,
+                        FontSize = 18,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#333")
+                    },
+                    new ScrollView
+                    {
+                        MaximumHeightRequest = 500,
+                        Content = listStack
+                    },
+                    cancelBtn
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        parent.Children.Add(overlay);
+
+        var result = await tcs.Task;
+
+        if (parent.Children.Contains(overlay))
+            parent.Children.Remove(overlay);
+
+        return result;
+    }
+
     private async void OnProjectCategoryFilterChanged(object? sender, EventArgs e)
     {
         if (_isLoadingProjectCategories || _projectCategoryPicker.SelectedIndex < 0)
@@ -986,13 +1079,11 @@ public class StoryProductionPage : ContentPage
             .Concat(new[] { "+ New Process", "No Process" })
             .ToArray();
 
-        string? selected = await DisplayActionSheet(
+        string? selected = await ShowProcessSelectionOverlayAsync(
             "Writing Process",
-            "Cancel",
-            null,
-            options);
+            options.ToList());
 
-        if (string.IsNullOrWhiteSpace(selected) || selected == "Cancel")
+        if (string.IsNullOrWhiteSpace(selected))
             return;
 
         string process;
@@ -3200,13 +3291,11 @@ public class StoryProductionPage : ContentPage
             .Concat(new[] { "+ New Process", "Skip (no process)" })
             .ToArray();
 
-        string? selectedProcess = await DisplayActionSheet(
+        string? selectedProcess = await ShowProcessSelectionOverlayAsync(
             "Writing Process",
-            "Cancel",
-            null,
-            processOptions);
+            processOptions.ToList());
 
-        if (selectedProcess == "Cancel" || string.IsNullOrWhiteSpace(selectedProcess)) return;
+        if (string.IsNullOrWhiteSpace(selectedProcess)) return;
 
         string writingProcess = "";
         if (selectedProcess == "+ New Process")
