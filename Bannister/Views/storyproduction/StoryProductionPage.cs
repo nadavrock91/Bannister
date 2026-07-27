@@ -246,7 +246,7 @@ public class StoryProductionPage : ContentPage
         _writingProcessPicker = new Picker
         {
             Title = "Writing Process",
-            WidthRequest = 180,
+            WidthRequest = 320,
             BackgroundColor = Color.FromArgb("#F5F5F5")
         };
         _writingProcessPicker.SelectedIndexChanged += OnWritingProcessFilterChanged;
