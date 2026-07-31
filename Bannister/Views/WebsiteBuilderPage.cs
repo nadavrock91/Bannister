@@ -4861,6 +4861,49 @@ Output ONLY the C# code block.
             ? project.ActiveMissingQAReport
             : "(No progress QA yet — this is the first task.)";
 
+        // Strip blocked items from progress QA so the LLM never generates plans for them
+        if (progressQA != "(No progress QA yet — this is the first task.)")
+        {
+            try
+            {
+                var blocked = await _projectService.GetBlockedQAItemsAsync(project.Id);
+                if (blocked.Count > 0)
+                {
+                    var parsed = ParseQAReport(progressQA);
+                    var filtered = parsed.Where(item =>
+                    {
+                        var firstLine = item.Body.Split('\n')[0].Trim();
+                        return !blocked.Contains(firstLine);
+                    }).ToList();
+
+                    if (filtered.Count < parsed.Count)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        int idx = 0;
+                        var grouped = filtered.GroupBy(r => r.Category)
+                            .OrderBy(g => g.Key switch { "BROKEN" => 0, "ROUGH" => 1, "MISSING" => 2, _ => 3 });
+                        foreach (var group in grouped)
+                        {
+                            foreach (var item in group)
+                            {
+                                string title = item.Body.Split('\n')[0].Trim();
+                                sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Title = \"{EscapeQAString(title)}\";");
+                                var detail = string.Join("\n", item.Body.Split('\n').Skip(1)).Trim();
+                                if (!string.IsNullOrWhiteSpace(detail))
+                                {
+                                    detail = detail.Replace("Steps to reproduce: ", "").Trim();
+                                    sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Detail = \"{EscapeQAString(detail)}\";");
+                                }
+                                idx++;
+                            }
+                        }
+                        progressQA = sb.ToString();
+                    }
+                }
+            }
+            catch { }
+        }
+
         string prompt = MissingFocusArcPromptTemplate
             .Replace("{MISSING_TITLE}", project.ActiveMissingTitle)
             .Replace("{MISSING_DETAIL}", project.ActiveMissingDetail)
