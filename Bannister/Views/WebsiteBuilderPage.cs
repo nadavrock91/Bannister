@@ -3365,9 +3365,8 @@ Output ONLY the C# code block.
         if (project == null)
             return;
 
-        async Task<bool> ValidateAgainstBlockedItemsAsync(string taskTitle, string codexPrompt)
+        async Task<(bool ShouldProceed, string TaskTitle, string CodexPrompt)> CleanAgainstBlockedItemsAsync(string taskTitle, string codexPrompt)
         {
-            // Validate task plan against blocked items
             HashSet<string> blockedItems;
             try { blockedItems = await _projectService.GetBlockedQAItemsAsync(project.Id); }
             catch { blockedItems = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
@@ -3375,51 +3374,71 @@ Output ONLY the C# code block.
             if (blockedItems.Count > 0 && !string.IsNullOrWhiteSpace(codexPrompt))
             {
                 var validationPrompt = new System.Text.StringBuilder();
-                validationPrompt.AppendLine("You are a task plan validator. Check whether the following Codex task plan attempts to fix any of the BLOCKED items listed below.");
-                validationPrompt.AppendLine("Blocked items are infrastructure/external issues that cannot be fixed by code changes and must be skipped.");
+                validationPrompt.AppendLine("You are a task plan editor. Remove any work related to the BLOCKED items below from the task plan. These are infrastructure/external issues that cannot be fixed by code changes.");
                 validationPrompt.AppendLine();
-                validationPrompt.AppendLine("BLOCKED ITEMS (do NOT work on these):");
+                validationPrompt.AppendLine("BLOCKED ITEMS (remove all work related to these):");
                 foreach (var item in blockedItems)
                 {
                     validationPrompt.AppendLine($"- {item}");
                 }
                 validationPrompt.AppendLine();
-                validationPrompt.AppendLine("TASK PLAN TO VALIDATE:");
+                validationPrompt.AppendLine("TASK PLAN TO CLEAN:");
                 validationPrompt.AppendLine($"Title: {taskTitle}");
                 validationPrompt.AppendLine(codexPrompt);
                 validationPrompt.AppendLine();
-                validationPrompt.AppendLine("RESPOND WITH ONLY ONE OF:");
-                validationPrompt.AppendLine("CLEAN — if the task plan does NOT attempt to fix any blocked item");
-                validationPrompt.AppendLine("BLOCKED — if the task plan attempts to fix one or more blocked items, followed by which ones");
+                validationPrompt.AppendLine("INSTRUCTIONS:");
+                validationPrompt.AppendLine("1. Remove any sections, steps, or file changes that attempt to fix blocked items.");
+                validationPrompt.AppendLine("2. Keep everything else intact — do not rewrite working parts.");
+                validationPrompt.AppendLine("3. If the task title references a blocked item, update it to reflect only the remaining work.");
+                validationPrompt.AppendLine("4. Return the cleaned plan in the exact same format:");
+                validationPrompt.AppendLine();
+                validationPrompt.AppendLine("ARC TITLE:");
+                validationPrompt.AppendLine("<cleaned title>");
+                validationPrompt.AppendLine();
+                validationPrompt.AppendLine("CODEX PROMPT:");
+                validationPrompt.AppendLine("<cleaned prompt>");
+                validationPrompt.AppendLine();
+                validationPrompt.AppendLine("5. If removing blocked work leaves nothing meaningful, return exactly: EMPTY");
 
                 await Clipboard.SetTextAsync(validationPrompt.ToString());
 
-                string? validationResult = await DisplayPromptAsync(
-                    "Validate Against Blocked Items",
-                    "Validation prompt copied to clipboard. Paste into a second LLM.\n\nType CLEAN to proceed, or BLOCKED to reject and go back to start:",
-                    "Submit",
-                    "Skip Validation",
-                    placeholder: "CLEAN or BLOCKED");
+                var cleanedPlan = await ShowMultilineEditorAsync(
+                    "Clean Task Plan",
+                    "Cleaning prompt copied to clipboard. Paste into a second LLM.\n\nPaste the cleaned plan back here (or type SKIP to use the original):",
+                    "",
+                    "Paste cleaned plan or type SKIP...");
 
-                if (!string.IsNullOrWhiteSpace(validationResult) &&
-                    validationResult.Trim().StartsWith("BLOCKED", StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(cleanedPlan) && !cleanedPlan.Trim().Equals("SKIP", StringComparison.OrdinalIgnoreCase))
                 {
-                    await DisplayAlert("Task Plan Rejected",
-                        "This task plan attempts to fix blocked items. Cancelling workflow — go back and regenerate the task plan without blocked items.\n\n" +
-                        $"Details: {validationResult.Trim()}",
-                        "OK");
-
-                    try
+                    if (cleanedPlan.Trim().Equals("EMPTY", StringComparison.OrdinalIgnoreCase))
                     {
-                        await _projectService.ResetWorkflowAsync(project.Id);
-                        await RefreshCurrentProjectAsync();
+                        await DisplayAlert("Plan Empty After Cleaning",
+                            "The entire task plan was related to blocked items. Resetting workflow.",
+                            "OK");
+                        try
+                        {
+                            await _projectService.ResetWorkflowAsync(project.Id);
+                            await RefreshCurrentProjectAsync();
+                        }
+                        catch (ReadOnlyDatabaseException) { await ShowReadOnlyAlertAsync(); }
+                        return (false, taskTitle, codexPrompt);
                     }
-                    catch (ReadOnlyDatabaseException) { await ShowReadOnlyAlertAsync(); }
-                    return false;
+
+                    // Re-parse the cleaned plan using the existing ARC TITLE / CODEX PROMPT parser
+                    var cleanedParsed = ParseBatchTaskResponse(cleanedPlan);
+                    if (cleanedParsed != null)
+                    {
+                        taskTitle = cleanedParsed.Value.ArcTitle;
+                        codexPrompt = cleanedParsed.Value.CodexPrompt;
+                    }
+
+                    // Re-save the cleaned values
+                    await _projectService.SetPendingTaskTitleAsync(project.Id, taskTitle);
+                    await _projectService.SetPendingCodexPromptAsync(project.Id, codexPrompt);
                 }
             }
 
-            return true;
+            return (true, taskTitle, codexPrompt);
         }
 
         var result = await ShowMultilineEditorAsync(
@@ -3434,12 +3453,13 @@ Output ONLY the C# code block.
         var batchPlan = ParseBatchTaskResponse(result);
         if (batchPlan != null)
         {
-            if (!await ValidateAgainstBlockedItemsAsync(batchPlan.Value.ArcTitle, batchPlan.Value.CodexPrompt))
+            var cleanedBatchPlan = await CleanAgainstBlockedItemsAsync(batchPlan.Value.ArcTitle, batchPlan.Value.CodexPrompt);
+            if (!cleanedBatchPlan.ShouldProceed)
                 return;
 
             try
             {
-                if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, batchPlan.Value.ArcTitle, batchPlan.Value.CodexPrompt, GetSelectedBatchSize()))
+                if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, cleanedBatchPlan.TaskTitle, cleanedBatchPlan.CodexPrompt, GetSelectedBatchSize()))
                 {
                     await RefreshCurrentProjectAsync();
                     await DisplayAlert("Batch parsed", $"Parsed combined batch arc. Bannister stored the arc title and one Codex prompt worth {GetSelectedBatchSize()} task(s).", "OK");
@@ -3463,12 +3483,13 @@ Output ONLY the C# code block.
             return;
         }
 
-        if (!await ValidateAgainstBlockedItemsAsync(parsed.Value.TaskTitle, parsed.Value.CodexPrompt))
+        var cleanedTaskPlan = await CleanAgainstBlockedItemsAsync(parsed.Value.TaskTitle, parsed.Value.CodexPrompt);
+        if (!cleanedTaskPlan.ShouldProceed)
             return;
 
         try
         {
-            if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, parsed.Value.TaskTitle, parsed.Value.CodexPrompt))
+            if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, cleanedTaskPlan.TaskTitle, cleanedTaskPlan.CodexPrompt))
             {
                 await RefreshCurrentProjectAsync();
                 await DisplayAlert("Task plan parsed", "Task plan parsed. Bannister extracted the task title and the Codex prompt. Tap Copy Codex Prompt to put just the Codex prompt on your clipboard, then paste into Codex CLI.", "OK");
