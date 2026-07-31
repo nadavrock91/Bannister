@@ -4022,25 +4022,50 @@ Output ONLY the C# code block.
                 try { currentBlocked = await _projectService.GetBlockedQAItemsAsync(project.Id); }
                 catch { currentBlocked = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
 
-                foreach (var notDone in notDoneItems)
+                var reviewable = notDoneItems.Where(n => !currentBlocked.Contains(n.Title)).ToList();
+
+                if (reviewable.Count == 0)
                 {
-                    if (currentBlocked.Contains(notDone.Title)) continue;
+                    await DisplayAlert("All Already Blocked",
+                        "All NOT DONE items are already in the blocked list. Use Manage Blocked Items to review.",
+                        "OK");
+                }
+                else
+                {
+                    int newlyBlocked = 0;
 
-                    string notePreview = !string.IsNullOrWhiteSpace(notDone.Notes) ? $"\n\nLast note: {notDone.Notes}" : "";
-                    bool block = await DisplayAlert(
-                        "Block This Item?",
-                        $"{notDone.Title}{notePreview}\n\nBlock from future batch picks? (You can unblock later via Manage Blocked Items.)",
-                        "Block",
-                        "Keep");
-
-                    if (block)
+                    foreach (var notDone in reviewable)
                     {
-                        currentBlocked.Add(notDone.Title);
+                        string notePreview = !string.IsNullOrWhiteSpace(notDone.Notes) ? $"\n\nLast note: {notDone.Notes}" : "";
+                        bool block = await DisplayAlert(
+                            "Block This Item?",
+                            $"{notDone.Title}{notePreview}\n\nBlock from future batch picks? (You can unblock later via Manage Blocked Items.)",
+                            "Block",
+                            "Keep");
+
+                        if (block)
+                        {
+                            currentBlocked.Add(notDone.Title);
+                            newlyBlocked++;
+                        }
+                    }
+
+                    try { await _projectService.SetBlockedQAItemsAsync(project.Id, currentBlocked); }
+                    catch { }
+
+                    if (newlyBlocked > 0)
+                    {
+                        await DisplayAlert("Blocked",
+                            $"{newlyBlocked} item(s) added to the blocked list.",
+                            "OK");
+                    }
+                    else
+                    {
+                        await DisplayAlert("No Changes",
+                            "No new items were blocked.",
+                            "OK");
                     }
                 }
-
-                try { await _projectService.SetBlockedQAItemsAsync(project.Id, currentBlocked); }
-                catch { }
             }
         }
     }
