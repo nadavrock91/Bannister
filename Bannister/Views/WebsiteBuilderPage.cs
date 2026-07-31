@@ -2199,7 +2199,54 @@ Output ONLY the C# code block.
 
         try
         {
-            if (await _projectService.SetLatestQAReportAsync(project.Id, result))
+            var report = result;
+
+            // Auto-remove any blocked items from the incoming QA report
+            try
+            {
+                var blocked = await _projectService.GetBlockedQAItemsAsync(project.Id);
+                if (blocked.Count > 0)
+                {
+                    var incomingParsed = ParseQAReport(report);
+                    var filtered = incomingParsed.Where(item =>
+                    {
+                        var firstLine = item.Body.Split('\n')[0].Trim();
+                        return !blocked.Contains(firstLine);
+                    }).ToList();
+
+                    int strippedCount = incomingParsed.Count - filtered.Count;
+                    if (strippedCount > 0)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        int idx = 0;
+                        var grouped = filtered.GroupBy(r => r.Category).OrderBy(g => g.Key switch { "BROKEN" => 0, "ROUGH" => 1, "MISSING" => 2, _ => 3 });
+                        foreach (var group in grouped)
+                        {
+                            foreach (var item in group)
+                            {
+                                string title = item.Body.Split('\n')[0].Trim();
+                                sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Title = \"{EscapeQAString(title)}\";");
+                                var detail = string.Join("\n", item.Body.Split('\n').Skip(1)).Trim();
+                                if (!string.IsNullOrWhiteSpace(detail))
+                                {
+                                    detail = detail.Replace("Steps to reproduce: ", "").Trim();
+                                    sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Detail = \"{EscapeQAString(detail)}\";");
+                                }
+                                idx++;
+                            }
+                        }
+
+                        report = sb.ToString();
+
+                        await DisplayAlert("Blocked Items Stripped",
+                            $"{strippedCount} blocked item(s) automatically removed from the incoming QA report.\n{filtered.Count} item(s) remain.",
+                            "OK");
+                    }
+                }
+            }
+            catch { }
+
+            if (await _projectService.SetLatestQAReportAsync(project.Id, report))
                 await RefreshCurrentProjectAsync();
         }
         catch (ReadOnlyDatabaseException)
@@ -2232,6 +2279,51 @@ Output ONLY the C# code block.
 
         try
         {
+            // Auto-remove any blocked items from the incoming QA report
+            try
+            {
+                var blocked = await _projectService.GetBlockedQAItemsAsync(project.Id);
+                if (blocked.Count > 0)
+                {
+                    var incomingParsed = ParseQAReport(pasted);
+                    var filtered = incomingParsed.Where(item =>
+                    {
+                        var firstLine = item.Body.Split('\n')[0].Trim();
+                        return !blocked.Contains(firstLine);
+                    }).ToList();
+
+                    int strippedCount = incomingParsed.Count - filtered.Count;
+                    if (strippedCount > 0)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        int idx = 0;
+                        var grouped = filtered.GroupBy(r => r.Category).OrderBy(g => g.Key switch { "BROKEN" => 0, "ROUGH" => 1, "MISSING" => 2, _ => 3 });
+                        foreach (var group in grouped)
+                        {
+                            foreach (var item in group)
+                            {
+                                string title = item.Body.Split('\n')[0].Trim();
+                                sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Title = \"{EscapeQAString(title)}\";");
+                                var detail = string.Join("\n", item.Body.Split('\n').Skip(1)).Trim();
+                                if (!string.IsNullOrWhiteSpace(detail))
+                                {
+                                    detail = detail.Replace("Steps to reproduce: ", "").Trim();
+                                    sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Detail = \"{EscapeQAString(detail)}\";");
+                                }
+                                idx++;
+                            }
+                        }
+
+                        pasted = sb.ToString();
+
+                        await DisplayAlert("Blocked Items Stripped",
+                            $"{strippedCount} blocked item(s) automatically removed from the incoming QA report.\n{filtered.Count} item(s) remain.",
+                            "OK");
+                    }
+                }
+            }
+            catch { }
+
             var success = await _projectService.SetLatestQAReportAsync(project.Id, pasted);
             if (success)
             {
@@ -4064,6 +4156,43 @@ Output ONLY the C# code block.
                         await DisplayAlert("No Changes",
                             "No new items were blocked.",
                             "OK");
+                    }
+
+                    // Also remove newly blocked items from stored QA report
+                    var refreshedForRemoval = await _projectService.GetByIdAsync(project.Id);
+                    if (refreshedForRemoval != null && !string.IsNullOrWhiteSpace(refreshedForRemoval.LatestQAReport) && newlyBlocked > 0)
+                    {
+                        var currentParsed = ParseQAReport(refreshedForRemoval.LatestQAReport);
+                        var afterBlockRemoval = currentParsed.Where(item =>
+                        {
+                            var firstLine = item.Body.Split('\n')[0].Trim();
+                            return !currentBlocked.Contains(firstLine);
+                        }).ToList();
+
+                        int removedFromReport = currentParsed.Count - afterBlockRemoval.Count;
+                        if (removedFromReport > 0)
+                        {
+                            var sb = new System.Text.StringBuilder();
+                            int idx = 0;
+                            var grouped = afterBlockRemoval.GroupBy(r => r.Category).OrderBy(g => g.Key switch { "BROKEN" => 0, "ROUGH" => 1, "MISSING" => 2, _ => 3 });
+                            foreach (var group in grouped)
+                            {
+                                foreach (var item in group)
+                                {
+                                    string itemTitle = item.Body.Split('\n')[0].Trim();
+                                    sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Title = \"{EscapeQAString(itemTitle)}\";");
+                                    var detail = string.Join("\n", item.Body.Split('\n').Skip(1)).Trim();
+                                    if (!string.IsNullOrWhiteSpace(detail))
+                                    {
+                                        detail = detail.Replace("Steps to reproduce: ", "").Trim();
+                                        sb.AppendLine($"qaReport.{group.Key[0] + group.Key.Substring(1).ToLower()}[{idx}].Detail = \"{EscapeQAString(detail)}\";");
+                                    }
+                                    idx++;
+                                }
+                            }
+
+                            try { await _projectService.SetLatestQAReportAsync(refreshedForRemoval.Id, sb.ToString()); } catch { }
+                        }
                     }
                 }
             }
