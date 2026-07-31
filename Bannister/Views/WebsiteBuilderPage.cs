@@ -3365,6 +3365,63 @@ Output ONLY the C# code block.
         if (project == null)
             return;
 
+        async Task<bool> ValidateAgainstBlockedItemsAsync(string taskTitle, string codexPrompt)
+        {
+            // Validate task plan against blocked items
+            HashSet<string> blockedItems;
+            try { blockedItems = await _projectService.GetBlockedQAItemsAsync(project.Id); }
+            catch { blockedItems = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
+
+            if (blockedItems.Count > 0 && !string.IsNullOrWhiteSpace(codexPrompt))
+            {
+                var validationPrompt = new System.Text.StringBuilder();
+                validationPrompt.AppendLine("You are a task plan validator. Check whether the following Codex task plan attempts to fix any of the BLOCKED items listed below.");
+                validationPrompt.AppendLine("Blocked items are infrastructure/external issues that cannot be fixed by code changes and must be skipped.");
+                validationPrompt.AppendLine();
+                validationPrompt.AppendLine("BLOCKED ITEMS (do NOT work on these):");
+                foreach (var item in blockedItems)
+                {
+                    validationPrompt.AppendLine($"- {item}");
+                }
+                validationPrompt.AppendLine();
+                validationPrompt.AppendLine("TASK PLAN TO VALIDATE:");
+                validationPrompt.AppendLine($"Title: {taskTitle}");
+                validationPrompt.AppendLine(codexPrompt);
+                validationPrompt.AppendLine();
+                validationPrompt.AppendLine("RESPOND WITH ONLY ONE OF:");
+                validationPrompt.AppendLine("CLEAN — if the task plan does NOT attempt to fix any blocked item");
+                validationPrompt.AppendLine("BLOCKED — if the task plan attempts to fix one or more blocked items, followed by which ones");
+
+                await Clipboard.SetTextAsync(validationPrompt.ToString());
+
+                string? validationResult = await DisplayPromptAsync(
+                    "Validate Against Blocked Items",
+                    "Validation prompt copied to clipboard. Paste into a second LLM.\n\nType CLEAN to proceed, or BLOCKED to reject and go back to start:",
+                    "Submit",
+                    "Skip Validation",
+                    placeholder: "CLEAN or BLOCKED");
+
+                if (!string.IsNullOrWhiteSpace(validationResult) &&
+                    validationResult.Trim().StartsWith("BLOCKED", StringComparison.OrdinalIgnoreCase))
+                {
+                    await DisplayAlert("Task Plan Rejected",
+                        "This task plan attempts to fix blocked items. Cancelling workflow — go back and regenerate the task plan without blocked items.\n\n" +
+                        $"Details: {validationResult.Trim()}",
+                        "OK");
+
+                    try
+                    {
+                        await _projectService.ResetWorkflowAsync(project.Id);
+                        await RefreshCurrentProjectAsync();
+                    }
+                    catch (ReadOnlyDatabaseException) { await ShowReadOnlyAlertAsync(); }
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         var result = await ShowMultilineEditorAsync(
             "Paste LLM Response",
             "Paste the full response from Claude or ChatGPT below.",
@@ -3377,6 +3434,9 @@ Output ONLY the C# code block.
         var batchPlan = ParseBatchTaskResponse(result);
         if (batchPlan != null)
         {
+            if (!await ValidateAgainstBlockedItemsAsync(batchPlan.Value.ArcTitle, batchPlan.Value.CodexPrompt))
+                return;
+
             try
             {
                 if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, batchPlan.Value.ArcTitle, batchPlan.Value.CodexPrompt, GetSelectedBatchSize()))
@@ -3402,6 +3462,9 @@ Output ONLY the C# code block.
                 "OK");
             return;
         }
+
+        if (!await ValidateAgainstBlockedItemsAsync(parsed.Value.TaskTitle, parsed.Value.CodexPrompt))
+            return;
 
         try
         {
