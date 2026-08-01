@@ -3259,6 +3259,20 @@ public class StoryProductionPage : ContentPage
             placeholder: "e.g., AI Revolution Episode 5");
         
         if (string.IsNullOrWhiteSpace(name)) return;
+
+        // Check for duplicate project name
+        var trimmedName = name.Trim();
+        bool nameExists = _allOriginalProjects.Any(p =>
+            string.Equals(p.Name, trimmedName, StringComparison.OrdinalIgnoreCase));
+
+        if (nameExists)
+        {
+            await DisplayAlert(
+                "Name Already Exists",
+                $"A project named '{trimmedName}' already exists. Choose a different name.",
+                "OK");
+            return;
+        }
         
         string description = await DisplayPromptAsync(
             "Project Description",
