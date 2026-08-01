@@ -309,6 +309,13 @@ Output ONLY the C# code block.
     private readonly Button _pasteSummaryResultButton;
     private readonly Label _codebasePathLabel;
     private readonly Button _editCodebasePathButton;
+    private readonly Label _deployCommandLabel;
+    private readonly Button _editDeployCommandButton;
+    private readonly Editor _deployLogEditor;
+    private readonly Frame _deployLogFrame;
+    private readonly Button _cancelDeployButton;
+    private bool _deployRetryMode;
+    private CancellationTokenSource? _deployCts;
     private readonly Button _copyCodexCommandButton;
     private readonly Button _openTerminalButton;
     private readonly Button _deleteProjectButton;
@@ -1090,6 +1097,79 @@ Output ONLY the C# code block.
         };
         _editCodebasePathButton.Clicked += async (_, _) => await EditCodebasePathAsync();
 
+        _deployCommandLabel = new Label
+        {
+            Text = "Deploy command: (none)",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+
+        _editDeployCommandButton = new Button
+        {
+            Text = "Set Deploy Command",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#01579B"),
+            CornerRadius = 8,
+            HeightRequest = 32,
+            FontSize = 12,
+            Padding = new Thickness(10, 0)
+        };
+        _editDeployCommandButton.Clicked += async (_, _) => await EditDeployCommandAsync();
+
+        // Deploy log panel — hidden by default, shown during deploy
+        _deployLogEditor = new Editor
+        {
+            IsReadOnly = true,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 200,
+            BackgroundColor = Color.FromArgb("#1E1E1E"),
+            TextColor = Color.FromArgb("#D4D4D4"),
+            FontFamily = "Consolas",
+            FontSize = 11,
+            IsVisible = false
+        };
+
+        _cancelDeployButton = new Button
+        {
+            Text = "Cancel Deploy",
+            BackgroundColor = Color.FromArgb("#C62828"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            IsVisible = false
+        };
+        _cancelDeployButton.Clicked += (_, _) =>
+        {
+            _deployCts?.Cancel();
+        };
+
+        _deployLogFrame = new Frame
+        {
+            Padding = 8,
+            CornerRadius = 8,
+            BorderColor = Color.FromArgb("#333"),
+            BackgroundColor = Color.FromArgb("#1E1E1E"),
+            IsVisible = false,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 6,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Deploy Output",
+                        FontSize = 13,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#D4D4D4")
+                    },
+                    _deployLogEditor,
+                    _cancelDeployButton
+                }
+            }
+        };
+
         _copyCodexCommandButton = new Button
         {
             Text = "Copy CD + Codex Command",
@@ -1182,7 +1262,10 @@ Output ONLY the C# code block.
                 _codebasePathLabel,
                 _editCodebasePathButton,
                 _copyCodexCommandButton,
-                _openTerminalButton
+                _openTerminalButton,
+                _deployCommandLabel,
+                _editDeployCommandButton,
+                _deployLogFrame
             }
         };
 
@@ -1689,6 +1772,9 @@ Output ONLY the C# code block.
 
     private void LoadProject(WebsiteProject project)
     {
+        _deployRetryMode = false;
+        _commitAndPushButton.Text = "Commit & Push";
+        _deployLogFrame.IsVisible = false;
         _currentProjectId = project.Id;
         _currentIdeaId = 0;
         UpdateTaskCounterDisplay(project);
@@ -1886,6 +1972,7 @@ Output ONLY the C# code block.
         UpdateVisionDisplay(project);
         UpdateProjectSummaryDisplay(project);
         UpdateCodebasePathDisplay(project);
+        UpdateDeployCommandDisplay(project);
     }
 
     /*
@@ -1958,6 +2045,9 @@ Output ONLY the C# code block.
             case WebsiteWorkflowState.ReadyToCommit:
                 ApplyWorkflowBanner("#E8F5E9", "#2E7D32", "#1B5E20", "🟢", "Ready to commit",
                     $"Commit: {project.PendingCommitMessage}. Tap Commit and Push to finish.");
+                // Reset retry mode when entering ReadyToCommit fresh
+                if (!_deployRetryMode)
+                    _commitAndPushButton.Text = "Commit & Push";
                 _commitAndPushButton.IsVisible = isWindows;
                 _editCommitMessageButton.IsVisible = true;
                 _editTaskTitleButton.IsVisible = true;
@@ -2072,6 +2162,16 @@ Output ONLY the C# code block.
         var isWindows = IsWindows();
         _copyCodexCommandButton.IsVisible = isWindows;
         _openTerminalButton.IsVisible = isWindows;
+    }
+
+    private void UpdateDeployCommandDisplay(WebsiteProject project)
+    {
+        _deployCommandLabel.Text = string.IsNullOrWhiteSpace(project.DeployCommand)
+            ? "Deploy command: (none)"
+            : $"Deploy command: {project.DeployCommand}";
+        _editDeployCommandButton.Text = string.IsNullOrWhiteSpace(project.DeployCommand)
+            ? "Set Deploy Command"
+            : "Edit Deploy Command";
     }
 
     private static bool IsWindows()
@@ -3667,6 +3767,10 @@ Output ONLY the C# code block.
         if (!confirm)
             return;
 
+        _deployRetryMode = false;
+        _commitAndPushButton.Text = "Commit & Push";
+        _deployLogFrame.IsVisible = false;
+
         try
         {
             if (await _projectService.ResetWorkflowAsync(project.Id))
@@ -3850,78 +3954,248 @@ Output ONLY the C# code block.
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(project.PendingCommitMessage))
+        // In retry mode, git already succeeded; only re-run the deploy command.
+        if (!_deployRetryMode)
         {
-            await DisplayAlert("Commit message missing", "Enter a commit message before committing.", "OK");
-            return;
-        }
-
-        var sanitizedCommitMessage = project.PendingCommitMessage
-            .Replace('"', '\'')
-            .Replace('`', '\'')
-            .Replace('%', ' ')
-            .Replace('&', '+')
-            .Replace('|', ' ')
-            .Replace('<', '(')
-            .Replace('>', ')')
-            .Replace('^', ' ')
-            .Trim();
-        if (string.IsNullOrWhiteSpace(sanitizedCommitMessage))
-        {
-            await DisplayAlert("Commit message empty", "Commit message empty after sanitization. Edit it and try again.", "OK");
-            return;
-        }
-
-        var arguments = $"/c cd /d \"{project.CodebasePath}\" && git add . && git commit -m \"{sanitizedCommitMessage}\" && git push";
-
-        try
-        {
-            using var process = new Process
+            if (string.IsNullOrWhiteSpace(project.PendingCommitMessage))
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = arguments,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    WorkingDirectory = project.CodebasePath
-                }
-            };
-
-            process.Start();
-            var stdoutTask = process.StandardOutput.ReadToEndAsync();
-            var stderrTask = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            var stdout = await stdoutTask;
-            var stderr = await stderrTask;
-
-            if (process.ExitCode == 0)
-            {
-                try
-                {
-                    await _projectService.SetWorkflowStateAsync(project.Id, 4);
-                    await RefreshCurrentProjectAsync();
-                    await DisplayAlert("Committed and pushed!",
-                        "Code pushed to GitHub. Check Vercel to confirm successful deployment before continuing.",
-                        "OK");
-                }
-                catch (ReadOnlyDatabaseException)
-                {
-                    await ShowReadOnlyAlertAsync();
-                }
+                await DisplayAlert("Commit message missing", "Enter a commit message before committing.", "OK");
                 return;
             }
 
-            await DisplayAlert(
-                "Commit/push failed",
-                $"Commit/push failed. Error:\n{stderr}\n\nOutput:\n{stdout}\n\nFix the issue and try again. Common causes: not logged in to git remote, no changes to commit, push conflict - pull first.",
+            var sanitizedCommitMessage = project.PendingCommitMessage
+                .Replace('"', '\'')
+                .Replace('`', '\'')
+                .Replace('%', ' ')
+                .Replace('&', '+')
+                .Replace('|', ' ')
+                .Replace('<', '(')
+                .Replace('>', ')')
+                .Replace('^', ' ')
+                .Trim();
+            if (string.IsNullOrWhiteSpace(sanitizedCommitMessage))
+            {
+                await DisplayAlert("Commit message empty", "Commit message empty after sanitization. Edit it and try again.", "OK");
+                return;
+            }
+
+            var arguments = $"/c cd /d \"{project.CodebasePath}\" && git add . && git commit -m \"{sanitizedCommitMessage}\" && git push";
+
+            try
+            {
+                using var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = arguments,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        WorkingDirectory = project.CodebasePath
+                    }
+                };
+
+                process.Start();
+                var stdoutTask = process.StandardOutput.ReadToEndAsync();
+                var stderrTask = process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+                var stdout = await stdoutTask;
+                var stderr = await stderrTask;
+
+                if (process.ExitCode != 0)
+                {
+                    await DisplayAlert(
+                        "Commit/push failed",
+                        $"Commit/push failed. Error:\n{stderr}\n\nOutput:\n{stdout}\n\nFix the issue and try again. Common causes: not logged in to git remote, no changes to commit, push conflict - pull first.",
+                        "OK");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Could not run git", $"Could not run git: {ex.Message}", "OK");
+                return;
+            }
+        }
+
+        // Git push succeeded (or retry mode skipped git); deploy before state advancement.
+        if (!string.IsNullOrWhiteSpace(project.DeployCommand) &&
+            DeviceInfo.Current.Platform == DevicePlatform.WinUI)
+        {
+            bool deploySuccess = await RunDeployCommandAsync(project);
+            if (!deploySuccess)
+            {
+                _deployRetryMode = true;
+                _commitAndPushButton.Text = "Retry Deploy";
+                return;
+            }
+        }
+
+        _deployRetryMode = false;
+        _commitAndPushButton.Text = "Commit & Push";
+
+        try
+        {
+            await _projectService.SetWorkflowStateAsync(project.Id, 4);
+            await RefreshCurrentProjectAsync();
+            await DisplayAlert("Committed and pushed!",
+                "Code pushed to GitHub. Check Vercel to confirm successful deployment before continuing.",
                 "OK");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task<bool> RunDeployCommandAsync(WebsiteProject project)
+    {
+        if (string.IsNullOrWhiteSpace(project.CodebasePath) ||
+            !System.IO.Directory.Exists(project.CodebasePath))
+        {
+            await DisplayAlert("Deploy Error",
+                $"Codebase path not found: {project.CodebasePath}",
+                "OK");
+            return false;
+        }
+
+        _deployLogEditor.Text = "";
+        _deployLogFrame.IsVisible = true;
+        _deployLogEditor.IsVisible = true;
+        _cancelDeployButton.IsVisible = true;
+
+        var logLines = new List<string>();
+
+        void AppendLog(string line)
+        {
+            logLines.Add(line);
+            // Keep last 200 lines to avoid memory issues
+            if (logLines.Count > 200)
+                logLines.RemoveAt(0);
+            _deployLogEditor.Text = string.Join("\n", logLines);
+        }
+
+        AppendLog($"$ cd {project.CodebasePath}");
+        AppendLog($"$ {project.DeployCommand}");
+        AppendLog("");
+
+        _deployCts = new CancellationTokenSource();
+
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c {project.DeployCommand}",
+                WorkingDirectory = project.CodebasePath,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = new System.Diagnostics.Process { StartInfo = psi };
+
+            process.OutputDataReceived += (_, e) =>
+            {
+                if (e.Data != null)
+                    MainThread.BeginInvokeOnMainThread(() => AppendLog(e.Data));
+            };
+
+            process.ErrorDataReceived += (_, e) =>
+            {
+                if (e.Data != null)
+                    MainThread.BeginInvokeOnMainThread(() => AppendLog($"[stderr] {e.Data}"));
+            };
+
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            // Register cancellation
+            _deployCts.Token.Register(() =>
+            {
+                try { process.Kill(entireProcessTree: true); } catch { }
+            });
+
+            await process.WaitForExitAsync(_deployCts.Token);
+
+            if (process.ExitCode == 0)
+            {
+                AppendLog("");
+                AppendLog("Deploy succeeded (exit code 0).");
+
+                // Try to parse production URL from output
+                var productionUrl = logLines
+                    .Select(l => l.Trim())
+                    .Where(l => l.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    .Where(l => !l.Contains(".vercel.app", StringComparison.OrdinalIgnoreCase))
+                    .LastOrDefault();
+
+                if (!string.IsNullOrWhiteSpace(productionUrl) &&
+                    string.IsNullOrWhiteSpace(project.DeploymentUrl))
+                {
+                    try
+                    {
+                        await _projectService.SetDeploymentUrlAsync(project.Id, productionUrl);
+                    }
+                    catch { }
+                }
+
+                _deployLogFrame.IsVisible = false;
+                _cancelDeployButton.IsVisible = false;
+
+                await DisplayAlert("Deploy Succeeded",
+                    !string.IsNullOrWhiteSpace(productionUrl)
+                        ? $"Production URL: {productionUrl}"
+                        : "Deploy completed successfully.",
+                    "OK");
+
+                return true;
+            }
+            else
+            {
+                AppendLog("");
+                AppendLog($"Deploy FAILED (exit code {process.ExitCode}).");
+
+                // Show last 20 lines
+                var lastLines = logLines.TakeLast(20).ToList();
+
+                _cancelDeployButton.IsVisible = false;
+
+                await DisplayAlert("Deploy Failed",
+                    $"Exit code: {process.ExitCode}\n\nLast output:\n{string.Join("\n", lastLines.TakeLast(10))}",
+                    "OK");
+
+                return false;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            AppendLog("");
+            AppendLog("Deploy cancelled by user.");
+            _cancelDeployButton.IsVisible = false;
+
+            await DisplayAlert("Deploy Cancelled", "Deploy was cancelled. You can retry.", "OK");
+            return false;
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Could not run git", $"Could not run git: {ex.Message}", "OK");
+            AppendLog("");
+            AppendLog($"Deploy error: {ex.Message}");
+            _cancelDeployButton.IsVisible = false;
+
+            await DisplayAlert("Deploy Error",
+                $"Could not run deploy command:\n{ex.Message}\n\nMake sure the CLI tool is installed and accessible from PATH.",
+                "OK");
+            return false;
+        }
+        finally
+        {
+            _deployCts?.Dispose();
+            _deployCts = null;
         }
     }
 
@@ -4049,6 +4323,9 @@ Output ONLY the C# code block.
         {
             if (await _projectService.CompleteWorkflowAsync(project.Id, project.PendingTaskTitle))
             {
+                _deployRetryMode = false;
+                _deployLogFrame.IsVisible = false;
+
                 // Increment missing focus task count if in missing focus mode
                 if (!string.IsNullOrWhiteSpace(project.ActiveMissingTitle))
                 {
@@ -6015,6 +6292,35 @@ Output ONLY the C# code block.
             "Command copied",
             $"Command copied: {command}. Paste into a Command Prompt to navigate to your project folder and start Codex.",
             "OK");
+    }
+
+    private async Task EditDeployCommandAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        var current = string.IsNullOrWhiteSpace(project.DeployCommand) ? "" : project.DeployCommand;
+
+        var result = await DisplayPromptAsync(
+            "Deploy Command",
+            "Command to run after git push (from the project's codebase path).\n\nLeave empty to skip deploy.\n\nExample: vercel --prod",
+            "Save",
+            "Cancel",
+            initialValue: current,
+            maxLength: 500);
+
+        if (result == null) return;
+
+        try
+        {
+            project.DeployCommand = result.Trim();
+            await _projectService.SaveAsync(project);
+            UpdateDeployCommandDisplay(project);
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task EditCodebasePathAsync()
