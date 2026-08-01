@@ -890,8 +890,6 @@ Output ONLY the C# code block.
                     workflowHeader,
                     _batchSectionFrame,
                     _missingSectionFrame,
-                    _utilityButtonRow,
-                    _ownerDevSection,
                     _pasteTaskPlanButton,
                     _copyCodexPromptButton,
                     _pasteCodexResultButton,
@@ -1211,6 +1209,8 @@ Output ONLY the C# code block.
             Children =
             {
                 _workflowStatusBanner,
+                _utilityButtonRow,
+                _ownerDevSection,
                 _projectTitleHeaderLabel,
                 _projectIdeaReferenceLabel,
                 visionSection,
@@ -3601,7 +3601,7 @@ Output ONLY the C# code block.
                 if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, cleanedBatchPlan.TaskTitle, cleanedBatchPlan.CodexPrompt, string.IsNullOrWhiteSpace(project.ActiveMissingTitle) ? GetSelectedBatchSize() : 1))
                 {
                     await RefreshCurrentProjectAsync();
-                    await DisplayAlert("Batch parsed", $"Parsed combined batch arc. Bannister stored the arc title and one Codex prompt worth {GetSelectedBatchSize()} task(s).", "OK");
+                    await DisplayAlert("Batch parsed", $"Parsed combined batch arc. Bannister stored the arc title and one Codex prompt worth {(string.IsNullOrWhiteSpace(project.ActiveMissingTitle) ? GetSelectedBatchSize() : 1)} task(s).", "OK");
                     return;
                 }
             }
