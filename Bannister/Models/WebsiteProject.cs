@@ -33,6 +33,8 @@ public class WebsiteProject
 
     public string CompletedTaskTitles { get; set; } = "";
 
+    public string CommitStatements { get; set; } = "";
+
     public int WorkflowState { get; set; } = 0;
 
     public string PendingTaskTitle { get; set; } = "";

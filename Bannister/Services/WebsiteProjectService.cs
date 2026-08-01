@@ -346,6 +346,42 @@ public class WebsiteProjectService
         return true;
     }
 
+    public async Task<bool> PrependCommitStatementAsync(int projectId, string statement)
+    {
+        EnsureWritable();
+        if (string.IsNullOrWhiteSpace(statement))
+            return false;
+
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        var entry = $"{DateTime.Today:yyyy-MM-dd}: {statement.Trim()}";
+        project.CommitStatements = string.IsNullOrWhiteSpace(project.CommitStatements)
+            ? entry
+            : $"{entry}\n{project.CommitStatements}";
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<bool> SetCommitStatementsAsync(int projectId, string statements)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null)
+            return false;
+
+        project.CommitStatements = statements;
+        await SaveAsync(project);
+        return true;
+    }
+
+    public async Task<string> GetCommitStatementsAsync(int projectId)
+    {
+        var project = await GetByIdAsync(projectId);
+        return project?.CommitStatements ?? "";
+    }
+
     public async Task<bool> PrependTaskTitleAsync(int projectId, string title)
     {
         EnsureWritable();

@@ -2332,7 +2332,7 @@ public class HomePage : ContentPage
         if (!goNow)
             return false;
 
-        var page = new WebsiteBuilderPage(_auth, _websiteProjects, _websiteIdeas, _games);
+        var page = new WebsiteBuilderPage(_auth, _websiteProjects, _websiteIdeas, _games, _ownerMode);
         await Navigation.PushAsync(page);
         return true;
     }
@@ -2556,7 +2556,7 @@ public class HomePage : ContentPage
 
     private async void OnWebsiteBuilderClicked(object? sender, EventArgs e)
     {
-        var page = new WebsiteBuilderPage(_auth, _websiteProjects, _websiteIdeas, _games);
+        var page = new WebsiteBuilderPage(_auth, _websiteProjects, _websiteIdeas, _games, _ownerMode);
         await Navigation.PushAsync(page);
     }
 

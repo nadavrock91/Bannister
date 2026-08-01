@@ -237,6 +237,7 @@ Output ONLY the C# code block.
     private readonly WebsiteProjectService _projectService;
     private readonly WebsiteIdeaService _ideaService;
     private readonly GameService _gameService;
+    private readonly OwnerModeService _ownerMode;
     private readonly Picker _ideaPicker;
     private readonly Picker _projectPicker;
     private readonly Entry _ideaTitleEntry;
@@ -311,6 +312,10 @@ Output ONLY the C# code block.
     private readonly Button _copyCodexCommandButton;
     private readonly Button _openTerminalButton;
     private readonly Button _deleteProjectButton;
+    private readonly Button _pasteCommitStatementButton;
+    private readonly Button _viewCommitLogButton;
+    private readonly Button _exportStuckAnalysisButton;
+    private readonly VerticalStackLayout _ownerDevSection;
 
     private List<WebsiteIdea> _ideasCache = new();
     private List<WebsiteProject> _projectsCache = new();
@@ -321,12 +326,13 @@ Output ONLY the C# code block.
     private bool _isRefreshingPickers;
     private bool _isLoadingBatchSize;
 
-    public WebsiteBuilderPage(AuthService auth, WebsiteProjectService projectService, WebsiteIdeaService ideaService, GameService gameService)
+    public WebsiteBuilderPage(AuthService auth, WebsiteProjectService projectService, WebsiteIdeaService ideaService, GameService gameService, OwnerModeService ownerMode)
     {
         _auth = auth;
         _projectService = projectService;
         _ideaService = ideaService;
         _gameService = gameService;
+        _ownerMode = ownerMode;
         Title = "Website Builder";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -740,6 +746,67 @@ Output ONLY the C# code block.
             }
         };
 
+        // Owner Mode: Dev Commit Log section
+        _pasteCommitStatementButton = new Button
+        {
+            Text = "Paste Commit Statement",
+            BackgroundColor = Color.FromArgb("#CE93D8"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        _pasteCommitStatementButton.Clicked += async (_, _) => await PasteCommitStatementAsync();
+
+        _viewCommitLogButton = new Button
+        {
+            Text = "View Commit Log",
+            BackgroundColor = Color.FromArgb("#CE93D8"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        _viewCommitLogButton.Clicked += async (_, _) => await ViewCommitLogAsync();
+
+        _exportStuckAnalysisButton = new Button
+        {
+            Text = "Export Stuck Analysis",
+            BackgroundColor = Color.FromArgb("#AB47BC"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        _exportStuckAnalysisButton.Clicked += async (_, _) => await ExportStuckAnalysisAsync();
+
+        var ownerDevHeader = new Label
+        {
+            Text = "Dev Commit Log (Owner Mode)",
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#6A1B9A")
+        };
+
+        var commitButtonRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children = { _pasteCommitStatementButton, _viewCommitLogButton }
+        };
+
+        _ownerDevSection = new VerticalStackLayout
+        {
+            Spacing = 8,
+            IsVisible = false,
+            Children =
+            {
+                new BoxView { HeightRequest = 1, Color = Color.FromArgb("#CE93D8"), Margin = new Thickness(0, 8, 0, 0) },
+                ownerDevHeader,
+                commitButtonRow,
+                _exportStuckAnalysisButton
+            }
+        };
+
         var workflowHeader = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -773,6 +840,7 @@ Output ONLY the C# code block.
                     _batchSectionFrame,
                     _missingSectionFrame,
                     _utilityButtonRow,
+                    _ownerDevSection,
                     _pasteTaskPlanButton,
                     _copyCodexPromptButton,
                     _pasteCodexResultButton,
@@ -1186,6 +1254,14 @@ Output ONLY the C# code block.
         await TryLoadLastSelectedProjectAsync();
         RefreshStateVisibility();
         await ShowGamificationPromptIfNeededAsync();
+        try
+        {
+            _ownerDevSection.IsVisible = await _ownerMode.IsUnlockedAsync();
+        }
+        catch
+        {
+            _ownerDevSection.IsVisible = false;
+        }
     }
 
     private async Task ShowGamificationPromptIfNeededAsync()
@@ -5100,6 +5176,169 @@ Output ONLY the C# code block.
         {
             await ShowReadOnlyAlertAsync();
         }
+    }
+
+    private async Task PasteCommitStatementAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        string? clipText = null;
+        try { clipText = await Clipboard.GetTextAsync(); } catch { }
+
+        if (string.IsNullOrWhiteSpace(clipText))
+        {
+            await DisplayAlert("Empty Clipboard", "No text found on clipboard.", "OK");
+            return;
+        }
+
+        // Show the text for confirmation, allow editing
+        var statement = await DisplayPromptAsync(
+            "Paste Commit Statement",
+            "Edit if needed. This will be stored with today's date.",
+            "Save",
+            "Cancel",
+            initialValue: clipText.Trim().Replace("\r", "").Replace("\n", " "),
+            maxLength: 2000);
+
+        if (string.IsNullOrWhiteSpace(statement))
+            return;
+
+        try
+        {
+            if (await _projectService.PrependCommitStatementAsync(project.Id, statement))
+                await DisplayAlert("Saved", "Commit statement logged.", "OK");
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task ViewCommitLogAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        var result = await ShowMultilineEditorAsync(
+            "Commit Log",
+            "Dev commit statements for this project. Most recent at top.",
+            project.CommitStatements,
+            "No commit statements logged yet.");
+
+        if (result == null)
+            return;
+
+        try
+        {
+            if (await _projectService.SetCommitStatementsAsync(project.Id, result))
+                await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task ExportStuckAnalysisAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        var taskLines = (project.CompletedTaskTitles ?? "")
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+
+        var commitLines = (project.CommitStatements ?? "")
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+
+        if (taskLines.Count == 0 && commitLines.Count == 0)
+        {
+            await DisplayAlert("Nothing to Export", "No tasks or commits logged yet.", "OK");
+            return;
+        }
+
+        // Merge and interleave by date descending
+        var merged = new List<(DateTime Date, string Type, string Text)>();
+
+        foreach (var line in taskLines)
+        {
+            var parsed = TryParseDatedLine(line);
+            merged.Add((parsed.Date, "TASK", parsed.Text));
+        }
+
+        foreach (var line in commitLines)
+        {
+            var parsed = TryParseDatedLine(line);
+            merged.Add((parsed.Date, "COMMIT", parsed.Text));
+        }
+
+        // Stable sort: newest first, within same date preserve original order
+        merged = merged
+            .Select((item, idx) => (item, idx))
+            .OrderByDescending(x => x.item.Date)
+            .ThenBy(x => x.idx)
+            .Select(x => x.item)
+            .ToList();
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("You are analyzing a software development workflow for signs of being stuck.");
+        sb.AppendLine("Below is an interleaved timeline of TASK completions (website building QA tasks) and COMMIT statements (actual code changes to the Website Builder page itself — the orchestration tool).");
+        sb.AppendLine();
+        sb.AppendLine("CRITICAL: A COMMIT entry means the development tooling itself was changed. When you see a COMMIT, the workflow may have been unblocked or restructured. Do NOT treat tasks before and after a tooling COMMIT as part of the same stuck pattern. Evaluate each segment between COMMITs independently.");
+        sb.AppendLine();
+        sb.AppendLine($"PROJECT: {project.Title}");
+        sb.AppendLine($"PROGRESS: {project.TaskCount} of {project.TaskTarget} tasks completed");
+        sb.AppendLine();
+
+        var vision = GetProjectVisionContext(project);
+        sb.AppendLine("VISION:");
+        sb.AppendLine(vision);
+        sb.AppendLine();
+
+        sb.AppendLine("TIMELINE (newest first):");
+        sb.AppendLine("─────────────────────────────────────────");
+
+        foreach (var entry in merged)
+        {
+            var dateStr = entry.Date == DateTime.MinValue ? "????" : entry.Date.ToString("yyyy-MM-dd");
+            sb.AppendLine($"[{entry.Type}] {dateStr}: {entry.Text}");
+        }
+
+        sb.AppendLine("─────────────────────────────────────────");
+        sb.AppendLine();
+        sb.AppendLine("ANALYSIS REQUEST:");
+        sb.AppendLine("1. Identify any repeated patterns suggesting the workflow is stuck (same items appearing across multiple tasks, recurring failures, circular fixes).");
+        sb.AppendLine("2. For each stuck pattern found, note whether a COMMIT entry after it may have resolved it.");
+        sb.AppendLine("3. Rate current stuck risk: LOW / MEDIUM / HIGH with explanation.");
+        sb.AppendLine("4. If stuck, suggest what category of change (tooling commit vs QA task vs architecture) is most likely to unblock progress.");
+
+        try
+        {
+            await Clipboard.SetTextAsync(sb.ToString());
+            await DisplayAlert("Copied", $"Stuck analysis prompt copied.\n{taskLines.Count} tasks + {commitLines.Count} commits merged.", "OK");
+        }
+        catch
+        {
+            await DisplayAlert("Error", "Could not copy to clipboard.", "OK");
+        }
+    }
+
+    private static (DateTime Date, string Text) TryParseDatedLine(string line)
+    {
+        // Expected format: "yyyy-MM-dd: text"
+        if (line.Length >= 11 && line[4] == '-' && line[7] == '-' && line[10] == ':')
+        {
+            var dateStr = line[..10];
+            var text = line.Length > 12 ? line[12..].Trim() : "";
+            if (DateTime.TryParseExact(dateStr, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var d))
+                return (d, text);
+        }
+        return (DateTime.MinValue, line);
     }
 
     private async Task<string?> ShowMultilineEditorAsync(
