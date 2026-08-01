@@ -1027,6 +1027,22 @@ public class NewHabitsPage : ContentPage
         btnActivate.Clicked += async (s, e) => await ActivatePendingAsync(habit);
         buttonStack.Children.Add(btnActivate);
 
+        // Graduate directly (skip active phase)
+        var btnGraduate = new Button
+        {
+            Text = "\U0001F393",
+            BackgroundColor = Color.FromArgb("#FF9800"),
+            TextColor = Colors.White,
+            FontSize = 12,
+            WidthRequest = 32,
+            HeightRequest = 32,
+            Padding = 0,
+            CornerRadius = 6
+        };
+        btnGraduate.Clicked += async (s, e) =>
+            await GraduatePendingAsync(habit);
+        buttonStack.Children.Add(btnGraduate);
+
         // Delete button
         var btnDelete = new Button
         {
@@ -1132,6 +1148,65 @@ public class NewHabitsPage : ContentPage
         await DisplayAlert("Habit Activated!",
             $"'{habit.HabitName}' is now active!\n\nRemember to complete it regularly to avoid penalties.",
             "Got it!");
+        await LoadHabitsAsync();
+    }
+
+    private async Task GraduatePendingAsync(NewHabit habit)
+    {
+        bool confirm = await DisplayAlert(
+            "Graduate from Pending?",
+            $"Graduate '{habit.HabitName}' directly?\n\n" +
+            "Use this when you've already established this habit outside Bannister " +
+            "and just want to record the graduation.\n\n" +
+            "This will count toward your graduation total and allowance increase progress.",
+            "Graduate",
+            "Cancel");
+
+        if (!confirm) return;
+
+        await _newHabits.GraduateHabitAsync(habit);
+
+        await DisplayAlert(
+            "\U0001F389 Graduated!",
+            $"'{habit.HabitName}' graduated directly from pending.\n\n" +
+            "It now appears in your graduated list.",
+            "OK");
+
+        // Check if allowance increase is now available
+        bool isEligible = await _newHabits.IsEligibleForAllowanceIncreaseAsync(
+            _auth.CurrentUsername, _frequency);
+
+        if (isEligible)
+        {
+            var allowance = await _newHabits.GetOrCreateAllowanceAsync(
+                _auth.CurrentUsername, _frequency);
+
+            bool increase = await DisplayAlert(
+                "\U0001F4C8 Allowance Increase Available!",
+                $"You've graduated enough habits!\n\n" +
+                $"Current allowance: {allowance.CurrentAllowance}\n" +
+                $"New allowance: {allowance.CurrentAllowance + 1}\n\n" +
+                $"Increase your {_frequency.ToLower()} allowance?",
+                "Yes, Increase!",
+                "Not Now");
+
+            if (increase)
+            {
+                await _newHabits.IncreaseAllowanceAsync(
+                    _auth.CurrentUsername, _frequency);
+
+                await DisplayAlert(
+                    "\U0001F38A Allowance Increased!",
+                    $"Your {_frequency.ToLower()} allowance is now {allowance.CurrentAllowance + 1}!",
+                    "Great!");
+            }
+            else
+            {
+                await _newHabits.ResetGraduationCounterAsync(
+                    _auth.CurrentUsername, _frequency);
+            }
+        }
+
         await LoadHabitsAsync();
     }
 
