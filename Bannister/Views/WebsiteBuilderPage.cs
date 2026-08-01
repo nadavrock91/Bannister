@@ -4212,18 +4212,55 @@ Output ONLY the C# code block.
 
                     foreach (var notDone in reviewable)
                     {
-                        string notePreview = !string.IsNullOrWhiteSpace(notDone.Notes) ? $"\n\nLast note: {notDone.Notes}" : "";
-                        bool block = await DisplayAlert(
-                            "Block This Item?",
-                            $"{notDone.Title}{notePreview}\n\nBlock from future batch picks? (You can unblock later via Manage Blocked Items.)",
+                        string blockChoice = await DisplayActionSheet(
+                            $"Block This Item?\n{notDone.Title}",
+                            null,
+                            null,
                             "Block",
-                            "Keep");
+                            "Keep",
+                            "Consult LLM");
 
-                        if (block)
+                        if (blockChoice == "Consult LLM")
+                        {
+                            var consultSb = new System.Text.StringBuilder();
+                            consultSb.AppendLine("I need help deciding whether to block this QA item from future automated task picks.");
+                            consultSb.AppendLine();
+                            consultSb.AppendLine("CONTEXT: I am building a website using an automated workflow where a QA agent finds issues, they get randomly picked for Codex (an AI coding agent) to fix, and the results are verified. Items that Codex cannot fix (infrastructure, deployment config, external service issues) should be BLOCKED so they stop wasting cycles.");
+                            consultSb.AppendLine();
+                            consultSb.AppendLine("ITEM TO EVALUATE:");
+                            consultSb.AppendLine($"Title: {notDone.Title}");
+                            if (!string.IsNullOrWhiteSpace(notDone.Notes))
+                                consultSb.AppendLine($"Last verification notes: {notDone.Notes}");
+                            consultSb.AppendLine();
+                            consultSb.AppendLine("QUESTION: Can this issue be fixed by editing source code files in the repo, or does it require manual action outside of code (Vercel dashboard, DNS config, third-party service setup, env vars, etc)?");
+                            consultSb.AppendLine();
+                            consultSb.AppendLine("Respond with exactly one of:");
+                            consultSb.AppendLine("BLOCK — if this requires action outside of code changes");
+                            consultSb.AppendLine("KEEP — if this can be fixed by editing source code");
+                            consultSb.AppendLine("Then briefly explain why.");
+
+                            await Clipboard.SetTextAsync(consultSb.ToString());
+
+                            string? llmAnswer = await DisplayPromptAsync(
+                                "LLM Consultation",
+                                "Prompt copied to clipboard. Paste into an LLM.\n\nType BLOCK or KEEP based on the response:",
+                                "Submit",
+                                "Skip",
+                                placeholder: "BLOCK or KEEP");
+
+                            if (!string.IsNullOrWhiteSpace(llmAnswer) &&
+                                llmAnswer.Trim().StartsWith("BLOCK", StringComparison.OrdinalIgnoreCase))
+                            {
+                                currentBlocked.Add(notDone.Title);
+                                newlyBlocked++;
+                            }
+                        }
+                        else if (blockChoice == "Block")
                         {
                             currentBlocked.Add(notDone.Title);
                             newlyBlocked++;
                         }
+                        // "Keep" or null = do nothing
                     }
 
                     try { await _projectService.SetBlockedQAItemsAsync(project.Id, currentBlocked); }
