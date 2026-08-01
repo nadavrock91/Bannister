@@ -35,6 +35,8 @@ public class WebsiteProject
 
     public string CommitStatements { get; set; } = "";
 
+    public string StuckAnalysisJson { get; set; } = "";
+
     public int WorkflowState { get; set; } = 0;
 
     public string PendingTaskTitle { get; set; } = "";

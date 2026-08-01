@@ -382,6 +382,17 @@ public class WebsiteProjectService
         return project?.CommitStatements ?? "";
     }
 
+    public async Task<bool> SetStuckAnalysisAsync(int projectId, string json)
+    {
+        EnsureWritable();
+        var project = await GetByIdAsync(projectId);
+        if (project == null) return false;
+
+        project.StuckAnalysisJson = json ?? "";
+        await SaveAsync(project);
+        return true;
+    }
+
     public async Task<bool> PrependTaskTitleAsync(int projectId, string title)
     {
         EnsureWritable();

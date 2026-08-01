@@ -316,6 +316,11 @@ Output ONLY the C# code block.
     private readonly Button _viewCommitLogButton;
     private readonly Button _exportStuckAnalysisButton;
     private readonly VerticalStackLayout _ownerDevSection;
+    private readonly Button _pasteStuckAnalysisButton;
+    private readonly Frame _stuckStatusFrame;
+    private readonly Label _stuckRatingLabel;
+    private readonly Label _stuckSummaryLabel;
+    private readonly VerticalStackLayout _stuckPatternsStack;
 
     private List<WebsiteIdea> _ideasCache = new();
     private List<WebsiteProject> _projectsCache = new();
@@ -780,6 +785,50 @@ Output ONLY the C# code block.
         };
         _exportStuckAnalysisButton.Clicked += async (_, _) => await ExportStuckAnalysisAsync();
 
+        _pasteStuckAnalysisButton = new Button
+        {
+            Text = "Paste Analysis Result",
+            BackgroundColor = Color.FromArgb("#AB47BC"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
+        };
+        _pasteStuckAnalysisButton.Clicked += async (_, _) => await PasteStuckAnalysisAsync();
+
+        _stuckRatingLabel = new Label
+        {
+            Text = "",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            IsVisible = false
+        };
+
+        _stuckSummaryLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#555"),
+            LineBreakMode = LineBreakMode.WordWrap,
+            IsVisible = false
+        };
+
+        _stuckPatternsStack = new VerticalStackLayout { Spacing = 4, IsVisible = false };
+
+        _stuckStatusFrame = new Frame
+        {
+            Padding = new Thickness(12),
+            CornerRadius = 10,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            IsVisible = false,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 6,
+                Children = { _stuckRatingLabel, _stuckSummaryLabel, _stuckPatternsStack }
+            }
+        };
+
         var ownerDevHeader = new Label
         {
             Text = "Dev Commit Log (Owner Mode)",
@@ -802,8 +851,10 @@ Output ONLY the C# code block.
             {
                 new BoxView { HeightRequest = 1, Color = Color.FromArgb("#CE93D8"), Margin = new Thickness(0, 8, 0, 0) },
                 ownerDevHeader,
+                _stuckStatusFrame,
                 commitButtonRow,
-                _exportStuckAnalysisButton
+                _exportStuckAnalysisButton,
+                _pasteStuckAnalysisButton
             }
         };
 
@@ -1261,6 +1312,16 @@ Output ONLY the C# code block.
         catch
         {
             _ownerDevSection.IsVisible = false;
+        }
+        if (_ownerDevSection.IsVisible && _currentProjectId > 0)
+        {
+            try
+            {
+                var proj = await _projectService.GetByIdAsync(_currentProjectId);
+                if (proj != null)
+                    RefreshStuckDisplay(proj.StuckAnalysisJson);
+            }
+            catch { }
         }
     }
 
@@ -2023,6 +2084,8 @@ Output ONLY the C# code block.
         UpdateTaskCounterDisplay(project);
         await RefreshPickersAsync(selectProjectId: project.Id);
         RefreshStateVisibility();
+        if (_ownerDevSection.IsVisible)
+            RefreshStuckDisplay(project.StuckAnalysisJson);
     }
 
     private async Task OnIncrementClickedAsync()
@@ -3535,7 +3598,7 @@ Output ONLY the C# code block.
 
             try
             {
-                if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, cleanedBatchPlan.TaskTitle, cleanedBatchPlan.CodexPrompt, GetSelectedBatchSize()))
+                if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, cleanedBatchPlan.TaskTitle, cleanedBatchPlan.CodexPrompt, string.IsNullOrWhiteSpace(project.ActiveMissingTitle) ? GetSelectedBatchSize() : 1))
                 {
                     await RefreshCurrentProjectAsync();
                     await DisplayAlert("Batch parsed", $"Parsed combined batch arc. Bannister stored the arc title and one Codex prompt worth {GetSelectedBatchSize()} task(s).", "OK");
@@ -5316,6 +5379,18 @@ Output ONLY the C# code block.
         sb.AppendLine("2. For each stuck pattern found, note whether a COMMIT entry after it may have resolved it.");
         sb.AppendLine("3. Rate current stuck risk: LOW / MEDIUM / HIGH with explanation.");
         sb.AppendLine("4. If stuck, suggest what category of change (tooling commit vs QA task vs architecture) is most likely to unblock progress.");
+        sb.AppendLine();
+        sb.AppendLine("RESPONSE FORMAT:");
+        sb.AppendLine("After your analysis, output a JSON block wrapped in ```json fences with EXACTLY this shape:");
+        sb.AppendLine("```json");
+        sb.AppendLine("{");
+        sb.AppendLine("  \"Rating\": \"LOW|MEDIUM|HIGH\",");
+        sb.AppendLine("  \"Summary\": \"One or two sentence summary of current workflow health.\",");
+        sb.AppendLine("  \"Patterns\": [");
+        sb.AppendLine("    { \"Name\": \"Short pattern name\", \"Status\": \"ACTIVE|RESOLVED|EMERGING\", \"Detail\": \"Brief explanation\" }");
+        sb.AppendLine("  ]");
+        sb.AppendLine("}");
+        sb.AppendLine("```");
 
         try
         {
@@ -5325,6 +5400,197 @@ Output ONLY the C# code block.
         catch
         {
             await DisplayAlert("Error", "Could not copy to clipboard.", "OK");
+        }
+    }
+
+    private async Task PasteStuckAnalysisAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        string? clipText = null;
+        try { clipText = await Clipboard.GetTextAsync(); } catch { }
+
+        if (string.IsNullOrWhiteSpace(clipText))
+        {
+            await DisplayAlert("Empty Clipboard", "No text found on clipboard.", "OK");
+            return;
+        }
+
+        // Extract JSON from markdown fences or raw JSON
+        string json = clipText.Trim();
+        var fenceMatch = System.Text.RegularExpressions.Regex.Match(
+            json,
+            @"```json\s*\n([\s\S]*?)\n\s*```",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (fenceMatch.Success)
+            json = fenceMatch.Groups[1].Value.Trim();
+
+        // Validate it parses
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            // Must have Rating
+            if (!root.TryGetProperty("Rating", out var ratingProp))
+            {
+                await DisplayAlert("Invalid Format", "JSON must contain a Rating field (LOW/MEDIUM/HIGH).", "OK");
+                return;
+            }
+
+            var rating = ratingProp.GetString()?.ToUpperInvariant() ?? "";
+            if (rating != "LOW" && rating != "MEDIUM" && rating != "HIGH")
+            {
+                await DisplayAlert("Invalid Rating", $"Rating must be LOW, MEDIUM, or HIGH. Got: {rating}", "OK");
+                return;
+            }
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            await DisplayAlert("Parse Error", $"Could not parse JSON:\n{ex.Message}", "OK");
+            return;
+        }
+
+        // Stamp UpdatedAt
+        try
+        {
+            var obj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.Nodes.JsonObject>(json);
+            if (obj != null)
+            {
+                obj["UpdatedAt"] = DateTime.UtcNow.ToString("o");
+                json = System.Text.Json.JsonSerializer.Serialize(obj);
+            }
+        }
+        catch { }
+
+        try
+        {
+            if (await _projectService.SetStuckAnalysisAsync(project.Id, json))
+            {
+                await RefreshCurrentProjectAsync();
+                RefreshStuckDisplay(json);
+                await DisplayAlert("Saved", "Stuck analysis updated.", "OK");
+            }
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private void RefreshStuckDisplay(string? stuckJson)
+    {
+        if (string.IsNullOrWhiteSpace(stuckJson))
+        {
+            _stuckStatusFrame.IsVisible = false;
+            return;
+        }
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(stuckJson);
+            var root = doc.RootElement;
+
+            var rating = root.TryGetProperty("Rating", out var rp)
+                ? rp.GetString()?.ToUpperInvariant() ?? "?"
+                : "?";
+
+            var summary = root.TryGetProperty("Summary", out var sp)
+                ? sp.GetString() ?? ""
+                : "";
+
+            var updatedAt = root.TryGetProperty("UpdatedAt", out var up)
+                ? up.GetString() ?? ""
+                : "";
+
+            string dateDisplay = "";
+            if (DateTime.TryParse(updatedAt, out var dt))
+                dateDisplay = $" (updated {dt.ToLocalTime():MMM dd})";
+
+            // Color coding
+            Color ratingBg, ratingFg;
+            string icon;
+            switch (rating)
+            {
+                case "LOW":
+                    ratingBg = Color.FromArgb("#E8F5E9");
+                    ratingFg = Color.FromArgb("#2E7D32");
+                    icon = "";
+                    break;
+                case "MEDIUM":
+                    ratingBg = Color.FromArgb("#FFF8E1");
+                    ratingFg = Color.FromArgb("#F57F17");
+                    icon = "";
+                    break;
+                case "HIGH":
+                    ratingBg = Color.FromArgb("#FFEBEE");
+                    ratingFg = Color.FromArgb("#C62828");
+                    icon = "";
+                    break;
+                default:
+                    ratingBg = Color.FromArgb("#ECEFF1");
+                    ratingFg = Color.FromArgb("#333");
+                    icon = "⚪";
+                    break;
+            }
+
+            _stuckStatusFrame.BackgroundColor = ratingBg;
+            _stuckStatusFrame.BorderColor = ratingFg;
+
+            _stuckRatingLabel.Text = $"{icon} Stuck Risk: {rating}{dateDisplay}";
+            _stuckRatingLabel.TextColor = ratingFg;
+            _stuckRatingLabel.IsVisible = true;
+
+            _stuckSummaryLabel.Text = summary;
+            _stuckSummaryLabel.IsVisible = !string.IsNullOrWhiteSpace(summary);
+
+            _stuckPatternsStack.Children.Clear();
+
+            if (root.TryGetProperty("Patterns", out var patterns) &&
+                patterns.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var pattern in patterns.EnumerateArray())
+                {
+                    var name = pattern.TryGetProperty("Name", out var np) ? np.GetString() ?? "" : "";
+                    var status = pattern.TryGetProperty("Status", out var stp) ? stp.GetString()?.ToUpperInvariant() ?? "" : "";
+                    var detail = pattern.TryGetProperty("Detail", out var dp) ? dp.GetString() ?? "" : "";
+
+                    string statusIcon = status switch
+                    {
+                        "RESOLVED" => "✅",
+                        "ACTIVE" => "",
+                        "EMERGING" => "",
+                        _ => "⚪"
+                    };
+
+                    Color statusColor = status switch
+                    {
+                        "RESOLVED" => Color.FromArgb("#2E7D32"),
+                        "ACTIVE" => Color.FromArgb("#C62828"),
+                        "EMERGING" => Color.FromArgb("#F57F17"),
+                        _ => Color.FromArgb("#555")
+                    };
+
+                    var patternLabel = new Label
+                    {
+                        Text = $"  {statusIcon} {name}: {detail}",
+                        FontSize = 11,
+                        TextColor = statusColor,
+                        LineBreakMode = LineBreakMode.WordWrap
+                    };
+
+                    _stuckPatternsStack.Children.Add(patternLabel);
+                }
+
+                _stuckPatternsStack.IsVisible = _stuckPatternsStack.Children.Count > 0;
+            }
+
+            _stuckStatusFrame.IsVisible = true;
+        }
+        catch
+        {
+            _stuckStatusFrame.IsVisible = false;
         }
     }
 
