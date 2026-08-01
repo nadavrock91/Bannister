@@ -920,7 +920,7 @@ public class NewHabitService
     {
         var conn = await _db.GetConnectionAsync();
         if (!_db.IsReadOnly) await conn.CreateTableAsync<NewHabit>();
-        
+
         var habit = await conn.Table<NewHabit>()
             .Where(h => h.PositiveActivityId == positiveActivityId && h.Status == "active")
             .FirstOrDefaultAsync();
@@ -937,31 +937,43 @@ public class NewHabitService
             return null;
         }
 
-        if (lastDate == today.AddDays(-1))
+        // Determine the maximum gap allowed for a streak to be consecutive
+        int maxConsecutiveGapDays = habit.Frequency switch
         {
-            // Consecutive day!
-            habit.ConsecutiveDays++;
-            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' consecutive day {habit.ConsecutiveDays}");
-        }
-        else if (lastDate == null)
+            "Weekly" => 7,
+            "Monthly" => 31,
+            _ => 1  // Daily
+        };
+
+        if (lastDate == null)
         {
-            // First day
+            // First application
             habit.ConsecutiveDays = 1;
-            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' first day");
+            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' first application");
         }
         else
         {
-            // Missed days - this shouldn't happen if CheckMissedHabitsAsync runs daily
-            // But handle it gracefully by resetting
-            habit.ConsecutiveDays = 1;
-            System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' reset after gap");
+            var daysSinceLast = (today - lastDate.Value).TotalDays;
+
+            if (daysSinceLast <= maxConsecutiveGapDays)
+            {
+                // Within the frequency window — streak continues
+                habit.ConsecutiveDays++;
+                System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' consecutive {habit.Frequency} #{habit.ConsecutiveDays}");
+            }
+            else
+            {
+                // Gap too large — reset streak
+                habit.ConsecutiveDays = 1;
+                System.Diagnostics.Debug.WriteLine($"[NEW HABIT] '{habit.HabitName}' reset after {daysSinceLast:F0} day gap (max {maxConsecutiveGapDays} for {habit.Frequency})");
+            }
         }
 
         habit.LastAppliedDate = today;
 
         // NOTE: We do NOT graduate here anymore.
         // Graduation only happens in the Habits page with user confirmation.
-        
+
         await conn.UpdateAsync(habit);
         return habit;
     }
@@ -979,10 +991,18 @@ public class NewHabitService
 
         foreach (var habit in activeHabits)
         {
+            // Determine the grace period based on frequency
+            int graceDays = habit.Frequency switch
+            {
+                "Weekly" => 7,
+                "Monthly" => 31,
+                _ => 1  // Daily
+            };
+
             if (!habit.LastAppliedDate.HasValue)
             {
-                // Never started - check if it's been more than 1 day since created
-                if ((today - habit.StartedAt.Date).TotalDays > 1)
+                // Never started — check if grace period since creation has elapsed
+                if ((today - habit.StartedAt.Date).TotalDays > graceDays)
                 {
                     await FailHabitAsync(habit, expService, game);
                     missedHabits.Add(habit);
@@ -991,11 +1011,10 @@ public class NewHabitService
             }
 
             var lastDate = habit.LastAppliedDate.Value.Date;
-            var daysMissed = (today - lastDate).TotalDays;
+            var daysSinceLast = (today - lastDate).TotalDays;
 
-            if (daysMissed > 1)
+            if (daysSinceLast > graceDays)
             {
-                // Missed yesterday (or more) - FAIL
                 await FailHabitAsync(habit, expService, game);
                 missedHabits.Add(habit);
             }
