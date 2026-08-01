@@ -1146,27 +1146,27 @@ public class TasksPage : ContentPage
     private async Task<TaskItem?> ShowTaskPickerAsync(List<TaskItem> tasks, string categoryLabel)
     {
         var tcs = new TaskCompletionSource<TaskItem?>();
-        
-        // Create modal overlay
-        var overlay = new Grid
-        {
-            BackgroundColor = Color.FromArgb("#80000000")
-        };
-        
+        var allTasks = new List<TaskItem>(tasks);
+        var filteredTasks = new List<TaskItem>(allTasks);
+        string currentSort = "date_desc";
+        string currentSearch = "";
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
         var card = new Frame
         {
             CornerRadius = 12,
             Padding = 0,
             BackgroundColor = Colors.White,
             HasShadow = true,
-            WidthRequest = 400,
-            MaximumHeightRequest = 500,
+            WidthRequest = 480,
+            MaximumHeightRequest = 600,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
         };
-        
+
         var cardStack = new VerticalStackLayout();
-        
+
         // Header
         var header = new Frame
         {
@@ -1175,7 +1175,7 @@ public class TasksPage : ContentPage
             BackgroundColor = Color.FromArgb("#7B1FA2"),
             BorderColor = Colors.Transparent
         };
-        
+
         var headerStack = new VerticalStackLayout { Spacing = 4 };
         headerStack.Children.Add(new Label
         {
@@ -1192,107 +1192,350 @@ public class TasksPage : ContentPage
         });
         header.Content = headerStack;
         cardStack.Children.Add(header);
-        
-        // Scrollable task list
-        var scrollView = new ScrollView
+
+        // Search box
+        var searchEntry = new Entry
         {
-            MaximumHeightRequest = 350
+            Placeholder = "Search tasks...",
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#333"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            Margin = new Thickness(12, 8, 12, 0),
+            HeightRequest = 38
         };
-        
-        var taskList = new VerticalStackLayout
+        cardStack.Children.Add(searchEntry);
+
+        // Sort row
+        var sortRow = new HorizontalStackLayout
         {
-            Padding = 8,
-            Spacing = 4
+            Spacing = 6,
+            Margin = new Thickness(12, 4, 12, 4)
         };
-        
-        foreach (var task in tasks)
+
+        var sortLabel = new Label
         {
-            var taskFrame = new Frame
-            {
-                Padding = 12,
-                CornerRadius = 8,
-                BackgroundColor = Color.FromArgb("#F5F5F5"),
-                BorderColor = Colors.Transparent,
-                HasShadow = false
-            };
-            
-            var taskStack = new VerticalStackLayout { Spacing = 2 };
-            
-            taskStack.Children.Add(new Label
-            {
-                Text = task.Title,
-                FontSize = 14,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333"),
-                LineBreakMode = LineBreakMode.WordWrap
-            });
-            
-            // Show category if picking from "any"
-            if (categoryLabel == "Any Category")
-            {
-                taskStack.Children.Add(new Label
-                {
-                    Text = task.Category,
-                    FontSize = 12,
-                    TextColor = Color.FromArgb("#7B1FA2")
-                });
-            }
-            
-            // Show notes preview if exists
-            if (!string.IsNullOrWhiteSpace(task.Notes))
-            {
-                taskStack.Children.Add(new Label
-                {
-                    Text = task.Notes.Length > 60 ? task.Notes.Substring(0, 60) + "..." : task.Notes,
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#999"),
-                    LineBreakMode = LineBreakMode.TailTruncation
-                });
-            }
-            
-            taskFrame.Content = taskStack;
-            
-            var tapGesture = new TapGestureRecognizer();
-            var capturedTask = task;
-            tapGesture.Tapped += (s, e) =>
-            {
-                if (Content is Grid mainGrid)
-                {
-                    mainGrid.Children.Remove(overlay);
-                }
-                tcs.TrySetResult(capturedTask);
-            };
-            taskFrame.GestureRecognizers.Add(tapGesture);
-            
-            taskList.Children.Add(taskFrame);
-        }
-        
-        scrollView.Content = taskList;
+            Text = "Sort:",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#666"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        sortRow.Children.Add(sortLabel);
+
+        var sortDateBtn = new Button
+        {
+            Text = "Newest ▼",
+            FontSize = 10,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            CornerRadius = 4,
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
+            TextColor = Colors.White
+        };
+
+        var sortAlphaBtn = new Button
+        {
+            Text = "A-Z",
+            FontSize = 10,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            CornerRadius = 4,
+            BackgroundColor = Color.FromArgb("#E1BEE7"),
+            TextColor = Color.FromArgb("#7B1FA2")
+        };
+
+        var sortPriorityBtn = new Button
+        {
+            Text = "Priority",
+            FontSize = 10,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            CornerRadius = 4,
+            BackgroundColor = Color.FromArgb("#E1BEE7"),
+            TextColor = Color.FromArgb("#7B1FA2")
+        };
+
+        sortRow.Children.Add(sortDateBtn);
+        sortRow.Children.Add(sortAlphaBtn);
+        sortRow.Children.Add(sortPriorityBtn);
+
+        var resultCountLabel = new Label
+        {
+            Text = $"{filteredTasks.Count} tasks",
+            FontSize = 10,
+            TextColor = Color.FromArgb("#999"),
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(8, 0, 0, 0)
+        };
+        sortRow.Children.Add(resultCountLabel);
+
+        cardStack.Children.Add(sortRow);
+
+        // Task list
+        var taskList = new VerticalStackLayout { Padding = 8, Spacing = 4 };
+        var scrollView = new ScrollView { MaximumHeightRequest = 350, Content = taskList };
         cardStack.Children.Add(scrollView);
-        
-        // Cancel button
+
+        // Helper: update sort button styles
+        void UpdateSortButtonStyles()
+        {
+            var active = Color.FromArgb("#7B1FA2");
+            var activeText = Colors.White;
+            var inactive = Color.FromArgb("#E1BEE7");
+            var inactiveText = Color.FromArgb("#7B1FA2");
+
+            sortDateBtn.BackgroundColor = currentSort.StartsWith("date") ? active : inactive;
+            sortDateBtn.TextColor = currentSort.StartsWith("date") ? activeText : inactiveText;
+            sortDateBtn.Text = currentSort == "date_desc" ? "Newest ▼" : "Oldest ▲";
+
+            sortAlphaBtn.BackgroundColor = currentSort.StartsWith("alpha") ? active : inactive;
+            sortAlphaBtn.TextColor = currentSort.StartsWith("alpha") ? activeText : inactiveText;
+            sortAlphaBtn.Text = currentSort == "alpha_asc" ? "A-Z ▲" : currentSort == "alpha_desc" ? "Z-A ▼" : "A-Z";
+
+            sortPriorityBtn.BackgroundColor = currentSort.StartsWith("priority") ? active : inactive;
+            sortPriorityBtn.TextColor = currentSort.StartsWith("priority") ? activeText : inactiveText;
+            sortPriorityBtn.Text = currentSort == "priority_asc" ? "Priority ▲" : currentSort == "priority_desc" ? "Priority ▼" : "Priority";
+        }
+
+        // Helper: apply filter and sort
+        void ApplyFilterAndSort()
+        {
+            var search = currentSearch.Trim();
+            filteredTasks = string.IsNullOrEmpty(search)
+                ? new List<TaskItem>(allTasks)
+                : allTasks.Where(t =>
+                    t.Title.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    t.Notes.Contains(search, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+            filteredTasks = currentSort switch
+            {
+                "date_desc" => filteredTasks.OrderByDescending(t => t.CreatedAt).ToList(),
+                "date_asc" => filteredTasks.OrderBy(t => t.CreatedAt).ToList(),
+                "alpha_asc" => filteredTasks.OrderBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+                "alpha_desc" => filteredTasks.OrderByDescending(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+                "priority_asc" => filteredTasks.OrderBy(t => t.Priority).ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+                "priority_desc" => filteredTasks.OrderByDescending(t => t.Priority).ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+                _ => filteredTasks
+            };
+
+            resultCountLabel.Text = string.IsNullOrEmpty(search)
+                ? $"{allTasks.Count} tasks"
+                : $"{filteredTasks.Count} of {allTasks.Count} tasks";
+        }
+
+        // Helper: rebuild task list UI
+        void RebuildTaskList()
+        {
+            taskList.Children.Clear();
+
+            if (filteredTasks.Count == 0)
+            {
+                taskList.Children.Add(new Label
+                {
+                    Text = string.IsNullOrEmpty(currentSearch)
+                        ? "No tasks available."
+                        : "No tasks match your search.",
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#999"),
+                    FontAttributes = FontAttributes.Italic,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(0, 20)
+                });
+                return;
+            }
+
+            foreach (var task in filteredTasks)
+            {
+                var taskFrame = new Frame
+                {
+                    Padding = 12,
+                    CornerRadius = 8,
+                    BackgroundColor = Color.FromArgb("#F5F5F5"),
+                    BorderColor = Colors.Transparent,
+                    HasShadow = false
+                };
+
+                var taskStack = new HorizontalStackLayout { Spacing = 8 };
+
+                string priorityDot = task.Priority switch
+                {
+                    1 => "\U0001F534",
+                    3 => "\U0001F7E2",
+                    _ => "\U0001F7E1"
+                };
+                taskStack.Children.Add(new Label
+                {
+                    Text = priorityDot,
+                    FontSize = 10,
+                    VerticalOptions = LayoutOptions.Center
+                });
+
+                var textStack = new VerticalStackLayout { Spacing = 2 };
+                textStack.Children.Add(new Label
+                {
+                    Text = task.Title,
+                    FontSize = 14,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#333"),
+                    LineBreakMode = LineBreakMode.WordWrap
+                });
+
+                if (categoryLabel == "Any Category")
+                {
+                    textStack.Children.Add(new Label
+                    {
+                        Text = task.Category,
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#7B1FA2")
+                    });
+                }
+
+                if (!string.IsNullOrWhiteSpace(task.Notes))
+                {
+                    textStack.Children.Add(new Label
+                    {
+                        Text = task.Notes.Length > 60 ? task.Notes[..60] + "..." : task.Notes,
+                        FontSize = 11,
+                        TextColor = Color.FromArgb("#999"),
+                        LineBreakMode = LineBreakMode.TailTruncation
+                    });
+                }
+
+                taskStack.Children.Add(textStack);
+                taskFrame.Content = taskStack;
+
+                var capturedTask = task;
+                var tapGesture = new TapGestureRecognizer();
+                tapGesture.Tapped += (s, e) =>
+                {
+                    if (Content is Grid mainGrid)
+                        mainGrid.Children.Remove(overlay);
+                    tcs.TrySetResult(capturedTask);
+                };
+                taskFrame.GestureRecognizers.Add(tapGesture);
+
+                taskList.Children.Add(taskFrame);
+            }
+        }
+
+        searchEntry.TextChanged += (s, e) =>
+        {
+            currentSearch = e.NewTextValue ?? "";
+            ApplyFilterAndSort();
+            RebuildTaskList();
+        };
+
+        sortDateBtn.Clicked += (s, e) =>
+        {
+            currentSort = currentSort == "date_desc" ? "date_asc" : "date_desc";
+            UpdateSortButtonStyles();
+            ApplyFilterAndSort();
+            RebuildTaskList();
+        };
+
+        sortAlphaBtn.Clicked += (s, e) =>
+        {
+            currentSort = currentSort == "alpha_asc" ? "alpha_desc" : "alpha_asc";
+            UpdateSortButtonStyles();
+            ApplyFilterAndSort();
+            RebuildTaskList();
+        };
+
+        sortPriorityBtn.Clicked += (s, e) =>
+        {
+            currentSort = currentSort == "priority_asc" ? "priority_desc" : "priority_asc";
+            UpdateSortButtonStyles();
+            ApplyFilterAndSort();
+            RebuildTaskList();
+        };
+
+        // Bottom buttons row
+        var bottomRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(12, 4, 12, 12),
+            HorizontalOptions = LayoutOptions.Fill
+        };
+
+        var createBtn = new Button
+        {
+            Text = "+ New Task",
+            BackgroundColor = Color.FromArgb("#4CAF50"),
+            TextColor = Colors.White,
+            FontSize = 12,
+            CornerRadius = 6,
+            HeightRequest = 36,
+            Padding = new Thickness(12, 0)
+        };
+
+        createBtn.Clicked += async (s, e) =>
+        {
+            string? title = await DisplayPromptAsync(
+                "New Task",
+                $"Create a new task in {(categoryLabel == "Any Category" ? "General" : categoryLabel)}:",
+                "Create",
+                "Cancel",
+                maxLength: 200);
+
+            if (string.IsNullOrWhiteSpace(title)) return;
+
+            string category = categoryLabel == "Any Category" ? "General" : categoryLabel;
+
+            string? priorityChoice = await DisplayActionSheet(
+                "Priority",
+                "Cancel",
+                null,
+                " High", " Medium", " Low");
+            if (priorityChoice == "Cancel" || string.IsNullOrEmpty(priorityChoice)) return;
+
+            int priority = priorityChoice.Contains("High") ? 1
+                : priorityChoice.Contains("Low") ? 3 : 2;
+
+            var newTask = await _tasks.CreateTaskAsync(
+                _auth.CurrentUsername,
+                title.Trim(),
+                category,
+                priority);
+
+            if (_ideasService != null)
+            {
+                try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, title.Trim(), "tasks_ideas"); }
+                catch { }
+            }
+
+            allTasks.Add(newTask);
+            ApplyFilterAndSort();
+            RebuildTaskList();
+        };
+
         var cancelBtn = new Button
         {
             Text = "Cancel",
             BackgroundColor = Colors.Transparent,
             TextColor = Color.FromArgb("#7B1FA2"),
             FontSize = 14,
-            HeightRequest = 48
+            HeightRequest = 36
         };
         cancelBtn.Clicked += (s, e) =>
         {
             if (Content is Grid mainGrid)
-            {
                 mainGrid.Children.Remove(overlay);
-            }
             tcs.TrySetResult(null);
         };
-        cardStack.Children.Add(cancelBtn);
-        
+
+        bottomRow.Children.Add(createBtn);
+        bottomRow.Children.Add(cancelBtn);
+        cardStack.Children.Add(bottomRow);
+
         card.Content = cardStack;
         overlay.Children.Add(card);
-        
-        // Add overlay to page
+
+        // Initial render
+        ApplyFilterAndSort();
+        UpdateSortButtonStyles();
+        RebuildTaskList();
+
         if (Content is Grid grid)
         {
             grid.Children.Add(overlay);
@@ -1305,7 +1548,7 @@ public class TasksPage : ContentPage
             newGrid.Children.Add(overlay);
             Content = newGrid;
         }
-        
+
         return await tcs.Task;
     }
 
