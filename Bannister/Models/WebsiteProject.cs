@@ -39,6 +39,8 @@ public class WebsiteProject
 
     public string StuckAnalysisJson { get; set; } = "";
 
+    public string PromptConstraints { get; set; } = "";
+
     public int WorkflowState { get; set; } = 0;
 
     public string PendingTaskTitle { get; set; } = "";

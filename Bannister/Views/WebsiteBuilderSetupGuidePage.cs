@@ -8,7 +8,7 @@ namespace Bannister.Views;
 
 public class WebsiteBuilderSetupGuidePage : ContentPage
 {
-    private const int TotalSteps = 14;
+    private const int TotalSteps = 15;
 
     private readonly AuthService _auth;
     private readonly WebsiteProjectService _projectService;
@@ -840,6 +840,37 @@ Vercel gives you a URL like my-site-abc123.vercel.app within a minute or two. Yo
 
 From here, every time you push code to GitHub (git push), Vercel auto-rebuilds and redeploys within 2 minutes. No more manual deploy steps.",
                 new List<StepAction> { new("Vercel Dashboard", StepActionType.ExternalLink, "https://vercel.com/dashboard") }),
+            new(
+                "Provision a Database",
+                @"If your site needs server-side persistence (health monitoring, caching, analytics, user data), add a database from your hosting provider's storage options.
+
+For Vercel with KV (key-value) storage:
+1. Go to your Vercel project dashboard
+2. Click Storage tab → Create Database
+3. Select 'Upstash for Redis' (NOT plain 'Redis' — the plain option uses a different connection format)
+4. Pick the Free tier to start
+5. Connect it to your project across Production, Preview, and Development environments
+6. Vercel auto-injects KV_REST_API_URL and KV_REST_API_TOKEN environment variables
+7. Redeploy for the env vars to take effect
+
+IMPORTANT: If your code writes to KV storage but these env vars are missing, writes silently fall back to per-container memory which is lost between serverless requests. Your data will appear to save but will be gone on the next page load.
+
+Alternative databases:
+- Vercel Postgres (via Neon) — relational data, SQL queries
+- PlanetScale — MySQL-compatible, generous free tier
+- Supabase — Postgres + auth + realtime, good free tier
+- Turso — edge SQLite, very fast reads
+
+For most small projects starting with KV monitoring and caching, Upstash for Redis on Vercel is the simplest path.
+
+CONSTRAINT FOR YOUR WORKFLOW: Never use Vercel cron schedules with intervals shorter than once per day. The Hobby plan silently rejects deployments that violate this limit — no error, no log, the deploy just never appears. Use on-request self-sampling patterns instead (e.g. sample health data on every status page visit).",
+                new List<StepAction>
+                {
+                    new("Vercel Storage Docs", StepActionType.ExternalLink, "https://vercel.com/docs/storage"),
+                    new("Upstash", StepActionType.ExternalLink, "https://upstash.com/"),
+                    new("Supabase", StepActionType.ExternalLink, "https://supabase.com/"),
+                    new("PlanetScale", StepActionType.ExternalLink, "https://planetscale.com/")
+                }),
             new(
                 "Connect Your Domain",
                 @"In your Vercel project: Settings - Domains - type your domain and click Add. Vercel shows you DNS records to add at your domain registrar (e.g. GoDaddy).

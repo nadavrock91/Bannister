@@ -311,6 +311,8 @@ Output ONLY the C# code block.
     private readonly Button _editCodebasePathButton;
     private readonly Label _deployCommandLabel;
     private readonly Button _editDeployCommandButton;
+    private readonly Label _promptConstraintsLabel;
+    private readonly Button _editPromptConstraintsButton;
     private readonly Editor _deployLogEditor;
     private readonly Frame _deployLogFrame;
     private readonly Button _cancelDeployButton;
@@ -493,7 +495,18 @@ Output ONLY the C# code block.
         };
         _copyQaTemplateBtn.Clicked += async (_, _) =>
         {
-            await Clipboard.SetTextAsync(DefaultQAPromptTemplate);
+            string constraints = "";
+            if (_currentProjectId > 0)
+            {
+                try
+                {
+                    var proj = await _projectService.GetByIdAsync(_currentProjectId);
+                    if (proj != null)
+                        constraints = BuildConstraintsBlock(proj);
+                }
+                catch { }
+            }
+            await Clipboard.SetTextAsync(DefaultQAPromptTemplate + constraints);
             await DisplayAlert(
                 "QA prompt template copied",
                 "Paste into your QA agent (Grok, Claude, ChatGPT, whatever). The agent will produce a report in the strict C# format Bannister parses cleanly.",
@@ -1117,6 +1130,26 @@ Output ONLY the C# code block.
         };
         _editDeployCommandButton.Clicked += async (_, _) => await EditDeployCommandAsync();
 
+        _promptConstraintsLabel = new Label
+        {
+            Text = "Prompt constraints: (none)",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+
+        _editPromptConstraintsButton = new Button
+        {
+            Text = "Edit Prompt Constraints",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            HeightRequest = 32,
+            FontSize = 12,
+            Padding = new Thickness(10, 0)
+        };
+        _editPromptConstraintsButton.Clicked += async (_, _) => await EditPromptConstraintsAsync();
+
         // Deploy log panel — hidden by default, shown during deploy
         _deployLogEditor = new Editor
         {
@@ -1265,7 +1298,9 @@ Output ONLY the C# code block.
                 _openTerminalButton,
                 _deployCommandLabel,
                 _editDeployCommandButton,
-                _deployLogFrame
+                _deployLogFrame,
+                _promptConstraintsLabel,
+                _editPromptConstraintsButton
             }
         };
 
@@ -1973,6 +2008,7 @@ Output ONLY the C# code block.
         UpdateProjectSummaryDisplay(project);
         UpdateCodebasePathDisplay(project);
         UpdateDeployCommandDisplay(project);
+        UpdatePromptConstraintsDisplay(project);
     }
 
     /*
@@ -2172,6 +2208,34 @@ Output ONLY the C# code block.
         _editDeployCommandButton.Text = string.IsNullOrWhiteSpace(project.DeployCommand)
             ? "Set Deploy Command"
             : "Edit Deploy Command";
+    }
+
+    private void UpdatePromptConstraintsDisplay(WebsiteProject project)
+    {
+        var lines = (project.PromptConstraints ?? "")
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        _promptConstraintsLabel.Text = lines.Length == 0
+            ? "Prompt constraints: (none)"
+            : $"Prompt constraints: {lines.Length} rule(s)";
+    }
+
+    private static string BuildConstraintsBlock(WebsiteProject project)
+    {
+        if (string.IsNullOrWhiteSpace(project.PromptConstraints))
+            return "";
+
+        var lines = project.PromptConstraints
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (lines.Length == 0)
+            return "";
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine();
+        sb.AppendLine("PROJECT CONSTRAINTS (MANDATORY — violating any of these will cause deployment failures or wasted work):");
+        foreach (var line in lines)
+            sb.AppendLine($"- {line}");
+        return sb.ToString();
     }
 
     private static bool IsWindows()
@@ -2426,6 +2490,7 @@ Output ONLY the C# code block.
             return;
 
         var prompt = BuildQAExplorationPrompt(project);
+        prompt += BuildConstraintsBlock(project);
         await Clipboard.SetTextAsync(prompt);
         await DisplayAlert(
             "QA exploration prompt copied",
@@ -2801,6 +2866,17 @@ Output ONLY the C# code block.
             var assembled = template
                 .Replace("{SYMPTOM_DESCRIPTION}", symptom, StringComparison.Ordinal)
                 .Replace("{RELATED_PATHS}", pathsFormatted, StringComparison.Ordinal);
+
+            if (_currentProjectId > 0)
+            {
+                try
+                {
+                    var proj = await _projectService.GetByIdAsync(_currentProjectId);
+                    if (proj != null)
+                        assembled += BuildConstraintsBlock(proj);
+                }
+                catch { }
+            }
 
             try
             {
@@ -3188,7 +3264,7 @@ Output ONLY the C# code block.
             };
             copyBtn.Clicked += async (_, _) =>
             {
-                var prompt = AssembleArcPromptWithPicks(_pickedItems);
+                var prompt = AssembleArcPromptWithPicks(_pickedItems, BuildConstraintsBlock(project));
                 try
                 {
                     await Clipboard.SetTextAsync(prompt);
@@ -3429,7 +3505,7 @@ Output ONLY the C# code block.
         return picks.OrderBy(_ => rng.Next()).ToList();
     }
 
-    private static string AssembleArcPromptWithPicks(List<(string Category, string Body)> picks)
+    private static string AssembleArcPromptWithPicks(List<(string Category, string Body)> picks, string constraints = "")
     {
         var sb = new StringBuilder();
         for (int i = 0; i < picks.Count; i++)
@@ -3439,7 +3515,8 @@ Output ONLY the C# code block.
                 sb.AppendLine();
         }
 
-        return DefaultArcFromPicksPrompt.Replace("{PICKED_ITEMS}", sb.ToString(), StringComparison.Ordinal);
+        var result = DefaultArcFromPicksPrompt.Replace("{PICKED_ITEMS}", sb.ToString(), StringComparison.Ordinal);
+        return result + constraints;
 
     }
 
@@ -3505,6 +3582,7 @@ Output ONLY the C# code block.
         }
 
         var prompt = BuildNextTaskPrompt(project);
+        prompt += BuildConstraintsBlock(project);
         await Clipboard.SetTextAsync(prompt);
         await DisplayAlert(
             "Prompt copied",
@@ -3566,7 +3644,7 @@ Output ONLY the C# code block.
         }
 
         var picks = PickFive(pickable);
-        var prompt = AssembleArcPromptWithPicks(picks);
+        var prompt = AssembleArcPromptWithPicks(picks, BuildConstraintsBlock(project));
 
         await Clipboard.SetTextAsync(prompt);
 
@@ -3651,7 +3729,7 @@ Output ONLY the C# code block.
                 validationPrompt.AppendLine();
                 validationPrompt.AppendLine("5. If removing blocked work leaves nothing meaningful, return exactly: EMPTY");
 
-                await Clipboard.SetTextAsync(validationPrompt.ToString());
+                await Clipboard.SetTextAsync(validationPrompt.ToString() + BuildConstraintsBlock(project));
 
                 var cleanedPlan = await ShowMultilineEditorAsync(
                     "Clean Task Plan",
@@ -4302,6 +4380,7 @@ Output ONLY the C# code block.
         prompt.AppendLine("...");
         prompt.AppendLine("```");
 
+        prompt.Append(BuildConstraintsBlock(project));
         await Clipboard.SetTextAsync(prompt.ToString());
         await DisplayAlert("Copied!",
             "Deployment error prompt copied to clipboard. Paste it into Claude or ChatGPT, then use the response to fix the issue.",
@@ -4462,6 +4541,7 @@ Output ONLY the C# code block.
         sb.AppendLine();
         sb.AppendLine("Include ALL QA items from the list above. No commentary outside the code block.");
 
+        sb.Append(BuildConstraintsBlock(project));
         await Clipboard.SetTextAsync(sb.ToString());
         await DisplayAlert("Verification Prompt Copied",
             "Paste this into Claude or ChatGPT. Then use Paste Verification Result to import the response.",
@@ -5369,6 +5449,8 @@ Output ONLY the C# code block.
             .Replace("{MISSING_DETAIL}", project.ActiveMissingDetail)
             .Replace("{TASK_COUNT}", project.ActiveMissingTaskCount.ToString());
 
+        prompt += BuildConstraintsBlock(project);
+
         await Clipboard.SetTextAsync(prompt);
         await DisplayAlert("Progress QA Prompt Copied",
             $"Paste into your QA agent to check progress on '{project.ActiveMissingTitle}'.\n\nThen paste the result back via Paste QA Report — it will be stored as the missing-focus progress QA.",
@@ -5495,6 +5577,8 @@ Output ONLY the C# code block.
             .Replace("{MISSING_DETAIL}", project.ActiveMissingDetail)
             .Replace("{TASK_COUNT}", project.ActiveMissingTaskCount.ToString())
             .Replace("{PROGRESS_QA}", progressQA);
+
+        prompt += BuildConstraintsBlock(project);
 
         await Clipboard.SetTextAsync(prompt);
 
@@ -6292,6 +6376,31 @@ Output ONLY the C# code block.
             "Command copied",
             $"Command copied: {command}. Paste into a Command Prompt to navigate to your project folder and start Codex.",
             "OK");
+    }
+
+    private async Task EditPromptConstraintsAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        var result = await ShowMultilineEditorAsync(
+            "Prompt Constraints",
+            "One constraint per line. These are appended to EVERY outgoing LLM prompt for this project.\n\nExample:\nNEVER use Vercel cron schedules — Hobby plan silently rejects deploys with sub-daily cron intervals.\nNEVER add new npm dependencies without explicit instruction.",
+            project.PromptConstraints,
+            "Add constraints here, one per line...");
+
+        if (result == null) return;
+
+        try
+        {
+            project.PromptConstraints = result.Trim();
+            await _projectService.SaveAsync(project);
+            UpdatePromptConstraintsDisplay(project);
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
     }
 
     private async Task EditDeployCommandAsync()

@@ -504,6 +504,7 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN CompletedTaskTitles TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN CommitStatements TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN StuckAnalysisJson TEXT DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PromptConstraints TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN WorkflowState INTEGER DEFAULT 0"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingTaskTitle TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN PendingCodexPrompt TEXT DEFAULT ''"); } catch { }
