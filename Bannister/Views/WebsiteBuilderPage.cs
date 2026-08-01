@@ -851,7 +851,6 @@ Output ONLY the C# code block.
             {
                 new BoxView { HeightRequest = 1, Color = Color.FromArgb("#CE93D8"), Margin = new Thickness(0, 8, 0, 0) },
                 ownerDevHeader,
-                _stuckStatusFrame,
                 commitButtonRow,
                 _exportStuckAnalysisButton,
                 _pasteStuckAnalysisButton
@@ -1208,6 +1207,7 @@ Output ONLY the C# code block.
             IsVisible = false,
             Children =
             {
+                _stuckStatusFrame,
                 _workflowStatusBanner,
                 _utilityButtonRow,
                 _ownerDevSection,
@@ -1313,15 +1313,25 @@ Output ONLY the C# code block.
         {
             _ownerDevSection.IsVisible = false;
         }
-        if (_ownerDevSection.IsVisible && _currentProjectId > 0)
+        if (_currentProjectId > 0)
         {
+            bool ownerUnlocked = _ownerDevSection.IsVisible;
             try
             {
                 var proj = await _projectService.GetByIdAsync(_currentProjectId);
-                if (proj != null)
+                if (proj != null && ownerUnlocked)
                     RefreshStuckDisplay(proj.StuckAnalysisJson);
+                else
+                    _stuckStatusFrame.IsVisible = false;
             }
-            catch { }
+            catch
+            {
+                _stuckStatusFrame.IsVisible = false;
+            }
+        }
+        else
+        {
+            _stuckStatusFrame.IsVisible = false;
         }
     }
 
@@ -2086,6 +2096,8 @@ Output ONLY the C# code block.
         RefreshStateVisibility();
         if (_ownerDevSection.IsVisible)
             RefreshStuckDisplay(project.StuckAnalysisJson);
+        else
+            _stuckStatusFrame.IsVisible = false;
     }
 
     private async Task OnIncrementClickedAsync()
@@ -4048,6 +4060,19 @@ Output ONLY the C# code block.
                 await DisplayAlert("Deployment verified!",
                     $"Task complete! Counter incremented to {updated?.TaskCount ?? project.TaskCount + Math.Max(1, project.PendingBatchSize)}.",
                     "OK");
+
+                // Prompt for stuck analysis update as final cycle step
+                if (_ownerDevSection.IsVisible)
+                {
+                    bool runAnalysis = await DisplayAlert(
+                        "Update Stuck Analysis?",
+                        "Workflow cycle complete. Export stuck analysis prompt for LLM review?",
+                        "Export Now",
+                        "Skip");
+
+                    if (runAnalysis)
+                        await ExportStuckAnalysisAsync();
+                }
             }
         }
         catch (ReadOnlyDatabaseException)
@@ -5516,17 +5541,17 @@ Output ONLY the C# code block.
                 case "LOW":
                     ratingBg = Color.FromArgb("#E8F5E9");
                     ratingFg = Color.FromArgb("#2E7D32");
-                    icon = "";
+                    icon = "\U0001F7E2";
                     break;
                 case "MEDIUM":
                     ratingBg = Color.FromArgb("#FFF8E1");
                     ratingFg = Color.FromArgb("#F57F17");
-                    icon = "";
+                    icon = "\U0001F7E1";
                     break;
                 case "HIGH":
                     ratingBg = Color.FromArgb("#FFEBEE");
                     ratingFg = Color.FromArgb("#C62828");
-                    icon = "";
+                    icon = "\U0001F534";
                     break;
                 default:
                     ratingBg = Color.FromArgb("#ECEFF1");
@@ -5559,8 +5584,8 @@ Output ONLY the C# code block.
                     string statusIcon = status switch
                     {
                         "RESOLVED" => "✅",
-                        "ACTIVE" => "",
-                        "EMERGING" => "",
+                        "ACTIVE" => "\U0001F534",
+                        "EMERGING" => "\U0001F7E1",
                         _ => "⚪"
                     };
 
