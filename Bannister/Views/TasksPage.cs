@@ -34,6 +34,7 @@ public class TasksPage : ContentPage
     private Label _challengeAllowanceLabel;
     private VerticalStackLayout _commitmentsList;
     private Button _addCommitmentBtn;
+    private Button _consultLlmBtn;
     private Button _startChallengeBtn;
     
     // State
@@ -375,6 +376,20 @@ public class TasksPage : ContentPage
         };
         _addCommitmentBtn.Clicked += OnAddCommitmentClicked;
         challengeStack.Children.Add(_addCommitmentBtn);
+
+        _consultLlmBtn = new Button
+        {
+            Text = "Consult LLM",
+            BackgroundColor = Color.FromArgb("#E1BEE7"),
+            TextColor = Color.FromArgb("#7B1FA2"),
+            FontSize = 11,
+            CornerRadius = 4,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            IsVisible = false
+        };
+        _consultLlmBtn.Clicked += async (_, _) => await ConsultLlmForPrioritizationAsync();
+        challengeStack.Children.Add(_consultLlmBtn);
 
         _challengeFrame.Content = challengeStack;
         challengeRow.Children.Add(_challengeFrame);
@@ -842,6 +857,7 @@ public class TasksPage : ContentPage
         {
             _challengeFrame.IsVisible = false;
             _startChallengeBtn.IsVisible = true;
+            _consultLlmBtn.IsVisible = false;
             return;
         }
 
@@ -849,7 +865,13 @@ public class TasksPage : ContentPage
         {
             await _challengeService.ProcessWeekEndAsync(_auth.CurrentUsername);
             challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
-            if (challenge == null) return;
+            if (challenge == null)
+            {
+                _challengeFrame.IsVisible = false;
+                _startChallengeBtn.IsVisible = true;
+                _consultLlmBtn.IsVisible = false;
+                return;
+            }
         }
 
         _challengeFrame.IsVisible = true;
@@ -977,6 +999,7 @@ public class TasksPage : ContentPage
         }
 
         _addCommitmentBtn.IsVisible = commitments.Count < challenge.CurrentAllowance;
+        _consultLlmBtn.IsVisible = true;
     }
 
     private async void OnStartChallengeClicked(object? sender, EventArgs e)
@@ -1124,6 +1147,262 @@ public class TasksPage : ContentPage
 
         await _challengeService.AddCommitmentAsync(challenge.Id, selectedTask.Id, pickingFocus);
         await RefreshChallengeWidgetAsync();
+    }
+
+    private async Task ConsultLlmForPrioritizationAsync()
+    {
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null)
+        {
+            await DisplayAlert("No Challenge", "Start a weekly challenge first.", "OK");
+            return;
+        }
+
+        var focusTasks = await _challengeService.GetAvailableFocusTasksAsync(
+            _auth.CurrentUsername, challenge.FocusCategory);
+
+        // Also include already-committed-but-uncompleted tasks for full picture
+        var commitments = await _challengeService.GetCurrentWeekCommitmentsAsync(challenge.Id);
+        var committedTaskIds = commitments.Where(c => !c.IsCompleted).Select(c => c.TaskId).ToHashSet();
+
+        var allActive = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+        var committedTasks = allActive.Where(t => committedTaskIds.Contains(t.Id)).ToList();
+
+        var allFocusTasks = new List<TaskItem>();
+        allFocusTasks.AddRange(committedTasks);
+        allFocusTasks.AddRange(focusTasks);
+
+        // Dedupe by Id
+        allFocusTasks = allFocusTasks
+            .GroupBy(t => t.Id)
+            .Select(g => g.First())
+            .ToList();
+
+        if (allFocusTasks.Count == 0)
+        {
+            await DisplayAlert("No Tasks", $"No tasks in {challenge.FocusCategory} to prioritize.", "OK");
+            return;
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("I need help prioritizing my tasks for a weekly focus challenge.");
+        sb.AppendLine();
+        sb.AppendLine($"FOCUS CATEGORY: {challenge.FocusCategory}");
+        sb.AppendLine($"WEEKLY ALLOWANCE: {challenge.CurrentAllowance} tasks per week");
+        sb.AppendLine($"REMAINING TO COMPLETE CHALLENGE: {challenge.RemainingFocusTasks} tasks");
+        sb.AppendLine($"SUCCESS STREAK: {challenge.SuccessStreak} weeks");
+        sb.AppendLine();
+        sb.AppendLine("TASKS:");
+        sb.AppendLine();
+
+        foreach (var task in allFocusTasks)
+        {
+            string priorityStr = task.Priority switch
+            {
+                1 => "HIGH",
+                3 => "LOW",
+                _ => "MEDIUM"
+            };
+
+            string committed = committedTaskIds.Contains(task.Id) ? " [COMMITTED THIS WEEK]" : "";
+            string notes = string.IsNullOrWhiteSpace(task.Notes) ? "" : $" | Notes: {task.Notes.Trim()}";
+
+            sb.AppendLine($"- ID:{task.Id} | {task.Title} | Current priority: {priorityStr}{committed}{notes}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("INSTRUCTIONS:");
+        sb.AppendLine("1. Analyze these tasks and recommend a priority ordering.");
+        sb.AppendLine("2. Consider which tasks are most impactful, have dependencies, or are quick wins.");
+        sb.AppendLine($"3. I can only commit {challenge.CurrentAllowance} tasks per week — recommend which to pick this week.");
+        sb.AppendLine("4. Return a table in this EXACT parseable format (one line per task, sorted by recommended priority):");
+        sb.AppendLine();
+        sb.AppendLine("PRIORITY TABLE:");
+        sb.AppendLine("ID|PRIORITY|PICK_THIS_WEEK|REASON");
+        sb.AppendLine("<task_id>|HIGH or MEDIUM or LOW|YES or NO|<brief reason>");
+        sb.AppendLine();
+        sb.AppendLine("Example:");
+        sb.AppendLine("42|HIGH|YES|Quick win that unblocks other tasks");
+        sb.AppendLine("17|MEDIUM|NO|Important but not urgent this week");
+        sb.AppendLine();
+        sb.AppendLine("After the table, add a brief SUMMARY paragraph explaining your prioritization strategy.");
+
+        await Clipboard.SetTextAsync(sb.ToString());
+
+        bool paste = await DisplayAlert(
+            "Prompt Copied",
+            $"Exported {allFocusTasks.Count} tasks from {challenge.FocusCategory}.\n\nPaste into Claude/ChatGPT, then copy the response and come back to apply priorities.",
+            "Paste Result",
+            "Done");
+
+        if (!paste) return;
+
+        string? pastedText = null;
+
+        var tcs = new TaskCompletionSource<string?>();
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var editor = new Editor
+        {
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 300,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#888"),
+            Placeholder = "Paste the LLM response here..."
+        };
+
+        var applyBtn = new Button
+        {
+            Text = "Apply Priorities",
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        applyBtn.Clicked += (_, _) =>
+        {
+            if (Content is Grid g) g.Children.Remove(overlay);
+            tcs.TrySetResult(editor.Text);
+        };
+
+        cancelBtn.Clicked += (_, _) =>
+        {
+            if (Content is Grid g) g.Children.Remove(overlay);
+            tcs.TrySetResult(null);
+        };
+
+        var btnRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.End,
+            Children = { cancelBtn, applyBtn }
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            WidthRequest = 600,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Paste LLM Prioritization Result",
+                        FontSize = 18,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#222")
+                    },
+                    new Label
+                    {
+                        Text = "Paste the full response. Bannister will parse the PRIORITY TABLE and update task priorities.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666"),
+                        FontAttributes = FontAttributes.Italic
+                    },
+                    editor,
+                    btnRow
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+
+        if (Content is Grid mainGrid)
+            mainGrid.Children.Add(overlay);
+
+        pastedText = await tcs.Task;
+
+        if (string.IsNullOrWhiteSpace(pastedText)) return;
+
+        await ApplyPrioritizationResultAsync(pastedText, allFocusTasks);
+    }
+
+    private async Task ApplyPrioritizationResultAsync(string llmResponse, List<TaskItem> focusTasks)
+    {
+        var taskLookup = focusTasks.ToDictionary(t => t.Id);
+        var lines = llmResponse.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+        // Find lines matching the ID|PRIORITY|PICK|REASON format
+        int updated = 0;
+        var recommendations = new List<(int Id, string Title, int Priority, bool PickThisWeek, string Reason)>();
+
+        foreach (var line in lines)
+        {
+            var parts = line.Split('|');
+            if (parts.Length < 3) continue;
+
+            if (!int.TryParse(parts[0].Trim(), out int taskId)) continue;
+            if (!taskLookup.ContainsKey(taskId)) continue;
+
+            var priorityStr = parts[1].Trim().ToUpperInvariant();
+            int newPriority = priorityStr switch
+            {
+                "HIGH" => 1,
+                "LOW" => 3,
+                _ => 2
+            };
+
+            bool pickThisWeek = parts.Length > 2 &&
+                parts[2].Trim().Equals("YES", StringComparison.OrdinalIgnoreCase);
+
+            string reason = parts.Length > 3 ? parts[3].Trim() : "";
+
+            var task = taskLookup[taskId];
+            recommendations.Add((taskId, task.Title, newPriority, pickThisWeek, reason));
+
+            if (task.Priority != newPriority)
+            {
+                task.Priority = newPriority;
+                await _tasks.UpdateTaskAsync(task);
+                updated++;
+            }
+        }
+
+        if (recommendations.Count == 0)
+        {
+            await DisplayAlert("Parse Error",
+                "Could not find any lines matching the expected format:\nID|PRIORITY|PICK_THIS_WEEK|REASON\n\nMake sure the LLM included the PRIORITY TABLE.",
+                "OK");
+            return;
+        }
+
+        var pickTasks = recommendations.Where(r => r.PickThisWeek).ToList();
+        var summaryLines = new List<string>
+        {
+            $"Parsed {recommendations.Count} task(s), updated {updated} priority value(s).",
+            ""
+        };
+
+        if (pickTasks.Count > 0)
+        {
+            summaryLines.Add($"Recommended for this week ({pickTasks.Count}):");
+            foreach (var pick in pickTasks)
+            {
+                string p = pick.Priority switch { 1 => "HIGH", 3 => "LOW", _ => "MED" };
+                summaryLines.Add($"  [{p}] {pick.Title}");
+                if (!string.IsNullOrWhiteSpace(pick.Reason))
+                    summaryLines.Add($"        {pick.Reason}");
+            }
+        }
+
+        await DisplayAlert("Priorities Updated", string.Join("\n", summaryLines), "OK");
+        await RefreshChallengeWidgetAsync();
+        await RefreshTasksAsync();
     }
 
     private async Task EditCommitmentTaskAsync(TaskItem task)
