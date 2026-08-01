@@ -4403,6 +4403,17 @@ Output ONLY the C# code block.
                             consultSb.AppendLine("KEEP — if this can be fixed by editing source code");
                             consultSb.AppendLine("Then briefly explain why.");
 
+                            // Add missing focus context if relevant
+                            if (!string.IsNullOrWhiteSpace(project.ActiveMissingTitle) &&
+                                string.Equals(notDone.Title, project.ActiveMissingTitle, StringComparison.OrdinalIgnoreCase))
+                            {
+                                consultSb.AppendLine();
+                                consultSb.AppendLine();
+                                consultSb.Append("ADDITIONAL CONTEXT: This item is currently the ACTIVE MISSING FOCUS — the user has been iterating on it for ");
+                                consultSb.Append(project.ActiveMissingTaskCount);
+                                consultSb.Append(" task(s). If you recommend BLOCK, the focus will be auto-abandoned. Consider whether the iteration so far suggests the issue is genuinely outside code scope, or if more tasks could resolve it.");
+                            }
+
                             await Clipboard.SetTextAsync(consultSb.ToString());
 
                             string? llmAnswer = await DisplayPromptAsync(
@@ -4417,12 +4428,42 @@ Output ONLY the C# code block.
                             {
                                 currentBlocked.Add(notDone.Title);
                                 newlyBlocked++;
+
+                                // Auto-abandon missing focus if the blocked item matches
+                                if (!string.IsNullOrWhiteSpace(project.ActiveMissingTitle) &&
+                                    string.Equals(notDone.Title, project.ActiveMissingTitle, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    try
+                                    {
+                                        await _projectService.ClearActiveMissingAsync(project.Id);
+                                        await DisplayAlert(
+                                            "Missing Focus Auto-Abandoned",
+                                            $"'{notDone.Title}' was your active missing focus. It has been automatically abandoned because it was blocked.",
+                                            "OK");
+                                    }
+                                    catch { }
+                                }
                             }
                         }
                         else if (blockChoice == "Block")
                         {
                             currentBlocked.Add(notDone.Title);
                             newlyBlocked++;
+
+                            // Auto-abandon missing focus if the blocked item matches
+                            if (!string.IsNullOrWhiteSpace(project.ActiveMissingTitle) &&
+                                string.Equals(notDone.Title, project.ActiveMissingTitle, StringComparison.OrdinalIgnoreCase))
+                            {
+                                try
+                                {
+                                    await _projectService.ClearActiveMissingAsync(project.Id);
+                                    await DisplayAlert(
+                                        "Missing Focus Auto-Abandoned",
+                                        $"'{notDone.Title}' was your active missing focus. It has been automatically abandoned because it was blocked.",
+                                        "OK");
+                                }
+                                catch { }
+                            }
                         }
                         // "Keep" or null = do nothing
                     }
@@ -4948,6 +4989,21 @@ Output ONLY the C# code block.
         var parsed = ParseQAReport(project.LatestQAReport);
         var missingItems = parsed.Where(i => i.Category == "MISSING").ToList();
 
+        // Filter out blocked items
+        try
+        {
+            var blocked = await _projectService.GetBlockedQAItemsAsync(project.Id);
+            if (blocked.Count > 0)
+            {
+                missingItems = missingItems.Where(item =>
+                {
+                    var firstLine = item.Body.Split('\n')[0].Trim();
+                    return !blocked.Contains(firstLine);
+                }).ToList();
+            }
+        }
+        catch { }
+
         if (missingItems.Count == 0)
         {
             await DisplayAlert("No Missing Items",
@@ -5005,6 +5061,32 @@ Output ONLY the C# code block.
             return;
         }
 
+        // Check if the active missing focus is blocked
+        try
+        {
+            var blocked = await _projectService.GetBlockedQAItemsAsync(project.Id);
+            if (blocked.Contains(project.ActiveMissingTitle))
+            {
+                bool abandon = await DisplayAlert(
+                    "Focus Item Is Blocked",
+                    $"'{project.ActiveMissingTitle}' is in your blocked items list. It cannot be fixed by code changes.\n\nAbandon this focus?",
+                    "Abandon",
+                    "Cancel");
+
+                if (abandon)
+                {
+                    try
+                    {
+                        await _projectService.ClearActiveMissingAsync(project.Id);
+                        await RefreshCurrentProjectAsync();
+                    }
+                    catch (ReadOnlyDatabaseException) { await ShowReadOnlyAlertAsync(); }
+                }
+                return;
+            }
+        }
+        catch { }
+
         string prompt = MissingFocusQAPromptTemplate
             .Replace("{MISSING_TITLE}", project.ActiveMissingTitle)
             .Replace("{MISSING_DETAIL}", project.ActiveMissingDetail)
@@ -5057,6 +5139,32 @@ Output ONLY the C# code block.
                 "OK");
             return;
         }
+
+        // Check if the active missing focus is blocked
+        try
+        {
+            var blocked = await _projectService.GetBlockedQAItemsAsync(project.Id);
+            if (blocked.Contains(project.ActiveMissingTitle))
+            {
+                bool abandon = await DisplayAlert(
+                    "Focus Item Is Blocked",
+                    $"'{project.ActiveMissingTitle}' is in your blocked items list. It cannot be fixed by code changes.\n\nAbandon this focus?",
+                    "Abandon",
+                    "Cancel");
+
+                if (abandon)
+                {
+                    try
+                    {
+                        await _projectService.ClearActiveMissingAsync(project.Id);
+                        await RefreshCurrentProjectAsync();
+                    }
+                    catch (ReadOnlyDatabaseException) { await ShowReadOnlyAlertAsync(); }
+                }
+                return;
+            }
+        }
+        catch { }
 
         string progressQA = !string.IsNullOrWhiteSpace(project.ActiveMissingQAReport)
             ? project.ActiveMissingQAReport
