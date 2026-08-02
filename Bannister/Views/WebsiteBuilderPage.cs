@@ -496,17 +496,32 @@ Output ONLY the C# code block.
         _copyQaTemplateBtn.Clicked += async (_, _) =>
         {
             string constraints = "";
+            string siteContext = "";
             if (_currentProjectId > 0)
             {
                 try
                 {
                     var proj = await _projectService.GetByIdAsync(_currentProjectId);
                     if (proj != null)
+                    {
                         constraints = BuildConstraintsBlock(proj);
+
+                        // Build site URL context
+                        string siteUrl = !string.IsNullOrWhiteSpace(proj.DeploymentUrl)
+                            ? proj.DeploymentUrl
+                            : !string.IsNullOrWhiteSpace(proj.Title)
+                                ? $"https://{proj.Title}"
+                                : "";
+
+                        if (!string.IsNullOrWhiteSpace(siteUrl))
+                        {
+                            siteContext = $"SITE TO TEST: {siteUrl}\n\n";
+                        }
+                    }
                 }
                 catch { }
             }
-            await Clipboard.SetTextAsync(DefaultQAPromptTemplate + constraints);
+            await Clipboard.SetTextAsync(siteContext + DefaultQAPromptTemplate + constraints);
             await DisplayAlert(
                 "QA prompt template copied",
                 "Paste into your QA agent (Grok, Claude, ChatGPT, whatever). The agent will produce a report in the strict C# format Bannister parses cleanly.",
