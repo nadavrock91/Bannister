@@ -309,8 +309,10 @@ Output ONLY the C# code block.
     private readonly Button _pasteSummaryResultButton;
     private readonly Label _codebasePathLabel;
     private readonly Button _editCodebasePathButton;
-    private readonly Label _deploymentUrlLabel;
-    private readonly Button _editProjectFilesDeploymentUrlButton;
+    private readonly Label _siteUrlLabel;
+    private readonly Button _editSiteUrlButton;
+    private readonly Label _deployDashboardLabel;
+    private readonly Button _editDeployDashboardButton;
     private readonly Label _deployCommandLabel;
     private readonly Button _editDeployCommandButton;
     private readonly Label _promptConstraintsLabel;
@@ -509,8 +511,8 @@ Output ONLY the C# code block.
                         constraints = BuildConstraintsBlock(proj);
 
                         // Build site URL context
-                        string siteUrl = !string.IsNullOrWhiteSpace(proj.DeploymentUrl)
-                            ? proj.DeploymentUrl
+                        string siteUrl = !string.IsNullOrWhiteSpace(proj.SiteUrl)
+                            ? proj.SiteUrl
                             : !string.IsNullOrWhiteSpace(proj.Title)
                                 ? $"https://{proj.Title}"
                                 : "";
@@ -1127,17 +1129,17 @@ Output ONLY the C# code block.
         };
         _editCodebasePathButton.Clicked += async (_, _) => await EditCodebasePathAsync();
 
-        _deploymentUrlLabel = new Label
+        _siteUrlLabel = new Label
         {
-            Text = "Deployment URL: (none)",
+            Text = "Site URL: (none)",
             FontSize = 12,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.TailTruncation
         };
 
-        _editProjectFilesDeploymentUrlButton = new Button
+        _editSiteUrlButton = new Button
         {
-            Text = "Set Deployment URL",
+            Text = "Set Site URL",
             BackgroundColor = Color.FromArgb("#E3F2FD"),
             TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
@@ -1145,7 +1147,27 @@ Output ONLY the C# code block.
             FontSize = 12,
             Padding = new Thickness(10, 0)
         };
-        _editProjectFilesDeploymentUrlButton.Clicked += async (_, _) => await EditDeploymentUrlProjectFilesAsync();
+        _editSiteUrlButton.Clicked += async (_, _) => await EditSiteUrlAsync();
+
+        _deployDashboardLabel = new Label
+        {
+            Text = "Deploy dashboard: (none)",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+
+        _editDeployDashboardButton = new Button
+        {
+            Text = "Set Deploy Dashboard URL",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#01579B"),
+            CornerRadius = 8,
+            HeightRequest = 32,
+            FontSize = 12,
+            Padding = new Thickness(10, 0)
+        };
+        _editDeployDashboardButton.Clicked += async (_, _) => await EditDeployDashboardAsync();
 
         _deployCommandLabel = new Label
         {
@@ -1333,8 +1355,10 @@ Output ONLY the C# code block.
                 _editCodebasePathButton,
                 _copyCodexCommandButton,
                 _openTerminalButton,
-                _deploymentUrlLabel,
-                _editProjectFilesDeploymentUrlButton,
+                _siteUrlLabel,
+                _editSiteUrlButton,
+                _deployDashboardLabel,
+                _editDeployDashboardButton,
                 _deployCommandLabel,
                 _editDeployCommandButton,
                 _deployLogFrame,
@@ -2046,7 +2070,8 @@ Output ONLY the C# code block.
         UpdateVisionDisplay(project);
         UpdateProjectSummaryDisplay(project);
         UpdateCodebasePathDisplay(project);
-        UpdateDeploymentUrlDisplay(project);
+        UpdateSiteUrlDisplay(project);
+        UpdateDeployDashboardDisplay(project);
         UpdateDeployCommandDisplay(project);
         UpdatePromptConstraintsDisplay(project);
     }
@@ -2250,11 +2275,18 @@ Output ONLY the C# code block.
             : "Edit Deploy Command";
     }
 
-    private void UpdateDeploymentUrlDisplay(WebsiteProject project)
+    private void UpdateSiteUrlDisplay(WebsiteProject project)
     {
-        _deploymentUrlLabel.Text = string.IsNullOrWhiteSpace(project.DeploymentUrl)
-            ? "Deployment URL: (none)"
-            : $"Deployment URL: {project.DeploymentUrl}";
+        _siteUrlLabel.Text = string.IsNullOrWhiteSpace(project.SiteUrl)
+            ? "Site URL: (none)"
+            : $"Site URL: {project.SiteUrl}";
+    }
+
+    private void UpdateDeployDashboardDisplay(WebsiteProject project)
+    {
+        _deployDashboardLabel.Text = string.IsNullOrWhiteSpace(project.DeploymentUrl)
+            ? "Deploy dashboard: (none)"
+            : $"Deploy dashboard: {project.DeploymentUrl}";
     }
 
     private void UpdatePromptConstraintsDisplay(WebsiteProject project)
@@ -4260,11 +4292,12 @@ Output ONLY the C# code block.
                     .LastOrDefault();
 
                 if (!string.IsNullOrWhiteSpace(productionUrl) &&
-                    string.IsNullOrWhiteSpace(project.DeploymentUrl))
+                    string.IsNullOrWhiteSpace(project.SiteUrl))
                 {
                     try
                     {
-                        await _projectService.SetDeploymentUrlAsync(project.Id, productionUrl);
+                        project.SiteUrl = productionUrl;
+                        await _projectService.SaveAsync(project);
                     }
                     catch { }
                 }
@@ -6180,7 +6213,9 @@ Output ONLY the C# code block.
 
     private static string BuildQAExplorationPrompt(WebsiteProject project)
     {
-        var liveUrl = $"https://{project.Title}";
+        var liveUrl = !string.IsNullOrWhiteSpace(project.SiteUrl)
+            ? project.SiteUrl
+            : $"https://{project.Title}";
         var vision = GetProjectVisionContext(project);
         var summary = !string.IsNullOrWhiteSpace(project.ProjectSummary)
             ? project.ProjectSummary
@@ -6450,7 +6485,37 @@ Output ONLY the C# code block.
         }
     }
 
-    private async Task EditDeploymentUrlProjectFilesAsync()
+    private async Task EditSiteUrlAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        var current = string.IsNullOrWhiteSpace(project.SiteUrl) ? "" : project.SiteUrl;
+
+        var result = await DisplayPromptAsync(
+            "Site URL",
+            "The live production URL for this site.\nUsed in QA prompts to tell the QA agent what to test.\n\nExample: https://www.nftprowl.com",
+            "Save",
+            "Cancel",
+            initialValue: current,
+            maxLength: 500);
+
+        if (result == null) return;
+
+        try
+        {
+            project.SiteUrl = result.Trim();
+            await _projectService.SaveAsync(project);
+            UpdateSiteUrlDisplay(project);
+            UpdateDeployDashboardDisplay(project);
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task EditDeployDashboardAsync()
     {
         var project = await GetCurrentProjectOrAlertAsync();
         if (project == null) return;
@@ -6458,8 +6523,8 @@ Output ONLY the C# code block.
         var current = string.IsNullOrWhiteSpace(project.DeploymentUrl) ? "" : project.DeploymentUrl;
 
         var result = await DisplayPromptAsync(
-            "Deployment URL",
-            "The production URL for this site.\nUsed in QA prompts and deployment verification.\n\nExample: https://www.nftprowl.com",
+            "Deployment Dashboard URL",
+            "The hosting dashboard where you verify deployments happened.\n\nExample: https://vercel.com/nadavrock/~/deployments",
             "Save",
             "Cancel",
             initialValue: current,
@@ -6499,7 +6564,8 @@ Output ONLY the C# code block.
         {
             project.DeployCommand = result.Trim();
             await _projectService.SaveAsync(project);
-            UpdateDeploymentUrlDisplay(project);
+            UpdateSiteUrlDisplay(project);
+            UpdateDeployDashboardDisplay(project);
             UpdateDeployCommandDisplay(project);
         }
         catch (ReadOnlyDatabaseException)

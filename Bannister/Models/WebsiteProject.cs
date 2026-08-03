@@ -23,6 +23,8 @@ public class WebsiteProject
 
     public string DeploymentUrl { get; set; } = "";
 
+    public string SiteUrl { get; set; } = "";
+
     public string DeployCommand { get; set; } = "";
 
     public string ProjectSummary { get; set; } = "";

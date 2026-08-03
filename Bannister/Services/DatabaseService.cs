@@ -496,6 +496,7 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN TaskCount INTEGER DEFAULT 0"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN TaskTarget INTEGER DEFAULT 1000"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN CodebasePath TEXT DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN SiteUrl TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN DeployCommand TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN ProjectSummary TEXT DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE website_projects ADD COLUMN TasksSinceSummaryUpdate INTEGER DEFAULT 0"); } catch { }
