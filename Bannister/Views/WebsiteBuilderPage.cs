@@ -309,6 +309,8 @@ Output ONLY the C# code block.
     private readonly Button _pasteSummaryResultButton;
     private readonly Label _codebasePathLabel;
     private readonly Button _editCodebasePathButton;
+    private readonly Label _deploymentUrlLabel;
+    private readonly Button _editProjectFilesDeploymentUrlButton;
     private readonly Label _deployCommandLabel;
     private readonly Button _editDeployCommandButton;
     private readonly Label _promptConstraintsLabel;
@@ -1125,6 +1127,26 @@ Output ONLY the C# code block.
         };
         _editCodebasePathButton.Clicked += async (_, _) => await EditCodebasePathAsync();
 
+        _deploymentUrlLabel = new Label
+        {
+            Text = "Deployment URL: (none)",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+
+        _editProjectFilesDeploymentUrlButton = new Button
+        {
+            Text = "Set Deployment URL",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#01579B"),
+            CornerRadius = 8,
+            HeightRequest = 32,
+            FontSize = 12,
+            Padding = new Thickness(10, 0)
+        };
+        _editProjectFilesDeploymentUrlButton.Clicked += async (_, _) => await EditDeploymentUrlProjectFilesAsync();
+
         _deployCommandLabel = new Label
         {
             Text = "Deploy command: (none)",
@@ -1311,6 +1333,8 @@ Output ONLY the C# code block.
                 _editCodebasePathButton,
                 _copyCodexCommandButton,
                 _openTerminalButton,
+                _deploymentUrlLabel,
+                _editProjectFilesDeploymentUrlButton,
                 _deployCommandLabel,
                 _editDeployCommandButton,
                 _deployLogFrame,
@@ -2022,6 +2046,7 @@ Output ONLY the C# code block.
         UpdateVisionDisplay(project);
         UpdateProjectSummaryDisplay(project);
         UpdateCodebasePathDisplay(project);
+        UpdateDeploymentUrlDisplay(project);
         UpdateDeployCommandDisplay(project);
         UpdatePromptConstraintsDisplay(project);
     }
@@ -2223,6 +2248,13 @@ Output ONLY the C# code block.
         _editDeployCommandButton.Text = string.IsNullOrWhiteSpace(project.DeployCommand)
             ? "Set Deploy Command"
             : "Edit Deploy Command";
+    }
+
+    private void UpdateDeploymentUrlDisplay(WebsiteProject project)
+    {
+        _deploymentUrlLabel.Text = string.IsNullOrWhiteSpace(project.DeploymentUrl)
+            ? "Deployment URL: (none)"
+            : $"Deployment URL: {project.DeploymentUrl}";
     }
 
     private void UpdatePromptConstraintsDisplay(WebsiteProject project)
@@ -6418,6 +6450,34 @@ Output ONLY the C# code block.
         }
     }
 
+    private async Task EditDeploymentUrlProjectFilesAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        var current = string.IsNullOrWhiteSpace(project.DeploymentUrl) ? "" : project.DeploymentUrl;
+
+        var result = await DisplayPromptAsync(
+            "Deployment URL",
+            "The production URL for this site.\nUsed in QA prompts and deployment verification.\n\nExample: https://www.nftprowl.com",
+            "Save",
+            "Cancel",
+            initialValue: current,
+            maxLength: 500);
+
+        if (result == null) return;
+
+        try
+        {
+            await _projectService.SetDeploymentUrlAsync(project.Id, result.Trim());
+            await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
     private async Task EditDeployCommandAsync()
     {
         var project = await GetCurrentProjectOrAlertAsync();
@@ -6439,6 +6499,7 @@ Output ONLY the C# code block.
         {
             project.DeployCommand = result.Trim();
             await _projectService.SaveAsync(project);
+            UpdateDeploymentUrlDisplay(project);
             UpdateDeployCommandDisplay(project);
         }
         catch (ReadOnlyDatabaseException)
