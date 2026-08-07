@@ -21,6 +21,7 @@ public class TaskService
         {
             await conn.CreateTableAsync<TaskItem>();
             try { await conn.ExecuteAsync("ALTER TABLE tasks ADD COLUMN RoutineId INTEGER"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE tasks ADD COLUMN IsTopCandidate INTEGER DEFAULT 0"); } catch { }
         }
         _initialized = true;
     }

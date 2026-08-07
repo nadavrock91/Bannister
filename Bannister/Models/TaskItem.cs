@@ -28,6 +28,9 @@ public class TaskItem
     
     // Priority: 1 = High, 2 = Medium, 3 = Low
     public int Priority { get; set; } = 2;
+
+    // Whether this task is a top pending candidate for weekly focus commitment
+    public bool IsTopCandidate { get; set; } = false;
     
     // Optional due date
     public DateTime? DueDate { get; set; }

@@ -34,6 +34,7 @@ public class TasksPage : ContentPage
     private Label _challengeAllowanceLabel;
     private VerticalStackLayout _commitmentsList;
     private Button _addCommitmentBtn;
+    private Button _addTopCandidateBtn;
     private Button _consultLlmBtn;
     private Button _startChallengeBtn;
     
@@ -376,6 +377,20 @@ public class TasksPage : ContentPage
         };
         _addCommitmentBtn.Clicked += OnAddCommitmentClicked;
         challengeStack.Children.Add(_addCommitmentBtn);
+
+        _addTopCandidateBtn = new Button
+        {
+            Text = "+ Top Candidate",
+            BackgroundColor = Color.FromArgb("#FF9800"),
+            TextColor = Colors.White,
+            FontSize = 11,
+            CornerRadius = 4,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            IsVisible = false
+        };
+        _addTopCandidateBtn.Clicked += async (_, _) => await AddTopCandidateAsync();
+        challengeStack.Children.Add(_addTopCandidateBtn);
 
         _consultLlmBtn = new Button
         {
@@ -857,6 +872,7 @@ public class TasksPage : ContentPage
         {
             _challengeFrame.IsVisible = false;
             _startChallengeBtn.IsVisible = true;
+            _addTopCandidateBtn.IsVisible = false;
             _consultLlmBtn.IsVisible = false;
             return;
         }
@@ -869,6 +885,7 @@ public class TasksPage : ContentPage
             {
                 _challengeFrame.IsVisible = false;
                 _startChallengeBtn.IsVisible = true;
+                _addTopCandidateBtn.IsVisible = false;
                 _consultLlmBtn.IsVisible = false;
                 return;
             }
@@ -999,6 +1016,7 @@ public class TasksPage : ContentPage
         }
 
         _addCommitmentBtn.IsVisible = commitments.Count < challenge.CurrentAllowance;
+        _addTopCandidateBtn.IsVisible = true;
         _consultLlmBtn.IsVisible = true;
     }
 
@@ -1147,6 +1165,54 @@ public class TasksPage : ContentPage
 
         await _challengeService.AddCommitmentAsync(challenge.Id, selectedTask.Id, pickingFocus);
         await RefreshChallengeWidgetAsync();
+    }
+
+    private async Task AddTopCandidateAsync()
+    {
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null) return;
+
+        string? title = await DisplayPromptAsync(
+            "New Top Candidate",
+            $"Create a task that will appear at the top when picking focus tasks.\n\nIt will be added to {challenge.FocusCategory} and also as a normal task.",
+            "Create",
+            "Cancel",
+            maxLength: 200);
+
+        if (string.IsNullOrWhiteSpace(title)) return;
+
+        string? priorityChoice = await DisplayActionSheet(
+            "Priority",
+            "Cancel",
+            null,
+            "\U0001F534 High", "\U0001F7E1 Medium", "\U0001F7E2 Low");
+        if (priorityChoice == "Cancel" || string.IsNullOrEmpty(priorityChoice)) return;
+
+        int priority = priorityChoice.Contains("High") ? 1
+            : priorityChoice.Contains("Low") ? 3 : 2;
+
+        var newTask = await _tasks.CreateTaskAsync(
+            _auth.CurrentUsername,
+            title.Trim(),
+            challenge.FocusCategory,
+            priority);
+
+        // Mark as top candidate
+        newTask.IsTopCandidate = true;
+        await _tasks.UpdateTaskAsync(newTask);
+
+        if (_ideasService != null)
+        {
+            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, title.Trim(), "tasks_ideas"); }
+            catch { }
+        }
+
+        await DisplayAlert("Top Candidate Added",
+            $"'{title.Trim()}' added to {challenge.FocusCategory} as a top candidate.\n\nIt will appear in a highlighted section when picking focus tasks.",
+            "OK");
+
+        await RefreshChallengeWidgetAsync();
+        await RefreshTasksAsync();
     }
 
     private async Task ConsultLlmForPrioritizationAsync()
@@ -1624,77 +1690,49 @@ public class TasksPage : ContentPage
                 return;
             }
 
-            foreach (var task in filteredTasks)
+            // Split into top candidates and regular tasks
+            var topCandidates = filteredTasks.Where(t => t.IsTopCandidate).ToList();
+            var regularTasks = filteredTasks.Where(t => !t.IsTopCandidate).ToList();
+
+            if (topCandidates.Count > 0)
             {
-                var taskFrame = new Frame
+                taskList.Children.Add(new Label
                 {
-                    Padding = 12,
-                    CornerRadius = 8,
-                    BackgroundColor = Color.FromArgb("#F5F5F5"),
-                    BorderColor = Colors.Transparent,
-                    HasShadow = false
-                };
-
-                var taskStack = new HorizontalStackLayout { Spacing = 8 };
-
-                string priorityDot = task.Priority switch
-                {
-                    1 => "\U0001F534",
-                    3 => "\U0001F7E2",
-                    _ => "\U0001F7E1"
-                };
-                taskStack.Children.Add(new Label
-                {
-                    Text = priorityDot,
-                    FontSize = 10,
-                    VerticalOptions = LayoutOptions.Center
-                });
-
-                var textStack = new VerticalStackLayout { Spacing = 2 };
-                textStack.Children.Add(new Label
-                {
-                    Text = task.Title,
-                    FontSize = 14,
+                    Text = "\u2B50 Top Candidates",
+                    FontSize = 13,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333"),
-                    LineBreakMode = LineBreakMode.WordWrap
+                    TextColor = Color.FromArgb("#FF9800"),
+                    Margin = new Thickness(4, 4, 0, 2)
                 });
 
-                if (categoryLabel == "Any Category")
+                foreach (var task in topCandidates)
                 {
-                    textStack.Children.Add(new Label
-                    {
-                        Text = task.Category,
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#7B1FA2")
-                    });
+                    taskList.Children.Add(BuildPickerTaskCard(task, categoryLabel, overlay, tcs));
                 }
 
-                if (!string.IsNullOrWhiteSpace(task.Notes))
+                if (regularTasks.Count > 0)
                 {
-                    textStack.Children.Add(new Label
+                    taskList.Children.Add(new BoxView
                     {
-                        Text = task.Notes.Length > 60 ? task.Notes[..60] + "..." : task.Notes,
-                        FontSize = 11,
-                        TextColor = Color.FromArgb("#999"),
-                        LineBreakMode = LineBreakMode.TailTruncation
+                        HeightRequest = 1,
+                        Color = Color.FromArgb("#E0E0E0"),
+                        Margin = new Thickness(0, 8)
+                    });
+
+                    taskList.Children.Add(new Label
+                    {
+                        Text = "All Tasks",
+                        FontSize = 13,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#666"),
+                        Margin = new Thickness(4, 0, 0, 2)
                     });
                 }
+            }
 
-                taskStack.Children.Add(textStack);
-                taskFrame.Content = taskStack;
-
-                var capturedTask = task;
-                var tapGesture = new TapGestureRecognizer();
-                tapGesture.Tapped += (s, e) =>
-                {
-                    if (Content is Grid mainGrid)
-                        mainGrid.Children.Remove(overlay);
-                    tcs.TrySetResult(capturedTask);
-                };
-                taskFrame.GestureRecognizers.Add(tapGesture);
-
-                taskList.Children.Add(taskFrame);
+            foreach (var task in regularTasks)
+            {
+                taskList.Children.Add(BuildPickerTaskCard(task, categoryLabel, overlay, tcs));
             }
         }
 
@@ -1777,6 +1815,18 @@ public class TasksPage : ContentPage
                 category,
                 priority);
 
+            bool markTop = await DisplayAlert(
+                "Top Candidate?",
+                "Mark this as a top candidate for focus picks?",
+                "Yes",
+                "No");
+
+            if (markTop)
+            {
+                newTask.IsTopCandidate = true;
+                await _tasks.UpdateTaskAsync(newTask);
+            }
+
             if (_ideasService != null)
             {
                 try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, title.Trim(), "tasks_ideas"); }
@@ -1829,6 +1879,87 @@ public class TasksPage : ContentPage
         }
 
         return await tcs.Task;
+    }
+
+    private Frame BuildPickerTaskCard(
+        TaskItem task,
+        string categoryLabel,
+        Grid overlay,
+        TaskCompletionSource<TaskItem?> tcs)
+    {
+        var taskFrame = new Frame
+        {
+            Padding = 12,
+            CornerRadius = 8,
+            BackgroundColor = task.IsTopCandidate
+                ? Color.FromArgb("#FFF3E0")
+                : Color.FromArgb("#F5F5F5"),
+            BorderColor = task.IsTopCandidate
+                ? Color.FromArgb("#FF9800")
+                : Colors.Transparent,
+            HasShadow = false
+        };
+
+        var taskStack = new HorizontalStackLayout { Spacing = 8 };
+
+        string priorityDot = task.Priority switch
+        {
+            1 => "\U0001F534",
+            3 => "\U0001F7E2",
+            _ => "\U0001F7E1"
+        };
+        taskStack.Children.Add(new Label
+        {
+            Text = priorityDot,
+            FontSize = 10,
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        var textStack = new VerticalStackLayout { Spacing = 2 };
+        textStack.Children.Add(new Label
+        {
+            Text = task.IsTopCandidate ? $"\u2B50 {task.Title}" : task.Title,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        if (categoryLabel == "Any Category")
+        {
+            textStack.Children.Add(new Label
+            {
+                Text = task.Category,
+                FontSize = 12,
+                TextColor = Color.FromArgb("#7B1FA2")
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(task.Notes))
+        {
+            textStack.Children.Add(new Label
+            {
+                Text = task.Notes.Length > 60 ? task.Notes[..60] + "..." : task.Notes,
+                FontSize = 11,
+                TextColor = Color.FromArgb("#999"),
+                LineBreakMode = LineBreakMode.TailTruncation
+            });
+        }
+
+        taskStack.Children.Add(textStack);
+        taskFrame.Content = taskStack;
+
+        var capturedTask = task;
+        var tapGesture = new TapGestureRecognizer();
+        tapGesture.Tapped += (s, e) =>
+        {
+            if (Content is Grid mainGrid)
+                mainGrid.Children.Remove(overlay);
+            tcs.TrySetResult(capturedTask);
+        };
+        taskFrame.GestureRecognizers.Add(tapGesture);
+
+        return taskFrame;
     }
 
     #endregion
