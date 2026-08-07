@@ -33,6 +33,7 @@ public class TasksPage : ContentPage
     private Label _challengeStreakLabel;
     private Label _challengeAllowanceLabel;
     private VerticalStackLayout _commitmentsList;
+    private VerticalStackLayout _topCandidatesList;
     private Button _addCommitmentBtn;
     private Button _addTopCandidateBtn;
     private Button _consultLlmBtn;
@@ -364,6 +365,9 @@ public class TasksPage : ContentPage
 
         _commitmentsList = new VerticalStackLayout { Spacing = 2 };
         challengeStack.Children.Add(_commitmentsList);
+
+        _topCandidatesList = new VerticalStackLayout { Spacing = 2 };
+        challengeStack.Children.Add(_topCandidatesList);
 
         _addCommitmentBtn = new Button
         {
@@ -872,6 +876,7 @@ public class TasksPage : ContentPage
         {
             _challengeFrame.IsVisible = false;
             _startChallengeBtn.IsVisible = true;
+            _topCandidatesList.Children.Clear();
             _addTopCandidateBtn.IsVisible = false;
             _consultLlmBtn.IsVisible = false;
             return;
@@ -885,6 +890,7 @@ public class TasksPage : ContentPage
             {
                 _challengeFrame.IsVisible = false;
                 _startChallengeBtn.IsVisible = true;
+                _topCandidatesList.Children.Clear();
                 _addTopCandidateBtn.IsVisible = false;
                 _consultLlmBtn.IsVisible = false;
                 return;
@@ -1016,6 +1022,90 @@ public class TasksPage : ContentPage
         }
 
         _addCommitmentBtn.IsVisible = commitments.Count < challenge.CurrentAllowance;
+
+        // Show top candidates
+        _topCandidatesList.Children.Clear();
+
+        var committedTaskIds = commitments.Select(c => c.TaskId).ToHashSet();
+        var topCandidates = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
+            .Where(t => t.IsTopCandidate &&
+                   string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase) &&
+                   !committedTaskIds.Contains(t.Id))
+            .OrderBy(t => t.Priority)
+            .ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (topCandidates.Count > 0)
+        {
+            _topCandidatesList.Children.Add(new Label
+            {
+                Text = $"\u2B50 Top Candidates ({topCandidates.Count})",
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#FF9800"),
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+
+            foreach (var task in topCandidates)
+            {
+                var row = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition(GridLength.Star),
+                        new ColumnDefinition(GridLength.Auto)
+                    },
+                    Padding = new Thickness(4, 2),
+                    BackgroundColor = Color.FromArgb("#FFF3E0")
+                };
+
+                string priorityDot = task.Priority switch
+                {
+                    1 => "\U0001F534",
+                    3 => "\U0001F7E2",
+                    _ => "\U0001F7E1"
+                };
+
+                var lbl = new Label
+                {
+                    Text = $"{priorityDot} {task.Title}",
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#333"),
+                    VerticalOptions = LayoutOptions.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
+                };
+                Grid.SetColumn(lbl, 0);
+                row.Children.Add(lbl);
+
+                var actionsStack = new HorizontalStackLayout { Spacing = 0 };
+
+                // Remove top candidate flag
+                var unstarBtn = new Button
+                {
+                    Text = "\u2B50",
+                    BackgroundColor = Colors.Transparent,
+                    TextColor = Color.FromArgb("#FF9800"),
+                    WidthRequest = 26,
+                    HeightRequest = 26,
+                    Padding = 0,
+                    FontSize = 10
+                };
+                var capturedTask = task;
+                unstarBtn.Clicked += async (_, _) =>
+                {
+                    capturedTask.IsTopCandidate = false;
+                    await _tasks.UpdateTaskAsync(capturedTask);
+                    await RefreshChallengeWidgetAsync(processWeekEnd: false);
+                };
+                actionsStack.Children.Add(unstarBtn);
+
+                Grid.SetColumn(actionsStack, 1);
+                row.Children.Add(actionsStack);
+
+                _topCandidatesList.Children.Add(row);
+            }
+        }
+
         _addTopCandidateBtn.IsVisible = true;
         _consultLlmBtn.IsVisible = true;
     }
