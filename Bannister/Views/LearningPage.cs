@@ -3999,10 +3999,20 @@ public class LearningPage : ContentPage
 
         var normalizedCategory = category ?? "Unsorted";
         var now = DateTime.Now;
+
+        // Monthly: first of current month (already calendar-based)
         var monthStart = new DateTime(now.Year, now.Month, 1);
-        var threeMonthStart = DateTime.Today.AddDays(-90);
-        var sixMonthStart = DateTime.Today.AddDays(-180);
-        var yearlyStart = DateTime.Today.AddDays(-365);
+
+        // 3-month: first of the current quarter (Jan/Apr/Jul/Oct 1st)
+        int quarterMonth = ((now.Month - 1) / 3) * 3 + 1;
+        var threeMonthStart = new DateTime(now.Year, quarterMonth, 1);
+
+        // 6-month: Jan 1st or Jul 1st of current year
+        int halfMonth = now.Month <= 6 ? 1 : 7;
+        var sixMonthStart = new DateTime(now.Year, halfMonth, 1);
+
+        // Yearly: Jan 1st of current year
+        var yearlyStart = new DateTime(now.Year, 1, 1);
 
         foreach (var video in videos)
         {
