@@ -4500,14 +4500,17 @@ Output ONLY the C# code block.
                 // Prompt for stuck analysis update as final cycle step
                 if (_ownerDevSection.IsVisible)
                 {
-                    bool runAnalysis = await DisplayAlert(
-                        "Update Stuck Analysis?",
-                        "Workflow cycle complete. Export stuck analysis prompt for LLM review?",
-                        "Export Now",
-                        "Skip");
+                    string? choice = await DisplayActionSheet(
+                        "Stuck Analysis",
+                        "Skip",
+                        null,
+                        "Export Prompt (copy to clipboard)",
+                        "Paste Result (have response ready)");
 
-                    if (runAnalysis)
+                    if (choice != null && choice.StartsWith("Export"))
                         await ExportStuckAnalysisAsync();
+                    else if (choice != null && choice.StartsWith("Paste"))
+                        await PasteStuckAnalysisAsync();
                 }
             }
         }
@@ -5982,17 +5985,88 @@ Output ONLY the C# code block.
         var project = await GetCurrentProjectOrAlertAsync();
         if (project == null) return;
 
-        string? clipText = null;
-        try { clipText = await Clipboard.GetTextAsync(); } catch { }
-
-        if (string.IsNullOrWhiteSpace(clipText))
+        var tcs = new TaskCompletionSource<string?>();
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var editor = new Editor
         {
-            await DisplayAlert("Empty Clipboard", "No text found on clipboard.", "OK");
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 250,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#888"),
+            Placeholder = "Paste the LLM stuck analysis response here...",
+            FontSize = 13
+        };
+        var applyBtn = new Button
+        {
+            Text = "Apply Analysis",
+            BackgroundColor = Color.FromArgb("#AB47BC"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        applyBtn.Clicked += (_, _) =>
+        {
+            if (Content is Grid grid) grid.Children.Remove(overlay);
+            tcs.TrySetResult(editor.Text);
+        };
+        cancelBtn.Clicked += (_, _) =>
+        {
+            if (Content is Grid grid) grid.Children.Remove(overlay);
+            tcs.TrySetResult(null);
+        };
+
+        var buttonRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.End };
+        buttonRow.Children.Add(cancelBtn);
+        buttonRow.Children.Add(applyBtn);
+        var cardContent = new VerticalStackLayout { Spacing = 10 };
+        cardContent.Children.Add(new Label
+        {
+            Text = "Paste Stuck Analysis Result",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#6A1B9A")
+        });
+        cardContent.Children.Add(new Label
+        {
+            Text = "Paste the full LLM response. Bannister will parse the JSON block and update the stuck risk display.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+        cardContent.Children.Add(editor);
+        cardContent.Children.Add(buttonRow);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            MaximumWidthRequest = 600,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(16, 0),
+            Content = cardContent
+        };
+        overlay.Children.Add(card);
+        if (Content is Grid mainGrid)
+            mainGrid.Children.Add(overlay);
+        else
+        {
+            await DisplayAlert("Error", "Unable to open the analysis editor.", "OK");
             return;
         }
 
+        var pastedText = await tcs.Task;
+        if (string.IsNullOrWhiteSpace(pastedText)) return;
+
         // Extract JSON from markdown fences or raw JSON
-        string json = clipText.Trim();
+        string json = pastedText.Trim();
         var fenceMatch = System.Text.RegularExpressions.Regex.Match(
             json,
             @"```json\s*\n([\s\S]*?)\n\s*```",
