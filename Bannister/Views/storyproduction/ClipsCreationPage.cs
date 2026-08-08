@@ -139,6 +139,19 @@ public class ClipsCreationPage : ContentPage
         };
         chatGptBtn.Clicked += async (_, _) => await OpenPromptNavigatorAsync();
         actionsRow.Children.Add(chatGptBtn);
+
+        var clearAllDescBtn = new Button
+        {
+            Text = "\U0001F5D1 Clear All",
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 6,
+            HeightRequest = 32,
+            FontSize = 11,
+            Padding = new Thickness(10, 0)
+        };
+        clearAllDescBtn.Clicked += async (_, _) => await ClearAllDescriptionsAsync();
+        actionsRow.Children.Add(clearAllDescBtn);
         topStack.Children.Add(actionsRow);
 
         var metaRow = new HorizontalStackLayout { Spacing = 12 };
@@ -535,6 +548,38 @@ public class ClipsCreationPage : ContentPage
         await DisplayAlert("Done", $"Marked {marked} empty clip(s) as done.", "OK");
         _promptNavIndex = -1;
         _promptNavClipIndices.Clear();
+        await LoadClipsAsync();
+    }
+
+    private async Task ClearAllDescriptionsAsync()
+    {
+        if (_allClips.Count == 0)
+        {
+            await DisplayAlert("No Clips", "No clips loaded.", "OK");
+            return;
+        }
+
+        bool confirm = await DisplayAlert(
+            "Clear All Descriptions?",
+            $"This will clear descriptions on all {_allClips.Count} clips. This cannot be undone.",
+            "Clear All",
+            "Cancel");
+        if (!confirm) return;
+
+        var savedLines = new HashSet<int>();
+        foreach (var (_, shot, _) in _allClips)
+            shot.Description = "";
+
+        foreach (var (line, _, allShots) in _allClips)
+        {
+            if (savedLines.Add(line.Id))
+            {
+                try { await _storyService.SaveShotsAsync(line, allShots); }
+                catch { }
+            }
+        }
+
+        await DisplayAlert("Cleared", $"Cleared descriptions on {_allClips.Count} clips.", "OK");
         await LoadClipsAsync();
     }
 
