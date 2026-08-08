@@ -288,6 +288,9 @@ Output ONLY the C# code block.
     private VerticalStackLayout _batchSectionStack;
     private Frame _missingSectionFrame;
     private VerticalStackLayout _missingSectionStack;
+    private readonly Button _workflowExportStuckBtn;
+    private readonly Button _workflowPasteStuckBtn;
+    private readonly HorizontalStackLayout _stuckAnalysisStepRow;
     private HorizontalStackLayout _utilityButtonRow;
     private readonly Label _projectTitleHeaderLabel;
     private readonly Label _projectIdeaReferenceLabel;
@@ -792,6 +795,49 @@ Output ONLY the C# code block.
             Content = _missingSectionStack
         };
 
+        _workflowExportStuckBtn = new Button
+        {
+            Text = "Export Stuck Analysis",
+            BackgroundColor = Color.FromArgb("#AB47BC"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            Padding = new Thickness(12, 0)
+        };
+        _workflowExportStuckBtn.Clicked += async (_, _) => await ExportStuckAnalysisAsync();
+
+        _workflowPasteStuckBtn = new Button
+        {
+            Text = "Paste Analysis Result",
+            BackgroundColor = Color.FromArgb("#CE93D8"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            Padding = new Thickness(12, 0)
+        };
+        _workflowPasteStuckBtn.Clicked += async (_, _) => await PasteStuckAnalysisAsync();
+
+        _stuckAnalysisStepRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            IsVisible = false,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Final Step:",
+                    FontSize = 12,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    VerticalOptions = LayoutOptions.Center
+                },
+                _workflowExportStuckBtn,
+                _workflowPasteStuckBtn
+            }
+        };
+
         // === UTILITY ROW (always visible when project loaded) ===
         _utilityButtonRow = new HorizontalStackLayout
         {
@@ -941,6 +987,7 @@ Output ONLY the C# code block.
                     workflowHeader,
                     _batchSectionFrame,
                     _missingSectionFrame,
+                    _stuckAnalysisStepRow,
                     _pasteTaskPlanButton,
                     _cleanTaskPlanButton,
                     _copyCodexPromptButton,
@@ -2122,6 +2169,7 @@ Output ONLY the C# code block.
 
         _batchSectionFrame.IsVisible = false;
         _missingSectionFrame.IsVisible = false;
+        _stuckAnalysisStepRow.IsVisible = false;
         _utilityButtonRow.IsVisible = false;
         _pasteTaskPlanButton.IsVisible = false;
         _cleanTaskPlanButton.IsVisible = false;
@@ -2191,6 +2239,7 @@ Output ONLY the C# code block.
                     "Choose a workflow below. Steps 1-3 are in the section, then the guided task cycle runs above.");
                 _batchSectionFrame.IsVisible = true;
                 _missingSectionFrame.IsVisible = true;
+                _stuckAnalysisStepRow.IsVisible = _ownerDevSection.IsVisible;
                 break;
         }
 
