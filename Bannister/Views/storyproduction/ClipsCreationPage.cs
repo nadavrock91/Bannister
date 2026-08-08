@@ -26,10 +26,28 @@ public class ClipsCreationPage : ContentPage
     private Label _navigatorDoneLabel = null!;
     private EventHandler? _navigatorCloseHandler;
 
+    private Frame _promptNavFrame = null!;
+    private Label _promptNavTitleLabel = null!;
+    private Label _promptNavCountLabel = null!;
+    private Label _promptNavScriptLabel = null!;
+    private Label _promptNavVisualLabel = null!;
+    private Label _promptNavDescLabel = null!;
+    private Label _promptNavPromptsLabel = null!;
+    private Button _promptNavCopyBtn = null!;
+    private Button _promptNavPrevBtn = null!;
+    private Button _promptNavNextBtn = null!;
+    private Button _promptNavCloseBtn = null!;
+    private Button _promptNavMarkDoneBtn = null!;
+    private EventHandler? _promptNavPrevHandler;
+    private EventHandler? _promptNavNextHandler;
+    private EventHandler? _promptNavCopyHandler;
+    private EventHandler? _promptNavMarkDoneHandler;
+    private EventHandler? _promptNavCloseHandler;
+
     private readonly List<(StoryLine Line, VisualShot Shot, List<VisualShot> AllShots)> _allClips = new();
     private int _currentClipIndex = -1;
-    private int _copyNextIndex = -1;
-    private List<int> _nonSetupClipIndices = new();
+    private int _promptNavIndex = -1;
+    private List<int> _promptNavClipIndices = new();
 
     public ClipsCreationPage(AuthService auth, StoryProductionService storyService)
     {
@@ -131,7 +149,7 @@ public class ClipsCreationPage : ContentPage
             Padding = new Thickness(16, 0),
             HorizontalOptions = LayoutOptions.Start
         };
-        copyNextPromptBtn.Clicked += async (_, _) => await CopyNextClipPromptAsync();
+        copyNextPromptBtn.Clicked += async (_, _) => await OpenPromptNavigatorAsync();
         topStack.Children.Add(copyNextPromptBtn);
 
         var columnsGrid = new Grid
@@ -165,6 +183,7 @@ public class ClipsCreationPage : ContentPage
         columnsGrid.Children.Add(rightScroll);
 
         BuildNavigator();
+        BuildPromptNavigator();
 
         var rootStack = new VerticalStackLayout { Children = { topStack, columnsGrid } };
         Content = new Grid { Children = { new ScrollView { Content = rootStack, VerticalOptions = LayoutOptions.Fill } } };
@@ -216,8 +235,8 @@ public class ClipsCreationPage : ContentPage
             shot.Done = e.Value;
             try { await _storyService.SaveShotsAsync(line, allShots); }
             catch { }
-            _copyNextIndex = -1;
-            _nonSetupClipIndices.Clear();
+            _promptNavIndex = -1;
+            _promptNavClipIndices.Clear();
         };
         _navigatorDoneLabel = new Label
         {
@@ -256,6 +275,81 @@ public class ClipsCreationPage : ContentPage
             }
         };
     }
+
+    private void BuildPromptNavigator()
+    {
+        _promptNavTitleLabel = new Label { FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), LineBreakMode = LineBreakMode.WordWrap };
+        _promptNavCountLabel = new Label { FontSize = 11, TextColor = Color.FromArgb("#888") };
+        _promptNavScriptLabel = PromptNavLabel(12, "#333");
+        _promptNavVisualLabel = PromptNavLabel(12, "#555");
+        _promptNavDescLabel = PromptNavLabel(12, "#666", FontAttributes.Italic);
+        _promptNavPromptsLabel = PromptNavLabel(10, "#999");
+
+        _promptNavCopyBtn = MakePromptNavButton("\U0001F4CB Copy Prompt", "#1565C0", "#FFFFFF", 40, true);
+        _promptNavMarkDoneBtn = MakePromptNavButton("\u2705 Mark Done & Next", "#4CAF50", "#FFFFFF");
+        _promptNavPrevBtn = MakePromptNavButton("\u25C0 Back", "#E0E0E0", "#333333");
+        _promptNavNextBtn = MakePromptNavButton("Skip \u25B6", "#FF9800", "#FFFFFF");
+        _promptNavCloseBtn = MakePromptNavButton("Close", "#9E9E9E", "#FFFFFF");
+
+        var navRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
+        navRow.Children.Add(_promptNavPrevBtn);
+        navRow.Children.Add(_promptNavCloseBtn);
+        navRow.Children.Add(_promptNavNextBtn);
+
+        var actionRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
+        actionRow.Children.Add(_promptNavCopyBtn);
+        actionRow.Children.Add(_promptNavMarkDoneBtn);
+
+        var promptContent = new VerticalStackLayout { Spacing = 8 };
+        promptContent.Children.Add(_promptNavScriptLabel);
+        promptContent.Children.Add(_promptNavVisualLabel);
+        promptContent.Children.Add(_promptNavDescLabel);
+        promptContent.Children.Add(_promptNavPromptsLabel);
+
+        var frameContent = new VerticalStackLayout { Spacing = 10 };
+        frameContent.Children.Add(_promptNavTitleLabel);
+        frameContent.Children.Add(_promptNavCountLabel);
+        frameContent.Children.Add(new BoxView { HeightRequest = 1, Color = Color.FromArgb("#E0E0E0") });
+        frameContent.Children.Add(new ScrollView { MaximumHeightRequest = 250, Content = promptContent });
+        frameContent.Children.Add(new BoxView { HeightRequest = 1, Color = Color.FromArgb("#E0E0E0") });
+        frameContent.Children.Add(actionRow);
+        frameContent.Children.Add(navRow);
+
+        _promptNavFrame = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#1565C0"),
+            HasShadow = true,
+            IsVisible = false,
+            WidthRequest = 560,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = frameContent
+        };
+    }
+
+    private static Label PromptNavLabel(double size, string color, FontAttributes attributes = FontAttributes.None) => new()
+    {
+        FontSize = size,
+        TextColor = Color.FromArgb(color),
+        FontAttributes = attributes,
+        LineBreakMode = LineBreakMode.WordWrap,
+        IsVisible = false
+    };
+
+    private static Button MakePromptNavButton(string text, string background, string foreground, double height = 36, bool bold = false) => new()
+    {
+        Text = text,
+        BackgroundColor = Color.FromArgb(background),
+        TextColor = Color.FromArgb(foreground),
+        CornerRadius = 8,
+        HeightRequest = height,
+        FontSize = bold ? 13 : 12,
+        FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None,
+        Padding = new Thickness(bold ? 16 : 12, 0)
+    };
 
     private static Button MakeNavigatorButton(string text, string background, string foreground) => new()
     {
@@ -381,121 +475,158 @@ public class ClipsCreationPage : ContentPage
         }
 
         await DisplayAlert("Done", $"Marked {marked} empty clip(s) as done.", "OK");
-        _copyNextIndex = -1;
-        _nonSetupClipIndices.Clear();
+        _promptNavIndex = -1;
+        _promptNavClipIndices.Clear();
         await LoadClipsAsync();
     }
 
-    private async Task CopyNextClipPromptAsync()
+    private async Task OpenPromptNavigatorAsync()
     {
-        var project = _selector.CurrentProject;
-        if (project == null || _allClips.Count == 0)
+        if (_allClips.Count == 0)
         {
             await DisplayAlert("No Clips", "Select a project with clips first.", "OK");
             return;
         }
 
-        if (_copyNextIndex < 0)
-        {
-            _nonSetupClipIndices = Enumerable.Range(0, _allClips.Count)
-                .Where(i => !_allClips[i].Shot.Done)
-                .ToList();
-            _copyNextIndex = 0;
-        }
-
-        if (_nonSetupClipIndices.Count == 0)
+        _promptNavClipIndices = Enumerable.Range(0, _allClips.Count).Where(i => !_allClips[i].Shot.Done).ToList();
+        if (_promptNavClipIndices.Count == 0)
         {
             await DisplayAlert("All Done", "All clips are already marked as setup complete.", "OK");
             return;
         }
 
-        if (_copyNextIndex >= _nonSetupClipIndices.Count)
+        _promptNavIndex = 0;
+        DisplayPromptNavClip();
+        if (Content is not Grid rootGrid) return;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var blockTap = new TapGestureRecognizer();
+        blockTap.Tapped += (_, _) => { };
+        _promptNavFrame.GestureRecognizers.Clear();
+        _promptNavFrame.GestureRecognizers.Add(blockTap);
+        overlay.Children.Add(_promptNavFrame);
+        _promptNavFrame.IsVisible = true;
+
+        ReplaceHandler(_promptNavPrevBtn, ref _promptNavPrevHandler, (_, _) =>
         {
-            await DisplayAlert("Sequence Complete",
-                $"All {_nonSetupClipIndices.Count} clip prompts have been copied.\n\nRestart?",
-                "OK");
-            _copyNextIndex = -1;
+            if (_promptNavIndex > 0) { _promptNavIndex--; DisplayPromptNavClip(); }
+        });
+        ReplaceHandler(_promptNavNextBtn, ref _promptNavNextHandler, (_, _) =>
+        {
+            if (_promptNavIndex < _promptNavClipIndices.Count - 1) { _promptNavIndex++; DisplayPromptNavClip(); }
+        });
+        ReplaceHandler(_promptNavCopyBtn, ref _promptNavCopyHandler, async (_, _) => await CopyCurrentPromptToClipboardAsync());
+        ReplaceHandler(_promptNavMarkDoneBtn, ref _promptNavMarkDoneHandler, async (_, _) => await MarkCurrentPromptDoneAndAdvanceAsync(rootGrid, overlay));
+        ReplaceHandler(_promptNavCloseBtn, ref _promptNavCloseHandler, async (_, _) =>
+        {
+            rootGrid.Children.Remove(overlay);
+            _promptNavFrame.IsVisible = false;
+            await LoadClipsAsync();
+        });
+        rootGrid.Children.Add(overlay);
+    }
+
+    private static void ReplaceHandler(Button button, ref EventHandler? current, EventHandler replacement)
+    {
+        if (current != null) button.Clicked -= current;
+        current = replacement;
+        button.Clicked += current;
+    }
+
+    private void DisplayPromptNavClip()
+    {
+        if (_promptNavIndex < 0 || _promptNavIndex >= _promptNavClipIndices.Count) return;
+        int clipIndex = _promptNavClipIndices[_promptNavIndex];
+        var (line, shot, _) = _allClips[clipIndex];
+        string projectName = GetCurrentRootProjectName();
+
+        _promptNavTitleLabel.Text = $"{projectName}\nLine {line.LineOrder} — Clip {shot.Index}";
+        _promptNavCountLabel.Text = $"Clip {_promptNavIndex + 1} of {_promptNavClipIndices.Count} not setup";
+        SetPromptLabel(_promptNavScriptLabel, line.LineText, "\U0001F4DD Narration:\n");
+        SetPromptLabel(_promptNavVisualLabel, line.VisualDescription, "\U0001F3A8 Visual:\n");
+        SetPromptLabel(_promptNavDescLabel, shot.Description, "\U0001F3AC Clip: ");
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(shot.ImagePrompt)) parts.Add($"Image: {Preview(shot.ImagePrompt)}");
+        if (!string.IsNullOrWhiteSpace(shot.VideoPrompt)) parts.Add($"Video: {Preview(shot.VideoPrompt)}");
+        if (parts.Count == 0 && !string.IsNullOrWhiteSpace(line.ImagePrompt)) parts.Add($"Line image: {Preview(line.ImagePrompt)}");
+        if (parts.Count == 0 && !string.IsNullOrWhiteSpace(line.VideoPrompt)) parts.Add($"Line video: {Preview(line.VideoPrompt)}");
+        _promptNavPromptsLabel.Text = string.Join("\n", parts);
+        _promptNavPromptsLabel.IsVisible = parts.Count > 0;
+
+        _promptNavPrevBtn.IsEnabled = _promptNavIndex > 0;
+        _promptNavNextBtn.IsEnabled = _promptNavIndex < _promptNavClipIndices.Count - 1;
+        _promptNavMarkDoneBtn.IsEnabled = true;
+    }
+
+    private static void SetPromptLabel(Label label, string value, string prefix)
+    {
+        label.IsVisible = !string.IsNullOrWhiteSpace(value);
+        if (label.IsVisible) label.Text = prefix + value;
+    }
+
+    private static string Preview(string value) => value.Length > 60 ? value[..60] + "..." : value;
+
+    private string GetCurrentRootProjectName()
+    {
+        var project = _selector.CurrentProject;
+        int rootId = project?.ParentProjectId ?? project?.Id ?? 0;
+        return _selector.AllOriginalProjects.FirstOrDefault(p => p.Id == rootId)?.Name ?? project?.Name ?? "Project";
+    }
+
+    private async Task CopyCurrentPromptToClipboardAsync()
+    {
+        if (_promptNavIndex < 0 || _promptNavIndex >= _promptNavClipIndices.Count) return;
+        var (line, shot, _) = _allClips[_promptNavClipIndices[_promptNavIndex]];
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"PROJECT: {GetCurrentRootProjectName()}");
+        sb.AppendLine($"LINE {line.LineOrder} — CLIP {shot.Index}");
+        sb.AppendLine();
+        AppendPromptSection(sb, "NARRATION:", line.LineText);
+        AppendPromptSection(sb, "VISUAL DESCRIPTION:", line.VisualDescription);
+        AppendPromptSection(sb, "CLIP DESCRIPTION:", shot.Description);
+        AppendPromptSection(sb, "IMAGE PROMPT:", shot.ImagePrompt);
+        AppendPromptSection(sb, "VIDEO PROMPT:", shot.VideoPrompt);
+        if (string.IsNullOrWhiteSpace(shot.ImagePrompt)) AppendPromptSection(sb, "LINE-LEVEL IMAGE PROMPT (use as reference):", line.ImagePrompt);
+        if (string.IsNullOrWhiteSpace(shot.VideoPrompt)) AppendPromptSection(sb, "LINE-LEVEL VIDEO PROMPT (use as reference):", line.VideoPrompt);
+        sb.AppendLine("TASK:");
+        sb.AppendLine("Generate the starting frame image for this clip. The image should capture the exact visual described above as a single cinematic still frame suitable for video generation.");
+        await Clipboard.SetTextAsync(sb.ToString());
+        _promptNavCopyBtn.Text = "\u2705 Copied!";
+        _promptNavCopyBtn.BackgroundColor = Color.FromArgb("#4CAF50");
+        await Task.Delay(1500);
+        _promptNavCopyBtn.Text = "\U0001F4CB Copy Prompt";
+        _promptNavCopyBtn.BackgroundColor = Color.FromArgb("#1565C0");
+    }
+
+    private static void AppendPromptSection(System.Text.StringBuilder builder, string heading, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        builder.AppendLine(heading);
+        builder.AppendLine(value);
+        builder.AppendLine();
+    }
+
+    private async Task MarkCurrentPromptDoneAndAdvanceAsync(Grid rootGrid, Grid overlay)
+    {
+        if (_promptNavIndex < 0 || _promptNavIndex >= _promptNavClipIndices.Count) return;
+        var (line, shot, allShots) = _allClips[_promptNavClipIndices[_promptNavIndex]];
+        shot.Done = true;
+        try { await _storyService.SaveShotsAsync(line, allShots); }
+        catch { }
+        _promptNavClipIndices.RemoveAt(_promptNavIndex);
+
+        if (_promptNavClipIndices.Count == 0)
+        {
+            rootGrid.Children.Remove(overlay);
+            _promptNavFrame.IsVisible = false;
+            await LoadClipsAsync();
+            await DisplayAlert("All Done!", "All clips have been set up.", "OK");
             return;
         }
 
-        int clipIndex = _nonSetupClipIndices[_copyNextIndex];
-        var line = _allClips[clipIndex].Line;
-        var shot = _allClips[clipIndex].Shot;
-
-        int rootId = project.ParentProjectId ?? project.Id;
-        var rootProject = _selector.AllOriginalProjects.FirstOrDefault(p => p.Id == rootId);
-        string projectName = rootProject?.Name ?? project.Name;
-
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"PROJECT: {projectName}");
-        sb.AppendLine($"LINE {line.LineOrder} — CLIP {shot.Index}");
-        sb.AppendLine();
-
-        if (!string.IsNullOrWhiteSpace(line.LineText))
-        {
-            sb.AppendLine("NARRATION:");
-            sb.AppendLine(line.LineText);
-            sb.AppendLine();
-        }
-
-        if (!string.IsNullOrWhiteSpace(line.VisualDescription))
-        {
-            sb.AppendLine("VISUAL DESCRIPTION:");
-            sb.AppendLine(line.VisualDescription);
-            sb.AppendLine();
-        }
-
-        if (!string.IsNullOrWhiteSpace(shot.Description))
-        {
-            sb.AppendLine("CLIP DESCRIPTION:");
-            sb.AppendLine(shot.Description);
-            sb.AppendLine();
-        }
-
-        if (!string.IsNullOrWhiteSpace(shot.ImagePrompt))
-        {
-            sb.AppendLine("EXISTING IMAGE PROMPT:");
-            sb.AppendLine(shot.ImagePrompt);
-            sb.AppendLine();
-        }
-
-        if (!string.IsNullOrWhiteSpace(shot.VideoPrompt))
-        {
-            sb.AppendLine("EXISTING VIDEO PROMPT:");
-            sb.AppendLine(shot.VideoPrompt);
-            sb.AppendLine();
-        }
-
-        if (!string.IsNullOrWhiteSpace(line.ImagePrompt) && string.IsNullOrWhiteSpace(shot.ImagePrompt))
-        {
-            sb.AppendLine("LINE-LEVEL IMAGE PROMPT (use as reference):");
-            sb.AppendLine(line.ImagePrompt);
-            sb.AppendLine();
-        }
-
-        if (!string.IsNullOrWhiteSpace(line.VideoPrompt) && string.IsNullOrWhiteSpace(shot.VideoPrompt))
-        {
-            sb.AppendLine("LINE-LEVEL VIDEO PROMPT (use as reference):");
-            sb.AppendLine(line.VideoPrompt);
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("TASK:");
-        sb.AppendLine("Generate the starting frame image for this clip. The image should capture the exact visual described above as a single cinematic still frame suitable for video generation.");
-        sb.AppendLine();
-        sb.AppendLine("After generating, I will use this image as the starting frame for AI video generation (Luma/Runway) to create the motion clip.");
-
-        await Clipboard.SetTextAsync(sb.ToString());
-        int remaining = _nonSetupClipIndices.Count - _copyNextIndex - 1;
-        await DisplayAlert(
-            "Clip Prompt Copied",
-            $"Copied prompt for Line {line.LineOrder}, Clip {shot.Index}.\n\n" +
-            $"Clip {_copyNextIndex + 1} of {_nonSetupClipIndices.Count} ({remaining} remaining).\n\n" +
-            $"Create a conversation in your ChatGPT project \"{projectName}\" and paste this prompt.\n\n" +
-            "Tap Copy Next Clip Prompt again for the next one.",
-            "OK");
-
-        _copyNextIndex++;
+        if (_promptNavIndex >= _promptNavClipIndices.Count) _promptNavIndex = _promptNavClipIndices.Count - 1;
+        DisplayPromptNavClip();
     }
 
     private void HighlightCurrentClipCard()
@@ -509,8 +640,8 @@ public class ClipsCreationPage : ContentPage
 
     private async Task OnProjectSelectedAsync(StoryProject project)
     {
-        _copyNextIndex = -1;
-        _nonSetupClipIndices.Clear();
+        _promptNavIndex = -1;
+        _promptNavClipIndices.Clear();
         await LoadClipsAsync();
     }
 
@@ -531,8 +662,8 @@ public class ClipsCreationPage : ContentPage
         _linesContainer.Children.Clear();
         _clipsContainer.Children.Clear();
         _allClips.Clear();
-        _copyNextIndex = -1;
-        _nonSetupClipIndices.Clear();
+        _promptNavIndex = -1;
+        _promptNavClipIndices.Clear();
     }
 
     private async Task LoadClipsAsync()
@@ -607,8 +738,8 @@ public class ClipsCreationPage : ContentPage
                     capturedShotForDone.Done = e.Value;
                     try { await _storyService.SaveShotsAsync(capturedLineForDone, capturedShotsForDone); }
                     catch { }
-                    _copyNextIndex = -1;
-                    _nonSetupClipIndices.Clear();
+                    _promptNavIndex = -1;
+                    _promptNavClipIndices.Clear();
                     await LoadClipsAsync();
                 };
                 var cardDoneRow = new HorizontalStackLayout { Spacing = 4 };
