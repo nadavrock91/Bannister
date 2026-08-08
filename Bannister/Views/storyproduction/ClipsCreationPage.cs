@@ -724,6 +724,8 @@ public class ClipsCreationPage : ContentPage
                 cardDoneCheckbox.CheckedChanged += async (_, e) =>
                 {
                     capturedShotForDone.Done = e.Value;
+                    if (e.Value && !capturedShotForDone.HasChatGptProject)
+                        capturedShotForDone.HasChatGptProject = true;
                     try { await _storyService.SaveShotsAsync(capturedLineForDone, capturedShotsForDone); }
                     catch { }
                     _promptNavIndex = -1;
@@ -740,16 +742,37 @@ public class ClipsCreationPage : ContentPage
                     VerticalOptions = LayoutOptions.Center
                 });
                 clipStack.Children.Add(cardDoneRow);
-                if (shot.HasChatGptProject)
+
+                var cardChatGptCheckbox = new CheckBox
                 {
-                    clipStack.Children.Add(new Label
-                    {
-                        Text = "\U0001F4AC ChatGPT",
-                        FontSize = 9,
-                        TextColor = Color.FromArgb("#1565C0"),
-                        FontAttributes = FontAttributes.Bold
-                    });
-                }
+                    IsChecked = shot.HasChatGptProject,
+                    Color = Color.FromArgb("#1565C0"),
+                    Scale = 0.7,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                var capturedShotForChatGpt = shot;
+                var capturedLineForChatGpt = line;
+                var capturedShotsForChatGpt = shots;
+                cardChatGptCheckbox.CheckedChanged += async (_, e) =>
+                {
+                    capturedShotForChatGpt.HasChatGptProject = e.Value;
+                    try { await _storyService.SaveShotsAsync(capturedLineForChatGpt, capturedShotsForChatGpt); }
+                    catch { }
+                    _promptNavIndex = -1;
+                    _promptNavClipIndices.Clear();
+                    await LoadClipsAsync();
+                };
+
+                var cardChatGptRow = new HorizontalStackLayout { Spacing = 4 };
+                cardChatGptRow.Children.Add(cardChatGptCheckbox);
+                cardChatGptRow.Children.Add(new Label
+                {
+                    Text = "\U0001F4AC ChatGPT",
+                    FontSize = 9,
+                    TextColor = Color.FromArgb("#1565C0"),
+                    VerticalOptions = LayoutOptions.Center
+                });
+                clipStack.Children.Add(cardChatGptRow);
                 clipFrame.Content = clipStack;
 
                 var capturedLine = line;
