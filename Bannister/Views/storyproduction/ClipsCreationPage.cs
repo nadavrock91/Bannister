@@ -8,8 +8,7 @@ public class ClipsCreationPage : ContentPage
     private readonly StoryProductionService _storyService;
     private readonly StoryProjectSelector _selector;
 
-    private VerticalStackLayout _linesContainer = null!;
-    private VerticalStackLayout _clipsContainer = null!;
+    private Grid _alignedGrid = null!;
     private Label _clipsHeaderLabel = null!;
     private Label _linesHeaderLabel = null!;
 
@@ -152,7 +151,10 @@ public class ClipsCreationPage : ContentPage
         copyNextPromptBtn.Clicked += async (_, _) => await OpenPromptNavigatorAsync();
         topStack.Children.Add(copyNextPromptBtn);
 
-        var columnsGrid = new Grid
+        _linesHeaderLabel = new Label { Text = "Lines", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), Margin = new Thickness(0, 0, 0, 4) };
+        _clipsHeaderLabel = new Label { Text = "Clips", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), Margin = new Thickness(0, 0, 0, 4) };
+
+        var headersGrid = new Grid
         {
             ColumnDefinitions =
             {
@@ -160,33 +162,32 @@ public class ClipsCreationPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Star }
             },
             ColumnSpacing = 12,
-            Padding = new Thickness(20, 0, 20, 20),
-            RowDefinitions = { new RowDefinition { Height = GridLength.Star } }
+            Padding = new Thickness(20, 0, 20, 0)
         };
+        Grid.SetColumn(_linesHeaderLabel, 0);
+        headersGrid.Children.Add(_linesHeaderLabel);
+        Grid.SetColumn(_clipsHeaderLabel, 1);
+        headersGrid.Children.Add(_clipsHeaderLabel);
+        topStack.Children.Add(headersGrid);
 
-        _linesHeaderLabel = new Label { Text = "Lines", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), Margin = new Thickness(0, 0, 0, 4) };
-        _linesContainer = new VerticalStackLayout { Spacing = 8 };
-        var leftStack = new VerticalStackLayout { Spacing = 4 };
-        leftStack.Children.Add(_linesHeaderLabel);
-        leftStack.Children.Add(_linesContainer);
-        var leftScroll = new ScrollView { Content = leftStack };
-        Grid.SetColumn(leftScroll, 0);
-        columnsGrid.Children.Add(leftScroll);
-
-        _clipsHeaderLabel = new Label { Text = "Clips", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), Margin = new Thickness(0, 0, 0, 4) };
-        _clipsContainer = new VerticalStackLayout { Spacing = 8 };
-        var rightStack = new VerticalStackLayout { Spacing = 4 };
-        rightStack.Children.Add(_clipsHeaderLabel);
-        rightStack.Children.Add(_clipsContainer);
-        var rightScroll = new ScrollView { Content = rightStack };
-        Grid.SetColumn(rightScroll, 1);
-        columnsGrid.Children.Add(rightScroll);
+        _alignedGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 12,
+            RowSpacing = 8,
+            Padding = new Thickness(20, 0, 20, 20)
+        };
+        var contentScroll = new ScrollView { Content = _alignedGrid, VerticalOptions = LayoutOptions.Fill };
 
         BuildNavigator();
         BuildPromptNavigator();
 
-        var rootStack = new VerticalStackLayout { Children = { topStack, columnsGrid } };
-        Content = new Grid { Children = { new ScrollView { Content = rootStack, VerticalOptions = LayoutOptions.Fill } } };
+        var rootStack = new VerticalStackLayout { Children = { topStack, contentScroll } };
+        Content = new Grid { Children = { rootStack } };
     }
 
     private void BuildNavigator()
@@ -619,10 +620,13 @@ public class ClipsCreationPage : ContentPage
 
     private void HighlightCurrentClipCard()
     {
-        foreach (var child in _clipsContainer.Children)
+        foreach (var stack in _alignedGrid.Children.OfType<VerticalStackLayout>())
         {
-            if (child is Frame frame && frame.BindingContext is int index)
-                frame.BorderColor = index == _currentClipIndex ? Color.FromArgb("#1565C0") : Color.FromArgb("#E0E0E0");
+            foreach (var frame in stack.Children.OfType<Frame>())
+            {
+                if (frame.BindingContext is int index)
+                    frame.BorderColor = index == _currentClipIndex ? Color.FromArgb("#1565C0") : Color.FromArgb("#E0E0E0");
+            }
         }
     }
 
@@ -647,8 +651,8 @@ public class ClipsCreationPage : ContentPage
         _selector.SeriesBtn.IsVisible = false;
         _selector.WritingProcessBtn.IsVisible = false;
         _selector.HideDraftControls();
-        _linesContainer.Children.Clear();
-        _clipsContainer.Children.Clear();
+        _alignedGrid.Children.Clear();
+        _alignedGrid.RowDefinitions.Clear();
         _allClips.Clear();
         _promptNavIndex = -1;
         _promptNavClipIndices.Clear();
@@ -659,24 +663,30 @@ public class ClipsCreationPage : ContentPage
         var project = _selector.CurrentProject;
         if (project == null) return;
         var lines = await _storyService.GetLinesAsync(project.Id);
-        _linesContainer.Children.Clear();
-        _clipsContainer.Children.Clear();
+        _alignedGrid.Children.Clear();
+        _alignedGrid.RowDefinitions.Clear();
         _allClips.Clear();
 
         if (lines.Count == 0)
         {
-            _linesContainer.Children.Add(new Label { Text = "No lines in this draft yet.", FontSize = 13, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
+            _alignedGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var emptyLabel = new Label { Text = "No lines in this draft yet.", FontSize = 13, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic };
+            Grid.SetColumn(emptyLabel, 0);
+            Grid.SetColumnSpan(emptyLabel, 2);
+            _alignedGrid.Children.Add(emptyLabel);
             return;
         }
 
         int totalShots = 0, completedShots = 0;
+        int row = 0;
         foreach (var line in lines)
         {
             var shots = _storyService.GetShots(line);
             totalShots += shots.Count;
             completedShots += shots.Count(s => s.Done);
+            _alignedGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var lineFrame = new Frame { Padding = 10, CornerRadius = 8, BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false };
+            var lineFrame = new Frame { Padding = 10, CornerRadius = 8, BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false, VerticalOptions = LayoutOptions.Start };
             var lineStack = new VerticalStackLayout { Spacing = 4 };
             string preview = string.IsNullOrWhiteSpace(line.LineText) ? "[VISUAL]" : line.LineText.Length > 80 ? line.LineText[..80] + "..." : line.LineText;
             lineStack.Children.Add(new Label { Text = $"Line {line.LineOrder}", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
@@ -687,7 +697,11 @@ public class ClipsCreationPage : ContentPage
                 lineStack.Children.Add(new Label { Text = $"{lineDone}/{shots.Count} clips", FontSize = 10, TextColor = lineDone == shots.Count ? Color.FromArgb("#2E7D32") : Color.FromArgb("#F57C00") });
             }
             lineFrame.Content = lineStack;
-            _linesContainer.Children.Add(lineFrame);
+            Grid.SetColumn(lineFrame, 0);
+            Grid.SetRow(lineFrame, row);
+            _alignedGrid.Children.Add(lineFrame);
+
+            var clipsStack = new VerticalStackLayout { Spacing = 6, VerticalOptions = LayoutOptions.Start };
 
             foreach (var shot in shots)
             {
@@ -786,8 +800,24 @@ public class ClipsCreationPage : ContentPage
                     await Navigation.PushAsync(clipPage);
                 };
                 clipFrame.GestureRecognizers.Add(tap);
-                _clipsContainer.Children.Add(clipFrame);
+                clipsStack.Children.Add(clipFrame);
             }
+
+            if (shots.Count == 0)
+            {
+                clipsStack.Children.Add(new Label
+                {
+                    Text = "(no clips)",
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#999"),
+                    FontAttributes = FontAttributes.Italic
+                });
+            }
+
+            Grid.SetColumn(clipsStack, 1);
+            Grid.SetRow(clipsStack, row);
+            _alignedGrid.Children.Add(clipsStack);
+            row++;
         }
 
         int percent = totalShots > 0 ? (int)Math.Round(100.0 * completedShots / totalShots) : 0;
