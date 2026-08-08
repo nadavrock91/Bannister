@@ -263,6 +263,7 @@ Output ONLY the C# code block.
     private readonly Button _pasteTaskPlanButton;
     private readonly Button _cleanTaskPlanButton;
     private readonly Button _cancelWorkflowButton;
+    private readonly Button _skipStepButton;
     private readonly Button _copyCodexPromptButton;
     private readonly Button _pasteCodexResultButton;
     private readonly Button _editTaskTitleButton;
@@ -591,6 +592,18 @@ Output ONLY the C# code block.
             IsVisible = false
         };
         _cleanTaskPlanButton.Clicked += async (_, _) => await ShowCleanTaskPlanAsync();
+
+        _skipStepButton = new Button
+        {
+            Text = "Skip Step ▶",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13,
+            IsVisible = false
+        };
+        _skipStepButton.Clicked += async (_, _) => await SkipCurrentStepAsync();
 
         _cancelWorkflowButton = new Button
         {
@@ -1002,6 +1015,7 @@ Output ONLY the C# code block.
                     _verifyCodexOutputButton,
                     _verifyDeploymentButton,
                     _deploymentFailedButton,
+                    _skipStepButton,
                     _cancelWorkflowButton
                 }
             }
@@ -2174,6 +2188,7 @@ Output ONLY the C# code block.
         _pasteTaskPlanButton.IsVisible = false;
         _cleanTaskPlanButton.IsVisible = false;
         _cancelWorkflowButton.IsVisible = false;
+        _skipStepButton.IsVisible = false;
         _copyCodexPromptButton.IsVisible = false;
         _pasteCodexResultButton.IsVisible = false;
         _editTaskTitleButton.IsVisible = false;
@@ -2194,6 +2209,7 @@ Output ONLY the C# code block.
                     "Paste the prompt into Claude/ChatGPT, then tap Paste Task Plan with the response.");
                 _pasteTaskPlanButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
+                _skipStepButton.IsVisible = true;
                 break;
 
             case WebsiteWorkflowState.ReadyToExecute:
@@ -2205,6 +2221,7 @@ Output ONLY the C# code block.
                 _editTaskTitleButton.IsVisible = true;
                 _editCodexPromptButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
+                _skipStepButton.IsVisible = true;
                 break;
 
             case WebsiteWorkflowState.ReadyToCommit:
@@ -2218,6 +2235,7 @@ Output ONLY the C# code block.
                 _editTaskTitleButton.IsVisible = true;
                 _verifyCodexOutputButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
+                _skipStepButton.IsVisible = true;
                 break;
 
             case WebsiteWorkflowState.VerifyDeployment:
@@ -2232,6 +2250,7 @@ Output ONLY the C# code block.
                 _deploymentFailedButton.IsVisible = true;
                 _verifyCodexOutputButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
+                _skipStepButton.IsVisible = true;
                 break;
 
             default:
@@ -2240,6 +2259,7 @@ Output ONLY the C# code block.
                 _batchSectionFrame.IsVisible = true;
                 _missingSectionFrame.IsVisible = true;
                 _stuckAnalysisStepRow.IsVisible = _ownerDevSection.IsVisible;
+                _skipStepButton.IsVisible = false;
                 break;
         }
 
@@ -3989,6 +4009,54 @@ Output ONLY the C# code block.
                 await RefreshCurrentProjectAsync();
                 await DisplayAlert("Task plan parsed", "Task plan parsed. Bannister extracted the task title and the Codex prompt. Tap Copy Codex Prompt to put just the Codex prompt on your clipboard, then paste into Codex CLI.", "OK");
             }
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+        }
+    }
+
+    private async Task SkipCurrentStepAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null)
+            return;
+
+        int currentState = project.WorkflowState;
+        int nextState = currentState switch
+        {
+            1 => 2,
+            2 => 3,
+            3 => 4,
+            4 => 0,
+            _ => -1
+        };
+
+        if (nextState < 0)
+            return;
+
+        string stepName = currentState switch
+        {
+            1 => "Waiting for LLM response",
+            2 => "Ready to execute in Codex",
+            3 => "Ready to commit",
+            4 => "Verify deployment",
+            _ => "current step"
+        };
+
+        bool confirm = await DisplayAlert(
+            "Skip Step?",
+            $"Skip \"{stepName}\" and advance to the next step?\n\nUse this when you have already completed this step outside of Bannister.",
+            "Skip",
+            "Cancel");
+
+        if (!confirm)
+            return;
+
+        try
+        {
+            if (await _projectService.SetWorkflowStateAsync(project.Id, nextState))
+                await RefreshCurrentProjectAsync();
         }
         catch (ReadOnlyDatabaseException)
         {
