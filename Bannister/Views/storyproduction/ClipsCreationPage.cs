@@ -355,7 +355,7 @@ public class ClipsCreationPage : ContentPage
         _promptNavPrevBtn = MakePromptNavButton("\u25C0 Back", "#E0E0E0", "#333333");
         _promptNavNextBtn = MakePromptNavButton("Skip \u25B6", "#FF9800", "#FFFFFF");
         _promptNavCloseBtn = MakePromptNavButton("Close", "#9E9E9E", "#FFFFFF");
-        _promptNavDoneNextBtn = MakePromptNavButton("\u2705 Done & Next", "#4CAF50", "#FFFFFF");
+        _promptNavDoneNextBtn = MakePromptNavButton("\U0001F4AC ChatGPT & Next", "#1565C0", "#FFFFFF");
         _promptNavNextNotDoneBtn = MakePromptNavButton("Next Not Done \u25B6", "#FF9800", "#FFFFFF");
 
         var navRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
@@ -740,8 +740,7 @@ public class ClipsCreationPage : ContentPage
     {
         if (_promptNavIndex < 0 || _promptNavIndex >= _promptNavClipIndices.Count) return;
         var (line, shot, allShots) = _allClips[_promptNavClipIndices[_promptNavIndex]];
-        shot.Done = true;
-        if (!shot.HasChatGptProject) shot.HasChatGptProject = true;
+        shot.HasChatGptProject = true;
         try { await _storyService.SaveShotsAsync(line, allShots); }
         catch { }
         _promptNavClipIndices.RemoveAt(_promptNavIndex);
@@ -751,7 +750,7 @@ public class ClipsCreationPage : ContentPage
             rootGrid.Children.Remove(overlay);
             _promptNavFrame.IsVisible = false;
             await LoadClipsAsync();
-            await DisplayAlert("All Done!", "All clips are done.", "OK");
+            await DisplayAlert("All Done!", "All clips have ChatGPT projects.", "OK");
             return;
         }
 
