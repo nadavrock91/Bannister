@@ -696,15 +696,16 @@ public class ClipsCreationPage : ContentPage
     {
         if (_promptNavIndex < 0 || _promptNavIndex >= _promptNavClipIndices.Count) return;
         int clipIndex = _promptNavClipIndices[_promptNavIndex];
-        var (_, shot, _) = _allClips[clipIndex];
-        string clipText = shot.Description?.Trim() ?? "";
+        var (line, shot, _) = _allClips[clipIndex];
+        string description = shot.Description?.Trim() ?? "";
 
-        if (string.IsNullOrWhiteSpace(clipText))
+        if (string.IsNullOrWhiteSpace(description))
         {
             await DisplayAlert("No Description", "This clip has no description to copy.", "OK");
             return;
         }
 
+        string clipText = $"Line {line.LineOrder} Clip {shot.Index}: {description}";
         await Clipboard.SetTextAsync(clipText);
         _promptNavCopyBtn.Text = "\u2705 Copied!";
         _promptNavCopyBtn.BackgroundColor = Color.FromArgb("#4CAF50");
