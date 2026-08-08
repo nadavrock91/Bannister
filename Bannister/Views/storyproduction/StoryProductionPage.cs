@@ -19,7 +19,8 @@ public class StoryProductionPage : ContentPage
     private FloatingChecklist? _checklist;
     
     private Picker _projectCategoryPicker;
-    private Picker _projectPicker;
+    private Label _projectSelectLabel;
+    private Frame _projectSelectFrame;
     private Picker _draftPicker;
     private Label _draftLabel;
     private Label _currentDraftLabel;
@@ -273,14 +274,31 @@ public class StoryProductionPage : ContentPage
 
         var pickerRow = CreateWrappingRow();
         
-        _projectPicker = new Picker
+        _projectSelectLabel = new Label
         {
-            Title = "Choose a project...",
+            Text = "Choose a project...",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#999"),
+            VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.FillAndExpand,
-            BackgroundColor = Color.FromArgb("#F5F5F5")
+            Padding = new Thickness(12, 8),
+            LineBreakMode = LineBreakMode.TailTruncation
         };
-        _projectPicker.SelectedIndexChanged += OnProjectSelected;
-        pickerRow.Children.Add(_projectPicker);
+
+        _projectSelectFrame = new Frame
+        {
+            Padding = 0,
+            CornerRadius = 8,
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            BorderColor = Color.FromArgb("#DDD"),
+            HorizontalOptions = LayoutOptions.FillAndExpand,
+            Content = _projectSelectLabel
+        };
+
+        var projectSelectTap = new TapGestureRecognizer();
+        projectSelectTap.Tapped += async (_, _) => await ShowProjectPickerModalAsync();
+        _projectSelectFrame.GestureRecognizers.Add(projectSelectTap);
+        pickerRow.Children.Add(_projectSelectFrame);
         
         _addProjectBtn = new Button
         {
@@ -637,47 +655,37 @@ public class StoryProductionPage : ContentPage
             var categoryFiltered = FilterProjectsBySelectedCategory(_allOriginalProjects);
             _projects = FilterProjectsBySelectedWritingProcess(categoryFiltered);
             System.Diagnostics.Debug.WriteLine($"[STORY] Found {_projects.Count} original projects");
-            
-            _projectPicker.Items.Clear();
-            foreach (var project in _projects)
-            {
-                // Show status indicator for completed/published projects
-                string name = project.Name;
-                if (project.IsPublished) name += " ✓";
-                else if (project.Status == "completed") name += " (done)";
-                _projectPicker.Items.Add(name);
-            }
-            
+
             // Restore previous selection, or fall back to last used project
-            int targetId = _currentProject?.Id ?? 
+            int targetId = _currentProject?.Id ??
                 Preferences.Get($"StoryProd_LastProject_{_auth.CurrentUsername}", -1);
             System.Diagnostics.Debug.WriteLine($"[STORY] Target project ID: {targetId}");
 
-            // If target was a draft, find its parent
+            // If the target was a draft, restore its original project.
             if (targetId > 0)
             {
                 var targetProject = allProjects.FirstOrDefault(p => p.Id == targetId);
                 System.Diagnostics.Debug.WriteLine($"[STORY] Target project found: {targetProject?.Name ?? "NULL"}");
-                
+
                 if (targetProject?.ParentProjectId != null)
                 {
                     targetId = targetProject.ParentProjectId.Value;
                     System.Diagnostics.Debug.WriteLine($"[STORY] Using parent ID: {targetId}");
                 }
-                
-                var index = _projects.FindIndex(p => p.Id == targetId);
-                System.Diagnostics.Debug.WriteLine($"[STORY] Index in picker: {index}");
-                
-                if (index >= 0)
+
+                var found = _projects.FirstOrDefault(p => p.Id == targetId);
+                if (found != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[STORY] Setting picker index to {index}, this will trigger OnProjectSelected");
-                    _projectPicker.SelectedIndex = index;
-                    System.Diagnostics.Debug.WriteLine("[STORY] LoadProjectsAsync returning (OnProjectSelected will load selection)");
+                    await SelectProjectAsync(found);
                     return;
                 }
             }
-            
-            System.Diagnostics.Debug.WriteLine("[STORY] No project to select");
+
+            // No project to restore
+            _currentProject = null;
+            _projectSelectLabel.Text = "Choose a project...";
+            _projectSelectLabel.TextColor = Color.FromArgb("#999");
+            HideProjectControls();
         }
         catch (Exception ex)
         {
@@ -918,50 +926,376 @@ public class StoryProductionPage : ContentPage
         _selectedProjectCategory = _projectCategoryPicker.Items[_projectCategoryPicker.SelectedIndex];
         await SaveSelectedProjectCategoryAsync();
         _currentProject = null;
-        _projectPicker.SelectedIndex = -1;
+        _projectSelectLabel.Text = "Choose a project...";
+        _projectSelectLabel.TextColor = Color.FromArgb("#999");
         HideProjectControls();
         await LoadProjectsAsync();
     }
 
-    private async void OnProjectSelected(object? sender, EventArgs e)
+    private async Task SelectProjectAsync(StoryProject project)
     {
-        System.Diagnostics.Debug.WriteLine($"[STORY] OnProjectSelected START - SelectedIndex: {_projectPicker.SelectedIndex}");
-        
-        if (_projectPicker.SelectedIndex < 0 || _projectPicker.SelectedIndex >= _projects.Count)
-        {
-            System.Diagnostics.Debug.WriteLine("[STORY] Invalid index, hiding controls");
-            _currentProject = null;
-            HideProjectControls();
-            return;
-        }
-        
         try
         {
-            var selectedProject = _projects[_projectPicker.SelectedIndex];
-            System.Diagnostics.Debug.WriteLine($"[STORY] Selected project: {selectedProject.Name} (ID: {selectedProject.Id})");
-            
-            // Load drafts for this project
-            System.Diagnostics.Debug.WriteLine("[STORY] Loading drafts...");
-            await LoadDraftsAsync(selectedProject.Id);
-            System.Diagnostics.Debug.WriteLine($"[STORY] Drafts loaded, _currentProject: {_currentProject?.Name ?? "NULL"}");
-            
-            // LoadDraftsAsync will select latest and set _currentProject
+            _projectSelectLabel.Text = project.Name +
+                (project.IsPublished ? " ✓" : project.Status == "completed" ? " (done)" : "");
+            _projectSelectLabel.TextColor = Color.FromArgb("#333");
+
+            await LoadDraftsAsync(project.Id);
             ShowProjectControls();
 
-            // Remember last selected project
             if (_currentProject != null)
                 Preferences.Set($"StoryProd_LastProject_{_auth.CurrentUsername}", _currentProject.Id);
-            
-            System.Diagnostics.Debug.WriteLine("[STORY] Loading lines...");
+
             await LoadLinesAsync();
-            System.Diagnostics.Debug.WriteLine("[STORY] Lines loaded");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[STORY] OnProjectSelected ERROR: {ex.Message}\n{ex.StackTrace}");
             await DisplayAlert("Error", $"Failed to load project: {ex.Message}", "OK");
         }
-        System.Diagnostics.Debug.WriteLine("[STORY] OnProjectSelected END");
+    }
+
+    private async Task ShowProjectPickerModalAsync()
+    {
+        var tcs = new TaskCompletionSource<StoryProject?>();
+        var allProjects = new List<StoryProject>(_projects);
+        var filteredProjects = new List<StoryProject>(allProjects);
+        string currentSearch = "";
+        string currentCategory = "All";
+        string currentSort = "alpha_asc";
+
+        // Gather categories within the projects allowed by the external filters.
+        var categories = allProjects
+            .Select(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var card = new Frame
+        {
+            CornerRadius = 12,
+            Padding = 0,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            WidthRequest = 520,
+            MaximumHeightRequest = 650,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var cardStack = new VerticalStackLayout();
+
+        // Header
+        var header = new Frame
+        {
+            Padding = 16,
+            CornerRadius = 0,
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
+            BorderColor = Colors.Transparent
+        };
+        header.Content = new Label
+        {
+            Text = "Select Project",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White
+        };
+        cardStack.Children.Add(header);
+
+        // Search
+        var searchEntry = new Entry
+        {
+            Placeholder = "Search projects...",
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#333"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            Margin = new Thickness(12, 8, 12, 0),
+            HeightRequest = 38
+        };
+        cardStack.Children.Add(searchEntry);
+
+        // Filter/sort row
+        var filterRow = new HorizontalStackLayout
+        {
+            Spacing = 6,
+            Margin = new Thickness(12, 4, 12, 4)
+        };
+
+        var categoryBtn = new Button
+        {
+            Text = "Category: All",
+            FontSize = 10,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            CornerRadius = 4,
+            BackgroundColor = Color.FromArgb("#E0F7FA"),
+            TextColor = Color.FromArgb("#00838F")
+        };
+
+        var sortBtn = new Button
+        {
+            Text = "A-Z ▲",
+            FontSize = 10,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            CornerRadius = 4,
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
+            TextColor = Colors.White
+        };
+
+        var resultCountLabel = new Label
+        {
+            Text = $"{filteredProjects.Count} projects",
+            FontSize = 10,
+            TextColor = Color.FromArgb("#999"),
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(8, 0, 0, 0)
+        };
+
+        filterRow.Children.Add(categoryBtn);
+        filterRow.Children.Add(sortBtn);
+        filterRow.Children.Add(resultCountLabel);
+        cardStack.Children.Add(filterRow);
+
+        // Project list
+        var projectList = new VerticalStackLayout { Padding = 8, Spacing = 4 };
+        var scrollView = new ScrollView { MaximumHeightRequest = 420, Content = projectList };
+        cardStack.Children.Add(scrollView);
+
+        void ApplyFilterAndSort()
+        {
+            var search = currentSearch.Trim();
+
+            filteredProjects = currentCategory == "All"
+                ? new List<StoryProject>(allProjects)
+                : currentCategory == "Uncategorized"
+                    ? allProjects.Where(p => string.IsNullOrWhiteSpace(p.ProjectCategory)).ToList()
+                    : allProjects.Where(p => string.Equals(p.ProjectCategory?.Trim(), currentCategory, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                filteredProjects = filteredProjects.Where(p =>
+                    p.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    (p.Description ?? "").Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    (p.WritingProcess ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            filteredProjects = currentSort switch
+            {
+                "alpha_desc" => filteredProjects.OrderByDescending(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList(),
+                "date_desc" => filteredProjects.OrderByDescending(p => p.CreatedAt).ToList(),
+                "date_asc" => filteredProjects.OrderBy(p => p.CreatedAt).ToList(),
+                _ => filteredProjects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList()
+            };
+
+            resultCountLabel.Text = string.IsNullOrEmpty(search) && currentCategory == "All"
+                ? $"{allProjects.Count} projects"
+                : $"{filteredProjects.Count} of {allProjects.Count} projects";
+        }
+
+        void RebuildProjectList()
+        {
+            projectList.Children.Clear();
+
+            if (filteredProjects.Count == 0)
+            {
+                projectList.Children.Add(new Label
+                {
+                    Text = string.IsNullOrEmpty(currentSearch) ? "No projects in this category." : "No projects match your search.",
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#999"),
+                    FontAttributes = FontAttributes.Italic,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(0, 20)
+                });
+                return;
+            }
+
+            if (currentCategory == "All" && categories.Count > 1)
+            {
+                var grouped = filteredProjects
+                    .GroupBy(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var group in grouped)
+                {
+                    projectList.Children.Add(new Label
+                    {
+                        Text = $"{group.Key} ({group.Count()})",
+                        FontSize = 12,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#00838F"),
+                        Margin = new Thickness(4, 8, 0, 2)
+                    });
+
+                    foreach (var project in group)
+                        projectList.Children.Add(BuildProjectPickerCard(project, overlay, tcs));
+                }
+            }
+            else
+            {
+                foreach (var project in filteredProjects)
+                    projectList.Children.Add(BuildProjectPickerCard(project, overlay, tcs));
+            }
+        }
+
+        searchEntry.TextChanged += (_, e) =>
+        {
+            currentSearch = e.NewTextValue ?? "";
+            ApplyFilterAndSort();
+            RebuildProjectList();
+        };
+
+        categoryBtn.Clicked += async (_, _) =>
+        {
+            var options = new List<string> { "All" };
+            options.AddRange(categories);
+            string? selected = await DisplayActionSheet("Filter by Category", "Cancel", null, options.ToArray());
+            if (string.IsNullOrEmpty(selected) || selected == "Cancel") return;
+
+            currentCategory = selected;
+            categoryBtn.Text = $"Category: {currentCategory}";
+            ApplyFilterAndSort();
+            RebuildProjectList();
+        };
+
+        sortBtn.Clicked += (_, _) =>
+        {
+            currentSort = currentSort switch
+            {
+                "alpha_asc" => "alpha_desc",
+                "alpha_desc" => "date_desc",
+                "date_desc" => "date_asc",
+                "date_asc" => "alpha_asc",
+                _ => "alpha_asc"
+            };
+
+            sortBtn.Text = currentSort switch
+            {
+                "alpha_asc" => "A-Z ▲",
+                "alpha_desc" => "Z-A ▼",
+                "date_desc" => "Newest ▼",
+                "date_asc" => "Oldest ▲",
+                _ => "A-Z ▲"
+            };
+
+            ApplyFilterAndSort();
+            RebuildProjectList();
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#7B1FA2"),
+            FontSize = 14,
+            HeightRequest = 36,
+            Margin = new Thickness(12, 4, 12, 12)
+        };
+        cancelBtn.Clicked += (_, _) =>
+        {
+            if (Content is Grid mainGrid)
+                mainGrid.Children.Remove(overlay);
+            tcs.TrySetResult(null);
+        };
+        cardStack.Children.Add(cancelBtn);
+
+        card.Content = cardStack;
+        overlay.Children.Add(card);
+
+        ApplyFilterAndSort();
+        RebuildProjectList();
+
+        if (Content is Grid grid)
+        {
+            grid.Children.Add(overlay);
+        }
+        else
+        {
+            var existingContent = Content;
+            var newGrid = new Grid();
+            newGrid.Children.Add(existingContent);
+            newGrid.Children.Add(overlay);
+            Content = newGrid;
+        }
+
+        var result = await tcs.Task;
+        if (result != null)
+            await SelectProjectAsync(result);
+    }
+
+    private Frame BuildProjectPickerCard(
+        StoryProject project,
+        Grid overlay,
+        TaskCompletionSource<StoryProject?> tcs)
+    {
+        int? currentRootId = _currentProject?.ParentProjectId ?? _currentProject?.Id;
+        bool isSelected = currentRootId == project.Id;
+        var frame = new Frame
+        {
+            Padding = 12,
+            CornerRadius = 8,
+            BackgroundColor = isSelected
+                ? Color.FromArgb("#E8EAF6")
+                : Color.FromArgb("#F5F5F5"),
+            BorderColor = isSelected
+                ? Color.FromArgb("#7B1FA2")
+                : Colors.Transparent,
+            HasShadow = false
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 2 };
+        string statusSuffix = project.IsPublished ? " ✓" : project.Status == "completed" ? " (done)" : "";
+
+        stack.Children.Add(new Label
+        {
+            Text = project.Name + statusSuffix,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var metaParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(project.WritingProcess))
+            metaParts.Add(project.WritingProcess);
+        if (!string.IsNullOrWhiteSpace(project.ProjectCategory))
+            metaParts.Add(project.ProjectCategory);
+        metaParts.Add(project.CreatedAt.ToString("MMM yyyy"));
+
+        stack.Children.Add(new Label
+        {
+            Text = string.Join(" • ", metaParts),
+            FontSize = 11,
+            TextColor = Color.FromArgb("#888")
+        });
+
+        if (!string.IsNullOrWhiteSpace(project.Description))
+        {
+            stack.Children.Add(new Label
+            {
+                Text = project.Description.Length > 80 ? project.Description[..80] + "..." : project.Description,
+                FontSize = 11,
+                TextColor = Color.FromArgb("#AAA"),
+                LineBreakMode = LineBreakMode.TailTruncation
+            });
+        }
+
+        frame.Content = stack;
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, _) =>
+        {
+            if (Content is Grid mainGrid)
+                mainGrid.Children.Remove(overlay);
+            tcs.TrySetResult(project);
+        };
+        frame.GestureRecognizers.Add(tap);
+
+        return frame;
     }
 
     private async void OnSetProjectCategoryClicked(object? sender, EventArgs e)
@@ -3368,11 +3702,9 @@ public class StoryProductionPage : ContentPage
         await LoadProjectsAsync();
         
         // Select the new project
-        var index = _projects.FindIndex(p => p.Id == project.Id);
-        if (index >= 0)
-        {
-            _projectPicker.SelectedIndex = index;
-        }
+        var created = _projects.FirstOrDefault(p => p.Id == project.Id);
+        if (created != null)
+            await SelectProjectAsync(created);
     }
 
     private async void OnDeleteProjectClicked(object? sender, EventArgs e)
