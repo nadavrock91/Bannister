@@ -4316,7 +4316,8 @@ public class StoryProductionPage : ContentPage
             "💬 For Discussion (story only)",
             "📋 Script Only (narration text)",
             "🎨 Visuals Only (visual descriptions)",
-            "🤖 Convert Any Story to Import Format");
+            "🤖 Convert Any Story to Import Format",
+            "📚 Export Series Scripts");
 
         if (string.IsNullOrEmpty(choice) || choice == "Cancel") return;
 
@@ -4336,6 +4337,8 @@ public class StoryProductionPage : ContentPage
             await ExportVisualsOnlyAsync();
         else if (choice.StartsWith("🤖"))
             await ExportConvertStoryPromptAsync();
+        else if (choice.StartsWith("\U0001F4DA"))
+            await ExportSeriesScriptsAsync();
     }
 
     private async void OnCustomPromptsClicked(object? sender, EventArgs e)
@@ -4824,6 +4827,104 @@ public class StoryProductionPage : ContentPage
         int scriptLines = lines.Count(l => !l.IsSilent && !string.IsNullOrEmpty(l.LineText));
         await DisplayAlert("Exported!", 
             $"Script for \"{_currentProject.Name}\" copied to clipboard.\n\n{scriptLines} narration lines.", 
+            "OK");
+    }
+
+    private async Task ExportSeriesScriptsAsync()
+    {
+        if (_currentProject == null) return;
+
+        // Resolve root
+        int rootId = _currentProject.ParentProjectId ?? _currentProject.Id;
+        var rootProject = await _storyService.GetProjectByIdAsync(rootId) ?? _currentProject;
+
+        string series = rootProject.Series?.Trim() ?? "";
+
+        if (string.IsNullOrWhiteSpace(series))
+        {
+            await DisplayAlert(
+                "No Series",
+                "This project has no series assigned. Use Set Series to assign one first.",
+                "OK");
+            return;
+        }
+
+        // Find all root projects in this series
+        var seriesProjects = _allOriginalProjects
+            .Where(p => string.Equals(p.Series?.Trim(), series, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (seriesProjects.Count == 0)
+        {
+            await DisplayAlert("No Projects", "No projects found in this series.", "OK");
+            return;
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"# Series: {series}");
+        sb.AppendLine($"# {seriesProjects.Count} stories");
+        sb.AppendLine();
+
+        int storiesWithContent = 0;
+
+        foreach (var project in seriesProjects)
+        {
+            sb.AppendLine("═══════════════════════════════════════");
+            sb.AppendLine($"## {project.Name}");
+
+            if (!string.IsNullOrWhiteSpace(project.Description))
+                sb.AppendLine($"_{project.Description}_");
+
+            sb.AppendLine();
+
+            // Get the best draft: IsLatest first, then fall back
+            var latestDraft = await _storyService.GetLatestDraftAsync(project.Id);
+            int draftId = latestDraft?.Id ?? project.Id;
+
+            // Get lines for this draft
+            var lines = await _storyService.GetLinesAsync(draftId);
+
+            // If latest draft is empty, try the root project itself
+            if (lines.Count == 0 && draftId != project.Id)
+            {
+                lines = await _storyService.GetLinesAsync(project.Id);
+                if (lines.Count > 0)
+                    draftId = project.Id;
+            }
+
+            if (lines.Count == 0)
+            {
+                sb.AppendLine("(no content yet)");
+                sb.AppendLine();
+                continue;
+            }
+
+            storiesWithContent++;
+
+            foreach (var line in lines)
+            {
+                if (!line.IsSilent && !string.IsNullOrEmpty(line.LineText))
+                {
+                    sb.AppendLine(line.LineText);
+                    sb.AppendLine();
+                }
+                else if (line.IsSilent)
+                {
+                    sb.AppendLine($"[VISUAL: {line.VisualDescription}]");
+                    sb.AppendLine();
+                }
+            }
+        }
+
+        sb.AppendLine("═══════════════════════════════════════");
+
+        await Clipboard.SetTextAsync(sb.ToString());
+
+        await DisplayAlert(
+            "Series Exported!",
+            $"Series \"{series}\" copied to clipboard.\n\n" +
+            $"{seriesProjects.Count} stories ({storiesWithContent} with content).",
             "OK");
     }
 
