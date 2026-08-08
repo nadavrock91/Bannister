@@ -139,7 +139,7 @@ public class ClipsCreationPage : ContentPage
 
         var copyNextPromptBtn = new Button
         {
-            Text = "\U0001F4CB Copy Next Clip Prompt",
+            Text = "\U0001F4AC Setup ChatGPT Projects",
             BackgroundColor = Color.FromArgb("#1565C0"),
             TextColor = Colors.White,
             CornerRadius = 8,
@@ -285,8 +285,8 @@ public class ClipsCreationPage : ContentPage
         _promptNavDescLabel = PromptNavLabel(12, "#666", FontAttributes.Italic);
         _promptNavPromptsLabel = PromptNavLabel(10, "#999");
 
-        _promptNavCopyBtn = MakePromptNavButton("\U0001F4CB Copy Prompt", "#1565C0", "#FFFFFF", 40, true);
-        _promptNavMarkDoneBtn = MakePromptNavButton("\u2705 Mark Done & Next", "#4CAF50", "#FFFFFF");
+        _promptNavCopyBtn = MakePromptNavButton("\U0001F4CB Copy Description", "#1565C0", "#FFFFFF", 40, true);
+        _promptNavMarkDoneBtn = MakePromptNavButton("\U0001F4AC Has ChatGPT Project & Next", "#1565C0", "#FFFFFF");
         _promptNavPrevBtn = MakePromptNavButton("\u25C0 Back", "#E0E0E0", "#333333");
         _promptNavNextBtn = MakePromptNavButton("Skip \u25B6", "#FF9800", "#FFFFFF");
         _promptNavCloseBtn = MakePromptNavButton("Close", "#9E9E9E", "#FFFFFF");
@@ -488,10 +488,10 @@ public class ClipsCreationPage : ContentPage
             return;
         }
 
-        _promptNavClipIndices = Enumerable.Range(0, _allClips.Count).Where(i => !_allClips[i].Shot.Done).ToList();
+        _promptNavClipIndices = Enumerable.Range(0, _allClips.Count).Where(i => !_allClips[i].Shot.HasChatGptProject).ToList();
         if (_promptNavClipIndices.Count == 0)
         {
-            await DisplayAlert("All Done", "All clips are already marked as setup complete.", "OK");
+            await DisplayAlert("All Done", "All clips already have ChatGPT projects.", "OK");
             return;
         }
 
@@ -577,41 +577,29 @@ public class ClipsCreationPage : ContentPage
     private async Task CopyCurrentPromptToClipboardAsync()
     {
         if (_promptNavIndex < 0 || _promptNavIndex >= _promptNavClipIndices.Count) return;
-        var (line, shot, _) = _allClips[_promptNavClipIndices[_promptNavIndex]];
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"PROJECT: {GetCurrentRootProjectName()}");
-        sb.AppendLine($"LINE {line.LineOrder} — CLIP {shot.Index}");
-        sb.AppendLine();
-        AppendPromptSection(sb, "NARRATION:", line.LineText);
-        AppendPromptSection(sb, "VISUAL DESCRIPTION:", line.VisualDescription);
-        AppendPromptSection(sb, "CLIP DESCRIPTION:", shot.Description);
-        AppendPromptSection(sb, "IMAGE PROMPT:", shot.ImagePrompt);
-        AppendPromptSection(sb, "VIDEO PROMPT:", shot.VideoPrompt);
-        if (string.IsNullOrWhiteSpace(shot.ImagePrompt)) AppendPromptSection(sb, "LINE-LEVEL IMAGE PROMPT (use as reference):", line.ImagePrompt);
-        if (string.IsNullOrWhiteSpace(shot.VideoPrompt)) AppendPromptSection(sb, "LINE-LEVEL VIDEO PROMPT (use as reference):", line.VideoPrompt);
-        sb.AppendLine("TASK:");
-        sb.AppendLine("Generate the starting frame image for this clip. The image should capture the exact visual described above as a single cinematic still frame suitable for video generation.");
-        await Clipboard.SetTextAsync(sb.ToString());
+        int clipIndex = _promptNavClipIndices[_promptNavIndex];
+        var (_, shot, _) = _allClips[clipIndex];
+        string clipText = shot.Description?.Trim() ?? "";
+
+        if (string.IsNullOrWhiteSpace(clipText))
+        {
+            await DisplayAlert("No Description", "This clip has no description to copy.", "OK");
+            return;
+        }
+
+        await Clipboard.SetTextAsync(clipText);
         _promptNavCopyBtn.Text = "\u2705 Copied!";
         _promptNavCopyBtn.BackgroundColor = Color.FromArgb("#4CAF50");
         await Task.Delay(1500);
-        _promptNavCopyBtn.Text = "\U0001F4CB Copy Prompt";
+        _promptNavCopyBtn.Text = "\U0001F4CB Copy Description";
         _promptNavCopyBtn.BackgroundColor = Color.FromArgb("#1565C0");
-    }
-
-    private static void AppendPromptSection(System.Text.StringBuilder builder, string heading, string value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return;
-        builder.AppendLine(heading);
-        builder.AppendLine(value);
-        builder.AppendLine();
     }
 
     private async Task MarkCurrentPromptDoneAndAdvanceAsync(Grid rootGrid, Grid overlay)
     {
         if (_promptNavIndex < 0 || _promptNavIndex >= _promptNavClipIndices.Count) return;
         var (line, shot, allShots) = _allClips[_promptNavClipIndices[_promptNavIndex]];
-        shot.Done = true;
+        shot.HasChatGptProject = true;
         try { await _storyService.SaveShotsAsync(line, allShots); }
         catch { }
         _promptNavClipIndices.RemoveAt(_promptNavIndex);
@@ -621,7 +609,7 @@ public class ClipsCreationPage : ContentPage
             rootGrid.Children.Remove(overlay);
             _promptNavFrame.IsVisible = false;
             await LoadClipsAsync();
-            await DisplayAlert("All Done!", "All clips have been set up.", "OK");
+            await DisplayAlert("All Done!", "All clips have ChatGPT projects.", "OK");
             return;
         }
 
@@ -710,7 +698,7 @@ public class ClipsCreationPage : ContentPage
                     Padding = 10,
                     CornerRadius = 8,
                     BackgroundColor = shot.Done ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFEBEE"),
-                    BorderColor = Color.FromArgb("#E0E0E0"),
+                    BorderColor = shot.HasChatGptProject ? Color.FromArgb("#1565C0") : Color.FromArgb("#E0E0E0"),
                     HasShadow = false,
                     BindingContext = clipIndex
                 };
@@ -752,6 +740,16 @@ public class ClipsCreationPage : ContentPage
                     VerticalOptions = LayoutOptions.Center
                 });
                 clipStack.Children.Add(cardDoneRow);
+                if (shot.HasChatGptProject)
+                {
+                    clipStack.Children.Add(new Label
+                    {
+                        Text = "\U0001F4AC ChatGPT",
+                        FontSize = 9,
+                        TextColor = Color.FromArgb("#1565C0"),
+                        FontAttributes = FontAttributes.Bold
+                    });
+                }
                 clipFrame.Content = clipStack;
 
                 var capturedLine = line;

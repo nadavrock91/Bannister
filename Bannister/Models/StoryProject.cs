@@ -219,6 +219,7 @@ public class VisualShot
     // Task tracking
     public bool Task1_ImageGenerated { get; set; } = false;   // Got the starting frame image
     public bool Task2_VideoGenerated { get; set; } = false;   // Generated video from image
+    public bool HasChatGptProject { get; set; } = false;
     
     // Computed
     public bool AllTasksDone => Task1_ImageGenerated && Task2_VideoGenerated;
