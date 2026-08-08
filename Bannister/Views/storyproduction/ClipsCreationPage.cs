@@ -739,6 +739,14 @@ public class ClipsCreationPage : ContentPage
                 if (!string.IsNullOrEmpty(tasks))
                     clipStack.Children.Add(new Label { Text = tasks, FontSize = 9, TextColor = Color.FromArgb("#F57C00"), FontAttributes = FontAttributes.Bold });
 
+                var cardChatGptCheckbox = new CheckBox
+                {
+                    IsChecked = shot.HasChatGptProject,
+                    Color = Color.FromArgb("#1565C0"),
+                    Scale = 0.7,
+                    VerticalOptions = LayoutOptions.Center
+                };
+
                 var cardDoneCheckbox = new CheckBox
                 {
                     IsChecked = shot.Done,
@@ -753,12 +761,13 @@ public class ClipsCreationPage : ContentPage
                 {
                     capturedShotForDone.Done = e.Value;
                     if (e.Value && !capturedShotForDone.HasChatGptProject)
+                    {
                         capturedShotForDone.HasChatGptProject = true;
+                        cardChatGptCheckbox.IsChecked = true;
+                    }
                     try { await _storyService.SaveShotsAsync(capturedLineForDone, capturedShotsForDone); }
                     catch { }
-                    _promptNavIndex = -1;
-                    _promptNavClipIndices.Clear();
-                    await LoadClipsAsync();
+                    clipFrame.BackgroundColor = e.Value ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFEBEE");
                 };
                 var cardDoneRow = new HorizontalStackLayout { Spacing = 4 };
                 cardDoneRow.Children.Add(cardDoneCheckbox);
@@ -771,13 +780,6 @@ public class ClipsCreationPage : ContentPage
                 });
                 clipStack.Children.Add(cardDoneRow);
 
-                var cardChatGptCheckbox = new CheckBox
-                {
-                    IsChecked = shot.HasChatGptProject,
-                    Color = Color.FromArgb("#1565C0"),
-                    Scale = 0.7,
-                    VerticalOptions = LayoutOptions.Center
-                };
                 var capturedShotForChatGpt = shot;
                 var capturedLineForChatGpt = line;
                 var capturedShotsForChatGpt = shots;
@@ -786,9 +788,7 @@ public class ClipsCreationPage : ContentPage
                     capturedShotForChatGpt.HasChatGptProject = e.Value;
                     try { await _storyService.SaveShotsAsync(capturedLineForChatGpt, capturedShotsForChatGpt); }
                     catch { }
-                    _promptNavIndex = -1;
-                    _promptNavClipIndices.Clear();
-                    await LoadClipsAsync();
+                    clipFrame.BorderColor = e.Value ? Color.FromArgb("#1565C0") : Color.FromArgb("#E0E0E0");
                 };
 
                 var cardChatGptRow = new HorizontalStackLayout { Spacing = 4 };
