@@ -69,87 +69,78 @@ public class ClipsCreationPage : ContentPage
 
     private void BuildUI()
     {
-        var topStack = new VerticalStackLayout { Padding = new Thickness(20, 20, 20, 8), Spacing = 8 };
+        var topStack = new VerticalStackLayout { Padding = new Thickness(20, 12, 20, 4), Spacing = 6 };
         topStack.Children.Add(new Label
         {
             Text = "\U0001F3AC Clips Creation",
-            FontSize = 22,
+            FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#1565C0")
         });
-        topStack.Children.Add(new Label
-        {
-            Text = "Select a project and draft, then manage clip creation tasks in parallel.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
-            Margin = new Thickness(0, -4, 0, 4)
-        });
 
-        var categoryRow = new HorizontalStackLayout { Spacing = 8 };
-        categoryRow.Children.Add(_selector.ProjectCategoryPicker);
-        categoryRow.Children.Add(_selector.ProjectCategoryBtn);
-        categoryRow.Children.Add(_selector.SeriesBtn);
-        topStack.Children.Add(categoryRow);
+        var selectorRow = new HorizontalStackLayout { Spacing = 8 };
+        _selector.ProjectSelectFrame.WidthRequest = 200;
+        selectorRow.Children.Add(_selector.ProjectSelectFrame);
+        _selector.DraftPicker.WidthRequest = 130;
+        selectorRow.Children.Add(_selector.DraftPicker);
+        selectorRow.Children.Add(_selector.ProjectCategoryBtn);
+        selectorRow.Children.Add(_selector.SeriesBtn);
+        selectorRow.Children.Add(_selector.WritingProcessBtn);
+        topStack.Children.Add(selectorRow);
 
-        var processRow = new HorizontalStackLayout { Spacing = 8 };
-        processRow.Children.Add(_selector.WritingProcessFilterBtn);
-        processRow.Children.Add(_selector.WritingProcessBtn);
-        topStack.Children.Add(processRow);
-
-        var projectRow = new HorizontalStackLayout { Spacing = 8 };
-        projectRow.Children.Add(_selector.ProjectSelectFrame);
-        topStack.Children.Add(projectRow);
-        topStack.Children.Add(_selector.DraftLabel);
-
-        var draftRow = new HorizontalStackLayout { Spacing = 8 };
-        draftRow.Children.Add(_selector.DraftPicker);
-        topStack.Children.Add(draftRow);
-        topStack.Children.Add(_selector.CurrentDraftLabel);
-        topStack.Children.Add(_selector.ProjectMetaLabel);
+        var actionsRow = new HorizontalStackLayout { Spacing = 6 };
+        _selector.ProjectCategoryPicker.WidthRequest = 120;
+        actionsRow.Children.Add(_selector.ProjectCategoryPicker);
+        _selector.WritingProcessFilterBtn.HeightRequest = 32;
+        _selector.WritingProcessFilterBtn.FontSize = 11;
+        actionsRow.Children.Add(_selector.WritingProcessFilterBtn);
 
         var navigateBtn = new Button
         {
-            Text = "\U0001F4DD Navigate Clips",
+            Text = "\U0001F4DD Navigate",
             BackgroundColor = Color.FromArgb("#1565C0"),
             TextColor = Colors.White,
-            CornerRadius = 8,
-            HeightRequest = 40,
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            Padding = new Thickness(16, 0),
-            HorizontalOptions = LayoutOptions.Start
+            CornerRadius = 6,
+            HeightRequest = 32,
+            FontSize = 11,
+            Padding = new Thickness(10, 0)
         };
         navigateBtn.Clicked += async (_, _) => await OpenClipNavigatorAsync();
-        topStack.Children.Add(navigateBtn);
+        actionsRow.Children.Add(navigateBtn);
 
-        var markEmptyDoneBtn = new Button
+        var markEmptyBtn = new Button
         {
-            Text = "\u2705 Mark Empty Done",
+            Text = "\u2705 Empty Done",
             BackgroundColor = Color.FromArgb("#E8F5E9"),
             TextColor = Color.FromArgb("#2E7D32"),
-            CornerRadius = 8,
-            HeightRequest = 40,
-            FontSize = 13,
-            Padding = new Thickness(16, 0),
-            HorizontalOptions = LayoutOptions.Start
+            CornerRadius = 6,
+            HeightRequest = 32,
+            FontSize = 11,
+            Padding = new Thickness(10, 0)
         };
-        markEmptyDoneBtn.Clicked += async (_, _) => await MarkEmptyClipsDoneAsync();
-        topStack.Children.Add(markEmptyDoneBtn);
+        markEmptyBtn.Clicked += async (_, _) => await MarkEmptyClipsDoneAsync();
+        actionsRow.Children.Add(markEmptyBtn);
 
-        var copyNextPromptBtn = new Button
+        var chatGptBtn = new Button
         {
-            Text = "\U0001F4AC Setup ChatGPT Projects",
+            Text = "\U0001F4AC ChatGPT Setup",
             BackgroundColor = Color.FromArgb("#1565C0"),
             TextColor = Colors.White,
-            CornerRadius = 8,
-            HeightRequest = 40,
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            Padding = new Thickness(16, 0),
-            HorizontalOptions = LayoutOptions.Start
+            CornerRadius = 6,
+            HeightRequest = 32,
+            FontSize = 11,
+            Padding = new Thickness(10, 0)
         };
-        copyNextPromptBtn.Clicked += async (_, _) => await OpenPromptNavigatorAsync();
-        topStack.Children.Add(copyNextPromptBtn);
+        chatGptBtn.Clicked += async (_, _) => await OpenPromptNavigatorAsync();
+        actionsRow.Children.Add(chatGptBtn);
+        topStack.Children.Add(actionsRow);
+
+        var metaRow = new HorizontalStackLayout { Spacing = 12 };
+        _selector.CurrentDraftLabel.FontSize = 10;
+        _selector.ProjectMetaLabel.FontSize = 10;
+        metaRow.Children.Add(_selector.CurrentDraftLabel);
+        metaRow.Children.Add(_selector.ProjectMetaLabel);
+        topStack.Children.Add(metaRow);
 
         _linesHeaderLabel = new Label { Text = "Lines", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), Margin = new Thickness(0, 0, 0, 4) };
         _clipsHeaderLabel = new Label { Text = "Clips", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), Margin = new Thickness(0, 0, 0, 4) };
