@@ -103,6 +103,20 @@ public class ClipsCreationPage : ContentPage
         navigateBtn.Clicked += async (_, _) => await OpenClipNavigatorAsync();
         topStack.Children.Add(navigateBtn);
 
+        var markEmptyDoneBtn = new Button
+        {
+            Text = "\u2705 Mark Empty Done",
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            TextColor = Color.FromArgb("#2E7D32"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13,
+            Padding = new Thickness(16, 0),
+            HorizontalOptions = LayoutOptions.Start
+        };
+        markEmptyDoneBtn.Clicked += async (_, _) => await MarkEmptyClipsDoneAsync();
+        topStack.Children.Add(markEmptyDoneBtn);
+
         var columnsGrid = new Grid
         {
             ColumnDefinitions =
@@ -311,6 +325,46 @@ public class ClipsCreationPage : ContentPage
         catch { }
     }
 
+    private async Task MarkEmptyClipsDoneAsync()
+    {
+        if (_allClips.Count == 0)
+        {
+            await DisplayAlert("No Clips", "No clips available.", "OK");
+            return;
+        }
+
+        int marked = 0;
+        var processedLines = new HashSet<int>();
+        foreach (var (line, shot, _) in _allClips)
+        {
+            if (!shot.Done && string.IsNullOrWhiteSpace(shot.Description))
+            {
+                shot.Done = true;
+                marked++;
+                processedLines.Add(line.Id);
+            }
+        }
+
+        if (marked == 0)
+        {
+            await DisplayAlert("Nothing to Mark", "No empty undone clips found.", "OK");
+            return;
+        }
+
+        var savedLines = new HashSet<int>();
+        foreach (var (line, _, allShots) in _allClips)
+        {
+            if (processedLines.Contains(line.Id) && savedLines.Add(line.Id))
+            {
+                try { await _storyService.SaveShotsAsync(line, allShots); }
+                catch { }
+            }
+        }
+
+        await DisplayAlert("Done", $"Marked {marked} empty clip(s) as done.", "OK");
+        await LoadClipsAsync();
+    }
+
     private void HighlightCurrentClipCard()
     {
         foreach (var child in _clipsContainer.Children)
@@ -384,13 +438,13 @@ public class ClipsCreationPage : ContentPage
                 {
                     Padding = 10,
                     CornerRadius = 8,
-                    BackgroundColor = shot.Done ? Color.FromArgb("#E8F5E9") : shot.Task1_ImageGenerated ? Color.FromArgb("#FFF8E1") : Colors.White,
+                    BackgroundColor = shot.Done ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFEBEE"),
                     BorderColor = Color.FromArgb("#E0E0E0"),
                     HasShadow = false,
                     BindingContext = clipIndex
                 };
                 var clipStack = new VerticalStackLayout { Spacing = 2 };
-                string statusIcon = shot.Done ? "\u2705" : shot.Task1_ImageGenerated ? "\U0001F7E1" : "\u26AA";
+                string statusIcon = shot.Done ? "\u2705" : "\U0001F534";
                 string description = !string.IsNullOrWhiteSpace(shot.Description) ? (shot.Description.Length > 40 ? shot.Description[..40] + "..." : shot.Description) : "(no description)";
                 clipStack.Children.Add(new Label { Text = $"{statusIcon} L{line.LineOrder} C{shot.Index}", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
                 clipStack.Children.Add(new Label { Text = description, FontSize = 10, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.TailTruncation });
