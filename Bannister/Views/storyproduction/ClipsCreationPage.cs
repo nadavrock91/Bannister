@@ -705,7 +705,7 @@ public class ClipsCreationPage : ContentPage
             return;
         }
 
-        string clipText = $"Line {line.LineOrder} Clip {shot.Index}: {description}";
+        string clipText = $"{line.LineOrder}.{shot.Index}: {description}";
         await Clipboard.SetTextAsync(clipText);
         _promptNavCopyBtn.Text = "\u2705 Copied!";
         _promptNavCopyBtn.BackgroundColor = Color.FromArgb("#4CAF50");
