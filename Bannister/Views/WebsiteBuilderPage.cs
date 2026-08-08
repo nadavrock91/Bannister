@@ -4535,21 +4535,6 @@ Output ONLY the C# code block.
                     $"Task complete! Counter incremented to {updated?.TaskCount ?? project.TaskCount + Math.Max(1, project.PendingBatchSize)}.",
                     "OK");
 
-                // Prompt for stuck analysis update as final cycle step
-                if (_ownerDevSection.IsVisible)
-                {
-                    string? choice = await DisplayActionSheet(
-                        "Stuck Analysis",
-                        "Skip",
-                        null,
-                        "Export Prompt (copy to clipboard)",
-                        "Paste Result (have response ready)");
-
-                    if (choice != null && choice.StartsWith("Export"))
-                        await ExportStuckAnalysisAsync();
-                    else if (choice != null && choice.StartsWith("Paste"))
-                        await PasteStuckAnalysisAsync();
-                }
             }
         }
         catch (ReadOnlyDatabaseException)
