@@ -3827,6 +3827,27 @@ Output ONLY the C# code block.
         validationPrompt.AppendLine();
         validationPrompt.AppendLine("5. If removing blocked work leaves nothing meaningful, return exactly: EMPTY");
 
+        // Check if constraints are present in the current plan
+        if (!string.IsNullOrWhiteSpace(project.PromptConstraints))
+        {
+            var constraintLines = project.PromptConstraints
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            var currentPlan = $"{taskTitle}\n{codexPrompt}";
+            var missingConstraints = constraintLines
+                .Where(c => !currentPlan.Contains(c, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (missingConstraints.Count > 0)
+            {
+                validationPrompt.AppendLine();
+                validationPrompt.AppendLine("CONSTRAINT VERIFICATION:");
+                validationPrompt.AppendLine("The following project constraints were NOT found in the task plan. Ensure the cleaned plan does not violate any of them. If the plan contains steps that would violate a constraint, remove or replace those steps:");
+                foreach (var constraint in missingConstraints)
+                    validationPrompt.AppendLine($"  - {constraint}");
+            }
+        }
+
         await Clipboard.SetTextAsync(validationPrompt.ToString() + BuildConstraintsBlock(project));
 
         var cleanedPlan = await ShowMultilineEditorAsync(
