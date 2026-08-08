@@ -280,16 +280,25 @@ public class StoryProjectSelector
         var categories = source.Select(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
         var seriesList = source.Select(p => string.IsNullOrWhiteSpace(p.Series) ? "No Series" : p.Series.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
         var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
-        var card = new Frame { CornerRadius = 12, Padding = 0, BackgroundColor = Colors.White, HasShadow = true, WidthRequest = 520, MaximumHeightRequest = 650, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+        var card = new Frame { CornerRadius = 12, Padding = 0, BackgroundColor = Colors.White, HasShadow = true, MaximumWidthRequest = 520, MaximumHeightRequest = 650, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(16, 0) };
         var stack = new VerticalStackLayout();
         var header = new Frame { Padding = 16, CornerRadius = 0, BackgroundColor = Color.FromArgb("#7B1FA2"), BorderColor = Colors.Transparent, Content = new Label { Text = "Select Project", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Colors.White } };
         stack.Children.Add(header);
         var searchEntry = new Entry { Placeholder = "Search projects...", FontSize = 13, BackgroundColor = Color.FromArgb("#FAFAFA"), TextColor = Color.FromArgb("#333"), PlaceholderColor = Color.FromArgb("#999"), Margin = new Thickness(12, 8, 12, 0), HeightRequest = 38 };
         stack.Children.Add(searchEntry);
-        var filterRow = new HorizontalStackLayout { Spacing = 6, Margin = new Thickness(12, 4) };
+        var filterRow = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
+            Margin = new Thickness(12, 4, 12, 4)
+        };
         var categoryBtn = SmallButton("Category: All", "#E0F7FA", "#00838F");
         var seriesBtn = SmallButton("Series: All", "#FFF3E0", "#E65100");
         var sortBtn = SmallButton("A-Z \u25B2", "#7B1FA2", "#FFFFFF");
+        categoryBtn.Margin = new Thickness(0, 0, 4, 4);
+        seriesBtn.Margin = new Thickness(0, 0, 4, 4);
+        sortBtn.Margin = new Thickness(0, 0, 4, 4);
         var countLabel = new Label { Text = $"{source.Count} projects", FontSize = 10, TextColor = Color.FromArgb("#999"), VerticalOptions = LayoutOptions.Center };
         filterRow.Children.Add(categoryBtn); filterRow.Children.Add(seriesBtn); filterRow.Children.Add(sortBtn); filterRow.Children.Add(countLabel);
         stack.Children.Add(filterRow);

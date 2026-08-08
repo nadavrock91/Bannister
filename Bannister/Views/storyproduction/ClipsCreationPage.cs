@@ -84,21 +84,42 @@ public class ClipsCreationPage : ContentPage
             TextColor = Color.FromArgb("#1565C0")
         });
 
-        var selectorRow = new HorizontalStackLayout { Spacing = 8 };
-        _selector.ProjectSelectFrame.WidthRequest = 200;
+        var selectorRow = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start
+        };
+        _selector.ProjectSelectFrame.WidthRequest = -1;
+        _selector.ProjectSelectFrame.MinimumWidthRequest = 150;
+        _selector.ProjectSelectFrame.HorizontalOptions = LayoutOptions.FillAndExpand;
+        _selector.ProjectSelectFrame.Margin = new Thickness(0, 0, 6, 4);
         selectorRow.Children.Add(_selector.ProjectSelectFrame);
-        _selector.DraftPicker.WidthRequest = 130;
+        _selector.DraftPicker.WidthRequest = -1;
+        _selector.DraftPicker.MinimumWidthRequest = 100;
+        _selector.DraftPicker.Margin = new Thickness(0, 0, 6, 4);
         selectorRow.Children.Add(_selector.DraftPicker);
+        _selector.ProjectCategoryBtn.Margin = new Thickness(0, 0, 6, 4);
         selectorRow.Children.Add(_selector.ProjectCategoryBtn);
+        _selector.SeriesBtn.Margin = new Thickness(0, 0, 6, 4);
         selectorRow.Children.Add(_selector.SeriesBtn);
+        _selector.WritingProcessBtn.Margin = new Thickness(0, 0, 6, 4);
         selectorRow.Children.Add(_selector.WritingProcessBtn);
         topStack.Children.Add(selectorRow);
 
-        var actionsRow = new HorizontalStackLayout { Spacing = 6 };
-        _selector.ProjectCategoryPicker.WidthRequest = 120;
+        var actionsRow = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start
+        };
+        _selector.ProjectCategoryPicker.WidthRequest = -1;
+        _selector.ProjectCategoryPicker.MinimumWidthRequest = 80;
+        _selector.ProjectCategoryPicker.Margin = new Thickness(0, 0, 4, 4);
         actionsRow.Children.Add(_selector.ProjectCategoryPicker);
         _selector.WritingProcessFilterBtn.HeightRequest = 32;
         _selector.WritingProcessFilterBtn.FontSize = 11;
+        _selector.WritingProcessFilterBtn.Margin = new Thickness(0, 0, 4, 4);
         actionsRow.Children.Add(_selector.WritingProcessFilterBtn);
 
         var navigateBtn = new Button
@@ -111,6 +132,7 @@ public class ClipsCreationPage : ContentPage
             FontSize = 11,
             Padding = new Thickness(10, 0)
         };
+        navigateBtn.Margin = new Thickness(0, 0, 4, 4);
         navigateBtn.Clicked += async (_, _) => await OpenClipNavigatorAsync();
         actionsRow.Children.Add(navigateBtn);
 
@@ -124,6 +146,7 @@ public class ClipsCreationPage : ContentPage
             FontSize = 11,
             Padding = new Thickness(10, 0)
         };
+        markEmptyBtn.Margin = new Thickness(0, 0, 4, 4);
         markEmptyBtn.Clicked += async (_, _) => await MarkEmptyClipsDoneAsync();
         actionsRow.Children.Add(markEmptyBtn);
 
@@ -137,6 +160,7 @@ public class ClipsCreationPage : ContentPage
             FontSize = 11,
             Padding = new Thickness(10, 0)
         };
+        chatGptBtn.Margin = new Thickness(0, 0, 4, 4);
         chatGptBtn.Clicked += async (_, _) => await OpenPromptNavigatorAsync();
         actionsRow.Children.Add(chatGptBtn);
 
@@ -150,6 +174,7 @@ public class ClipsCreationPage : ContentPage
             FontSize = 11,
             Padding = new Thickness(10, 0)
         };
+        clearAllDescBtn.Margin = new Thickness(0, 0, 4, 4);
         clearAllDescBtn.Clicked += async (_, _) => await ClearAllDescriptionsAsync();
         actionsRow.Children.Add(clearAllDescBtn);
         topStack.Children.Add(actionsRow);
