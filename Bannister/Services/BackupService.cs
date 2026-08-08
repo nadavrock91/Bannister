@@ -34,9 +34,28 @@ public class BackupService
             string fileName = $"bannister_{reason}_{timestamp}_{iteration}.db";
             string backupPath = Path.Combine(BackupFolder, fileName);
 
+            // Check if an automatic backup already exists for today. Automatic callers
+            // use reasons such as login, logout, and pre_password_change; manual backups
+            // use the distinct bannister_backup_ prefix and do not suppress this backup.
+            string today = DateTime.Now.ToString("yyyyMMdd");
+            if (Directory.Exists(BackupFolder))
+            {
+                var existingToday = Directory.GetFiles(BackupFolder, "bannister_*.db")
+                    .Select(Path.GetFileNameWithoutExtension)
+                    .Any(name => name != null &&
+                        !name.StartsWith("bannister_backup_", StringComparison.OrdinalIgnoreCase) &&
+                        name.Split('_').Contains(today, StringComparer.Ordinal));
+
+                if (existingToday)
+                {
+                    System.Diagnostics.Debug.WriteLine("[BACKUP] Auto backup already exists for today, skipping.");
+                    return (true, "Auto backup already exists for today; skipped");
+                }
+            }
+
             // Copy the database file (the backup is encrypted with the same password)
             File.Copy(DatabasePath, backupPath, overwrite: true);
-            await CleanupOldBackupsAsync(reason, 20);
+            await CleanupOldBackupsAsync(BackupFolder);
 
             return (true, $"Backup created: {fileName}");
         }
@@ -64,6 +83,7 @@ public class BackupService
 
             // Copy the database file (encrypted with same password)
             File.Copy(DatabasePath, backupPath, overwrite: true);
+            await CleanupOldBackupsAsync(BackupFolder);
 
             string message = $"Database backed up successfully!\n\n" +
                            $"Backup #{iteration}\n" +
@@ -206,39 +226,69 @@ public class BackupService
     }
 
     /// <summary>
-    /// Clean up old backups, keeping only the most recent N backups for a specific reason
+    /// Clean up backups older than the requested number of days.
     /// </summary>
-    public async Task CleanupOldBackupsAsync(string reason, int keepCount)
+    public async Task CleanupOldBackupsAsync(string backupDir, string pattern = "bannister_*.db", int keepDays = 30)
     {
-        try
+        await Task.Run(() =>
         {
-            if (!Directory.Exists(BackupFolder))
-                return;
-
-            // Clean up both .db and .json files
-            var dbBackups = Directory.GetFiles(BackupFolder, $"bannister_{reason}_*.db");
-            var jsonBackups = Directory.GetFiles(BackupFolder, $"bannister_{reason}_*.json");
-            var backups = dbBackups.Concat(jsonBackups).ToArray();
-
-            if (backups.Length <= keepCount)
-                return;
-
-            Array.Sort(backups, (a, b) => 
-                File.GetCreationTime(a).CompareTo(File.GetCreationTime(b)));
-
-            int toDelete = backups.Length - keepCount;
-            for (int i = 0; i < toDelete; i++)
+            try
             {
-                try
-                {
-                    File.Delete(backups[i]);
-                }
-                catch { }
-            }
+                if (!Directory.Exists(backupDir)) return;
 
-            await Task.CompletedTask;
-        }
-        catch { }
+                var cutoff = DateTime.Now.AddDays(-keepDays);
+                var files = Directory.GetFiles(backupDir, pattern);
+
+                foreach (var file in files)
+                {
+                    var name = Path.GetFileNameWithoutExtension(file);
+                    // Parse date from bannister_{reason}_{yyyyMMdd}_{HHmmss}_{iteration}.
+                    // The reason may itself contain underscores, so locate the date part.
+                    var parts = name.Split('_');
+                    bool dateParsed = false;
+
+                    for (int i = 0; i < parts.Length; i++)
+                    {
+                        if (parts[i].Length == 8 &&
+                            DateTime.TryParseExact(parts[i], "yyyyMMdd", null,
+                                System.Globalization.DateTimeStyles.None, out var fileDate))
+                        {
+                            if (fileDate < cutoff)
+                            {
+                                try
+                                {
+                                    File.Delete(file);
+                                    System.Diagnostics.Debug.WriteLine($"[BACKUP] Deleted old backup: {Path.GetFileName(file)}");
+                                }
+                                catch { }
+                            }
+
+                            dateParsed = true;
+                            break;
+                        }
+                    }
+
+                    // Fallback: if the date could not be parsed, use file creation time.
+                    if (!dateParsed)
+                    {
+                        try
+                        {
+                            var created = File.GetCreationTime(file);
+                            if (created < cutoff)
+                            {
+                                File.Delete(file);
+                                System.Diagnostics.Debug.WriteLine($"[BACKUP] Deleted old backup (by creation time): {Path.GetFileName(file)}");
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[BACKUP] Cleanup error: {ex.Message}");
+            }
+        });
     }
 
     /// <summary>
@@ -246,10 +296,8 @@ public class BackupService
     /// </summary>
     public async Task CleanupAllBackupsAsync()
     {
-        await CleanupOldBackupsAsync("auto", 30);
-        await CleanupOldBackupsAsync("login", 20);
-        await CleanupOldBackupsAsync("logout", 20);
-        await CleanupOldBackupsAsync("manual", 10);
+        await CleanupOldBackupsAsync(BackupFolder, "bannister_*.db", 30);
+        await CleanupOldBackupsAsync(BackupFolder, "bannister_*.json", 30);
     }
 
     /// <summary>
