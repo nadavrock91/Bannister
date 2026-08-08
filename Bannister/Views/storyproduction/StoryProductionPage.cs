@@ -31,6 +31,7 @@ public class StoryProductionPage : ContentPage
     private Button _compareToBtn;
     private Button _addProjectBtn;
     private Button _projectCategoryBtn;
+    private Button _seriesBtn;
     private Button _writingProcessFilterBtn;
     private Button _writingProcessBtn;
     private string _selectedWritingProcess = "All";
@@ -237,6 +238,19 @@ public class StoryProductionPage : ContentPage
         };
         _projectCategoryBtn.Clicked += OnSetProjectCategoryClicked;
         categoryRow.Children.Add(_projectCategoryBtn);
+
+        _seriesBtn = new Button
+        {
+            Text = "Set Series",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            Padding = new Thickness(12, 8),
+            FontSize = 12,
+            IsVisible = false
+        };
+        _seriesBtn.Clicked += async (_, _) => await OnSetSeriesClickedAsync();
+        categoryRow.Children.Add(_seriesBtn);
 
         ApplyWrapMargins(categoryRow);
         leftColumn.Children.Add(categoryRow);
@@ -961,6 +975,7 @@ public class StoryProductionPage : ContentPage
         var filteredProjects = new List<StoryProject>(allProjects);
         string currentSearch = "";
         string currentCategory = "All";
+        string currentSeries = "All";
         string currentSort = "alpha_asc";
 
         // Gather categories within the projects allowed by the external filters.
@@ -968,6 +983,12 @@ public class StoryProductionPage : ContentPage
             .Select(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var seriesList = allProjects
+            .Select(p => string.IsNullOrWhiteSpace(p.Series) ? "No Series" : p.Series.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
@@ -1045,6 +1066,17 @@ public class StoryProductionPage : ContentPage
             TextColor = Colors.White
         };
 
+        var seriesBtn = new Button
+        {
+            Text = "Series: All",
+            FontSize = 10,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            CornerRadius = 4,
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100")
+        };
+
         var resultCountLabel = new Label
         {
             Text = $"{filteredProjects.Count} projects",
@@ -1055,6 +1087,7 @@ public class StoryProductionPage : ContentPage
         };
 
         filterRow.Children.Add(categoryBtn);
+        filterRow.Children.Add(seriesBtn);
         filterRow.Children.Add(sortBtn);
         filterRow.Children.Add(resultCountLabel);
         cardStack.Children.Add(filterRow);
@@ -1074,6 +1107,14 @@ public class StoryProductionPage : ContentPage
                     ? allProjects.Where(p => string.IsNullOrWhiteSpace(p.ProjectCategory)).ToList()
                     : allProjects.Where(p => string.Equals(p.ProjectCategory?.Trim(), currentCategory, StringComparison.OrdinalIgnoreCase)).ToList();
 
+            // Series filter
+            if (currentSeries != "All")
+            {
+                filteredProjects = currentSeries == "No Series"
+                    ? filteredProjects.Where(p => string.IsNullOrWhiteSpace(p.Series)).ToList()
+                    : filteredProjects.Where(p => string.Equals(p.Series?.Trim(), currentSeries, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
             if (!string.IsNullOrEmpty(search))
             {
                 filteredProjects = filteredProjects.Where(p =>
@@ -1091,7 +1132,7 @@ public class StoryProductionPage : ContentPage
                 _ => filteredProjects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList()
             };
 
-            resultCountLabel.Text = string.IsNullOrEmpty(search) && currentCategory == "All"
+            resultCountLabel.Text = string.IsNullOrEmpty(search) && currentCategory == "All" && currentSeries == "All"
                 ? $"{allProjects.Count} projects"
                 : $"{filteredProjects.Count} of {allProjects.Count} projects";
         }
@@ -1114,7 +1155,11 @@ public class StoryProductionPage : ContentPage
                 return;
             }
 
-            if (currentCategory == "All" && categories.Count > 1)
+            // Determine grouping
+            bool groupByCategory = currentCategory == "All" && currentSeries == "All" && categories.Count > 1;
+            bool groupBySeries = currentSeries == "All" && seriesList.Count > 1 && !groupByCategory;
+
+            if (groupByCategory)
             {
                 var grouped = filteredProjects
                     .GroupBy(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim(), StringComparer.OrdinalIgnoreCase)
@@ -1128,6 +1173,27 @@ public class StoryProductionPage : ContentPage
                         FontSize = 12,
                         FontAttributes = FontAttributes.Bold,
                         TextColor = Color.FromArgb("#00838F"),
+                        Margin = new Thickness(4, 8, 0, 2)
+                    });
+
+                    foreach (var project in group)
+                        projectList.Children.Add(BuildProjectPickerCard(project, overlay, tcs));
+                }
+            }
+            else if (groupBySeries)
+            {
+                var grouped = filteredProjects
+                    .GroupBy(p => string.IsNullOrWhiteSpace(p.Series) ? "No Series" : p.Series.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var group in grouped)
+                {
+                    projectList.Children.Add(new Label
+                    {
+                        Text = $"\U0001F4DA {group.Key} ({group.Count()})",
+                        FontSize = 12,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#E65100"),
                         Margin = new Thickness(4, 8, 0, 2)
                     });
 
@@ -1158,6 +1224,19 @@ public class StoryProductionPage : ContentPage
 
             currentCategory = selected;
             categoryBtn.Text = $"Category: {currentCategory}";
+            ApplyFilterAndSort();
+            RebuildProjectList();
+        };
+
+        seriesBtn.Clicked += async (_, _) =>
+        {
+            var options = new List<string> { "All" };
+            options.AddRange(seriesList);
+            string? selected = await DisplayActionSheet("Filter by Series", "Cancel", null, options.ToArray());
+            if (string.IsNullOrEmpty(selected) || selected == "Cancel") return;
+
+            currentSeries = selected;
+            seriesBtn.Text = $"Series: {currentSeries}";
             ApplyFilterAndSort();
             RebuildProjectList();
         };
@@ -1260,6 +1339,8 @@ public class StoryProductionPage : ContentPage
         });
 
         var metaParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(project.Series))
+            metaParts.Insert(0, $"\U0001F4DA {project.Series}");
         if (!string.IsNullOrWhiteSpace(project.WritingProcess))
             metaParts.Add(project.WritingProcess);
         if (!string.IsNullOrWhiteSpace(project.ProjectCategory))
@@ -1374,6 +1455,70 @@ public class StoryProductionPage : ContentPage
             _selectedProjectCategory = "Uncategorized";
 
         await SaveSelectedProjectCategoryAsync();
+
+        await LoadProjectsAsync();
+    }
+
+    private async Task OnSetSeriesClickedAsync()
+    {
+        if (_currentProject == null) return;
+
+        int rootId = _currentProject.ParentProjectId ?? _currentProject.Id;
+        var rootProject = await _storyService.GetProjectByIdAsync(rootId);
+        if (rootProject == null) return;
+
+        var allSeries = _allOriginalProjects
+            .Select(p => p.Series?.Trim() ?? "")
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .GroupBy(s => s, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(s => s).First())
+            .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var options = allSeries
+            .Where(s => !string.Equals(s, rootProject.Series, StringComparison.OrdinalIgnoreCase))
+            .Concat(new[] { "+ New Series", "No Series" })
+            .ToArray();
+
+        string? selected = await DisplayActionSheet("Project Series", "Cancel", null, options);
+        if (string.IsNullOrWhiteSpace(selected) || selected == "Cancel") return;
+
+        string series;
+        if (selected == "+ New Series")
+        {
+            string? newSeries = await DisplayPromptAsync(
+                "New Series",
+                "Series name:",
+                "Save",
+                "Cancel",
+                placeholder: "e.g., AI Revolution, Philosophy Shorts...");
+            if (string.IsNullOrWhiteSpace(newSeries)) return;
+            series = newSeries.Trim();
+        }
+        else if (selected == "No Series")
+        {
+            series = "";
+        }
+        else
+        {
+            series = selected.Trim();
+        }
+
+        // Apply to entire project family
+        var family = await _storyService.GetProjectDraftsAsync(rootId);
+        bool saved = await TryStoryWriteAsync(async () =>
+        {
+            foreach (var project in family)
+            {
+                project.Series = series;
+                await _storyService.UpdateProjectAsync(project);
+            }
+        });
+
+        if (!saved) return;
+
+        if (_currentProject != null)
+            _currentProject.Series = series;
 
         await LoadProjectsAsync();
     }
@@ -2622,6 +2767,7 @@ public class StoryProductionPage : ContentPage
         _linesToggleButton.IsVisible = false;
         _deleteProjectBtn.IsVisible = false;
         _projectCategoryBtn.IsVisible = false;
+        _seriesBtn.IsVisible = false;
         _writingProcessBtn.IsVisible = false;
         _expandAllBtn.IsVisible = false;
         _conversationLogBtn.IsVisible = false;
@@ -2646,6 +2792,7 @@ public class StoryProductionPage : ContentPage
         _linesToggleButton.IsVisible = true;
         _deleteProjectBtn.IsVisible = true;
         _projectCategoryBtn.IsVisible = true;
+        _seriesBtn.IsVisible = true;
         _writingProcessBtn.IsVisible = true;
         _expandAllBtn.IsVisible = true;
         _conversationLogBtn.IsVisible = true;

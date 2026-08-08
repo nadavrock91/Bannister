@@ -64,6 +64,7 @@ public class StoryProductionService
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN ProducedAt TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN StatsSourceDraftProjectId INTEGER"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN WritingProcess TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE story_projects ADD COLUMN Series TEXT DEFAULT ''"); } catch { }
         try { await conn.CreateTableAsync<WritingProcessDefinition>(); } catch { }
     }
 

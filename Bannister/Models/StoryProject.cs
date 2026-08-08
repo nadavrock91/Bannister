@@ -19,6 +19,8 @@ public class StoryProject
 
     public string ProjectCategory { get; set; } = "";
 
+    public string Series { get; set; } = "";
+
     public string WritingProcess { get; set; } = "";
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
