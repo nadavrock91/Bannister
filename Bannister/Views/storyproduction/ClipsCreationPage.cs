@@ -220,9 +220,9 @@ public class ClipsCreationPage : ContentPage
         _navigatorNextBtn = MakeNavigatorButton("Next \u25B6", "#1565C0", "#FFFFFF");
         _navigatorCloseBtn = MakeNavigatorButton("Close", "#9E9E9E", "#FFFFFF");
         _navigatorClearBtn = MakeNavigatorButton("Clear", "#FFEBEE", "#C62828");
-        _navigatorClearNextBtn = MakeNavigatorButton("Clear & Next \u25B6", "#FFCDD2", "#C62828");
-        _navigatorDoneNextBtn = MakeNavigatorButton("\u2705 Done & Next", "#4CAF50", "#FFFFFF");
-        _navigatorNextNotDoneBtn = MakeNavigatorButton("Next Not Done \u25B6", "#FF9800", "#FFFFFF");
+        _navigatorClearNextBtn = MakeNavigatorButton("Clear+Next", "#FFCDD2", "#C62828");
+        _navigatorDoneNextBtn = MakeNavigatorButton("\u2705 Done+Next", "#4CAF50", "#FFFFFF");
+        _navigatorNextNotDoneBtn = MakeNavigatorButton("Next Undone \u25B6", "#FF9800", "#FFFFFF");
         _navigatorPrevBtn.Clicked += async (_, _) => await NavigateClipAsync(-1);
         _navigatorNextBtn.Clicked += async (_, _) => await NavigateClipAsync(1);
         _navigatorClearBtn.Clicked += async (_, _) =>
@@ -294,14 +294,16 @@ public class ClipsCreationPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
 
-        var navBtnRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
-        navBtnRow.Children.Add(_navigatorPrevBtn);
-        navBtnRow.Children.Add(_navigatorCloseBtn);
-        navBtnRow.Children.Add(_navigatorClearBtn);
-        navBtnRow.Children.Add(_navigatorDoneNextBtn);
-        navBtnRow.Children.Add(_navigatorNextBtn);
-        navBtnRow.Children.Add(_navigatorNextNotDoneBtn);
-        navBtnRow.Children.Add(_navigatorClearNextBtn);
+        var navRow1 = new HorizontalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Center };
+        navRow1.Children.Add(_navigatorPrevBtn);
+        navRow1.Children.Add(_navigatorCloseBtn);
+        navRow1.Children.Add(_navigatorNextBtn);
+        navRow1.Children.Add(_navigatorNextNotDoneBtn);
+
+        var navRow2 = new HorizontalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Center };
+        navRow2.Children.Add(_navigatorClearBtn);
+        navRow2.Children.Add(_navigatorClearNextBtn);
+        navRow2.Children.Add(_navigatorDoneNextBtn);
 
         var doneRow = new HorizontalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Start };
         doneRow.Children.Add(_navigatorDoneCheckbox);
@@ -315,13 +317,13 @@ public class ClipsCreationPage : ContentPage
             BorderColor = Color.FromArgb("#1565C0"),
             HasShadow = true,
             IsVisible = false,
-            WidthRequest = 500,
+            WidthRequest = 550,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Content = new VerticalStackLayout
             {
                 Spacing = 10,
-                Children = { _navigatorTitleLabel, _navigatorCountLabel, _navigatorEditor, doneRow, navBtnRow }
+                Children = { _navigatorTitleLabel, _navigatorCountLabel, _navigatorEditor, doneRow, navRow1, navRow2 }
             }
         };
     }
@@ -411,9 +413,9 @@ public class ClipsCreationPage : ContentPage
         BackgroundColor = Color.FromArgb(background),
         TextColor = Color.FromArgb(foreground),
         CornerRadius = 8,
-        HeightRequest = 36,
-        FontSize = 12,
-        Padding = new Thickness(12, 0)
+        HeightRequest = 32,
+        FontSize = 11,
+        Padding = new Thickness(8, 0)
     };
 
     private async Task OpenClipNavigatorAsync()
