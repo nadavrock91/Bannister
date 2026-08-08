@@ -332,13 +332,30 @@ public class ClipsCreationPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
 
-        var navRow1 = new HorizontalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Center };
+        var navRow1 = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Center
+        };
+        _navigatorPrevBtn.Margin = new Thickness(2);
+        _navigatorCloseBtn.Margin = new Thickness(2);
+        _navigatorNextBtn.Margin = new Thickness(2);
+        _navigatorNextNotDoneBtn.Margin = new Thickness(2);
         navRow1.Children.Add(_navigatorPrevBtn);
         navRow1.Children.Add(_navigatorCloseBtn);
         navRow1.Children.Add(_navigatorNextBtn);
         navRow1.Children.Add(_navigatorNextNotDoneBtn);
 
-        var navRow2 = new HorizontalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Center };
+        var navRow2 = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Center
+        };
+        _navigatorClearBtn.Margin = new Thickness(2);
+        _navigatorClearNextBtn.Margin = new Thickness(2);
+        _navigatorDoneNextBtn.Margin = new Thickness(2);
         navRow2.Children.Add(_navigatorClearBtn);
         navRow2.Children.Add(_navigatorClearNextBtn);
         navRow2.Children.Add(_navigatorDoneNextBtn);
@@ -355,8 +372,9 @@ public class ClipsCreationPage : ContentPage
             BorderColor = Color.FromArgb("#1565C0"),
             HasShadow = true,
             IsVisible = false,
-            WidthRequest = 550,
-            HorizontalOptions = LayoutOptions.Center,
+            MaximumWidthRequest = 550,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(16, 0),
             VerticalOptions = LayoutOptions.Center,
             Content = new VerticalStackLayout
             {
@@ -383,14 +401,31 @@ public class ClipsCreationPage : ContentPage
         _promptNavDoneNextBtn = MakePromptNavButton("\U0001F4AC ChatGPT & Next", "#1565C0", "#FFFFFF");
         _promptNavNextNotDoneBtn = MakePromptNavButton("Next Not Done \u25B6", "#FF9800", "#FFFFFF");
 
-        var navRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
+        var navRow = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Center
+        };
+        _promptNavPrevBtn.Margin = new Thickness(2);
+        _promptNavCloseBtn.Margin = new Thickness(2);
+        _promptNavDoneNextBtn.Margin = new Thickness(2);
+        _promptNavNextBtn.Margin = new Thickness(2);
+        _promptNavNextNotDoneBtn.Margin = new Thickness(2);
         navRow.Children.Add(_promptNavPrevBtn);
         navRow.Children.Add(_promptNavCloseBtn);
         navRow.Children.Add(_promptNavDoneNextBtn);
         navRow.Children.Add(_promptNavNextBtn);
         navRow.Children.Add(_promptNavNextNotDoneBtn);
 
-        var actionRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
+        var actionRow = new FlexLayout
+        {
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Center
+        };
+        _promptNavCopyBtn.Margin = new Thickness(2);
+        _promptNavMarkDoneBtn.Margin = new Thickness(2);
         actionRow.Children.Add(_promptNavCopyBtn);
         actionRow.Children.Add(_promptNavMarkDoneBtn);
 
@@ -417,8 +452,9 @@ public class ClipsCreationPage : ContentPage
             BorderColor = Color.FromArgb("#1565C0"),
             HasShadow = true,
             IsVisible = false,
-            WidthRequest = 560,
-            HorizontalOptions = LayoutOptions.Center,
+            MaximumWidthRequest = 560,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(16, 0),
             VerticalOptions = LayoutOptions.Center,
             Content = frameContent
         };
