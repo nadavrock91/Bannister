@@ -20,6 +20,10 @@ public class ClipsCreationPage : ContentPage
     private Button _navigatorPrevBtn = null!;
     private Button _navigatorNextBtn = null!;
     private Button _navigatorCloseBtn = null!;
+    private Button _navigatorClearBtn = null!;
+    private Button _navigatorClearNextBtn = null!;
+    private CheckBox _navigatorDoneCheckbox = null!;
+    private Label _navigatorDoneLabel = null!;
     private EventHandler? _navigatorCloseHandler;
 
     private readonly List<(StoryLine Line, VisualShot Shot, List<VisualShot> AllShots)> _allClips = new();
@@ -153,13 +157,53 @@ public class ClipsCreationPage : ContentPage
         _navigatorPrevBtn = MakeNavigatorButton("\u25C0 Back", "#E0E0E0", "#333");
         _navigatorNextBtn = MakeNavigatorButton("Next \u25B6", "#1565C0", "#FFFFFF");
         _navigatorCloseBtn = MakeNavigatorButton("Close", "#9E9E9E", "#FFFFFF");
+        _navigatorClearBtn = MakeNavigatorButton("Clear", "#FFEBEE", "#C62828");
+        _navigatorClearNextBtn = MakeNavigatorButton("Clear & Next \u25B6", "#FFCDD2", "#C62828");
         _navigatorPrevBtn.Clicked += async (_, _) => await NavigateClipAsync(-1);
         _navigatorNextBtn.Clicked += async (_, _) => await NavigateClipAsync(1);
+        _navigatorClearBtn.Clicked += async (_, _) =>
+        {
+            _navigatorEditor.Text = "";
+            await SaveCurrentClipAsync();
+        };
+        _navigatorClearNextBtn.Clicked += async (_, _) =>
+        {
+            _navigatorEditor.Text = "";
+            await SaveCurrentClipAsync();
+            await NavigateClipAsync(1);
+        };
+
+        _navigatorDoneCheckbox = new CheckBox
+        {
+            Color = Color.FromArgb("#4CAF50"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        _navigatorDoneCheckbox.CheckedChanged += async (_, e) =>
+        {
+            if (_currentClipIndex < 0 || _currentClipIndex >= _allClips.Count) return;
+            var (line, shot, allShots) = _allClips[_currentClipIndex];
+            shot.Done = e.Value;
+            try { await _storyService.SaveShotsAsync(line, allShots); }
+            catch { }
+        };
+        _navigatorDoneLabel = new Label
+        {
+            Text = "Clip setup complete",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center
+        };
 
         var navBtnRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
         navBtnRow.Children.Add(_navigatorPrevBtn);
         navBtnRow.Children.Add(_navigatorCloseBtn);
+        navBtnRow.Children.Add(_navigatorClearBtn);
         navBtnRow.Children.Add(_navigatorNextBtn);
+        navBtnRow.Children.Add(_navigatorClearNextBtn);
+
+        var doneRow = new HorizontalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Start };
+        doneRow.Children.Add(_navigatorDoneCheckbox);
+        doneRow.Children.Add(_navigatorDoneLabel);
 
         _navigatorFrame = new Frame
         {
@@ -175,7 +219,7 @@ public class ClipsCreationPage : ContentPage
             Content = new VerticalStackLayout
             {
                 Spacing = 10,
-                Children = { _navigatorTitleLabel, _navigatorCountLabel, _navigatorEditor, navBtnRow }
+                Children = { _navigatorTitleLabel, _navigatorCountLabel, _navigatorEditor, doneRow, navBtnRow }
             }
         };
     }
@@ -242,6 +286,8 @@ public class ClipsCreationPage : ContentPage
         _navigatorEditor.Text = shot.Description ?? "";
         _navigatorPrevBtn.IsEnabled = _currentClipIndex > 0;
         _navigatorNextBtn.IsEnabled = _currentClipIndex < _allClips.Count - 1;
+        _navigatorDoneCheckbox.IsChecked = shot.Done;
+        _navigatorClearNextBtn.IsEnabled = _currentClipIndex < _allClips.Count - 1;
     }
 
     private async Task NavigateClipAsync(int direction)
@@ -315,7 +361,7 @@ public class ClipsCreationPage : ContentPage
         {
             var shots = _storyService.GetShots(line);
             totalShots += shots.Count;
-            completedShots += shots.Count(s => s.AllTasksDone);
+            completedShots += shots.Count(s => s.Done);
 
             var lineFrame = new Frame { Padding = 10, CornerRadius = 8, BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false };
             var lineStack = new VerticalStackLayout { Spacing = 4 };
@@ -324,7 +370,7 @@ public class ClipsCreationPage : ContentPage
             lineStack.Children.Add(new Label { Text = preview, FontSize = 11, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
             if (shots.Count > 0)
             {
-                int lineDone = shots.Count(s => s.AllTasksDone);
+                int lineDone = shots.Count(s => s.Done);
                 lineStack.Children.Add(new Label { Text = $"{lineDone}/{shots.Count} clips", FontSize = 10, TextColor = lineDone == shots.Count ? Color.FromArgb("#2E7D32") : Color.FromArgb("#F57C00") });
             }
             lineFrame.Content = lineStack;
@@ -338,19 +384,47 @@ public class ClipsCreationPage : ContentPage
                 {
                     Padding = 10,
                     CornerRadius = 8,
-                    BackgroundColor = shot.AllTasksDone ? Color.FromArgb("#E8F5E9") : shot.Task1_ImageGenerated ? Color.FromArgb("#FFF8E1") : Colors.White,
+                    BackgroundColor = shot.Done ? Color.FromArgb("#E8F5E9") : shot.Task1_ImageGenerated ? Color.FromArgb("#FFF8E1") : Colors.White,
                     BorderColor = Color.FromArgb("#E0E0E0"),
                     HasShadow = false,
                     BindingContext = clipIndex
                 };
                 var clipStack = new VerticalStackLayout { Spacing = 2 };
-                string statusIcon = shot.AllTasksDone ? "\u2705" : shot.Task1_ImageGenerated ? "\U0001F7E1" : "\u26AA";
+                string statusIcon = shot.Done ? "\u2705" : shot.Task1_ImageGenerated ? "\U0001F7E1" : "\u26AA";
                 string description = !string.IsNullOrWhiteSpace(shot.Description) ? (shot.Description.Length > 40 ? shot.Description[..40] + "..." : shot.Description) : "(no description)";
                 clipStack.Children.Add(new Label { Text = $"{statusIcon} L{line.LineOrder} C{shot.Index}", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
                 clipStack.Children.Add(new Label { Text = description, FontSize = 10, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.TailTruncation });
                 string tasks = ((!shot.Task1_ImageGenerated ? "IMG " : "") + (!shot.Task2_VideoGenerated ? "VID" : "")).Trim();
                 if (!string.IsNullOrEmpty(tasks))
                     clipStack.Children.Add(new Label { Text = tasks, FontSize = 9, TextColor = Color.FromArgb("#F57C00"), FontAttributes = FontAttributes.Bold });
+
+                var cardDoneCheckbox = new CheckBox
+                {
+                    IsChecked = shot.Done,
+                    Color = Color.FromArgb("#4CAF50"),
+                    Scale = 0.7,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                var capturedShotForDone = shot;
+                var capturedLineForDone = line;
+                var capturedShotsForDone = shots;
+                cardDoneCheckbox.CheckedChanged += async (_, e) =>
+                {
+                    capturedShotForDone.Done = e.Value;
+                    try { await _storyService.SaveShotsAsync(capturedLineForDone, capturedShotsForDone); }
+                    catch { }
+                    await LoadClipsAsync();
+                };
+                var cardDoneRow = new HorizontalStackLayout { Spacing = 4 };
+                cardDoneRow.Children.Add(cardDoneCheckbox);
+                cardDoneRow.Children.Add(new Label
+                {
+                    Text = "Setup done",
+                    FontSize = 9,
+                    TextColor = Color.FromArgb("#666"),
+                    VerticalOptions = LayoutOptions.Center
+                });
+                clipStack.Children.Add(cardDoneRow);
                 clipFrame.Content = clipStack;
 
                 var capturedLine = line;
