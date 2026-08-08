@@ -91,6 +91,17 @@ public class StoryProductionHubPage : ContentPage
         });
         mainStack.Children.Add(draftsBtn);
 
+        var clipsBtn = CreateMenuButton(
+            "\U0001F3AC Clips Creation",
+            "Manage parallel clip creation tasks across all shots",
+            Color.FromArgb("#E3F2FD"),
+            Color.FromArgb("#1565C0"));
+        clipsBtn.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await OnClipsClicked())
+        });
+        mainStack.Children.Add(clipsBtn);
+
         // Production Stats button
         var statsBtn = CreateMenuButton(
             "📊 Production Stats",
@@ -208,6 +219,12 @@ public class StoryProductionHubPage : ContentPage
     private async Task OnStatsClicked()
     {
         var page = new ProductionStatsPage(_auth, _storyService);
+        await Navigation.PushAsync(page);
+    }
+
+    private async Task OnClipsClicked()
+    {
+        var page = new ClipsCreationPage(_auth, _storyService);
         await Navigation.PushAsync(page);
     }
 
