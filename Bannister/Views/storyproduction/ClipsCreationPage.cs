@@ -28,6 +28,8 @@ public class ClipsCreationPage : ContentPage
 
     private readonly List<(StoryLine Line, VisualShot Shot, List<VisualShot> AllShots)> _allClips = new();
     private int _currentClipIndex = -1;
+    private int _copyNextIndex = -1;
+    private List<int> _nonSetupClipIndices = new();
 
     public ClipsCreationPage(AuthService auth, StoryProductionService storyService)
     {
@@ -117,6 +119,21 @@ public class ClipsCreationPage : ContentPage
         markEmptyDoneBtn.Clicked += async (_, _) => await MarkEmptyClipsDoneAsync();
         topStack.Children.Add(markEmptyDoneBtn);
 
+        var copyNextPromptBtn = new Button
+        {
+            Text = "\U0001F4CB Copy Next Clip Prompt",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            Padding = new Thickness(16, 0),
+            HorizontalOptions = LayoutOptions.Start
+        };
+        copyNextPromptBtn.Clicked += async (_, _) => await CopyNextClipPromptAsync();
+        topStack.Children.Add(copyNextPromptBtn);
+
         var columnsGrid = new Grid
         {
             ColumnDefinitions =
@@ -199,6 +216,8 @@ public class ClipsCreationPage : ContentPage
             shot.Done = e.Value;
             try { await _storyService.SaveShotsAsync(line, allShots); }
             catch { }
+            _copyNextIndex = -1;
+            _nonSetupClipIndices.Clear();
         };
         _navigatorDoneLabel = new Label
         {
@@ -362,7 +381,121 @@ public class ClipsCreationPage : ContentPage
         }
 
         await DisplayAlert("Done", $"Marked {marked} empty clip(s) as done.", "OK");
+        _copyNextIndex = -1;
+        _nonSetupClipIndices.Clear();
         await LoadClipsAsync();
+    }
+
+    private async Task CopyNextClipPromptAsync()
+    {
+        var project = _selector.CurrentProject;
+        if (project == null || _allClips.Count == 0)
+        {
+            await DisplayAlert("No Clips", "Select a project with clips first.", "OK");
+            return;
+        }
+
+        if (_copyNextIndex < 0)
+        {
+            _nonSetupClipIndices = Enumerable.Range(0, _allClips.Count)
+                .Where(i => !_allClips[i].Shot.Done)
+                .ToList();
+            _copyNextIndex = 0;
+        }
+
+        if (_nonSetupClipIndices.Count == 0)
+        {
+            await DisplayAlert("All Done", "All clips are already marked as setup complete.", "OK");
+            return;
+        }
+
+        if (_copyNextIndex >= _nonSetupClipIndices.Count)
+        {
+            await DisplayAlert("Sequence Complete",
+                $"All {_nonSetupClipIndices.Count} clip prompts have been copied.\n\nRestart?",
+                "OK");
+            _copyNextIndex = -1;
+            return;
+        }
+
+        int clipIndex = _nonSetupClipIndices[_copyNextIndex];
+        var line = _allClips[clipIndex].Line;
+        var shot = _allClips[clipIndex].Shot;
+
+        int rootId = project.ParentProjectId ?? project.Id;
+        var rootProject = _selector.AllOriginalProjects.FirstOrDefault(p => p.Id == rootId);
+        string projectName = rootProject?.Name ?? project.Name;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"PROJECT: {projectName}");
+        sb.AppendLine($"LINE {line.LineOrder} — CLIP {shot.Index}");
+        sb.AppendLine();
+
+        if (!string.IsNullOrWhiteSpace(line.LineText))
+        {
+            sb.AppendLine("NARRATION:");
+            sb.AppendLine(line.LineText);
+            sb.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(line.VisualDescription))
+        {
+            sb.AppendLine("VISUAL DESCRIPTION:");
+            sb.AppendLine(line.VisualDescription);
+            sb.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(shot.Description))
+        {
+            sb.AppendLine("CLIP DESCRIPTION:");
+            sb.AppendLine(shot.Description);
+            sb.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(shot.ImagePrompt))
+        {
+            sb.AppendLine("EXISTING IMAGE PROMPT:");
+            sb.AppendLine(shot.ImagePrompt);
+            sb.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(shot.VideoPrompt))
+        {
+            sb.AppendLine("EXISTING VIDEO PROMPT:");
+            sb.AppendLine(shot.VideoPrompt);
+            sb.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(line.ImagePrompt) && string.IsNullOrWhiteSpace(shot.ImagePrompt))
+        {
+            sb.AppendLine("LINE-LEVEL IMAGE PROMPT (use as reference):");
+            sb.AppendLine(line.ImagePrompt);
+            sb.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(line.VideoPrompt) && string.IsNullOrWhiteSpace(shot.VideoPrompt))
+        {
+            sb.AppendLine("LINE-LEVEL VIDEO PROMPT (use as reference):");
+            sb.AppendLine(line.VideoPrompt);
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("TASK:");
+        sb.AppendLine("Generate the starting frame image for this clip. The image should capture the exact visual described above as a single cinematic still frame suitable for video generation.");
+        sb.AppendLine();
+        sb.AppendLine("After generating, I will use this image as the starting frame for AI video generation (Luma/Runway) to create the motion clip.");
+
+        await Clipboard.SetTextAsync(sb.ToString());
+        int remaining = _nonSetupClipIndices.Count - _copyNextIndex - 1;
+        await DisplayAlert(
+            "Clip Prompt Copied",
+            $"Copied prompt for Line {line.LineOrder}, Clip {shot.Index}.\n\n" +
+            $"Clip {_copyNextIndex + 1} of {_nonSetupClipIndices.Count} ({remaining} remaining).\n\n" +
+            $"Create a conversation in your ChatGPT project \"{projectName}\" and paste this prompt.\n\n" +
+            "Tap Copy Next Clip Prompt again for the next one.",
+            "OK");
+
+        _copyNextIndex++;
     }
 
     private void HighlightCurrentClipCard()
@@ -374,7 +507,12 @@ public class ClipsCreationPage : ContentPage
         }
     }
 
-    private async Task OnProjectSelectedAsync(StoryProject project) => await LoadClipsAsync();
+    private async Task OnProjectSelectedAsync(StoryProject project)
+    {
+        _copyNextIndex = -1;
+        _nonSetupClipIndices.Clear();
+        await LoadClipsAsync();
+    }
 
     private void OnShowControls()
     {
@@ -393,6 +531,8 @@ public class ClipsCreationPage : ContentPage
         _linesContainer.Children.Clear();
         _clipsContainer.Children.Clear();
         _allClips.Clear();
+        _copyNextIndex = -1;
+        _nonSetupClipIndices.Clear();
     }
 
     private async Task LoadClipsAsync()
@@ -467,6 +607,8 @@ public class ClipsCreationPage : ContentPage
                     capturedShotForDone.Done = e.Value;
                     try { await _storyService.SaveShotsAsync(capturedLineForDone, capturedShotsForDone); }
                     catch { }
+                    _copyNextIndex = -1;
+                    _nonSetupClipIndices.Clear();
                     await LoadClipsAsync();
                 };
                 var cardDoneRow = new HorizontalStackLayout { Spacing = 4 };
