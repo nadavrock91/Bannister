@@ -186,8 +186,22 @@ public class ClipsCreationPage : ContentPage
         BuildNavigator();
         BuildPromptNavigator();
 
-        var rootStack = new VerticalStackLayout { Children = { topStack, contentScroll } };
-        Content = new Grid { Children = { rootStack } };
+        var rootGrid = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Star }
+            }
+        };
+
+        Grid.SetRow(topStack, 0);
+        rootGrid.Children.Add(topStack);
+
+        Grid.SetRow(contentScroll, 1);
+        rootGrid.Children.Add(contentScroll);
+
+        Content = rootGrid;
     }
 
     private void BuildNavigator()
