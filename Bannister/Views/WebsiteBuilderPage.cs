@@ -2259,7 +2259,7 @@ Output ONLY the C# code block.
                 _batchSectionFrame.IsVisible = true;
                 _missingSectionFrame.IsVisible = true;
                 _stuckAnalysisStepRow.IsVisible = _ownerDevSection.IsVisible;
-                _skipStepButton.IsVisible = false;
+                _skipStepButton.IsVisible = true;
                 break;
         }
 
@@ -4025,6 +4025,7 @@ Output ONLY the C# code block.
         int currentState = project.WorkflowState;
         int nextState = currentState switch
         {
+            0 => 1,
             1 => 2,
             2 => 3,
             3 => 4,
@@ -4037,6 +4038,7 @@ Output ONLY the C# code block.
 
         string stepName = currentState switch
         {
+            0 => "Preparation (QA/batch pick)",
             1 => "Waiting for LLM response",
             2 => "Ready to execute in Codex",
             3 => "Ready to commit",
