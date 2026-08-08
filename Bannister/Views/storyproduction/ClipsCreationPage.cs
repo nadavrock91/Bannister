@@ -21,6 +21,8 @@ public class ClipsCreationPage : ContentPage
     private Button _navigatorCloseBtn = null!;
     private Button _navigatorClearBtn = null!;
     private Button _navigatorClearNextBtn = null!;
+    private Button _navigatorDoneNextBtn = null!;
+    private Button _navigatorNextNotDoneBtn = null!;
     private CheckBox _navigatorDoneCheckbox = null!;
     private Label _navigatorDoneLabel = null!;
     private EventHandler? _navigatorCloseHandler;
@@ -37,11 +39,15 @@ public class ClipsCreationPage : ContentPage
     private Button _promptNavNextBtn = null!;
     private Button _promptNavCloseBtn = null!;
     private Button _promptNavMarkDoneBtn = null!;
+    private Button _promptNavDoneNextBtn = null!;
+    private Button _promptNavNextNotDoneBtn = null!;
     private EventHandler? _promptNavPrevHandler;
     private EventHandler? _promptNavNextHandler;
     private EventHandler? _promptNavCopyHandler;
     private EventHandler? _promptNavMarkDoneHandler;
     private EventHandler? _promptNavCloseHandler;
+    private EventHandler? _promptNavDoneNextHandler;
+    private EventHandler? _promptNavNextNotDoneHandler;
 
     private readonly List<(StoryLine Line, VisualShot Shot, List<VisualShot> AllShots)> _allClips = new();
     private int _currentClipIndex = -1;
@@ -215,6 +221,8 @@ public class ClipsCreationPage : ContentPage
         _navigatorCloseBtn = MakeNavigatorButton("Close", "#9E9E9E", "#FFFFFF");
         _navigatorClearBtn = MakeNavigatorButton("Clear", "#FFEBEE", "#C62828");
         _navigatorClearNextBtn = MakeNavigatorButton("Clear & Next \u25B6", "#FFCDD2", "#C62828");
+        _navigatorDoneNextBtn = MakeNavigatorButton("\u2705 Done & Next", "#4CAF50", "#FFFFFF");
+        _navigatorNextNotDoneBtn = MakeNavigatorButton("Next Not Done \u25B6", "#FF9800", "#FFFFFF");
         _navigatorPrevBtn.Clicked += async (_, _) => await NavigateClipAsync(-1);
         _navigatorNextBtn.Clicked += async (_, _) => await NavigateClipAsync(1);
         _navigatorClearBtn.Clicked += async (_, _) =>
@@ -227,6 +235,40 @@ public class ClipsCreationPage : ContentPage
             _navigatorEditor.Text = "";
             await SaveCurrentClipAsync();
             await NavigateClipAsync(1);
+        };
+        _navigatorDoneNextBtn.Clicked += async (_, _) =>
+        {
+            if (_currentClipIndex < 0 || _currentClipIndex >= _allClips.Count) return;
+            var (doneLine, doneShot, doneAllShots) = _allClips[_currentClipIndex];
+            doneShot.Done = true;
+            if (!doneShot.HasChatGptProject) doneShot.HasChatGptProject = true;
+            _navigatorDoneCheckbox.IsChecked = true;
+            try { await _storyService.SaveShotsAsync(doneLine, doneAllShots); }
+            catch { }
+            await SaveCurrentClipAsync();
+            if (_currentClipIndex < _allClips.Count - 1)
+            {
+                _currentClipIndex++;
+                DisplayCurrentClip();
+            }
+            else
+            {
+                await DisplayAlert("Last Clip", "This was the last clip. Marked as done.", "OK");
+            }
+        };
+        _navigatorNextNotDoneBtn.Clicked += async (_, _) =>
+        {
+            await SaveCurrentClipAsync();
+            for (int i = _currentClipIndex + 1; i < _allClips.Count; i++)
+            {
+                if (!_allClips[i].Shot.Done)
+                {
+                    _currentClipIndex = i;
+                    DisplayCurrentClip();
+                    return;
+                }
+            }
+            await DisplayAlert("No More", "No more clips that aren't done.", "OK");
         };
 
         _navigatorDoneCheckbox = new CheckBox
@@ -256,7 +298,9 @@ public class ClipsCreationPage : ContentPage
         navBtnRow.Children.Add(_navigatorPrevBtn);
         navBtnRow.Children.Add(_navigatorCloseBtn);
         navBtnRow.Children.Add(_navigatorClearBtn);
+        navBtnRow.Children.Add(_navigatorDoneNextBtn);
         navBtnRow.Children.Add(_navigatorNextBtn);
+        navBtnRow.Children.Add(_navigatorNextNotDoneBtn);
         navBtnRow.Children.Add(_navigatorClearNextBtn);
 
         var doneRow = new HorizontalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Start };
@@ -296,11 +340,15 @@ public class ClipsCreationPage : ContentPage
         _promptNavPrevBtn = MakePromptNavButton("\u25C0 Back", "#E0E0E0", "#333333");
         _promptNavNextBtn = MakePromptNavButton("Skip \u25B6", "#FF9800", "#FFFFFF");
         _promptNavCloseBtn = MakePromptNavButton("Close", "#9E9E9E", "#FFFFFF");
+        _promptNavDoneNextBtn = MakePromptNavButton("\u2705 Done & Next", "#4CAF50", "#FFFFFF");
+        _promptNavNextNotDoneBtn = MakePromptNavButton("Next Not Done \u25B6", "#FF9800", "#FFFFFF");
 
         var navRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
         navRow.Children.Add(_promptNavPrevBtn);
         navRow.Children.Add(_promptNavCloseBtn);
+        navRow.Children.Add(_promptNavDoneNextBtn);
         navRow.Children.Add(_promptNavNextBtn);
+        navRow.Children.Add(_promptNavNextNotDoneBtn);
 
         var actionRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
         actionRow.Children.Add(_promptNavCopyBtn);
@@ -421,6 +469,8 @@ public class ClipsCreationPage : ContentPage
         _navigatorNextBtn.IsEnabled = _currentClipIndex < _allClips.Count - 1;
         _navigatorDoneCheckbox.IsChecked = shot.Done;
         _navigatorClearNextBtn.IsEnabled = _currentClipIndex < _allClips.Count - 1;
+        _navigatorNextNotDoneBtn.IsEnabled = _allClips.Skip(_currentClipIndex + 1).Any(item => !item.Shot.Done);
+        _navigatorDoneNextBtn.IsEnabled = true;
     }
 
     private async Task NavigateClipAsync(int direction)
@@ -523,6 +573,19 @@ public class ClipsCreationPage : ContentPage
         });
         ReplaceHandler(_promptNavCopyBtn, ref _promptNavCopyHandler, async (_, _) => await CopyCurrentPromptToClipboardAsync());
         ReplaceHandler(_promptNavMarkDoneBtn, ref _promptNavMarkDoneHandler, async (_, _) => await MarkCurrentPromptDoneAndAdvanceAsync(rootGrid, overlay));
+        ReplaceHandler(_promptNavDoneNextBtn, ref _promptNavDoneNextHandler, async (_, _) => await MarkCurrentPromptFullyDoneAndAdvanceAsync(rootGrid, overlay));
+        ReplaceHandler(_promptNavNextNotDoneBtn, ref _promptNavNextNotDoneHandler, (_, _) =>
+        {
+            for (int i = _promptNavIndex + 1; i < _promptNavClipIndices.Count; i++)
+            {
+                if (!_allClips[_promptNavClipIndices[i]].Shot.Done)
+                {
+                    _promptNavIndex = i;
+                    DisplayPromptNavClip();
+                    return;
+                }
+            }
+        });
         ReplaceHandler(_promptNavCloseBtn, ref _promptNavCloseHandler, async (_, _) =>
         {
             rootGrid.Children.Remove(overlay);
@@ -563,6 +626,8 @@ public class ClipsCreationPage : ContentPage
         _promptNavPrevBtn.IsEnabled = _promptNavIndex > 0;
         _promptNavNextBtn.IsEnabled = _promptNavIndex < _promptNavClipIndices.Count - 1;
         _promptNavMarkDoneBtn.IsEnabled = true;
+        _promptNavNextNotDoneBtn.IsEnabled = _promptNavClipIndices.Skip(_promptNavIndex + 1).Any(index => !_allClips[index].Shot.Done);
+        _promptNavDoneNextBtn.IsEnabled = true;
     }
 
     private static void SetPromptLabel(Label label, string value, string prefix)
@@ -616,6 +681,29 @@ public class ClipsCreationPage : ContentPage
             _promptNavFrame.IsVisible = false;
             await LoadClipsAsync();
             await DisplayAlert("All Done!", "All clips have ChatGPT projects.", "OK");
+            return;
+        }
+
+        if (_promptNavIndex >= _promptNavClipIndices.Count) _promptNavIndex = _promptNavClipIndices.Count - 1;
+        DisplayPromptNavClip();
+    }
+
+    private async Task MarkCurrentPromptFullyDoneAndAdvanceAsync(Grid rootGrid, Grid overlay)
+    {
+        if (_promptNavIndex < 0 || _promptNavIndex >= _promptNavClipIndices.Count) return;
+        var (line, shot, allShots) = _allClips[_promptNavClipIndices[_promptNavIndex]];
+        shot.Done = true;
+        if (!shot.HasChatGptProject) shot.HasChatGptProject = true;
+        try { await _storyService.SaveShotsAsync(line, allShots); }
+        catch { }
+        _promptNavClipIndices.RemoveAt(_promptNavIndex);
+
+        if (_promptNavClipIndices.Count == 0)
+        {
+            rootGrid.Children.Remove(overlay);
+            _promptNavFrame.IsVisible = false;
+            await LoadClipsAsync();
+            await DisplayAlert("All Done!", "All clips are done.", "OK");
             return;
         }
 
@@ -730,6 +818,29 @@ public class ClipsCreationPage : ContentPage
                 if (!string.IsNullOrEmpty(tasks))
                     clipStack.Children.Add(new Label { Text = tasks, FontSize = 9, TextColor = Color.FromArgb("#F57C00"), FontAttributes = FontAttributes.Bold });
 
+                var openSetupBtn = new Button
+                {
+                    Text = "\u2699",
+                    BackgroundColor = Color.FromArgb("#E3F2FD"),
+                    TextColor = Color.FromArgb("#1565C0"),
+                    CornerRadius = 4,
+                    HeightRequest = 24,
+                    WidthRequest = 36,
+                    Padding = 0,
+                    FontSize = 10,
+                    HorizontalOptions = LayoutOptions.End
+                };
+                var capturedLineForSetup = line;
+                var capturedShotForSetup = shot;
+                var capturedShotsForSetup = shots;
+                openSetupBtn.Clicked += async (_, _) =>
+                {
+                    var clipPage = new ClipSetupPage(_storyService, capturedLineForSetup, capturedShotForSetup, capturedShotsForSetup);
+                    clipPage.Disappearing += async (_, _) => await LoadClipsAsync();
+                    await Navigation.PushAsync(clipPage);
+                };
+                clipStack.Children.Add(openSetupBtn);
+
                 var cardChatGptCheckbox = new CheckBox
                 {
                     IsChecked = shot.HasChatGptProject,
@@ -793,18 +904,6 @@ public class ClipsCreationPage : ContentPage
                 });
                 clipStack.Children.Add(cardChatGptRow);
                 clipFrame.Content = clipStack;
-
-                var capturedLine = line;
-                var capturedShot = shot;
-                var capturedShots = shots;
-                var tap = new TapGestureRecognizer();
-                tap.Tapped += async (_, _) =>
-                {
-                    var clipPage = new ClipSetupPage(_storyService, capturedLine, capturedShot, capturedShots);
-                    clipPage.Disappearing += async (_, _) => await LoadClipsAsync();
-                    await Navigation.PushAsync(clipPage);
-                };
-                clipFrame.GestureRecognizers.Add(tap);
                 clipsStack.Children.Add(clipFrame);
             }
 
