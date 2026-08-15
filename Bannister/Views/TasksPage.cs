@@ -44,6 +44,7 @@ public class TasksPage : ContentPage
     private List<string> _categories = new();
     private string _selectedCategory = "All";
     private bool _showingCompleted = false;
+    private bool _topCandidatesExpanded = false;
     private TaskItem? _selectedTask = null;
     private List<TaskItem> _currentTasks = new();
     private string _searchText = "";
@@ -422,8 +423,15 @@ public class TasksPage : ContentPage
         _challengeFrame.Content = challengeStack;
         challengeRow.Children.Add(_challengeFrame);
 
-        Grid.SetRow(challengeRow, 1);
-        mainGrid.Children.Add(challengeRow);
+        var challengeScroll = new ScrollView
+        {
+            Content = challengeRow,
+            Orientation = ScrollOrientation.Vertical,
+            MaximumHeightRequest = 360
+        };
+
+        Grid.SetRow(challengeScroll, 1);
+        mainGrid.Children.Add(challengeScroll);
     }
 
     private Button MiniBtn(string text, string color) => new Button
@@ -1050,72 +1058,87 @@ public class TasksPage : ContentPage
 
         if (topCandidates.Count > 0)
         {
-            _topCandidatesList.Children.Add(new Label
+            var headerLabel = new Label
             {
-                Text = $"\u2B50 Top Candidates ({topCandidates.Count})",
+                Text = _topCandidatesExpanded
+                    ? $"\u25BC \u2B50 Top Candidates ({topCandidates.Count})"
+                    : $"\u25B6 \u2B50 Top Candidates ({topCandidates.Count})",
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#FF9800"),
                 Margin = new Thickness(0, 4, 0, 0)
-            });
+            };
 
-            foreach (var task in topCandidates)
+            var headerTap = new TapGestureRecognizer();
+            headerTap.Tapped += async (_, _) =>
             {
-                var row = new Grid
+                _topCandidatesExpanded = !_topCandidatesExpanded;
+                await RefreshChallengeWidgetAsync(processWeekEnd: false);
+            };
+            headerLabel.GestureRecognizers.Add(headerTap);
+
+            _topCandidatesList.Children.Add(headerLabel);
+
+            if (_topCandidatesExpanded)
+            {
+                foreach (var task in topCandidates)
                 {
-                    ColumnDefinitions =
+                    var row = new Grid
                     {
-                        new ColumnDefinition(GridLength.Star),
-                        new ColumnDefinition(GridLength.Auto)
-                    },
-                    Padding = new Thickness(4, 2),
-                    BackgroundColor = Color.FromArgb("#FFF3E0")
-                };
+                        ColumnDefinitions =
+                        {
+                            new ColumnDefinition(GridLength.Star),
+                            new ColumnDefinition(GridLength.Auto)
+                        },
+                        Padding = new Thickness(4, 2),
+                        BackgroundColor = Color.FromArgb("#FFF3E0")
+                    };
 
-                string priorityDot = task.Priority switch
-                {
-                    1 => "\U0001F534",
-                    3 => "\U0001F7E2",
-                    _ => "\U0001F7E1"
-                };
+                    string priorityDot = task.Priority switch
+                    {
+                        1 => "\U0001F534",
+                        3 => "\U0001F7E2",
+                        _ => "\U0001F7E1"
+                    };
 
-                var lbl = new Label
-                {
-                    Text = $"{priorityDot} {task.Title}",
-                    FontSize = 10,
-                    TextColor = Color.FromArgb("#333"),
-                    VerticalOptions = LayoutOptions.Center,
-                    LineBreakMode = LineBreakMode.WordWrap
-                };
-                Grid.SetColumn(lbl, 0);
-                row.Children.Add(lbl);
+                    var lbl = new Label
+                    {
+                        Text = $"{priorityDot} {task.Title}",
+                        FontSize = 10,
+                        TextColor = Color.FromArgb("#333"),
+                        VerticalOptions = LayoutOptions.Center,
+                        LineBreakMode = LineBreakMode.WordWrap
+                    };
+                    Grid.SetColumn(lbl, 0);
+                    row.Children.Add(lbl);
 
-                var actionsStack = new HorizontalStackLayout { Spacing = 0 };
+                    var actionsStack = new HorizontalStackLayout { Spacing = 0 };
 
-                // Remove top candidate flag
-                var unstarBtn = new Button
-                {
-                    Text = "\u2B50",
-                    BackgroundColor = Colors.Transparent,
-                    TextColor = Color.FromArgb("#FF9800"),
-                    WidthRequest = 26,
-                    HeightRequest = 26,
-                    Padding = 0,
-                    FontSize = 10
-                };
-                var capturedTask = task;
-                unstarBtn.Clicked += async (_, _) =>
-                {
-                    capturedTask.IsTopCandidate = false;
-                    await _tasks.UpdateTaskAsync(capturedTask);
-                    await RefreshChallengeWidgetAsync(processWeekEnd: false);
-                };
-                actionsStack.Children.Add(unstarBtn);
+                    // Remove top candidate flag
+                    var unstarBtn = new Button
+                    {
+                        Text = "\u2B50",
+                        BackgroundColor = Colors.Transparent,
+                        TextColor = Color.FromArgb("#FF9800"),
+                        WidthRequest = 26,
+                        HeightRequest = 26,
+                        Padding = 0,
+                        FontSize = 10
+                    };
+                    var capturedTask = task;
+                    unstarBtn.Clicked += async (_, _) =>
+                    {
+                        capturedTask.IsTopCandidate = false;
+                        await _tasks.UpdateTaskAsync(capturedTask);
+                        await RefreshChallengeWidgetAsync(processWeekEnd: false);
+                    };
+                    actionsStack.Children.Add(unstarBtn);
 
-                Grid.SetColumn(actionsStack, 1);
-                row.Children.Add(actionsStack);
+                    Grid.SetColumn(actionsStack, 1);
+                    row.Children.Add(actionsStack);
 
-                _topCandidatesList.Children.Add(row);
+                    _topCandidatesList.Children.Add(row);
+                }
             }
         }
 
