@@ -460,12 +460,12 @@ public class NewHabitsPage : ContentPage
                 var allowanceCheck = await _newHabits.GetOrCreateAllowanceAsync(_auth.CurrentUsername, _frequency);
                 // The failure would have incremented TotalFailed and possibly decremented allowance
                 // Reverse those changes
-                if (allowanceCheck.TotalFailed > 0)
-                {
-                    allowanceCheck.TotalFailed -= missedHabits.Count;
-                    if (allowanceCheck.TotalFailed < 0) allowanceCheck.TotalFailed = 0;
-                    await _newHabits.UpdateAllowanceAsync(allowanceCheck);
-                }
+                allowanceCheck.TotalFailed = Math.Max(0, allowanceCheck.TotalFailed - missedHabits.Count);
+                allowanceCheck.CurrentAllowance += missedHabits.Count;
+                if (allowanceCheck.CurrentAllowance > allowanceCheck.HighestAllowance)
+                    allowanceCheck.CurrentAllowance = allowanceCheck.HighestAllowance;
+                allowanceCheck.CapAtOneSince = allowanceCheck.CurrentAllowance > 1 ? null : allowanceCheck.CapAtOneSince;
+                await _newHabits.UpdateAllowanceAsync(allowanceCheck);
 
                 string reason = choice.Contains("Didn't Count") ? "Day excluded" : "Retroactive log";
                 await DisplayAlert("Habits Restored",
@@ -529,6 +529,67 @@ public class NewHabitsPage : ContentPage
         // Load active habits for this frequency
         _activeHabitsContainer.Children.Clear();
         var activeHabits = allActiveHabits.Where(h => h.Frequency == _frequency).ToList();
+
+        // Check if active habits exceed allowance (can happen after failure reduced allowance)
+        if (activeHabits.Count > allowance.CurrentAllowance)
+        {
+            int excess = activeHabits.Count - allowance.CurrentAllowance;
+            
+            await DisplayAlert(
+                "Over Allowance",
+                $"You have {activeHabits.Count} active {_frequency.ToLower()} habits but your allowance is {allowance.CurrentAllowance}.\n\n" +
+                $"You need to deactivate {excess} habit(s) or move them back to pending.",
+                "Choose Which to Remove");
+
+            // Let user pick which to deactivate
+            int removed = 0;
+            while (removed < excess)
+            {
+                var remaining = (await _newHabits.GetAllActiveHabitsAsync(_auth.CurrentUsername))
+                    .Where(h => h.Frequency == _frequency)
+                    .OrderBy(h => h.ConsecutiveDays)
+                    .ToList();
+
+                if (remaining.Count <= allowance.CurrentAllowance) break;
+
+                var options = remaining.Select(h =>
+                {
+                    string streak = h.ConsecutiveDays > 0 ? $" (streak: {h.ConsecutiveDays})" : "";
+                    return $"{h.HabitName}{streak}";
+                }).ToArray();
+
+                string? selected = await DisplayActionSheet(
+                    $"Remove {excess - removed} more from active",
+                    null,  // no cancel — must choose
+                    null,
+                    options);
+
+                if (string.IsNullOrEmpty(selected)) break;
+
+                var habitToRemove = remaining.FirstOrDefault(h =>
+                    selected.StartsWith(h.HabitName));
+
+                if (habitToRemove != null)
+                {
+                    habitToRemove.Status = "pending";
+                    habitToRemove.ConsecutiveDays = 0;
+                    habitToRemove.LastAppliedDate = null;
+                    await _newHabits.UpdateHabitAsync(habitToRemove);
+                    removed++;
+                }
+            }
+
+            if (removed > 0)
+            {
+                await DisplayAlert("Habits Moved",
+                    $"{removed} habit(s) moved back to pending queue.",
+                    "OK");
+
+                // Reload everything
+                await LoadHabitsAsync();
+                return;
+            }
+        }
 
         if (activeHabits.Count == 0)
         {
