@@ -75,17 +75,26 @@ public class TasksPage : ContentPage
 
     private void BuildUI()
     {
-        var rootGrid = new Grid();
-
-        var mainGrid = new Grid
+        var rootGrid = new Grid
         {
+            VerticalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Fill,
             Padding = 12,
             RowSpacing = 8,
             RowDefinitions =
             {
-                new RowDefinition(GridLength.Auto),  // Header + Controls
-                new RowDefinition(GridLength.Auto),  // Challenge widget
-                new RowDefinition(GridLength.Star)   // Content
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star)
+            }
+        };
+
+        var topSectionGrid = new Grid
+        {
+            RowSpacing = 8,
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
             }
         };
 
@@ -151,10 +160,13 @@ public class TasksPage : ContentPage
         headerRow.Children.Add(_showCompletedBtn);
 
         Grid.SetRow(headerRow, 0);
-        mainGrid.Children.Add(headerRow);
+        topSectionGrid.Children.Add(headerRow);
 
         // Challenge widget row
-        BuildChallengeWidget(mainGrid);
+        BuildChallengeWidget(topSectionGrid);
+
+        Grid.SetRow(topSectionGrid, 0);
+        rootGrid.Children.Add(topSectionGrid);
 
         // Content area
         var contentGrid = new Grid
@@ -272,14 +284,13 @@ public class TasksPage : ContentPage
         Grid.SetColumn(_detailPanel, 1);
         contentGrid.Children.Add(_detailPanel);
 
-        Grid.SetRow(contentGrid, 2);
-        mainGrid.Children.Add(contentGrid);
+        Grid.SetRow(contentGrid, 1);
+        rootGrid.Children.Add(contentGrid);
 
-        rootGrid.Children.Add(mainGrid);
         Content = rootGrid;
     }
 
-    private void BuildChallengeWidget(Grid mainGrid)
+    private void BuildChallengeWidget(Grid topSectionGrid)
     {
         var challengeRow = new VerticalStackLayout { Spacing = 8 };
 
@@ -431,7 +442,7 @@ public class TasksPage : ContentPage
         };
 
         Grid.SetRow(challengeScroll, 1);
-        mainGrid.Children.Add(challengeScroll);
+        topSectionGrid.Children.Add(challengeScroll);
     }
 
     private Button MiniBtn(string text, string color) => new Button
