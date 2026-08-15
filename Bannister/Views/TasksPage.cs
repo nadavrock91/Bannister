@@ -1129,9 +1129,23 @@ public class TasksPage : ContentPage
 
         var history = await _challengeService.GetChallengeHistoryAsync(_auth.CurrentUsername, 12);
 
-        if (history.Count < 2)
+        if (history.Count == 0)
         {
-            _allowanceChartContainer.IsVisible = false;
+            _allowanceChartContainer.IsVisible = true;
+            _allowanceChartContainer.Children.Add(new Label
+            {
+                Text = "Focus Allowance History",
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#7B1FA2")
+            });
+            _allowanceChartContainer.Children.Add(new Label
+            {
+                Text = "No challenge history yet. Complete your first week to see the chart.",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#999"),
+                FontAttributes = FontAttributes.Italic
+            });
             return;
         }
 
