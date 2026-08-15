@@ -6,11 +6,13 @@ public class EmotionalManagementHubPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly EmotionService _emotions;
+    private readonly IdeasService _ideasService;
 
-    public EmotionalManagementHubPage(AuthService auth, EmotionService emotions)
+    public EmotionalManagementHubPage(AuthService auth, EmotionService emotions, IdeasService ideasService)
     {
         _auth = auth;
         _emotions = emotions;
+        _ideasService = ideasService;
         Title = "Emotional Management";
         BackgroundColor = Color.FromArgb("#FFF8E1");
         BuildUI();
@@ -48,7 +50,7 @@ public class EmotionalManagementHubPage : ContentPage
         {
             Command = new Command(async () =>
             {
-                var page = new ActiveEmotionsPage(_auth, _emotions);
+                var page = new ActiveEmotionsPage(_auth, _emotions, _ideasService);
                 await Navigation.PushAsync(page);
             })
         });

@@ -7,6 +7,7 @@ public class ActiveEmotionsPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly EmotionService _emotions;
+    private readonly IdeasService? _ideasService;
     private VerticalStackLayout _activeList;
     private VerticalStackLayout _archivedList;
     private Label _activeCountLabel;
@@ -14,10 +15,11 @@ public class ActiveEmotionsPage : ContentPage
     private bool _showArchived = false;
     private static readonly string[] Categories = { "Joy", "Sadness", "Anger", "Fear", "Surprise", "Disgust", "Love", "Anxiety", "Gratitude", "Other" };
 
-    public ActiveEmotionsPage(AuthService auth, EmotionService emotions)
+    public ActiveEmotionsPage(AuthService auth, EmotionService emotions, IdeasService? ideasService = null)
     {
         _auth = auth;
         _emotions = emotions;
+        _ideasService = ideasService;
         Title = "Active Emotions";
         BackgroundColor = Color.FromArgb("#FFF8E1");
         BuildUI();
@@ -324,6 +326,11 @@ public class ActiveEmotionsPage : ContentPage
         string? description = await DisplayPromptAsync("Description (optional)", "What triggered this?", "Create", "Skip", maxLength: 500);
 
         await _emotions.CreateEmotionAsync(_auth.CurrentUsername, name.Trim(), category, intensity, description?.Trim() ?? "");
+        if (_ideasService != null)
+        {
+            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, name.Trim(), "active_emotions"); }
+            catch { }
+        }
         await LoadEmotionsAsync();
     }
 

@@ -2518,7 +2518,7 @@ public class HomePage : ContentPage
 
     private async void OnEmotionalManagementClicked(object? sender, EventArgs e)
     {
-        var page = new EmotionalManagementHubPage(_auth, _emotionService);
+        var page = new EmotionalManagementHubPage(_auth, _emotionService, _ideas);
         await Navigation.PushAsync(page);
     }
 
