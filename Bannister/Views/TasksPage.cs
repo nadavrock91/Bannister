@@ -75,27 +75,10 @@ public class TasksPage : ContentPage
 
     private void BuildUI()
     {
-        var rootGrid = new Grid
+        var mainStack = new VerticalStackLayout
         {
-            VerticalOptions = LayoutOptions.Fill,
-            HorizontalOptions = LayoutOptions.Fill,
             Padding = 12,
-            RowSpacing = 8,
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Star)
-            }
-        };
-
-        var topSectionGrid = new Grid
-        {
-            RowSpacing = 8,
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Auto)
-            }
+            Spacing = 8
         };
 
         // Header row
@@ -159,14 +142,10 @@ public class TasksPage : ContentPage
         _showCompletedBtn.Clicked += OnToggleCompletedClicked;
         headerRow.Children.Add(_showCompletedBtn);
 
-        Grid.SetRow(headerRow, 0);
-        topSectionGrid.Children.Add(headerRow);
+        mainStack.Children.Add(headerRow);
 
         // Challenge widget row
-        BuildChallengeWidget(topSectionGrid);
-
-        Grid.SetRow(topSectionGrid, 0);
-        rootGrid.Children.Add(topSectionGrid);
+        BuildChallengeWidget(mainStack);
 
         // Content area
         var contentGrid = new Grid
@@ -179,26 +158,19 @@ public class TasksPage : ContentPage
             ColumnSpacing = 12
         };
 
-        // Data grid, matching DatabasesPage: toolbar fixed above scrollable grid.
-        var gridArea = new Grid
-        {
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Star)
-            }
-        };
+        // Data grid toolbar and horizontally scrollable grid.
+        var gridArea = new VerticalStackLayout { Spacing = 4 };
 
         _gridToolbarContainer = new VerticalStackLayout
         {
             Padding = new Thickness(0, 0, 0, 4)
         };
-        gridArea.Add(_gridToolbarContainer, 0, 0);
+        gridArea.Children.Add(_gridToolbarContainer);
 
-        var gridScroll = new ScrollView { Orientation = ScrollOrientation.Both };
+        var gridScroll = new ScrollView { Orientation = ScrollOrientation.Horizontal };
         _gridContainer = new VerticalStackLayout { Spacing = 4 };
         gridScroll.Content = _gridContainer;
-        gridArea.Add(gridScroll, 0, 1);
+        gridArea.Children.Add(gridScroll);
 
         Grid.SetColumn(gridArea, 0);
         contentGrid.Children.Add(gridArea);
@@ -284,13 +256,12 @@ public class TasksPage : ContentPage
         Grid.SetColumn(_detailPanel, 1);
         contentGrid.Children.Add(_detailPanel);
 
-        Grid.SetRow(contentGrid, 1);
-        rootGrid.Children.Add(contentGrid);
+        mainStack.Children.Add(contentGrid);
 
-        Content = rootGrid;
+        Content = new ScrollView { Content = mainStack };
     }
 
-    private void BuildChallengeWidget(Grid topSectionGrid)
+    private void BuildChallengeWidget(VerticalStackLayout mainStack)
     {
         var challengeRow = new VerticalStackLayout { Spacing = 8 };
 
@@ -434,15 +405,7 @@ public class TasksPage : ContentPage
         _challengeFrame.Content = challengeStack;
         challengeRow.Children.Add(_challengeFrame);
 
-        var challengeScroll = new ScrollView
-        {
-            Content = challengeRow,
-            Orientation = ScrollOrientation.Vertical,
-            MaximumHeightRequest = 360
-        };
-
-        Grid.SetRow(challengeScroll, 1);
-        topSectionGrid.Children.Add(challengeScroll);
+        mainStack.Children.Add(challengeRow);
     }
 
     private Button MiniBtn(string text, string color) => new Button
