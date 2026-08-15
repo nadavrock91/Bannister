@@ -32,6 +32,7 @@ public class TasksPage : ContentPage
     private Label _challengeProgressLabel;
     private Label _challengeStreakLabel;
     private Label _challengeAllowanceLabel;
+    private VerticalStackLayout _allowanceChartContainer;
     private VerticalStackLayout _commitmentsList;
     private VerticalStackLayout _topCandidatesList;
     private Button _addCommitmentBtn;
@@ -279,7 +280,7 @@ public class TasksPage : ContentPage
 
     private void BuildChallengeWidget(Grid mainGrid)
     {
-        var challengeRow = new HorizontalStackLayout { Spacing = 8 };
+        var challengeRow = new VerticalStackLayout { Spacing = 8 };
 
         // Start challenge button
         _startChallengeBtn = new Button
@@ -293,6 +294,14 @@ public class TasksPage : ContentPage
         };
         _startChallengeBtn.Clicked += OnStartChallengeClicked;
         challengeRow.Children.Add(_startChallengeBtn);
+
+        _allowanceChartContainer = new VerticalStackLayout
+        {
+            Spacing = 4,
+            Margin = new Thickness(0, 0, 0, 8),
+            IsVisible = false
+        };
+        challengeRow.Children.Add(_allowanceChartContainer);
 
         // Challenge frame (compact)
         _challengeFrame = new Frame
@@ -876,6 +885,7 @@ public class TasksPage : ContentPage
         {
             _challengeFrame.IsVisible = false;
             _startChallengeBtn.IsVisible = true;
+            _allowanceChartContainer.IsVisible = false;
             _topCandidatesList.Children.Clear();
             _addTopCandidateBtn.IsVisible = false;
             _consultLlmBtn.IsVisible = false;
@@ -890,12 +900,15 @@ public class TasksPage : ContentPage
             {
                 _challengeFrame.IsVisible = false;
                 _startChallengeBtn.IsVisible = true;
+                _allowanceChartContainer.IsVisible = false;
                 _topCandidatesList.Children.Clear();
                 _addTopCandidateBtn.IsVisible = false;
                 _consultLlmBtn.IsVisible = false;
                 return;
             }
         }
+
+        await RefreshAllowanceChartAsync();
 
         _challengeFrame.IsVisible = true;
         _startChallengeBtn.IsVisible = false;
@@ -1108,6 +1121,131 @@ public class TasksPage : ContentPage
 
         _addTopCandidateBtn.IsVisible = true;
         _consultLlmBtn.IsVisible = true;
+    }
+
+    private async Task RefreshAllowanceChartAsync()
+    {
+        _allowanceChartContainer.Children.Clear();
+
+        var history = await _challengeService.GetChallengeHistoryAsync(_auth.CurrentUsername, 12);
+
+        if (history.Count < 2)
+        {
+            _allowanceChartContainer.IsVisible = false;
+            return;
+        }
+
+        _allowanceChartContainer.IsVisible = true;
+
+        // Header
+        _allowanceChartContainer.Children.Add(new Label
+        {
+            Text = "Focus Allowance History",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#7B1FA2")
+        });
+
+        // Chart area
+        var chartFrame = new Frame
+        {
+            Padding = 12,
+            CornerRadius = 10,
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            BorderColor = Colors.Transparent,
+            HasShadow = false
+        };
+
+        var chartGrid = new Grid
+        {
+            ColumnSpacing = 4,
+            RowSpacing = 2,
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto }
+            }
+        };
+
+        // Reverse so oldest is on the left
+        history.Reverse();
+
+        int maxAllowance = history.Max(c => c.CurrentAllowance);
+        if (maxAllowance < 1) maxAllowance = 1;
+        double barMaxHeight = 80;
+
+        for (int i = 0; i < history.Count; i++)
+        {
+            chartGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+
+            var challenge = history[i];
+            double barHeight = Math.Max(8, (challenge.CurrentAllowance / (double)maxAllowance) * barMaxHeight);
+
+            // Determine bar color based on success
+            bool isSuccess = challenge.SuccessStreak > 0 || challenge.CompletedFocusTaskCount >= challenge.TargetTaskCount;
+            Color barColor = isSuccess
+                ? Color.FromArgb("#7B1FA2")
+                : Color.FromArgb("#CE93D8");
+
+            bool isCurrent = challenge.IsActive;
+
+            var barStack = new VerticalStackLayout
+            {
+                VerticalOptions = LayoutOptions.End,
+                HorizontalOptions = LayoutOptions.Center
+            };
+
+            // Value label above bar
+            barStack.Children.Add(new Label
+            {
+                Text = challenge.CurrentAllowance.ToString(),
+                FontSize = 9,
+                TextColor = Color.FromArgb("#666"),
+                HorizontalTextAlignment = TextAlignment.Center
+            });
+
+            // Bar
+            var bar = new BoxView
+            {
+                HeightRequest = barHeight,
+                WidthRequest = 20,
+                CornerRadius = 4,
+                Color = isCurrent ? Color.FromArgb("#4CAF50") : barColor,
+                HorizontalOptions = LayoutOptions.Center
+            };
+            barStack.Children.Add(bar);
+
+            Grid.SetColumn(barStack, i);
+            Grid.SetRow(barStack, 0);
+            chartGrid.Children.Add(barStack);
+
+            // Challenge start label below
+            var weekLabel = new Label
+            {
+                Text = challenge.StartedAt.ToString("M/d"),
+                FontSize = 8,
+                TextColor = Color.FromArgb("#999"),
+                HorizontalTextAlignment = TextAlignment.Center
+            };
+            Grid.SetColumn(weekLabel, i);
+            Grid.SetRow(weekLabel, 1);
+            chartGrid.Children.Add(weekLabel);
+        }
+
+        chartFrame.Content = chartGrid;
+        _allowanceChartContainer.Children.Add(chartFrame);
+
+        // Summary line
+        var current = history.LastOrDefault();
+        if (current != null)
+        {
+            _allowanceChartContainer.Children.Add(new Label
+            {
+                Text = $"Current: {current.CurrentAllowance}/wk \u2022 Streak: {current.SuccessStreak} weeks",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#888")
+            });
+        }
     }
 
     private async void OnStartChallengeClicked(object? sender, EventArgs e)

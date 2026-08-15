@@ -301,6 +301,17 @@ public class WeeklyChallengeService
         await conn.UpdateAsync(challenge);
     }
 
+    public async Task<List<WeeklyChallenge>> GetChallengeHistoryAsync(string username, int limit = 12)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<WeeklyChallenge>()
+            .Where(c => c.Username == username)
+            .OrderByDescending(c => c.StartedAt)
+            .Take(limit)
+            .ToListAsync();
+    }
+
     /// <summary>
     /// Get completed challenges
     /// </summary>
