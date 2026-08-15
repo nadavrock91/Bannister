@@ -99,6 +99,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<OwnerModeService>();
         builder.Services.AddSingleton<WebsiteProjectService>();
         builder.Services.AddSingleton<WebsiteIdeaService>();
+        builder.Services.AddSingleton<EmotionService>();
 
 
         // Conversation Practice Module
@@ -150,6 +151,8 @@ public static class MauiProgram
         builder.Services.AddTransient<WebsiteBuilderPage>();
         builder.Services.AddTransient<WebsiteBuilderSetupGuidePage>();
         builder.Services.AddTransient<ZeroCountsPage>();
+        builder.Services.AddTransient<EmotionalManagementHubPage>();
+        builder.Services.AddTransient<ActiveEmotionsPage>();
 
         // Conversation Practice Pages
         builder.Services.AddTransient<ConversationListPage>();

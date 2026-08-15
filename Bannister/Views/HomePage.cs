@@ -58,6 +58,7 @@ public class HomePage : ContentPage
     private readonly AssetThumbnailService _assetThumbnailService;
     private readonly HomePopupPreferenceService _popupPreferences;
     private readonly DeviceModeService _deviceMode;
+    private readonly EmotionService _emotionService;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -95,6 +96,7 @@ public class HomePage : ContentPage
     private Button _btnDeadlines;
     private Button _btnDesignations;
     private Button _btnDragons;
+    private Button _btnEmotionalManagement;
     private Button _btnStreaks;
     private Button _btnCountdowns;
     private Button _btnCalendar;
@@ -131,7 +133,7 @@ public class HomePage : ContentPage
         AllowanceService allowanceService, PostponedTaskService postponedTaskService, QuickAccessActionService quickAccessService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
-        HomePopupPreferenceService popupPreferences, DeviceModeService deviceMode)
+        HomePopupPreferenceService popupPreferences, DeviceModeService deviceMode, EmotionService emotionService)
     {
         _auth = auth;
         _games = games;
@@ -180,6 +182,7 @@ public class HomePage : ContentPage
         _assetThumbnailService = assetThumbnailService;
         _popupPreferences = popupPreferences;
         _deviceMode = deviceMode;
+        _emotionService = emotionService;
         _ownerMode.StateChanged += OnOwnerModeStateChanged;
 
         Title = "Bannister";
@@ -317,6 +320,10 @@ public class HomePage : ContentPage
         _btnDragons = CreateButton("🐉 Dragons (0)", Colors.White, Color.FromArgb("#5B63EE"));
         _btnDragons.Clicked += OnDragonsClicked;
         navButtons.Add(("Dragons", _btnDragons));
+
+        _btnEmotionalManagement = CreateButton("\U0001F9E0 Emotional Management", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
+        _btnEmotionalManagement.Clicked += OnEmotionalManagementClicked;
+        navButtons.Add(("Emotional Management", _btnEmotionalManagement));
 
         _btnGames = CreateButton("🎮 Games (0)", Colors.White, Color.FromArgb("#5B63EE"), 56, true);
         _btnGames.Clicked += OnGamesClicked;
@@ -814,6 +821,7 @@ public class HomePage : ContentPage
             "Deadlines" => OnDeadlinesClicked,
             "Designations" => OnDesignationsClicked,
             "Dragons" => OnDragonsClicked,
+            "Emotional Management" => OnEmotionalManagementClicked,
             "Games" => OnGamesClicked,
             "Habits" => OnNewHabitsClicked,
             "Ideas" => OnIdeasClicked,
@@ -2505,6 +2513,12 @@ public class HomePage : ContentPage
     private async void OnDragonsClicked(object? sender, EventArgs e)
     {
         var page = new DragonsHubPage(_auth, _dragons, _attempts);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnEmotionalManagementClicked(object? sender, EventArgs e)
+    {
+        var page = new EmotionalManagementHubPage(_auth, _emotionService);
         await Navigation.PushAsync(page);
     }
 
