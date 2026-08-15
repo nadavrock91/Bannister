@@ -34,25 +34,6 @@ public class BackupService
             string fileName = $"bannister_{reason}_{timestamp}_{iteration}.db";
             string backupPath = Path.Combine(BackupFolder, fileName);
 
-            // Check if an automatic backup already exists for today. Automatic callers
-            // use reasons such as login, logout, and pre_password_change; manual backups
-            // use the distinct bannister_backup_ prefix and do not suppress this backup.
-            string today = DateTime.Now.ToString("yyyyMMdd");
-            if (Directory.Exists(BackupFolder))
-            {
-                var existingToday = Directory.GetFiles(BackupFolder, "bannister_*.db")
-                    .Select(Path.GetFileNameWithoutExtension)
-                    .Any(name => name != null &&
-                        !name.StartsWith("bannister_backup_", StringComparison.OrdinalIgnoreCase) &&
-                        name.Split('_').Contains(today, StringComparer.Ordinal));
-
-                if (existingToday)
-                {
-                    System.Diagnostics.Debug.WriteLine("[BACKUP] Auto backup already exists for today, skipping.");
-                    return (true, "Auto backup already exists for today; skipped");
-                }
-            }
-
             // Copy the database file (the backup is encrypted with the same password)
             File.Copy(DatabasePath, backupPath, overwrite: true);
             await CleanupOldBackupsAsync(BackupFolder);
