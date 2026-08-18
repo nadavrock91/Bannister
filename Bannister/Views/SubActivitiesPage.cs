@@ -109,6 +109,63 @@ public class SubActivitiesPage : ContentPage
         try
         {
             var items = await _subActivityService.GetActiveAsync(_auth.CurrentUsername);
+
+            foreach (var item in items)
+            {
+                var activeSteps = _subActivityService.GetSteps(item);
+                var pendingSteps = _subActivityService.GetPendingSteps(item);
+
+                if (activeSteps.Count <= item.Allowance)
+                    continue;
+
+                int excess = activeSteps.Count - item.Allowance;
+
+                await DisplayAlert(
+                    "Over Allowance",
+                    $"You have {activeSteps.Count} active steps but your allowance is {item.Allowance}.\n\n" +
+                    $"You need to move {excess} step(s) to pending.",
+                    "Choose Which to Remove");
+
+                int removed = 0;
+                while (removed < excess)
+                {
+                    var remaining = activeSteps.Where(s => !s.Done).ToList();
+                    if (remaining.Count == 0) break;
+
+                    var options = remaining.Select(s => s.Name).ToArray();
+
+                    string? selected = await DisplayActionSheet(
+                        $"Move {excess - removed} more to pending",
+                        null,
+                        null,
+                        options);
+
+                    if (string.IsNullOrEmpty(selected)) break;
+
+                    var stepToMove = remaining.FirstOrDefault(s => s.Name == selected);
+                    if (stepToMove != null)
+                    {
+                        activeSteps.Remove(stepToMove);
+                        stepToMove.Done = false;
+                        pendingSteps.Add(stepToMove);
+                        removed++;
+                    }
+                }
+
+                if (removed > 0)
+                {
+                    item.StepsJson = System.Text.Json.JsonSerializer.Serialize(activeSteps);
+                    item.PendingStepsJson = System.Text.Json.JsonSerializer.Serialize(pendingSteps);
+                    await _subActivityService.UpdateAsync(item);
+
+                    await DisplayAlert(
+                        "Steps Moved",
+                        $"{removed} step(s) moved to pending.",
+                        "OK");
+                    await LoadDataAsync();
+                    return;
+                }
+            }
             
             _listStack.Children.Clear();
 

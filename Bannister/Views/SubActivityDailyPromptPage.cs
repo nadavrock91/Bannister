@@ -257,8 +257,29 @@ public class SubActivityDailyPromptPage : ContentPage
             return;
         }
 
+        // Decrease allowance for each step marked Not Done (minimum 1).
+        var submittedSteps = _subActivityService.GetSteps(refreshed);
+        int notDoneCount = result.Submitted
+            ? submittedSteps.Count(s => s.LastSubmissionState == (int)SubActivityStepSubmissionState.NotDone)
+            : 0;
+
+        if (notDoneCount > 0)
+        {
+            int oldAllowance = refreshed.Allowance;
+            refreshed.Allowance = Math.Max(1, refreshed.Allowance - notDoneCount);
+            await _subActivityService.UpdateAsync(refreshed);
+
+            if (refreshed.Allowance < oldAllowance)
+            {
+                await DisplayAlert(
+                    "Allowance Decreased",
+                    $"Allowance dropped from {oldAllowance} to {refreshed.Allowance} due to {notDoneCount} step(s) marked Not Done.",
+                    "OK");
+            }
+        }
+
         // Always show status after submission (like allowance check-in does)
-        int activeSteps = _subActivityService.GetSteps(refreshed).Count;
+        int activeSteps = submittedSteps.Count;
         string statusMessage = $"Streak: {refreshed.ConsecutiveAllDoneDays}/3 days\n" +
                                $"Allowance: {refreshed.Allowance} (active steps: {activeSteps})\n" +
                                $"Total completions: {refreshed.TotalCompletions}";
