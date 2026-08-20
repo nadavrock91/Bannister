@@ -276,6 +276,59 @@ public class SubActivityDailyPromptPage : ContentPage
                     $"Allowance dropped from {oldAllowance} to {refreshed.Allowance} due to {notDoneCount} step(s) marked Not Done.",
                     "OK");
             }
+
+            // Check if active steps now exceed allowance
+            var currentSteps = System.Text.Json.JsonSerializer.Deserialize<List<SubActivityStep>>(refreshed.StepsJson ?? "[]") ?? new();
+            var currentPending = System.Text.Json.JsonSerializer.Deserialize<List<SubActivityStep>>(refreshed.PendingStepsJson ?? "[]") ?? new();
+
+            if (currentSteps.Count > refreshed.Allowance)
+            {
+                int excess = currentSteps.Count - refreshed.Allowance;
+
+                await DisplayAlert(
+                    "Over Allowance",
+                    $"You have {currentSteps.Count} active steps but your allowance is now {refreshed.Allowance}.\n\n" +
+                    $"Move {excess} step(s) to pending.",
+                    "Choose Which to Remove");
+
+                int removed = 0;
+                while (removed < excess)
+                {
+                    var removable = currentSteps.Where(s => !s.Done).ToList();
+                    if (removable.Count == 0) break;
+
+                    var options = removable.Select(s => s.Name).ToArray();
+
+                    string? selected = await DisplayActionSheet(
+                        $"Move {excess - removed} more to pending",
+                        null,
+                        null,
+                        options);
+
+                    if (string.IsNullOrEmpty(selected)) break;
+
+                    var stepToMove = removable.FirstOrDefault(s => s.Name == selected);
+                    if (stepToMove != null)
+                    {
+                        currentSteps.Remove(stepToMove);
+                        stepToMove.Done = false;
+                        currentPending.Add(stepToMove);
+                        removed++;
+                    }
+                }
+
+                if (removed > 0)
+                {
+                    refreshed.StepsJson = System.Text.Json.JsonSerializer.Serialize(currentSteps);
+                    refreshed.PendingStepsJson = System.Text.Json.JsonSerializer.Serialize(currentPending);
+                    await _subActivityService.UpdateAsync(refreshed);
+
+                    await DisplayAlert(
+                        "Steps Moved",
+                        $"{removed} step(s) moved to pending.",
+                        "OK");
+                }
+            }
         }
 
         // Always show status after submission (like allowance check-in does)
