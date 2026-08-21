@@ -204,10 +204,12 @@ public class RoutineService
         if (existingOpen != null)
             return;
 
-        var completionDate = task.CompletedAt.HasValue
-            ? AdjustForLateNight(task.CompletedAt.Value)
-            : AdjustForLateNight(DateTime.Now);
-        await CreateRoutineTaskAsync(conn, routine, ComputeNextInstanceDate(routine, completionDate));
+        var anchorDate = task.DueDate.HasValue
+            ? AdjustForLateNight(task.DueDate.Value)
+            : (task.CompletedAt.HasValue
+                ? AdjustForLateNight(task.CompletedAt.Value)
+                : AdjustForLateNight(DateTime.Now));
+        await CreateRoutineTaskAsync(conn, routine, ComputeNextInstanceDate(routine, anchorDate));
     }
 
     public async Task PostponeRoutineInstanceAsync(int taskId)
