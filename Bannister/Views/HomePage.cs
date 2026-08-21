@@ -59,6 +59,7 @@ public class HomePage : ContentPage
     private readonly HomePopupPreferenceService _popupPreferences;
     private readonly DeviceModeService _deviceMode;
     private readonly EmotionService _emotionService;
+    private readonly StatTrackerService _statTracker;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -97,6 +98,7 @@ public class HomePage : ContentPage
     private Button _btnDesignations;
     private Button _btnDragons;
     private Button _btnEmotionalManagement;
+    private Button _btnStatsTracker;
     private Button _btnStreaks;
     private Button _btnCountdowns;
     private Button _btnCalendar;
@@ -133,7 +135,8 @@ public class HomePage : ContentPage
         AllowanceService allowanceService, PostponedTaskService postponedTaskService, QuickAccessActionService quickAccessService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
-        HomePopupPreferenceService popupPreferences, DeviceModeService deviceMode, EmotionService emotionService)
+        HomePopupPreferenceService popupPreferences, DeviceModeService deviceMode, EmotionService emotionService,
+        StatTrackerService statTracker)
     {
         _auth = auth;
         _games = games;
@@ -183,6 +186,7 @@ public class HomePage : ContentPage
         _popupPreferences = popupPreferences;
         _deviceMode = deviceMode;
         _emotionService = emotionService;
+        _statTracker = statTracker;
         _ownerMode.StateChanged += OnOwnerModeStateChanged;
 
         Title = "Bannister";
@@ -372,6 +376,10 @@ public class HomePage : ContentPage
         _btnSettings = CreateButton("⚙️ Settings", Color.FromArgb("#ECEFF1"), Color.FromArgb("#37474F"));
         _btnSettings.Clicked += OnSettingsClicked;
         navButtons.Add(("Settings", _btnSettings));
+
+        _btnStatsTracker = CreateButton("\U0001F4CA Stats Tracker", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+        _btnStatsTracker.Clicked += OnStatsTrackerClicked;
+        navButtons.Add(("Stats Tracker", _btnStatsTracker));
 
         _btnStoryProduction = CreateButton("🎬 Story Production", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57C00"));
         _btnStoryProduction.Clicked += OnStoryProductionClicked;
@@ -834,6 +842,7 @@ public class HomePage : ContentPage
             "Music Production" => OnMusicProductionClicked,
             "Prompts" => OnPromptsClicked,
             "Settings" => OnSettingsClicked,
+            "Stats Tracker" => OnStatsTrackerClicked,
             "Story Production" => OnStoryProductionClicked,
             "Streaks" => OnStreaksClicked,
             "SubActivities" => OnSubActivitiesClicked,
@@ -2435,6 +2444,12 @@ public class HomePage : ContentPage
     private async void OnStoryProductionClicked(object? sender, EventArgs e)
     {
         var page = new StoryProductionHubPage(_auth, _storyProduction, _assetLibraryService, _assetThumbnailService, _ideas, _ideaLogger, _subActivityService, _customPrompts);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnStatsTrackerClicked(object? sender, EventArgs e)
+    {
+        var page = new StatsPage(_auth, _statTracker);
         await Navigation.PushAsync(page);
     }
 

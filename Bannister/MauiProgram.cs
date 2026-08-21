@@ -100,6 +100,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<WebsiteProjectService>();
         builder.Services.AddSingleton<WebsiteIdeaService>();
         builder.Services.AddSingleton<EmotionService>();
+        builder.Services.AddSingleton<StatTrackerService>();
 
 
         // Conversation Practice Module
@@ -153,6 +154,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ZeroCountsPage>();
         builder.Services.AddTransient<EmotionalManagementHubPage>();
         builder.Services.AddTransient<ActiveEmotionsPage>();
+        builder.Services.AddTransient<StatsPage>();
 
         // Conversation Practice Pages
         builder.Services.AddTransient<ConversationListPage>();
