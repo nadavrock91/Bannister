@@ -115,55 +115,119 @@ public class SubActivitiesPage : ContentPage
                 var activeSteps = _subActivityService.GetSteps(item);
                 var pendingSteps = _subActivityService.GetPendingSteps(item);
 
-                if (activeSteps.Count <= item.Allowance)
-                    continue;
-
-                int excess = activeSteps.Count - item.Allowance;
-
-                await DisplayAlert(
-                    "Over Allowance",
-                    $"You have {activeSteps.Count} active steps but your allowance is {item.Allowance}.\n\n" +
-                    $"You need to move {excess} step(s) to pending.",
-                    "Choose Which to Remove");
-
-                int removed = 0;
-                while (removed < excess)
+                if (activeSteps.Count > item.Allowance)
                 {
-                    var remaining = activeSteps.Where(s => !s.Done).ToList();
-                    if (remaining.Count == 0) break;
-
-                    var options = remaining.Select(s => s.Name).ToArray();
-
-                    string? selected = await DisplayActionSheet(
-                        $"Move {excess - removed} more to pending",
-                        null,
-                        null,
-                        options);
-
-                    if (string.IsNullOrEmpty(selected)) break;
-
-                    var stepToMove = remaining.FirstOrDefault(s => s.Name == selected);
-                    if (stepToMove != null)
-                    {
-                        activeSteps.Remove(stepToMove);
-                        stepToMove.Done = false;
-                        pendingSteps.Add(stepToMove);
-                        removed++;
-                    }
-                }
-
-                if (removed > 0)
-                {
-                    item.StepsJson = System.Text.Json.JsonSerializer.Serialize(activeSteps);
-                    item.PendingStepsJson = System.Text.Json.JsonSerializer.Serialize(pendingSteps);
-                    await _subActivityService.UpdateAsync(item);
+                    int excess = activeSteps.Count - item.Allowance;
 
                     await DisplayAlert(
-                        "Steps Moved",
-                        $"{removed} step(s) moved to pending.",
+                        "Over Allowance",
+                        $"You have {activeSteps.Count} active steps but your allowance is {item.Allowance}.\n\n" +
+                        $"Move {excess} step(s) to pending.",
                         "OK");
-                    await LoadDataAsync();
-                    return;
+
+                    int removed = 0;
+                    while (removed < excess)
+                    {
+                        var removable = activeSteps.ToList();
+                        if (removable.Count == 0) break;
+
+                        var tcs = new TaskCompletionSource<SubActivityStep?>();
+                        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+                        var cardStack = new VerticalStackLayout { Spacing = 8 };
+
+                        cardStack.Children.Add(new Label
+                        {
+                            Text = $"Move {excess - removed} more to pending",
+                            FontSize = 16,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = Color.FromArgb("#C62828")
+                        });
+
+                        cardStack.Children.Add(new Label
+                        {
+                            Text = $"Active: {removable.Count} | Allowance: {item.Allowance}",
+                            FontSize = 12,
+                            TextColor = Color.FromArgb("#888")
+                        });
+
+                        foreach (var step in removable)
+                        {
+                            var stepFrame = new Frame
+                            {
+                                Padding = 12,
+                                CornerRadius = 8,
+                                BackgroundColor = step.Done ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFEBEE"),
+                                BorderColor = Colors.Transparent,
+                                HasShadow = false
+                            };
+
+                            stepFrame.Content = new Label
+                            {
+                                Text = step.Done ? $"\u2705 {step.Name}" : $"\U0001F534 {step.Name}",
+                                FontSize = 14,
+                                TextColor = Color.FromArgb("#333"),
+                                LineBreakMode = LineBreakMode.WordWrap
+                            };
+
+                            var capturedStep = step;
+                            var tap = new TapGestureRecognizer();
+                            tap.Tapped += (_, _) =>
+                            {
+                                if (Content is Grid g) g.Children.Remove(overlay);
+                                tcs.TrySetResult(capturedStep);
+                            };
+                            stepFrame.GestureRecognizers.Add(tap);
+
+                            cardStack.Children.Add(stepFrame);
+                        }
+
+                        var card = new Frame
+                        {
+                            BackgroundColor = Colors.White,
+                            CornerRadius = 12,
+                            Padding = 20,
+                            MaximumWidthRequest = 500,
+                            HorizontalOptions = LayoutOptions.Fill,
+                            VerticalOptions = LayoutOptions.Center,
+                            Margin = new Thickness(16, 0),
+                            Content = new ScrollView { MaximumHeightRequest = 400, Content = cardStack }
+                        };
+
+                        overlay.Children.Add(card);
+
+                        if (Content is Grid mainGrid)
+                            mainGrid.Children.Add(overlay);
+                        else
+                        {
+                            var existingContent = Content;
+                            var newGrid = new Grid();
+                            newGrid.Children.Add(existingContent);
+                            newGrid.Children.Add(overlay);
+                            Content = newGrid;
+                        }
+
+                        var selected = await tcs.Task;
+                        if (selected == null) break;
+
+                        activeSteps.Remove(selected);
+                        selected.Done = false;
+                        pendingSteps.Add(selected);
+                        removed++;
+                    }
+
+                    if (removed > 0)
+                    {
+                        item.StepsJson = System.Text.Json.JsonSerializer.Serialize(activeSteps);
+                        item.PendingStepsJson = System.Text.Json.JsonSerializer.Serialize(pendingSteps);
+                        await _subActivityService.UpdateAsync(item);
+
+                        await DisplayAlert("Steps Moved",
+                            $"{removed} step(s) moved to pending.",
+                            "OK");
+                        await LoadDataAsync();
+                        return;
+                    }
                 }
             }
             
