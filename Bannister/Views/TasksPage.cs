@@ -26,7 +26,7 @@ public class TasksPage : ContentPage
     private Label _detailMeta;
     private Button _showCompletedBtn;
     
-    // Challenge UI
+    private Label _challengeSummaryLabel;
     private Frame _challengeFrame;
     private Label _challengeFocusLabel;
     private Label _challengeProgressLabel;
@@ -76,7 +76,7 @@ public class TasksPage : ContentPage
         _isLoading = true;
         await LoadCategoriesAsync();
         _isLoading = false;
-        await RefreshChallengeWidgetAsync();
+        await RefreshChallengeSummaryAsync();
         await RefreshTasksAsync();
     }
 
@@ -151,8 +151,7 @@ public class TasksPage : ContentPage
 
         mainStack.Children.Add(headerRow);
 
-        // Challenge widget row
-        BuildChallengeWidget(mainStack);
+        BuildChallengeNavigation(mainStack);
 
         // Content area
         var contentGrid = new Grid
@@ -266,6 +265,71 @@ public class TasksPage : ContentPage
         mainStack.Children.Add(contentGrid);
 
         Content = new ScrollView { Content = mainStack };
+    }
+
+    private void BuildChallengeNavigation(VerticalStackLayout mainStack)
+    {
+        var challengeNavStack = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(0, 8)
+        };
+
+        var focusBtn = new Button
+        {
+            Text = "\U0001F3AF Focus Tasks",
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 48,
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold
+        };
+        focusBtn.Clicked += async (_, _) =>
+        {
+            await Navigation.PushAsync(new ChallengeTasksPage(
+                _auth, _tasks, _challengeService, _ideasService, true));
+        };
+        challengeNavStack.Children.Add(focusBtn);
+
+        var freeBtn = new Button
+        {
+            Text = "\U0001F30D Free Tasks",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 48,
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold
+        };
+        freeBtn.Clicked += async (_, _) =>
+        {
+            await Navigation.PushAsync(new ChallengeTasksPage(
+                _auth, _tasks, _challengeService, _ideasService, false));
+        };
+        challengeNavStack.Children.Add(freeBtn);
+
+        _challengeSummaryLabel = new Label
+        {
+            FontSize = 12,
+            TextColor = Color.FromArgb("#888"),
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+        challengeNavStack.Children.Add(_challengeSummaryLabel);
+        mainStack.Children.Add(challengeNavStack);
+    }
+
+    private async Task RefreshChallengeSummaryAsync()
+    {
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null)
+        {
+            _challengeSummaryLabel.Text = "No active challenge";
+            return;
+        }
+
+        _challengeSummaryLabel.Text =
+            $"Focus: {challenge.FocusCategory} \u2022 Allowance: {challenge.CurrentAllowance}/wk \u2022 Streak: {challenge.SuccessStreak}";
     }
 
     private void BuildChallengeWidget(VerticalStackLayout mainStack)
@@ -785,7 +849,7 @@ public class TasksPage : ContentPage
 
         await _tasks.UpdateTaskAsync(task);
         ShowDetail(task);
-        await RefreshChallengeWidgetAsync();
+        await RefreshChallengeSummaryAsync();
         return true;
     }
 
@@ -902,7 +966,7 @@ public class TasksPage : ContentPage
 
         ShowDetail(_selectedTask);
         await RefreshTasksAsync();
-        await RefreshChallengeWidgetAsync();
+        await RefreshChallengeSummaryAsync();
     }
 
     private async void OnPriorityClicked(object? sender, EventArgs e)
