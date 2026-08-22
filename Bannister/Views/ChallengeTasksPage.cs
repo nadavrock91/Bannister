@@ -136,7 +136,9 @@ public class ChallengeTasksPage : ContentPage
             mainStack.Children.Add(consult);
         }
 
-        Content = new ScrollView { Content = mainStack };
+        var rootGrid = new Grid();
+        rootGrid.Children.Add(new ScrollView { Content = mainStack });
+        Content = rootGrid;
     }
 
     private async Task RefreshAsync()
@@ -424,7 +426,12 @@ public class ChallengeTasksPage : ContentPage
         }
         search.TextChanged += (_, e) => Rebuild(e.NewTextValue ?? "");
         var cancel = new Button { Text = "Cancel", BackgroundColor = Colors.Transparent, TextColor = Color.FromArgb("#7B1FA2") };
-        cancel.Clicked += (_, _) => { RemoveOverlay(overlay); tcs.TrySetResult(null); };
+        cancel.Clicked += (_, _) =>
+        {
+            if (Content is Grid rootGrid)
+                rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(null);
+        };
         var stack = new VerticalStackLayout
         {
             Children =
@@ -442,7 +449,8 @@ public class ChallengeTasksPage : ContentPage
             HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center,
             Margin = new Thickness(16, 0), Content = stack
         });
-        AddOverlay(overlay);
+        if (Content is Grid rootGrid)
+            rootGrid.Children.Add(overlay);
         Rebuild("");
         return await tcs.Task;
     }
@@ -461,25 +469,14 @@ public class ChallengeTasksPage : ContentPage
             }
         };
         var tap = new TapGestureRecognizer();
-        tap.Tapped += (_, _) => { RemoveOverlay(overlay); tcs.TrySetResult(task); };
+        tap.Tapped += (_, _) =>
+        {
+            if (Content is Grid rootGrid)
+                rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(task);
+        };
         frame.GestureRecognizers.Add(tap);
         return frame;
-    }
-
-    private void AddOverlay(Grid overlay)
-    {
-        var existing = Content;
-        var root = new Grid();
-        root.Children.Add(existing);
-        root.Children.Add(overlay);
-        Content = root;
-    }
-
-    private void RemoveOverlay(Grid overlay)
-    {
-        if (Content is not Grid root) return;
-        root.Children.Remove(overlay);
-        if (root.Children.Count == 1 && root.Children[0] is View original) Content = original;
     }
 
     private async Task RefreshChartAsync()
