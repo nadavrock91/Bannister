@@ -4200,8 +4200,11 @@ Output ONLY the C# code block.
 
         try
         {
-            await _projectService.SetWorkflowStateAsync(project.Id, 1);
+            bool stateUpdated = await _projectService.SetWorkflowStateAsync(project.Id, 1);
+            project.WorkflowState = 1;
             project.PendingBatchSize = 1;
+            System.Diagnostics.Debug.WriteLine(
+                $"[WebsiteBuilder.ManualTask] projectId={project.Id}, currentProjectId={_currentProjectId}, state=1, stateUpdated={stateUpdated}, pendingBatchSize={project.PendingBatchSize}");
             await _projectService.SaveAsync(project);
             await RefreshCurrentProjectAsync();
         }
