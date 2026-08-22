@@ -63,6 +63,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<LearningService>();
         builder.Services.AddSingleton<PromptService>();
         builder.Services.AddSingleton<StoryProductionService>();
+        builder.Services.AddSingleton<WritingExperimentService>();
         builder.Services.AddSingleton<AssetLibraryService>();
         builder.Services.AddSingleton<AssetThumbnailService>();
         builder.Services.AddSingleton<MusicProductionService>();

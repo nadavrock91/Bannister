@@ -7,13 +7,15 @@ public class WritingProcessesPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
+    private readonly WritingExperimentService _experimentService;
     private readonly IdeaLoggerService? _ideaLogger;
     private VerticalStackLayout _listStack;
 
-    public WritingProcessesPage(AuthService auth, StoryProductionService storyService, IdeaLoggerService? ideaLogger = null)
+    public WritingProcessesPage(AuthService auth, StoryProductionService storyService, WritingExperimentService experimentService, IdeaLoggerService? ideaLogger = null)
     {
         _auth = auth;
         _storyService = storyService;
+        _experimentService = experimentService;
         _ideaLogger = ideaLogger;
 
         Title = "Writing Processes";
@@ -66,6 +68,24 @@ public class WritingProcessesPage : ContentPage
 
         _listStack = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_listStack);
+
+        var experimentBtn = new Button
+        {
+            Text = "\U0001F9EA Writing Experiment",
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        experimentBtn.Clicked += async (_, _) =>
+        {
+            var page = new WritingExperimentPage(_auth, _experimentService, _storyService);
+            await Navigation.PushAsync(page);
+        };
+        mainStack.Children.Add(experimentBtn);
 
         Content = new ScrollView { Content = mainStack };
     }

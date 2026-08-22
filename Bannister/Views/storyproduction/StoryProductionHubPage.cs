@@ -16,10 +16,11 @@ public class StoryProductionHubPage : ContentPage
     private readonly CustomPromptService? _customPrompts;
     private readonly AssetLibraryService _assetLibraryService;
     private readonly AssetThumbnailService _assetThumbnailService;
+    private readonly WritingExperimentService? _experimentService;
     
     private Label _statsLabel;
 
-    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null)
+    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null, WritingExperimentService? experimentService = null)
     {
         _auth = auth;
         _storyService = storyService;
@@ -29,6 +30,7 @@ public class StoryProductionHubPage : ContentPage
         _customPrompts = customPrompts;
         _assetLibraryService = assetLibraryService;
         _assetThumbnailService = assetThumbnailService;
+        _experimentService = experimentService;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -236,7 +238,14 @@ public class StoryProductionHubPage : ContentPage
 
     private async Task OnProcessesClicked()
     {
-        var page = new WritingProcessesPage(_auth, _storyService, _ideaLogger);
+        var experimentService = _experimentService ?? Handler?.MauiContext?.Services.GetService<WritingExperimentService>();
+        if (experimentService == null)
+        {
+            await DisplayAlert("Unavailable", "Writing Experiment service is unavailable.", "OK");
+            return;
+        }
+
+        var page = new WritingProcessesPage(_auth, _storyService, experimentService, _ideaLogger);
         await Navigation.PushAsync(page);
     }
 }
