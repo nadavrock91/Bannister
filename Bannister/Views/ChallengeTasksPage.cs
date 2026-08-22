@@ -176,10 +176,133 @@ public class ChallengeTasksPage : ContentPage
             .ToDictionary(g => g.Key, g => g.First());
 
         _commitmentsList.Children.Clear();
-        foreach (var commitment in relevant)
+        if (relevant.Count > 0)
         {
-            if (taskLookup.TryGetValue(commitment.TaskId, out var task))
-                _commitmentsList.Children.Add(BuildCommitmentRow(commitment, task));
+            var headerGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = new GridLength(40) },
+                    new ColumnDefinition { Width = new GridLength(50) },
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = new GridLength(90) },
+                    new ColumnDefinition { Width = new GridLength(40) }
+                },
+                BackgroundColor = _isFocusMode ? Color.FromArgb("#7B1FA2") : Color.FromArgb("#1565C0"),
+                Padding = new Thickness(4, 6)
+            };
+
+            var headers = new[] { "", "Pri", "Title", "Category", "" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var label = new Label
+                {
+                    Text = headers[i],
+                    FontSize = 10,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Colors.White,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                Grid.SetColumn(label, i);
+                headerGrid.Children.Add(label);
+            }
+            _commitmentsList.Children.Add(headerGrid);
+
+            foreach (var commitment in relevant)
+            {
+                taskLookup.TryGetValue(commitment.TaskId, out var task);
+
+                var rowGrid = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = new GridLength(40) },
+                        new ColumnDefinition { Width = new GridLength(50) },
+                        new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = new GridLength(90) },
+                        new ColumnDefinition { Width = new GridLength(40) }
+                    },
+                    BackgroundColor = commitment.IsCompleted ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FAFAFA"),
+                    Padding = new Thickness(4, 4),
+                    Margin = new Thickness(0, 1)
+                };
+
+                var checkbox = new CheckBox
+                {
+                    IsChecked = commitment.IsCompleted,
+                    Color = _isFocusMode ? Color.FromArgb("#7B1FA2") : Color.FromArgb("#1565C0"),
+                    Scale = 0.8
+                };
+                var capturedCommitment = commitment;
+                var capturedTask = task;
+                checkbox.CheckedChanged += async (_, e) =>
+                {
+                    if (e.Value && !capturedCommitment.IsCompleted)
+                    {
+                        if (capturedTask != null)
+                            await _tasks.CompleteTaskAsync(capturedTask);
+                        await _challengeService.MarkCommitmentCompletedAsync(capturedCommitment.TaskId);
+                        await RefreshAsync();
+                    }
+                };
+                Grid.SetColumn(checkbox, 0);
+                rowGrid.Children.Add(checkbox);
+
+                string dot = (task?.Priority ?? 2) switch
+                {
+                    1 => "\U0001F534",
+                    3 => "\U0001F7E2",
+                    _ => "\U0001F7E1"
+                };
+                var priorityLabel = new Label { Text = dot, FontSize = 12, VerticalOptions = LayoutOptions.Center };
+                Grid.SetColumn(priorityLabel, 1);
+                rowGrid.Children.Add(priorityLabel);
+
+                var titleLabel = new Label
+                {
+                    Text = task?.Title ?? $"Task #{commitment.TaskId}",
+                    FontSize = 12,
+                    TextColor = commitment.IsCompleted ? Color.FromArgb("#999") : Color.FromArgb("#333"),
+                    TextDecorations = commitment.IsCompleted ? TextDecorations.Strikethrough : TextDecorations.None,
+                    VerticalOptions = LayoutOptions.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
+                };
+                Grid.SetColumn(titleLabel, 2);
+                rowGrid.Children.Add(titleLabel);
+
+                var categoryLabel = new Label
+                {
+                    Text = task?.Category ?? "",
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#888"),
+                    VerticalOptions = LayoutOptions.Center
+                };
+                Grid.SetColumn(categoryLabel, 3);
+                rowGrid.Children.Add(categoryLabel);
+
+                var removeButton = new Button
+                {
+                    Text = "\u2716",
+                    BackgroundColor = Colors.Transparent,
+                    TextColor = Color.FromArgb("#C62828"),
+                    WidthRequest = 30,
+                    HeightRequest = 26,
+                    Padding = 0,
+                    FontSize = 10
+                };
+                var capturedForRemove = commitment;
+                removeButton.Clicked += async (_, _) =>
+                {
+                    bool confirm = await DisplayAlert("Remove?", "Remove this commitment?", "Remove", "Cancel");
+                    if (!confirm) return;
+                    await _challengeService.RemoveCommitmentAsync(capturedForRemove.Id);
+                    await RefreshAsync();
+                };
+                Grid.SetColumn(removeButton, 4);
+                rowGrid.Children.Add(removeButton);
+
+                _commitmentsList.Children.Add(rowGrid);
+            }
         }
 
         _addCommitmentBtn.IsVisible = target > relevant.Count;
@@ -188,68 +311,6 @@ public class ChallengeTasksPage : ContentPage
 
         if (_isFocusMode) await RefreshChartAsync();
         else _chartContainer.IsVisible = false;
-    }
-
-    private View BuildCommitmentRow(WeeklyCommitment commitment, TaskItem task)
-    {
-        var row = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Auto),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Auto)
-            },
-            Padding = new Thickness(4, 2),
-            BackgroundColor = commitment.IsCompleted ? Color.FromArgb("#E8F5E9") : Colors.White
-        };
-
-        var checkbox = new CheckBox
-        {
-            IsChecked = commitment.IsCompleted,
-            IsEnabled = !commitment.IsCompleted,
-            Color = _isFocusMode ? Color.FromArgb("#7B1FA2") : Color.FromArgb("#1565C0")
-        };
-        checkbox.CheckedChanged += async (_, e) =>
-        {
-            if (!e.Value || commitment.IsCompleted) return;
-            await _tasks.CompleteTaskAsync(task);
-            await _challengeService.MarkCommitmentCompletedAsync(task.Id);
-            await RefreshAsync();
-        };
-        row.Add(checkbox, 0);
-
-        var label = new Label
-        {
-            Text = task.Title,
-            FontSize = 13,
-            TextColor = commitment.IsCompleted ? Color.FromArgb("#999") : Color.FromArgb("#333"),
-            TextDecorations = commitment.IsCompleted ? TextDecorations.Strikethrough : TextDecorations.None,
-            VerticalOptions = LayoutOptions.Center,
-            LineBreakMode = LineBreakMode.WordWrap
-        };
-        row.Add(label, 1);
-
-        if (!commitment.IsCompleted)
-        {
-            var remove = new Button
-            {
-                Text = "\u2715",
-                BackgroundColor = Colors.Transparent,
-                TextColor = Color.FromArgb("#999"),
-                WidthRequest = 30,
-                HeightRequest = 30,
-                Padding = 0
-            };
-            remove.Clicked += async (_, _) =>
-            {
-                await _challengeService.RemoveCommitmentAsync(commitment.Id);
-                await RefreshAsync();
-            };
-            row.Add(remove, 2);
-        }
-
-        return row;
     }
 
     private async Task RefreshTopCandidatesAsync(WeeklyChallenge challenge, HashSet<int> committedIds)
