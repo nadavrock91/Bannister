@@ -3995,7 +3995,7 @@ Output ONLY the C# code block.
         {
             try
             {
-                if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, batchPlan.Value.ArcTitle, batchPlan.Value.CodexPrompt, string.IsNullOrWhiteSpace(project.ActiveMissingTitle) ? GetSelectedBatchSize() : 1))
+                if (await _projectService.AdvanceToReadyToExecuteAsync(project.Id, batchPlan.Value.ArcTitle, batchPlan.Value.CodexPrompt, project.PendingBatchSize == 1 ? 1 : string.IsNullOrWhiteSpace(project.ActiveMissingTitle) ? GetSelectedBatchSize() : 1))
                 {
                     await RefreshCurrentProjectAsync();
                     await DisplayAlert("Batch parsed", $"Parsed combined batch arc. Bannister stored the arc title and one Codex prompt worth {(string.IsNullOrWhiteSpace(project.ActiveMissingTitle) ? GetSelectedBatchSize() : 1)} task(s).", "OK");
