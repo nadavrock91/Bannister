@@ -46,6 +46,24 @@ public class WritingProcessesPage : ContentPage
             TextColor = Color.FromArgb("#7B1FA2")
         });
 
+        var experimentBtn = new Button
+        {
+            Text = "\U0001F9EA Writing Experiment",
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        experimentBtn.Clicked += async (_, _) =>
+        {
+            var page = new WritingExperimentPage(_auth, _experimentService, _storyService);
+            await Navigation.PushAsync(page);
+        };
+        mainStack.Children.Add(experimentBtn);
+
         mainStack.Children.Add(new Label
         {
             Text = "Manage the writing processes you can assign to story projects.",
@@ -68,24 +86,6 @@ public class WritingProcessesPage : ContentPage
 
         _listStack = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_listStack);
-
-        var experimentBtn = new Button
-        {
-            Text = "\U0001F9EA Writing Experiment",
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
-            TextColor = Color.FromArgb("#6A1B9A"),
-            CornerRadius = 8,
-            HeightRequest = 44,
-            FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            Margin = new Thickness(0, 12, 0, 0)
-        };
-        experimentBtn.Clicked += async (_, _) =>
-        {
-            var page = new WritingExperimentPage(_auth, _experimentService, _storyService);
-            await Navigation.PushAsync(page);
-        };
-        mainStack.Children.Add(experimentBtn);
 
         Content = new ScrollView { Content = mainStack };
     }
