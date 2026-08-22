@@ -193,14 +193,15 @@ public class ChallengeTasksPage : ContentPage
             }).ToList();
 
             var commitmentGrid = DataGridView.Create(headers, rows)
-                .WithHeaderStyle(
-                    _isFocusMode ? Color.FromArgb("#7B1FA2") : Color.FromArgb("#1565C0"),
-                    Colors.White)
-                .WithAlternateRowColor(Color.FromArgb("#F5F5F5"))
-                .WithColumnWidths(50, 260)
+                .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
+                .WithHeaderTextProvider(index => headers[index])
+                .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
+                .WithColumnWidths(60, 220)
                 .WithCellPadding(6)
-                .WithFontSize(11, 11)
-                .WithPageSize(0)
+                .WithFontSize(12, 12)
+                .WithFullRows(rows)
+                .WithIdColumn("Done")
+                .OnHeaderTapped((_, _) => { })
                 .OnCellTapped(async (_, e) =>
                 {
                     if (e.RowIndex < 0 || e.RowIndex >= relevant.Count) return;
@@ -221,8 +222,12 @@ public class ChallengeTasksPage : ContentPage
                         await RefreshAsync();
                     }
                 })
+                .WithUpdateCallback((_, _, _) => Task.FromResult(false))
                 .Build();
 
+            commitmentGrid.ToolbarView.HorizontalOptions = LayoutOptions.Fill;
+            commitmentGrid.GridView.HorizontalOptions = LayoutOptions.Fill;
+            _commitmentsList.Children.Add(commitmentGrid.ToolbarView);
             _commitmentsList.Children.Add(commitmentGrid.GridView);
         }
 
@@ -276,12 +281,15 @@ public class ChallengeTasksPage : ContentPage
         }).ToList();
 
         var candidatesGrid = DataGridView.Create(headers, rows)
-            .WithHeaderStyle(Color.FromArgb("#FF9800"), Colors.White)
-            .WithAlternateRowColor(Color.FromArgb("#FFF8E1"))
-            .WithColumnWidths(60, 260)
+            .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
+            .WithHeaderTextProvider(index => headers[index])
+            .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
+            .WithColumnWidths(60, 220)
             .WithCellPadding(6)
-            .WithFontSize(11, 11)
-            .WithPageSize(0)
+            .WithFontSize(12, 12)
+            .WithFullRows(rows)
+            .WithIdColumn("Priority")
+            .OnHeaderTapped((_, _) => { })
             .OnCellTapped(async (_, e) =>
             {
                 if (e.ColumnIndex != 3 || e.RowIndex < 0 || e.RowIndex >= candidates.Count) return;
@@ -290,8 +298,12 @@ public class ChallengeTasksPage : ContentPage
                 await _tasks.UpdateTaskAsync(task);
                 await RefreshAsync();
             })
+            .WithUpdateCallback((_, _, _) => Task.FromResult(false))
             .Build();
 
+        candidatesGrid.ToolbarView.HorizontalOptions = LayoutOptions.Fill;
+        candidatesGrid.GridView.HorizontalOptions = LayoutOptions.Fill;
+        _topCandidatesList.Children.Add(candidatesGrid.ToolbarView);
         _topCandidatesList.Children.Add(candidatesGrid.GridView);
     }
 
