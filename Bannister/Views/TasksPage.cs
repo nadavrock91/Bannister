@@ -1023,29 +1023,25 @@ public class TasksPage : ContentPage
         _addCommitmentBtn.IsVisible = focusCommitments.Count < focusTarget;
 
         _freeCommitmentsList.Children.Clear();
+        _freeProgressLabel.Text = freeTarget > 0
+            ? $"Free Tasks: {freeCommitments.Count(c => c.IsCompleted)}/{freeTarget}"
+            : "Free Tasks: unlocks at allowance 3";
+        _freeProgressLabel.IsVisible = true;
+        _freeCommitmentsList.IsVisible = true;
+        _addFreeCommitmentBtn.IsVisible = freeTarget > 0;
+        _addFreeTopCandidateBtn.IsVisible = true;
+        _markFreeTopCandidateBtn.IsVisible = true;
+
         if (freeTarget > 0)
         {
-            _freeProgressLabel.Text = $"Free Tasks: {freeCommitments.Count(c => c.IsCompleted)}/{freeTarget}";
-            _freeProgressLabel.IsVisible = true;
-            _freeCommitmentsList.IsVisible = true;
-
             foreach (var commitment in freeCommitments)
             {
                 if (availableTaskLookup.TryGetValue(commitment.TaskId, out var task))
                     _freeCommitmentsList.Children.Add(BuildCommitmentRow(commitment, task));
             }
 
-            _addFreeCommitmentBtn.IsVisible = freeCommitments.Count < freeTarget;
-            _addFreeTopCandidateBtn.IsVisible = _addFreeCommitmentBtn.IsVisible;
-            _markFreeTopCandidateBtn.IsVisible = _addFreeCommitmentBtn.IsVisible;
-        }
-        else
-        {
-            _freeProgressLabel.IsVisible = false;
-            _freeCommitmentsList.IsVisible = false;
-            _addFreeCommitmentBtn.IsVisible = false;
-            _addFreeTopCandidateBtn.IsVisible = false;
-            _markFreeTopCandidateBtn.IsVisible = false;
+            int freeSlots = freeTarget - freeCommitments.Count;
+            _addFreeCommitmentBtn.IsVisible = freeSlots > 0;
         }
 
         // Show top candidates
