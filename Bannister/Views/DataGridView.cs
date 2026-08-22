@@ -11,6 +11,12 @@ public class CellTappedEventArgs : EventArgs
     public string FullValue { get; set; } = "";
 }
 
+public class HeaderTappedEventArgs : EventArgs
+{
+    public int ColumnIndex { get; init; }
+    public string ColumnName { get; init; } = "";
+}
+
 public class CellEditRecord
 {
     public string IdValue { get; set; } = "";
@@ -57,6 +63,8 @@ public class DataGridView : ContentView
     public CellUpdateDelegate? OnUpdateCell { get; set; }
     public string IdColumnName { get; set; } = "Id";
     public event EventHandler<CellTappedEventArgs>? CellTapped;
+    public event EventHandler<HeaderTappedEventArgs>? HeaderTapped;
+    public Func<int, string>? HeaderTextProvider { get; set; }
 
     /// <summary>Display box + ⋯ menu. Place OUTSIDE scroll.</summary>
     public View ToolbarView { get; private set; }
@@ -155,6 +163,12 @@ public class DataGridView : ContentView
 
     public void ClearUndoHistory() => _undoHistory.Clear();
     public int UndoCount => _undoHistory.Count;
+
+    public void ResetToFirstPage()
+    {
+        _pageOffset = 0;
+        RebuildPage();
+    }
 
     // ===================== RENDER =====================
 
@@ -417,7 +431,7 @@ public class DataGridView : ContentView
             {
                 var label = new Label
                 {
-                    Text = col < _headers.Count ? _headers[col] : "",
+                    Text = HeaderTextProvider?.Invoke(col) ?? (col < _headers.Count ? _headers[col] : ""),
                     FontSize = HeaderFontSize, FontAttributes = FontAttributes.Bold,
                     TextColor = HeaderTextColor, BackgroundColor = HeaderBackgroundColor,
                     Padding = new Thickness(CellPadding), VerticalTextAlignment = TextAlignment.Center,
@@ -425,6 +439,14 @@ public class DataGridView : ContentView
                     MinimumWidthRequest = MinColumnWidth, MaximumWidthRequest = MaxColumnWidth,
                     Margin = new Thickness(0, 0, 1, 1)
                 };
+                int capturedColumn = col;
+                var headerTap = new TapGestureRecognizer();
+                headerTap.Tapped += (_, _) => HeaderTapped?.Invoke(this, new HeaderTappedEventArgs
+                {
+                    ColumnIndex = capturedColumn,
+                    ColumnName = capturedColumn < _headers.Count ? _headers[capturedColumn] : ""
+                });
+                label.GestureRecognizers.Add(headerTap);
                 grid.Add(label, col, currentRow);
             }
             currentRow++;
@@ -818,6 +840,8 @@ public class DataGridViewBuilder
     public DataGridViewBuilder HideHeaders() { _grid.ShowHeaders = false; return this; }
     public DataGridViewBuilder WithFullRows(List<List<string>> f) { _fullRows = f; return this; }
     public DataGridViewBuilder OnCellTapped(EventHandler<CellTappedEventArgs> h) { _grid.CellTapped += h; return this; }
+    public DataGridViewBuilder OnHeaderTapped(EventHandler<HeaderTappedEventArgs> h) { _grid.HeaderTapped += h; return this; }
+    public DataGridViewBuilder WithHeaderTextProvider(Func<int, string> provider) { _grid.HeaderTextProvider = provider; return this; }
     public DataGridViewBuilder WithUpdateCallback(CellUpdateDelegate cb) { _grid.OnUpdateCell = cb; return this; }
     public DataGridViewBuilder WithIdColumn(string id) { _grid.IdColumnName = id; return this; }
     public DataGridViewBuilder WithPageSize(int size) { _grid.PageSize = size; return this; }

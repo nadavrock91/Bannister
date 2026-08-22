@@ -58,6 +58,7 @@ public class TasksPage : ContentPage
     private bool _isLoading = false;
     private string _sortColumn = "CreatedAt";
     private bool _sortAscending = false;
+    private DataGridView? _mainDataGrid;
 
     public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService, IdeasService? ideasService = null)
     {
@@ -694,7 +695,8 @@ public class TasksPage : ContentPage
             return;
         }
 
-        var headers = new List<string> { "Id", "Status", "Title", "Category", "Priority", "DueDate", "Notes", "CreatedAt", "CompletedAt" };
+        var columns = new List<string> { "Id", "Status", "Title", "Category", "Priority", "DueDate", "Notes", "CreatedAt", "CompletedAt" };
+        var headers = columns.ToList();
         var displayRows = new List<List<string>>();
         var fullRows = new List<List<string>>();
 
@@ -706,14 +708,19 @@ public class TasksPage : ContentPage
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .HideHeaders()
             .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
+            .WithHeaderTextProvider(index => GetHeaderText(columns[index]))
             .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
             .WithColumnWidths(60, 220)
             .WithCellPadding(6)
             .WithFontSize(12, 12)
             .WithFullRows(fullRows)
             .WithIdColumn("Id")
+            .OnHeaderTapped(async (_, e) =>
+            {
+                if (e.ColumnIndex >= 0 && e.ColumnIndex < columns.Count)
+                    await SortByColumnAsync(columns[e.ColumnIndex]);
+            })
             .OnCellTapped((s, e) =>
             {
                 if (e.RowIndex >= 0 && e.RowIndex < _currentTasks.Count)
@@ -722,40 +729,10 @@ public class TasksPage : ContentPage
             .WithUpdateCallback(UpdateTaskGridCellAsync)
             .Build();
 
+        _mainDataGrid = dataGrid;
+
         _gridToolbarContainer.Children.Add(dataGrid.ToolbarView);
-        _gridContainer.Children.Add(BuildSortableHeaderRow(headers));
         _gridContainer.Children.Add(dataGrid.GridView);
-    }
-
-    private View BuildSortableHeaderRow(IEnumerable<string> columns)
-    {
-        var headerRow = new HorizontalStackLayout
-        {
-            Spacing = 1,
-            BackgroundColor = Color.FromArgb("#5B63EE")
-        };
-
-        foreach (var column in columns)
-        {
-            var capturedColumn = column;
-            var headerLabel = new Label
-            {
-                Text = GetHeaderText(capturedColumn),
-                FontSize = 12,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White,
-                BackgroundColor = Color.FromArgb("#5B63EE"),
-                Padding = 6,
-                WidthRequest = capturedColumn == "Id" ? 60 : 140,
-                VerticalTextAlignment = TextAlignment.Center
-            };
-            var headerTap = new TapGestureRecognizer();
-            headerTap.Tapped += async (_, _) => await SortByColumnAsync(capturedColumn);
-            headerLabel.GestureRecognizers.Add(headerTap);
-            headerRow.Children.Add(headerLabel);
-        }
-
-        return headerRow;
     }
 
     private string GetHeaderText(string column)
@@ -774,6 +751,7 @@ public class TasksPage : ContentPage
             _sortAscending = true;
         }
 
+        _mainDataGrid?.ResetToFirstPage();
         await RefreshTasksAsync();
     }
 

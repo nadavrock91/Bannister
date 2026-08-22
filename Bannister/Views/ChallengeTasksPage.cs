@@ -284,32 +284,77 @@ public class ChallengeTasksPage : ContentPage
         _topCandidatesList.Children.Add(header);
         if (!_topCandidatesExpanded) return;
 
-        foreach (var task in candidates)
+        var table = new Grid
         {
-            var row = new Grid
+            ColumnSpacing = 1,
+            RowSpacing = 1,
+            BackgroundColor = Color.FromArgb("#E0E0E0"),
+            ColumnDefinitions =
             {
-                ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
-                Padding = new Thickness(8, 4),
-                BackgroundColor = Color.FromArgb("#FFF3E0")
-            };
-            row.Add(new Label
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto)
+            }
+        };
+
+        string[] tableHeaders = { "Priority", "Title", "Category", "Actions" };
+        for (int column = 0; column < tableHeaders.Length; column++)
+        {
+            table.Add(new Label
             {
-                Text = $"{PriorityDot(task.Priority)} {task.Title}",
+                Text = tableHeaders[column],
                 FontSize = 11,
-                TextColor = Color.FromArgb("#333"),
-                VerticalOptions = LayoutOptions.Center
-            }, 0);
-            var unstar = new Button { Text = "\u2B50", BackgroundColor = Colors.Transparent, WidthRequest = 30, HeightRequest = 30, Padding = 0 };
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Colors.White,
+                BackgroundColor = Color.FromArgb("#FF9800"),
+                Padding = new Thickness(8, 6)
+            }, column, 0);
+        }
+
+        for (int rowIndex = 0; rowIndex < candidates.Count; rowIndex++)
+        {
+            var task = candidates[rowIndex];
+            int gridRow = rowIndex + 1;
+            var rowColor = rowIndex % 2 == 0 ? Color.FromArgb("#FFF8E1") : Colors.White;
+
+            table.Add(CreateCandidateCell(PriorityDot(task.Priority), rowColor), 0, gridRow);
+            table.Add(CreateCandidateCell(task.Title, rowColor), 1, gridRow);
+            table.Add(CreateCandidateCell(task.Category, rowColor), 2, gridRow);
+
+            var actionsCell = new Grid { BackgroundColor = rowColor, Padding = new Thickness(4, 0) };
+            var unstar = new Button
+            {
+                Text = "\u2B50",
+                BackgroundColor = Colors.Transparent,
+                TextColor = Color.FromArgb("#FF9800"),
+                WidthRequest = 34,
+                HeightRequest = 30,
+                Padding = 0
+            };
             unstar.Clicked += async (_, _) =>
             {
                 task.IsTopCandidate = false;
                 await _tasks.UpdateTaskAsync(task);
                 await RefreshAsync();
             };
-            row.Add(unstar, 1);
-            _topCandidatesList.Children.Add(row);
+            actionsCell.Children.Add(unstar);
+            table.Add(actionsCell, 3, gridRow);
         }
+
+        _topCandidatesList.Children.Add(table);
     }
+
+    private static Label CreateCandidateCell(string text, Color backgroundColor) => new()
+    {
+        Text = text,
+        FontSize = 11,
+        TextColor = Color.FromArgb("#333"),
+        BackgroundColor = backgroundColor,
+        Padding = new Thickness(8, 6),
+        VerticalTextAlignment = TextAlignment.Center,
+        LineBreakMode = LineBreakMode.WordWrap
+    };
 
     private async Task AddCommitmentAsync()
     {
