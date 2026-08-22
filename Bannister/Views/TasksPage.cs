@@ -56,6 +56,8 @@ public class TasksPage : ContentPage
     private List<TaskItem> _currentTasks = new();
     private string _searchText = "";
     private bool _isLoading = false;
+    private string _sortColumn = "CreatedAt";
+    private bool _sortAscending = false;
 
     public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService, IdeasService? ideasService = null)
     {
@@ -77,6 +79,7 @@ public class TasksPage : ContentPage
         await LoadCategoriesAsync();
         _isLoading = false;
         await RefreshChallengeSummaryAsync();
+        await RefreshAllowanceChartAsync();
         await RefreshTasksAsync();
     }
 
@@ -269,6 +272,13 @@ public class TasksPage : ContentPage
 
     private void BuildChallengeNavigation(VerticalStackLayout mainStack)
     {
+        _allowanceChartContainer = new VerticalStackLayout
+        {
+            Spacing = 4,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        mainStack.Children.Add(_allowanceChartContainer);
+
         var challengeNavStack = new VerticalStackLayout
         {
             Spacing = 8,
@@ -642,6 +652,20 @@ public class TasksPage : ContentPage
             ).ToList();
         }
 
+        tasks = _sortColumn switch
+        {
+            "Id" => _sortAscending ? tasks.OrderBy(t => t.Id).ToList() : tasks.OrderByDescending(t => t.Id).ToList(),
+            "Status" => _sortAscending ? tasks.OrderBy(GetTaskStatusText).ToList() : tasks.OrderByDescending(GetTaskStatusText).ToList(),
+            "Title" => _sortAscending ? tasks.OrderBy(t => t.Title).ToList() : tasks.OrderByDescending(t => t.Title).ToList(),
+            "Category" => _sortAscending ? tasks.OrderBy(t => t.Category).ToList() : tasks.OrderByDescending(t => t.Category).ToList(),
+            "Priority" => _sortAscending ? tasks.OrderBy(t => t.Priority).ToList() : tasks.OrderByDescending(t => t.Priority).ToList(),
+            "DueDate" => _sortAscending ? tasks.OrderBy(t => t.DueDate).ToList() : tasks.OrderByDescending(t => t.DueDate).ToList(),
+            "Notes" => _sortAscending ? tasks.OrderBy(t => t.Notes).ToList() : tasks.OrderByDescending(t => t.Notes).ToList(),
+            "CreatedAt" => _sortAscending ? tasks.OrderBy(t => t.CreatedAt).ToList() : tasks.OrderByDescending(t => t.CreatedAt).ToList(),
+            "CompletedAt" => _sortAscending ? tasks.OrderBy(t => t.CompletedAt).ToList() : tasks.OrderByDescending(t => t.CompletedAt).ToList(),
+            _ => tasks.OrderByDescending(t => t.CreatedAt).ToList()
+        };
+
         _currentTasks = tasks;
 
         // Update header
@@ -682,6 +706,7 @@ public class TasksPage : ContentPage
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
+            .HideHeaders()
             .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
             .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
             .WithColumnWidths(60, 220)
@@ -698,7 +723,58 @@ public class TasksPage : ContentPage
             .Build();
 
         _gridToolbarContainer.Children.Add(dataGrid.ToolbarView);
+        _gridContainer.Children.Add(BuildSortableHeaderRow(headers));
         _gridContainer.Children.Add(dataGrid.GridView);
+    }
+
+    private View BuildSortableHeaderRow(IEnumerable<string> columns)
+    {
+        var headerRow = new HorizontalStackLayout
+        {
+            Spacing = 1,
+            BackgroundColor = Color.FromArgb("#5B63EE")
+        };
+
+        foreach (var column in columns)
+        {
+            var capturedColumn = column;
+            var headerLabel = new Label
+            {
+                Text = GetHeaderText(capturedColumn),
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Colors.White,
+                BackgroundColor = Color.FromArgb("#5B63EE"),
+                Padding = 6,
+                WidthRequest = capturedColumn == "Id" ? 60 : 140,
+                VerticalTextAlignment = TextAlignment.Center
+            };
+            var headerTap = new TapGestureRecognizer();
+            headerTap.Tapped += async (_, _) => await SortByColumnAsync(capturedColumn);
+            headerLabel.GestureRecognizers.Add(headerTap);
+            headerRow.Children.Add(headerLabel);
+        }
+
+        return headerRow;
+    }
+
+    private string GetHeaderText(string column)
+    {
+        if (_sortColumn != column) return column;
+        return column + (_sortAscending ? " \u25B2" : " \u25BC");
+    }
+
+    private async Task SortByColumnAsync(string column)
+    {
+        if (_sortColumn == column)
+            _sortAscending = !_sortAscending;
+        else
+        {
+            _sortColumn = column;
+            _sortAscending = true;
+        }
+
+        await RefreshTasksAsync();
     }
 
     private Frame BuildCell(TaskItem task)
@@ -761,7 +837,7 @@ public class TasksPage : ContentPage
         return new List<string>
         {
             task.Id.ToString(),
-            task.IsCompleted ? "Done" : task.IsOverdue ? "Overdue" : task.IsDueToday ? "Today" : "Open",
+            GetTaskStatusText(task),
             task.Title,
             task.Category,
             task.Priority switch { 0 => "Urgent", 1 => "High", 3 => "Low", _ => "Medium" },
@@ -771,6 +847,9 @@ public class TasksPage : ContentPage
             task.CompletedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? ""
         };
     }
+
+    private static string GetTaskStatusText(TaskItem task) =>
+        task.IsCompleted ? "Done" : task.IsOverdue ? "Overdue" : task.IsDueToday ? "Today" : "Open";
 
     private async Task<bool> UpdateTaskGridCellAsync(string idValue, string columnName, string newValue)
     {
