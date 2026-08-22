@@ -285,98 +285,38 @@ public class SubActivityDailyPromptPage : ContentPage
             {
                 int excess = currentSteps.Count - refreshed.Allowance;
 
+                await DisplayAlert(
+                    "Over Allowance",
+                    $"You have {currentSteps.Count} active steps but your allowance is now {refreshed.Allowance}.\n\nYou must move {excess} step(s) to pending.",
+                    "OK");
+
                 int removed = 0;
                 while (removed < excess)
                 {
-                    var removable = currentSteps.ToList();
-                    if (removable.Count == 0) break;
+                    var options = currentSteps.Select(s =>
+                        $"{(s.Done ? "\u2705" : "\U0001F534")} {s.Name}").ToArray();
 
-                    // Build a picker modal
-                    var tcs = new TaskCompletionSource<SubActivityStep?>();
-                    var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+                    if (options.Length == 0) break;
 
-                    var cardStack = new VerticalStackLayout { Spacing = 8 };
+                    string? selected = await DisplayActionSheet(
+                        $"Move {excess - removed} more to pending ({currentSteps.Count} active)",
+                        null,
+                        null,
+                        options);
 
-                    cardStack.Children.Add(new Label
+                    if (string.IsNullOrEmpty(selected)) break;
+
+                    // Strip the emoji prefix to find the step
+                    string selectedName = selected.Length > 2 ? selected[2..].Trim() : selected;
+                    var stepToMove = currentSteps.FirstOrDefault(s => s.Name == selectedName);
+
+                    if (stepToMove != null)
                     {
-                        Text = $"Move {excess - removed} step(s) to pending",
-                        FontSize = 16,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#C62828")
-                    });
-
-                    cardStack.Children.Add(new Label
-                    {
-                        Text = $"Active: {removable.Count} | Allowance: {refreshed.Allowance}",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#888")
-                    });
-
-                    foreach (var step in removable)
-                    {
-                        var stepFrame = new Frame
-                        {
-                            Padding = 12,
-                            CornerRadius = 8,
-                            BackgroundColor = step.Done ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFEBEE"),
-                            BorderColor = Colors.Transparent,
-                            HasShadow = false
-                        };
-
-                        var stepLabel = new Label
-                        {
-                            Text = step.Done ? $"\u2705 {step.Name}" : $"\U0001F534 {step.Name}",
-                            FontSize = 14,
-                            TextColor = Color.FromArgb("#333"),
-                            LineBreakMode = LineBreakMode.WordWrap
-                        };
-
-                        stepFrame.Content = stepLabel;
-
-                        var capturedStep = step;
-                        var tap = new TapGestureRecognizer();
-                        tap.Tapped += (_, _) =>
-                        {
-                            if (Content is Grid g) g.Children.Remove(overlay);
-                            tcs.TrySetResult(capturedStep);
-                        };
-                        stepFrame.GestureRecognizers.Add(tap);
-
-                        cardStack.Children.Add(stepFrame);
+                        currentSteps.Remove(stepToMove);
+                        stepToMove.Done = false;
+                        currentPending.Add(stepToMove);
+                        removed++;
                     }
-
-                    var card = new Frame
-                    {
-                        BackgroundColor = Colors.White,
-                        CornerRadius = 12,
-                        Padding = 20,
-                        MaximumWidthRequest = 500,
-                        HorizontalOptions = LayoutOptions.Fill,
-                        VerticalOptions = LayoutOptions.Center,
-                        Margin = new Thickness(16, 0),
-                        Content = new ScrollView { MaximumHeightRequest = 400, Content = cardStack }
-                    };
-
-                    overlay.Children.Add(card);
-
-                    if (Content is Grid mainGrid)
-                        mainGrid.Children.Add(overlay);
-                    else
-                    {
-                        var existingContent = Content;
-                        var newGrid = new Grid();
-                        newGrid.Children.Add(existingContent);
-                        newGrid.Children.Add(overlay);
-                        Content = newGrid;
-                    }
-
-                    var selected = await tcs.Task;
-                    if (selected == null) break;
-
-                    currentSteps.Remove(selected);
-                    selected.Done = false;
-                    currentPending.Add(selected);
-                    removed++;
                 }
 
                 if (removed > 0)
