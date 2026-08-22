@@ -38,6 +38,9 @@ public class TasksPage : ContentPage
     private VerticalStackLayout _topCandidatesList;
     private Button _addCommitmentBtn;
     private Button _addFreeCommitmentBtn;
+    private Button _addFreeTopCandidateBtn;
+    private Button _markFocusTopCandidateBtn;
+    private Button _markFreeTopCandidateBtn;
     private Label _freeProgressLabel;
     private Button _ratioBtn;
     private Button _addTopCandidateBtn;
@@ -415,6 +418,34 @@ public class TasksPage : ContentPage
         _addFreeCommitmentBtn.Clicked += async (_, _) => await OnAddFreeCommitmentClicked();
         challengeStack.Children.Add(_addFreeCommitmentBtn);
 
+        _addFreeTopCandidateBtn = new Button
+        {
+            Text = "+ Free Top Candidate",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            FontSize = 11,
+            CornerRadius = 4,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            IsVisible = false
+        };
+        _addFreeTopCandidateBtn.Clicked += async (_, _) => await AddFreeTopCandidateAsync();
+        challengeStack.Children.Add(_addFreeTopCandidateBtn);
+
+        _markFreeTopCandidateBtn = new Button
+        {
+            Text = "\u2B50 From Existing",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            FontSize = 11,
+            CornerRadius = 4,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            IsVisible = false
+        };
+        _markFreeTopCandidateBtn.Clicked += async (_, _) => await MarkExistingAsTopCandidateAsync(false);
+        challengeStack.Children.Add(_markFreeTopCandidateBtn);
+
         _topCandidatesList = new VerticalStackLayout { Spacing = 2 };
         challengeStack.Children.Add(_topCandidatesList);
 
@@ -431,6 +462,20 @@ public class TasksPage : ContentPage
         };
         _addTopCandidateBtn.Clicked += async (_, _) => await AddTopCandidateAsync();
         challengeStack.Children.Add(_addTopCandidateBtn);
+
+        _markFocusTopCandidateBtn = new Button
+        {
+            Text = "\u2B50 From Existing",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            FontSize = 11,
+            CornerRadius = 4,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            IsVisible = false
+        };
+        _markFocusTopCandidateBtn.Clicked += async (_, _) => await MarkExistingAsTopCandidateAsync(true);
+        challengeStack.Children.Add(_markFocusTopCandidateBtn);
 
         _consultLlmBtn = new Button
         {
@@ -918,6 +963,9 @@ public class TasksPage : ContentPage
             _freeProgressLabel.IsVisible = false;
             _freeCommitmentsList.IsVisible = false;
             _addFreeCommitmentBtn.IsVisible = false;
+            _addFreeTopCandidateBtn.IsVisible = false;
+            _markFocusTopCandidateBtn.IsVisible = false;
+            _markFreeTopCandidateBtn.IsVisible = false;
             return;
         }
 
@@ -936,6 +984,9 @@ public class TasksPage : ContentPage
                 _freeProgressLabel.IsVisible = false;
                 _freeCommitmentsList.IsVisible = false;
                 _addFreeCommitmentBtn.IsVisible = false;
+                _addFreeTopCandidateBtn.IsVisible = false;
+                _markFocusTopCandidateBtn.IsVisible = false;
+                _markFreeTopCandidateBtn.IsVisible = false;
                 return;
             }
         }
@@ -985,12 +1036,16 @@ public class TasksPage : ContentPage
             }
 
             _addFreeCommitmentBtn.IsVisible = freeCommitments.Count < freeTarget;
+            _addFreeTopCandidateBtn.IsVisible = _addFreeCommitmentBtn.IsVisible;
+            _markFreeTopCandidateBtn.IsVisible = _addFreeCommitmentBtn.IsVisible;
         }
         else
         {
             _freeProgressLabel.IsVisible = false;
             _freeCommitmentsList.IsVisible = false;
             _addFreeCommitmentBtn.IsVisible = false;
+            _addFreeTopCandidateBtn.IsVisible = false;
+            _markFreeTopCandidateBtn.IsVisible = false;
         }
 
         // Show top candidates
@@ -1092,6 +1147,7 @@ public class TasksPage : ContentPage
         }
 
         _addTopCandidateBtn.IsVisible = true;
+        _markFocusTopCandidateBtn.IsVisible = true;
         _consultLlmBtn.IsVisible = true;
     }
 
@@ -1562,6 +1618,90 @@ public class TasksPage : ContentPage
             "OK");
 
         await RefreshChallengeWidgetAsync();
+        await RefreshTasksAsync();
+    }
+
+    private async Task AddFreeTopCandidateAsync()
+    {
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null) return;
+
+        string? title = await DisplayPromptAsync(
+            "New Free Top Candidate",
+            "Create a non-focus task marked as top candidate.",
+            "Create", "Cancel", maxLength: 200);
+        if (string.IsNullOrWhiteSpace(title)) return;
+
+        var allTasks = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+        var categories = allTasks
+            .Select(t => t.Category)
+            .Where(c => !string.IsNullOrWhiteSpace(c) &&
+                        !string.Equals(c, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c)
+            .ToList();
+
+        if (categories.Count == 0)
+        {
+            categories.Add(string.Equals("General", challenge.FocusCategory, StringComparison.OrdinalIgnoreCase)
+                ? "Other"
+                : "General");
+        }
+
+        string? category = await DisplayActionSheet("Category", "Cancel", null, categories.ToArray());
+        if (string.IsNullOrEmpty(category) || category == "Cancel") return;
+
+        string? priorityChoice = await DisplayActionSheet("Priority", "Cancel", null,
+            "\U0001F534 High", "\U0001F7E1 Medium", "\U0001F7E2 Low");
+        if (priorityChoice == "Cancel" || string.IsNullOrEmpty(priorityChoice)) return;
+        int priority = priorityChoice.Contains("High") ? 1 : priorityChoice.Contains("Low") ? 3 : 2;
+
+        var newTask = await _tasks.CreateTaskAsync(_auth.CurrentUsername, title.Trim(), category, priority);
+        newTask.IsTopCandidate = true;
+        await _tasks.UpdateTaskAsync(newTask);
+
+        await RefreshChallengeWidgetAsync(processWeekEnd: false);
+        await RefreshTasksAsync();
+    }
+
+    private async Task MarkExistingAsTopCandidateAsync(bool focusOnly)
+    {
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null) return;
+
+        List<TaskItem> tasks;
+        string label;
+
+        if (focusOnly)
+        {
+            tasks = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
+                .Where(t => string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase) &&
+                            !t.IsTopCandidate)
+                .ToList();
+            label = challenge.FocusCategory;
+        }
+        else
+        {
+            tasks = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
+                .Where(t => !string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase) &&
+                            !t.IsTopCandidate)
+                .ToList();
+            label = "Non-focus";
+        }
+
+        if (tasks.Count == 0)
+        {
+            await DisplayAlert("No Tasks", "No available tasks to mark.", "OK");
+            return;
+        }
+
+        var selected = await ShowTaskPickerAsync(tasks, label);
+        if (selected == null) return;
+
+        selected.IsTopCandidate = true;
+        await _tasks.UpdateTaskAsync(selected);
+
+        await RefreshChallengeWidgetAsync(processWeekEnd: false);
         await RefreshTasksAsync();
     }
 

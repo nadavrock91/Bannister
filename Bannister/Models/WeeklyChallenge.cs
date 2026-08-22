@@ -62,6 +62,8 @@ public class WeeklyChallenge
 
     // How many free (non-focus) tasks completed this week
     public int CompletedFreeTaskCount { get; set; } = 0;
+
+    public DateTime? LastProcessedWeekStart { get; set; }
     
     [Ignore]
     public int WeeksUntilAllowanceIncrease => 3 - (SuccessStreak % 3);

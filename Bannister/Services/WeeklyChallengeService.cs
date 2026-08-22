@@ -26,6 +26,7 @@ public class WeeklyChallengeService
             try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN FreeTaskRatio INTEGER DEFAULT 3"); } catch { }
             try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN RequiredFreeTasks INTEGER DEFAULT 0"); } catch { }
             try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN CompletedFreeTaskCount INTEGER DEFAULT 0"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN LastProcessedWeekStart TEXT"); } catch { }
         }
         _initialized = true;
     }
@@ -211,7 +212,15 @@ public class WeeklyChallengeService
         var challenge = await GetActiveChallengeAsync(username);
         if (challenge == null) return;
 
-        var lastWeekStart = GetWeekStart(DateTime.Today.AddDays(-7));
+        var currentWeekStart = GetWeekStart(DateTime.Today);
+        var previousWeekStart = currentWeekStart.AddDays(-7);
+
+        // Guard: only process once per week transition
+        if (challenge.LastProcessedWeekStart.HasValue &&
+            challenge.LastProcessedWeekStart.Value >= previousWeekStart)
+            return;
+
+        var lastWeekStart = previousWeekStart;
         var conn = await _db.GetConnectionAsync();
         
         var lastWeekCommitments = await conn.Table<WeeklyCommitment>()
@@ -256,6 +265,7 @@ public class WeeklyChallengeService
         var (_, nextFreeTarget) = CalculateTaskSplit(challenge.CurrentAllowance, challenge.FreeTaskRatio);
         challenge.RequiredFreeTasks = nextFreeTarget;
         challenge.CompletedFreeTaskCount = 0;
+        challenge.LastProcessedWeekStart = previousWeekStart;
 
         await conn.UpdateAsync(challenge);
     }
