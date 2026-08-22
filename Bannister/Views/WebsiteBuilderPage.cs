@@ -264,6 +264,7 @@ Output ONLY the C# code block.
     private readonly Button _cleanTaskPlanButton;
     private readonly Button _cancelWorkflowButton;
     private readonly Button _skipStepButton;
+    private readonly Button _manualTaskButton;
     private readonly Button _copyCodexPromptButton;
     private readonly Button _pasteCodexResultButton;
     private readonly Button _editTaskTitleButton;
@@ -604,6 +605,19 @@ Output ONLY the C# code block.
             IsVisible = false
         };
         _skipStepButton.Clicked += async (_, _) => await SkipCurrentStepAsync();
+
+        _manualTaskButton = new Button
+        {
+            Text = "Manual Task",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            IsVisible = false
+        };
+        _manualTaskButton.Clicked += async (_, _) => await CreateManualTaskAsync();
 
         _cancelWorkflowButton = new Button
         {
@@ -998,6 +1012,7 @@ Output ONLY the C# code block.
                 Children =
                 {
                     workflowHeader,
+                    _manualTaskButton,
                     _batchSectionFrame,
                     _missingSectionFrame,
                     _stuckAnalysisStepRow,
@@ -2181,6 +2196,7 @@ Output ONLY the C# code block.
         var state = ToWorkflowState(project.WorkflowState);
         var isWindows = IsWindows();
 
+        _manualTaskButton.IsVisible = false;
         _batchSectionFrame.IsVisible = false;
         _missingSectionFrame.IsVisible = false;
         _stuckAnalysisStepRow.IsVisible = false;
@@ -2256,6 +2272,7 @@ Output ONLY the C# code block.
             default:
                 ApplyWorkflowBanner("#F5F5F5", "#BBBBBB", "#555555", "⚪", "Ready for next task",
                     "Choose a workflow below. Steps 1-3 are in the section, then the guided task cycle runs above.");
+                _manualTaskButton.IsVisible = true;
                 _batchSectionFrame.IsVisible = true;
                 _missingSectionFrame.IsVisible = true;
                 _stuckAnalysisStepRow.IsVisible = _ownerDevSection.IsVisible;
@@ -4064,6 +4081,137 @@ Output ONLY the C# code block.
         {
             await ShowReadOnlyAlertAsync();
         }
+    }
+
+    private async Task CreateManualTaskAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        var tcs = new TaskCompletionSource<string?>();
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+
+        var editor = new Editor
+        {
+            AutoSize = EditorAutoSizeOption.Disabled,
+            HeightRequest = 200,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#888"),
+            Placeholder = "Describe what you want to build or fix...",
+            FontSize = 13
+        };
+
+        var submitBtn = new Button
+        {
+            Text = "Generate Task Prompt",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#9E9E9E"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+
+        submitBtn.Clicked += (_, _) =>
+        {
+            if (Content is Grid g) g.Children.Remove(overlay);
+            tcs.TrySetResult(editor.Text);
+        };
+
+        cancelBtn.Clicked += (_, _) =>
+        {
+            if (Content is Grid g) g.Children.Remove(overlay);
+            tcs.TrySetResult(null);
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            MaximumWidthRequest = 600,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(16, 0),
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label { Text = "Manual Task", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") },
+                    new Label { Text = "Describe what you want done. This will be wrapped in a prompt for the LLM to generate a Codex-ready task.", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                    editor,
+                    new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.End, Children = { cancelBtn, submitBtn } }
+                }
+            }
+        };
+
+        overlay.Children.Add(card);
+        if (Content is Grid mainGrid)
+            mainGrid.Children.Add(overlay);
+
+        var userDescription = await tcs.Task;
+        if (string.IsNullOrWhiteSpace(userDescription)) return;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("You are generating a single Codex-ready task for a website project.");
+        sb.AppendLine();
+        sb.AppendLine("PROJECT: " + project.Title);
+        if (!string.IsNullOrWhiteSpace(project.SiteUrl))
+            sb.AppendLine("SITE: " + project.SiteUrl);
+
+        string vision = project.VisionRefined ?? project.VisionRaw ?? "";
+        if (!string.IsNullOrWhiteSpace(vision))
+        {
+            sb.AppendLine();
+            sb.AppendLine("PROJECT VISION:");
+            sb.AppendLine(vision);
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("USER REQUEST:");
+        sb.AppendLine(userDescription.Trim());
+        sb.AppendLine();
+        sb.AppendLine("Generate a single task for Codex. Output ONLY these two sections, no preamble:");
+        sb.AppendLine();
+        sb.AppendLine("ARC TITLE: <short title for this task, 4-8 words>");
+        sb.AppendLine();
+        sb.AppendLine("CODEX PROMPT:");
+        sb.AppendLine("<detailed implementation prompt with specific file paths, function names, and expected behavior>");
+        sb.AppendLine();
+        sb.Append("The CODEX PROMPT must end with these instructions verbatim:\n");
+        sb.Append("IMPORTANT: Do NOT run git add, git commit, git push, or any other git command. ");
+        sb.Append("Do NOT stage or commit changes. Only edit files. ");
+        sb.AppendLine("Bannister will run the commit and push for you after you output the commit message below.");
+        sb.Append("At the end of your work, output a single line in this format: ");
+        sb.AppendLine("COMMIT MESSAGE: <one-line git commit message describing everything you did>");
+
+        var constraints = BuildConstraintsBlock(project);
+        if (!string.IsNullOrWhiteSpace(constraints))
+            sb.Append(constraints);
+
+        await Clipboard.SetTextAsync(sb.ToString());
+
+        try
+        {
+            await _projectService.SetWorkflowStateAsync(project.Id, 1);
+            project.PendingBatchSize = 1;
+            await _projectService.SaveAsync(project);
+            await RefreshCurrentProjectAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await ShowReadOnlyAlertAsync();
+            return;
+        }
+
+        await DisplayAlert("Task Prompt Copied", "Manual task prompt copied to clipboard. Paste into Claude or ChatGPT. When you get the response, use Paste Task Plan to continue. This task increments the counter by 1 on completion.", "OK");
     }
 
     private async Task CancelWorkflowAsync()
