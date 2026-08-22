@@ -53,6 +53,15 @@ public class WeeklyChallenge
     
     [Ignore]
     public int RemainingFocusTasks => TargetTaskCount - CompletedFocusTaskCount;
+
+    // Ratio: 1 free task per this many total tasks. Default 3 means allowance 3 = 2 focus + 1 free
+    public int FreeTaskRatio { get; set; } = 3;
+
+    // Computed at week start: how many free tasks needed this week
+    public int RequiredFreeTasks { get; set; } = 0;
+
+    // How many free (non-focus) tasks completed this week
+    public int CompletedFreeTaskCount { get; set; } = 0;
     
     [Ignore]
     public int WeeksUntilAllowanceIncrease => 3 - (SuccessStreak % 3);

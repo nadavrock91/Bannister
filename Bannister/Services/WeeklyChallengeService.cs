@@ -21,6 +21,12 @@ public class WeeklyChallengeService
         var conn = await _db.GetConnectionAsync();
         if (!_db.IsReadOnly) await conn.CreateTableAsync<WeeklyChallenge>();
         if (!_db.IsReadOnly) await conn.CreateTableAsync<WeeklyCommitment>();
+        if (!_db.IsReadOnly)
+        {
+            try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN FreeTaskRatio INTEGER DEFAULT 3"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN RequiredFreeTasks INTEGER DEFAULT 0"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN CompletedFreeTaskCount INTEGER DEFAULT 0"); } catch { }
+        }
         _initialized = true;
     }
 
@@ -31,6 +37,15 @@ public class WeeklyChallengeService
     {
         int diff = (7 + (date.DayOfWeek - DayOfWeek.Sunday)) % 7;
         return date.Date.AddDays(-diff);
+    }
+
+    public static (int focusTasks, int freeTasks) CalculateTaskSplit(int allowance, int freeTaskRatio)
+    {
+        if (freeTaskRatio <= 0 || allowance <= 0) return (allowance, 0);
+        int freeTasks = allowance / freeTaskRatio;
+        if (freeTasks < 0) freeTasks = 0;
+        int focusTasks = allowance - freeTasks;
+        return (focusTasks, freeTasks);
     }
 
     /// <summary>
@@ -72,6 +87,10 @@ public class WeeklyChallengeService
             IsActive = true
         };
 
+        var (_, freeCount) = CalculateTaskSplit(challenge.CurrentAllowance, challenge.FreeTaskRatio);
+        challenge.RequiredFreeTasks = freeCount;
+        challenge.CompletedFreeTaskCount = 0;
+
         var conn = await _db.GetConnectionAsync();
         await conn.InsertAsync(challenge);
         return challenge;
@@ -93,7 +112,7 @@ public class WeeklyChallengeService
     /// <summary>
     /// Add a task commitment for this week
     /// </summary>
-    public async Task<WeeklyCommitment?> AddCommitmentAsync(int challengeId, int taskId, bool isFocusTask)
+    public async Task<WeeklyCommitment?> AddCommitmentAsync(int challengeId, int taskId, bool isFocusTask = true)
     {
         await EnsureInitializedAsync();
         var weekStart = GetWeekStart(DateTime.Today);
@@ -156,26 +175,29 @@ public class WeeklyChallengeService
             commitment.CompletedAt = DateTime.UtcNow;
             await conn.UpdateAsync(commitment);
             
-            // Update challenge focus task count if it's a focus task
-            if (commitment.IsFocusTask)
+            var challenge = await conn.Table<WeeklyChallenge>()
+                .Where(c => c.Id == commitment.ChallengeId)
+                .FirstOrDefaultAsync();
+
+            if (challenge != null)
             {
-                var challenge = await conn.Table<WeeklyChallenge>()
-                    .Where(c => c.Id == commitment.ChallengeId)
-                    .FirstOrDefaultAsync();
-                
-                if (challenge != null)
+                if (commitment.IsFocusTask)
                 {
                     challenge.CompletedFocusTaskCount++;
-                    
+
                     // Check if challenge is complete
                     if (challenge.CompletedFocusTaskCount >= challenge.TargetTaskCount)
                     {
                         challenge.IsActive = false;
                         challenge.CompletedAt = DateTime.UtcNow;
                     }
-                    
-                    await conn.UpdateAsync(challenge);
                 }
+                else
+                {
+                    challenge.CompletedFreeTaskCount++;
+                }
+
+                await conn.UpdateAsync(challenge);
             }
         }
     }
@@ -205,9 +227,14 @@ public class WeeklyChallengeService
         }
         else
         {
-            int completed = lastWeekCommitments.Count(c => c.IsCompleted);
-            
-            if (completed >= challenge.CurrentAllowance)
+            var (focusTarget, freeTarget) = CalculateTaskSplit(challenge.CurrentAllowance, challenge.FreeTaskRatio);
+            int completedFocus = lastWeekCommitments.Count(c => c.IsFocusTask && c.IsCompleted);
+            int completedFree = lastWeekCommitments.Count(c => !c.IsFocusTask && c.IsCompleted);
+            bool focusDone = completedFocus >= focusTarget;
+            bool freeDone = completedFree >= freeTarget;
+            bool weekSuccessful = focusDone && freeDone;
+
+            if (weekSuccessful)
             {
                 // Success!
                 challenge.SuccessStreak++;
@@ -225,6 +252,10 @@ public class WeeklyChallengeService
                 challenge.CurrentAllowance = Math.Max(1, challenge.CurrentAllowance - 1);
             }
         }
+
+        var (_, nextFreeTarget) = CalculateTaskSplit(challenge.CurrentAllowance, challenge.FreeTaskRatio);
+        challenge.RequiredFreeTasks = nextFreeTarget;
+        challenge.CompletedFreeTaskCount = 0;
 
         await conn.UpdateAsync(challenge);
     }
@@ -297,6 +328,14 @@ public class WeeklyChallengeService
         if (challenge == null) return;
 
         challenge.CurrentAllowance = Math.Max(1, allowance);
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(challenge);
+    }
+
+    public async Task UpdateChallengeAsync(WeeklyChallenge challenge)
+    {
+        await EnsureInitializedAsync();
+        if (_db.IsReadOnly) return;
         var conn = await _db.GetConnectionAsync();
         await conn.UpdateAsync(challenge);
     }

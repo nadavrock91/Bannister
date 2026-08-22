@@ -34,8 +34,12 @@ public class TasksPage : ContentPage
     private Label _challengeAllowanceLabel;
     private VerticalStackLayout _allowanceChartContainer;
     private VerticalStackLayout _commitmentsList;
+    private VerticalStackLayout _freeCommitmentsList;
     private VerticalStackLayout _topCandidatesList;
     private Button _addCommitmentBtn;
+    private Button _addFreeCommitmentBtn;
+    private Label _freeProgressLabel;
+    private Button _ratioBtn;
     private Button _addTopCandidateBtn;
     private Button _consultLlmBtn;
     private Button _startChallengeBtn;
@@ -345,6 +349,19 @@ public class TasksPage : ContentPage
         settingsBtn.Clicked += OnChallengeSettingsClicked;
         headerRow.Children.Add(settingsBtn);
 
+        _ratioBtn = new Button
+        {
+            Text = "Ratio: 1 free per 3",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            TextColor = Color.FromArgb("#888"),
+            FontSize = 9,
+            CornerRadius = 4,
+            HeightRequest = 24,
+            Padding = new Thickness(6, 0)
+        };
+        _ratioBtn.Clicked += async (_, _) => await ChangeFreeTaskRatioAsync();
+        headerRow.Children.Add(_ratioBtn);
+
         challengeStack.Children.Add(headerRow);
 
         _challengeProgressLabel = new Label
@@ -358,9 +375,6 @@ public class TasksPage : ContentPage
         _commitmentsList = new VerticalStackLayout { Spacing = 2 };
         challengeStack.Children.Add(_commitmentsList);
 
-        _topCandidatesList = new VerticalStackLayout { Spacing = 2 };
-        challengeStack.Children.Add(_topCandidatesList);
-
         _addCommitmentBtn = new Button
         {
             Text = "+ Pick Task",
@@ -373,6 +387,36 @@ public class TasksPage : ContentPage
         };
         _addCommitmentBtn.Clicked += OnAddCommitmentClicked;
         challengeStack.Children.Add(_addCommitmentBtn);
+
+        _freeProgressLabel = new Label
+        {
+            Text = "Free Tasks: 0/0",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1565C0"),
+            IsVisible = false
+        };
+        challengeStack.Children.Add(_freeProgressLabel);
+
+        _freeCommitmentsList = new VerticalStackLayout { Spacing = 4, IsVisible = false };
+        challengeStack.Children.Add(_freeCommitmentsList);
+
+        _addFreeCommitmentBtn = new Button
+        {
+            Text = "+ Pick Free Task",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            FontSize = 11,
+            CornerRadius = 4,
+            HeightRequest = 28,
+            Padding = new Thickness(8, 0),
+            IsVisible = false
+        };
+        _addFreeCommitmentBtn.Clicked += async (_, _) => await OnAddFreeCommitmentClicked();
+        challengeStack.Children.Add(_addFreeCommitmentBtn);
+
+        _topCandidatesList = new VerticalStackLayout { Spacing = 2 };
+        challengeStack.Children.Add(_topCandidatesList);
 
         _addTopCandidateBtn = new Button
         {
@@ -871,6 +915,9 @@ public class TasksPage : ContentPage
             _topCandidatesList.Children.Clear();
             _addTopCandidateBtn.IsVisible = false;
             _consultLlmBtn.IsVisible = false;
+            _freeProgressLabel.IsVisible = false;
+            _freeCommitmentsList.IsVisible = false;
+            _addFreeCommitmentBtn.IsVisible = false;
             return;
         }
 
@@ -886,6 +933,9 @@ public class TasksPage : ContentPage
                 _topCandidatesList.Children.Clear();
                 _addTopCandidateBtn.IsVisible = false;
                 _consultLlmBtn.IsVisible = false;
+                _freeProgressLabel.IsVisible = false;
+                _freeCommitmentsList.IsVisible = false;
+                _addFreeCommitmentBtn.IsVisible = false;
                 return;
             }
         }
@@ -898,125 +948,50 @@ public class TasksPage : ContentPage
         _challengeFocusLabel.Text = $"Focus: {challenge.FocusCategory} ({challenge.RemainingFocusTasks})";
         _challengeAllowanceLabel.Text = $"📊 {challenge.CurrentAllowance}/wk";
         _challengeStreakLabel.Text = $"🔥 {challenge.SuccessStreak}";
+        _ratioBtn.Text = $"Ratio: 1 free per {challenge.FreeTaskRatio}";
 
         var commitments = await _challengeService.GetCurrentWeekCommitmentsAsync(challenge.Id);
-        int completed = commitments.Count(c => c.IsCompleted);
-        _challengeProgressLabel.Text = $"This week: {completed}/{challenge.CurrentAllowance}";
+        var focusCommitments = commitments.Where(c => c.IsFocusTask).ToList();
+        var freeCommitments = commitments.Where(c => !c.IsFocusTask).ToList();
+        var (focusTarget, freeTarget) = WeeklyChallengeService.CalculateTaskSplit(challenge.CurrentAllowance, challenge.FreeTaskRatio);
+        int completedFocus = focusCommitments.Count(c => c.IsCompleted);
+        _challengeProgressLabel.Text = $"Focus: {completedFocus}/{focusTarget}";
+
+        var availableTaskLookup = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
+            .Concat(await _tasks.GetCompletedTasksAsync(_auth.CurrentUsername))
+            .GroupBy(t => t.Id)
+            .ToDictionary(g => g.Key, g => g.First());
 
         _commitmentsList.Children.Clear();
-        foreach (var commitment in commitments)
+        foreach (var commitment in focusCommitments)
         {
-            var task = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
-                .Concat(await _tasks.GetCompletedTasksAsync(_auth.CurrentUsername))
-                .FirstOrDefault(t => t.Id == commitment.TaskId);
-
-            if (task != null)
-            {
-                var row = new Grid
-                {
-                    ColumnDefinitions =
-                    {
-                        new ColumnDefinition(GridLength.Auto),
-                        new ColumnDefinition(GridLength.Star),
-                        new ColumnDefinition(GridLength.Auto)
-                    },
-                    Padding = new Thickness(4, 2),
-                    BackgroundColor = commitment.IsCompleted ? Color.FromArgb("#E8F5E9") : Colors.White
-                };
-
-                var cb = new CheckBox
-                {
-                    IsChecked = commitment.IsCompleted,
-                    Color = Color.FromArgb("#4CAF50"),
-                    IsEnabled = !commitment.IsCompleted,
-                    Scale = 0.8
-                };
-                var capturedTask = task;
-                var capturedCommitment = commitment;
-                cb.CheckedChanged += async (s, e) =>
-                {
-                    if (cb.IsChecked && !capturedCommitment.IsCompleted)
-                    {
-                        await _tasks.CompleteTaskAsync(capturedTask);
-                        await _challengeService.MarkCommitmentCompletedAsync(capturedTask.Id);
-                        await RefreshChallengeWidgetAsync();
-                        await RefreshTasksAsync();
-                    }
-                };
-                Grid.SetColumn(cb, 0);
-                row.Children.Add(cb);
-
-                var lbl = new Label
-                {
-                    Text = task.Title + (commitment.IsFocusTask ? "" : " 🌈"),
-                    FontSize = 10,
-                    TextColor = commitment.IsCompleted ? Color.FromArgb("#999") : Color.FromArgb("#333"),
-                    TextDecorations = commitment.IsCompleted ? TextDecorations.Strikethrough : TextDecorations.None,
-                    VerticalOptions = LayoutOptions.Center,
-                    LineBreakMode = LineBreakMode.WordWrap
-                };
-                
-                // Add tap to edit
-                if (!commitment.IsCompleted)
-                {
-                    var editTap = new TapGestureRecognizer();
-                    editTap.Tapped += async (s, e) =>
-                    {
-                        await EditCommitmentTaskAsync(capturedTask);
-                    };
-                    lbl.GestureRecognizers.Add(editTap);
-                }
-                
-                Grid.SetColumn(lbl, 1);
-                row.Children.Add(lbl);
-
-                if (!commitment.IsCompleted)
-                {
-                    var actionsStack = new HorizontalStackLayout { Spacing = 0 };
-                    
-                    var editBtn = new Button
-                    {
-                        Text = "✏️",
-                        BackgroundColor = Colors.Transparent,
-                        TextColor = Color.FromArgb("#5B63EE"),
-                        WidthRequest = 26,
-                        HeightRequest = 26,
-                        Padding = 0,
-                        FontSize = 10
-                    };
-                    editBtn.Clicked += async (s, e) =>
-                    {
-                        await EditCommitmentTaskAsync(capturedTask);
-                    };
-                    actionsStack.Children.Add(editBtn);
-                    
-                    var removeBtn = new Button
-                    {
-                        Text = "✕",
-                        BackgroundColor = Colors.Transparent,
-                        TextColor = Color.FromArgb("#999"),
-                        WidthRequest = 26,
-                        HeightRequest = 26,
-                        Padding = 0,
-                        FontSize = 10
-                    };
-                    var capturedId = commitment.Id;
-                    removeBtn.Clicked += async (s, e) =>
-                    {
-                        await _challengeService.RemoveCommitmentAsync(capturedId);
-                        await RefreshChallengeWidgetAsync();
-                    };
-                    actionsStack.Children.Add(removeBtn);
-                    
-                    Grid.SetColumn(actionsStack, 2);
-                    row.Children.Add(actionsStack);
-                }
-
-                _commitmentsList.Children.Add(row);
-            }
+            if (availableTaskLookup.TryGetValue(commitment.TaskId, out var task))
+                _commitmentsList.Children.Add(BuildCommitmentRow(commitment, task));
         }
 
-        _addCommitmentBtn.IsVisible = commitments.Count < challenge.CurrentAllowance;
+        _addCommitmentBtn.IsVisible = focusCommitments.Count < focusTarget;
+
+        _freeCommitmentsList.Children.Clear();
+        if (freeTarget > 0)
+        {
+            _freeProgressLabel.Text = $"Free Tasks: {freeCommitments.Count(c => c.IsCompleted)}/{freeTarget}";
+            _freeProgressLabel.IsVisible = true;
+            _freeCommitmentsList.IsVisible = true;
+
+            foreach (var commitment in freeCommitments)
+            {
+                if (availableTaskLookup.TryGetValue(commitment.TaskId, out var task))
+                    _freeCommitmentsList.Children.Add(BuildCommitmentRow(commitment, task));
+            }
+
+            _addFreeCommitmentBtn.IsVisible = freeCommitments.Count < freeTarget;
+        }
+        else
+        {
+            _freeProgressLabel.IsVisible = false;
+            _freeCommitmentsList.IsVisible = false;
+            _addFreeCommitmentBtn.IsVisible = false;
+        }
 
         // Show top candidates
         _topCandidatesList.Children.Clear();
@@ -1118,6 +1093,103 @@ public class TasksPage : ContentPage
 
         _addTopCandidateBtn.IsVisible = true;
         _consultLlmBtn.IsVisible = true;
+    }
+
+    private View BuildCommitmentRow(WeeklyCommitment commitment, TaskItem task)
+    {
+        var row = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            Padding = new Thickness(4, 2),
+            BackgroundColor = commitment.IsCompleted ? Color.FromArgb("#E8F5E9") : Colors.White
+        };
+
+        var cb = new CheckBox
+        {
+            IsChecked = commitment.IsCompleted,
+            Color = Color.FromArgb("#4CAF50"),
+            IsEnabled = !commitment.IsCompleted,
+            Scale = 0.8
+        };
+        var capturedTask = task;
+        var capturedCommitment = commitment;
+        cb.CheckedChanged += async (_, _) =>
+        {
+            if (cb.IsChecked && !capturedCommitment.IsCompleted)
+            {
+                await _tasks.CompleteTaskAsync(capturedTask);
+                await _challengeService.MarkCommitmentCompletedAsync(capturedTask.Id);
+                await RefreshChallengeWidgetAsync();
+                await RefreshTasksAsync();
+            }
+        };
+        Grid.SetColumn(cb, 0);
+        row.Children.Add(cb);
+
+        var lbl = new Label
+        {
+            Text = task.Title + (commitment.IsFocusTask ? "" : " 🌈"),
+            FontSize = 10,
+            TextColor = commitment.IsCompleted ? Color.FromArgb("#999") : Color.FromArgb("#333"),
+            TextDecorations = commitment.IsCompleted ? TextDecorations.Strikethrough : TextDecorations.None,
+            VerticalOptions = LayoutOptions.Center,
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+
+        if (!commitment.IsCompleted)
+        {
+            var editTap = new TapGestureRecognizer();
+            editTap.Tapped += async (_, _) => await EditCommitmentTaskAsync(capturedTask);
+            lbl.GestureRecognizers.Add(editTap);
+        }
+
+        Grid.SetColumn(lbl, 1);
+        row.Children.Add(lbl);
+
+        if (!commitment.IsCompleted)
+        {
+            var actionsStack = new HorizontalStackLayout { Spacing = 0 };
+            var editBtn = new Button
+            {
+                Text = "✏️",
+                BackgroundColor = Colors.Transparent,
+                TextColor = Color.FromArgb("#5B63EE"),
+                WidthRequest = 26,
+                HeightRequest = 26,
+                Padding = 0,
+                FontSize = 10
+            };
+            editBtn.Clicked += async (_, _) => await EditCommitmentTaskAsync(capturedTask);
+            actionsStack.Children.Add(editBtn);
+
+            var removeBtn = new Button
+            {
+                Text = "✕",
+                BackgroundColor = Colors.Transparent,
+                TextColor = Color.FromArgb("#999"),
+                WidthRequest = 26,
+                HeightRequest = 26,
+                Padding = 0,
+                FontSize = 10
+            };
+            var capturedId = commitment.Id;
+            removeBtn.Clicked += async (_, _) =>
+            {
+                await _challengeService.RemoveCommitmentAsync(capturedId);
+                await RefreshChallengeWidgetAsync();
+            };
+            actionsStack.Children.Add(removeBtn);
+
+            Grid.SetColumn(actionsStack, 2);
+            row.Children.Add(actionsStack);
+        }
+
+        return row;
     }
 
     private async Task RefreshAllowanceChartAsync()
@@ -1369,41 +1441,80 @@ public class TasksPage : ContentPage
         if (challenge == null) return;
 
         var commitments = await _challengeService.GetCurrentWeekCommitmentsAsync(challenge.Id);
-        if (commitments.Count >= challenge.CurrentAllowance)
+        var (focusTarget, _) = WeeklyChallengeService.CalculateTaskSplit(challenge.CurrentAllowance, challenge.FreeTaskRatio);
+        if (commitments.Count(c => c.IsFocusTask) >= focusTarget)
         {
-            await DisplayAlert("Full", "You've already picked all tasks for this week.", "OK");
+            await DisplayAlert("Full", "You've already picked all focus tasks for this week.", "OK");
             return;
         }
 
-        int nextSlot = commitments.Count + 1;
-        bool canBeNonFocus = nextSlot % 3 == 0;
-
-        List<string> options = new() { "Focus: " + challenge.FocusCategory };
-        if (canBeNonFocus) options.Add("Any Category 🌈");
-
-        string? choice = options.Count == 1 ? options[0]
-            : await DisplayActionSheet("Pick from", "Cancel", null, options.ToArray());
-        if (string.IsNullOrEmpty(choice) || choice == "Cancel") return;
-
-        bool pickingFocus = choice.StartsWith("Focus:");
-
-        List<TaskItem> availableTasks = pickingFocus
-            ? await _challengeService.GetAvailableFocusTasksAsync(_auth.CurrentUsername, challenge.FocusCategory)
-            : await _challengeService.GetAvailableNonFocusTasksAsync(_auth.CurrentUsername, challenge.FocusCategory);
+        var availableTasks = await _challengeService.GetAvailableFocusTasksAsync(
+            _auth.CurrentUsername, challenge.FocusCategory);
 
         if (availableTasks.Count == 0)
         {
-            await DisplayAlert("No Tasks", pickingFocus
-                ? $"No available tasks in {challenge.FocusCategory}."
-                : "No available tasks in other categories.", "OK");
+            await DisplayAlert("No Tasks", $"No available tasks in {challenge.FocusCategory}.", "OK");
             return;
         }
 
-        var selectedTask = await ShowTaskPickerAsync(availableTasks, pickingFocus ? challenge.FocusCategory : "Any Category");
+        var selectedTask = await ShowTaskPickerAsync(availableTasks, challenge.FocusCategory);
         if (selectedTask == null) return;
 
-        await _challengeService.AddCommitmentAsync(challenge.Id, selectedTask.Id, pickingFocus);
+        await _challengeService.AddCommitmentAsync(challenge.Id, selectedTask.Id, isFocusTask: true);
         await RefreshChallengeWidgetAsync();
+    }
+
+    private async Task OnAddFreeCommitmentClicked()
+    {
+        if (DateTime.Today.DayOfWeek == DayOfWeek.Saturday)
+        {
+            await DisplayAlert("Deadline Passed",
+                "The designation deadline was Friday. You can designate tasks again starting tomorrow (Sunday) for the new week.",
+                "OK");
+            return;
+        }
+
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null) return;
+
+        var availableTasks = await _challengeService.GetAvailableNonFocusTasksAsync(
+            _auth.CurrentUsername, challenge.FocusCategory);
+
+        if (availableTasks.Count == 0)
+        {
+            await DisplayAlert("No Tasks", "No available non-focus tasks.", "OK");
+            return;
+        }
+
+        var selected = await ShowTaskPickerAsync(availableTasks, "Any Category");
+        if (selected == null) return;
+
+        await _challengeService.AddCommitmentAsync(challenge.Id, selected.Id, isFocusTask: false);
+        await RefreshChallengeWidgetAsync();
+    }
+
+    private async Task ChangeFreeTaskRatioAsync()
+    {
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null) return;
+
+        string? input = await DisplayPromptAsync(
+            "Free Task Ratio",
+            "1 free task per how many total?\n\nE.g. 3 means: allowance 6 = 4 focus + 2 free",
+            "Save",
+            "Cancel",
+            initialValue: challenge.FreeTaskRatio.ToString(),
+            maxLength: 2,
+            keyboard: Keyboard.Numeric);
+
+        if (!string.IsNullOrWhiteSpace(input) && int.TryParse(input, out int ratio) && ratio >= 2)
+        {
+            challenge.FreeTaskRatio = ratio;
+            var (_, freeTasks) = WeeklyChallengeService.CalculateTaskSplit(challenge.CurrentAllowance, ratio);
+            challenge.RequiredFreeTasks = freeTasks;
+            await _challengeService.UpdateChallengeAsync(challenge);
+            await RefreshChallengeWidgetAsync();
+        }
     }
 
     private async Task AddTopCandidateAsync()
