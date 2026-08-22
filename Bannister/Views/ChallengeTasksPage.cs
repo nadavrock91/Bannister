@@ -345,9 +345,25 @@ public class ChallengeTasksPage : ContentPage
                 .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c).ToList();
             if (categories.Count == 0)
                 categories.Add(string.Equals("General", challenge.FocusCategory, StringComparison.OrdinalIgnoreCase) ? "Other" : "General");
-            var picked = await DisplayActionSheet("Category", "Cancel", null, categories.ToArray());
+            categories.Add("+ New Category");
+            var options = categories.ToArray();
+            var picked = await DisplayActionSheet("Category", "Cancel", null, options);
             if (string.IsNullOrEmpty(picked) || picked == "Cancel") return;
-            category = picked;
+            if (picked == "+ New Category")
+            {
+                string? newCat = await DisplayPromptAsync(
+                    "New Category",
+                    "Category name:",
+                    "Create",
+                    "Cancel",
+                    maxLength: 100);
+                if (string.IsNullOrWhiteSpace(newCat)) return;
+                category = newCat.Trim();
+            }
+            else
+            {
+                category = picked;
+            }
         }
         var priorityChoice = await DisplayActionSheet("Priority", "Cancel", null, "\U0001F534 High", "\U0001F7E1 Medium", "\U0001F7E2 Low");
         if (string.IsNullOrEmpty(priorityChoice) || priorityChoice == "Cancel") return;
