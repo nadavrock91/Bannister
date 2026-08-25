@@ -334,48 +334,16 @@ public class ChallengeTasksPage : ContentPage
     {
         var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
         if (challenge == null) return;
-        string? title = await DisplayPromptAsync("New Top Candidate", "Task title:", "Create", "Cancel", maxLength: 200);
-        if (string.IsNullOrWhiteSpace(title)) return;
-        string category = challenge.FocusCategory;
-        if (!_isFocusMode)
-        {
-            var categories = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
-                .Select(t => t.Category)
-                .Where(c => !string.IsNullOrWhiteSpace(c) && !string.Equals(c, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase))
-                .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c).ToList();
-            if (categories.Count == 0)
-                categories.Add(string.Equals("General", challenge.FocusCategory, StringComparison.OrdinalIgnoreCase) ? "Other" : "General");
-            categories.Add("+ New Category");
-            var options = categories.ToArray();
-            var picked = await DisplayActionSheet("Category", "Cancel", null, options);
-            if (string.IsNullOrEmpty(picked) || picked == "Cancel") return;
-            if (picked == "+ New Category")
-            {
-                string? newCat = await DisplayPromptAsync(
-                    "New Category",
-                    "Category name:",
-                    "Create",
-                    "Cancel",
-                    maxLength: 100);
-                if (string.IsNullOrWhiteSpace(newCat)) return;
-                category = newCat.Trim();
-            }
-            else
-            {
-                category = picked;
-            }
-        }
-        var priorityChoice = await DisplayActionSheet("Priority", "Cancel", null, "\U0001F534 High", "\U0001F7E1 Medium", "\U0001F7E2 Low");
-        if (string.IsNullOrEmpty(priorityChoice) || priorityChoice == "Cancel") return;
-        int priority = priorityChoice.Contains("High") ? 1 : priorityChoice.Contains("Low") ? 3 : 2;
-        var task = await _tasks.CreateTaskAsync(_auth.CurrentUsername, title.Trim(), category, priority);
-        task.IsTopCandidate = true;
-        await _tasks.UpdateTaskAsync(task);
-        if (_ideasService != null)
-        {
-            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, title.Trim(), "tasks_ideas"); } catch { }
-        }
-        await RefreshAsync();
+
+        string? fixedCategory = _isFocusMode ? challenge.FocusCategory : null;
+        var newTask = await TaskCreationHelper.ShowCreateTaskAsync(
+            this, _auth, _tasks, _ideasService,
+            fixedCategory: fixedCategory,
+            markAsTopCandidate: true,
+            excludedCategory: _isFocusMode ? null : challenge.FocusCategory);
+
+        if (newTask != null)
+            await RefreshAsync();
     }
 
     private async Task MarkExistingAsTopCandidateAsync()

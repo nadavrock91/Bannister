@@ -1,0 +1,30 @@
+2026-08-25 06:13:07: -- Analysis Started by Trying Locks Again
+2026-08-25 06:13:07: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-08-25 06:13:10: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-08-25 06:13:12: Changes: 4, Conflicts: 0, CopyTime: 0, FixState: 63, Errors: 0, All: 23210
+2026-08-25 06:13:12: Left to Right: Copy File: 4 
+2026-08-25 06:13:12: == Sync Started by Trying Locks Again
+2026-08-25 06:13:12: ConnectCloned connected to file:///C:/rock/bannister
+2026-08-25 06:13:12: ConnectCloned connected to file:///C:/rock/bannister
+2026-08-25 06:13:12: ConnectCloned connected to file:///C:/rock/bannister
+2026-08-25 06:13:12: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-08-25 06:13:12: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-08-25 06:13:12: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-08-25 06:13:17: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (86,016)
+2026-08-25 06:13:17: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (72,682)
+2026-08-25 06:13:17: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (17,863)
+2026-08-25 06:13:21: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (17,863)
+2026-08-25 06:13:21: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-08-25 06:13:24: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-08-25 06:13:25: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/0ff4d0a0-a654-4f0a-bba8-023bb84e0dfb.vsidx
+2026-08-25 06:13:25: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/149a1f4a-4df3-4e75-a3ff-8e5a77a56693.vsidx
+2026-08-25 06:13:26: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/3cd694d8-3e8a-4f2f-95d4-f0443ca1b52a.vsidx
+2026-08-25 06:13:26: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/59f60c08-937b-4f3b-a0ec-a74524d32edc.vsidx
+2026-08-25 06:13:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/6960e2ff-814d-4bf9-91e6-46d32147d742.vsidx
+2026-08-25 06:13:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/829c57e7-70af-4645-8f6e-6dfaf2585238.vsidx
+2026-08-25 06:13:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/82dc1608-d5e1-4243-905a-4af5b2dc1fe0.vsidx
+2026-08-25 06:13:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/9597c5f3-a3f1-45aa-ac81-05351c28834e.vsidx
+2026-08-25 06:13:29: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/a131496d-47b7-4c8f-8903-2bdd6e9045e0.vsidx
+2026-08-25 06:13:29: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/da3bcf9f-c5f9-4b7b-a445-2cb4ade48f44.vsidx
+2026-08-25 06:13:30: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Views/RoutinesPage.cs
+2026-08-25 06:13:34: == Sync Complete. Time: 00:00:22, Speed: 16.20 KB/s, OK: 67, Errors: 0
