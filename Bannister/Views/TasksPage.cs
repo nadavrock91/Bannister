@@ -13,6 +13,7 @@ public class TasksPage : ContentPage
     private readonly TaskService _tasks;
     private readonly WeeklyChallengeService _challengeService;
     private readonly IdeasService? _ideasService;
+    private readonly DatabaseService? _db;
     
     // UI
     private Label _headerLabel;
@@ -60,12 +61,13 @@ public class TasksPage : ContentPage
     private bool _sortAscending = false;
     private DataGridView? _mainDataGrid;
 
-    public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService, IdeasService? ideasService = null)
+    public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService, IdeasService? ideasService = null, DatabaseService? db = null)
     {
         _auth = auth;
         _tasks = tasks;
         _challengeService = challengeService;
         _ideasService = ideasService;
+        _db = db;
         
         Title = "Tasks";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -319,6 +321,30 @@ public class TasksPage : ContentPage
                 _auth, _tasks, _challengeService, _ideasService, false));
         };
         challengeNavStack.Children.Add(freeBtn);
+
+        var consultBtn = new Button
+        {
+            Text = "\U0001F4AC Consult LLM",
+            BackgroundColor = Color.FromArgb("#E1BEE7"),
+            TextColor = Color.FromArgb("#7B1FA2"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold
+        };
+        consultBtn.Clicked += async (_, _) =>
+        {
+            var database = _db ?? Handler?.MauiContext?.Services.GetService<DatabaseService>();
+            if (database == null)
+            {
+                await DisplayAlert("Unavailable", "Database service is unavailable.", "OK");
+                return;
+            }
+
+            var page = new FocusContextPage(_auth, _tasks, _challengeService, database);
+            await Navigation.PushAsync(page);
+        };
+        challengeNavStack.Children.Add(consultBtn);
 
         _challengeSummaryLabel = new Label
         {
