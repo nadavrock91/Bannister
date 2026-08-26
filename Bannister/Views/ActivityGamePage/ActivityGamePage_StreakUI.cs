@@ -475,8 +475,23 @@ public partial class ActivityGamePage
 
             if (streakBroke)
             {
-                // End the current streak — ProcessActivityCompletionAsync will create a new one
+                // Breaking a streak is neutral: end the old attempt and create a fresh
+                // zero-day attempt that can be recorded immediately.
                 await _streaks.EndStreakAsync(attempt.Id);
+                await _streaks.GetOrCreateActiveStreakAsync(
+                    _auth.CurrentUsername,
+                    gameId,
+                    activity.Id,
+                    activity.Name,
+                    DateTime.SpecifyKind(today.AddDays(-1), DateTimeKind.Utc));
+
+                await RefreshActivitiesAsync();
+                await LoadChartDataAsync();
+                await DisplayAlert(
+                    "Streak Broken",
+                    "A new attempt has been created at 0 days. No EXP was awarded.",
+                    "OK");
+                return;
             }
         }
 
