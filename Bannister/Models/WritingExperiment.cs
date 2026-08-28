@@ -25,8 +25,11 @@ public class WritingExperimentEntry
     public string AssignedProcess { get; set; } = "";
     public bool IsBaseline { get; set; } = true;
     public string ExecutionNotes { get; set; } = ""; // how exactly the process was followed
-    public int RetentionScore { get; set; } = 0; // 1-10
-    public string RetentionNotes { get; set; } = "";
+    public int Retention10s { get; set; } = -1; // -1 = not recorded, 0-100 percent
+    public int Retention30s { get; set; } = -1;
+    public int Retention1m { get; set; } = -1;
+    public int Retention2m { get; set; } = -1;
+    public int Retention3m { get; set; } = -1;
     public bool IsCompleted { get; set; } = false;
     public DateTime? CompletedAt { get; set; }
 }

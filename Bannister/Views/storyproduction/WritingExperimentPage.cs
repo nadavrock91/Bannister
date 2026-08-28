@@ -51,7 +51,10 @@ public class WritingExperimentPage : ContentPage
         _mainContent.Children.Add(_todaySection);
         _mainContent.Children.Add(_comparisonSection);
         _mainContent.Children.Add(_historySection);
-        Content = new ScrollView { Content = _mainContent };
+
+        var rootGrid = new Grid();
+        rootGrid.Children.Add(new ScrollView { Content = _mainContent });
+        Content = rootGrid;
     }
 
     private async Task RefreshAsync()
@@ -83,7 +86,7 @@ public class WritingExperimentPage : ContentPage
             _statusLabel.Text = $"Baseline: {experiment.BaselineProcessName} vs Challenger: {experiment.ChallengerProcessName}\nBaseline: {baselineCount} entries • Challenger: {challengerCount} entries";
         }
 
-        await ShowTodayAsync(experiment, entries);
+        await ShowWeekViewAsync(experiment, entries);
         if (experiment.Phase == "challenger" && baselineCount > 0 && challengerCount > 0)
             await ShowComparisonAsync(experiment);
 
@@ -125,46 +128,158 @@ public class WritingExperimentPage : ContentPage
         }
     }
 
-    private async Task ShowTodayAsync(WritingExperiment experiment, List<WritingExperimentEntry> entries)
+    private async Task ShowWeekViewAsync(WritingExperiment experiment, List<WritingExperimentEntry> entries)
     {
-        var entry = await _experimentService.GetTodayEntryAsync(experiment.Id);
-        if (entry == null)
-        {
-            bool baseline = experiment.Phase == "baseline" || entries.Count % 2 == 0;
-            string process = baseline ? experiment.BaselineProcessName : experiment.ChallengerProcessName;
-            entry = await _experimentService.CreateTodayEntryAsync(experiment.Id, process, baseline);
-        }
+        _todaySection.Children.Clear();
+        var today = DateTime.UtcNow.Date;
+        var windowStart = today.AddDays(-6);
+        if (windowStart < experiment.StartedAt.Date) windowStart = experiment.StartedAt.Date;
 
-        var stack = new VerticalStackLayout { Spacing = 8 };
-        stack.Children.Add(new Label { Text = $"Today's Assignment — {DateTime.Today:ddd MMM dd}", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
-        stack.Children.Add(new Label { Text = $"\U0001F4DD Process: {entry.AssignedProcess}", FontSize = 14, TextColor = entry.IsBaseline ? Color.FromArgb("#3F51B5") : Color.FromArgb("#E65100"), FontAttributes = FontAttributes.Bold });
-        stack.Children.Add(new Label { Text = entry.IsBaseline ? "\U0001F4CA Baseline" : "⚔️ Challenger", FontSize = 12, TextColor = Color.FromArgb("#888") });
+        _todaySection.Children.Add(new Label { Text = "Mark Days Completed", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
 
-        if (entry.IsCompleted)
+        for (var date = windowStart; date <= today; date = date.AddDays(1))
         {
-            stack.Children.Add(new Label { Text = $"✅ Completed — Retention: {entry.RetentionScore}/10", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32") });
-            if (!string.IsNullOrWhiteSpace(entry.ExecutionNotes)) stack.Children.Add(new Label { Text = $"Execution: {entry.ExecutionNotes}", FontSize = 11, TextColor = Color.FromArgb("#666"), FontAttributes = FontAttributes.Italic });
-            if (!string.IsNullOrWhiteSpace(entry.RetentionNotes)) stack.Children.Add(new Label { Text = $"Retention: {entry.RetentionNotes}", FontSize = 11, TextColor = Color.FromArgb("#666"), FontAttributes = FontAttributes.Italic });
-        }
-        else
-        {
-            var button = new Button { Text = "\U0001F4DD Record Today's Results", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 44, FontSize = 14, FontAttributes = FontAttributes.Bold };
-            var captured = entry;
-            button.Clicked += async (_, _) => await RecordResultsAsync(captured);
-            stack.Children.Add(button);
-        }
+            var existingEntry = entries.FirstOrDefault(e => e.Date.Date == date);
+            bool isBaseline;
+            string assignedProcess;
+            if (experiment.Phase == "baseline")
+            {
+                isBaseline = true;
+                assignedProcess = experiment.BaselineProcessName;
+            }
+            else
+            {
+                int dayIndex = entries.Count(e => e.Date.Date < date);
+                isBaseline = dayIndex % 2 == 0;
+                assignedProcess = isBaseline ? experiment.BaselineProcessName : experiment.ChallengerProcessName;
+            }
 
-        _todaySection.Children.Add(new Frame { Padding = 16, CornerRadius = 12, BackgroundColor = entry.IsBaseline ? Color.FromArgb("#E8EAF6") : Color.FromArgb("#FFF3E0"), BorderColor = entry.IsBaseline ? Color.FromArgb("#5C6BC0") : Color.FromArgb("#FF9800"), HasShadow = false, Content = stack });
+            var dayGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = new GridLength(70) },
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Auto }
+                },
+                ColumnSpacing = 8
+            };
+            var dateLabel = new Label { Text = date.ToString("ddd M/d"), FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center };
+            Grid.SetColumn(dateLabel, 0);
+            dayGrid.Children.Add(dateLabel);
+            var processLabel = new Label { Text = assignedProcess, FontSize = 11, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap };
+            Grid.SetColumn(processLabel, 1);
+            dayGrid.Children.Add(processLabel);
+
+            if (existingEntry?.IsCompleted == true)
+            {
+                var summary = new Label { Text = BuildRetentionSummary(existingEntry), FontSize = 9, TextColor = Color.FromArgb("#2E7D32"), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap };
+                Grid.SetColumn(summary, 2);
+                dayGrid.Children.Add(summary);
+            }
+            else
+            {
+                var recordButton = new Button { Text = "\U0001F4DD Record", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 4, HeightRequest = 28, FontSize = 11, Padding = new Thickness(8, 0) };
+                var capturedDate = date;
+                var capturedProcess = assignedProcess;
+                var capturedIsBaseline = isBaseline;
+                var capturedEntry = existingEntry;
+                recordButton.Clicked += async (_, _) =>
+                {
+                    var entry = capturedEntry ?? await _experimentService.CreateEntryAsync(experiment.Id, capturedProcess, capturedIsBaseline, capturedDate);
+                    await RecordResultsAsync(entry);
+                };
+                Grid.SetColumn(recordButton, 2);
+                dayGrid.Children.Add(recordButton);
+            }
+
+            var dayFrame = new Frame
+            {
+                Padding = 10,
+                CornerRadius = 8,
+                BackgroundColor = existingEntry?.IsCompleted == true ? Color.FromArgb("#E8F5E9") : date == today ? (isBaseline ? Color.FromArgb("#E8EAF6") : Color.FromArgb("#FFF3E0")) : Color.FromArgb("#FAFAFA"),
+                BorderColor = date == today ? Color.FromArgb("#6A1B9A") : Colors.Transparent,
+                HasShadow = false,
+                Content = dayGrid
+            };
+            _todaySection.Children.Add(dayFrame);
+        }
     }
 
     private async Task RecordResultsAsync(WritingExperimentEntry entry)
     {
-        string? execution = await DisplayPromptAsync("Execution Notes", "How exactly did you follow the process today? What did you do step by step?", "Next", "Cancel", maxLength: 1000);
-        if (execution == null) return;
-        string? value = await DisplayPromptAsync("Retention Score", "Rate how well the story/ideas stuck with you (1 = nothing retained, 10 = vivid recall):", "Next", "Cancel", initialValue: "5", maxLength: 2, keyboard: Keyboard.Numeric);
-        if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, out int score)) return;
-        string? notes = await DisplayPromptAsync("Retention Notes (optional)", "What do you remember? What stuck? What faded?", "Save", "Skip", maxLength: 1000);
-        await _experimentService.CompleteEntryAsync(entry.Id, execution.Trim(), Math.Clamp(score, 1, 10), notes?.Trim() ?? "");
+        string? executionNotes = await DisplayPromptAsync("Execution Notes", "How did you follow the process? What did you do?", "Next", "Cancel", maxLength: 1000);
+        if (executionNotes == null) return;
+        entry.ExecutionNotes = executionNotes.Trim();
+
+        var tcs = new TaskCompletionSource<bool>();
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var sliders = new Dictionary<string, Slider>();
+        var intervals = new[] { (Key: "10s", Label: "10 seconds"), (Key: "30s", Label: "30 seconds"), (Key: "1m", Label: "1 minute"), (Key: "2m", Label: "2 minutes"), (Key: "3m", Label: "3 minutes") };
+        var formStack = new VerticalStackLayout { Spacing = 12 };
+        formStack.Children.Add(new Label { Text = "Retention Test", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#6A1B9A") });
+        formStack.Children.Add(new Label { Text = "What percentage of the story do you retain at each interval?", FontSize = 12, TextColor = Color.FromArgb("#666") });
+
+        foreach (var interval in intervals)
+        {
+            var valueLabel = new Label { Text = $"{interval.Label}: —", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") };
+            var slider = new Slider { Minimum = 0, Maximum = 100, Value = 0, MinimumTrackColor = Color.FromArgb("#6A1B9A"), MaximumTrackColor = Color.FromArgb("#E0E0E0"), ThumbColor = Color.FromArgb("#6A1B9A") };
+            var capturedLabel = valueLabel;
+            var capturedName = interval.Label;
+            slider.ValueChanged += (_, e) => capturedLabel.Text = $"{capturedName}: {(int)e.NewValue}%";
+            formStack.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { valueLabel, slider } });
+            sliders[interval.Key] = slider;
+        }
+
+        void CloseOverlay(bool saved)
+        {
+            if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(saved);
+        }
+
+        var saveButton = new Button { Text = "Save Retention", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 44 };
+        saveButton.Clicked += (_, _) =>
+        {
+            entry.Retention10s = (int)sliders["10s"].Value;
+            entry.Retention30s = (int)sliders["30s"].Value;
+            entry.Retention1m = (int)sliders["1m"].Value;
+            entry.Retention2m = (int)sliders["2m"].Value;
+            entry.Retention3m = (int)sliders["3m"].Value;
+            entry.IsCompleted = true;
+            entry.CompletedAt = DateTime.UtcNow;
+            CloseOverlay(true);
+        };
+        var skipButton = new Button { Text = "Skip (mark done without retention)", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#666"), CornerRadius = 8, HeightRequest = 36, FontSize = 12 };
+        skipButton.Clicked += (_, _) =>
+        {
+            entry.IsCompleted = true;
+            entry.CompletedAt = DateTime.UtcNow;
+            CloseOverlay(true);
+        };
+        var cancelButton = new Button { Text = "Cancel", BackgroundColor = Colors.Transparent, TextColor = Color.FromArgb("#999"), HeightRequest = 36, FontSize = 12 };
+        cancelButton.Clicked += (_, _) => CloseOverlay(false);
+        formStack.Children.Add(saveButton);
+        formStack.Children.Add(skipButton);
+        formStack.Children.Add(cancelButton);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            MaximumWidthRequest = 500,
+            MaximumHeightRequest = 700,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(16, 20),
+            Content = new ScrollView { Content = formStack }
+        };
+        overlay.Children.Add(card);
+        if (Content is not Grid mainGrid) return;
+        mainGrid.Children.Add(overlay);
+
+        if (!await tcs.Task) return;
+        await _experimentService.CompleteEntryAsync(entry);
         await RefreshAsync();
     }
 
@@ -185,16 +300,16 @@ public class WritingExperimentPage : ContentPage
         var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, RowDefinitions = { new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto) }, RowSpacing = 6, ColumnSpacing = 12 };
         AddComparisonCell(grid, $"\U0001F4CA {experiment.BaselineProcessName}", 0, 0, 13, "#3F51B5", true);
         AddComparisonCell(grid, $"⚔️ {experiment.ChallengerProcessName}", 1, 0, 13, "#E65100", true);
-        AddComparisonCell(grid, $"{baselineAvg:F1}/10", 0, 1, 24, "#3F51B5", true);
-        AddComparisonCell(grid, $"{challengerAvg:F1}/10", 1, 1, 24, "#E65100", true);
+        AddComparisonCell(grid, $"{baselineAvg:F1}%", 0, 1, 24, "#3F51B5", true);
+        AddComparisonCell(grid, $"{challengerAvg:F1}%", 1, 1, 24, "#E65100", true);
         AddComparisonCell(grid, $"{baselineCount} entries", 0, 2, 11, "#888", false);
         AddComparisonCell(grid, $"{challengerCount} entries", 1, 2, 11, "#888", false);
         _comparisonSection.Children.Add(new Frame { Padding = 14, CornerRadius = 10, BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false, Content = grid });
 
         if (baselineCount >= 7 && challengerCount >= 7)
         {
-            string recommendation = baselineAvg > challengerAvg + .5 ? $"\U0001F3C6 Baseline ({experiment.BaselineProcessName}) wins by {baselineAvg - challengerAvg:F1} points. Consider keeping it as your default."
-                : challengerAvg > baselineAvg + .5 ? $"\U0001F3C6 Challenger ({experiment.ChallengerProcessName}) wins by {challengerAvg - baselineAvg:F1} points. Consider switching your default."
+            string recommendation = baselineAvg > challengerAvg + .5 ? $"\U0001F3C6 Baseline ({experiment.BaselineProcessName}) wins by {baselineAvg - challengerAvg:F1} percentage points. Consider keeping it as your default."
+                : challengerAvg > baselineAvg + .5 ? $"\U0001F3C6 Challenger ({experiment.ChallengerProcessName}) wins by {challengerAvg - baselineAvg:F1} percentage points. Consider switching your default."
                 : "\U0001F91D Too close to call. Consider running more days or testing a different challenger.";
             _comparisonSection.Children.Add(new Label { Text = recommendation, FontSize = 13, TextColor = Color.FromArgb("#6A1B9A"), FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap });
         }
@@ -203,7 +318,20 @@ public class WritingExperimentPage : ContentPage
     private static void AddComparisonCell(Grid grid, string text, int column, int row, double size, string color, bool bold)
     {
         var label = new Label { Text = text, FontSize = size, FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None, TextColor = Color.FromArgb(color), HorizontalTextAlignment = TextAlignment.Center };
-        Grid.SetColumn(label, column); Grid.SetRow(label, row); grid.Children.Add(label);
+        Grid.SetColumn(label, column);
+        Grid.SetRow(label, row);
+        grid.Children.Add(label);
+    }
+
+    private static string BuildRetentionSummary(WritingExperimentEntry entry)
+    {
+        var values = new List<string>();
+        if (entry.Retention10s >= 0) values.Add($"10s:{entry.Retention10s}%");
+        if (entry.Retention30s >= 0) values.Add($"30s:{entry.Retention30s}%");
+        if (entry.Retention1m >= 0) values.Add($"1m:{entry.Retention1m}%");
+        if (entry.Retention2m >= 0) values.Add($"2m:{entry.Retention2m}%");
+        if (entry.Retention3m >= 0) values.Add($"3m:{entry.Retention3m}%");
+        return values.Count > 0 ? string.Join(" ", values) : "✅";
     }
 
     private void ShowHistory(List<WritingExperimentEntry> entries)
@@ -213,8 +341,8 @@ public class WritingExperimentPage : ContentPage
         foreach (var entry in entries.OrderByDescending(e => e.Date).Take(14))
         {
             string preview = string.IsNullOrWhiteSpace(entry.ExecutionNotes) ? "" : entry.ExecutionNotes.Length > 40 ? entry.ExecutionNotes[..40] + "..." : entry.ExecutionNotes;
-            string score = entry.IsCompleted ? $"{entry.RetentionScore}/10" : "Not completed";
-            var text = $"{(entry.IsBaseline ? "\U0001F4CA" : "⚔️")} {entry.Date:ddd M/d}   {entry.AssignedProcess}   {score}" + (preview.Length > 0 ? $"\n{preview}" : "");
+            string retention = entry.IsCompleted ? BuildRetentionSummary(entry) : "Not completed";
+            var text = $"{(entry.IsBaseline ? "\U0001F4CA" : "⚔️")} {entry.Date:ddd M/d}   {entry.AssignedProcess}   {retention}" + (preview.Length > 0 ? $"\n{preview}" : "");
             _historySection.Children.Add(new Frame { Padding = 10, CornerRadius = 8, BackgroundColor = !entry.IsCompleted ? Color.FromArgb("#F5F5F5") : entry.IsBaseline ? Color.FromArgb("#E8EAF6") : Color.FromArgb("#FFF3E0"), BorderColor = Colors.Transparent, HasShadow = false, Content = new Label { Text = text, FontSize = 11, TextColor = Color.FromArgb("#555"), LineBreakMode = LineBreakMode.WordWrap } });
         }
     }

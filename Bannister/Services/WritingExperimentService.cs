@@ -18,6 +18,11 @@ public class WritingExperimentService
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<WritingExperiment>();
         await conn.CreateTableAsync<WritingExperimentEntry>();
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention10s INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention30s INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention1m INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention2m INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention3m INTEGER DEFAULT -1"); } catch { }
         _initialized = true;
     }
 
@@ -54,24 +59,27 @@ public class WritingExperimentService
         return experiment;
     }
 
-    public async Task<WritingExperimentEntry?> GetTodayEntryAsync(int experimentId)
+    public async Task<WritingExperimentEntry?> GetEntryForDateAsync(int experimentId, DateTime date)
     {
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
-        var today = DateTime.UtcNow.Date;
         return await conn.Table<WritingExperimentEntry>()
-            .Where(e => e.ExperimentId == experimentId && e.Date == today)
+            .Where(e => e.ExperimentId == experimentId && e.Date == date.Date)
             .FirstOrDefaultAsync();
     }
 
-    public async Task<WritingExperimentEntry> CreateTodayEntryAsync(int experimentId, string assignedProcess, bool isBaseline)
+    public async Task<WritingExperimentEntry> CreateEntryAsync(
+        int experimentId,
+        string assignedProcess,
+        bool isBaseline,
+        DateTime? date = null)
     {
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
         var entry = new WritingExperimentEntry
         {
             ExperimentId = experimentId,
-            Date = DateTime.UtcNow.Date,
+            Date = (date ?? DateTime.UtcNow).Date,
             AssignedProcess = assignedProcess,
             IsBaseline = isBaseline
         };
@@ -79,17 +87,10 @@ public class WritingExperimentService
         return entry;
     }
 
-    public async Task CompleteEntryAsync(int entryId, string executionNotes, int retentionScore, string retentionNotes)
+    public async Task CompleteEntryAsync(WritingExperimentEntry entry)
     {
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
-        var entry = await conn.FindAsync<WritingExperimentEntry>(entryId);
-        if (entry == null) return;
-        entry.ExecutionNotes = executionNotes;
-        entry.RetentionScore = retentionScore;
-        entry.RetentionNotes = retentionNotes;
-        entry.IsCompleted = true;
-        entry.CompletedAt = DateTime.UtcNow;
         await conn.UpdateAsync(entry);
     }
 
@@ -134,10 +135,24 @@ public class WritingExperimentService
         var baselineEntries = completed.Where(e => e.IsBaseline).ToList();
         var challengerEntries = completed.Where(e => !e.IsBaseline).ToList();
 
-        double baselineAvg = baselineEntries.Count > 0 ? baselineEntries.Average(e => e.RetentionScore) : 0;
-        double challengerAvg = challengerEntries.Count > 0 ? challengerEntries.Average(e => e.RetentionScore) : 0;
+        double baselineAvg = baselineEntries.Count > 0 ? baselineEntries.Average(GetAverageRetention) : 0;
+        double challengerAvg = challengerEntries.Count > 0 ? challengerEntries.Average(GetAverageRetention) : 0;
 
         return (baselineAvg, challengerAvg, baselineEntries.Count, challengerEntries.Count);
+    }
+
+    private static double GetAverageRetention(WritingExperimentEntry entry)
+    {
+        var values = new[]
+        {
+            entry.Retention10s,
+            entry.Retention30s,
+            entry.Retention1m,
+            entry.Retention2m,
+            entry.Retention3m
+        }.Where(value => value >= 0).ToArray();
+
+        return values.Length > 0 ? values.Average() : 0;
     }
 
     public async Task<List<WritingExperiment>> GetArchivedExperimentsAsync(string username)
