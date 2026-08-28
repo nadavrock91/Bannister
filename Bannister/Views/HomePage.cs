@@ -2544,7 +2544,7 @@ public class HomePage : ContentPage
 
     private async void OnTasksClicked(object? sender, EventArgs e)
     {
-        var page = new TasksPage(_auth, _taskService, _challengeService, _ideas);
+        var page = new TasksPage(_auth, _taskService, _challengeService, _ideas, _db);
         await Navigation.PushAsync(page);
     }
 
