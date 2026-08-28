@@ -9,16 +9,14 @@ public class WritingProcessesPage : ContentPage
     private readonly StoryProductionService _storyService;
     private readonly WritingExperimentService _experimentService;
     private readonly IdeaLoggerService? _ideaLogger;
-    private readonly IdeasService? _ideasService;
     private VerticalStackLayout _listStack;
 
-    public WritingProcessesPage(AuthService auth, StoryProductionService storyService, WritingExperimentService experimentService, IdeaLoggerService? ideaLogger = null, IdeasService? ideasService = null)
+    public WritingProcessesPage(AuthService auth, StoryProductionService storyService, WritingExperimentService experimentService, IdeaLoggerService? ideaLogger = null)
     {
         _auth = auth;
         _storyService = storyService;
         _experimentService = experimentService;
         _ideaLogger = ideaLogger;
-        _ideasService = ideasService;
 
         Title = "Writing Processes";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -61,7 +59,7 @@ public class WritingProcessesPage : ContentPage
         };
         experimentBtn.Clicked += async (_, _) =>
         {
-            var page = new WritingExperimentPage(_auth, _experimentService, _storyService, _ideasService);
+            var page = new WritingExperimentPage(_auth, _experimentService, _storyService, _ideaLogger);
             await Navigation.PushAsync(page);
         };
         mainStack.Children.Add(experimentBtn);

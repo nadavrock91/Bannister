@@ -245,7 +245,7 @@ public class StoryProductionHubPage : ContentPage
             return;
         }
 
-        var page = new WritingProcessesPage(_auth, _storyService, experimentService, _ideaLogger, _ideasService);
+        var page = new WritingProcessesPage(_auth, _storyService, experimentService, _ideaLogger);
         await Navigation.PushAsync(page);
     }
 }

@@ -8,7 +8,7 @@ public class WritingExperimentPage : ContentPage
     private readonly AuthService _auth;
     private readonly WritingExperimentService _experimentService;
     private readonly StoryProductionService _storyService;
-    private readonly IdeasService? _ideasService;
+    private readonly IdeaLoggerService? _ideaLogger;
     private VerticalStackLayout _mainContent = null!;
     private Label _phaseLabel = null!;
     private Label _statusLabel = null!;
@@ -17,12 +17,12 @@ public class WritingExperimentPage : ContentPage
     private DatePicker _weekStartPicker = null!;
     private DatePicker _weekEndPicker = null!;
 
-    public WritingExperimentPage(AuthService auth, WritingExperimentService experimentService, StoryProductionService storyService, IdeasService? ideasService = null)
+    public WritingExperimentPage(AuthService auth, WritingExperimentService experimentService, StoryProductionService storyService, IdeaLoggerService? ideaLogger = null)
     {
         _auth = auth;
         _experimentService = experimentService;
         _storyService = storyService;
-        _ideasService = ideasService;
+        _ideaLogger = ideaLogger;
         Title = "Writing Experiment";
         BackgroundColor = Color.FromArgb("#FFF8E1");
         BuildUI();
@@ -518,19 +518,27 @@ public class WritingExperimentPage : ContentPage
 
             foreach (var process in filtered)
             {
-                var processButton = new Button
+                var processFrame = new Frame
                 {
-                    Text = process.Name == experiment.BaselineProcessName ? $"\u2B50 {process.Name}" : process.Name,
-                    BackgroundColor = Color.FromArgb("#F3E5F5"),
-                    TextColor = Color.FromArgb("#6A1B9A"),
+                    Padding = 10,
                     CornerRadius = 6,
-                    HeightRequest = 36,
-                    FontSize = 12,
+                    BackgroundColor = Color.FromArgb("#F3E5F5"),
+                    BorderColor = Colors.Transparent,
+                    HasShadow = false,
                     HorizontalOptions = LayoutOptions.Fill
                 };
+                processFrame.Content = new Label
+                {
+                    Text = process.Name == experiment.BaselineProcessName ? $"\u2B50 {process.Name}" : process.Name,
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    LineBreakMode = LineBreakMode.WordWrap
+                };
                 var capturedName = process.Name;
-                processButton.Clicked += (_, _) => CloseOverlay(capturedName);
-                listStack.Children.Add(processButton);
+                var tap = new TapGestureRecognizer();
+                tap.Tapped += (_, _) => CloseOverlay(capturedName);
+                processFrame.GestureRecognizers.Add(tap);
+                listStack.Children.Add(processFrame);
             }
 
             var newProcessButton = new Button
@@ -572,17 +580,21 @@ public class WritingExperimentPage : ContentPage
                     return;
                 }
 
-                bool logIdea = await DisplayAlert("Log as Idea?", "Save this process as an idea?", "Yes", "No");
-                if (logIdea && _ideasService != null)
+                if (_ideaLogger != null)
                 {
-                    try
+                    bool logIdea = await DisplayAlert(
+                        "Log as Idea?",
+                        $"Open the idea logger to log '{trimmedName}' under 'Story Production Processes'?",
+                        "Yes",
+                        "No");
+                    if (logIdea)
                     {
-                        string ideaText = string.IsNullOrWhiteSpace(description)
-                            ? trimmedName
-                            : $"{trimmedName}: {description.Trim()}";
-                        await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, ideaText, "writing_processes");
+                        await _ideaLogger.LogIdeaAsync(
+                            this,
+                            _auth.CurrentUsername,
+                            trimmedName,
+                            "Story Production Processes");
                     }
-                    catch { }
                 }
 
                 CloseOverlay(trimmedName);
