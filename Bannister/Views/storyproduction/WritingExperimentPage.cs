@@ -8,6 +8,7 @@ public class WritingExperimentPage : ContentPage
     private readonly AuthService _auth;
     private readonly WritingExperimentService _experimentService;
     private readonly StoryProductionService _storyService;
+    private readonly IdeasService? _ideasService;
     private VerticalStackLayout _mainContent = null!;
     private Label _phaseLabel = null!;
     private Label _statusLabel = null!;
@@ -16,11 +17,12 @@ public class WritingExperimentPage : ContentPage
     private DatePicker _weekStartPicker = null!;
     private DatePicker _weekEndPicker = null!;
 
-    public WritingExperimentPage(AuthService auth, WritingExperimentService experimentService, StoryProductionService storyService)
+    public WritingExperimentPage(AuthService auth, WritingExperimentService experimentService, StoryProductionService storyService, IdeasService? ideasService = null)
     {
         _auth = auth;
         _experimentService = experimentService;
         _storyService = storyService;
+        _ideasService = ideasService;
         Title = "Writing Experiment";
         BackgroundColor = Color.FromArgb("#FFF8E1");
         BuildUI();
@@ -471,21 +473,157 @@ public class WritingExperimentPage : ContentPage
     private async Task ChangeWeekProcessAsync(WritingExperiment experiment)
     {
         var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
-        if (processes.Count == 0)
+        var tcs = new TaskCompletionSource<string?>();
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var formStack = new VerticalStackLayout { Spacing = 10 };
+        formStack.Children.Add(new Label
         {
-            await DisplayAlert("No Processes", "Create writing processes first.", "OK");
-            return;
-        }
-
-        var selected = await DisplayActionSheet(
-            "Change process for all days in current date range",
-            "Cancel",
-            null,
-            processes.Select(process => process.Name).ToArray());
-        if (string.IsNullOrEmpty(selected) || selected == "Cancel") return;
+            Text = "Change Week Process",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#6A1B9A")
+        });
 
         var fromDate = _weekStartPicker?.Date ?? DateTime.Today.AddDays(-6);
         var toDate = _weekEndPicker?.Date ?? DateTime.Today;
+        formStack.Children.Add(new Label
+        {
+            Text = $"Apply to: {fromDate:M/d} — {toDate:M/d}",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var searchEntry = new Entry
+        {
+            Placeholder = "Search processes...",
+            FontSize = 12,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            HeightRequest = 34
+        };
+        formStack.Children.Add(searchEntry);
+
+        var listStack = new VerticalStackLayout { Spacing = 4 };
+        void CloseOverlay(string? result)
+        {
+            if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(result);
+        }
+
+        void RebuildList(string search)
+        {
+            listStack.Children.Clear();
+            var filtered = string.IsNullOrWhiteSpace(search)
+                ? processes
+                : processes.Where(process => process.Name.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            foreach (var process in filtered)
+            {
+                var processButton = new Button
+                {
+                    Text = process.Name == experiment.BaselineProcessName ? $"\u2B50 {process.Name}" : process.Name,
+                    BackgroundColor = Color.FromArgb("#F3E5F5"),
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    CornerRadius = 6,
+                    HeightRequest = 36,
+                    FontSize = 12,
+                    HorizontalOptions = LayoutOptions.Fill
+                };
+                var capturedName = process.Name;
+                processButton.Clicked += (_, _) => CloseOverlay(capturedName);
+                listStack.Children.Add(processButton);
+            }
+
+            var newProcessButton = new Button
+            {
+                Text = "+ New Process",
+                BackgroundColor = Color.FromArgb("#FFF3E0"),
+                TextColor = Color.FromArgb("#E65100"),
+                CornerRadius = 6,
+                HeightRequest = 36,
+                FontSize = 12,
+                HorizontalOptions = LayoutOptions.Fill
+            };
+            newProcessButton.Clicked += async (_, _) =>
+            {
+                string? name = await DisplayPromptAsync("New Process", "Process name:", "Create", "Cancel", maxLength: 200);
+                if (string.IsNullOrWhiteSpace(name)) return;
+                string trimmedName = name.Trim();
+
+                if (processes.Any(process => string.Equals(process.Name, trimmedName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    await DisplayAlert("Duplicate", $"A process named '{trimmedName}' already exists.", "OK");
+                    return;
+                }
+
+                string? description = await DisplayPromptAsync(
+                    "Description (optional)",
+                    "What is this process?",
+                    "Save",
+                    "Skip",
+                    maxLength: 500);
+
+                try
+                {
+                    await _storyService.AddWritingProcessAsync(_auth.CurrentUsername, trimmedName);
+                }
+                catch (ReadOnlyDatabaseException)
+                {
+                    await DisplayAlert("Read Only", "Cannot add processes on a secondary device.", "OK");
+                    return;
+                }
+
+                bool logIdea = await DisplayAlert("Log as Idea?", "Save this process as an idea?", "Yes", "No");
+                if (logIdea && _ideasService != null)
+                {
+                    try
+                    {
+                        string ideaText = string.IsNullOrWhiteSpace(description)
+                            ? trimmedName
+                            : $"{trimmedName}: {description.Trim()}";
+                        await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, ideaText, "writing_processes");
+                    }
+                    catch { }
+                }
+
+                CloseOverlay(trimmedName);
+            };
+            listStack.Children.Add(newProcessButton);
+        }
+
+        searchEntry.TextChanged += (_, e) => RebuildList(e.NewTextValue ?? "");
+        RebuildList("");
+        formStack.Children.Add(new ScrollView { MaximumHeightRequest = 300, Content = listStack });
+
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#999"),
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        cancelButton.Clicked += (_, _) => CloseOverlay(null);
+        formStack.Children.Add(cancelButton);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            MaximumWidthRequest = 500,
+            MaximumHeightRequest = 600,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(16, 20),
+            Content = new ScrollView { Content = formStack }
+        };
+        overlay.Children.Add(card);
+        if (Content is not Grid mainGrid) return;
+        mainGrid.Children.Add(overlay);
+
+        var selected = await tcs.Task;
+        if (string.IsNullOrEmpty(selected)) return;
+
         bool isBaseline = selected == experiment.BaselineProcessName;
 
         await _experimentService.ChangeProcessForRangeAsync(
