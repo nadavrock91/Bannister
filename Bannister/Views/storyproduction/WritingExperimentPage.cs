@@ -225,8 +225,40 @@ public class WritingExperimentPage : ContentPage
             if (existingEntry?.IsCompleted == true)
             {
                 var summary = new Label { Text = BuildRetentionSummary(existingEntry), FontSize = 9, TextColor = Color.FromArgb("#2E7D32"), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap };
-                Grid.SetColumn(summary, 2);
-                dayGrid.Children.Add(summary);
+                var editButton = new Button
+                {
+                    Text = "\u270F",
+                    BackgroundColor = Colors.Transparent,
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    WidthRequest = 28,
+                    HeightRequest = 28,
+                    Padding = 0,
+                    FontSize = 10
+                };
+                var capturedEditEntry = existingEntry;
+                editButton.Clicked += async (_, _) =>
+                {
+                    var newTitle = await DisplayPromptAsync(
+                        "Story Title",
+                        "What story did you write this day?",
+                        "Save",
+                        "Cancel",
+                        initialValue: capturedEditEntry.StoryTitle ?? "",
+                        maxLength: 200);
+                    if (newTitle == null) return;
+                    capturedEditEntry.StoryTitle = newTitle.Trim();
+                    await _experimentService.CompleteEntryAsync(capturedEditEntry);
+                    await RefreshAsync();
+                };
+
+                var completedActions = new HorizontalStackLayout
+                {
+                    Spacing = 4,
+                    VerticalOptions = LayoutOptions.Center,
+                    Children = { summary, editButton }
+                };
+                Grid.SetColumn(completedActions, 2);
+                dayGrid.Children.Add(completedActions);
             }
             else
             {
