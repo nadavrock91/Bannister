@@ -472,25 +472,40 @@ public class WritingExperimentPage : ContentPage
 
     private async Task ChangeWeekProcessAsync(WritingExperiment experiment)
     {
+        var fromDate = _weekStartPicker?.Date ?? DateTime.Today.AddDays(-6);
+        var toDate = _weekEndPicker?.Date ?? DateTime.Today;
+        var selected = await ShowProcessPickerAsync(
+            $"Change Process ({fromDate:M/d} — {toDate:M/d})",
+            experiment);
+        if (string.IsNullOrEmpty(selected)) return;
+
+        bool isBaseline = selected == experiment.BaselineProcessName;
+        await _experimentService.ChangeProcessForRangeAsync(
+            experiment.Id,
+            fromDate,
+            toDate,
+            selected,
+            isBaseline);
+
+        await DisplayAlert(
+            "Updated",
+            $"Changed process to '{selected}' for {fromDate:M/d} - {toDate:M/d}.",
+            "OK");
+        await RefreshAsync();
+    }
+
+    private async Task<string?> ShowProcessPickerAsync(string title, WritingExperiment experiment)
+    {
         var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
         var tcs = new TaskCompletionSource<string?>();
         var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
         var formStack = new VerticalStackLayout { Spacing = 10 };
         formStack.Children.Add(new Label
         {
-            Text = "Change Week Process",
+            Text = title,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#6A1B9A")
-        });
-
-        var fromDate = _weekStartPicker?.Date ?? DateTime.Today.AddDays(-6);
-        var toDate = _weekEndPicker?.Date ?? DateTime.Today;
-        formStack.Children.Add(new Label
-        {
-            Text = $"Apply to: {fromDate:M/d} — {toDate:M/d}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
         });
 
         var searchEntry = new Entry
@@ -630,26 +645,11 @@ public class WritingExperimentPage : ContentPage
             Content = new ScrollView { Content = formStack }
         };
         overlay.Children.Add(card);
-        if (Content is not Grid mainGrid) return;
+        if (Content is not Grid mainGrid) return null;
         mainGrid.Children.Add(overlay);
 
         var selected = await tcs.Task;
-        if (string.IsNullOrEmpty(selected)) return;
-
-        bool isBaseline = selected == experiment.BaselineProcessName;
-
-        await _experimentService.ChangeProcessForRangeAsync(
-            experiment.Id,
-            fromDate,
-            toDate,
-            selected,
-            isBaseline);
-
-        await DisplayAlert(
-            "Updated",
-            $"Changed process to '{selected}' for {fromDate:M/d} - {toDate:M/d}.",
-            "OK");
-        await RefreshAsync();
+        return selected;
     }
 
     private async Task ManageProcessQueueAsync(WritingExperiment experiment)
@@ -688,12 +688,8 @@ public class WritingExperimentPage : ContentPage
                 int nextWeek = queue.Count > 0
                     ? queue.Max(item => item.WeekNumber) + 1
                     : experiment.CurrentWeek + 1;
-                var picked = await DisplayActionSheet(
-                    $"Process for Week {nextWeek}",
-                    "Cancel",
-                    null,
-                    processes.Select(process => process.Name).ToArray());
-                if (!string.IsNullOrEmpty(picked) && picked != "Cancel")
+                var picked = await ShowProcessPickerAsync($"Process for Week {nextWeek}", experiment);
+                if (!string.IsNullOrEmpty(picked))
                     queue.Add(new ProcessQueueItem { WeekNumber = nextWeek, ProcessName = picked });
             }
             else if (choice == "Clear All")
@@ -714,12 +710,10 @@ public class WritingExperimentPage : ContentPage
                     "Remove");
                 if (action == "Change Process")
                 {
-                    var picked = await DisplayActionSheet(
-                        "New process",
-                        "Cancel",
-                        null,
-                        processes.Select(process => process.Name).ToArray());
-                    if (!string.IsNullOrEmpty(picked) && picked != "Cancel")
+                    var picked = await ShowProcessPickerAsync(
+                        $"Process for Week {queuedEntry.WeekNumber}",
+                        experiment);
+                    if (!string.IsNullOrEmpty(picked))
                         queuedEntry.ProcessName = picked;
                 }
                 else if (action == "Remove")
