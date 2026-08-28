@@ -18,6 +18,7 @@ public class WritingExperimentService
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<WritingExperiment>();
         await conn.CreateTableAsync<WritingExperimentEntry>();
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperiment ADD COLUMN ProcessQueueJson TEXT DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention10s INTEGER DEFAULT -1"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention30s INTEGER DEFAULT -1"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention1m INTEGER DEFAULT -1"); } catch { }
@@ -103,6 +104,30 @@ public class WritingExperimentService
             .Where(e => e.ExperimentId == experimentId)
             .OrderBy(e => e.Date)
             .ToListAsync();
+    }
+
+    public async Task ChangeProcessForRangeAsync(
+        int experimentId,
+        DateTime fromDate,
+        DateTime toDate,
+        string processName,
+        bool isBaseline)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var entries = await conn.Table<WritingExperimentEntry>()
+            .Where(e => e.ExperimentId == experimentId)
+            .ToListAsync();
+
+        foreach (var entry in entries)
+        {
+            if (entry.Date.Date >= fromDate.Date && entry.Date.Date <= toDate.Date)
+            {
+                entry.AssignedProcess = processName;
+                entry.IsBaseline = isBaseline;
+                await conn.UpdateAsync(entry);
+            }
+        }
     }
 
     public async Task<int> GetBaselineEntryCountAsync(int experimentId)

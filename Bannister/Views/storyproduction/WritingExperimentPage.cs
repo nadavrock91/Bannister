@@ -136,6 +136,48 @@ public class WritingExperimentPage : ContentPage
         if (windowEnd > today) windowEnd = today;
         if (windowEnd < windowStart) windowEnd = windowStart;
 
+        var changeProcessButton = new Button
+        {
+            Text = "\U0001F504 Change Week Process",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            Padding = new Thickness(12, 0)
+        };
+        changeProcessButton.Clicked += async (_, _) => await ChangeWeekProcessAsync(experiment);
+
+        var queueButton = new Button
+        {
+            Text = "\U0001F4C5 Queue Future Weeks",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            Padding = new Thickness(12, 0)
+        };
+        queueButton.Clicked += async (_, _) => await ManageProcessQueueAsync(experiment);
+
+        _todaySection.Children.Add(new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children = { changeProcessButton, queueButton }
+        });
+
+        var processQueue = ParseProcessQueue(experiment.ProcessQueueJson);
+        if (processQueue.Count > 0)
+        {
+            _todaySection.Children.Add(new Label
+            {
+                Text = $"\U0001F4C5 Upcoming: {string.Join(" \u2192 ", processQueue.OrderBy(item => item.WeekNumber).Select(item => $"W{item.WeekNumber}: {item.ProcessName}"))}",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#1565C0"),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+        }
+
         var dateRow = new HorizontalStackLayout { Spacing = 8 };
         dateRow.Children.Add(new Label
         {
@@ -192,6 +234,12 @@ public class WritingExperimentPage : ContentPage
                 int dayIndex = entries.Count(e => e.Date.Date < date);
                 isBaseline = dayIndex % 2 == 0;
                 assignedProcess = isBaseline ? experiment.BaselineProcessName : experiment.ChallengerProcessName;
+            }
+
+            if (existingEntry != null)
+            {
+                assignedProcess = existingEntry.AssignedProcess;
+                isBaseline = existingEntry.IsBaseline;
             }
 
             var dayGrid = new Grid
@@ -420,6 +468,122 @@ public class WritingExperimentPage : ContentPage
         await RefreshAsync();
     }
 
+    private async Task ChangeWeekProcessAsync(WritingExperiment experiment)
+    {
+        var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
+        if (processes.Count == 0)
+        {
+            await DisplayAlert("No Processes", "Create writing processes first.", "OK");
+            return;
+        }
+
+        var selected = await DisplayActionSheet(
+            "Change process for all days in current date range",
+            "Cancel",
+            null,
+            processes.Select(process => process.Name).ToArray());
+        if (string.IsNullOrEmpty(selected) || selected == "Cancel") return;
+
+        var fromDate = _weekStartPicker?.Date ?? DateTime.Today.AddDays(-6);
+        var toDate = _weekEndPicker?.Date ?? DateTime.Today;
+        bool isBaseline = selected == experiment.BaselineProcessName;
+
+        await _experimentService.ChangeProcessForRangeAsync(
+            experiment.Id,
+            fromDate,
+            toDate,
+            selected,
+            isBaseline);
+
+        await DisplayAlert(
+            "Updated",
+            $"Changed process to '{selected}' for {fromDate:M/d} - {toDate:M/d}.",
+            "OK");
+        await RefreshAsync();
+    }
+
+    private async Task ManageProcessQueueAsync(WritingExperiment experiment)
+    {
+        var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
+        if (processes.Count == 0)
+        {
+            await DisplayAlert("No Processes", "Create writing processes first.", "OK");
+            return;
+        }
+
+        var queue = ParseProcessQueue(experiment.ProcessQueueJson);
+        bool done = false;
+        while (!done)
+        {
+            var displayOptions = queue
+                .OrderBy(item => item.WeekNumber)
+                .Select(item => $"Week {item.WeekNumber}: {item.ProcessName}")
+                .ToList();
+            displayOptions.Add("+ Add Week");
+            if (queue.Count > 0) displayOptions.Add("Clear All");
+            displayOptions.Add("Done");
+
+            var choice = await DisplayActionSheet(
+                $"Process Queue ({queue.Count} weeks planned)",
+                "Cancel",
+                null,
+                displayOptions.ToArray());
+
+            if (string.IsNullOrEmpty(choice) || choice == "Cancel" || choice == "Done")
+            {
+                done = true;
+            }
+            else if (choice == "+ Add Week")
+            {
+                int nextWeek = queue.Count > 0
+                    ? queue.Max(item => item.WeekNumber) + 1
+                    : experiment.CurrentWeek + 1;
+                var picked = await DisplayActionSheet(
+                    $"Process for Week {nextWeek}",
+                    "Cancel",
+                    null,
+                    processes.Select(process => process.Name).ToArray());
+                if (!string.IsNullOrEmpty(picked) && picked != "Cancel")
+                    queue.Add(new ProcessQueueItem { WeekNumber = nextWeek, ProcessName = picked });
+            }
+            else if (choice == "Clear All")
+            {
+                queue.Clear();
+            }
+            else
+            {
+                var queuedEntry = queue.FirstOrDefault(item =>
+                    choice == $"Week {item.WeekNumber}: {item.ProcessName}");
+                if (queuedEntry == null) continue;
+
+                var action = await DisplayActionSheet(
+                    $"Week {queuedEntry.WeekNumber}: {queuedEntry.ProcessName}",
+                    "Cancel",
+                    null,
+                    "Change Process",
+                    "Remove");
+                if (action == "Change Process")
+                {
+                    var picked = await DisplayActionSheet(
+                        "New process",
+                        "Cancel",
+                        null,
+                        processes.Select(process => process.Name).ToArray());
+                    if (!string.IsNullOrEmpty(picked) && picked != "Cancel")
+                        queuedEntry.ProcessName = picked;
+                }
+                else if (action == "Remove")
+                {
+                    queue.Remove(queuedEntry);
+                }
+            }
+        }
+
+        experiment.ProcessQueueJson = System.Text.Json.JsonSerializer.Serialize(queue);
+        await _experimentService.UpdateExperimentAsync(experiment);
+        await RefreshAsync();
+    }
+
     private async Task StartChallengerAsync(WritingExperiment experiment)
     {
         var challengers = (await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername)).Where(p => p.Name != experiment.BaselineProcessName).ToList();
@@ -469,6 +633,27 @@ public class WritingExperimentPage : ContentPage
         if (entry.Retention2m >= 0) values.Add($"2m:{entry.Retention2m}%");
         if (entry.Retention3m >= 0) values.Add($"3m:{entry.Retention3m}%");
         return values.Count > 0 ? string.Join(" ", values) : "✅";
+    }
+
+    private class ProcessQueueItem
+    {
+        public ProcessQueueItem() { }
+
+        public int WeekNumber { get; set; }
+        public string ProcessName { get; set; } = "";
+    }
+
+    private static List<ProcessQueueItem> ParseProcessQueue(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new List<ProcessQueueItem>();
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<ProcessQueueItem>>(json) ?? new();
+        }
+        catch
+        {
+            return new();
+        }
     }
 
 }

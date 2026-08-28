@@ -12,6 +12,7 @@ public class WritingExperiment
     public string Phase { get; set; } = "baseline"; // baseline, challenger, completed
     public int CurrentWeek { get; set; } = 1;
     public string Status { get; set; } = "active"; // active, archived
+    public string ProcessQueueJson { get; set; } = ""; // JSON array of {WeekNumber, ProcessName} for future weeks
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
 }
