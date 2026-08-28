@@ -14,6 +14,8 @@ public class WritingExperimentPage : ContentPage
     private VerticalStackLayout _todaySection = null!;
     private VerticalStackLayout _historySection = null!;
     private VerticalStackLayout _comparisonSection = null!;
+    private DatePicker _weekStartPicker = null!;
+    private DatePicker _weekEndPicker = null!;
 
     public WritingExperimentPage(AuthService auth, WritingExperimentService experimentService, StoryProductionService storyService)
     {
@@ -132,12 +134,55 @@ public class WritingExperimentPage : ContentPage
     {
         _todaySection.Children.Clear();
         var today = DateTime.UtcNow.Date;
-        var windowStart = today.AddDays(-6);
+        var windowStart = _weekStartPicker?.Date ?? today.AddDays(-6);
+        var windowEnd = _weekEndPicker?.Date ?? today;
         if (windowStart < experiment.StartedAt.Date) windowStart = experiment.StartedAt.Date;
+        if (windowStart > today) windowStart = today;
+        if (windowEnd > today) windowEnd = today;
+        if (windowEnd < windowStart) windowEnd = windowStart;
+
+        var dateRow = new HorizontalStackLayout { Spacing = 8 };
+        dateRow.Children.Add(new Label
+        {
+            Text = "From:",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        _weekStartPicker = new DatePicker
+        {
+            Date = windowStart,
+            MaximumDate = today,
+            MinimumDate = experiment.StartedAt.Date,
+            FontSize = 12
+        };
+        _weekStartPicker.DateSelected += async (_, _) => await RefreshAsync();
+        dateRow.Children.Add(_weekStartPicker);
+
+        dateRow.Children.Add(new Label
+        {
+            Text = "To:",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            VerticalOptions = LayoutOptions.Center
+        });
+
+        _weekEndPicker = new DatePicker
+        {
+            Date = windowEnd,
+            MaximumDate = today,
+            MinimumDate = experiment.StartedAt.Date,
+            FontSize = 12
+        };
+        _weekEndPicker.DateSelected += async (_, _) => await RefreshAsync();
+        dateRow.Children.Add(_weekEndPicker);
+
+        _todaySection.Children.Add(dateRow);
 
         _todaySection.Children.Add(new Label { Text = "Mark Days Completed", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
 
-        for (var date = windowStart; date <= today; date = date.AddDays(1))
+        for (var date = windowStart; date <= windowEnd; date = date.AddDays(1))
         {
             var existingEntry = entries.FirstOrDefault(e => e.Date.Date == date);
             bool isBaseline;
@@ -214,7 +259,7 @@ public class WritingExperimentPage : ContentPage
 
         var tcs = new TaskCompletionSource<bool>();
         var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
-        var sliders = new Dictionary<string, Slider>();
+        var inputFields = new Dictionary<string, Entry>();
         var intervals = new[] { (Key: "10s", Label: "10 seconds"), (Key: "30s", Label: "30 seconds"), (Key: "1m", Label: "1 minute"), (Key: "2m", Label: "2 minutes"), (Key: "3m", Label: "3 minutes") };
         var formStack = new VerticalStackLayout { Spacing = 12 };
         formStack.Children.Add(new Label { Text = "Retention Test", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#6A1B9A") });
@@ -222,13 +267,47 @@ public class WritingExperimentPage : ContentPage
 
         foreach (var interval in intervals)
         {
-            var valueLabel = new Label { Text = $"{interval.Label}: —", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") };
-            var slider = new Slider { Minimum = 0, Maximum = 100, Value = 0, MinimumTrackColor = Color.FromArgb("#6A1B9A"), MaximumTrackColor = Color.FromArgb("#E0E0E0"), ThumbColor = Color.FromArgb("#6A1B9A") };
-            var capturedLabel = valueLabel;
-            var capturedName = interval.Label;
-            slider.ValueChanged += (_, e) => capturedLabel.Text = $"{capturedName}: {(int)e.NewValue}%";
-            formStack.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { valueLabel, slider } });
-            sliders[interval.Key] = slider;
+            var input = new Entry
+            {
+                Placeholder = "0-100",
+                Keyboard = Keyboard.Numeric,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#333"),
+                BackgroundColor = Color.FromArgb("#FAFAFA"),
+                HeightRequest = 36,
+                WidthRequest = 80,
+                HorizontalTextAlignment = TextAlignment.Center
+            };
+
+            var percentLabel = new Label
+            {
+                Text = "%",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#666"),
+                VerticalOptions = LayoutOptions.Center
+            };
+
+            var inputRow = new HorizontalStackLayout
+            {
+                Spacing = 4,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = interval.Label + ":",
+                        FontSize = 13,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#333"),
+                        VerticalOptions = LayoutOptions.Center,
+                        WidthRequest = 90
+                    },
+                    input,
+                    percentLabel
+                }
+            };
+
+            formStack.Children.Add(inputRow);
+            inputFields[interval.Key] = input;
         }
 
         void CloseOverlay(bool saved)
@@ -240,11 +319,21 @@ public class WritingExperimentPage : ContentPage
         var saveButton = new Button { Text = "Save Retention", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 44 };
         saveButton.Clicked += (_, _) =>
         {
-            entry.Retention10s = (int)sliders["10s"].Value;
-            entry.Retention30s = (int)sliders["30s"].Value;
-            entry.Retention1m = (int)sliders["1m"].Value;
-            entry.Retention2m = (int)sliders["2m"].Value;
-            entry.Retention3m = (int)sliders["3m"].Value;
+            foreach (var (key, input) in inputFields)
+            {
+                int value = -1;
+                if (int.TryParse(input.Text, out int parsed))
+                    value = Math.Clamp(parsed, 0, 100);
+
+                switch (key)
+                {
+                    case "10s": entry.Retention10s = value; break;
+                    case "30s": entry.Retention30s = value; break;
+                    case "1m": entry.Retention1m = value; break;
+                    case "2m": entry.Retention2m = value; break;
+                    case "3m": entry.Retention3m = value; break;
+                }
+            }
             entry.IsCompleted = true;
             entry.CompletedAt = DateTime.UtcNow;
             CloseOverlay(true);
