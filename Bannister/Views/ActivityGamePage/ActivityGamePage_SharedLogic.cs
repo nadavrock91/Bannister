@@ -491,6 +491,12 @@ public partial class ActivityGamePage
 
             activity.HabitStreak = newHabitStreak;
             activity.DisplayDayStreak = newDisplayStreak;
+            if (activity.ShowStreakAsDaysSinceStarted)
+            {
+                activity.CurrentStreakStartedAt = newDisplayStreak > 0
+                    ? DateTime.Today.AddDays(-(newDisplayStreak - 1))
+                    : null;
+            }
             if (newDisplayStreak > 0)
             {
                 activity.LastDisplayDayUsed = DateTime.UtcNow.Date;
