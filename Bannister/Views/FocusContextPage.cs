@@ -36,6 +36,11 @@ public class FocusContextPage : ContentPage
     private async Task EnsureInitializedAsync()
     {
         if (_initialized) return;
+        if (_db.IsReadOnly)
+        {
+            _initialized = true;
+            return;
+        }
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<FocusBulletPoint>();
         _initialized = true;
@@ -48,7 +53,7 @@ public class FocusContextPage : ContentPage
         mainStack.Children.Add(new Label { Text = "Define what you are focusing on as ordered bullet points. Export with your focus tasks for LLM context.", FontSize = 13, TextColor = Color.FromArgb("#666") });
 
         var btnRow = new HorizontalStackLayout { Spacing = 8 };
-        var addBtn = new Button { Text = "+ Add Point", BackgroundColor = Color.FromArgb("#7B1FA2"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 40, FontSize = 13, Padding = new Thickness(14, 0) };
+        var addBtn = new Button { Text = "+ Add Point", BackgroundColor = Color.FromArgb("#7B1FA2"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 40, FontSize = 13, Padding = new Thickness(14, 0), IsEnabled = !_db.IsReadOnly };
         addBtn.Clicked += async (_, _) => await AddBulletAsync();
         btnRow.Children.Add(addBtn);
         var exportBtn = new Button { Text = "\U0001F4CB Export for LLM", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 40, FontSize = 13, Padding = new Thickness(14, 0) };
@@ -74,29 +79,45 @@ public class FocusContextPage : ContentPage
 
     private async Task LoadBulletsAsync()
     {
-        var conn = await _db.GetConnectionAsync();
-        var active = await conn.Table<FocusBulletPoint>()
-            .Where(b => b.Username == _auth.CurrentUsername && b.Status == "active")
-            .OrderBy(b => b.SortOrder).ToListAsync();
-
-        _bulletsList.Children.Clear();
-        if (active.Count == 0)
-            _bulletsList.Children.Add(new Label { Text = "No focus points yet. Add what you are currently focusing on.", FontSize = 13, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
-        for (int i = 0; i < active.Count; i++)
-            _bulletsList.Children.Add(BuildBulletCard(active[i], i, active.Count, false));
-
-        _archivedList.Children.Clear();
-        _archivedList.IsVisible = _showArchived;
-        if (!_showArchived) return;
-
-        var archived = await conn.Table<FocusBulletPoint>()
-            .Where(b => b.Username == _auth.CurrentUsername && b.Status == "archived")
-            .OrderByDescending(b => b.ArchivedAt).ToListAsync();
-        if (archived.Count > 0)
+        try
         {
-            _archivedList.Children.Add(new Label { Text = $"Archived ({archived.Count})", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#999") });
-            foreach (var bullet in archived)
-                _archivedList.Children.Add(BuildBulletCard(bullet, -1, -1, true));
+            var conn = await _db.GetConnectionAsync();
+            var active = await conn.Table<FocusBulletPoint>()
+                .Where(b => b.Username == _auth.CurrentUsername && b.Status == "active")
+                .OrderBy(b => b.SortOrder).ToListAsync();
+
+            _bulletsList.Children.Clear();
+            if (active.Count == 0)
+                _bulletsList.Children.Add(new Label { Text = "No focus points yet. Add what you are currently focusing on.", FontSize = 13, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
+            for (int i = 0; i < active.Count; i++)
+                _bulletsList.Children.Add(BuildBulletCard(active[i], i, active.Count, false));
+
+            _archivedList.Children.Clear();
+            _archivedList.IsVisible = _showArchived;
+            if (!_showArchived) return;
+
+            var archived = await conn.Table<FocusBulletPoint>()
+                .Where(b => b.Username == _auth.CurrentUsername && b.Status == "archived")
+                .OrderByDescending(b => b.ArchivedAt).ToListAsync();
+            if (archived.Count > 0)
+            {
+                _archivedList.Children.Add(new Label { Text = $"Archived ({archived.Count})", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#999") });
+                foreach (var bullet in archived)
+                    _archivedList.Children.Add(BuildBulletCard(bullet, -1, -1, true));
+            }
+        }
+        catch (SQLite.SQLiteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+        {
+            _bulletsList.Children.Clear();
+            _bulletsList.Children.Add(new Label
+            {
+                Text = "Focus Context has not been synced to this device yet.",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#999"),
+                FontAttributes = FontAttributes.Italic
+            });
+            _archivedList.Children.Clear();
+            _archivedList.IsVisible = false;
         }
     }
 
@@ -124,7 +145,7 @@ public class FocusContextPage : ContentPage
         row.Children.Add(textLabel);
         var actions = new HorizontalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
 
-        if (!isArchived)
+        if (!_db.IsReadOnly && !isArchived)
         {
             if (index > 0)
             {
@@ -162,7 +183,7 @@ public class FocusContextPage : ContentPage
             };
             actions.Children.Add(archive);
         }
-        else
+        else if (!_db.IsReadOnly)
         {
             var restore = ActionButton("\u267B\uFE0F", "#2E7D32");
             restore.Clicked += async (_, _) =>
@@ -230,7 +251,15 @@ public class FocusContextPage : ContentPage
     private async Task ExportForLlmAsync()
     {
         var conn = await _db.GetConnectionAsync();
-        var bullets = await conn.Table<FocusBulletPoint>().Where(b => b.Username == _auth.CurrentUsername && b.Status == "active").OrderBy(b => b.SortOrder).ToListAsync();
+        List<FocusBulletPoint> bullets;
+        try
+        {
+            bullets = await conn.Table<FocusBulletPoint>().Where(b => b.Username == _auth.CurrentUsername && b.Status == "active").OrderBy(b => b.SortOrder).ToListAsync();
+        }
+        catch (SQLite.SQLiteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+        {
+            bullets = new List<FocusBulletPoint>();
+        }
         var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("CURRENT FOCUS CONTEXT:");
