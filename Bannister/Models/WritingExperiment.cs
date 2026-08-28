@@ -23,6 +23,7 @@ public class WritingExperimentEntry
     public int ExperimentId { get; set; }
     public DateTime Date { get; set; }
     public string AssignedProcess { get; set; } = "";
+    public string StoryTitle { get; set; } = "";
     public bool IsBaseline { get; set; } = true;
     public string ExecutionNotes { get; set; } = ""; // how exactly the process was followed
     public int Retention10s { get; set; } = -1; // -1 = not recorded, 0-100 percent

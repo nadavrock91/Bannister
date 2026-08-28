@@ -12,7 +12,6 @@ public class WritingExperimentPage : ContentPage
     private Label _phaseLabel = null!;
     private Label _statusLabel = null!;
     private VerticalStackLayout _todaySection = null!;
-    private VerticalStackLayout _historySection = null!;
     private VerticalStackLayout _comparisonSection = null!;
     private DatePicker _weekStartPicker = null!;
     private DatePicker _weekEndPicker = null!;
@@ -47,12 +46,10 @@ public class WritingExperimentPage : ContentPage
         _statusLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#888") };
         _todaySection = new VerticalStackLayout { Spacing = 10 };
         _comparisonSection = new VerticalStackLayout { Spacing = 8 };
-        _historySection = new VerticalStackLayout { Spacing = 6 };
         _mainContent.Children.Add(_phaseLabel);
         _mainContent.Children.Add(_statusLabel);
         _mainContent.Children.Add(_todaySection);
         _mainContent.Children.Add(_comparisonSection);
-        _mainContent.Children.Add(_historySection);
 
         var rootGrid = new Grid();
         rootGrid.Children.Add(new ScrollView { Content = _mainContent });
@@ -63,7 +60,6 @@ public class WritingExperimentPage : ContentPage
     {
         var experiment = await _experimentService.GetActiveExperimentAsync(_auth.CurrentUsername);
         _todaySection.Children.Clear();
-        _historySection.Children.Clear();
         _comparisonSection.Children.Clear();
 
         if (experiment == null)
@@ -99,7 +95,6 @@ public class WritingExperimentPage : ContentPage
             _todaySection.Children.Add(button);
         }
 
-        ShowHistory(entries);
         var archiveButton = new Button { Text = "Archive Experiment", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#666"), CornerRadius = 8, HeightRequest = 36, FontSize = 12 };
         archiveButton.Clicked += async (_, _) =>
         {
@@ -109,7 +104,7 @@ public class WritingExperimentPage : ContentPage
             await _experimentService.UpdateExperimentAsync(experiment);
             await RefreshAsync();
         };
-        _historySection.Children.Add(archiveButton);
+        _todaySection.Children.Add(archiveButton);
     }
 
     private async Task ShowStartExperimentAsync()
@@ -212,9 +207,20 @@ public class WritingExperimentPage : ContentPage
             var dateLabel = new Label { Text = date.ToString("ddd M/d"), FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center };
             Grid.SetColumn(dateLabel, 0);
             dayGrid.Children.Add(dateLabel);
-            var processLabel = new Label { Text = assignedProcess, FontSize = 11, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap };
-            Grid.SetColumn(processLabel, 1);
-            dayGrid.Children.Add(processLabel);
+            var processStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+            processStack.Children.Add(new Label { Text = assignedProcess, FontSize = 11, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
+            if (!string.IsNullOrWhiteSpace(existingEntry?.StoryTitle))
+            {
+                processStack.Children.Add(new Label
+                {
+                    Text = $"\U0001F4D6 {existingEntry.StoryTitle}",
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    LineBreakMode = LineBreakMode.TailTruncation
+                });
+            }
+            Grid.SetColumn(processStack, 1);
+            dayGrid.Children.Add(processStack);
 
             if (existingEntry?.IsCompleted == true)
             {
@@ -256,6 +262,16 @@ public class WritingExperimentPage : ContentPage
         string? executionNotes = await DisplayPromptAsync("Execution Notes", "How did you follow the process? What did you do?", "Next", "Cancel", maxLength: 1000);
         if (executionNotes == null) return;
         entry.ExecutionNotes = executionNotes.Trim();
+
+        string? storyTitle = await DisplayPromptAsync(
+            "Story Title",
+            "What story did you write today? (optional)",
+            "Next",
+            "Skip",
+            initialValue: entry.StoryTitle ?? "",
+            maxLength: 200);
+        if (storyTitle != null)
+            entry.StoryTitle = storyTitle.Trim();
 
         var tcs = new TaskCompletionSource<bool>();
         var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
@@ -423,16 +439,4 @@ public class WritingExperimentPage : ContentPage
         return values.Count > 0 ? string.Join(" ", values) : "✅";
     }
 
-    private void ShowHistory(List<WritingExperimentEntry> entries)
-    {
-        if (entries.Count == 0) return;
-        _historySection.Children.Add(new Label { Text = $"\U0001F4C5 History ({entries.Count} entries)", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
-        foreach (var entry in entries.OrderByDescending(e => e.Date).Take(14))
-        {
-            string preview = string.IsNullOrWhiteSpace(entry.ExecutionNotes) ? "" : entry.ExecutionNotes.Length > 40 ? entry.ExecutionNotes[..40] + "..." : entry.ExecutionNotes;
-            string retention = entry.IsCompleted ? BuildRetentionSummary(entry) : "Not completed";
-            var text = $"{(entry.IsBaseline ? "\U0001F4CA" : "⚔️")} {entry.Date:ddd M/d}   {entry.AssignedProcess}   {retention}" + (preview.Length > 0 ? $"\n{preview}" : "");
-            _historySection.Children.Add(new Frame { Padding = 10, CornerRadius = 8, BackgroundColor = !entry.IsCompleted ? Color.FromArgb("#F5F5F5") : entry.IsBaseline ? Color.FromArgb("#E8EAF6") : Color.FromArgb("#FFF3E0"), BorderColor = Colors.Transparent, HasShadow = false, Content = new Label { Text = text, FontSize = 11, TextColor = Color.FromArgb("#555"), LineBreakMode = LineBreakMode.WordWrap } });
-        }
-    }
 }

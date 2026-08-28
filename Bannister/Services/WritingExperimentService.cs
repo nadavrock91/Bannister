@@ -23,6 +23,7 @@ public class WritingExperimentService
         try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention1m INTEGER DEFAULT -1"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention2m INTEGER DEFAULT -1"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention3m INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN StoryTitle TEXT DEFAULT ''"); } catch { }
         _initialized = true;
     }
 
