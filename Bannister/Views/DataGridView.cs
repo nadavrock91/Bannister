@@ -558,7 +558,6 @@ public class DataGridView : ContentView
                 var lp = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
                 lp.Tapped += (s, e) =>
                 {
-                    System.Diagnostics.Debug.WriteLine($"[DOUBLETAP] row={cR} col={cC} time={DateTime.UtcNow:HH:mm:ss.fff}");
                     _doubleTapInProgress = true;
                     _lastDoubleTapTime = DateTime.UtcNow;
                     HandleRightClick(cR, cC);
@@ -648,24 +647,19 @@ public class DataGridView : ContentView
 
     private async void HandleLeftClick(int pageRow, int col)
     {
-        System.Diagnostics.Debug.WriteLine($"[LEFTCLICK] row={pageRow} col={col} doubleTapInProgress={_doubleTapInProgress} msSinceDoubleTap={(DateTime.UtcNow - _lastDoubleTapTime).TotalMilliseconds:F0} time={DateTime.UtcNow:HH:mm:ss.fff}");
+        var tapTime = DateTime.UtcNow;
+
+        // Wait out the double-tap window before doing ANYTHING.
+        await Task.Delay(280);
+
+        // A double-tap arrived during or just before the window — this
+        // single-tap is part of it. Do nothing at all.
+        if (_doubleTapInProgress) return;
+        if (_lastDoubleTapTime > tapTime.AddMilliseconds(-400)) return;
+
         if (_isEditing) await AutoSaveAsync();
         SelectCellByPageRow(pageRow, col);
-        await Task.Delay(30);
-        System.Diagnostics.Debug.WriteLine($"[LEFTCLICK FOCUS GUARD] willFocus={!_doubleTapInProgress && (DateTime.UtcNow - _lastDoubleTapTime).TotalMilliseconds > 300}");
-        if (!_doubleTapInProgress &&
-            (DateTime.UtcNow - _lastDoubleTapTime).TotalMilliseconds > 300)
-        {
-#if WINDOWS
-            if (_keyCapture?.Handler?.PlatformView is
-                Microsoft.UI.Xaml.Controls.TextBox ktb)
-                ktb.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
-            else
-                _keyCapture?.Focus();
-#else
-            _keyCapture?.Focus();
-#endif
-        }
+        _keyCapture?.Focus();
     }
 
     private void SelectCellByPageRow(int pageRow, int col)
@@ -767,7 +761,6 @@ public class DataGridView : ContentView
             _cellLabels[pageRow, _selectedCol].BackgroundColor = EditingCellColor;
 
         await Task.Delay(80);
-        System.Diagnostics.Debug.WriteLine($"[EDITMODE] _displayBox.Handler={_displayBox.Handler != null} PlatformView={_displayBox.Handler?.PlatformView?.GetType().Name ?? "null"}");
         _displayBox.Focus();
 #if WINDOWS
         await Task.Delay(50);
@@ -945,7 +938,6 @@ public class DataGridView : ContentView
 
     private void ScrollToTop()
     {
-        System.Diagnostics.Debug.WriteLine($"[SCROLLTOP] called from: {new System.Diagnostics.StackTrace().ToString().Split('\n')[1]}");
         // Walk up from GridView to find the parent ScrollView and scroll to top
         Element? el = _gridWrapper;
         while (el != null)

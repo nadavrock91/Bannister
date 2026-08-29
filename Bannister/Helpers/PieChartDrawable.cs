@@ -46,34 +46,39 @@ public class PieChartDrawable : IDrawable
         float radius = (float)Math.Floor(Math.Min(pieW / 2f, h / 2f)) - 12f;
         if (radius < 4f) return;
 
-        // Draw pie slices
+        // Draw pie slices as polygon wedges (FillArc is unreliable on Win2D)
         float startAngle = -90f;
-        System.Diagnostics.Debug.WriteLine($"[PIE] dirtyRect={dirtyRect.Width}x{dirtyRect.Height} slices={Slices.Count} total={total} radius={radius} pieCx={pieCx}");
         foreach (var slice in Slices)
         {
             float sweep = (slice.Value / total) * 360f;
             float endAngle = startAngle + sweep;
-            canvas.FillColor = slice.Color;
-            System.Diagnostics.Debug.WriteLine($"[PIE SLICE] label={slice.Label} value={slice.Value} color={slice.Color} start={startAngle} end={endAngle} sweep={sweep}");
-            canvas.FillArc(pieCx - radius, pieCy - radius,
-                           radius * 2f, radius * 2f,
-                           startAngle, endAngle, true);
-            startAngle = endAngle;
-        }
 
-        // Draw thin white borders between slices for clarity
-        canvas.StrokeColor = Colors.White;
-        canvas.StrokeSize = 1.5f;
-        startAngle = -90f;
-        foreach (var slice in Slices)
-        {
-            float sweep = (slice.Value / total) * 360f;
-            float endAngle = startAngle + sweep;
-            // draw a line from center to edge at startAngle
-            double rad = startAngle * Math.PI / 180.0;
-            float ex = pieCx + radius * (float)Math.Cos(rad);
-            float ey = pieCy + radius * (float)Math.Sin(rad);
-            canvas.DrawLine(pieCx, pieCy, ex, ey);
+            var path = new PathF();
+            path.MoveTo(pieCx, pieCy);
+
+            // walk the arc in 2-degree steps
+            int steps = Math.Max(2, (int)Math.Ceiling(sweep / 2f));
+            for (int i = 0; i <= steps; i++)
+            {
+                float a = startAngle + (sweep * i / steps);
+                double rad = a * Math.PI / 180.0;
+                float px = pieCx + radius * (float)Math.Cos(rad);
+                float py = pieCy + radius * (float)Math.Sin(rad);
+                path.LineTo(px, py);
+            }
+            path.Close();
+
+            canvas.FillColor = slice.Color;
+            canvas.FillPath(path);
+
+            // thin white separator on the leading edge
+            double r0 = startAngle * Math.PI / 180.0;
+            canvas.StrokeColor = Colors.White;
+            canvas.StrokeSize = 1.5f;
+            canvas.DrawLine(pieCx, pieCy,
+                pieCx + radius * (float)Math.Cos(r0),
+                pieCy + radius * (float)Math.Sin(r0));
+
             startAngle = endAngle;
         }
 
@@ -93,7 +98,6 @@ public class PieChartDrawable : IDrawable
         {
             // Color box
             canvas.FillColor = slice.Color;
-            System.Diagnostics.Debug.WriteLine($"[PIE LEGEND] label={slice.Label} lx={lx} ly={ly} maxLabelW={maxLabelW} legendW={legendW}");
             canvas.FillRectangle(lx, ly + 2f, boxSize, boxSize);
 
             // Label text
