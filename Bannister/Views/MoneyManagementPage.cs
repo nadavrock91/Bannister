@@ -12,7 +12,6 @@ public class MoneyManagementPage : ContentPage
 
     private Label _summaryLabel;
     private Switch _showInactiveSwitch;
-    private VerticalStackLayout _toolbarContainer;
     private VerticalStackLayout _gridContainer;
     private List<MonthlyExpense> _currentExpenses = new();
     private MonthlyExpense? _selectedExpense;
@@ -127,6 +126,7 @@ public class MoneyManagementPage : ContentPage
             UpdateCurrencyButtonText();
             UpdateSummary();
             BuildDataGrid();
+            UpdatePieChart();
         };
         header.Add(_currencyButton, 3, 0);
 
@@ -151,8 +151,6 @@ public class MoneyManagementPage : ContentPage
         optionsRow.Children.Add(_showInactiveSwitch);
         toolbarArea.Children.Add(optionsRow);
 
-        _toolbarContainer = new VerticalStackLayout { Spacing = 4 };
-        toolbarArea.Children.Add(_toolbarContainer);
         mainGrid.Add(toolbarArea, 0, 1);
 
         var scrollView = new ScrollView { Orientation = ScrollOrientation.Both };
@@ -176,8 +174,8 @@ public class MoneyManagementPage : ContentPage
             BackgroundColor = Colors.White
         };
         var contentStack = new VerticalStackLayout { Spacing = 0 };
-        contentStack.Children.Add(_gridContainer);
         contentStack.Children.Add(chartCard);
+        contentStack.Children.Add(_gridContainer);
         scrollView.Content = contentStack;
         mainGrid.Add(scrollView, 0, 2);
 
@@ -186,7 +184,6 @@ public class MoneyManagementPage : ContentPage
 
     private async Task LoadExpensesAsync()
     {
-        _toolbarContainer.Children.Clear();
         _gridContainer.Children.Clear();
         _gridContainer.Children.Add(new ActivityIndicator { IsRunning = true, Color = Color.FromArgb("#2E7D32") });
 
@@ -229,12 +226,12 @@ public class MoneyManagementPage : ContentPage
             .Select((group, index) => (group.Label, group.Value, palette[index % palette.Length]))
             .ToList();
 
+        _pieDrawable.CurrencySymbol = _currency.Symbol;
         _pieChart.Invalidate();
     }
 
     private void BuildDataGrid()
     {
-        _toolbarContainer.Children.Clear();
         _gridContainer.Children.Clear();
 
         if (_currentExpenses.Count == 0)
@@ -277,8 +274,7 @@ public class MoneyManagementPage : ContentPage
             .WithSorting()
             .Build();
 
-        _toolbarContainer.Children.Add(dataGrid.ToolbarView);
-        _gridContainer.Children.Add(dataGrid.GridView);
+        _gridContainer.Children.Add(dataGrid);
     }
 
     private List<string> BuildExpenseRow(MonthlyExpense expense)
@@ -369,7 +365,7 @@ public class MoneyManagementPage : ContentPage
     }
 
     private string FormatMoney(decimal value) =>
-        _currency.Symbol + value.ToString("N2", CultureInfo.InvariantCulture);
+        _currency.Symbol + value.ToString("N0", CultureInfo.InvariantCulture);
 
     private void UpdateCurrencyButtonText()
     {
