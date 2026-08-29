@@ -48,11 +48,12 @@ public class PieChartDrawable : IDrawable
         foreach (var slice in Slices)
         {
             float sweep = (slice.Value / total) * 360f;
+            float endAngle = startAngle + sweep;
             canvas.FillColor = slice.Color;
             canvas.FillArc(pieCx - radius, pieCy - radius,
                            radius * 2, radius * 2,
-                           startAngle, sweep, true);
-            startAngle += sweep;
+                           startAngle, endAngle, true);
+            startAngle = endAngle;
         }
 
         // Draw legend on left

@@ -115,6 +115,7 @@ public class DataGridView : ContentView
     // Hover
     private int _hoveredRow = -1; // page-relative
     private int _hoveredCol = -1;
+    private DateTime _lastDoubleTapTime = DateTime.MinValue;
 
     // Undo
     private List<CellEditRecord> _undoHistory = new();
@@ -539,7 +540,11 @@ public class DataGridView : ContentView
             {
                 int cR = rowIdx, cC = col;
                 var lp = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
-                lp.Tapped += (s, e) => HandleRightClick(cR, cC);
+                lp.Tapped += (s, e) =>
+                {
+                    _lastDoubleTapTime = DateTime.UtcNow;
+                    HandleRightClick(cR, cC);
+                };
                 _cellLabels[rowIdx, col].GestureRecognizers.Add(lp);
             }
 
@@ -622,7 +627,8 @@ public class DataGridView : ContentView
         if (_isEditing) await AutoSaveAsync();
         SelectCellByPageRow(pageRow, col);
         await Task.Delay(30);
-        _keyCapture?.Focus();
+        if ((DateTime.UtcNow - _lastDoubleTapTime).TotalMilliseconds > 300)
+            _keyCapture?.Focus();
     }
 
     private void SelectCellByPageRow(int pageRow, int col)
@@ -725,6 +731,23 @@ public class DataGridView : ContentView
 
         await Task.Delay(50);
         _displayBox.Focus();
+#if WINDOWS
+        await Task.Delay(30);
+        if (_displayBox.Handler?.PlatformView is
+            Microsoft.UI.Xaml.Controls.TextBox winTb)
+        {
+            winTb.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
+            winTb.SelectAll();
+        }
+#elif ANDROID
+        await Task.Delay(30);
+        if (_displayBox.Handler?.PlatformView is
+            AndroidX.AppCompat.Widget.AppCompatEditText et)
+        {
+            et.RequestFocus();
+            et.SelectAll();
+        }
+#endif
     }
 
     private void ExitEditMode()
