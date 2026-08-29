@@ -231,7 +231,11 @@ public class MoneyManagementService
 
     private static bool TryParseAmount(string value, out decimal amount)
     {
-        var cleaned = value.Trim().Replace("$", "", StringComparison.Ordinal).Replace(",", "", StringComparison.Ordinal);
+        var trimmed = value.Trim();
+        string sign = trimmed.StartsWith('-') ? "-" : trimmed.StartsWith('+') ? "+" : "";
+        var unsigned = trimmed.TrimStart('+', '-');
+        var numeric = new string(unsigned.Where(c => char.IsDigit(c) || c == '.' || c == ',').ToArray());
+        var cleaned = sign + numeric.Replace(",", "", StringComparison.Ordinal);
         return decimal.TryParse(cleaned, NumberStyles.Number | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out amount)
             || decimal.TryParse(cleaned, NumberStyles.Currency, CultureInfo.CurrentCulture, out amount);
     }

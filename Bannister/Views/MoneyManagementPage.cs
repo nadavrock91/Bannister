@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using Bannister.Helpers;
 using System.Globalization;
 
 namespace Bannister.Views;
@@ -15,6 +16,11 @@ public class MoneyManagementPage : ContentPage
     private VerticalStackLayout _gridContainer;
     private List<MonthlyExpense> _currentExpenses = new();
     private MonthlyExpense? _selectedExpense;
+    private CurrencyOption _currency = CurrencyOption.Default;
+    private const string CurrencyPrefKey = "money_currency";
+    private Button _currencyButton = null!;
+    private GraphicsView _pieChart = null!;
+    private PieChartDrawable _pieDrawable = null!;
 
     public MoneyManagementPage(AuthService auth, MoneyManagementService money)
     {
@@ -28,6 +34,9 @@ public class MoneyManagementPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        var savedCode = Preferences.Default.Get(CurrencyPrefKey, "USD");
+        _currency = CurrencyOption.FromCode(savedCode);
+        UpdateCurrencyButtonText();
         await LoadExpensesAsync();
     }
 
@@ -49,6 +58,7 @@ public class MoneyManagementPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
@@ -91,6 +101,35 @@ public class MoneyManagementPage : ContentPage
         deleteBtn.Clicked += async (s, e) => await DeleteSelectedExpenseAsync();
         header.Add(deleteBtn, 2, 0);
 
+        _currencyButton = new Button
+        {
+            Text = $"{_currency.Symbol} {_currency.Code}",
+            BackgroundColor = Color.FromArgb("#1B5E20"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            Padding = new Thickness(8, 4),
+            FontSize = 13,
+            HeightRequest = 38
+        };
+        _currencyButton.Clicked += async (_, _) =>
+        {
+            var selectedLabel = await DisplayActionSheet(
+                "Currency", "Cancel", null, CurrencyOption.All.Select(c => c.Label).ToArray());
+            if (string.IsNullOrWhiteSpace(selectedLabel) || selectedLabel == "Cancel")
+                return;
+
+            var selected = CurrencyOption.All.FirstOrDefault(c => c.Label == selectedLabel);
+            if (selected == null)
+                return;
+
+            _currency = selected;
+            Preferences.Default.Set(CurrencyPrefKey, selected.Code);
+            UpdateCurrencyButtonText();
+            UpdateSummary();
+            BuildDataGrid();
+        };
+        header.Add(_currencyButton, 3, 0);
+
         mainGrid.Add(header, 0, 0);
 
         var toolbarArea = new VerticalStackLayout
@@ -118,7 +157,28 @@ public class MoneyManagementPage : ContentPage
 
         var scrollView = new ScrollView { Orientation = ScrollOrientation.Both };
         _gridContainer = new VerticalStackLayout { Padding = new Thickness(12, 4), Spacing = 4 };
-        scrollView.Content = _gridContainer;
+
+        _pieDrawable = new PieChartDrawable();
+        _pieChart = new GraphicsView
+        {
+            Drawable = _pieDrawable,
+            HeightRequest = 260,
+            Margin = new Thickness(0, 12, 0, 0),
+            BackgroundColor = Colors.White
+        };
+        var chartCard = new Frame
+        {
+            Content = _pieChart,
+            CornerRadius = 8,
+            Padding = 8,
+            Margin = new Thickness(12, 8, 12, 12),
+            BorderColor = Color.FromArgb("#C8E6C9"),
+            BackgroundColor = Colors.White
+        };
+        var contentStack = new VerticalStackLayout { Spacing = 0 };
+        contentStack.Children.Add(_gridContainer);
+        contentStack.Children.Add(chartCard);
+        scrollView.Content = contentStack;
         mainGrid.Add(scrollView, 0, 2);
 
         Content = mainGrid;
@@ -134,6 +194,7 @@ public class MoneyManagementPage : ContentPage
         _selectedExpense = null;
         UpdateSummary();
         BuildDataGrid();
+        UpdatePieChart();
     }
 
     private void UpdateSummary()
@@ -145,6 +206,30 @@ public class MoneyManagementPage : ContentPage
         _summaryLabel.Text = _showInactiveSwitch.IsToggled && shownTotal != activeTotal
             ? $"Monthly active: {FormatMoney(activeTotal)} | shown: {FormatMoney(shownTotal)} | {activeCount}/{_currentExpenses.Count} active"
             : $"Monthly expenses: {FormatMoney(activeTotal)} | {activeCount} active";
+    }
+
+    private void UpdatePieChart()
+    {
+        var activeExpenses = _currentExpenses.Where(e => e.IsActive).ToList();
+        var grouped = activeExpenses
+            .GroupBy(e => string.IsNullOrWhiteSpace(e.Category) ? "General" : e.Category)
+            .Select(g => (Label: g.Key, Value: (float)g.Sum(e => e.Amount)))
+            .OrderByDescending(x => x.Value)
+            .ToList();
+
+        var palette = new[]
+        {
+            Color.FromArgb("#2E7D32"), Color.FromArgb("#1565C0"), Color.FromArgb("#AD1457"),
+            Color.FromArgb("#E65100"), Color.FromArgb("#6A1B9A"), Color.FromArgb("#00838F"),
+            Color.FromArgb("#558B2F"), Color.FromArgb("#4527A0"), Color.FromArgb("#BF360C"),
+            Color.FromArgb("#00695C")
+        };
+
+        _pieDrawable.Slices = grouped
+            .Select((group, index) => (group.Label, group.Value, palette[index % palette.Length]))
+            .ToList();
+
+        _pieChart.Invalidate();
     }
 
     private void BuildDataGrid()
@@ -189,20 +274,21 @@ public class MoneyManagementPage : ContentPage
                     _selectedExpense = _currentExpenses[e.RowIndex];
             })
             .WithUpdateCallback(UpdateExpenseGridCellAsync)
+            .WithSorting()
             .Build();
 
         _toolbarContainer.Children.Add(dataGrid.ToolbarView);
         _gridContainer.Children.Add(dataGrid.GridView);
     }
 
-    private static List<string> BuildExpenseRow(MonthlyExpense expense)
+    private List<string> BuildExpenseRow(MonthlyExpense expense)
     {
         return new List<string>
         {
             expense.Id.ToString(CultureInfo.InvariantCulture),
             expense.Name,
             expense.Category,
-            expense.Amount.ToString("0.##", CultureInfo.InvariantCulture),
+            FormatMoney(expense.Amount),
             expense.DueDay.ToString(CultureInfo.InvariantCulture),
             expense.IsActive ? "true" : "false",
             expense.Notes ?? "",
@@ -219,6 +305,7 @@ public class MoneyManagementPage : ContentPage
 
         _currentExpenses = await _money.GetMonthlyExpensesAsync(_auth.CurrentUsername, _showInactiveSwitch.IsToggled);
         UpdateSummary();
+        UpdatePieChart();
         return true;
     }
 
@@ -267,13 +354,26 @@ public class MoneyManagementPage : ContentPage
             return false;
         }
 
-        var cleaned = value.Trim().Replace("$", "", StringComparison.Ordinal).Replace(",", "", StringComparison.Ordinal);
+        var cleaned = NormalizeAmount(value);
         return decimal.TryParse(cleaned, NumberStyles.Number | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out amount)
             || decimal.TryParse(cleaned, NumberStyles.Currency, CultureInfo.CurrentCulture, out amount);
     }
 
-    private static string FormatMoney(decimal value)
+    private static string NormalizeAmount(string value)
     {
-        return value.ToString("C2", CultureInfo.CurrentCulture);
+        var trimmed = value.Trim();
+        string sign = trimmed.StartsWith('-') ? "-" : trimmed.StartsWith('+') ? "+" : "";
+        var unsigned = trimmed.TrimStart('+', '-');
+        var numeric = new string(unsigned.Where(c => char.IsDigit(c) || c == '.' || c == ',').ToArray());
+        return sign + numeric.Replace(",", "", StringComparison.Ordinal);
+    }
+
+    private string FormatMoney(decimal value) =>
+        _currency.Symbol + value.ToString("N2", CultureInfo.InvariantCulture);
+
+    private void UpdateCurrencyButtonText()
+    {
+        if (_currencyButton != null)
+            _currencyButton.Text = $"{_currency.Symbol} {_currency.Code}";
     }
 }

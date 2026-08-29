@@ -1,4 +1,5 @@
 using Microsoft.Maui.Controls;
+using System.Globalization;
 
 namespace Bannister.Views;
 
@@ -50,6 +51,7 @@ public class DataGridView : ContentView
     public Color BorderColor { get; set; } = Color.FromArgb("#DDDDDD");
     public bool UseAlternatingRowColors { get; set; } = true;
     public bool ShowHeaders { get; set; } = true;
+    public bool SortingEnabled { get; set; } = false;
     public double CellPadding { get; set; } = 10;
     public double FontSize { get; set; } = 13;
     public double HeaderFontSize { get; set; } = 14;
@@ -75,6 +77,10 @@ public class DataGridView : ContentView
     private List<string> _headers = new();
     private List<List<string>> _allRows = new();
     private List<List<string>> _allFullRows = new();
+    private int _sortColumnIndex = -1;
+    private bool _sortAscending = true;
+    private List<List<string>>? _originalRows;
+    private List<List<string>>? _originalFullRows;
 
     // Current page data
     private List<List<string>> _pageRows = new();
@@ -125,18 +131,24 @@ public class DataGridView : ContentView
     public void SetData(List<string> headers, List<List<string>> rows)
     {
         _headers = headers ?? new(); _allRows = rows ?? new(); _allFullRows = new();
+        _originalRows = _allRows.Select(r => new List<string>(r)).ToList();
+        _originalFullRows = null;
         _pageOffset = 0; FullRender();
     }
 
     public void SetData(List<string> headers, List<List<string>> displayRows, List<List<string>> fullRows)
     {
         _headers = headers ?? new(); _allRows = displayRows ?? new(); _allFullRows = fullRows ?? new();
+        _originalRows = _allRows.Select(r => new List<string>(r)).ToList();
+        _originalFullRows = _allFullRows.Select(r => new List<string>(r)).ToList();
         _pageOffset = 0; FullRender();
     }
 
     public void SetData(List<List<string>> rows)
     {
         _allRows = rows ?? new(); _allFullRows = new();
+        _originalRows = _allRows.Select(r => new List<string>(r)).ToList();
+        _originalFullRows = null;
         int c = _allRows.Count > 0 ? _allRows.Max(r => r.Count) : 0;
         _headers = Enumerable.Range(1, c).Select(i => $"Col {i}").ToList();
         _pageOffset = 0; FullRender();
@@ -431,7 +443,7 @@ public class DataGridView : ContentView
             {
                 var label = new Label
                 {
-                    Text = HeaderTextProvider?.Invoke(col) ?? (col < _headers.Count ? _headers[col] : ""),
+                    Text = GetHeaderText(col),
                     FontSize = HeaderFontSize, FontAttributes = FontAttributes.Bold,
                     TextColor = HeaderTextColor, BackgroundColor = HeaderBackgroundColor,
                     Padding = new Thickness(CellPadding), VerticalTextAlignment = TextAlignment.Center,
@@ -441,11 +453,26 @@ public class DataGridView : ContentView
                 };
                 int capturedColumn = col;
                 var headerTap = new TapGestureRecognizer();
-                headerTap.Tapped += (_, _) => HeaderTapped?.Invoke(this, new HeaderTappedEventArgs
+                headerTap.Tapped += (_, _) =>
                 {
-                    ColumnIndex = capturedColumn,
-                    ColumnName = capturedColumn < _headers.Count ? _headers[capturedColumn] : ""
-                });
+                    HeaderTapped?.Invoke(this, new HeaderTappedEventArgs
+                    {
+                        ColumnIndex = capturedColumn,
+                        ColumnName = capturedColumn < _headers.Count ? _headers[capturedColumn] : ""
+                    });
+
+                    if (SortingEnabled)
+                    {
+                        if (_sortColumnIndex == capturedColumn)
+                            _sortAscending = !_sortAscending;
+                        else
+                        {
+                            _sortColumnIndex = capturedColumn;
+                            _sortAscending = true;
+                        }
+                        ApplySort();
+                    }
+                };
                 label.GestureRecognizers.Add(headerTap);
                 grid.Add(label, col, currentRow);
             }
@@ -517,6 +544,69 @@ public class DataGridView : ContentView
             }
 
         _gridWrapper.Children.Add(grid);
+    }
+
+    private string GetHeaderText(int col)
+    {
+        var raw = HeaderTextProvider?.Invoke(col)
+            ?? (col < _headers.Count ? _headers[col] : "");
+        if (!SortingEnabled || _sortColumnIndex != col) return raw;
+        return raw + (_sortAscending ? " ▲" : " ▼");
+    }
+
+    private void ApplySort()
+    {
+        if (_originalRows == null || _sortColumnIndex < 0) return;
+
+        var paired = _originalRows
+            .Select((row, index) => (display: row,
+                full: _originalFullRows != null && index < _originalFullRows.Count
+                    ? _originalFullRows[index]
+                    : null))
+            .ToList();
+
+        paired = _sortAscending
+            ? paired.OrderBy(pair => ParseSortKey(pair.display, _sortColumnIndex)).ToList()
+            : paired.OrderByDescending(pair => ParseSortKey(pair.display, _sortColumnIndex)).ToList();
+
+        _allRows = paired.Select(pair => pair.display).ToList();
+        _allFullRows = _originalFullRows != null
+            ? paired.Select(pair => pair.full!).ToList()
+            : new List<List<string>>();
+
+        _pageOffset = 0;
+        FullRender();
+    }
+
+    private static IComparable ParseSortKey(List<string> row, int col)
+    {
+        if (col >= row.Count) return new SortKey(2, 0, default, "");
+        var value = row[col] ?? "";
+        var numericText = new string(value
+            .Where(c => char.IsDigit(c) || c == '.' || c == ',' || c == '+' || c == '-')
+            .ToArray())
+            .Replace(",", "", StringComparison.Ordinal);
+        if (decimal.TryParse(numericText, NumberStyles.Any, CultureInfo.InvariantCulture, out var number))
+            return new SortKey(0, number, default, value);
+        if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            return new SortKey(1, 0, date, value);
+        return new SortKey(2, 0, default, value);
+    }
+
+    private sealed record SortKey(int Kind, decimal Number, DateTime Date, string Text) : IComparable
+    {
+        public int CompareTo(object? obj)
+        {
+            if (obj is not SortKey other) return 1;
+            if (Kind != other.Kind)
+                return string.Compare(Text, other.Text, StringComparison.OrdinalIgnoreCase);
+            return Kind switch
+            {
+                0 => Number.CompareTo(other.Number),
+                1 => Date.CompareTo(other.Date),
+                _ => string.Compare(Text, other.Text, StringComparison.OrdinalIgnoreCase)
+            };
+        }
     }
 
     // ===================== ABSOLUTE ↔ PAGE ROW HELPERS =====================
@@ -845,6 +935,7 @@ public class DataGridViewBuilder
     public DataGridViewBuilder WithUpdateCallback(CellUpdateDelegate cb) { _grid.OnUpdateCell = cb; return this; }
     public DataGridViewBuilder WithIdColumn(string id) { _grid.IdColumnName = id; return this; }
     public DataGridViewBuilder WithPageSize(int size) { _grid.PageSize = size; return this; }
+    public DataGridViewBuilder WithSorting() { _grid.SortingEnabled = true; return this; }
 
     public DataGridView Build()
     {
