@@ -346,6 +346,23 @@ public class TasksPage : ContentPage
         };
         challengeNavStack.Children.Add(consultBtn);
 
+        var historyBtn = new Button
+        {
+            Text = "\U0001F4C8 Focus History",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#7B1FA2"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold
+        };
+        historyBtn.Clicked += async (_, _) =>
+        {
+            var page = new FocusHistoryPage(_auth, _challengeService, _tasks);
+            await Navigation.PushAsync(page);
+        };
+        challengeNavStack.Children.Add(historyBtn);
+
         _challengeSummaryLabel = new Label
         {
             FontSize = 12,
