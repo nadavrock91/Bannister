@@ -528,14 +528,29 @@ public class DataGridView : ContentView
         grid.HandlerChanged += (s, e) =>
         {
             if (grid.Handler?.PlatformView is Microsoft.UI.Xaml.FrameworkElement fe)
+            {
                 fe.RightTapped += (sender, args) =>
                 {
                     if (_hoveredRow >= 0 && _hoveredCol >= 0)
                     { HandleRightClick(_hoveredRow, _hoveredCol); args.Handled = true; }
                 };
+                fe.DoubleTapped += (sender, args) =>
+                {
+                    _doubleTapInProgress = true;
+                    _lastDoubleTapTime = DateTime.UtcNow;
+                    if (_hoveredRow >= 0 && _hoveredCol >= 0)
+                        HandleRightClick(_hoveredRow, _hoveredCol);
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(400);
+                        _doubleTapInProgress = false;
+                    });
+                };
+            }
         };
 #endif
 
+#if !WINDOWS
         for (int rowIdx = 0; rowIdx < _pageRowCount && _cellLabels != null; rowIdx++)
             for (int col = 0; col < _columnCount; col++)
             {
@@ -543,6 +558,7 @@ public class DataGridView : ContentView
                 var lp = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
                 lp.Tapped += (s, e) =>
                 {
+                    System.Diagnostics.Debug.WriteLine($"[DOUBLETAP] row={cR} col={cC} time={DateTime.UtcNow:HH:mm:ss.fff}");
                     _doubleTapInProgress = true;
                     _lastDoubleTapTime = DateTime.UtcNow;
                     HandleRightClick(cR, cC);
@@ -554,6 +570,7 @@ public class DataGridView : ContentView
                 };
                 _cellLabels[rowIdx, col].GestureRecognizers.Add(lp);
             }
+#endif
 
         _gridWrapper.Children.Add(grid);
     }
@@ -631,9 +648,11 @@ public class DataGridView : ContentView
 
     private async void HandleLeftClick(int pageRow, int col)
     {
+        System.Diagnostics.Debug.WriteLine($"[LEFTCLICK] row={pageRow} col={col} doubleTapInProgress={_doubleTapInProgress} msSinceDoubleTap={(DateTime.UtcNow - _lastDoubleTapTime).TotalMilliseconds:F0} time={DateTime.UtcNow:HH:mm:ss.fff}");
         if (_isEditing) await AutoSaveAsync();
         SelectCellByPageRow(pageRow, col);
         await Task.Delay(30);
+        System.Diagnostics.Debug.WriteLine($"[LEFTCLICK FOCUS GUARD] willFocus={!_doubleTapInProgress && (DateTime.UtcNow - _lastDoubleTapTime).TotalMilliseconds > 300}");
         if (!_doubleTapInProgress &&
             (DateTime.UtcNow - _lastDoubleTapTime).TotalMilliseconds > 300)
         {
@@ -748,28 +767,16 @@ public class DataGridView : ContentView
             _cellLabels[pageRow, _selectedCol].BackgroundColor = EditingCellColor;
 
         await Task.Delay(80);
+        System.Diagnostics.Debug.WriteLine($"[EDITMODE] _displayBox.Handler={_displayBox.Handler != null} PlatformView={_displayBox.Handler?.PlatformView?.GetType().Name ?? "null"}");
         _displayBox.Focus();
 #if WINDOWS
-        // Try immediately, then retry after handler is ready
-        void TryFocusWindows()
+        await Task.Delay(50);
+        if (_displayBox.Handler?.PlatformView is
+            Microsoft.UI.Xaml.Controls.TextBox tb)
         {
-            if (_displayBox.Handler?.PlatformView is
-                Microsoft.UI.Xaml.Controls.TextBox tb)
-            {
-                tb.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
-                tb.SelectAll();
-            }
+            tb.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
+            tb.SelectAll();
         }
-        TryFocusWindows();
-        // Belt-and-suspenders: also hook HandlerChanged in case
-        // platform view isn't ready yet
-        void OnHandlerChanged(object? s, EventArgs e2)
-        {
-            _displayBox.HandlerChanged -= OnHandlerChanged;
-            MainThread.BeginInvokeOnMainThread(TryFocusWindows);
-        }
-        if (_displayBox.Handler?.PlatformView == null)
-            _displayBox.HandlerChanged += OnHandlerChanged;
 #elif ANDROID
         await Task.Delay(50);
         if (_displayBox.Handler?.PlatformView is
@@ -938,6 +945,7 @@ public class DataGridView : ContentView
 
     private void ScrollToTop()
     {
+        System.Diagnostics.Debug.WriteLine($"[SCROLLTOP] called from: {new System.Diagnostics.StackTrace().ToString().Split('\n')[1]}");
         // Walk up from GridView to find the parent ScrollView and scroll to top
         Element? el = _gridWrapper;
         while (el != null)

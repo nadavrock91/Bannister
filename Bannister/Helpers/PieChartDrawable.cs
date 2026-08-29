@@ -48,11 +48,13 @@ public class PieChartDrawable : IDrawable
 
         // Draw pie slices
         float startAngle = -90f;
+        System.Diagnostics.Debug.WriteLine($"[PIE] dirtyRect={dirtyRect.Width}x{dirtyRect.Height} slices={Slices.Count} total={total} radius={radius} pieCx={pieCx}");
         foreach (var slice in Slices)
         {
             float sweep = (slice.Value / total) * 360f;
             float endAngle = startAngle + sweep;
             canvas.FillColor = slice.Color;
+            System.Diagnostics.Debug.WriteLine($"[PIE SLICE] label={slice.Label} value={slice.Value} color={slice.Color} start={startAngle} end={endAngle} sweep={sweep}");
             canvas.FillArc(pieCx - radius, pieCy - radius,
                            radius * 2f, radius * 2f,
                            startAngle, endAngle, true);
@@ -86,10 +88,12 @@ public class PieChartDrawable : IDrawable
         float maxLabelW = legendW - lx - boxSize - 10f;
         if (maxLabelW < 20f) maxLabelW = 20f;
 
+        canvas.Font = Microsoft.Maui.Graphics.Font.Default;
         foreach (var slice in Slices)
         {
             // Color box
             canvas.FillColor = slice.Color;
+            System.Diagnostics.Debug.WriteLine($"[PIE LEGEND] label={slice.Label} lx={lx} ly={ly} maxLabelW={maxLabelW} legendW={legendW}");
             canvas.FillRectangle(lx, ly + 2f, boxSize, boxSize);
 
             // Label text
