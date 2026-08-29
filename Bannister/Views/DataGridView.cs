@@ -115,8 +115,6 @@ public class DataGridView : ContentView
     // Hover
     private int _hoveredRow = -1; // page-relative
     private int _hoveredCol = -1;
-    private DateTime _lastDoubleTapTime = DateTime.MinValue;
-    private bool _doubleTapInProgress = false;
 
     // Undo
     private List<CellEditRecord> _undoHistory = new();
@@ -528,48 +526,22 @@ public class DataGridView : ContentView
         grid.HandlerChanged += (s, e) =>
         {
             if (grid.Handler?.PlatformView is Microsoft.UI.Xaml.FrameworkElement fe)
-            {
                 fe.RightTapped += (sender, args) =>
                 {
                     if (_hoveredRow >= 0 && _hoveredCol >= 0)
                     { HandleRightClick(_hoveredRow, _hoveredCol); args.Handled = true; }
                 };
-                fe.DoubleTapped += (sender, args) =>
-                {
-                    _doubleTapInProgress = true;
-                    _lastDoubleTapTime = DateTime.UtcNow;
-                    if (_hoveredRow >= 0 && _hoveredCol >= 0)
-                        HandleRightClick(_hoveredRow, _hoveredCol);
-                    Task.Run(async () =>
-                    {
-                        await Task.Delay(400);
-                        _doubleTapInProgress = false;
-                    });
-                };
-            }
         };
 #endif
 
-#if !WINDOWS
         for (int rowIdx = 0; rowIdx < _pageRowCount && _cellLabels != null; rowIdx++)
             for (int col = 0; col < _columnCount; col++)
             {
                 int cR = rowIdx, cC = col;
                 var lp = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
-                lp.Tapped += (s, e) =>
-                {
-                    _doubleTapInProgress = true;
-                    _lastDoubleTapTime = DateTime.UtcNow;
-                    HandleRightClick(cR, cC);
-                    Task.Run(async () =>
-                    {
-                        await Task.Delay(400);
-                        _doubleTapInProgress = false;
-                    });
-                };
+                lp.Tapped += (s, e) => HandleRightClick(cR, cC);
                 _cellLabels[rowIdx, col].GestureRecognizers.Add(lp);
             }
-#endif
 
         _gridWrapper.Children.Add(grid);
     }
@@ -647,18 +619,9 @@ public class DataGridView : ContentView
 
     private async void HandleLeftClick(int pageRow, int col)
     {
-        var tapTime = DateTime.UtcNow;
-
-        // Wait out the double-tap window before doing ANYTHING.
-        await Task.Delay(280);
-
-        // A double-tap arrived during or just before the window — this
-        // single-tap is part of it. Do nothing at all.
-        if (_doubleTapInProgress) return;
-        if (_lastDoubleTapTime > tapTime.AddMilliseconds(-400)) return;
-
         if (_isEditing) await AutoSaveAsync();
         SelectCellByPageRow(pageRow, col);
+        await Task.Delay(30);
         _keyCapture?.Focus();
     }
 
@@ -760,25 +723,8 @@ public class DataGridView : ContentView
         if (_cellLabels != null && pageRow >= 0 && pageRow < _cellLabels.GetLength(0) && _selectedCol < _cellLabels.GetLength(1))
             _cellLabels[pageRow, _selectedCol].BackgroundColor = EditingCellColor;
 
-        await Task.Delay(80);
+        await Task.Delay(50);
         _displayBox.Focus();
-#if WINDOWS
-        await Task.Delay(50);
-        if (_displayBox.Handler?.PlatformView is
-            Microsoft.UI.Xaml.Controls.TextBox tb)
-        {
-            tb.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
-            tb.SelectAll();
-        }
-#elif ANDROID
-        await Task.Delay(50);
-        if (_displayBox.Handler?.PlatformView is
-            AndroidX.AppCompat.Widget.AppCompatEditText et)
-        {
-            et.RequestFocus();
-            et.SelectAll();
-        }
-#endif
     }
 
     private void ExitEditMode()
