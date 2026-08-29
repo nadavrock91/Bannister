@@ -281,6 +281,7 @@ Output ONLY the C# code block.
     private readonly Button _manageBlockedItemsButton;
     private readonly Button _addMissingButton;
     private readonly Button _missingFocusQAButton;
+    private Button _missingFocusQAPasteButton = null!;
     private readonly Button _missingFocusNextTaskButton;
     private readonly Button _markMissingDoneButton;
     private readonly Button _abandonMissingButton;
@@ -702,6 +703,10 @@ Output ONLY the C# code block.
         _missingFocusQAButton = CreateSecondaryButton("Copy Missing Progress QA");
         _missingFocusQAButton.Clicked += async (_, _) => await CopyMissingProgressQAAsync();
 
+        _missingFocusQAPasteButton = CreateSecondaryButton("Paste Progress QA Result");
+        _missingFocusQAPasteButton.Clicked += async (_, _) => await PasteMissingProgressQAAsync();
+        _missingFocusQAPasteButton.IsVisible = false;
+
         _missingFocusNextTaskButton = CreatePrimaryButton("Copy Next Missing Task", Color.FromArgb("#E65100"));
         _missingFocusNextTaskButton.Clicked += async (_, _) => await CopyNextMissingTaskAsync();
 
@@ -796,6 +801,7 @@ Output ONLY the C# code block.
         var missingStep1Row = new HorizontalStackLayout { Spacing = 8 };
         missingStep1Row.Children.Add(new Label { Text = "Step 1:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
         missingStep1Row.Children.Add(_missingFocusQAButton);
+        missingStep1Row.Children.Add(_missingFocusQAPasteButton);
 
         var missingStep2Row = new HorizontalStackLayout { Spacing = 8 };
         missingStep2Row.Children.Add(new Label { Text = "Step 2:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
@@ -2293,6 +2299,7 @@ Output ONLY the C# code block.
             _addMissingButton.IsVisible = !hasMissingFocus;
             _missingFocusInfoLabel.IsVisible = hasMissingFocus;
             _missingFocusQAButton.IsVisible = hasMissingFocus;
+            if (!hasMissingFocus) _missingFocusQAPasteButton.IsVisible = false;
             _missingFocusNextTaskButton.IsVisible = hasMissingFocus;
             _markMissingDoneButton.IsVisible = hasMissingFocus;
             _abandonMissingButton.IsVisible = hasMissingFocus;
@@ -5828,11 +5835,26 @@ Output ONLY the C# code block.
         prompt += BuildConstraintsBlock(project);
 
         await Clipboard.SetTextAsync(prompt);
-        await DisplayAlert("Progress QA Prompt Copied",
-            $"Paste into your QA agent to check progress on '{project.ActiveMissingTitle}'.\n\nThen paste the result back via Paste QA Report — it will be stored as the missing-focus progress QA.",
-            "OK");
 
-        // After copying, wait for paste
+        // Reveal the paste button — user pastes result when ready
+        _missingFocusQAPasteButton.IsVisible = true;
+
+        await DisplayAlert("Progress QA Prompt Copied",
+            $"Paste into your QA agent to check progress on '{project.ActiveMissingTitle}'.\n\nWhen the agent returns the report, tap 'Paste Progress QA Result'.",
+            "OK");
+    }
+
+    private async Task PasteMissingProgressQAAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
+        if (string.IsNullOrWhiteSpace(project.ActiveMissingTitle))
+        {
+            await DisplayAlert("No Missing Focus", "Start a missing focus first.", "OK");
+            return;
+        }
+
         var result = await ShowMultilineEditorAsync(
             "Paste Progress QA Result",
             $"Paste the QA agent's progress report for '{project.ActiveMissingTitle}'.",
@@ -5844,6 +5866,7 @@ Output ONLY the C# code block.
             try
             {
                 await _projectService.SetActiveMissingQAReportAsync(project.Id, result.Trim());
+                _missingFocusQAPasteButton.IsVisible = false;
                 await RefreshCurrentProjectAsync();
                 await DisplayAlert("Progress QA Saved",
                     "Progress QA saved. Now use 'Copy Next Missing Task' to generate the next task.",
