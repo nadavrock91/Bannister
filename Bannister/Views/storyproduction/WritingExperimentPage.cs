@@ -14,9 +14,9 @@ public class WritingExperimentPage : ContentPage
     private Label _statusLabel = null!;
     private VerticalStackLayout _todaySection = null!;
     private VerticalStackLayout _comparisonSection = null!;
-    private DatePicker _weekStartPicker = null!;
-    private DatePicker _weekEndPicker = null!;
-    private bool _dateManuallyChanged;
+    private Picker _weekPicker = null!;
+    private List<(DateTime Start, DateTime End)> _weekRanges = new();
+    private int _selectedWeekIndex = -1;
 
     public WritingExperimentPage(AuthService auth, WritingExperimentService experimentService, StoryProductionService storyService, IdeaLoggerService? ideaLogger = null)
     {
@@ -32,7 +32,10 @@ public class WritingExperimentPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        _dateManuallyChanged = false;
+        var experiment = await _experimentService.GetActiveExperimentAsync(_auth.CurrentUsername);
+        _selectedWeekIndex = experiment == null
+            ? -1
+            : Preferences.Get($"WritingExp_SelectedWeek_{experiment.Id}", -1);
         await RefreshAsync();
     }
 
@@ -134,22 +137,42 @@ public class WritingExperimentPage : ContentPage
         _todaySection.Children.Clear();
         var today = DateTime.UtcNow.Date;
         var experimentStart = experiment.StartedAt.Date;
-        int daysSinceStart = Math.Max(0, (today - experimentStart).Days);
-        int currentWeekIndex = daysSinceStart / 7;
-        var currentWeekStart = experimentStart.AddDays(currentWeekIndex * 7);
-        var currentWeekEnd = currentWeekStart.AddDays(6);
-        if (currentWeekEnd > today) currentWeekEnd = today;
+        _weekRanges.Clear();
+        var weekStart = experimentStart;
+        while (weekStart <= today)
+        {
+            _weekRanges.Add((weekStart, weekStart.AddDays(6)));
+            weekStart = weekStart.AddDays(7);
+        }
 
-        var windowStart = _dateManuallyChanged
-            ? _weekStartPicker?.Date ?? currentWeekStart
-            : currentWeekStart;
-        var windowEnd = _dateManuallyChanged
-            ? _weekEndPicker?.Date ?? currentWeekEnd
-            : currentWeekEnd;
-        if (windowStart < experiment.StartedAt.Date) windowStart = experiment.StartedAt.Date;
-        if (windowStart > today) windowStart = today;
+        int currentWeekIndex = _weekRanges.Count - 1;
+        if (_selectedWeekIndex >= 0 && _selectedWeekIndex < _weekRanges.Count)
+            currentWeekIndex = _selectedWeekIndex;
+
+        _weekPicker = new Picker
+        {
+            Title = "Select week...",
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            HorizontalOptions = LayoutOptions.Start,
+            WidthRequest = 220
+        };
+        for (int i = 0; i < _weekRanges.Count; i++)
+        {
+            var (start, end) = _weekRanges[i];
+            _weekPicker.Items.Add($"Week {i + 1}: {start:M/d} - {end:M/d}");
+        }
+        _weekPicker.SelectedIndex = currentWeekIndex;
+        _weekPicker.SelectedIndexChanged += async (_, _) =>
+        {
+            if (_weekPicker.SelectedIndex < 0) return;
+            _selectedWeekIndex = _weekPicker.SelectedIndex;
+            Preferences.Set($"WritingExp_SelectedWeek_{experiment.Id}", _selectedWeekIndex);
+            await RefreshAsync();
+        };
+
+        var (windowStart, windowEnd) = _weekRanges[currentWeekIndex];
         if (windowEnd > today) windowEnd = today;
-        if (windowEnd < windowStart) windowEnd = windowStart;
 
         var changeProcessButton = new Button
         {
@@ -214,52 +237,7 @@ public class WritingExperimentPage : ContentPage
             }
         }
 
-        var dateRow = new HorizontalStackLayout { Spacing = 8 };
-        dateRow.Children.Add(new Label
-        {
-            Text = "From:",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            VerticalOptions = LayoutOptions.Center
-        });
-
-        _weekStartPicker = new DatePicker
-        {
-            Date = windowStart,
-            MaximumDate = today,
-            MinimumDate = experiment.StartedAt.Date,
-            FontSize = 12
-        };
-        _weekStartPicker.DateSelected += async (_, _) =>
-        {
-            _dateManuallyChanged = true;
-            await RefreshAsync();
-        };
-        dateRow.Children.Add(_weekStartPicker);
-
-        dateRow.Children.Add(new Label
-        {
-            Text = "To:",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            VerticalOptions = LayoutOptions.Center
-        });
-
-        _weekEndPicker = new DatePicker
-        {
-            Date = windowEnd,
-            MaximumDate = today,
-            MinimumDate = experiment.StartedAt.Date,
-            FontSize = 12
-        };
-        _weekEndPicker.DateSelected += async (_, _) =>
-        {
-            _dateManuallyChanged = true;
-            await RefreshAsync();
-        };
-        dateRow.Children.Add(_weekEndPicker);
-
-        _todaySection.Children.Add(dateRow);
+        _todaySection.Children.Add(_weekPicker);
 
         _todaySection.Children.Add(new Label { Text = "Mark Days Completed", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
 
@@ -514,8 +492,11 @@ public class WritingExperimentPage : ContentPage
 
     private async Task ChangeWeekProcessAsync(WritingExperiment experiment)
     {
-        var fromDate = _weekStartPicker?.Date ?? DateTime.Today.AddDays(-6);
-        var toDate = _weekEndPicker?.Date ?? DateTime.Today;
+        int selectedIndex = _selectedWeekIndex >= 0 && _selectedWeekIndex < _weekRanges.Count
+            ? _selectedWeekIndex
+            : _weekRanges.Count - 1;
+        var (fromDate, toDate) = _weekRanges[selectedIndex];
+        if (toDate > DateTime.Today) toDate = DateTime.Today;
         var selected = await ShowProcessPickerAsync(
             $"Change Process ({fromDate:M/d} — {toDate:M/d})",
             experiment);
