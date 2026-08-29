@@ -101,15 +101,13 @@ public class WritingExperimentPage : ContentPage
             entry.Date.Date <= selectedWeekEnd);
         var queuedItem = queue.FirstOrDefault(item => item.WeekNumber == selectedWeekNumber);
         string weekProcess = queuedItem?.ProcessName ?? experiment.BaselineProcessName;
-
-        if (experiment.Phase == "baseline")
-        {
-            _phaseLabel.Text = $"\U0001F4CA Baseline Phase — Week {selectedWeekNumber}";
-        }
-        else
-        {
-            _phaseLabel.Text = $"⚔️ Challenger Phase — Week {selectedWeekNumber}";
-        }
+        bool isBaselineProcess = string.Equals(
+            weekProcess,
+            experiment.BaselineProcessName,
+            StringComparison.OrdinalIgnoreCase);
+        _phaseLabel.Text = isBaselineProcess
+            ? $"\U0001F4CA Week {selectedWeekNumber} — Baseline"
+            : $"\U0001F9EA Week {selectedWeekNumber} — {weekProcess}";
         _statusLabel.Text = $"Process: {weekProcess} • {completedInWeek}/7 days completed";
 
         await ShowWeekViewAsync(experiment, entries);

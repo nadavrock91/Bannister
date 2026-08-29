@@ -10,7 +10,7 @@ public class WritingProcessesPage : ContentPage
     private readonly WritingExperimentService _experimentService;
     private readonly IdeaLoggerService? _ideaLogger;
     private VerticalStackLayout _listStack;
-    private readonly HashSet<int> _expandedProcessIds = new();
+    private bool _processesExpanded;
 
     public WritingProcessesPage(AuthService auth, StoryProductionService storyService, WritingExperimentService experimentService, IdeaLoggerService? ideaLogger = null)
     {
@@ -97,6 +97,27 @@ public class WritingProcessesPage : ContentPage
 
         var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
 
+        var processesHeader = new Label
+        {
+            Text = _processesExpanded
+                ? $"\u25BC \U0001F4DD Processes ({processes.Count})"
+                : $"\u25B6 \U0001F4DD Processes ({processes.Count})",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#6A1B9A"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        var headerTap = new TapGestureRecognizer();
+        headerTap.Tapped += async (_, _) =>
+        {
+            _processesExpanded = !_processesExpanded;
+            await LoadProcessesAsync();
+        };
+        processesHeader.GestureRecognizers.Add(headerTap);
+        _listStack.Children.Add(processesHeader);
+
+        if (!_processesExpanded) return;
+
         if (processes.Count == 0)
         {
             _listStack.Children.Add(new Label
@@ -115,7 +136,6 @@ public class WritingProcessesPage : ContentPage
 
         foreach (var process in processes)
         {
-            bool isExpanded = _expandedProcessIds.Contains(process.Id);
             var processFrame = new Frame
             {
                 Padding = 12,
@@ -138,13 +158,12 @@ public class WritingProcessesPage : ContentPage
 
             headerGrid.Add(new Label
             {
-                Text = $"{(isExpanded ? "▼" : "▶")} {process.Name}",
+                Text = process.Name,
                 FontSize = 16,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#333")
             }, 0, 0);
 
-            if (isExpanded)
             {
                 var processProjects = originalProjects
                     .Where(project => string.Equals(
@@ -234,21 +253,6 @@ public class WritingProcessesPage : ContentPage
                     });
                 }
             }
-            else
-            {
-                processStack.Children.Add(headerGrid);
-            }
-
-            int capturedProcessId = process.Id;
-            var toggleTap = new TapGestureRecognizer();
-            toggleTap.Tapped += async (_, _) =>
-            {
-                if (!_expandedProcessIds.Remove(capturedProcessId))
-                    _expandedProcessIds.Add(capturedProcessId);
-                await LoadProcessesAsync();
-            };
-            processFrame.GestureRecognizers.Add(toggleTap);
-
             processFrame.Content = processStack;
             _listStack.Children.Add(processFrame);
         }
