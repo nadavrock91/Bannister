@@ -137,15 +137,24 @@ public class WritingExperimentPage : ContentPage
         _todaySection.Children.Clear();
         var today = DateTime.UtcNow.Date;
         var experimentStart = experiment.StartedAt.Date;
+        var queuedWeeks = ParseProcessQueue(experiment.ProcessQueueJson);
+        int maxQueuedWeek = queuedWeeks.Count > 0
+            ? queuedWeeks.Max(item => item.WeekNumber)
+            : 0;
+
         _weekRanges.Clear();
         var weekStart = experimentStart;
-        while (weekStart <= today)
+        int weekNumber = 1;
+        while (weekStart <= today || weekNumber <= maxQueuedWeek)
         {
             _weekRanges.Add((weekStart, weekStart.AddDays(6)));
             weekStart = weekStart.AddDays(7);
+            weekNumber++;
         }
 
-        int currentWeekIndex = _weekRanges.Count - 1;
+        int currentWeekIndex = Math.Min(
+            _weekRanges.Count - 1,
+            Math.Max(0, (today - experimentStart).Days / 7));
         if (_selectedWeekIndex >= 0 && _selectedWeekIndex < _weekRanges.Count)
             currentWeekIndex = _selectedWeekIndex;
 
@@ -160,7 +169,9 @@ public class WritingExperimentPage : ContentPage
         for (int i = 0; i < _weekRanges.Count; i++)
         {
             var (start, end) = _weekRanges[i];
-            _weekPicker.Items.Add($"Week {i + 1}: {start:M/d} - {end:M/d}");
+            var queuedItem = queuedWeeks.FirstOrDefault(item => item.WeekNumber == i + 1);
+            string suffix = queuedItem != null ? $" \u2192 {queuedItem.ProcessName}" : "";
+            _weekPicker.Items.Add($"Week {i + 1}: {start:M/d} - {end:M/d}{suffix}");
         }
         _weekPicker.SelectedIndex = currentWeekIndex;
         _weekPicker.SelectedIndexChanged += async (_, _) =>
@@ -172,7 +183,6 @@ public class WritingExperimentPage : ContentPage
         };
 
         var (windowStart, windowEnd) = _weekRanges[currentWeekIndex];
-        if (windowEnd > today) windowEnd = today;
 
         var changeProcessButton = new Button
         {
@@ -241,12 +251,23 @@ public class WritingExperimentPage : ContentPage
 
         _todaySection.Children.Add(new Label { Text = "Mark Days Completed", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
 
+        int selectedWeekNumber = currentWeekIndex + 1;
+        var selectedQueuedItem = queuedWeeks.FirstOrDefault(item => item.WeekNumber == selectedWeekNumber);
+
         for (var date = windowStart; date <= windowEnd; date = date.AddDays(1))
         {
             var existingEntry = entries.FirstOrDefault(e => e.Date.Date == date);
             bool isBaseline;
             string assignedProcess;
-            if (experiment.Phase == "baseline")
+            if (selectedQueuedItem != null)
+            {
+                assignedProcess = selectedQueuedItem.ProcessName;
+                isBaseline = string.Equals(
+                    assignedProcess,
+                    experiment.BaselineProcessName,
+                    StringComparison.OrdinalIgnoreCase);
+            }
+            else if (experiment.Phase == "baseline")
             {
                 isBaseline = true;
                 assignedProcess = experiment.BaselineProcessName;
