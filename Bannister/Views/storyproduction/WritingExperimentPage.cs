@@ -80,16 +80,37 @@ public class WritingExperimentPage : ContentPage
         var entries = await _experimentService.GetEntriesAsync(experiment.Id);
         int baselineCount = entries.Count(e => e.IsBaseline && e.IsCompleted);
         int challengerCount = entries.Count(e => !e.IsBaseline && e.IsCompleted);
+
+        var queue = ParseProcessQueue(experiment.ProcessQueueJson);
+        int maxQueuedWeek = queue.Count > 0 ? queue.Max(item => item.WeekNumber) : 0;
+        int availableWeekCount = Math.Max(
+            maxQueuedWeek,
+            Math.Max(1, ((DateTime.Today - experiment.StartedAt.Date).Days / 7) + 1));
+        int currentWeekIndex = Math.Min(
+            availableWeekCount - 1,
+            Math.Max(0, (DateTime.Today - experiment.StartedAt.Date).Days / 7));
+        int selectedWeekIndex = _selectedWeekIndex >= 0 && _selectedWeekIndex < availableWeekCount
+            ? _selectedWeekIndex
+            : currentWeekIndex;
+        int selectedWeekNumber = selectedWeekIndex + 1;
+        var selectedWeekStart = experiment.StartedAt.Date.AddDays(selectedWeekIndex * 7);
+        var selectedWeekEnd = selectedWeekStart.AddDays(6);
+        int completedInWeek = entries.Count(entry =>
+            entry.IsCompleted &&
+            entry.Date.Date >= selectedWeekStart &&
+            entry.Date.Date <= selectedWeekEnd);
+        var queuedItem = queue.FirstOrDefault(item => item.WeekNumber == selectedWeekNumber);
+        string weekProcess = queuedItem?.ProcessName ?? experiment.BaselineProcessName;
+
         if (experiment.Phase == "baseline")
         {
-            _phaseLabel.Text = $"\U0001F4CA Baseline Phase — Week {experiment.CurrentWeek}";
-            _statusLabel.Text = $"Process: {experiment.BaselineProcessName} • {baselineCount}/7 days completed";
+            _phaseLabel.Text = $"\U0001F4CA Baseline Phase — Week {selectedWeekNumber}";
         }
         else
         {
-            _phaseLabel.Text = $"⚔️ Challenger Phase — Week {experiment.CurrentWeek}";
-            _statusLabel.Text = $"Baseline: {experiment.BaselineProcessName} vs Challenger: {experiment.ChallengerProcessName}\nBaseline: {baselineCount} entries • Challenger: {challengerCount} entries";
+            _phaseLabel.Text = $"⚔️ Challenger Phase — Week {selectedWeekNumber}";
         }
+        _statusLabel.Text = $"Process: {weekProcess} • {completedInWeek}/7 days completed";
 
         await ShowWeekViewAsync(experiment, entries);
         if (experiment.Phase == "challenger" && baselineCount > 0 && challengerCount > 0)

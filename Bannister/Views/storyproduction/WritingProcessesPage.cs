@@ -10,6 +10,7 @@ public class WritingProcessesPage : ContentPage
     private readonly WritingExperimentService _experimentService;
     private readonly IdeaLoggerService? _ideaLogger;
     private VerticalStackLayout _listStack;
+    private readonly HashSet<int> _expandedProcessIds = new();
 
     public WritingProcessesPage(AuthService auth, StoryProductionService storyService, WritingExperimentService experimentService, IdeaLoggerService? ideaLogger = null)
     {
@@ -110,30 +111,12 @@ public class WritingProcessesPage : ContentPage
         }
 
         var allProjects = await _storyService.GetProjectsAsync(_auth.CurrentUsername);
-        var originalProjects = allProjects.Where(p => p.ParentProjectId == null).ToList();
+        var originalProjects = allProjects.Where(project => project.ParentProjectId == null).ToList();
 
         foreach (var process in processes)
         {
-            var processProjects = originalProjects
-                .Where(p => string.Equals(p.WritingProcess?.Trim(), process.Name, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            int totalCount = processProjects.Count;
-
-            // Projects with any stats logged
-            var withStats = processProjects.Where(p =>
-                p.YouTubeStatsCapturedAt.HasValue ||
-                p.FacebookStatsCapturedAt.HasValue ||
-                p.TikTokStatsCapturedAt.HasValue).ToList();
-
-            int statsCount = withStats.Count;
-
-            // Compute averages per platform (only from projects that have that platform's stats)
-            var ytProjects = withStats.Where(p => p.YouTubeStatsCapturedAt.HasValue).ToList();
-            var fbProjects = withStats.Where(p => p.FacebookStatsCapturedAt.HasValue).ToList();
-            var ttProjects = withStats.Where(p => p.TikTokStatsCapturedAt.HasValue).ToList();
-
-            var row = new Frame
+            bool isExpanded = _expandedProcessIds.Contains(process.Id);
+            var processFrame = new Frame
             {
                 Padding = 12,
                 CornerRadius = 8,
@@ -142,9 +125,7 @@ public class WritingProcessesPage : ContentPage
                 BorderColor = Colors.Transparent
             };
 
-            var cardStack = new VerticalStackLayout { Spacing = 6 };
-
-            // Header row with name and delete
+            var processStack = new VerticalStackLayout { Spacing = 6 };
             var headerGrid = new Grid
             {
                 ColumnDefinitions =
@@ -157,103 +138,119 @@ public class WritingProcessesPage : ContentPage
 
             headerGrid.Add(new Label
             {
-                Text = process.Name,
+                Text = $"{(isExpanded ? "▼" : "▶")} {process.Name}",
                 FontSize = 16,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#333")
             }, 0, 0);
 
-            var deleteBtn = new Button
+            if (isExpanded)
             {
-                Text = "Delete",
-                BackgroundColor = Color.FromArgb("#FFCDD2"),
-                TextColor = Color.FromArgb("#C62828"),
-                CornerRadius = 8,
-                HeightRequest = 36,
-                FontSize = 12,
-                Padding = new Thickness(12, 0),
-                VerticalOptions = LayoutOptions.Center
-            };
-            var capturedProcess = process;
-            var capturedUsageCount = totalCount;
-            deleteBtn.Clicked += async (_, _) => await DeleteProcessAsync(capturedProcess, capturedUsageCount);
-            headerGrid.Add(deleteBtn, 1, 0);
+                var processProjects = originalProjects
+                    .Where(project => string.Equals(
+                        project.WritingProcess?.Trim(),
+                        process.Name,
+                        StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                int totalCount = processProjects.Count;
+                var withStats = processProjects.Where(project =>
+                    project.YouTubeStatsCapturedAt.HasValue ||
+                    project.FacebookStatsCapturedAt.HasValue ||
+                    project.TikTokStatsCapturedAt.HasValue).ToList();
+                int statsCount = withStats.Count;
+                var ytProjects = withStats.Where(project => project.YouTubeStatsCapturedAt.HasValue).ToList();
+                var fbProjects = withStats.Where(project => project.FacebookStatsCapturedAt.HasValue).ToList();
+                var ttProjects = withStats.Where(project => project.TikTokStatsCapturedAt.HasValue).ToList();
 
-            cardStack.Children.Add(headerGrid);
+                var deleteButton = new Button
+                {
+                    Text = "Delete",
+                    BackgroundColor = Color.FromArgb("#FFCDD2"),
+                    TextColor = Color.FromArgb("#C62828"),
+                    CornerRadius = 8,
+                    HeightRequest = 36,
+                    FontSize = 12,
+                    Padding = new Thickness(12, 0),
+                    VerticalOptions = LayoutOptions.Center
+                };
+                var capturedProcess = process;
+                deleteButton.Clicked += async (_, _) =>
+                    await DeleteProcessAsync(capturedProcess, totalCount);
+                headerGrid.Add(deleteButton, 1, 0);
 
-            // Project counts
-            string statsText = statsCount == 1 ? "1 has stats" : $"{statsCount} have stats";
-            cardStack.Children.Add(new Label
-            {
-                Text = $"{totalCount} project(s) · {statsText}",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#888")
-            });
+                processStack.Children.Add(headerGrid);
+                string statsText = statsCount == 1 ? "1 has stats" : $"{statsCount} have stats";
+                processStack.Children.Add(new Label
+                {
+                    Text = $"{totalCount} project(s) · {statsText}",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#888")
+                });
 
-            // Platform stats sections
-            if (statsCount > 0)
-            {
                 if (ytProjects.Count > 0)
                 {
                     var topYt = ytProjects.OrderByDescending(p => p.YouTubeViews).First();
-                    double avgViews = ytProjects.Average(p => p.YouTubeViews);
-                    double avgLikes = ytProjects.Average(p => p.YouTubeLikes);
-                    double avgComments = ytProjects.Average(p => p.YouTubeComments);
-                    double avgDuration = ytProjects.Average(p => p.YouTubeAverageViewDurationSeconds);
-
-                    cardStack.Children.Add(BuildPlatformStats(
-                        "YouTube",
-                        "#C62828",
-                        ytProjects.Count,
-                        avgViews, avgLikes, avgComments, avgDuration,
+                    processStack.Children.Add(BuildPlatformStats(
+                        "YouTube", "#C62828", ytProjects.Count,
+                        ytProjects.Average(p => p.YouTubeViews),
+                        ytProjects.Average(p => p.YouTubeLikes),
+                        ytProjects.Average(p => p.YouTubeComments),
+                        ytProjects.Average(p => p.YouTubeAverageViewDurationSeconds),
                         topYt.Name, topYt.YouTubeViews, topYt.YouTubeLikes));
                 }
 
                 if (fbProjects.Count > 0)
                 {
                     var topFb = fbProjects.OrderByDescending(p => p.FacebookViews).First();
-                    double avgViews = fbProjects.Average(p => p.FacebookViews);
-                    double avgLikes = fbProjects.Average(p => p.FacebookLikes);
-                    double avgComments = fbProjects.Average(p => p.FacebookComments);
-                    double avgDuration = fbProjects.Average(p => p.FacebookAverageViewDurationSeconds);
-
-                    cardStack.Children.Add(BuildPlatformStats(
-                        "Facebook",
-                        "#1565C0",
-                        fbProjects.Count,
-                        avgViews, avgLikes, avgComments, avgDuration,
+                    processStack.Children.Add(BuildPlatformStats(
+                        "Facebook", "#1565C0", fbProjects.Count,
+                        fbProjects.Average(p => p.FacebookViews),
+                        fbProjects.Average(p => p.FacebookLikes),
+                        fbProjects.Average(p => p.FacebookComments),
+                        fbProjects.Average(p => p.FacebookAverageViewDurationSeconds),
                         topFb.Name, topFb.FacebookViews, topFb.FacebookLikes));
                 }
 
                 if (ttProjects.Count > 0)
                 {
                     var topTt = ttProjects.OrderByDescending(p => p.TikTokViews).First();
-                    double avgViews = ttProjects.Average(p => p.TikTokViews);
-                    double avgLikes = ttProjects.Average(p => p.TikTokLikes);
-                    double avgComments = ttProjects.Average(p => p.TikTokComments);
-                    double avgWatchTime = ttProjects.Average(p => p.TikTokAverageWatchTimeSeconds);
-
-                    cardStack.Children.Add(BuildPlatformStats(
-                        "TikTok",
-                        "#000000",
-                        ttProjects.Count,
-                        avgViews, avgLikes, avgComments, avgWatchTime,
+                    processStack.Children.Add(BuildPlatformStats(
+                        "TikTok", "#000000", ttProjects.Count,
+                        ttProjects.Average(p => p.TikTokViews),
+                        ttProjects.Average(p => p.TikTokLikes),
+                        ttProjects.Average(p => p.TikTokComments),
+                        ttProjects.Average(p => p.TikTokAverageWatchTimeSeconds),
                         topTt.Name, topTt.TikTokViews, topTt.TikTokLikes));
                 }
-            }
-            else if (totalCount > 0)
-            {
-                cardStack.Children.Add(new Label
+
+                if (statsCount == 0 && totalCount > 0)
                 {
-                    Text = "No stats logged yet for any project in this process.",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#AAA"),
-                    FontAttributes = FontAttributes.Italic
-                });
+                    processStack.Children.Add(new Label
+                    {
+                        Text = "No stats logged yet for any project in this process.",
+                        FontSize = 11,
+                        TextColor = Color.FromArgb("#AAA"),
+                        FontAttributes = FontAttributes.Italic
+                    });
+                }
+            }
+            else
+            {
+                processStack.Children.Add(headerGrid);
             }
 
-            row.Content = cardStack;
-            _listStack.Children.Add(row);
+            int capturedProcessId = process.Id;
+            var toggleTap = new TapGestureRecognizer();
+            toggleTap.Tapped += async (_, _) =>
+            {
+                if (!_expandedProcessIds.Remove(capturedProcessId))
+                    _expandedProcessIds.Add(capturedProcessId);
+                await LoadProcessesAsync();
+            };
+            processFrame.GestureRecognizers.Add(toggleTap);
+
+            processFrame.Content = processStack;
+            _listStack.Children.Add(processFrame);
         }
     }
 
