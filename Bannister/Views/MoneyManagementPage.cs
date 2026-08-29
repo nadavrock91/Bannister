@@ -155,7 +155,6 @@ public class MoneyManagementPage : ContentPage
 
         var scrollView = new ScrollView { Orientation = ScrollOrientation.Both };
         _gridContainer = new VerticalStackLayout { Padding = new Thickness(12, 4), Spacing = 4 };
-        _gridContainer.MaximumHeightRequest = 420;
 
         _pieDrawable = new PieChartDrawable();
         _pieChart = new GraphicsView
@@ -273,7 +272,6 @@ public class MoneyManagementPage : ContentPage
                     _selectedExpense = _currentExpenses[e.RowIndex];
             })
             .WithUpdateCallback(UpdateExpenseGridCellAsync)
-            .WithPageSize(15)
             .WithSorting()
             .Build();
 
