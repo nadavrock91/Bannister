@@ -116,6 +116,7 @@ public class DataGridView : ContentView
     private int _hoveredRow = -1; // page-relative
     private int _hoveredCol = -1;
     private DateTime _lastDoubleTapTime = DateTime.MinValue;
+    private bool _doubleTapInProgress = false;
 
     // Undo
     private List<CellEditRecord> _undoHistory = new();
@@ -542,8 +543,14 @@ public class DataGridView : ContentView
                 var lp = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
                 lp.Tapped += (s, e) =>
                 {
+                    _doubleTapInProgress = true;
                     _lastDoubleTapTime = DateTime.UtcNow;
                     HandleRightClick(cR, cC);
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(400);
+                        _doubleTapInProgress = false;
+                    });
                 };
                 _cellLabels[rowIdx, col].GestureRecognizers.Add(lp);
             }
@@ -627,8 +634,19 @@ public class DataGridView : ContentView
         if (_isEditing) await AutoSaveAsync();
         SelectCellByPageRow(pageRow, col);
         await Task.Delay(30);
-        if ((DateTime.UtcNow - _lastDoubleTapTime).TotalMilliseconds > 300)
+        if (!_doubleTapInProgress &&
+            (DateTime.UtcNow - _lastDoubleTapTime).TotalMilliseconds > 300)
+        {
+#if WINDOWS
+            if (_keyCapture?.Handler?.PlatformView is
+                Microsoft.UI.Xaml.Controls.TextBox ktb)
+                ktb.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
+            else
+                _keyCapture?.Focus();
+#else
             _keyCapture?.Focus();
+#endif
+        }
     }
 
     private void SelectCellByPageRow(int pageRow, int col)
@@ -729,18 +747,31 @@ public class DataGridView : ContentView
         if (_cellLabels != null && pageRow >= 0 && pageRow < _cellLabels.GetLength(0) && _selectedCol < _cellLabels.GetLength(1))
             _cellLabels[pageRow, _selectedCol].BackgroundColor = EditingCellColor;
 
-        await Task.Delay(50);
+        await Task.Delay(80);
         _displayBox.Focus();
 #if WINDOWS
-        await Task.Delay(30);
-        if (_displayBox.Handler?.PlatformView is
-            Microsoft.UI.Xaml.Controls.TextBox winTb)
+        // Try immediately, then retry after handler is ready
+        void TryFocusWindows()
         {
-            winTb.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
-            winTb.SelectAll();
+            if (_displayBox.Handler?.PlatformView is
+                Microsoft.UI.Xaml.Controls.TextBox tb)
+            {
+                tb.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
+                tb.SelectAll();
+            }
         }
+        TryFocusWindows();
+        // Belt-and-suspenders: also hook HandlerChanged in case
+        // platform view isn't ready yet
+        void OnHandlerChanged(object? s, EventArgs e2)
+        {
+            _displayBox.HandlerChanged -= OnHandlerChanged;
+            MainThread.BeginInvokeOnMainThread(TryFocusWindows);
+        }
+        if (_displayBox.Handler?.PlatformView == null)
+            _displayBox.HandlerChanged += OnHandlerChanged;
 #elif ANDROID
-        await Task.Delay(30);
+        await Task.Delay(50);
         if (_displayBox.Handler?.PlatformView is
             AndroidX.AppCompat.Widget.AppCompatEditText et)
         {

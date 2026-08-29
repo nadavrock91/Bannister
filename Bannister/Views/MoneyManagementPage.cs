@@ -160,10 +160,11 @@ public class MoneyManagementPage : ContentPage
         _pieChart = new GraphicsView
         {
             Drawable = _pieDrawable,
-            HeightRequest = 260,
+            HeightRequest = 300,
             Margin = new Thickness(0, 12, 0, 0),
             BackgroundColor = Colors.White
         };
+        _pieChart.SizeChanged += (_, _) => _pieChart.Invalidate();
         var chartCard = new Frame
         {
             Content = _pieChart,

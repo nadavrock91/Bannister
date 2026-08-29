@@ -33,15 +33,18 @@ public class PieChartDrawable : IDrawable
         float w = dirtyRect.Width;
         float h = dirtyRect.Height;
 
-        // Left half = legend, Right half = pie
-        float legendWidth = w * 0.38f;
-        float pieAreaX = legendWidth;
-        float pieAreaW = w - legendWidth;
-        float pieAreaH = h;
+        // Guard: if not yet laid out, skip
+        if (w < 10f || h < 10f) return;
 
-        float pieCx = pieAreaX + pieAreaW / 2f;
-        float pieCy = pieAreaH / 2f;
-        float radius = Math.Min(pieAreaW / 2f, pieAreaH / 2f) - 16f;
+        // Fixed layout: legend left 40%, pie right 60%
+        float legendW = (float)Math.Floor(w * 0.40f);
+        float pieLeft = legendW + 4f;
+        float pieW = w - pieLeft;
+
+        float pieCx = pieLeft + pieW / 2f;
+        float pieCy = h / 2f;
+        float radius = (float)Math.Floor(Math.Min(pieW / 2f, h / 2f)) - 12f;
+        if (radius < 4f) return;
 
         // Draw pie slices
         float startAngle = -90f;
@@ -51,30 +54,52 @@ public class PieChartDrawable : IDrawable
             float endAngle = startAngle + sweep;
             canvas.FillColor = slice.Color;
             canvas.FillArc(pieCx - radius, pieCy - radius,
-                           radius * 2, radius * 2,
+                           radius * 2f, radius * 2f,
                            startAngle, endAngle, true);
             startAngle = endAngle;
         }
 
+        // Draw thin white borders between slices for clarity
+        canvas.StrokeColor = Colors.White;
+        canvas.StrokeSize = 1.5f;
+        startAngle = -90f;
+        foreach (var slice in Slices)
+        {
+            float sweep = (slice.Value / total) * 360f;
+            float endAngle = startAngle + sweep;
+            // draw a line from center to edge at startAngle
+            double rad = startAngle * Math.PI / 180.0;
+            float ex = pieCx + radius * (float)Math.Cos(rad);
+            float ey = pieCy + radius * (float)Math.Sin(rad);
+            canvas.DrawLine(pieCx, pieCy, ex, ey);
+            startAngle = endAngle;
+        }
+
         // Draw legend on left
-        float boxSize = 13f;
-        float lineH = 22f;
-        float lx = 8f;
-        float ly = (h - Slices.Count * lineH) / 2f;
-        if (ly < 8f) ly = 8f;
+        float boxSize = 12f;
+        float lineH = 20f;
+        float totalLegendH = Slices.Count * lineH;
+        float lx = 6f;
+        float ly = (h - totalLegendH) / 2f;
+        if (ly < 6f) ly = 6f;
+
+        float maxLabelW = legendW - lx - boxSize - 10f;
+        if (maxLabelW < 20f) maxLabelW = 20f;
 
         foreach (var slice in Slices)
         {
+            // Color box
             canvas.FillColor = slice.Color;
-            canvas.FillRectangle(lx, ly, boxSize, boxSize);
+            canvas.FillRectangle(lx, ly + 2f, boxSize, boxSize);
 
+            // Label text
             canvas.FontColor = Color.FromArgb("#212121");
-            canvas.FontSize = 11f;
-            string label = $"{slice.Label}: {CurrencySymbol}{slice.Value.ToString("N0")}";
-            canvas.DrawString(label,
-                lx + boxSize + 5f, ly - 1f,
-                legendWidth - lx - boxSize - 10f, lineH,
-                HorizontalAlignment.Left, VerticalAlignment.Top);
+            canvas.FontSize = 10.5f;
+            string text = $"{slice.Label}: {CurrencySymbol}{slice.Value.ToString("N0")}";
+            canvas.DrawString(text,
+                lx + boxSize + 4f, ly,
+                maxLabelW, lineH,
+                HorizontalAlignment.Left, VerticalAlignment.Center);
 
             ly += lineH;
         }
