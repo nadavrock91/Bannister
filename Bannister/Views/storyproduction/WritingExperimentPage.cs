@@ -16,6 +16,7 @@ public class WritingExperimentPage : ContentPage
     private VerticalStackLayout _comparisonSection = null!;
     private DatePicker _weekStartPicker = null!;
     private DatePicker _weekEndPicker = null!;
+    private bool _dateManuallyChanged;
 
     public WritingExperimentPage(AuthService auth, WritingExperimentService experimentService, StoryProductionService storyService, IdeaLoggerService? ideaLogger = null)
     {
@@ -31,6 +32,7 @@ public class WritingExperimentPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _dateManuallyChanged = false;
         await RefreshAsync();
     }
 
@@ -131,8 +133,19 @@ public class WritingExperimentPage : ContentPage
     {
         _todaySection.Children.Clear();
         var today = DateTime.UtcNow.Date;
-        var windowStart = _weekStartPicker?.Date ?? today.AddDays(-6);
-        var windowEnd = _weekEndPicker?.Date ?? today;
+        var experimentStart = experiment.StartedAt.Date;
+        int daysSinceStart = Math.Max(0, (today - experimentStart).Days);
+        int currentWeekIndex = daysSinceStart / 7;
+        var currentWeekStart = experimentStart.AddDays(currentWeekIndex * 7);
+        var currentWeekEnd = currentWeekStart.AddDays(6);
+        if (currentWeekEnd > today) currentWeekEnd = today;
+
+        var windowStart = _dateManuallyChanged
+            ? _weekStartPicker?.Date ?? currentWeekStart
+            : currentWeekStart;
+        var windowEnd = _dateManuallyChanged
+            ? _weekEndPicker?.Date ?? currentWeekEnd
+            : currentWeekEnd;
         if (windowStart < experiment.StartedAt.Date) windowStart = experiment.StartedAt.Date;
         if (windowStart > today) windowStart = today;
         if (windowEnd > today) windowEnd = today;
@@ -173,11 +186,32 @@ public class WritingExperimentPage : ContentPage
         {
             _todaySection.Children.Add(new Label
             {
-                Text = $"\U0001F4C5 Upcoming: {string.Join(" \u2192 ", processQueue.OrderBy(item => item.WeekNumber).Select(item => $"W{item.WeekNumber}: {item.ProcessName}"))}",
-                FontSize = 11,
+                Text = $"\U0001F4C5 Queued Weeks ({processQueue.Count})",
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#1565C0"),
-                LineBreakMode = LineBreakMode.WordWrap
+                Margin = new Thickness(0, 8, 0, 0)
             });
+
+            foreach (var item in processQueue.OrderBy(item => item.WeekNumber))
+            {
+                var queueFrame = new Frame
+                {
+                    Padding = 10,
+                    CornerRadius = 8,
+                    BackgroundColor = Color.FromArgb("#E3F2FD"),
+                    BorderColor = Colors.Transparent,
+                    HasShadow = false,
+                    Content = new Label
+                    {
+                        Text = $"Week {item.WeekNumber}: {item.ProcessName}",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#1565C0"),
+                        LineBreakMode = LineBreakMode.WordWrap
+                    }
+                };
+                _todaySection.Children.Add(queueFrame);
+            }
         }
 
         var dateRow = new HorizontalStackLayout { Spacing = 8 };
@@ -196,7 +230,11 @@ public class WritingExperimentPage : ContentPage
             MinimumDate = experiment.StartedAt.Date,
             FontSize = 12
         };
-        _weekStartPicker.DateSelected += async (_, _) => await RefreshAsync();
+        _weekStartPicker.DateSelected += async (_, _) =>
+        {
+            _dateManuallyChanged = true;
+            await RefreshAsync();
+        };
         dateRow.Children.Add(_weekStartPicker);
 
         dateRow.Children.Add(new Label
@@ -214,7 +252,11 @@ public class WritingExperimentPage : ContentPage
             MinimumDate = experiment.StartedAt.Date,
             FontSize = 12
         };
-        _weekEndPicker.DateSelected += async (_, _) => await RefreshAsync();
+        _weekEndPicker.DateSelected += async (_, _) =>
+        {
+            _dateManuallyChanged = true;
+            await RefreshAsync();
+        };
         dateRow.Children.Add(_weekEndPicker);
 
         _todaySection.Children.Add(dateRow);
@@ -654,74 +696,208 @@ public class WritingExperimentPage : ContentPage
 
     private async Task ManageProcessQueueAsync(WritingExperiment experiment)
     {
-        var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
-        if (processes.Count == 0)
-        {
-            await DisplayAlert("No Processes", "Create writing processes first.", "OK");
-            return;
-        }
-
         var queue = ParseProcessQueue(experiment.ProcessQueueJson);
-        bool done = false;
-        while (!done)
+        var tcs = new TaskCompletionSource<bool>();
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var formStack = new VerticalStackLayout { Spacing = 10 };
+        formStack.Children.Add(new Label
         {
-            var displayOptions = queue
-                .OrderBy(item => item.WeekNumber)
-                .Select(item => $"Week {item.WeekNumber}: {item.ProcessName}")
-                .ToList();
-            displayOptions.Add("+ Add Week");
-            if (queue.Count > 0) displayOptions.Add("Clear All");
-            displayOptions.Add("Done");
+            Text = "Queue Future Weeks",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1565C0")
+        });
+        var countLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#666") };
+        formStack.Children.Add(countLabel);
 
-            var choice = await DisplayActionSheet(
-                $"Process Queue ({queue.Count} weeks planned)",
-                "Cancel",
-                null,
-                displayOptions.ToArray());
+        var queueList = new VerticalStackLayout { Spacing = 6 };
+        void RebuildQueueList()
+        {
+            countLabel.Text = $"{queue.Count} week(s) planned";
+            queueList.Children.Clear();
 
-            if (string.IsNullOrEmpty(choice) || choice == "Cancel" || choice == "Done")
+            if (queue.Count == 0)
             {
-                done = true;
+                queueList.Children.Add(new Label
+                {
+                    Text = "No future weeks queued.",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#999"),
+                    FontAttributes = FontAttributes.Italic
+                });
+                return;
             }
-            else if (choice == "+ Add Week")
-            {
-                int nextWeek = queue.Count > 0
-                    ? queue.Max(item => item.WeekNumber) + 1
-                    : experiment.CurrentWeek + 1;
-                var picked = await ShowProcessPickerAsync($"Process for Week {nextWeek}", experiment);
-                if (!string.IsNullOrEmpty(picked))
-                    queue.Add(new ProcessQueueItem { WeekNumber = nextWeek, ProcessName = picked });
-            }
-            else if (choice == "Clear All")
-            {
-                queue.Clear();
-            }
-            else
-            {
-                var queuedEntry = queue.FirstOrDefault(item =>
-                    choice == $"Week {item.WeekNumber}: {item.ProcessName}");
-                if (queuedEntry == null) continue;
 
-                var action = await DisplayActionSheet(
-                    $"Week {queuedEntry.WeekNumber}: {queuedEntry.ProcessName}",
-                    "Cancel",
-                    null,
-                    "Change Process",
-                    "Remove");
-                if (action == "Change Process")
+            foreach (var item in queue.OrderBy(item => item.WeekNumber).ToList())
+            {
+                var row = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = GridLength.Auto },
+                        new ColumnDefinition { Width = GridLength.Auto }
+                    },
+                    ColumnSpacing = 4
+                };
+                var label = new Label
+                {
+                    Text = $"Week {item.WeekNumber}: {item.ProcessName}",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#1565C0"),
+                    LineBreakMode = LineBreakMode.WordWrap,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                Grid.SetColumn(label, 0);
+                row.Children.Add(label);
+
+                var changeButton = new Button
+                {
+                    Text = "Change",
+                    BackgroundColor = Colors.Transparent,
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    HeightRequest = 30,
+                    FontSize = 10,
+                    Padding = new Thickness(6, 0)
+                };
+                var capturedItem = item;
+                changeButton.Clicked += async (_, _) =>
                 {
                     var picked = await ShowProcessPickerAsync(
-                        $"Process for Week {queuedEntry.WeekNumber}",
+                        $"Process for Week {capturedItem.WeekNumber}",
                         experiment);
                     if (!string.IsNullOrEmpty(picked))
-                        queuedEntry.ProcessName = picked;
-                }
-                else if (action == "Remove")
+                    {
+                        capturedItem.ProcessName = picked;
+                        RebuildQueueList();
+                    }
+                };
+                Grid.SetColumn(changeButton, 1);
+                row.Children.Add(changeButton);
+
+                var removeButton = new Button
                 {
-                    queue.Remove(queuedEntry);
-                }
+                    Text = "Remove",
+                    BackgroundColor = Colors.Transparent,
+                    TextColor = Color.FromArgb("#C62828"),
+                    HeightRequest = 30,
+                    FontSize = 10,
+                    Padding = new Thickness(6, 0)
+                };
+                removeButton.Clicked += (_, _) =>
+                {
+                    queue.Remove(capturedItem);
+                    RebuildQueueList();
+                };
+                Grid.SetColumn(removeButton, 2);
+                row.Children.Add(removeButton);
+
+                queueList.Children.Add(new Frame
+                {
+                    Padding = 10,
+                    CornerRadius = 8,
+                    BackgroundColor = Color.FromArgb("#E3F2FD"),
+                    BorderColor = Colors.Transparent,
+                    HasShadow = false,
+                    Content = row
+                });
             }
         }
+
+        RebuildQueueList();
+        formStack.Children.Add(new ScrollView { MaximumHeightRequest = 320, Content = queueList });
+
+        var addButton = new Button
+        {
+            Text = "+ Add Week",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        addButton.Clicked += async (_, _) =>
+        {
+            int nextWeek = queue.Count > 0
+                ? queue.Max(item => item.WeekNumber) + 1
+                : experiment.CurrentWeek + 1;
+            var picked = await ShowProcessPickerAsync($"Process for Week {nextWeek}", experiment);
+            if (!string.IsNullOrEmpty(picked))
+            {
+                queue.Add(new ProcessQueueItem { WeekNumber = nextWeek, ProcessName = picked });
+                RebuildQueueList();
+            }
+        };
+
+        var clearButton = new Button
+        {
+            Text = "Clear All",
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 6,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        clearButton.Clicked += (_, _) =>
+        {
+            queue.Clear();
+            RebuildQueueList();
+        };
+
+        var doneButton = new Button
+        {
+            Text = "Done",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        doneButton.Clicked += (_, _) =>
+        {
+            if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+        };
+
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#999"),
+            HeightRequest = 34,
+            FontSize = 11
+        };
+        cancelButton.Clicked += (_, _) =>
+        {
+            if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(false);
+        };
+
+        formStack.Children.Add(new HorizontalStackLayout
+        {
+            Spacing = 6,
+            Children = { addButton, clearButton, doneButton }
+        });
+        formStack.Children.Add(cancelButton);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            MaximumWidthRequest = 600,
+            MaximumHeightRequest = 650,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(16, 20),
+            Content = new ScrollView { Content = formStack }
+        };
+        overlay.Children.Add(card);
+        if (Content is not Grid mainGrid) return;
+        mainGrid.Children.Add(overlay);
+
+        bool save = await tcs.Task;
+        if (!save) return;
 
         experiment.ProcessQueueJson = System.Text.Json.JsonSerializer.Serialize(queue);
         await _experimentService.UpdateExperimentAsync(experiment);
