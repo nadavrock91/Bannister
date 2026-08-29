@@ -205,7 +205,7 @@ public class RoutineService
             return;
 
         var anchorDate = task.DueDate.HasValue
-            ? AdjustForLateNight(task.DueDate.Value)
+            ? task.DueDate.Value.Date
             : (task.CompletedAt.HasValue
                 ? AdjustForLateNight(task.CompletedAt.Value)
                 : AdjustForLateNight(DateTime.Now));
