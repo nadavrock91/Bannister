@@ -27,6 +27,7 @@ public class WeeklyChallengeService
             try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN RequiredFreeTasks INTEGER DEFAULT 0"); } catch { }
             try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN CompletedFreeTaskCount INTEGER DEFAULT 0"); } catch { }
             try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN LastProcessedWeekStart TEXT"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN ManualEditsJson TEXT DEFAULT ''"); } catch { }
         }
         _initialized = true;
     }
@@ -348,6 +349,56 @@ public class WeeklyChallengeService
         if (_db.IsReadOnly) return;
         var conn = await _db.GetConnectionAsync();
         await conn.UpdateAsync(challenge);
+    }
+
+    public async Task LogManualEditAsync(
+        int challengeId,
+        string field,
+        int oldValue,
+        int newValue,
+        string reason = "")
+    {
+        await EnsureInitializedAsync();
+        if (_db.IsReadOnly) return;
+
+        var conn = await _db.GetConnectionAsync();
+        var challenge = await conn.FindAsync<WeeklyChallenge>(challengeId);
+        if (challenge == null) return;
+
+        var edits = ParseManualEdits(challenge.ManualEditsJson);
+        edits.Add(new ManualEditEntry
+        {
+            Date = DateTime.UtcNow.ToString("o"),
+            Field = field,
+            OldValue = oldValue,
+            NewValue = newValue,
+            Reason = reason
+        });
+        challenge.ManualEditsJson = System.Text.Json.JsonSerializer.Serialize(edits);
+        await conn.UpdateAsync(challenge);
+    }
+
+    public static List<ManualEditEntry> ParseManualEdits(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new List<ManualEditEntry>();
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<ManualEditEntry>>(json)
+                ?? new List<ManualEditEntry>();
+        }
+        catch
+        {
+            return new List<ManualEditEntry>();
+        }
+    }
+
+    public class ManualEditEntry
+    {
+        public string Date { get; set; } = "";
+        public string Field { get; set; } = "";
+        public int OldValue { get; set; }
+        public int NewValue { get; set; }
+        public string Reason { get; set; } = "";
     }
 
     public async Task<List<WeeklyChallenge>> GetChallengeHistoryAsync(string username, int limit = 12)

@@ -192,6 +192,34 @@ public class FocusHistoryPage : ContentPage
                 });
             }
 
+            var manualEdits = WeeklyChallengeService.ParseManualEdits(challenge.ManualEditsJson);
+            if (manualEdits.Count > 0)
+            {
+                weekStack.Children.Add(new Label
+                {
+                    Text = "\u270F Manual Edits:",
+                    FontSize = 10,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#E65100")
+                });
+
+                foreach (var edit in manualEdits)
+                {
+                    string editDate = DateTime.TryParse(edit.Date, out var parsedDate)
+                        ? parsedDate.ToLocalTime().ToString("M/d HH:mm")
+                        : "";
+                    string reason = string.IsNullOrWhiteSpace(edit.Reason)
+                        ? ""
+                        : $" — {edit.Reason}";
+                    weekStack.Children.Add(new Label
+                    {
+                        Text = $"    {editDate}: {edit.Field} {edit.OldValue}\u2192{edit.NewValue}{reason}",
+                        FontSize = 10,
+                        TextColor = Color.FromArgb("#E65100")
+                    });
+                }
+            }
+
             previousAllowance = challenge.CurrentAllowance;
             previousStreak = challenge.SuccessStreak;
             weekFrame.Content = weekStack;

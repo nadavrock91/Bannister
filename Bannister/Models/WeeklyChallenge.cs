@@ -64,6 +64,9 @@ public class WeeklyChallenge
     public int CompletedFreeTaskCount { get; set; } = 0;
 
     public DateTime? LastProcessedWeekStart { get; set; }
+
+    // JSON array of manual allowance/streak changes with timestamps and reasons.
+    public string ManualEditsJson { get; set; } = "";
     
     [Ignore]
     public int WeeksUntilAllowanceIncrease => 3 - (SuccessStreak % 3);

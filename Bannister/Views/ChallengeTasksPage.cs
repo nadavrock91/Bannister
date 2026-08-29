@@ -68,6 +68,35 @@ public class ChallengeTasksPage : ContentPage
         mainStack.Children.Add(_chartContainer);
         _summaryLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#888") };
         mainStack.Children.Add(_summaryLabel);
+
+        var editRow = new HorizontalStackLayout { Spacing = 8 };
+        var editAllowanceButton = new Button
+        {
+            Text = "\u270F Allowance",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#7B1FA2"),
+            CornerRadius = 4,
+            HeightRequest = 28,
+            FontSize = 10,
+            Padding = new Thickness(6, 0)
+        };
+        editAllowanceButton.Clicked += async (_, _) => await EditAllowanceAsync();
+        editRow.Children.Add(editAllowanceButton);
+
+        var editStreakButton = new Button
+        {
+            Text = "\u270F Streak",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#7B1FA2"),
+            CornerRadius = 4,
+            HeightRequest = 28,
+            FontSize = 10,
+            Padding = new Thickness(6, 0)
+        };
+        editStreakButton.Clicked += async (_, _) => await EditStreakAsync();
+        editRow.Children.Add(editStreakButton);
+        mainStack.Children.Add(editRow);
+
         _progressLabel = new Label
         {
             FontSize = 14,
@@ -139,6 +168,76 @@ public class ChallengeTasksPage : ContentPage
         var rootGrid = new Grid();
         rootGrid.Children.Add(new ScrollView { Content = mainStack });
         Content = rootGrid;
+    }
+
+    private async Task EditAllowanceAsync()
+    {
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null) return;
+
+        string? input = await DisplayPromptAsync(
+            "Edit Allowance",
+            $"Current: {challenge.CurrentAllowance}\nNew value:",
+            "Save",
+            "Cancel",
+            initialValue: challenge.CurrentAllowance.ToString(),
+            maxLength: 3,
+            keyboard: Keyboard.Numeric);
+        if (string.IsNullOrWhiteSpace(input) || !int.TryParse(input, out int newValue)) return;
+        newValue = Math.Max(1, newValue);
+
+        string? reason = await DisplayPromptAsync(
+            "Reason (optional)",
+            "Why are you changing the allowance?",
+            "Save",
+            "Skip",
+            maxLength: 200);
+
+        int oldValue = challenge.CurrentAllowance;
+        challenge.CurrentAllowance = newValue;
+        await _challengeService.UpdateChallengeAsync(challenge);
+        await _challengeService.LogManualEditAsync(
+            challenge.Id,
+            "Allowance",
+            oldValue,
+            newValue,
+            reason?.Trim() ?? "");
+        await RefreshAsync();
+    }
+
+    private async Task EditStreakAsync()
+    {
+        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (challenge == null) return;
+
+        string? input = await DisplayPromptAsync(
+            "Edit Streak",
+            $"Current: {challenge.SuccessStreak}\nNew value:",
+            "Save",
+            "Cancel",
+            initialValue: challenge.SuccessStreak.ToString(),
+            maxLength: 3,
+            keyboard: Keyboard.Numeric);
+        if (string.IsNullOrWhiteSpace(input) || !int.TryParse(input, out int newValue)) return;
+        newValue = Math.Max(0, newValue);
+
+        string? reason = await DisplayPromptAsync(
+            "Reason (optional)",
+            "Why are you changing the streak?",
+            "Save",
+            "Skip",
+            maxLength: 200);
+
+        int oldValue = challenge.SuccessStreak;
+        challenge.SuccessStreak = newValue;
+        await _challengeService.UpdateChallengeAsync(challenge);
+        await _challengeService.LogManualEditAsync(
+            challenge.Id,
+            "Streak",
+            oldValue,
+            newValue,
+            reason?.Trim() ?? "");
+        await RefreshAsync();
     }
 
     private async Task RefreshAsync()

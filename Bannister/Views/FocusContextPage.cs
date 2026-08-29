@@ -307,6 +307,77 @@ public class FocusContextPage : ContentPage
 
         sb.AppendLine();
         sb.AppendLine("Based on my focus context and available tasks, help me decide what to prioritize this week.");
+
+        bool attachHistory = await DisplayAlert(
+            "Attach History?",
+            "Include focus task history in the export?",
+            "Yes",
+            "No");
+        if (attachHistory)
+        {
+            string? rangeText = await DisplayPromptAsync(
+                "History Range",
+                "How many days back?",
+                "OK",
+                "Cancel",
+                initialValue: "30",
+                maxLength: 4,
+                keyboard: Keyboard.Numeric);
+
+            int daysBack = 30;
+            if (!string.IsNullOrWhiteSpace(rangeText) &&
+                int.TryParse(rangeText, out int parsedDays) &&
+                parsedDays > 0)
+            {
+                daysBack = parsedDays;
+            }
+
+            var cutoff = DateTime.UtcNow.AddDays(-daysBack);
+            var challenges = await _challengeService.GetChallengeHistoryAsync(
+                _auth.CurrentUsername,
+                52);
+            var recentChallenges = challenges
+                .Where(item => item.StartedAt >= cutoff)
+                .OrderBy(item => item.StartedAt)
+                .ToList();
+
+            if (recentChallenges.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"FOCUS HISTORY (last {daysBack} days, {recentChallenges.Count} weeks):");
+                sb.AppendLine();
+
+                var historyTasks = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
+                    .Concat(await _tasks.GetCompletedTasksAsync(_auth.CurrentUsername))
+                    .GroupBy(item => item.Id)
+                    .ToDictionary(group => group.Key, group => group.First());
+
+                foreach (var historyChallenge in recentChallenges)
+                {
+                    string date = historyChallenge.StartedAt.ToLocalTime().ToString("MMM dd");
+                    sb.AppendLine($"Week of {date}: {historyChallenge.FocusCategory} | Allowance: {historyChallenge.CurrentAllowance} | Streak: {historyChallenge.SuccessStreak}");
+
+                    var historyCommitments = await _challengeService.GetCurrentWeekCommitmentsAsync(historyChallenge.Id);
+                    foreach (var commitment in historyCommitments)
+                    {
+                        historyTasks.TryGetValue(commitment.TaskId, out var historyTask);
+                        string title = historyTask?.Title ?? $"Task #{commitment.TaskId}";
+                        string status = commitment.IsCompleted ? "DONE" : "OPEN";
+                        string type = commitment.IsFocusTask ? "Focus" : "Free";
+                        sb.AppendLine($"  [{status}] [{type}] {title}");
+                    }
+
+                    foreach (var edit in WeeklyChallengeService.ParseManualEdits(historyChallenge.ManualEditsJson))
+                    {
+                        string reason = string.IsNullOrWhiteSpace(edit.Reason) ? "" : $" {edit.Reason}";
+                        sb.AppendLine($"  [MANUAL] {edit.Field}: {edit.OldValue}->{edit.NewValue}{reason}");
+                    }
+
+                    sb.AppendLine();
+                }
+            }
+        }
+
         await Clipboard.SetTextAsync(sb.ToString());
         await DisplayAlert("Exported", $"Copied to clipboard:\n\n{bullets.Count} focus points\n{(challenge != null ? $"Focus tasks from {challenge.FocusCategory}" : "No active challenge")}", "OK");
     }
