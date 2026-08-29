@@ -192,7 +192,6 @@ public class DataGridView : ContentView
 
         BuildToolbar();
         _gridWrapper = new VerticalStackLayout { Spacing = 4 };
-        _gridWrapper.MaximumHeightRequest = 420;
         RebuildPage();
 
         var combined = new VerticalStackLayout { Spacing = 4 };
@@ -248,7 +247,6 @@ public class DataGridView : ContentView
         _selectedRow = -1; _selectedCol = -1;
         _pageOffset += delta;
         RebuildPage();
-        ScrollToTop();
 
         if (_displayHeader != null)
             _displayHeader.Text = "Left-click: select · Right-click: edit";
