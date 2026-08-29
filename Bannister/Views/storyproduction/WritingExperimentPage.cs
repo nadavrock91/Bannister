@@ -152,6 +152,35 @@ public class WritingExperimentPage : ContentPage
             weekNumber++;
         }
 
+        var weekAverages = new Dictionary<int, string>();
+        for (int i = 0; i < _weekRanges.Count; i++)
+        {
+            var (weekRangeStart, weekRangeEnd) = _weekRanges[i];
+            var weekEntries = entries
+                .Where(entry => entry.IsCompleted &&
+                    entry.Date.Date >= weekRangeStart &&
+                    entry.Date.Date <= weekRangeEnd)
+                .ToList();
+
+            if (weekEntries.Count == 0) continue;
+
+            var parts = new List<string>();
+            var retention10s = weekEntries.Where(entry => entry.Retention10s >= 0).Select(entry => entry.Retention10s).ToList();
+            var retention30s = weekEntries.Where(entry => entry.Retention30s >= 0).Select(entry => entry.Retention30s).ToList();
+            var retention1m = weekEntries.Where(entry => entry.Retention1m >= 0).Select(entry => entry.Retention1m).ToList();
+            var retention2m = weekEntries.Where(entry => entry.Retention2m >= 0).Select(entry => entry.Retention2m).ToList();
+            var retention3m = weekEntries.Where(entry => entry.Retention3m >= 0).Select(entry => entry.Retention3m).ToList();
+
+            if (retention10s.Count >= 3) parts.Add($"10s:{(int)retention10s.Average()}%");
+            if (retention30s.Count >= 3) parts.Add($"30s:{(int)retention30s.Average()}%");
+            if (retention1m.Count >= 3) parts.Add($"1m:{(int)retention1m.Average()}%");
+            if (retention2m.Count >= 3) parts.Add($"2m:{(int)retention2m.Average()}%");
+            if (retention3m.Count >= 3) parts.Add($"3m:{(int)retention3m.Average()}%");
+
+            if (parts.Count > 0)
+                weekAverages[i] = string.Join(" ", parts);
+        }
+
         int currentWeekIndex = Math.Min(
             _weekRanges.Count - 1,
             Math.Max(0, (today - experimentStart).Days / 7));
@@ -171,7 +200,10 @@ public class WritingExperimentPage : ContentPage
             var (start, end) = _weekRanges[i];
             var queuedItem = queuedWeeks.FirstOrDefault(item => item.WeekNumber == i + 1);
             string suffix = queuedItem != null ? $" \u2192 {queuedItem.ProcessName}" : "";
-            _weekPicker.Items.Add($"Week {i + 1}: {start:M/d} - {end:M/d}{suffix}");
+            string retentionSuffix = weekAverages.TryGetValue(i, out var averageSummary)
+                ? $" [{averageSummary}]"
+                : "";
+            _weekPicker.Items.Add($"Week {i + 1}: {start:M/d} - {end:M/d}{suffix}{retentionSuffix}");
         }
         _weekPicker.SelectedIndex = currentWeekIndex;
         _weekPicker.SelectedIndexChanged += async (_, _) =>
@@ -248,6 +280,88 @@ public class WritingExperimentPage : ContentPage
         }
 
         _todaySection.Children.Add(_weekPicker);
+
+        int selectedIndex = _weekPicker.SelectedIndex >= 0
+            ? _weekPicker.SelectedIndex
+            : _weekRanges.Count - 1;
+        if (weekAverages.ContainsKey(selectedIndex))
+        {
+            var (selectedStart, selectedEnd) = _weekRanges[selectedIndex];
+            var selectedWeekEntries = entries
+                .Where(entry => entry.IsCompleted &&
+                    entry.Date.Date >= selectedStart &&
+                    entry.Date.Date <= selectedEnd)
+                .ToList();
+
+            var summaryStack = new VerticalStackLayout
+            {
+                Spacing = 4,
+                Margin = new Thickness(0, 4, 0, 8)
+            };
+            summaryStack.Children.Add(new Label
+            {
+                Text = $"Week {selectedIndex + 1} Average Retention ({selectedWeekEntries.Count} recordings)",
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#6A1B9A")
+            });
+
+            var intervalsRow = new HorizontalStackLayout { Spacing = 16 };
+
+            void AddIntervalAverage(string name, List<int> values)
+            {
+                if (values.Count < 3) return;
+
+                int average = (int)values.Average();
+                Color color = average >= 70
+                    ? Color.FromArgb("#2E7D32")
+                    : average >= 40
+                        ? Color.FromArgb("#F57F17")
+                        : Color.FromArgb("#C62828");
+
+                intervalsRow.Children.Add(new VerticalStackLayout
+                {
+                    Spacing = 2,
+                    Children =
+                    {
+                        new Label
+                        {
+                            Text = $"{average}%",
+                            FontSize = 22,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = color,
+                            HorizontalTextAlignment = TextAlignment.Center
+                        },
+                        new Label
+                        {
+                            Text = name,
+                            FontSize = 10,
+                            TextColor = Color.FromArgb("#888"),
+                            HorizontalTextAlignment = TextAlignment.Center
+                        },
+                        new Label
+                        {
+                            Text = $"({values.Count} rec)",
+                            FontSize = 8,
+                            TextColor = Color.FromArgb("#BBB"),
+                            HorizontalTextAlignment = TextAlignment.Center
+                        }
+                    }
+                });
+            }
+
+            AddIntervalAverage("10 sec", selectedWeekEntries.Where(entry => entry.Retention10s >= 0).Select(entry => entry.Retention10s).ToList());
+            AddIntervalAverage("30 sec", selectedWeekEntries.Where(entry => entry.Retention30s >= 0).Select(entry => entry.Retention30s).ToList());
+            AddIntervalAverage("1 min", selectedWeekEntries.Where(entry => entry.Retention1m >= 0).Select(entry => entry.Retention1m).ToList());
+            AddIntervalAverage("2 min", selectedWeekEntries.Where(entry => entry.Retention2m >= 0).Select(entry => entry.Retention2m).ToList());
+            AddIntervalAverage("3 min", selectedWeekEntries.Where(entry => entry.Retention3m >= 0).Select(entry => entry.Retention3m).ToList());
+
+            if (intervalsRow.Children.Count > 0)
+            {
+                summaryStack.Children.Add(intervalsRow);
+                _todaySection.Children.Add(summaryStack);
+            }
+        }
 
         _todaySection.Children.Add(new Label { Text = "Mark Days Completed", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
 
