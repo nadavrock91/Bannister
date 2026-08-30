@@ -705,7 +705,6 @@ Output ONLY the C# code block.
 
         _missingFocusQAPasteButton = CreateSecondaryButton("Paste Progress QA Result");
         _missingFocusQAPasteButton.Clicked += async (_, _) => await PasteMissingProgressQAAsync();
-        _missingFocusQAPasteButton.IsVisible = false;
 
         _missingFocusNextTaskButton = CreatePrimaryButton("Copy Next Missing Task", Color.FromArgb("#E65100"));
         _missingFocusNextTaskButton.Clicked += async (_, _) => await CopyNextMissingTaskAsync();
@@ -2299,7 +2298,7 @@ Output ONLY the C# code block.
             _addMissingButton.IsVisible = !hasMissingFocus;
             _missingFocusInfoLabel.IsVisible = hasMissingFocus;
             _missingFocusQAButton.IsVisible = hasMissingFocus;
-            if (!hasMissingFocus) _missingFocusQAPasteButton.IsVisible = false;
+            _missingFocusQAPasteButton.IsVisible = hasMissingFocus;
             _missingFocusNextTaskButton.IsVisible = hasMissingFocus;
             _markMissingDoneButton.IsVisible = hasMissingFocus;
             _abandonMissingButton.IsVisible = hasMissingFocus;
@@ -5836,9 +5835,6 @@ Output ONLY the C# code block.
 
         await Clipboard.SetTextAsync(prompt);
 
-        // Reveal the paste button — user pastes result when ready
-        _missingFocusQAPasteButton.IsVisible = true;
-
         await DisplayAlert("Progress QA Prompt Copied",
             $"Paste into your QA agent to check progress on '{project.ActiveMissingTitle}'.\n\nWhen the agent returns the report, tap 'Paste Progress QA Result'.",
             "OK");
@@ -5866,7 +5862,6 @@ Output ONLY the C# code block.
             try
             {
                 await _projectService.SetActiveMissingQAReportAsync(project.Id, result.Trim());
-                _missingFocusQAPasteButton.IsVisible = false;
                 await RefreshCurrentProjectAsync();
                 await DisplayAlert("Progress QA Saved",
                     "Progress QA saved. Now use 'Copy Next Missing Task' to generate the next task.",
