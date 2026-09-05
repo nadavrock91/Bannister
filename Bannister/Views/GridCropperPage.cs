@@ -24,11 +24,16 @@ public class GridCropperPage : ContentPage
     private List<CropPresetItem> _presets = new();
     private readonly CropPresetService _presetService;
     private readonly string _username;
+    private readonly IPanelSaver _panelSaver;
 
-    public GridCropperPage(AuthService auth, CropPresetService presetService)
+    public GridCropperPage(
+        AuthService auth,
+        CropPresetService presetService,
+        IPanelSaver panelSaver)
     {
         _username = auth.CurrentUsername;
         _presetService = presetService;
+        _panelSaver = panelSaver;
         Title = "Grid Cropper";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -249,16 +254,16 @@ public class GridCropperPage : ContentPage
         int safeH = Math.Max(1, Math.Min(_cellH, _sourceBitmap.Height));
         var sourceDir = System.IO.Path.GetDirectoryName(_sourceFilePath) ?? ".";
         var outputDir = System.IO.Path.Combine(sourceDir, "cropped_panels");
-        Directory.CreateDirectory(outputDir);
         _cropButton.IsEnabled = false;
         _cropButton.Text = "Cropping…";
         try
         {
-            await Task.Run(() =>
+            // Collect all panel bytes in background
+            var panels = await Task.Run(() =>
             {
-                // Walk 4 columns x 5 rows = 20 panels
                 const int cols = 4;
                 const int rows = 5;
+                var result = new List<(string FileName, byte[] Bytes)>();
                 int panel = 1;
 
                 for (int row = 0; row < rows; row++)
@@ -268,7 +273,6 @@ public class GridCropperPage : ContentPage
                         int x = col * safeW;
                         int y = row * safeH;
 
-                        // Clamp to image bounds
                         int actualW = Math.Min(safeW, _sourceBitmap.Width - x);
                         int actualH = Math.Min(safeH, _sourceBitmap.Height - y);
                         if (actualW <= 0 || actualH <= 0) break;
@@ -282,19 +286,23 @@ public class GridCropperPage : ContentPage
 
                         using var image = SKImage.FromBitmap(cropped);
                         using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
-                        var bytes = encoded.ToArray();
-
-                        var fileName = $"panel_{panel:D2}.png";
-                        File.WriteAllBytes(
-                            System.IO.Path.Combine(outputDir, fileName), bytes);
+                        result.Add(($"panel_{panel:D2}.png", encoded.ToArray()));
                         panel++;
                     }
                 }
+                return result;
             });
-            _statusLabel.Text = $"✓ 20 panels saved to:\n{outputDir}";
+
+            // Save via platform saver
+            string savedLocation = await _panelSaver.SavePanelsAsync(
+                panels, outputDir);
+
+            _statusLabel.Text = $"✓ {panels.Count} panels saved to:\n{savedLocation}";
             _statusLabel.TextColor = Color.FromArgb("#2E7D32");
             _statusLabel.IsVisible = true;
-            await DisplayAlert("Done", $"20 panels saved to:\n{outputDir}", "OK");
+
+            await DisplayAlert("Done",
+                $"{panels.Count} panels saved to:\n{savedLocation}", "OK");
         }
         catch (Exception ex)
         {

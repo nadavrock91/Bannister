@@ -92,6 +92,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<QuickAccessActionService>();
         builder.Services.AddSingleton<HookWordService>();
         builder.Services.AddSingleton<CropPresetService>();
+#if ANDROID
+        builder.Services.AddSingleton<IPanelSaver, Bannister.Platforms.Android.AndroidPanelSaver>();
+#elif WINDOWS
+        builder.Services.AddSingleton<IPanelSaver, Bannister.Platforms.Windows.WindowsPanelSaver>();
+#endif
         builder.Services.AddSingleton<HomePopupPreferenceService>();
         builder.Services.AddSingleton<ListsService>();
         builder.Services.AddSingleton<CustomGameService>();

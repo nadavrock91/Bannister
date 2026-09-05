@@ -8,17 +8,20 @@ public class HooksHubPage : ContentPage
     private readonly HookWordService _hookWordService;
     private readonly CustomPromptService _customPrompts;
     private readonly CropPresetService _cropPresets;
+    private readonly IPanelSaver _panelSaver;
 
     public HooksHubPage(
         AuthService auth,
         HookWordService hookWordService,
         CustomPromptService customPrompts,
-        CropPresetService cropPresets)
+        CropPresetService cropPresets,
+        IPanelSaver panelSaver)
     {
         _auth = auth;
         _hookWordService = hookWordService;
         _customPrompts = customPrompts;
         _cropPresets = cropPresets;
+        _panelSaver = panelSaver;
 
         Title = "Hooks Creation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -117,6 +120,6 @@ public class HooksHubPage : ContentPage
     private async void OnTargetedHooksTapped(object? sender, TappedEventArgs e)
     {
         await Navigation.PushAsync(
-            new TargetedHooksPage(_auth, _customPrompts, _cropPresets));
+            new TargetedHooksPage(_auth, _customPrompts, _cropPresets, _panelSaver));
     }
 }

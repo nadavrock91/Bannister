@@ -8,6 +8,7 @@ public class TargetedHooksPage : ContentPage
     private readonly AuthService _auth;
     private readonly CustomPromptService _customPrompts;
     private readonly CropPresetService _cropPresets;
+    private readonly IPanelSaver _panelSaver;
     private Entry _promptEntry = null!;
     private Picker _favoritesPicker = null!;
     private Label _outputLabel = null!;
@@ -27,11 +28,13 @@ public class TargetedHooksPage : ContentPage
     public TargetedHooksPage(
         AuthService auth,
         CustomPromptService customPrompts,
-        CropPresetService cropPresets)
+        CropPresetService cropPresets,
+        IPanelSaver panelSaver)
     {
         _auth = auth;
         _customPrompts = customPrompts;
         _cropPresets = cropPresets;
+        _panelSaver = panelSaver;
         Title = "Targeted Hooks";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -65,7 +68,7 @@ public class TargetedHooksPage : ContentPage
         };
         cropperBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(
-                new GridCropperPage(_auth, _cropPresets));
+                new GridCropperPage(_auth, _cropPresets, _panelSaver));
         stack.Children.Add(cropperBtn);
         Content = new ScrollView { Content = stack };
     }

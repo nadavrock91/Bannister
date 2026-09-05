@@ -110,7 +110,14 @@ public class ImageProductionHubPage : ContentPage
             ?? throw new InvalidOperationException("CustomPromptService not available.");
         var cropPresets = services.GetService<CropPresetService>()
             ?? throw new InvalidOperationException("CropPresetService not available.");
+        var panelSaver = services.GetService<IPanelSaver>()
+            ?? throw new InvalidOperationException("IPanelSaver not available.");
         await Navigation.PushAsync(
-            new HooksHubPage(_auth, hookWordService, customPrompts, cropPresets));
+            new HooksHubPage(
+                _auth,
+                hookWordService,
+                customPrompts,
+                cropPresets,
+                panelSaver));
     }
 }
