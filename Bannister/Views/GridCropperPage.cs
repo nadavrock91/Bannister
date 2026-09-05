@@ -18,12 +18,21 @@ public class GridCropperPage : ContentPage
     private Label _previewLabel = null!;
     private Button _cropButton = null!;
     private Label _statusLabel = null!;
+    private Picker _presetPicker = null!;
+    private List<CropPreset> _presets = new();
+    private const string PresetsStorageKey = "grid_cropper_presets";
 
     public GridCropperPage()
     {
         Title = "Grid Cropper";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await LoadPresetsAsync();
     }
 
     private void BuildUI()
@@ -77,6 +86,99 @@ public class GridCropperPage : ContentPage
         _heightValueLabel = new Label { Text = "100 px", FontSize = 12, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End };
         hRow.Add(_heightValueLabel, 2, 0);
         v.Children.Add(hRow);
+
+        // Preset row
+        var presetRow = new HorizontalStackLayout { Spacing = 8 };
+
+        _presetPicker = new Picker
+        {
+            Title = "No presets saved",
+            HorizontalOptions = LayoutOptions.FillAndExpand,
+            BackgroundColor = Colors.White
+        };
+        _presetPicker.SelectedIndexChanged += (_, _) =>
+        {
+            if (_presetPicker.SelectedIndex < 0 ||
+                _presetPicker.SelectedIndex >= _presets.Count) return;
+            var p = _presets[_presetPicker.SelectedIndex];
+            // Apply preset values to sliders (clamp to current max)
+            _widthSlider.Value = Math.Min(p.W, _widthSlider.Maximum);
+            _heightSlider.Value = Math.Min(p.H, _heightSlider.Maximum);
+            // If image not yet picked, just store the values for later
+            _cellW = p.W;
+            _cellH = p.H;
+            _widthValueLabel.Text = $"{_cellW} px";
+            _heightValueLabel.Text = $"{_cellH} px";
+        };
+        presetRow.Children.Add(_presetPicker);
+
+        var savePresetBtn = new Button
+        {
+            Text = " Save Preset",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 12,
+            HeightRequest = 38,
+            Padding = new Thickness(10, 0)
+        };
+        savePresetBtn.Clicked += async (_, _) =>
+        {
+            string? name = await DisplayPromptAsync(
+                "Save Preset",
+                $"Name for {_cellW}×{_cellH}:",
+                "Save", "Cancel",
+                placeholder: "e.g. Instagram Square");
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            // Replace existing preset with same name if any
+            _presets.RemoveAll(p => p.Name.Equals(
+                name.Trim(), StringComparison.OrdinalIgnoreCase));
+            _presets.Add(new CropPreset
+            {
+                Name = name.Trim(),
+                W = _cellW,
+                H = _cellH
+            });
+            _presets = _presets
+                .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            await SavePresetsAsync();
+            RefreshPresetPicker();
+        };
+        presetRow.Children.Add(savePresetBtn);
+
+        var deletePresetBtn = new Button
+        {
+            Text = "✕",
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 38,
+            WidthRequest = 38,
+            Padding = 0
+        };
+        deletePresetBtn.Clicked += async (_, _) =>
+        {
+            if (_presetPicker.SelectedIndex < 0 ||
+                _presetPicker.SelectedIndex >= _presets.Count)
+            {
+                await DisplayAlert("No preset selected",
+                    "Select a preset from the list first.", "OK");
+                return;
+            }
+            var p = _presets[_presetPicker.SelectedIndex];
+            bool confirm = await DisplayAlert("Delete Preset",
+                $"Delete '{p.Name}'?", "Delete", "Cancel");
+            if (!confirm) return;
+            _presets.RemoveAt(_presetPicker.SelectedIndex);
+            await SavePresetsAsync();
+            RefreshPresetPicker();
+        };
+        presetRow.Children.Add(deletePresetBtn);
+
+        v.Children.Add(presetRow);
         v.Children.Add(new Label { Text = "Sliders activate after an image is picked.", FontSize = 11, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
         return v;
     }
@@ -216,10 +318,60 @@ public class GridCropperPage : ContentPage
         }
     }
 
+    private async Task LoadPresetsAsync()
+    {
+        try
+        {
+            var json = await SecureStorage.GetAsync(PresetsStorageKey);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                _presets = new();
+            }
+            else
+            {
+                _presets = System.Text.Json.JsonSerializer
+                    .Deserialize<List<CropPreset>>(json) ?? new();
+            }
+        }
+        catch
+        {
+            _presets = new();
+        }
+        RefreshPresetPicker();
+    }
+
+    private async Task SavePresetsAsync()
+    {
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(_presets);
+            await SecureStorage.SetAsync(PresetsStorageKey, json);
+        }
+        catch { }
+    }
+
+    private void RefreshPresetPicker()
+    {
+        _presetPicker.Items.Clear();
+        foreach (var p in _presets)
+            _presetPicker.Items.Add($"{p.Name} ({p.W}×{p.H})");
+        _presetPicker.Title = _presets.Count == 0
+            ? "No presets saved"
+            : "Load a preset…";
+        _presetPicker.SelectedIndex = -1;
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
         _sourceBitmap?.Dispose();
         _sourceBitmap = null;
+    }
+
+    private class CropPreset
+    {
+        public string Name { get; set; } = "";
+        public int W { get; set; }
+        public int H { get; set; }
     }
 }
