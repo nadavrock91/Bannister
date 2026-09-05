@@ -98,6 +98,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IPanelSaver, Bannister.Platforms.Windows.WindowsPanelSaver>();
 #endif
         builder.Services.AddSingleton<HomePopupPreferenceService>();
+        builder.Services.AddSingleton<HomeQuickAccessService>();
         builder.Services.AddSingleton<ListsService>();
         builder.Services.AddSingleton<CustomGameService>();
         builder.Services.AddSingleton<OpenAIKeyService>();

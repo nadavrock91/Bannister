@@ -12,6 +12,7 @@ public class HomePage : ContentPage
     private sealed record HomeNavButton(string Id, Button SourceButton);
 
     private readonly AuthService _auth;
+    private readonly HomeQuickAccessService _homeQuickAccess;
     private readonly GameService _games;
     private readonly DragonService _dragons;
     private readonly BackupService _backup;
@@ -114,6 +115,8 @@ public class HomePage : ContentPage
     private VerticalStackLayout _buttonSectionsStack;
     private List<HomeNavButton> _allHomeNavButtons = new();
     private List<HomeNavButton> _homeNavButtons = new();
+    private HashSet<string> _quickAccessCache =
+        new(StringComparer.OrdinalIgnoreCase);
     private Grid _loadingOverlay;
     private Label _loadingOverlayLabel;
     private Label _ownerModeStatusLabel;
@@ -135,7 +138,7 @@ public class HomePage : ContentPage
         AllowanceService allowanceService, PostponedTaskService postponedTaskService, QuickAccessActionService quickAccessService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
-        HomePopupPreferenceService popupPreferences, DeviceModeService deviceMode, EmotionService emotionService,
+        HomePopupPreferenceService popupPreferences, HomeQuickAccessService homeQuickAccess, DeviceModeService deviceMode, EmotionService emotionService,
         StatTrackerService statTracker)
     {
         _auth = auth;
@@ -184,6 +187,7 @@ public class HomePage : ContentPage
         _assetLibraryService = assetLibraryService;
         _assetThumbnailService = assetThumbnailService;
         _popupPreferences = popupPreferences;
+        _homeQuickAccess = homeQuickAccess;
         _deviceMode = deviceMode;
         _emotionService = emotionService;
         _statTracker = statTracker;
@@ -646,27 +650,19 @@ public class HomePage : ContentPage
         await RefreshOwnerModeUiAsync();
     }
 
-    private string GetQuickAccessPreferencesKey() => $"home_quick_access_{_auth.CurrentUsername}";
     private string GetPromptWrapLastInputKey(int actionId) => $"prompt_wrap_last_input_{_auth.CurrentUsername}_{actionId}";
 
     private HashSet<string> GetQuickAccessButtons()
     {
-        string stored = Preferences.Default.Get(GetQuickAccessPreferencesKey(), "");
-        return stored
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return _quickAccessCache;
     }
 
-    private void ToggleQuickAccess(string buttonId)
+    private async void ToggleQuickAccess(string buttonId)
     {
-        var quickAccess = GetQuickAccessButtons();
-        if (!quickAccess.Add(buttonId))
-        {
-            quickAccess.Remove(buttonId);
-        }
-
-        string stored = string.Join(",", quickAccess.OrderBy(id => id, StringComparer.OrdinalIgnoreCase));
-        Preferences.Default.Set(GetQuickAccessPreferencesKey(), stored);
+        await _homeQuickAccess.TogglePinAsync(
+            _auth.CurrentUsername, buttonId);
+        _quickAccessCache = await _homeQuickAccess
+            .GetPinnedButtonsAsync(_auth.CurrentUsername);
         RefreshButtonsLayout();
     }
 
@@ -884,6 +880,17 @@ public class HomePage : ContentPage
             _loadingOverlay.IsVisible = false;
 
             _lblWelcome.Text = $"Welcome, {_auth.CurrentUsername}";
+
+            // Migrate from Preferences on first load (one-time)
+            string legacyPref = Preferences.Default.Get(
+                $"home_quick_access_{_auth.CurrentUsername}", "");
+            await _homeQuickAccess.MigrateFromPreferencesAsync(
+                _auth.CurrentUsername, legacyPref);
+
+            // Load pinned buttons from SQLite
+            _quickAccessCache = await _homeQuickAccess
+                .GetPinnedButtonsAsync(_auth.CurrentUsername);
+
             await LoadDataAsync();
             if (!IsHomePromptRunActive(promptRunId)) return;
             bool homePromptShown = await ShowHomePromptManagerIfNeededAsync(promptRunId);
