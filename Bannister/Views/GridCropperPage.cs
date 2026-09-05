@@ -671,8 +671,9 @@ public class GridCropperPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _sourceBitmap?.Dispose();
-        _sourceBitmap = null;
+        // Do not dispose here — navigation to sub-pages (e.g. fullscreen)
+        // triggers OnDisappearing and would destroy the bitmap.
+        // Bitmap is disposed when a new image is picked or page is GC'd.
     }
 
 }
