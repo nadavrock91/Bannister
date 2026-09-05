@@ -1,4 +1,5 @@
 using Bannister.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bannister.Views;
 
@@ -101,9 +102,12 @@ public class ImageProductionHubPage : ContentPage
 
     private async void OnHooksCreationTapped(object? sender, TappedEventArgs e)
     {
-        var hookWordService = Application.Current?.Handler?.MauiContext?.Services
-            .GetService<HookWordService>()
+        var services = Application.Current?.Handler?.MauiContext?.Services
+            ?? throw new InvalidOperationException("Services not available.");
+        var hookWordService = services.GetService<HookWordService>()
             ?? throw new InvalidOperationException("HookWordService not available.");
-        await Navigation.PushAsync(new HooksHubPage(_auth, hookWordService));
+        var customPrompts = services.GetService<CustomPromptService>()
+            ?? throw new InvalidOperationException("CustomPromptService not available.");
+        await Navigation.PushAsync(new HooksHubPage(_auth, hookWordService, customPrompts));
     }
 }

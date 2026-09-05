@@ -6,11 +6,14 @@ public class HooksHubPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly HookWordService _hookWordService;
+    private readonly CustomPromptService _customPrompts;
 
-    public HooksHubPage(AuthService auth, HookWordService hookWordService)
+    public HooksHubPage(AuthService auth, HookWordService hookWordService,
+        CustomPromptService customPrompts)
     {
         _auth = auth;
         _hookWordService = hookWordService;
+        _customPrompts = customPrompts;
 
         Title = "Hooks Creation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -108,6 +111,6 @@ public class HooksHubPage : ContentPage
 
     private async void OnTargetedHooksTapped(object? sender, TappedEventArgs e)
     {
-        await Navigation.PushAsync(new TargetedHooksPage(_auth));
+        await Navigation.PushAsync(new TargetedHooksPage(_auth, _customPrompts));
     }
 }
