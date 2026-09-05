@@ -17,6 +17,11 @@ public class GridCropperPage : ContentPage
     private Label _widthValueLabel = null!;
     private Label _heightValueLabel = null!;
     private Image _previewImage = null!;
+    private Image _gridPreviewImage = null!;
+    private Label _gridPreviewLabel = null!;
+    private Label _cropPreviewHint = null!;
+    private Label _gridPreviewHint = null!;
+    private Label _gridHeaderLabel = null!;
     private Label _previewLabel = null!;
     private Button _cropButton = null!;
     private Label _statusLabel = null!;
@@ -190,11 +195,20 @@ public class GridCropperPage : ContentPage
 
     private View BuildStep3Content()
     {
-        var v = new VerticalStackLayout { Spacing = 10 };
+        var v = new VerticalStackLayout { Spacing = 14 };
+
+        // ── CROP PREVIEW ─────────────────────────────────────────────
+        v.Children.Add(new Label
+        {
+            Text = "Cell preview (top-left panel):",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#444")
+        });
 
         _previewLabel = new Label
         {
-            Text = "Pick an image and adjust sliders to see the top-left panel preview.",
+            Text = "Pick an image and adjust sliders to see the crop preview.",
             FontSize = 12,
             TextColor = Color.FromArgb("#666")
         };
@@ -202,13 +216,80 @@ public class GridCropperPage : ContentPage
 
         _previewImage = new Image
         {
-            HeightRequest = 240,
+            HeightRequest = 300,
             Aspect = Aspect.AspectFit,
             IsVisible = false,
-            HorizontalOptions = LayoutOptions.Center
+            HorizontalOptions = LayoutOptions.Fill
         };
+        var cropTap = new TapGestureRecognizer();
+        cropTap.Tapped += async (_, _) =>
+        {
+            if (_previewImage.Source == null || !_previewImage.IsVisible) return;
+            await Navigation.PushAsync(new FullScreenImagePage(_previewImage.Source));
+        };
+        _previewImage.GestureRecognizers.Add(cropTap);
         v.Children.Add(_previewImage);
+        v.Children.Add(new Label
+        {
+            Text = "Tap to fullscreen",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#999"),
+            FontAttributes = FontAttributes.Italic,
+            HorizontalOptions = LayoutOptions.Center,
+            IsVisible = false
+        });
 
+        // Store tap hint ref so we can show/hide it
+        // Use the last-added child approach: store as field
+        _cropPreviewHint = (Label)v.Children[v.Children.Count - 1];
+
+        // ── GRID PREVIEW ──────────────────────────────────────────────
+        v.Children.Add(new Label
+        {
+            Text = "Grid preview (full image with numbered cells):",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#444"),
+            IsVisible = false
+        });
+        _gridHeaderLabel = (Label)v.Children[v.Children.Count - 1];
+
+        _gridPreviewLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            IsVisible = false
+        };
+        v.Children.Add(_gridPreviewLabel);
+
+        _gridPreviewImage = new Image
+        {
+            HeightRequest = 400,
+            Aspect = Aspect.AspectFit,
+            IsVisible = false,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        var gridTap = new TapGestureRecognizer();
+        gridTap.Tapped += async (_, _) =>
+        {
+            if (_gridPreviewImage.Source == null || !_gridPreviewImage.IsVisible) return;
+            await Navigation.PushAsync(new FullScreenImagePage(_gridPreviewImage.Source));
+        };
+        _gridPreviewImage.GestureRecognizers.Add(gridTap);
+        v.Children.Add(_gridPreviewImage);
+        v.Children.Add(new Label
+        {
+            Text = "Tap to fullscreen",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#999"),
+            FontAttributes = FontAttributes.Italic,
+            HorizontalOptions = LayoutOptions.Center,
+            IsVisible = false
+        });
+        _gridPreviewHint = (Label)v.Children[v.Children.Count - 1];
+
+        // ── SELECTION GRID ────────────────────────────────────────────
         _selectionHeader = new Label
         {
             Text = "Select panels to crop:",
@@ -234,10 +315,12 @@ public class GridCropperPage : ContentPage
                 var btn = new Button
                 {
                     Text = panelNumber.ToString(),
-                    FontSize = 13,
-                    HeightRequest = 44,
-                    CornerRadius = 6,
+                    FontSize = 16,
+                    FontAttributes = FontAttributes.Bold,
+                    HeightRequest = 64,
+                    CornerRadius = 8,
                     Padding = 0,
+                    HorizontalOptions = LayoutOptions.Fill,
                     BackgroundColor = Color.FromArgb("#E0E0E0"),
                     TextColor = Color.FromArgb("#444")
                 };
@@ -363,19 +446,93 @@ public class GridCropperPage : ContentPage
     private void UpdatePreview()
     {
         if (_sourceBitmap == null) return;
+
         int safeW = Math.Max(1, Math.Min(_cellW, _sourceBitmap.Width));
         int safeH = Math.Max(1, Math.Min(_cellH, _sourceBitmap.Height));
-        var srcRect = new SKRectI(0, 0, safeW, safeH);
-        var cropped = new SKBitmap(safeW, safeH);
-        using var canvas = new SKCanvas(cropped);
-        canvas.DrawBitmap(_sourceBitmap, srcRect, new SKRect(0, 0, safeW, safeH));
-        using var image = SKImage.FromBitmap(cropped);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        var bytes = data.ToArray();
-        cropped.Dispose();
-        _previewImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
-        _previewImage.IsVisible = true;
-        _previewLabel.Text = $"Preview: top-left panel at {safeW} × {safeH} px";
+
+        // ── Crop preview: top-left cell ───────────────────────────────
+        {
+            var srcRect = new SKRectI(0, 0, safeW, safeH);
+            using var cropped = new SKBitmap(safeW, safeH);
+            using var canvas = new SKCanvas(cropped);
+            canvas.DrawBitmap(_sourceBitmap, srcRect,
+                new SKRect(0, 0, safeW, safeH));
+            using var image = SKImage.FromBitmap(cropped);
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            var bytes = data.ToArray();
+            _previewImage.Source = ImageSource.FromStream(
+                () => new MemoryStream(bytes));
+            _previewImage.IsVisible = true;
+            _cropPreviewHint.IsVisible = true;
+            _previewLabel.Text =
+                $"Top-left panel: {safeW} × {safeH} px";
+        }
+
+        // ── Grid preview: full image with grid lines and numbers ───────
+        {
+            int imgW = _sourceBitmap.Width;
+            int imgH = _sourceBitmap.Height;
+
+            using var gridBmp = new SKBitmap(imgW, imgH);
+            using var gridCanvas = new SKCanvas(gridBmp);
+            gridCanvas.DrawBitmap(_sourceBitmap, 0, 0);
+
+            // Draw grid lines
+            using var linePaint = new SKPaint
+            {
+                Color = new SKColor(255, 255, 255, 200),
+                StrokeWidth = 2,
+                IsAntialias = true,
+                Style = SKPaintStyle.Stroke
+            };
+            for (int col = 1; col < Cols; col++)
+                gridCanvas.DrawLine(col * safeW, 0, col * safeW, imgH, linePaint);
+            for (int row = 1; row < Rows; row++)
+                gridCanvas.DrawLine(0, row * safeH, imgW, row * safeH, linePaint);
+
+            // Draw panel numbers
+            using var textPaint = new SKPaint
+            {
+                Color = SKColors.White,
+                TextSize = Math.Max(20, safeW / 8f),
+                IsAntialias = true,
+                FakeBoldText = true
+            };
+            using var shadowPaint = new SKPaint
+            {
+                Color = new SKColor(0, 0, 0, 180),
+                TextSize = textPaint.TextSize,
+                IsAntialias = true,
+                FakeBoldText = true
+            };
+            int panel = 1;
+            for (int row = 0; row < Rows; row++)
+            {
+                for (int col = 0; col < Cols; col++)
+                {
+                    float tx = col * safeW + safeW * 0.08f;
+                    float ty = row * safeH + textPaint.TextSize + safeH * 0.05f;
+                    // Shadow
+                    gridCanvas.DrawText(panel.ToString(), tx + 2, ty + 2, shadowPaint);
+                    // Text
+                    gridCanvas.DrawText(panel.ToString(), tx, ty, textPaint);
+                    panel++;
+                }
+            }
+
+            using var gridImage = SKImage.FromBitmap(gridBmp);
+            using var gridData = gridImage.Encode(SKEncodedImageFormat.Png, 90);
+            var gridBytes = gridData.ToArray();
+            _gridPreviewImage.Source = ImageSource.FromStream(
+                () => new MemoryStream(gridBytes));
+            _gridPreviewImage.IsVisible = true;
+            _gridPreviewHint.IsVisible = true;
+            _gridPreviewLabel.Text =
+                $"Full grid: {imgW} × {imgH} px — {Cols}×{Rows} cells";
+            _gridPreviewLabel.IsVisible = true;
+            _gridHeaderLabel.IsVisible = true;
+        }
+
         _selectionHeader.IsVisible = true;
         _selectionGrid.IsVisible = true;
         _selectAllRow.IsVisible = true;

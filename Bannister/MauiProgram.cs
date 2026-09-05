@@ -183,6 +183,7 @@ public static class MauiProgram
         builder.Services.AddTransient<HooksFromRandomWordsPage>();
         builder.Services.AddTransient<TargetedHooksPage>();
         builder.Services.AddTransient<GridCropperPage>();
+        builder.Services.AddTransient<FullScreenImagePage>();
         builder.Services.AddTransient<HomePopupsSettingsPage>();
         builder.Services.AddTransient<MoneyManagementHubPage>();
         builder.Services.AddTransient<MoneyManagementPage>();
