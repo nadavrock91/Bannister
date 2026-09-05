@@ -262,6 +262,7 @@ Output ONLY the C# code block.
     private readonly Button _copyBatchPromptButton;
     private readonly Button _pasteTaskPlanButton;
     private readonly Button _cleanTaskPlanButton;
+    private Button _pasteCleanedPlanButton = null!;
     private readonly Button _cancelWorkflowButton;
     private readonly Button _skipStepButton;
     private readonly Button _manualTaskButton;
@@ -594,6 +595,18 @@ Output ONLY the C# code block.
             IsVisible = false
         };
         _cleanTaskPlanButton.Clicked += async (_, _) => await ShowCleanTaskPlanAsync();
+
+        _pasteCleanedPlanButton = new Button
+        {
+            Text = "Paste Cleaned Plan",
+            BackgroundColor = Color.FromArgb("#EDE7F6"),
+            TextColor = Color.FromArgb("#4A148C"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13,
+            IsVisible = false
+        };
+        _pasteCleanedPlanButton.Clicked += async (_, _) => await PasteCleanedPlanAsync();
 
         _skipStepButton = new Button
         {
@@ -1023,6 +1036,7 @@ Output ONLY the C# code block.
                     _stuckAnalysisStepRow,
                     _pasteTaskPlanButton,
                     _cleanTaskPlanButton,
+                    _pasteCleanedPlanButton,
                     _copyCodexPromptButton,
                     _pasteCodexResultButton,
                     _editTaskTitleButton,
@@ -2208,6 +2222,7 @@ Output ONLY the C# code block.
         _utilityButtonRow.IsVisible = false;
         _pasteTaskPlanButton.IsVisible = false;
         _cleanTaskPlanButton.IsVisible = false;
+        _pasteCleanedPlanButton.IsVisible = false;
         _cancelWorkflowButton.IsVisible = false;
         _skipStepButton.IsVisible = false;
         _copyCodexPromptButton.IsVisible = false;
@@ -2237,6 +2252,7 @@ Output ONLY the C# code block.
                 ApplyWorkflowBanner("#FFF8E1", "#F57C00", "#E65100", "🟠", "Ready to execute in Codex",
                     $"Task: {project.PendingTaskTitle}. Copy the Codex prompt, run it in Codex, then paste the result.");
                 _cleanTaskPlanButton.IsVisible = true;
+                _pasteCleanedPlanButton.IsVisible = true;
                 _copyCodexPromptButton.IsVisible = true;
                 _pasteCodexResultButton.IsVisible = true;
                 _editTaskTitleButton.IsVisible = true;
@@ -3942,13 +3958,24 @@ Output ONLY the C# code block.
 
         await Clipboard.SetTextAsync(validationPrompt.ToString() + BuildConstraintsBlock(project));
 
+        await DisplayAlert("Cleaning Prompt Copied",
+            "Paste into Claude or ChatGPT. When it returns the cleaned plan, tap 'Paste Cleaned Plan'.",
+            "OK");
+    }
+
+    private async Task PasteCleanedPlanAsync()
+    {
+        var project = await GetCurrentProjectOrAlertAsync();
+        if (project == null) return;
+
         var cleanedPlan = await ShowMultilineEditorAsync(
-            "Clean Task Plan",
-            "Cleaning prompt copied to clipboard. Paste into a second LLM.\n\nPaste the cleaned plan back here (or type SKIP to use the original):",
+            "Paste Cleaned Plan",
+            "Paste the cleaned plan from the LLM (or type SKIP to keep the original, EMPTY to reset workflow):",
             "",
             "Paste cleaned plan or type SKIP...");
 
-        if (string.IsNullOrWhiteSpace(cleanedPlan) || cleanedPlan.Trim().Equals("SKIP", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(cleanedPlan) ||
+            cleanedPlan.Trim().Equals("SKIP", StringComparison.OrdinalIgnoreCase))
             return;
 
         if (cleanedPlan.Trim().Equals("EMPTY", StringComparison.OrdinalIgnoreCase))
@@ -3967,13 +3994,21 @@ Output ONLY the C# code block.
 
         var cleanedParsed = ParseBatchTaskResponse(cleanedPlan);
         if (cleanedParsed == null)
+        {
+            await DisplayAlert("Could not parse",
+                "Could not parse the cleaned plan. Expected ARC TITLE: and CODEX PROMPT: sections.",
+                "OK");
             return;
+        }
 
         try
         {
             await _projectService.SetPendingTaskTitleAsync(project.Id, cleanedParsed.Value.ArcTitle);
             await _projectService.SetPendingCodexPromptAsync(project.Id, cleanedParsed.Value.CodexPrompt);
             await RefreshCurrentProjectAsync();
+            await DisplayAlert("Plan Updated",
+                "Cleaned plan saved. Copy Codex Prompt now has the updated prompt.",
+                "OK");
         }
         catch (ReadOnlyDatabaseException)
         {

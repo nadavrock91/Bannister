@@ -1,0 +1,26 @@
+2026-09-02 05:30:29: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-09-02 05:30:29: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-09-02 05:30:33: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-09-02 05:30:36: Changes: 4, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 23520
+2026-09-02 05:30:36: Left to Right: Copy File: 4 
+2026-09-02 05:30:36: == Sync Started by On Schedule Min=30 Hour=5 
+2026-09-02 05:30:36: ConnectCloned connected to file:///C:/rock/bannister
+2026-09-02 05:30:36: ConnectCloned connected to file:///C:/rock/bannister
+2026-09-02 05:30:36: ConnectCloned connected to file:///C:/rock/bannister
+2026-09-02 05:30:36: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-09-02 05:30:36: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-09-02 05:30:36: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-09-02 05:30:42: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (17,899)
+2026-09-02 05:30:42: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (17,899)
+2026-09-02 05:30:42: C:/rock/bannister/.vs/Bannister/v18/.suo: Source file has changed between Analyze and Sync from '[file] size=88,064 accu-time=2026-09-02 05:30:29 attr=Hidden,Archive,WArchive,WHidden cktype=0' to 'size=88,064 time=2026-09-02 05:30:30', noted in source file state
+2026-09-02 05:30:42: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (88,064)
+2026-09-02 05:30:48: C:/rock/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe: Source file has changed between Analyze and Sync from '[file] size=72,682 accu-time=2026-09-02 05:30:29 attr=Archive,WArchive cktype=0' to 'size=72,682 time=2026-09-02 05:30:41', noted in source file state
+2026-09-02 05:30:48: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (72,682)
+2026-09-02 05:30:48: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-09-02 05:30:51: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-09-02 05:30:52: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/064065fa-3c5c-4ac7-8464-da2cbeaef11f.vsidx
+2026-09-02 05:30:52: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/4f14bb2a-7b5c-4037-8fd5-fe9108c2d90d.vsidx
+2026-09-02 05:30:53: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Services/NewHabitService.cs
+2026-09-02 05:30:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Services/WebsiteProjectService.cs
+2026-09-02 05:30:55: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Views/WebsiteBuilderSetupGuidePage.cs
+2026-09-02 05:30:59: == Sync Complete. Time: 00:00:23, Speed: 13.10 KB/s, OK: 4, Errors: 0

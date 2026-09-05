@@ -11,7 +11,6 @@ public class DesignationsPage : ContentPage
 
     private Picker _systemPicker;
     private Picker _statusPicker;
-    private VerticalStackLayout _toolbarContainer;
     private VerticalStackLayout _gridContainer;
     private Label _statusLabel;
 
@@ -41,7 +40,6 @@ public class DesignationsPage : ContentPage
         {
             RowDefinitions =
             {
-                new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Star }
             }
@@ -147,17 +145,10 @@ public class DesignationsPage : ContentPage
         header.Children.Add(filterRow);
         mainGrid.Add(header, 0, 0);
 
-        _toolbarContainer = new VerticalStackLayout
-        {
-            Padding = new Thickness(12, 0, 12, 4),
-            Spacing = 4
-        };
-        mainGrid.Add(_toolbarContainer, 0, 1);
-
         var scrollView = new ScrollView { Orientation = ScrollOrientation.Both };
         _gridContainer = new VerticalStackLayout { Padding = new Thickness(12, 4), Spacing = 4 };
         scrollView.Content = _gridContainer;
-        mainGrid.Add(scrollView, 0, 2);
+        mainGrid.Add(scrollView, 0, 1);
 
         Content = mainGrid;
     }
@@ -215,7 +206,6 @@ public class DesignationsPage : ContentPage
 
     private async Task LoadDesignationsAsync()
     {
-        _toolbarContainer.Children.Clear();
         _gridContainer.Children.Clear();
         _selectedDesignation = null;
 
@@ -239,7 +229,6 @@ public class DesignationsPage : ContentPage
 
     private void BuildDataGrid()
     {
-        _toolbarContainer.Children.Clear();
         _gridContainer.Children.Clear();
 
         if (_selectedSystem == null)
@@ -291,10 +280,10 @@ public class DesignationsPage : ContentPage
                     _selectedDesignation = _currentDesignations[e.RowIndex];
             })
             .WithUpdateCallback(UpdateDesignationGridCellAsync)
+            .WithSorting()
             .Build();
 
-        _toolbarContainer.Children.Add(dataGrid.ToolbarView);
-        _gridContainer.Children.Add(dataGrid.GridView);
+        _gridContainer.Children.Add(dataGrid);
     }
 
     private static List<string> BuildDesignationRow(Designation designation)
