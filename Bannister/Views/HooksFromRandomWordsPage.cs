@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bannister.Views;
 
-public class HooksCreationPage : ContentPage
+public class HooksFromRandomWordsPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly HookWordService _hookWordService;
@@ -121,14 +121,14 @@ PICKED WORD: ...
 Continue through 20. No preamble, no commentary, no closing remark — just the 20 numbered blocks.
 """;
 
-    public HooksCreationPage(AuthService auth, HookWordService? hookWordService = null)
+    public HooksFromRandomWordsPage(AuthService auth, HookWordService? hookWordService = null)
     {
         _auth = auth;
         _hookWordService = hookWordService
             ?? Application.Current?.Handler?.MauiContext?.Services.GetService<HookWordService>()
             ?? throw new InvalidOperationException("HookWordService is not available.");
 
-        Title = "Hooks Creation";
+        Title = "Hooks from Random Words";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
     }
@@ -150,7 +150,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             {
                 new Label
                 {
-                    Text = "🪝 Hooks Creation",
+                    Text = "🪝 Hooks from Random Words",
                     FontSize = 22,
                     FontAttributes = FontAttributes.Bold,
                     TextColor = Color.FromArgb("#222")

@@ -2,17 +2,17 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ImageProductionHubPage : ContentPage
+public class HooksHubPage : ContentPage
 {
     private readonly AuthService _auth;
-    private readonly DatabaseService _db;
+    private readonly HookWordService _hookWordService;
 
-    public ImageProductionHubPage(AuthService auth, DatabaseService db)
+    public HooksHubPage(AuthService auth, HookWordService hookWordService)
     {
         _auth = auth;
-        _db = db;
+        _hookWordService = hookWordService;
 
-        Title = "Image Production";
+        Title = "Hooks Creation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
         var stack = new VerticalStackLayout
@@ -23,20 +23,27 @@ public class ImageProductionHubPage : ContentPage
             {
                 new Label
                 {
-                    Text = "🎨 Image Production",
+                    Text = " Hooks Creation",
                     FontSize = 26,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#C62828"),
+                    TextColor = Color.FromArgb("#222"),
+                    HorizontalOptions = LayoutOptions.Center
+                },
+                new Label
+                {
+                    Text = "Choose a hook generation workflow.",
+                    FontSize = 14,
+                    TextColor = Color.FromArgb("#666"),
                     HorizontalOptions = LayoutOptions.Center
                 },
                 CreateHubCard(
-                    "Project Images",
-                    "Project-based image prompt workflows (Hook First Frame, Clip Start Frame)",
-                    OnProjectImagesTapped),
+                    "Hooks from Random Words",
+                    "4-stage variety amplifier using your persistent random word pool.",
+                    OnRandomWordsTapped),
                 CreateHubCard(
-                    "Hooks Creation",
-                    "Standalone scroll-stopping hook image prompt generator",
-                    OnHooksCreationTapped)
+                    "Targeted Hooks",
+                    "Generate scroll-stopping hooks for a specific topic or niche.",
+                    OnTargetedHooksTapped)
             }
         };
 
@@ -76,7 +83,7 @@ public class ImageProductionHubPage : ContentPage
         {
             Text = "→",
             FontSize = 24,
-            TextColor = Color.FromArgb("#C62828"),
+            TextColor = Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.Center
         }, 1, 0);
 
@@ -94,16 +101,13 @@ public class ImageProductionHubPage : ContentPage
         return frame;
     }
 
-    private async void OnProjectImagesTapped(object? sender, TappedEventArgs e)
+    private async void OnRandomWordsTapped(object? sender, TappedEventArgs e)
     {
-        await Navigation.PushAsync(new ImageProductionPage(_auth, new ImageProductionService(_db)));
+        await Navigation.PushAsync(new HooksFromRandomWordsPage(_auth, _hookWordService));
     }
 
-    private async void OnHooksCreationTapped(object? sender, TappedEventArgs e)
+    private async void OnTargetedHooksTapped(object? sender, TappedEventArgs e)
     {
-        var hookWordService = Application.Current?.Handler?.MauiContext?.Services
-            .GetService<HookWordService>()
-            ?? throw new InvalidOperationException("HookWordService not available.");
-        await Navigation.PushAsync(new HooksHubPage(_auth, hookWordService));
+        await Navigation.PushAsync(new TargetedHooksPage(_auth));
     }
 }
