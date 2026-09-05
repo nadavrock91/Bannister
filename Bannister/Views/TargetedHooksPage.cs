@@ -47,6 +47,20 @@ public class TargetedHooksPage : ContentPage
         stack.Children.Add(BuildStage1Section());
         stack.Children.Add(BuildSuffixSection());
         stack.Children.Add(BuildOutputSection());
+        // Grid Cropper tool
+        var cropperBtn = new Button
+        {
+            Text = " Open Grid Cropper",
+            BackgroundColor = Color.FromArgb("#37474F"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 14,
+            HeightRequest = 44,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        cropperBtn.Clicked += async (_, _) =>
+            await Navigation.PushAsync(new GridCropperPage());
+        stack.Children.Add(cropperBtn);
         Content = new ScrollView { Content = stack };
     }
 
