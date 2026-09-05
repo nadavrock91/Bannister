@@ -25,6 +25,14 @@ public class GridCropperPage : ContentPage
     private readonly CropPresetService _presetService;
     private readonly string _username;
     private readonly IPanelSaver _panelSaver;
+    private const int Cols = 4;
+    private const int Rows = 5;
+    private readonly bool[,] _selected = new bool[5, 4];
+    private readonly Button[,] _selectionButtons = new Button[5, 4];
+    private Grid _selectionGrid = null!;
+    private Label _selectionHeader = null!;
+    private HorizontalStackLayout _selectAllRow = null!;
+    private Label _selectionHintLabel = null!;
 
     public GridCropperPage(
         AuthService auth,
@@ -183,13 +191,138 @@ public class GridCropperPage : ContentPage
     private View BuildStep3Content()
     {
         var v = new VerticalStackLayout { Spacing = 10 };
-        _previewLabel = new Label { Text = "Pick an image and adjust sliders to see the top-left panel preview.", FontSize = 12, TextColor = Color.FromArgb("#666") };
+
+        _previewLabel = new Label
+        {
+            Text = "Pick an image and adjust sliders to see the top-left panel preview.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        };
         v.Children.Add(_previewLabel);
-        _previewImage = new Image { HeightRequest = 240, Aspect = Aspect.AspectFit, IsVisible = false, HorizontalOptions = LayoutOptions.Center };
+
+        _previewImage = new Image
+        {
+            HeightRequest = 240,
+            Aspect = Aspect.AspectFit,
+            IsVisible = false,
+            HorizontalOptions = LayoutOptions.Center
+        };
         v.Children.Add(_previewImage);
-        _cropButton = new Button { Text = "✂️ Crop & Save 20 Panels", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold, IsVisible = false };
+
+        _selectionHeader = new Label
+        {
+            Text = "Select panels to crop:",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#444"),
+            IsVisible = false
+        };
+        v.Children.Add(_selectionHeader);
+
+        _selectionGrid = new Grid { ColumnSpacing = 4, RowSpacing = 4, IsVisible = false };
+        for (int c = 0; c < Cols; c++)
+            _selectionGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        for (int r = 0; r < Rows; r++)
+            _selectionGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+
+        for (int r = 0; r < Rows; r++)
+        {
+            for (int c = 0; c < Cols; c++)
+            {
+                int panelNumber = r * Cols + c + 1;
+                int capturedR = r, capturedC = c;
+                var btn = new Button
+                {
+                    Text = panelNumber.ToString(),
+                    FontSize = 13,
+                    HeightRequest = 44,
+                    CornerRadius = 6,
+                    Padding = 0,
+                    BackgroundColor = Color.FromArgb("#E0E0E0"),
+                    TextColor = Color.FromArgb("#444")
+                };
+                btn.Clicked += (_, _) =>
+                {
+                    _selected[capturedR, capturedC] = !_selected[capturedR, capturedC];
+                    ApplyButtonStyle(btn, _selected[capturedR, capturedC]);
+                    UpdateSelectionHint();
+                };
+                _selectionButtons[r, c] = btn;
+                _selectionGrid.Add(btn, c, r);
+            }
+        }
+        v.Children.Add(_selectionGrid);
+
+        _selectAllRow = new HorizontalStackLayout { Spacing = 8, IsVisible = false };
+
+        var selectAllBtn = new Button
+        {
+            Text = "Select All",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 12,
+            HeightRequest = 36,
+            Padding = new Thickness(12, 0)
+        };
+        selectAllBtn.Clicked += (_, _) =>
+        {
+            for (int r = 0; r < Rows; r++)
+                for (int c = 0; c < Cols; c++)
+                {
+                    _selected[r, c] = true;
+                    ApplyButtonStyle(_selectionButtons[r, c], true);
+                }
+            UpdateSelectionHint();
+        };
+        _selectAllRow.Children.Add(selectAllBtn);
+
+        var deselectAllBtn = new Button
+        {
+            Text = "Deselect All",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            FontSize = 12,
+            HeightRequest = 36,
+            Padding = new Thickness(12, 0)
+        };
+        deselectAllBtn.Clicked += (_, _) =>
+        {
+            for (int r = 0; r < Rows; r++)
+                for (int c = 0; c < Cols; c++)
+                {
+                    _selected[r, c] = false;
+                    ApplyButtonStyle(_selectionButtons[r, c], false);
+                }
+            UpdateSelectionHint();
+        };
+        _selectAllRow.Children.Add(deselectAllBtn);
+        v.Children.Add(_selectAllRow);
+
+        _selectionHintLabel = new Label
+        {
+            Text = "No panels selected.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#999"),
+            IsVisible = false
+        };
+        v.Children.Add(_selectionHintLabel);
+
+        _cropButton = new Button
+        {
+            Text = "✂️ Crop & Save Selected Panels",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 14,
+            HeightRequest = 44,
+            FontAttributes = FontAttributes.Bold,
+            IsVisible = false
+        };
         _cropButton.Clicked += async (_, _) => await CropAndSaveAsync();
         v.Children.Add(_cropButton);
+
         return v;
     }
 
@@ -243,39 +376,54 @@ public class GridCropperPage : ContentPage
         _previewImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
         _previewImage.IsVisible = true;
         _previewLabel.Text = $"Preview: top-left panel at {safeW} × {safeH} px";
-        _cropButton.IsVisible = true;
+        _selectionHeader.IsVisible = true;
+        _selectionGrid.IsVisible = true;
+        _selectAllRow.IsVisible = true;
+        _selectionHintLabel.IsVisible = true;
+        UpdateSelectionHint();
         _statusLabel.IsVisible = false;
     }
 
     private async Task CropAndSaveAsync()
     {
         if (_sourceBitmap == null || _sourceFilePath == null) return;
+
+        bool anySelected = false;
+        for (int r = 0; r < Rows; r++)
+            for (int c = 0; c < Cols; c++)
+                if (_selected[r, c]) { anySelected = true; break; }
+        if (!anySelected)
+        {
+            await DisplayAlert("Nothing to crop",
+                "Select at least one panel first.", "OK");
+            return;
+        }
+
         int safeW = Math.Max(1, Math.Min(_cellW, _sourceBitmap.Width));
         int safeH = Math.Max(1, Math.Min(_cellH, _sourceBitmap.Height));
         var sourceDir = System.IO.Path.GetDirectoryName(_sourceFilePath) ?? ".";
         var outputDir = System.IO.Path.Combine(sourceDir, "cropped_panels");
+
         _cropButton.IsEnabled = false;
         _cropButton.Text = "Cropping…";
         try
         {
-            // Collect all panel bytes in background
             var panels = await Task.Run(() =>
             {
-                const int cols = 4;
-                const int rows = 5;
                 var result = new List<(string FileName, byte[] Bytes)>();
-                int panel = 1;
-
-                for (int row = 0; row < rows; row++)
+                for (int row = 0; row < Rows; row++)
                 {
-                    for (int col = 0; col < cols; col++)
+                    for (int col = 0; col < Cols; col++)
                     {
+                        if (!_selected[row, col]) continue;
+
+                        int panelNumber = row * Cols + col + 1;
                         int x = col * safeW;
                         int y = row * safeH;
 
                         int actualW = Math.Min(safeW, _sourceBitmap.Width - x);
                         int actualH = Math.Min(safeH, _sourceBitmap.Height - y);
-                        if (actualW <= 0 || actualH <= 0) break;
+                        if (actualW <= 0 || actualH <= 0) continue;
 
                         var srcRect = new SKRectI(x, y, x + actualW, y + actualH);
                         using var cropped = new SKBitmap(safeW, safeH);
@@ -286,16 +434,20 @@ public class GridCropperPage : ContentPage
 
                         using var image = SKImage.FromBitmap(cropped);
                         using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
-                        result.Add(($"panel_{panel:D2}.png", encoded.ToArray()));
-                        panel++;
+                        result.Add(($"panel_{panelNumber:D2}.png", encoded.ToArray()));
                     }
                 }
                 return result;
             });
 
-            // Save via platform saver
-            string savedLocation = await _panelSaver.SavePanelsAsync(
-                panels, outputDir);
+            if (panels.Count == 0)
+            {
+                await DisplayAlert("Nothing to crop",
+                    "No valid panels could be cropped.", "OK");
+                return;
+            }
+
+            string savedLocation = await _panelSaver.SavePanelsAsync(panels, outputDir);
 
             _statusLabel.Text = $"✓ {panels.Count} panels saved to:\n{savedLocation}";
             _statusLabel.TextColor = Color.FromArgb("#2E7D32");
@@ -314,8 +466,32 @@ public class GridCropperPage : ContentPage
         finally
         {
             _cropButton.IsEnabled = true;
-            _cropButton.Text = "✂️ Crop & Save 20 Panels";
+            _cropButton.Text = "✂️ Crop & Save Selected Panels";
         }
+    }
+
+    private static void ApplyButtonStyle(Button btn, bool selected)
+    {
+        btn.BackgroundColor = selected
+            ? Color.FromArgb("#1565C0")
+            : Color.FromArgb("#E0E0E0");
+        btn.TextColor = selected ? Colors.White : Color.FromArgb("#444");
+    }
+
+    private void UpdateSelectionHint()
+    {
+        int count = 0;
+        for (int r = 0; r < Rows; r++)
+            for (int c = 0; c < Cols; c++)
+                if (_selected[r, c]) count++;
+
+        _selectionHintLabel.Text = count == 0
+            ? "No panels selected."
+            : $"{count} panel{(count == 1 ? "" : "s")} selected.";
+        _selectionHintLabel.TextColor = count == 0
+            ? Color.FromArgb("#999")
+            : Color.FromArgb("#1565C0");
+        _cropButton.IsVisible = count > 0;
     }
 
     private async Task LoadPresetsAsync()
