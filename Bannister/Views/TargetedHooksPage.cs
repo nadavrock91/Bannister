@@ -9,7 +9,7 @@ public class TargetedHooksPage : ContentPage
     private readonly CustomPromptService _customPrompts;
     private readonly CropPresetService _cropPresets;
     private readonly IPanelSaver _panelSaver;
-    private Entry _promptEntry = null!;
+    private Editor _promptEntry = null!;
     private Picker _favoritesPicker = null!;
     private Label _outputLabel = null!;
     private Button _copyOutputButton = null!;
@@ -81,7 +81,16 @@ public class TargetedHooksPage : ContentPage
         _favoritesPicker = new Picker { Title = "Choose from favourites…", BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222"), TitleColor = Color.FromArgb("#999") };
         _favoritesPicker.SelectedIndexChanged += OnFavouriteSelected;
         sectionStack.Children.Add(_favoritesPicker);
-        _promptEntry = new Entry { Placeholder = "e.g. A lone astronaut discovering an alien forest at dawn", BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222"), PlaceholderColor = Color.FromArgb("#999"), FontSize = 14, ClearButtonVisibility = ClearButtonVisibility.WhileEditing };
+        _promptEntry = new Editor
+        {
+            Placeholder = "e.g. A lone astronaut discovering an alien forest at dawn",
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            FontSize = 14,
+            HeightRequest = 120,
+            AutoSize = EditorAutoSizeOption.TextChanges
+        };
         sectionStack.Children.Add(_promptEntry);
         var actionRow = new HorizontalStackLayout { Spacing = 10 };
         var addFavBtn = new Button { Text = "★ Add to Favourites", BackgroundColor = Color.FromArgb("#FFF8E1"), TextColor = Color.FromArgb("#F57F17"), CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) };
