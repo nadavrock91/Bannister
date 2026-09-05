@@ -592,6 +592,7 @@ public class GridCropperPage : ContentPage
 
         _cropButton.IsEnabled = false;
         _cropButton.Text = "Cropping…";
+        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         try
         {
             var panels = await Task.Run(() =>
@@ -620,7 +621,8 @@ public class GridCropperPage : ContentPage
 
                         using var image = SKImage.FromBitmap(cropped);
                         using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
-                        result.Add(($"panel_{panelNumber:D2}.png", encoded.ToArray()));
+                        result.Add(($"panel_{panelNumber:D2}_{timestamp}.png",
+                            encoded.ToArray()));
                     }
                 }
                 return result;
