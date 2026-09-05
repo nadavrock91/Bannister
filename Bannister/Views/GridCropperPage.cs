@@ -162,18 +162,39 @@ public class GridCropperPage : ContentPage
         {
             await Task.Run(() =>
             {
-                var srcRect = new SKRectI(0, 0, safeW, safeH);
-                using var cropped = new SKBitmap(safeW, safeH);
-                using var cropCanvas = new SKCanvas(cropped);
-                cropCanvas.DrawBitmap(_sourceBitmap, srcRect, new SKRect(0, 0, safeW, safeH));
-                using var image = SKImage.FromBitmap(cropped);
-                using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
-                var bytes = encoded.ToArray();
-                for (int i = 1; i <= 20; i++)
+                // Walk 4 columns x 5 rows = 20 panels
+                const int cols = 4;
+                const int rows = 5;
+                int panel = 1;
+
+                for (int row = 0; row < rows; row++)
                 {
-                    var fileName = $"panel_{i:D2}.png";
-                    var filePath = System.IO.Path.Combine(outputDir, fileName);
-                    File.WriteAllBytes(filePath, bytes);
+                    for (int col = 0; col < cols; col++)
+                    {
+                        int x = col * safeW;
+                        int y = row * safeH;
+
+                        // Clamp to image bounds
+                        int actualW = Math.Min(safeW, _sourceBitmap.Width - x);
+                        int actualH = Math.Min(safeH, _sourceBitmap.Height - y);
+                        if (actualW <= 0 || actualH <= 0) break;
+
+                        var srcRect = new SKRectI(x, y, x + actualW, y + actualH);
+                        using var cropped = new SKBitmap(safeW, safeH);
+                        using var cropCanvas = new SKCanvas(cropped);
+                        cropCanvas.Clear(SKColors.Black);
+                        cropCanvas.DrawBitmap(_sourceBitmap, srcRect,
+                            new SKRect(0, 0, actualW, actualH));
+
+                        using var image = SKImage.FromBitmap(cropped);
+                        using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
+                        var bytes = encoded.ToArray();
+
+                        var fileName = $"panel_{panel:D2}.png";
+                        File.WriteAllBytes(
+                            System.IO.Path.Combine(outputDir, fileName), bytes);
+                        panel++;
+                    }
                 }
             });
             _statusLabel.Text = $"✓ 20 panels saved to:\n{outputDir}";
