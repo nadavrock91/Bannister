@@ -72,6 +72,9 @@ public partial class ActivityGamePage
             // Record that this game was visited today
             await _games.RecordGameVisitAsync(username, _game.GameId);
 
+            // Start the escalation countdown on first visit if not yet initialized
+            await _games.InitializeMeaningfulEscalationAsync(username, _game.GameId);
+
             await _exp.EnsureUserStateAsync(username, _game.GameId);
             await LoadDragonAsync();
             await CheckAutoAwardActivitiesAsync();
