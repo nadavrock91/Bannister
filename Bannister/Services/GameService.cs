@@ -142,6 +142,22 @@ namespace Bannister.Services
         }
 
         /// <summary>
+        /// Set a custom escalation duration in days for this game.
+        /// Clamps to 1–365.
+        /// </summary>
+        public async Task SetEscalationDurationAsync(
+            string username, string gameId, int days)
+        {
+            var game = await GetGameAsync(username, gameId);
+            if (game != null)
+            {
+                game.EscalationDurationDays = Math.Clamp(days, 1, 365);
+                var conn = await _db.GetConnectionAsync();
+                await conn.UpdateAsync(game);
+            }
+        }
+
+        /// <summary>
         /// Record a visit to a game (updates LastVisitedAt timestamp)
         /// </summary>
         public async Task RecordGameVisitAsync(string username, string gameId)

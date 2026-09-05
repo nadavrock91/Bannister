@@ -270,6 +270,7 @@ public partial class ActivityGamePage
             {
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
             ColumnSpacing = 4
@@ -317,6 +318,22 @@ public partial class ActivityGamePage
         _escalationToggleButton.Clicked += OnEscalationToggleClicked;
         Grid.SetColumn(_escalationToggleButton, 2);
         headerGrid.Children.Add(_escalationToggleButton);
+
+        var setDurationBtn = new Button
+        {
+            Text = "⏱",
+            BackgroundColor = Color.FromArgb("#5B63EE"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            HeightRequest = 30,
+            WidthRequest = 30,
+            Padding = 0,
+            FontSize = 14
+        };
+        ToolTipProperties.SetText(setDurationBtn, "Set custom duration");
+        setDurationBtn.Clicked += OnSetEscalationDurationClicked;
+        Grid.SetColumn(setDurationBtn, 3);
+        headerGrid.Children.Add(setDurationBtn);
 
         stack.Children.Add(headerGrid);
 
@@ -401,6 +418,7 @@ public partial class ActivityGamePage
             RowSpacing = 8,
             RowDefinitions =
             {
+                new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto }
             }
@@ -487,6 +505,23 @@ public partial class ActivityGamePage
         Grid.SetRow(_escalationToggleButton, 1);
         grid.Children.Add(_escalationToggleButton);
 
+        var setDurationBtn = new Button
+        {
+            Text = "⏱",
+            BackgroundColor = Color.FromArgb("#5B63EE"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            HeightRequest = 30,
+            WidthRequest = 30,
+            Padding = 0,
+            FontSize = 14
+        };
+        ToolTipProperties.SetText(setDurationBtn, "Set custom duration");
+        setDurationBtn.Clicked += OnSetEscalationDurationClicked;
+        Grid.SetColumn(setDurationBtn, 2);
+        Grid.SetRow(setDurationBtn, 2);
+        grid.Children.Add(setDurationBtn);
+
         _escalationTimerFrame.Content = grid;
         return _escalationTimerFrame;
     }
@@ -538,12 +573,14 @@ public partial class ActivityGamePage
             Color textColor;
             Color barColor;
 
-            if (daysRemaining > 15) // Green: 16-30 days
+            int halfDuration = _game?.EscalationDurationDays / 2 ?? 15;
+            int quarterDuration = _game?.EscalationDurationDays / 4 ?? 7;
+            if (daysRemaining > halfDuration)
             {
                 textColor = Color.FromArgb("#4CAF50");
                 barColor = Color.FromArgb("#4CAF50");
             }
-            else if (daysRemaining > 7) // Yellow: 8-15 days
+            else if (daysRemaining > quarterDuration)
             {
                 textColor = Color.FromArgb("#FF9800");
                 barColor = Color.FromArgb("#FF9800");
@@ -601,7 +638,7 @@ public partial class ActivityGamePage
             // Show accountability dialog
             bool acceptedLoss = await DisplayAlert(
                 "⏰ Meaningful Escalation Required",
-                $"You haven't meaningfully escalated in 30 days.\n\n" +
+                $"You haven't meaningfully escalated in {_game.EscalationDurationDays} days.\n\n" +
                 $"A meaningful escalation means you've taken a significant step forward in your {_game.DisplayName} journey.\n\n" +
                 $"Did you meaningfully escalate?",
                 "You're right, I haven't", // Accept loss
@@ -677,7 +714,7 @@ public partial class ActivityGamePage
         await DisplayAlert(
             "Penalty Applied",
             $"Lost 2 levels ({expLoss:N0} EXP)\n\n" +
-            $"The timer has been reset to 30 days.\n\n" +
+            $"The timer has been reset to {_game.EscalationDurationDays} days.\n\n" +
             $"Use this as motivation to meaningfully escalate soon!",
             "I understand"
         );
@@ -694,7 +731,7 @@ public partial class ActivityGamePage
         bool confirmed = await DisplayAlert(
             "Reset Escalation Timer?",
             "Have you meaningfully escalated your goals?\n\n" +
-            "This will reset the timer back to 30 days.",
+            $"This will reset the timer back to {_game.EscalationDurationDays} days.",
             "Yes, I have!",
             "Cancel"
         );
@@ -706,7 +743,7 @@ public partial class ActivityGamePage
 
             await DisplayAlert(
                 "Timer Reset",
-                "Great work on your meaningful escalation! ✅\n\nTimer reset to 30 days.",
+                $"Great work on your meaningful escalation! ✅\n\nTimer reset to {_game.EscalationDurationDays} days.",
                 "OK"
             );
         }
@@ -739,5 +776,40 @@ public partial class ActivityGamePage
             await _games.ToggleEscalationTimerAsync(_auth.CurrentUsername, _game.GameId);
             await UpdateEscalationTimerAsync();
         }
+    }
+
+    private async void OnSetEscalationDurationClicked(
+        object? sender, EventArgs e)
+    {
+        if (_game == null) return;
+
+        string? input = await DisplayPromptAsync(
+            "Set Escalation Duration",
+            $"Current duration: {_game.EscalationDurationDays} days.\n\n" +
+            "Enter number of days (1–365):",
+            "Set",
+            "Cancel",
+            initialValue: _game.EscalationDurationDays.ToString(),
+            keyboard: Keyboard.Numeric);
+
+        if (string.IsNullOrWhiteSpace(input)) return;
+
+        if (!int.TryParse(input.Trim(), out int days) || days < 1 || days > 365)
+        {
+            await DisplayAlert("Invalid", "Enter a number between 1 and 365.", "OK");
+            return;
+        }
+
+        await _games.SetEscalationDurationAsync(
+            _auth.CurrentUsername, _game.GameId, days);
+
+        // Reload game to reflect new duration
+        _game = await _games.GetGameAsync(
+            _auth.CurrentUsername, _game.GameId);
+
+        await UpdateEscalationTimerAsync();
+
+        await DisplayAlert("Duration Updated",
+            $"Escalation timer set to {days} days.", "OK");
     }
 }

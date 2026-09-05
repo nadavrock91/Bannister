@@ -31,6 +31,11 @@ public class Game
     public bool IsEscalationTimerDisabled { get; set; }
 
     /// <summary>
+    /// Duration in days for the escalation timer. Default 30.
+    /// </summary>
+    public int EscalationDurationDays { get; set; } = 30;
+
+    /// <summary>
     /// Last time this game was visited/entered
     /// </summary>
     public DateTime? LastVisitedAt { get; set; }
@@ -44,10 +49,10 @@ public class Game
         get
         {
             if (IsEscalationTimerDisabled)
-                return 30;
+                return EscalationDurationDays;
 
             if (!LastMeaningfulEscalation.HasValue)
-                return 30;
+                return EscalationDurationDays;
 
             var now = DateTime.Now;
             var escalation = LastMeaningfulEscalation.Value;
@@ -57,7 +62,7 @@ public class Game
             System.Diagnostics.Debug.WriteLine($">>> ESCALATION: {escalation}");
             System.Diagnostics.Debug.WriteLine($">>> ELAPSED DAYS: {elapsed.TotalDays}");
 
-            var remaining = 30 - (int)elapsed.TotalDays;
+            var remaining = EscalationDurationDays - (int)elapsed.TotalDays;
             return Math.Max(0, remaining);
         }
     }
@@ -70,7 +75,9 @@ public class Game
     {
         get
         {
-            return DaysRemaining / 30.0;
+            return EscalationDurationDays > 0
+                ? DaysRemaining / (double)EscalationDurationDays
+                : 1.0;
         }
     }
 }
