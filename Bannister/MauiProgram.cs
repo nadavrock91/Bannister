@@ -91,6 +91,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<PostponedTaskService>();
         builder.Services.AddSingleton<QuickAccessActionService>();
         builder.Services.AddSingleton<HookWordService>();
+        builder.Services.AddSingleton<CropPresetService>();
         builder.Services.AddSingleton<HomePopupPreferenceService>();
         builder.Services.AddSingleton<ListsService>();
         builder.Services.AddSingleton<CustomGameService>();

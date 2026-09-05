@@ -108,6 +108,9 @@ public class ImageProductionHubPage : ContentPage
             ?? throw new InvalidOperationException("HookWordService not available.");
         var customPrompts = services.GetService<CustomPromptService>()
             ?? throw new InvalidOperationException("CustomPromptService not available.");
-        await Navigation.PushAsync(new HooksHubPage(_auth, hookWordService, customPrompts));
+        var cropPresets = services.GetService<CropPresetService>()
+            ?? throw new InvalidOperationException("CropPresetService not available.");
+        await Navigation.PushAsync(
+            new HooksHubPage(_auth, hookWordService, customPrompts, cropPresets));
     }
 }

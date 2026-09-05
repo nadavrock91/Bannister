@@ -7,6 +7,7 @@ public class TargetedHooksPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly CustomPromptService _customPrompts;
+    private readonly CropPresetService _cropPresets;
     private Entry _promptEntry = null!;
     private Picker _favoritesPicker = null!;
     private Label _outputLabel = null!;
@@ -23,10 +24,14 @@ public class TargetedHooksPage : ContentPage
         "Prioritize variety of ideas over small visual changes. Large visible numbers 1–20. " +
         "Cinematic realistic, high detail, easy side-by-side comparison, no text except numbers.";
 
-    public TargetedHooksPage(AuthService auth, CustomPromptService customPrompts)
+    public TargetedHooksPage(
+        AuthService auth,
+        CustomPromptService customPrompts,
+        CropPresetService cropPresets)
     {
         _auth = auth;
         _customPrompts = customPrompts;
+        _cropPresets = cropPresets;
         Title = "Targeted Hooks";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -59,7 +64,8 @@ public class TargetedHooksPage : ContentPage
             Margin = new Thickness(0, 4, 0, 0)
         };
         cropperBtn.Clicked += async (_, _) =>
-            await Navigation.PushAsync(new GridCropperPage());
+            await Navigation.PushAsync(
+                new GridCropperPage(_auth, _cropPresets));
         stack.Children.Add(cropperBtn);
         Content = new ScrollView { Content = stack };
     }

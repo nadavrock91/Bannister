@@ -1,4 +1,6 @@
 using SkiaSharp;
+using Bannister.Models;
+using Bannister.Services;
 
 namespace Bannister.Views;
 
@@ -19,11 +21,14 @@ public class GridCropperPage : ContentPage
     private Button _cropButton = null!;
     private Label _statusLabel = null!;
     private Picker _presetPicker = null!;
-    private List<CropPreset> _presets = new();
-    private const string PresetsStorageKey = "grid_cropper_presets";
+    private List<CropPresetItem> _presets = new();
+    private readonly CropPresetService _presetService;
+    private readonly string _username;
 
-    public GridCropperPage()
+    public GridCropperPage(AuthService auth, CropPresetService presetService)
     {
+        _username = auth.CurrentUsername;
+        _presetService = presetService;
         Title = "Grid Cropper";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -131,20 +136,8 @@ public class GridCropperPage : ContentPage
                 placeholder: "e.g. Instagram Square");
             if (string.IsNullOrWhiteSpace(name)) return;
 
-            // Replace existing preset with same name if any
-            _presets.RemoveAll(p => p.Name.Equals(
-                name.Trim(), StringComparison.OrdinalIgnoreCase));
-            _presets.Add(new CropPreset
-            {
-                Name = name.Trim(),
-                W = _cellW,
-                H = _cellH
-            });
-            _presets = _presets
-                .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            await SavePresetsAsync();
-            RefreshPresetPicker();
+            await _presetService.UpsertPresetAsync(_username, name.Trim(), _cellW, _cellH);
+            await LoadPresetsAsync();
         };
         presetRow.Children.Add(savePresetBtn);
 
@@ -172,9 +165,8 @@ public class GridCropperPage : ContentPage
             bool confirm = await DisplayAlert("Delete Preset",
                 $"Delete '{p.Name}'?", "Delete", "Cancel");
             if (!confirm) return;
-            _presets.RemoveAt(_presetPicker.SelectedIndex);
-            await SavePresetsAsync();
-            RefreshPresetPicker();
+            await _presetService.DeletePresetAsync(p.Id);
+            await LoadPresetsAsync();
         };
         presetRow.Children.Add(deletePresetBtn);
 
@@ -320,34 +312,8 @@ public class GridCropperPage : ContentPage
 
     private async Task LoadPresetsAsync()
     {
-        try
-        {
-            var json = await SecureStorage.GetAsync(PresetsStorageKey);
-            if (string.IsNullOrWhiteSpace(json))
-            {
-                _presets = new();
-            }
-            else
-            {
-                _presets = System.Text.Json.JsonSerializer
-                    .Deserialize<List<CropPreset>>(json) ?? new();
-            }
-        }
-        catch
-        {
-            _presets = new();
-        }
+        _presets = await _presetService.GetPresetsAsync(_username);
         RefreshPresetPicker();
-    }
-
-    private async Task SavePresetsAsync()
-    {
-        try
-        {
-            var json = System.Text.Json.JsonSerializer.Serialize(_presets);
-            await SecureStorage.SetAsync(PresetsStorageKey, json);
-        }
-        catch { }
     }
 
     private void RefreshPresetPicker()
@@ -368,10 +334,4 @@ public class GridCropperPage : ContentPage
         _sourceBitmap = null;
     }
 
-    private class CropPreset
-    {
-        public string Name { get; set; } = "";
-        public int W { get; set; }
-        public int H { get; set; }
-    }
 }
