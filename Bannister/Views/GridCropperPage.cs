@@ -8,6 +8,9 @@ public class GridCropperPage : ContentPage
 {
     private string? _sourceFilePath;
     private SKBitmap? _sourceBitmap;
+    private int _imagePixelW;
+    private int _imagePixelH;
+    private byte[]? _gridImageBytes;
     private int _cellW = 100;
     private int _cellH = 100;
     private Button _pickButton = null!;
@@ -274,7 +277,30 @@ public class GridCropperPage : ContentPage
         gridTap.Tapped += async (_, _) =>
         {
             if (_gridPreviewImage.Source == null || !_gridPreviewImage.IsVisible) return;
-            await Navigation.PushAsync(new FullScreenImagePage(_gridPreviewImage.Source));
+            await Navigation.PushAsync(new FullScreenImagePage(
+                _gridImageBytes ?? Array.Empty<byte>(),
+                _selected,
+                Rows,
+                Cols,
+                _imagePixelW,
+                _imagePixelH,
+                updatedSelection =>
+                {
+                    // Copy state immediately on callback thread
+                    for (int r = 0; r < Rows; r++)
+                        for (int c = 0; c < Cols; c++)
+                            _selected[r, c] = updatedSelection[r, c];
+
+                    // Update UI on main thread after page is back in view
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        for (int r = 0; r < Rows; r++)
+                            for (int c = 0; c < Cols; c++)
+                                ApplyButtonStyle(_selectionButtons[r, c],
+                                    _selected[r, c]);
+                        UpdateSelectionHint();
+                    });
+                }));
         };
         _gridPreviewImage.GestureRecognizers.Add(gridTap);
         v.Children.Add(_gridPreviewImage);
@@ -472,6 +498,8 @@ public class GridCropperPage : ContentPage
         {
             int imgW = _sourceBitmap.Width;
             int imgH = _sourceBitmap.Height;
+            _imagePixelW = imgW;
+            _imagePixelH = imgH;
 
             using var gridBmp = new SKBitmap(imgW, imgH);
             using var gridCanvas = new SKCanvas(gridBmp);
@@ -523,6 +551,7 @@ public class GridCropperPage : ContentPage
             using var gridImage = SKImage.FromBitmap(gridBmp);
             using var gridData = gridImage.Encode(SKEncodedImageFormat.Png, 90);
             var gridBytes = gridData.ToArray();
+            _gridImageBytes = gridBytes;
             _gridPreviewImage.Source = ImageSource.FromStream(
                 () => new MemoryStream(gridBytes));
             _gridPreviewImage.IsVisible = true;
