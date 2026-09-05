@@ -247,7 +247,7 @@ public class MoneyManagementPage : ContentPage
             return;
         }
 
-        var headers = new List<string> { "Id", "Name", "Category", "Amount", "DueDay", "IsActive", "Notes", "CreatedAt", "UpdatedAt" };
+        var headers = new List<string> { "Id", "Name", "Category", "Amount", "DueDay", "IsActive", "Notes", "CreatedAt", "UpdatedAt", "ChargingMethod" };
         var displayRows = new List<List<string>>();
         var fullRows = new List<List<string>>();
 
@@ -290,7 +290,8 @@ public class MoneyManagementPage : ContentPage
             expense.IsActive ? "true" : "false",
             expense.Notes ?? "",
             expense.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
-            expense.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+            expense.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
+            expense.ChargingMethod ?? ""
         };
     }
 
@@ -323,8 +324,12 @@ public class MoneyManagementPage : ContentPage
         string? dueDayText = await DisplayPromptAsync("Due Day", "Day of month:", "Save", "Skip", keyboard: Keyboard.Numeric, initialValue: "1");
         int dueDay = int.TryParse(dueDayText, out int parsedDay) ? parsedDay : 1;
         string? notes = await DisplayPromptAsync("Notes", "Optional notes:", "Save", "Skip", initialValue: "");
+        string? chargingMethod = await DisplayPromptAsync(
+            "Charging Method",
+            "How is this charged? (e.g. Credit Card, Bank Transfer):",
+            "Save", "Skip", initialValue: "");
 
-        await _money.AddMonthlyExpenseAsync(_auth.CurrentUsername, name, amount, category ?? "General", dueDay, notes ?? "");
+        await _money.AddMonthlyExpenseAsync(_auth.CurrentUsername, name, amount, category ?? "General", dueDay, notes ?? "", chargingMethod ?? "");
         await LoadExpensesAsync();
     }
 

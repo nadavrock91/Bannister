@@ -23,6 +23,8 @@ public class MonthlyExpense
 
     public string Notes { get; set; } = "";
 
+    public string ChargingMethod { get; set; } = "";
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

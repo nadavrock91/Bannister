@@ -48,7 +48,7 @@ public class MoneyManagementService
             .ToList();
     }
 
-    public async Task<MonthlyExpense> AddMonthlyExpenseAsync(string username, string name, decimal amount, string category = "General", int dueDay = 1, string notes = "")
+    public async Task<MonthlyExpense> AddMonthlyExpenseAsync(string username, string name, decimal amount, string category = "General", int dueDay = 1, string notes = "", string chargingMethod = "")
     {
         await EnsureInitializedAsync();
         var expense = new MonthlyExpense
@@ -59,6 +59,7 @@ public class MoneyManagementService
             Amount = amount,
             DueDay = Math.Clamp(dueDay, 1, 31),
             Notes = notes.Trim(),
+            ChargingMethod = chargingMethod.Trim(),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -109,6 +110,9 @@ public class MoneyManagementService
                 break;
             case "Notes":
                 expense.Notes = newValue.Trim();
+                break;
+            case "ChargingMethod":
+                expense.ChargingMethod = newValue.Trim();
                 break;
             default:
                 return false;
