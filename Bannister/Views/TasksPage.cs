@@ -78,6 +78,9 @@ public class TasksPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        // One-time migration from old 0-3 inverted priority scale
+        await _tasks.MigratePriorityValuesAsync(
+            _auth.CurrentUsername);
         _isLoading = true;
         await LoadCategoriesAsync();
         _isLoading = false;
@@ -702,7 +705,7 @@ public class TasksPage : ContentPage
             "Status" => _sortAscending ? tasks.OrderBy(GetTaskStatusText).ToList() : tasks.OrderByDescending(GetTaskStatusText).ToList(),
             "Title" => _sortAscending ? tasks.OrderBy(t => t.Title).ToList() : tasks.OrderByDescending(t => t.Title).ToList(),
             "Category" => _sortAscending ? tasks.OrderBy(t => t.Category).ToList() : tasks.OrderByDescending(t => t.Category).ToList(),
-            "Priority" => _sortAscending ? tasks.OrderBy(t => t.Priority).ToList() : tasks.OrderByDescending(t => t.Priority).ToList(),
+            "Priority" => _sortAscending ? tasks.OrderByDescending(t => t.Priority).ToList() : tasks.OrderBy(t => t.Priority).ToList(),
             "DueDate" => _sortAscending ? tasks.OrderBy(t => t.DueDate).ToList() : tasks.OrderByDescending(t => t.DueDate).ToList(),
             "Notes" => _sortAscending ? tasks.OrderBy(t => t.Notes).ToList() : tasks.OrderByDescending(t => t.Notes).ToList(),
             "CreatedAt" => _sortAscending ? tasks.OrderBy(t => t.CreatedAt).ToList() : tasks.OrderByDescending(t => t.CreatedAt).ToList(),
@@ -802,7 +805,6 @@ public class TasksPage : ContentPage
     {
         Color bg = task.IsCompleted ? Color.FromArgb("#E8F5E9")
             : task.IsOverdue ? Color.FromArgb("#FFEBEE")
-            : task.Priority == 0 ? Color.FromArgb("#F3E5F5")
             : Colors.White;
 
         var frame = new Frame
@@ -818,8 +820,14 @@ public class TasksPage : ContentPage
 
         // Icons
         var icons = new HorizontalStackLayout { Spacing = 2 };
-        if (task.Priority == 0) icons.Children.Add(new Label { Text = "🟣", FontSize = 8 });
-        else if (task.Priority == 1) icons.Children.Add(new Label { Text = "🔴", FontSize = 8 });
+        if (task.Priority > 0)
+            icons.Children.Add(new Label
+            {
+                Text = $"P{task.Priority}",
+                FontSize = 9,
+                TextColor = Color.FromArgb("#5B63EE"),
+                FontAttributes = FontAttributes.Bold
+            });
         if (task.IsCompleted) icons.Children.Add(new Label { Text = "✓", FontSize = 8, TextColor = Color.FromArgb("#4CAF50") });
         if (task.IsOverdue) icons.Children.Add(new Label { Text = "!", FontSize = 8, TextColor = Colors.Red, FontAttributes = FontAttributes.Bold });
         if (icons.Children.Count > 0) stack.Children.Add(icons);
@@ -861,7 +869,7 @@ public class TasksPage : ContentPage
             GetTaskStatusText(task),
             task.Title,
             task.Category,
-            task.Priority switch { 0 => "Urgent", 1 => "High", 3 => "Low", _ => "Medium" },
+            task.Priority.ToString(),
             task.DueDate?.ToString("yyyy-MM-dd") ?? "",
             task.Notes ?? "",
             task.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
@@ -955,18 +963,9 @@ public class TasksPage : ContentPage
 
     private static int ParsePriority(string value)
     {
-        if (int.TryParse(value, out int numeric))
-        {
-            return Math.Clamp(numeric, 0, 3);
-        }
-
-        return value.Trim().ToLowerInvariant() switch
-        {
-            "urgent" => 0,
-            "high" => 1,
-            "low" => 3,
-            _ => 2
-        };
+        if (int.TryParse(value.Trim(), out int numeric))
+            return Math.Max(0, numeric);
+        return 0;
     }
 
     private void ShowDetail(TaskItem task)
@@ -978,8 +977,7 @@ public class TasksPage : ContentPage
         _detailNotes.Text = task.Notes ?? "";
 
         var meta = $"📁 {task.Category}";
-        string priorityIcon = task.Priority == 0 ? "🟣 Urgent" : task.Priority == 1 ? "🔴 High" : task.Priority == 3 ? "🟢 Low" : "🟡 Medium";
-        meta += $" • {priorityIcon}";
+        meta += $" • Priority: {task.Priority}";
         if (task.DueDate.HasValue) meta += $" • Due: {task.DueDate.Value:MMM d}";
         if (task.IsCompleted) meta += " • ✅ Done";
         _detailMeta.Text = meta;
@@ -1060,11 +1058,26 @@ public class TasksPage : ContentPage
     private async void OnPriorityClicked(object? sender, EventArgs e)
     {
         if (_selectedTask == null) return;
-        string? choice = await DisplayActionSheet("Priority", "Cancel", null,
-            "🟣 Urgent", "🔴 High", "🟡 Medium", "🟢 Low");
-        if (choice == "Cancel" || string.IsNullOrEmpty(choice)) return;
 
-        _selectedTask.Priority = choice.Contains("Urgent") ? 0 : choice.Contains("High") ? 1 : choice.Contains("Low") ? 3 : 2;
+        string? input = await DisplayPromptAsync(
+            "Priority",
+            "Enter priority (higher number = higher priority):",
+            "Set",
+            "Cancel",
+            initialValue: _selectedTask.Priority.ToString(),
+            keyboard: Keyboard.Numeric);
+
+        if (string.IsNullOrWhiteSpace(input)) return;
+
+        if (!int.TryParse(input.Trim(), out int priority)
+            || priority < 0)
+        {
+            await DisplayAlert("Invalid",
+                "Enter a non-negative whole number.", "OK");
+            return;
+        }
+
+        _selectedTask.Priority = priority;
         await _tasks.UpdateTaskAsync(_selectedTask);
         ShowDetail(_selectedTask);
         await RefreshTasksAsync();
@@ -1204,7 +1217,7 @@ public class TasksPage : ContentPage
             .Where(t => t.IsTopCandidate &&
                    string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase) &&
                    !committedTaskIds.Contains(t.Id))
-            .OrderBy(t => t.Priority)
+            .OrderByDescending(t => t.Priority)
             .ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -1246,16 +1259,11 @@ public class TasksPage : ContentPage
                         BackgroundColor = Color.FromArgb("#FFF3E0")
                     };
 
-                    string priorityDot = task.Priority switch
-                    {
-                        1 => "\U0001F534",
-                        3 => "\U0001F7E2",
-                        _ => "\U0001F7E1"
-                    };
-
                     var lbl = new Label
                     {
-                        Text = $"{priorityDot} {task.Title}",
+                        Text = task.Priority > 0
+                            ? $"[{task.Priority}] {task.Title}"
+                            : task.Title,
                         FontSize = 10,
                         TextColor = Color.FromArgb("#333"),
                         VerticalOptions = LayoutOptions.Center,
@@ -1842,17 +1850,10 @@ public class TasksPage : ContentPage
 
         foreach (var task in allFocusTasks)
         {
-            string priorityStr = task.Priority switch
-            {
-                1 => "HIGH",
-                3 => "LOW",
-                _ => "MEDIUM"
-            };
-
             string committed = committedTaskIds.Contains(task.Id) ? " [COMMITTED THIS WEEK]" : "";
             string notes = string.IsNullOrWhiteSpace(task.Notes) ? "" : $" | Notes: {task.Notes.Trim()}";
 
-            sb.AppendLine($"- ID:{task.Id} | {task.Title} | Current priority: {priorityStr}{committed}{notes}");
+            sb.AppendLine($"- ID:{task.Id} | {task.Title} | Priority: {task.Priority}{committed}{notes}");
         }
 
         sb.AppendLine();
@@ -1864,11 +1865,11 @@ public class TasksPage : ContentPage
         sb.AppendLine();
         sb.AppendLine("PRIORITY TABLE:");
         sb.AppendLine("ID|PRIORITY|PICK_THIS_WEEK|REASON");
-        sb.AppendLine("<task_id>|HIGH or MEDIUM or LOW|YES or NO|<brief reason>");
+        sb.AppendLine("<task_id>|<non-negative numeric priority>|YES or NO|<brief reason>");
         sb.AppendLine();
         sb.AppendLine("Example:");
-        sb.AppendLine("42|HIGH|YES|Quick win that unblocks other tasks");
-        sb.AppendLine("17|MEDIUM|NO|Important but not urgent this week");
+        sb.AppendLine("42|100|YES|Quick win that unblocks other tasks");
+        sb.AppendLine("17|50|NO|Important but lower priority this week");
         sb.AppendLine();
         sb.AppendLine("After the table, add a brief SUMMARY paragraph explaining your prioritization strategy.");
 
@@ -1994,13 +1995,7 @@ public class TasksPage : ContentPage
             if (!int.TryParse(parts[0].Trim(), out int taskId)) continue;
             if (!taskLookup.ContainsKey(taskId)) continue;
 
-            var priorityStr = parts[1].Trim().ToUpperInvariant();
-            int newPriority = priorityStr switch
-            {
-                "HIGH" => 1,
-                "LOW" => 3,
-                _ => 2
-            };
+            int newPriority = ParsePriority(parts[1]);
 
             bool pickThisWeek = parts.Length > 2 &&
                 parts[2].Trim().Equals("YES", StringComparison.OrdinalIgnoreCase);
@@ -2038,8 +2033,7 @@ public class TasksPage : ContentPage
             summaryLines.Add($"Recommended for this week ({pickTasks.Count}):");
             foreach (var pick in pickTasks)
             {
-                string p = pick.Priority switch { 1 => "HIGH", 3 => "LOW", _ => "MED" };
-                summaryLines.Add($"  [{p}] {pick.Title}");
+                summaryLines.Add($"  [P{pick.Priority}] {pick.Title}");
                 if (!string.IsNullOrWhiteSpace(pick.Reason))
                     summaryLines.Add($"        {pick.Reason}");
             }
@@ -2238,8 +2232,8 @@ public class TasksPage : ContentPage
                 "date_asc" => filteredTasks.OrderBy(t => t.CreatedAt).ToList(),
                 "alpha_asc" => filteredTasks.OrderBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
                 "alpha_desc" => filteredTasks.OrderByDescending(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
-                "priority_asc" => filteredTasks.OrderBy(t => t.Priority).ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
-                "priority_desc" => filteredTasks.OrderByDescending(t => t.Priority).ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+                "priority_asc" => filteredTasks.OrderByDescending(t => t.Priority).ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+                "priority_desc" => filteredTasks.OrderBy(t => t.Priority).ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList(),
                 _ => filteredTasks
             };
 
@@ -2378,15 +2372,16 @@ public class TasksPage : ContentPage
 
             string category = categoryLabel == "Any Category" ? "General" : categoryLabel;
 
-            string? priorityChoice = await DisplayActionSheet(
+            string? priorityInput = await DisplayPromptAsync(
                 "Priority",
-                "Cancel",
-                null,
-                " High", " Medium", " Low");
-            if (priorityChoice == "Cancel" || string.IsNullOrEmpty(priorityChoice)) return;
-
-            int priority = priorityChoice.Contains("High") ? 1
-                : priorityChoice.Contains("Low") ? 3 : 2;
+                "Enter priority (higher = higher priority, 0 = lowest):",
+                "Set", "Cancel",
+                initialValue: "0",
+                keyboard: Keyboard.Numeric);
+            if (string.IsNullOrWhiteSpace(priorityInput)) return;
+            if (!int.TryParse(priorityInput.Trim(), out int priority)
+                || priority < 0)
+                priority = 0;
 
             var newTask = await _tasks.CreateTaskAsync(
                 _auth.CurrentUsername,
@@ -2481,17 +2476,12 @@ public class TasksPage : ContentPage
 
         var taskStack = new HorizontalStackLayout { Spacing = 8 };
 
-        string priorityDot = task.Priority switch
-        {
-            1 => "\U0001F534",
-            3 => "\U0001F7E2",
-            _ => "\U0001F7E1"
-        };
         taskStack.Children.Add(new Label
         {
-            Text = priorityDot,
-            FontSize = 10,
-            VerticalOptions = LayoutOptions.Center
+            Text = task.Priority > 0 ? $"P{task.Priority}" : "P0",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#5B63EE"),
+            FontAttributes = FontAttributes.Bold
         });
 
         var textStack = new VerticalStackLayout { Spacing = 2 };

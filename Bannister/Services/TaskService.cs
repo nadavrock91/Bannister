@@ -34,7 +34,7 @@ public class TaskService
         var conn = await _db.GetConnectionAsync();
         return await conn.Table<TaskItem>()
             .Where(t => t.Username == username && !t.IsCompleted)
-            .OrderBy(t => t.Priority)
+            .OrderByDescending(t => t.Priority)
             .ThenBy(t => t.DueDate)
             .ThenBy(t => t.CreatedAt)
             .ToListAsync();
@@ -56,7 +56,7 @@ public class TaskService
         var conn = await _db.GetConnectionAsync();
         return await conn.Table<TaskItem>()
             .Where(t => t.Username == username && t.Category == category && !t.IsCompleted)
-            .OrderBy(t => t.Priority)
+            .OrderByDescending(t => t.Priority)
             .ThenBy(t => t.DueDate)
             .ToListAsync();
     }
@@ -74,7 +74,7 @@ public class TaskService
             .ToList();
     }
 
-    public async Task<TaskItem> CreateTaskAsync(string username, string title, string category = "General", int priority = 2, DateTime? dueDate = null, string notes = "")
+    public async Task<TaskItem> CreateTaskAsync(string username, string title, string category = "General", int priority = 0, DateTime? dueDate = null, string notes = "")
     {
         await EnsureInitializedAsync();
         var task = new TaskItem
@@ -92,6 +92,31 @@ public class TaskService
         await conn.InsertAsync(task);
         
         return task;
+    }
+
+    /// <summary>
+    /// One-time migration: inverts existing 0-3 priority values
+    /// to the new higher-is-better scale.
+    /// Old: 0=Urgent 1=High 2=Medium 3=Low
+    /// New: 3=was Urgent 2=was High 1=was Medium 0=was Low
+    /// </summary>
+    public async Task MigratePriorityValuesAsync(string username)
+    {
+        await EnsureInitializedAsync();
+        if (_db.IsReadOnly) return;
+        var conn = await _db.GetConnectionAsync();
+        var tasks = await conn.Table<TaskItem>()
+            .Where(t => t.Username == username && t.PriorityScaleVersion < 1)
+            .ToListAsync();
+
+        foreach (var task in tasks)
+        {
+            if (task.Priority >= 0 && task.Priority <= 3)
+                task.Priority = 3 - task.Priority;
+
+            task.PriorityScaleVersion = 1;
+            await conn.UpdateAsync(task);
+        }
     }
 
     public async Task UpdateTaskAsync(TaskItem task)
@@ -141,7 +166,7 @@ public class TaskService
         int active = tasks.Count;
         int overdue = tasks.Count(t => t.IsOverdue);
         int dueToday = tasks.Count(t => t.IsDueToday);
-        int urgent = tasks.Count(t => t.Priority == 0);
+        int urgent = tasks.Count(t => t.IsUrgent);
         
         return (active, overdue, dueToday, urgent);
     }

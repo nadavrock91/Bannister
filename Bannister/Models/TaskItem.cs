@@ -26,8 +26,11 @@ public class TaskItem
     
     public DateTime? CompletedAt { get; set; }
     
-    // Priority: 1 = High, 2 = Medium, 3 = Low
-    public int Priority { get; set; } = 2;
+    // Priority: higher number = higher priority, no upper limit
+    public int Priority { get; set; } = 0;
+
+    // Tracks the persisted priority scale so legacy values are inverted only once.
+    public int PriorityScaleVersion { get; set; } = 1;
 
     // Whether this task is a top pending candidate for weekly focus commitment
     public bool IsTopCandidate { get; set; } = false;

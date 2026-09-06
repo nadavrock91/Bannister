@@ -279,10 +279,17 @@ public static class TaskCreationHelper
         string title = result.Value.text.Trim();
         string category = result.Value.category ?? "General";
 
-        var priorityChoice = await page.DisplayActionSheet("Priority", "Cancel", null,
-            "\U0001F534 High", "\U0001F7E1 Medium", "\U0001F7E2 Low");
-        if (priorityChoice == "Cancel" || string.IsNullOrEmpty(priorityChoice)) return null;
-        int priority = priorityChoice.Contains("High") ? 1 : priorityChoice.Contains("Low") ? 3 : 2;
+        string? priorityInput = await page.DisplayPromptAsync(
+            "Priority",
+            "Enter priority (higher number = higher priority, 0 = lowest):",
+            "Set", "Cancel",
+            initialValue: "0",
+            keyboard: Keyboard.Numeric);
+        if (string.IsNullOrWhiteSpace(priorityInput))
+            return null;
+        if (!int.TryParse(priorityInput.Trim(), out int priority)
+            || priority < 0)
+            priority = 0;
 
         var newTask = await tasks.CreateTaskAsync(auth.CurrentUsername, title, category, priority);
         if (markAsTopCandidate)
