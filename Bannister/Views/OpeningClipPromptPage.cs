@@ -344,47 +344,52 @@ public class OpeningClipPromptPage : ContentPage
     private static string BuildPrompt(string foundation)
     {
         return
-            "Use the attached starting frame as the first frame of a 10-second " +
-            "AI-generated video, but do not treat what is currently visible as " +
-            "the entire hook. First infer the frame's underlying hook: what is " +
-            "the scroll-stopping idea, what is the immediate emotional trigger, " +
-            "what curiosity gap does it create, what is the threat, conflict, " +
-            "tension, danger, mystery, surprise, or WTF element, and what visual " +
-            "promise could make someone continue watching for the next 10 seconds? " +
-            "A hook is not simply movement, fighting, spectacle, or a visually " +
-            "impressive shot; it is an unfolding event that immediately creates a " +
-            "reason to need to see what happens next. Think in terms of action → " +
-            "consequence → escalation/reveal, with meaningful visual change during " +
-            "the clip rather than ten seconds of essentially the same action. " +
-            "Generate 5 substantially different Grok video-generation prompts that " +
-            "begin naturally from this exact starting frame and are designed to " +
-            "maximize 10-second viewer retention. " +
-            $"Preserve the current experiment's core foundation of {foundation}, " +
-            "but aggressively vary what actually happens after the starting frame. " +
-            "These must NOT be five rewrites of 'they fight,' five cosmetic " +
-            "variations, or five different camera movements. Each must be a " +
-            "genuinely different hook attempt based on human attention and curiosity " +
-            "psychology. Explore possibilities such as an attack producing an " +
-            "unexpected consequence, sudden reversal, near miss, transformation, " +
-            "something emerging, environmental destruction, impossible physical " +
-            "event, disturbing reveal, hidden second threat, escalation in scale, " +
-            "apparent victory immediately becoming danger, visual contradiction, " +
-            "unexpected reaction from the foe, the environment suddenly changing, " +
-            "or one mystery being answered by an even larger mystery. Prioritize " +
-            "immediate readable movement, clear conflict, strong visual progression, " +
-            "surprise, escalating stakes, multiple meaningful beats within 10 seconds " +
-            "where appropriate, a strong 'what is happening?' reaction, and especially " +
-            "a 'what happens next?' reaction. Avoid static posing, generic cinematic " +
-            "filler, meaningless movement, repetitive fighting, slow setup, " +
-            "complicated action that cannot be understood on a phone screen, excessive " +
-            "camera movement, and prompts whose only appeal is visual quality. Do not " +
-            "require dialogue or text to make the hook understandable. The viewer " +
-            "should be able to watch muted and still perceive an unfolding event. " +
-            "Keep each prompt practical for Grok video generation and clearly describe " +
-            "the chronological action that should happen from the supplied first frame. " +
-            "Return ONLY C#-parsable output in exactly this format: " +
-            "clipPrompts[1] = \"...\"; clipPrompts[2] = \"...\"; " +
-            "clipPrompts[3] = \"...\"; clipPrompts[4] = \"...\"; " +
+            "I have a task for you but I need maximum variety because " +
+            "you tend to repeat yourself when asked for multiple variations. " +
+            "So before you do anything else, design your own randomization " +
+            "system from scratch.\n\n" +
+
+            "Step 1 — Build your randomization engine:\n" +
+            "Think about what kinds of lists would create genuine variety " +
+            "in short-form hook video clip prompts. You decide everything: " +
+            "how many lists to create, what each list contains, how many " +
+            "items are in each list, and how to draw from and combine them. " +
+            "Examples of the kinds of things you might consider (but are not " +
+            "limited to): psychological triggers, narrative structures, " +
+            "visual event types, emotional arcs, camera relationships, " +
+            "consequence types, mystery categories, physical laws to violate. " +
+            "Do not use my examples as your list — invent your own. " +
+            "Randomly assign values from your lists to each of the 5 clip slots. " +
+            "Randomly shuffle the order of whatever process you set up. " +
+            "Show your work briefly — what lists you made, what you drew, " +
+            "what order you set up.\n\n" +
+
+            "Step 2 — Apply your randomization engine:\n" +
+            "For each of the 5 clip slots, apply the process you designed " +
+            "in Step 1. Work through it slot by slot. For each slot, first " +
+            "apply the analytical step your randomization assigned to it, " +
+            "then use that analysis to generate the Grok video prompt for " +
+            "that slot. The analysis for each slot should be genuinely " +
+            "different from the others because your randomization assigned " +
+            "different lenses.\n\n" +
+
+            "The task itself:\n" +
+            "Use the attached starting frame as the first frame of a " +
+            "10-second AI-generated video. Generate 5 Grok video-generation " +
+            "prompts that begin naturally from this exact starting frame and " +
+            "are designed to maximize 10-second viewer retention. " +
+            $"Preserve the current experiment's core foundation of {foundation}. " +
+            "Each prompt must describe the chronological action that should " +
+            "happen from the supplied first frame. The viewer should be able " +
+            "to watch muted and still perceive an unfolding event. " +
+            "Keep each prompt practical for Grok video generation.\n\n" +
+
+            "After your Step 1 and Step 2 working, return ONLY the final " +
+            "5 prompts in exactly this format at the end of your response:\n" +
+            "clipPrompts[1] = \"...\";\n" +
+            "clipPrompts[2] = \"...\";\n" +
+            "clipPrompts[3] = \"...\";\n" +
+            "clipPrompts[4] = \"...\";\n" +
             "clipPrompts[5] = \"...\";";
     }
 
