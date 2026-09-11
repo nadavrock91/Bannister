@@ -1,3 +1,4 @@
+using Bannister.Models;
 using Bannister.Services;
 
 namespace Bannister.Views;
@@ -6,16 +7,20 @@ public class OpeningClipPromptPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly CustomPromptService _customPrompts;
+    private readonly DoNotService _doNotService;
 
-    // Stage 1 — image pick
-    private Label _imageInfoLabel = null!;
-    private Image _imagePreview = null!;
-    private Label _previewHint = null!;
+    private const string Area = "OpeningClipPrompts";
+    private const string FoundationStorageKey_Prefix = "opening_clip_foundation_";
+    private const string DefaultFoundation = "foe + movement";
 
-    // Stage 2 — core foundation
+    // Stage 1 — core foundation
     private Editor _foundationEditor = null!;
 
-    // Stage 3 — output
+    // Stage 2 — do-nots
+    private VerticalStackLayout _doNotContainer = null!;
+    private List<DoNotItem> _doNotItems = new();
+
+    // Stage 3 — build & copy
     private Button _buildButton = null!;
     private Label _outputStatusLabel = null!;
 
@@ -25,19 +30,17 @@ public class OpeningClipPromptPage : ContentPage
     // Stage 5 — parsed prompts
     private VerticalStackLayout _promptsContainer = null!;
 
-    private string? _pickedFilePath;
     private readonly List<string> _parsedPrompts = new();
-
-    private const string FoundationStorageKey_Prefix = "opening_clip_foundation_";
-    private const string DefaultFoundation = "foe + movement";
-    private const string FavoritesArea = "OpeningClipFoundation";
+    private readonly List<string> _parsedTitles = new();
 
     public OpeningClipPromptPage(
         AuthService auth,
-        CustomPromptService customPrompts)
+        CustomPromptService customPrompts,
+        DoNotService doNotService)
     {
         _auth = auth;
         _customPrompts = customPrompts;
+        _doNotService = doNotService;
         Title = "Opening Clip Prompts";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -47,8 +50,12 @@ public class OpeningClipPromptPage : ContentPage
     {
         base.OnAppearing();
         await LoadFoundationAsync();
+        await RefreshDoNotListAsync();
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // UI
+    // ─────────────────────────────────────────────────────────────────
     private void BuildUI()
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 16 };
@@ -62,24 +69,24 @@ public class OpeningClipPromptPage : ContentPage
         });
         stack.Children.Add(new Label
         {
-            Text = "Pick a starting frame. Bannister builds a retention-optimised " +
-                   "prompt for 5 Grok video variations. Copy to clipboard, " +
-                   "attach the image in Grok, paste and run.",
+            Text = "Bannister builds a retention-optimised prompt for 5 Grok " +
+                   "video variations. Copy to clipboard, attach the image in " +
+                   "Grok, paste and run.",
             FontSize = 13,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
         });
 
-        stack.Children.Add(BuildStageCard("Stage 1 — Starting Frame",
-            BuildStage1Content()));
-        stack.Children.Add(BuildStageCard("Stage 2 — Core Foundation",
-            BuildStage2Content()));
-        stack.Children.Add(BuildStageCard("Stage 3 — Build & Copy Prompt",
-            BuildStage3Content()));
-        stack.Children.Add(BuildStageCard("Stage 4 — Paste LLM Response",
-            BuildStage4Content()));
-        stack.Children.Add(BuildStageCard("Stage 5 — Generated Prompts",
-            BuildStage5Content()));
+        stack.Children.Add(BuildStageCard(
+            "Stage 1 — Core Foundation", BuildStage1Content()));
+        stack.Children.Add(BuildStageCard(
+            "Stage 2 — Do Nots", BuildStage2Content()));
+        stack.Children.Add(BuildStageCard(
+            "Stage 3 — Build & Copy Prompt", BuildStage3Content()));
+        stack.Children.Add(BuildStageCard(
+            "Stage 4 — Paste LLM Response", BuildStage4Content()));
+        stack.Children.Add(BuildStageCard(
+            "Stage 5 — Generated Prompts", BuildStage5Content()));
 
         Content = new ScrollView { Content = stack };
     }
@@ -105,76 +112,18 @@ public class OpeningClipPromptPage : ContentPage
         };
     }
 
-    // ── Stage 1 ──────────────────────────────────────────────────────
+    // ── Stage 1: Foundation ───────────────────────────────────────────
     private View BuildStage1Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
-
-        var pickBtn = new Button
-        {
-            Text = " Choose Starting Frame",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            FontSize = 14,
-            HeightRequest = 44
-        };
-        pickBtn.Clicked += async (_, _) => await PickImageAsync();
-        v.Children.Add(pickBtn);
-
-        _imageInfoLabel = new Label
-        {
-            Text = "No image selected.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
-        v.Children.Add(_imageInfoLabel);
-
-        _imagePreview = new Image
-        {
-            HeightRequest = 200,
-            Aspect = Aspect.AspectFit,
-            IsVisible = false,
-            HorizontalOptions = LayoutOptions.Fill
-        };
-        v.Children.Add(_imagePreview);
-
-        _previewHint = new Label
-        {
-            Text = "Tap to fullscreen",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#999"),
-            FontAttributes = FontAttributes.Italic,
-            HorizontalOptions = LayoutOptions.Center,
-            IsVisible = false
-        };
-        var previewTap = new TapGestureRecognizer();
-        previewTap.Tapped += async (_, _) =>
-        {
-            if (_imagePreview.Source == null || !_imagePreview.IsVisible) return;
-            await Navigation.PushAsync(
-                new FullScreenImagePage(_imagePreview.Source));
-        };
-        _imagePreview.GestureRecognizers.Add(previewTap);
-        v.Children.Add(_previewHint);
-
-        return v;
-    }
-
-    // ── Stage 2 ──────────────────────────────────────────────────────
-    private View BuildStage2Content()
-    {
-        var v = new VerticalStackLayout { Spacing = 8 };
-
         v.Children.Add(new Label
         {
-            Text = "The current retention hypothesis to keep constant across variations " +
-                   "(e.g. \"foe + movement\"). Edit per experiment.",
+            Text = "The current retention hypothesis to keep constant across " +
+                   "variations (e.g. \"foe + movement\"). Edit per experiment.",
             FontSize = 12,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
         });
-
         _foundationEditor = new Editor
         {
             HeightRequest = 60,
@@ -206,24 +155,55 @@ public class OpeningClipPromptPage : ContentPage
             await SaveFoundationAsync(DefaultFoundation);
         };
         v.Children.Add(resetBtn);
-
         return v;
     }
 
-    // ── Stage 3 ──────────────────────────────────────────────────────
-    private View BuildStage3Content()
+    // ── Stage 2: Do Nots ──────────────────────────────────────────────
+    private View BuildStage2Content()
     {
-        var v = new VerticalStackLayout { Spacing = 8 };
-
+        var v = new VerticalStackLayout { Spacing = 10 };
         v.Children.Add(new Label
         {
-            Text = "Builds the full retention-optimised prompt. Attach the starting " +
-                   "frame image yourself in Grok/Claude after pasting.",
+            Text = "Things you do NOT want the LLM to generate. " +
+                   "These are injected into the prompt automatically.",
             FontSize = 12,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
         });
 
+        _doNotContainer = new VerticalStackLayout { Spacing = 6 };
+        v.Children.Add(_doNotContainer);
+
+        var addBtn = new Button
+        {
+            Text = "+ Add Do Not",
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            TextColor = Color.FromArgb("#2E7D32"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 38,
+            HorizontalOptions = LayoutOptions.Start,
+            Padding = new Thickness(14, 0)
+        };
+        addBtn.Clicked += async (_, _) => await AddDoNotAsync();
+        v.Children.Add(addBtn);
+
+        return v;
+    }
+
+    // ── Stage 3: Build & Copy ─────────────────────────────────────────
+    private View BuildStage3Content()
+    {
+        var v = new VerticalStackLayout { Spacing = 8 };
+        v.Children.Add(new Label
+        {
+            Text = "Builds the full prompt with your foundation and do-nots " +
+                   "injected. Attach the starting frame image in Grok/Claude " +
+                   "after pasting.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
         _buildButton = new Button
         {
             Text = " Build & Copy Prompt to Clipboard",
@@ -236,33 +216,30 @@ public class OpeningClipPromptPage : ContentPage
         };
         _buildButton.Clicked += async (_, _) => await BuildAndCopyPromptAsync();
         v.Children.Add(_buildButton);
-
         _outputStatusLabel = new Label
         {
             Text = "",
             FontSize = 12,
             TextColor = Color.FromArgb("#2E7D32"),
-            IsVisible = false
+            IsVisible = false,
+            LineBreakMode = LineBreakMode.WordWrap
         };
         v.Children.Add(_outputStatusLabel);
-
         return v;
     }
 
-    // ── Stage 4 ──────────────────────────────────────────────────────
+    // ── Stage 4: Paste Response ───────────────────────────────────────
     private View BuildStage4Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
-
         v.Children.Add(new Label
         {
-            Text = "After running the prompt in Grok/Claude with the image attached, " +
-                   "paste the response here to parse the 5 clip prompts.",
+            Text = "After running the prompt in Grok/Claude with the image " +
+                   "attached, paste the response here to parse the 5 clip prompts.",
             FontSize = 12,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
         });
-
         _pasteResponseButton = new Button
         {
             Text = " Paste LLM Response",
@@ -275,59 +252,153 @@ public class OpeningClipPromptPage : ContentPage
         _pasteResponseButton.Clicked += async (_, _) =>
             await PasteLLMResponseAsync();
         v.Children.Add(_pasteResponseButton);
-
         return v;
     }
 
-    // ── Stage 5 ──────────────────────────────────────────────────────
+    // ── Stage 5: Parsed Prompts ───────────────────────────────────────
     private View BuildStage5Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
-
         v.Children.Add(new Label
         {
-            Text = "Parsed prompts appear here. Tap Copy to send each to Grok.",
+            Text = "Parsed prompts appear here. Skim the titles, " +
+                   "tap Copy to send each to Grok.",
             FontSize = 12,
             TextColor = Color.FromArgb("#666")
         });
-
         _promptsContainer = new VerticalStackLayout { Spacing = 12 };
         v.Children.Add(_promptsContainer);
-
         return v;
     }
 
-    // ── Logic ─────────────────────────────────────────────────────────
-    private async Task PickImageAsync()
+    // ─────────────────────────────────────────────────────────────────
+    // DO NOT LOGIC
+    // ─────────────────────────────────────────────────────────────────
+    private async Task RefreshDoNotListAsync()
     {
-        try
-        {
-            var result = await FilePicker.PickAsync(new PickOptions
-            {
-                PickerTitle = "Select starting frame",
-                FileTypes = FilePickerFileType.Images
-            });
-            if (result == null) return;
+        _doNotItems = await _doNotService.GetItemsAsync(
+            _auth.CurrentUsername, Area);
+        RenderDoNotList();
+    }
 
-            _pickedFilePath = result.FullPath;
-            _imageInfoLabel.Text = System.IO.Path.GetFileName(_pickedFilePath);
-            _imagePreview.Source = ImageSource.FromFile(_pickedFilePath);
-            _imagePreview.IsVisible = true;
-            _previewHint.IsVisible = true;
-        }
-        catch (Exception ex)
+    private void RenderDoNotList()
+    {
+        _doNotContainer.Children.Clear();
+
+        if (_doNotItems.Count == 0)
         {
-            await DisplayAlert("Error", $"Failed to open image: {ex.Message}", "OK");
+            _doNotContainer.Children.Add(new Label
+            {
+                Text = "No exclusions added yet.",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#999"),
+                FontAttributes = FontAttributes.Italic
+            });
+            return;
+        }
+
+        foreach (var item in _doNotItems)
+        {
+            var row = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(new GridLength(36)),
+                    new ColumnDefinition(new GridLength(36))
+                },
+                ColumnSpacing = 6
+            };
+
+            row.Add(new Label
+            {
+                Text = item.Text,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#222"),
+                VerticalOptions = LayoutOptions.Center
+            }, 0, 0);
+
+            var editBtn = new Button
+            {
+                Text = "✏",
+                FontSize = 13,
+                HeightRequest = 34,
+                WidthRequest = 34,
+                CornerRadius = 6,
+                Padding = 0,
+                BackgroundColor = Color.FromArgb("#E3F2FD"),
+                TextColor = Color.FromArgb("#1565C0")
+            };
+            var capturedItem = item;
+            editBtn.Clicked += async (_, _) =>
+                await EditDoNotAsync(capturedItem);
+            row.Add(editBtn, 1, 0);
+
+            var delBtn = new Button
+            {
+                Text = "✕",
+                FontSize = 13,
+                HeightRequest = 34,
+                WidthRequest = 34,
+                CornerRadius = 6,
+                Padding = 0,
+                BackgroundColor = Color.FromArgb("#FFEBEE"),
+                TextColor = Color.FromArgb("#C62828")
+            };
+            delBtn.Clicked += async (_, _) =>
+                await DeleteDoNotAsync(capturedItem);
+            row.Add(delBtn, 2, 0);
+
+            _doNotContainer.Children.Add(row);
         }
     }
 
+    private async Task AddDoNotAsync()
+    {
+        string? text = await DisplayPromptAsync(
+            "Add Do Not",
+            "What should the LLM avoid generating?",
+            "Add", "Cancel",
+            placeholder: "e.g. eyes coming out of the floor");
+        if (string.IsNullOrWhiteSpace(text)) return;
+        await _doNotService.AddItemAsync(
+            _auth.CurrentUsername, Area, text.Trim());
+        await RefreshDoNotListAsync();
+    }
+
+    private async Task EditDoNotAsync(DoNotItem item)
+    {
+        string? text = await DisplayPromptAsync(
+            "Edit Do Not",
+            "Edit this exclusion:",
+            "Save", "Cancel",
+            initialValue: item.Text);
+        if (string.IsNullOrWhiteSpace(text)) return;
+        item.Text = text.Trim();
+        await _doNotService.UpdateItemAsync(item);
+        await RefreshDoNotListAsync();
+    }
+
+    private async Task DeleteDoNotAsync(DoNotItem item)
+    {
+        bool confirm = await DisplayAlert(
+            "Remove", $"Remove \"{item.Text}\"?", "Remove", "Cancel");
+        if (!confirm) return;
+        await _doNotService.DeleteItemAsync(item.Id);
+        await RefreshDoNotListAsync();
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // BUILD PROMPT
+    // ─────────────────────────────────────────────────────────────────
     private async Task BuildAndCopyPromptAsync()
     {
         var foundation = (_foundationEditor.Text ?? DefaultFoundation).Trim();
         if (string.IsNullOrWhiteSpace(foundation))
             foundation = DefaultFoundation;
 
-        var prompt = BuildPrompt(foundation);
+        var doNots = _doNotItems.Select(i => i.Text).ToList();
+        var prompt = BuildPrompt(foundation, doNots);
         await Clipboard.SetTextAsync(prompt);
 
         _outputStatusLabel.Text =
@@ -341,8 +412,15 @@ public class OpeningClipPromptPage : ContentPage
         _buildButton.Text = original;
     }
 
-    private static string BuildPrompt(string foundation)
+    private static string BuildPrompt(
+        string foundation, List<string> doNots)
     {
+        var doNotSection = doNots.Count > 0
+            ? "\n\nABSOLUTE EXCLUSIONS — do not generate any variation " +
+              "that includes any of the following, even partially:\n" +
+              string.Join("\n", doNots.Select(d => $"- {d}"))
+            : "";
+
         return
             "I have a task for you but I need maximum variety because " +
             "you tend to repeat yourself when asked for multiple variations. " +
@@ -382,17 +460,28 @@ public class OpeningClipPromptPage : ContentPage
             "Each prompt must describe the chronological action that should " +
             "happen from the supplied first frame. The viewer should be able " +
             "to watch muted and still perceive an unfolding event. " +
-            "Keep each prompt practical for Grok video generation.\n\n" +
+            "Keep each prompt practical for Grok video generation." +
+            doNotSection + "\n\n" +
 
             "After your Step 1 and Step 2 working, return ONLY the final " +
-            "5 prompts in exactly this format at the end of your response:\n" +
+            "5 prompts in exactly this format at the end of your response. " +
+            "Each entry must have a clipTitle (3-5 word hook idea label for " +
+            "quick skimming) and a clipPrompt (the full Grok prompt):\n" +
+            "clipTitle[1] = \"...\";\n" +
             "clipPrompts[1] = \"...\";\n" +
+            "clipTitle[2] = \"...\";\n" +
             "clipPrompts[2] = \"...\";\n" +
+            "clipTitle[3] = \"...\";\n" +
             "clipPrompts[3] = \"...\";\n" +
+            "clipTitle[4] = \"...\";\n" +
             "clipPrompts[4] = \"...\";\n" +
+            "clipTitle[5] = \"...\";\n" +
             "clipPrompts[5] = \"...\";";
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // PASTE & PARSE
+    // ─────────────────────────────────────────────────────────────────
     private async Task PasteLLMResponseAsync()
     {
         var result = await ShowMultilineEditorAsync(
@@ -400,11 +489,10 @@ public class OpeningClipPromptPage : ContentPage
             "Paste the full response from Grok/Claude:",
             "",
             "Paste response here...");
-
         if (string.IsNullOrWhiteSpace(result)) return;
 
-        var parsed = ParseClipPrompts(result.Trim());
-        if (parsed.Count == 0)
+        var (titles, prompts) = ParseClipPrompts(result.Trim());
+        if (prompts.Count == 0)
         {
             await DisplayAlert("Parse Failed",
                 "Could not find clipPrompts[1..5] in the response. " +
@@ -414,40 +502,69 @@ public class OpeningClipPromptPage : ContentPage
         }
 
         _parsedPrompts.Clear();
-        _parsedPrompts.AddRange(parsed);
+        _parsedPrompts.AddRange(prompts);
+        _parsedTitles.Clear();
+        _parsedTitles.AddRange(titles);
         RenderParsedPrompts();
     }
 
-    private static List<string> ParseClipPrompts(string response)
+    private static (List<string> Titles, List<string> Prompts)
+        ParseClipPrompts(string response)
     {
-        var results = new List<string>();
+        var titles = new List<string>();
+        var prompts = new List<string>();
+
         for (int i = 1; i <= 5; i++)
         {
-            var pattern = $"clipPrompts[{i}]";
-            var idx = response.IndexOf(pattern,
+            // Parse title
+            var titlePattern = $"clipTitle[{i}]";
+            var titleIdx = response.IndexOf(titlePattern,
                 StringComparison.OrdinalIgnoreCase);
-            if (idx < 0) continue;
-
-            var eqIdx = response.IndexOf('=', idx);
-            if (eqIdx < 0) continue;
-
-            var rest = response[(eqIdx + 1)..].TrimStart();
-            if (rest.StartsWith('"'))
+            if (titleIdx >= 0)
             {
-                // Find closing quote — handle escaped quotes
-                int end = 1;
-                while (end < rest.Length)
+                var eqIdx = response.IndexOf('=', titleIdx);
+                if (eqIdx >= 0)
                 {
-                    if (rest[end] == '"' && rest[end - 1] != '\\') break;
-                    end++;
+                    var rest = response[(eqIdx + 1)..].TrimStart();
+                    if (rest.StartsWith('"'))
+                    {
+                        int end = 1;
+                        while (end < rest.Length)
+                        {
+                            if (rest[end] == '"' && rest[end - 1] != '\\')
+                                break;
+                            end++;
+                        }
+                        titles.Add(end < rest.Length
+                            ? rest[1..end].Replace("\\\"", "\"").Trim()
+                            : $"Hook {i}");
+                    }
+                    else titles.Add($"Hook {i}");
                 }
-                if (end < rest.Length)
-                    results.Add(rest[1..end]
-                        .Replace("\\\"", "\"")
-                        .Trim());
+                else titles.Add($"Hook {i}");
             }
+            else titles.Add($"Hook {i}");
+
+            // Parse prompt
+            var promptPattern = $"clipPrompts[{i}]";
+            var promptIdx = response.IndexOf(promptPattern,
+                StringComparison.OrdinalIgnoreCase);
+            if (promptIdx < 0) continue;
+            var peqIdx = response.IndexOf('=', promptIdx);
+            if (peqIdx < 0) continue;
+            var prest = response[(peqIdx + 1)..].TrimStart();
+            if (!prest.StartsWith('"')) continue;
+            int pend = 1;
+            while (pend < prest.Length)
+            {
+                if (prest[pend] == '"' && prest[pend - 1] != '\\') break;
+                pend++;
+            }
+            if (pend < prest.Length)
+                prompts.Add(prest[1..pend]
+                    .Replace("\\\"", "\"").Trim());
         }
-        return results;
+        return (titles, prompts);
     }
 
     private void RenderParsedPrompts()
@@ -458,6 +575,9 @@ public class OpeningClipPromptPage : ContentPage
         {
             int capturedI = i;
             var promptText = _parsedPrompts[i];
+            var title = i < _parsedTitles.Count
+                ? _parsedTitles[i]
+                : $"Hook {i + 1}";
 
             var card = new Frame
             {
@@ -467,33 +587,31 @@ public class OpeningClipPromptPage : ContentPage
                 BorderColor = Color.FromArgb("#C5CAE9"),
                 HasShadow = false
             };
-
             var inner = new VerticalStackLayout { Spacing = 8 };
 
             inner.Children.Add(new Label
             {
-                Text = $"Prompt {i + 1}",
-                FontSize = 13,
+                Text = $"{i + 1}. {title}",
+                FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#1565C0")
             });
-
             inner.Children.Add(new Label
             {
                 Text = promptText,
-                FontSize = 13,
-                TextColor = Color.FromArgb("#222"),
+                FontSize = 12,
+                TextColor = Color.FromArgb("#444"),
                 LineBreakMode = LineBreakMode.WordWrap
             });
 
             var copyBtn = new Button
             {
-                Text = $" Copy Prompt {i + 1}",
+                Text = " Copy",
                 BackgroundColor = Color.FromArgb("#1565C0"),
                 TextColor = Colors.White,
                 CornerRadius = 8,
                 FontSize = 13,
-                HeightRequest = 40,
+                HeightRequest = 38,
                 HorizontalOptions = LayoutOptions.Start,
                 Padding = new Thickness(14, 0)
             };
@@ -506,19 +624,18 @@ public class OpeningClipPromptPage : ContentPage
                 copyBtn.Text = orig;
             };
             inner.Children.Add(copyBtn);
-
             card.Content = inner;
             _promptsContainer.Children.Add(card);
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // MULTILINE EDITOR MODAL
+    // ─────────────────────────────────────────────────────────────────
     private async Task<string> ShowMultilineEditorAsync(
         string title, string message,
         string initialValue, string placeholder)
     {
-        // Delegate to page's own modal — matches TargetedHooksPage pattern
-        // Use DisplayPromptAsync for single line or a custom modal for multiline
-        // Since MAUI doesn't have a built-in multiline prompt, use a push page
         var tcs = new TaskCompletionSource<string>();
         var editorPage = new ContentPage
         {
@@ -571,7 +688,9 @@ public class OpeningClipPromptPage : ContentPage
         return await tcs.Task;
     }
 
-    // ── Foundation persistence ────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────
+    // FOUNDATION PERSISTENCE
+    // ─────────────────────────────────────────────────────────────────
     private string FoundationKey =>
         $"{FoundationStorageKey_Prefix}{_auth.CurrentUsername}";
 
@@ -581,12 +700,11 @@ public class OpeningClipPromptPage : ContentPage
         {
             var stored = await SecureStorage.GetAsync(FoundationKey);
             _foundationEditor.Text =
-                string.IsNullOrWhiteSpace(stored) ? DefaultFoundation : stored;
+                string.IsNullOrWhiteSpace(stored)
+                    ? DefaultFoundation
+                    : stored;
         }
-        catch
-        {
-            _foundationEditor.Text = DefaultFoundation;
-        }
+        catch { _foundationEditor.Text = DefaultFoundation; }
     }
 
     private async Task SaveFoundationAsync(string value)

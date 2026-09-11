@@ -112,12 +112,16 @@ public class ImageProductionHubPage : ContentPage
             ?? throw new InvalidOperationException("CropPresetService not available.");
         var panelSaver = services.GetService<IPanelSaver>()
             ?? throw new InvalidOperationException("IPanelSaver not available.");
+        var doNotService = services.GetService<DoNotService>()
+            ?? throw new InvalidOperationException(
+                "DoNotService not available.");
         await Navigation.PushAsync(
             new HooksHubPage(
                 _auth,
                 hookWordService,
                 customPrompts,
                 cropPresets,
-                panelSaver));
+                panelSaver,
+                doNotService));
     }
 }
