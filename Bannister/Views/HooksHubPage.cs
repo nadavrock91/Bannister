@@ -54,7 +54,12 @@ public class HooksHubPage : ContentPage
                 CreateHubCard(
                     "Targeted Hooks",
                     "Generate scroll-stopping hooks for a specific topic or niche.",
-                    OnTargetedHooksTapped)
+                    OnTargetedHooksTapped),
+                CreateHubCard(
+                    "Opening Clip Prompts",
+                    "Generate 5 Grok video-prompt variations from a starting frame " +
+                    "to maximise 10-second retention.",
+                    OnOpeningClipPromptsTapped)
             }
         };
 
@@ -121,5 +126,12 @@ public class HooksHubPage : ContentPage
     {
         await Navigation.PushAsync(
             new TargetedHooksPage(_auth, _customPrompts, _cropPresets, _panelSaver));
+    }
+
+    private async void OnOpeningClipPromptsTapped(
+        object? sender, TappedEventArgs e)
+    {
+        await Navigation.PushAsync(
+            new OpeningClipPromptPage(_auth, _customPrompts));
     }
 }

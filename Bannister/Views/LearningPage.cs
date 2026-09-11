@@ -4450,7 +4450,7 @@ public class LearningPage : ContentPage
 
             var titleLabel = new Label
             {
-                Text = string.IsNullOrWhiteSpace(video.Title) ? "Imported video" : video.Title,
+                Text = $"{(string.IsNullOrWhiteSpace(video.Title) ? "Imported video" : video.Title)}{(string.IsNullOrWhiteSpace(video.Creator) ? "" : $" — {video.Creator}")}",
                 FontSize = 14,
                 TextColor = Color.FromArgb("#263238"),
                 LineBreakMode = LineBreakMode.WordWrap,
