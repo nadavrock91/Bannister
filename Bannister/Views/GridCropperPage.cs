@@ -96,21 +96,119 @@ public class GridCropperPage : ContentPage
     private View BuildStep2Content()
     {
         var v = new VerticalStackLayout { Spacing = 10 };
-        var wRow = new Grid { ColumnDefinitions = { new ColumnDefinition(new GridLength(60)), new ColumnDefinition(GridLength.Star), new ColumnDefinition(new GridLength(60)) }, ColumnSpacing = 8 };
+        var wRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(new GridLength(60)),
+                new ColumnDefinition(new GridLength(38)),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(new GridLength(38)),
+                new ColumnDefinition(new GridLength(60))
+            },
+            ColumnSpacing = 8
+        };
         wRow.Add(new Label { Text = "Width", FontSize = 13, TextColor = Color.FromArgb("#444"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+        var widthMinusBtn = new Button
+        {
+            Text = "−",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            HeightRequest = 36,
+            WidthRequest = 36,
+            CornerRadius = 6,
+            Padding = 0,
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F")
+        };
+        widthMinusBtn.Clicked += (_, _) =>
+        {
+            _widthSlider.Value = Math.Max(
+                _widthSlider.Minimum,
+                _widthSlider.Value - 5);
+        };
+        wRow.Add(widthMinusBtn, 1, 0);
         _widthSlider = new Slider { Minimum = 10, Maximum = 1000, Value = 100, IsEnabled = false };
         _widthSlider.ValueChanged += OnSliderChanged;
-        wRow.Add(_widthSlider, 1, 0);
+        wRow.Add(_widthSlider, 2, 0);
+        var widthPlusBtn = new Button
+        {
+            Text = "+",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            HeightRequest = 36,
+            WidthRequest = 36,
+            CornerRadius = 6,
+            Padding = 0,
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F")
+        };
+        widthPlusBtn.Clicked += (_, _) =>
+        {
+            _widthSlider.Value = Math.Min(
+                _widthSlider.Maximum,
+                _widthSlider.Value + 5);
+        };
+        wRow.Add(widthPlusBtn, 3, 0);
         _widthValueLabel = new Label { Text = "100 px", FontSize = 12, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End };
-        wRow.Add(_widthValueLabel, 2, 0);
+        wRow.Add(_widthValueLabel, 4, 0);
         v.Children.Add(wRow);
-        var hRow = new Grid { ColumnDefinitions = { new ColumnDefinition(new GridLength(60)), new ColumnDefinition(GridLength.Star), new ColumnDefinition(new GridLength(60)) }, ColumnSpacing = 8 };
+        var hRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(new GridLength(60)),
+                new ColumnDefinition(new GridLength(38)),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(new GridLength(38)),
+                new ColumnDefinition(new GridLength(60))
+            },
+            ColumnSpacing = 8
+        };
         hRow.Add(new Label { Text = "Height", FontSize = 13, TextColor = Color.FromArgb("#444"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+        var heightMinusBtn = new Button
+        {
+            Text = "−",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            HeightRequest = 36,
+            WidthRequest = 36,
+            CornerRadius = 6,
+            Padding = 0,
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F")
+        };
+        heightMinusBtn.Clicked += (_, _) =>
+        {
+            _heightSlider.Value = Math.Max(
+                _heightSlider.Minimum,
+                _heightSlider.Value - 5);
+        };
+        hRow.Add(heightMinusBtn, 1, 0);
         _heightSlider = new Slider { Minimum = 10, Maximum = 1000, Value = 100, IsEnabled = false };
         _heightSlider.ValueChanged += OnSliderChanged;
-        hRow.Add(_heightSlider, 1, 0);
+        hRow.Add(_heightSlider, 2, 0);
+        var heightPlusBtn = new Button
+        {
+            Text = "+",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            HeightRequest = 36,
+            WidthRequest = 36,
+            CornerRadius = 6,
+            Padding = 0,
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F")
+        };
+        heightPlusBtn.Clicked += (_, _) =>
+        {
+            _heightSlider.Value = Math.Min(
+                _heightSlider.Maximum,
+                _heightSlider.Value + 5);
+        };
+        hRow.Add(heightPlusBtn, 3, 0);
         _heightValueLabel = new Label { Text = "100 px", FontSize = 12, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End };
-        hRow.Add(_heightValueLabel, 2, 0);
+        hRow.Add(_heightValueLabel, 4, 0);
         v.Children.Add(hRow);
 
         // Preset row

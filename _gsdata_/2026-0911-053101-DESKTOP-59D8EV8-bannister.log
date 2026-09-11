@@ -1,0 +1,41 @@
+2026-09-11 05:31:02: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-09-11 05:31:02: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-09-11 05:31:06: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-09-11 05:50:46: File ModTime changed but CheckSum remains the same, request CopyState: /Bannister/obj/Debug/net8.0-android/android/bin/classes/crc645d80431ce5f73f11/StartSingleSnapHelper.class
+2026-09-11 05:50:47: Changes: 20, Conflicts: 0, CopyTime: 0, FixState: 1, Errors: 0, All: 23708
+2026-09-11 05:50:47: Left to Right: Copy File: 20 
+2026-09-11 05:50:47: == Sync Started by On Schedule Min=30 Hour=5 
+2026-09-11 05:50:47: ConnectCloned connected to file:///C:/rock/bannister
+2026-09-11 05:50:47: ConnectCloned connected to file:///C:/rock/bannister
+2026-09-11 05:50:47: ConnectCloned connected to file:///C:/rock/bannister
+2026-09-11 05:50:47: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-09-11 05:50:47: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-09-11 05:50:47: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-09-11 05:50:54: C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json: Source file has changed between Analyze and Sync from '[file] size=17,863 accu-time=2026-09-10 08:59:08 attr=Archive,WArchive cktype=0' to 'size=17,899 time=2026-09-11 05:38:37', noted in source file state
+2026-09-11 05:50:54: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (17,863)
+2026-09-11 05:50:54: C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json: Source file has changed between Analyze and Sync from '[file] size=17,863 accu-time=2026-09-10 05:36:17 attr=Archive,WArchive cktype=0' to 'size=17,863 time=2026-09-11 05:38:05', noted in source file state
+2026-09-11 05:50:54: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (17,863)
+2026-09-11 05:50:55: C:/rock/bannister/.vs/Bannister/v18/.suo: Source file has changed between Analyze and Sync from '[file] size=88,064 accu-time=2026-09-10 08:59:09 attr=Hidden,Archive,WArchive,WHidden cktype=0' to 'size=88,064 time=2026-09-11 05:38:37', noted in source file state
+2026-09-11 05:50:55: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (88,064)
+2026-09-11 05:50:55: > Copy Over 'C:/rock/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/SemanticSymbols.db-wal' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/SemanticSymbols.db-wal' (4,260,112)
+2026-09-11 05:50:57: Copy Over 'C:/rock/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/CodeChunks.db-shm' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/CodeChunks.db-shm' (32,768)
+2026-09-11 05:50:58: Copy Over 'C:/rock/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/SemanticSymbols.db-shm' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/SemanticSymbols.db-shm' (32,768)
+2026-09-11 05:51:00: < Copy Over 'C:/rock/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/SemanticSymbols.db-wal' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/SemanticSymbols.db-wal' (4,260,112)
+2026-09-11 05:51:04: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.BuildWithSkipAnalyzers' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.BuildWithSkipAnalyzers' (0)
+2026-09-11 05:51:04: Copy Over 'C:/rock/bannister/.vs/Bannister/DesignTimeBuild/.dtbcache.v2' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/DesignTimeBuild/.dtbcache.v2' (208,846)
+2026-09-11 05:51:05: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppxManifest.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppxManifest.xml' (2,821)
+2026-09-11 05:51:08: C:/rock/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe: Source file has changed between Analyze and Sync from '[file] size=72,682 accu-time=2026-09-10 08:59:08 attr=Archive,WArchive cktype=0' to 'size=72,682 time=2026-09-11 05:38:37', noted in source file state
+2026-09-11 05:51:08: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (72,682)
+2026-09-11 05:51:08: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/AppxManifest.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/AppxManifest.xml' (2,821)
+2026-09-11 05:51:08: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.build.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.build.appxrecipe' (60,573)
+2026-09-11 05:51:11: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/excluded.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/excluded.layout.resfiles.intermediate' (0)
+2026-09-11 05:51:12: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/embed/embed.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/embed/embed.resfiles.intermediate' (27)
+2026-09-11 05:51:12: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/filtered.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/filtered.layout.resfiles.intermediate' (2,329)
+2026-09-11 05:51:14: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/pri.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/pri.resfiles.intermediate' (386)
+2026-09-11 05:51:16: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/resources.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/resources.resfiles.intermediate' (0)
+2026-09-11 05:51:16: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/priconfig.xml.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/priconfig.xml.intermediate' (3,154)
+2026-09-11 05:51:18: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/unfiltered.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/unfiltered.layout.resfiles.intermediate' (2,329)
+2026-09-11 05:51:19: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' (813)
+2026-09-11 05:51:20: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-09-11 05:51:22: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-09-11 06:01:09: == Sync Complete. Time: 00:10:22, Speed: 138.19 KB/s, OK: 21, Errors: 0

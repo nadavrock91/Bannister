@@ -1,0 +1,37 @@
+2026-09-09 05:30:27: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-09-09 05:30:27: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-09-09 05:30:30: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-09-09 05:30:33: Changes: 4, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 23708
+2026-09-09 05:30:33: Left to Right: Copy File: 4 
+2026-09-09 05:30:33: == Sync Started by On Schedule Min=30 Hour=5 
+2026-09-09 05:30:33: ConnectCloned connected to file:///C:/rock/bannister
+2026-09-09 05:30:33: ConnectCloned connected to file:///C:/rock/bannister
+2026-09-09 05:30:33: ConnectCloned connected to file:///C:/rock/bannister
+2026-09-09 05:30:33: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-09-09 05:30:33: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-09-09 05:30:33: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-09-09 05:30:38: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (17,899)
+2026-09-09 05:30:38: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (88,064)
+2026-09-09 05:30:39: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (17,899)
+2026-09-09 05:30:42: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (72,682)
+2026-09-09 05:30:43: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-09-09 05:30:45: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-09-09 05:30:46: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/4006ac71-96ef-4180-af28-e16bc448a249.vsidx
+2026-09-09 05:30:47: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/50ad4769-d187-4408-9feb-f9786922f204.vsidx
+2026-09-09 05:30:48: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/63a1d234-7802-44e0-a7d4-259307998e67.vsidx
+2026-09-09 05:30:48: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/66169ee5-741b-4ac7-a139-aa5664059d46.vsidx
+2026-09-09 05:30:49: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/6ec01694-6239-4fd2-8fa8-59d27d79be3a.vsidx
+2026-09-09 05:30:50: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-android/Microsoft.Maui.Controls.HotReload.Forms.dll
+2026-09-09 05:30:50: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-android/Microsoft.VisualStudio.DesignTools.MobileTapContracts.dll
+2026-09-09 05:30:51: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-android/Microsoft.VisualStudio.DesignTools.TapContract.dll
+2026-09-09 05:30:52: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-android/Microsoft.VisualStudio.DesignTools.XamlTapContract.dll
+2026-09-09 05:30:53: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/x64/Debug/net8.0-android/android-arm64/Bannister.csproj.AssemblyReference.cache
+2026-09-09 05:30:53: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/x64/Debug/net8.0-android/android/assets/Microsoft.Maui.Controls.HotReload.Forms.dll
+2026-09-09 05:30:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/x64/Debug/net8.0-android/android/assets/Microsoft.VisualStudio.DesignTools.MobileTapContracts.dll
+2026-09-09 05:30:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/x64/Debug/net8.0-android/android/assets/Microsoft.VisualStudio.DesignTools.TapContract.dll
+2026-09-09 05:30:55: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/x64/Debug/net8.0-android/android/assets/Microsoft.VisualStudio.DesignTools.XamlTapContract.dll
+2026-09-09 05:30:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/x64/Debug/net8.0-android/Bannister.csproj.Up2Date
+2026-09-09 05:30:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Services/BackupService.cs
+2026-09-09 05:30:57: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Services/StoryProductionService.cs
+2026-09-09 05:30:58: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Views/storyproduction/StoryProductionPage.cs
+2026-09-09 05:31:02: == Sync Complete. Time: 00:00:29, Speed: 16.38 KB/s, OK: 4, Errors: 0
