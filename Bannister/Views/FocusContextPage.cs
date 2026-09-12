@@ -9,9 +9,11 @@ public class FocusContextPage : ContentPage
     private readonly TaskService _tasks;
     private readonly WeeklyChallengeService _challengeService;
     private readonly DatabaseService _db;
+    private readonly FocusContextService _service;
 
     private VerticalStackLayout _bulletsList = null!;
     private VerticalStackLayout _archivedList = null!;
+    private List<FocusBulletPoint> _points = new();
     private bool _showArchived;
     private bool _initialized;
 
@@ -21,6 +23,7 @@ public class FocusContextPage : ContentPage
         _tasks = tasks;
         _challengeService = challengeService;
         _db = db;
+        _service = new FocusContextService(db);
         Title = "Focus Context";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -59,6 +62,18 @@ public class FocusContextPage : ContentPage
         var exportBtn = new Button { Text = "\U0001F4CB Export for LLM", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 40, FontSize = 13, Padding = new Thickness(14, 0) };
         exportBtn.Clicked += async (_, _) => await ExportForLlmAsync();
         btnRow.Children.Add(exportBtn);
+        var updateBtn = new Button
+        {
+            Text = " Update from Conversation",
+            BackgroundColor = Color.FromArgb("#5B63EE"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 40,
+            Padding = new Thickness(12, 0)
+        };
+        updateBtn.Clicked += async (_, _) => await UpdateFromConversationAsync();
+        btnRow.Children.Add(updateBtn);
         mainStack.Children.Add(btnRow);
 
         _bulletsList = new VerticalStackLayout { Spacing = 6 };
@@ -85,6 +100,7 @@ public class FocusContextPage : ContentPage
             var active = await conn.Table<FocusBulletPoint>()
                 .Where(b => b.Username == _auth.CurrentUsername && b.Status == "active")
                 .OrderBy(b => b.SortOrder).ToListAsync();
+            _points = active;
 
             _bulletsList.Children.Clear();
             if (active.Count == 0)
@@ -380,5 +396,311 @@ public class FocusContextPage : ContentPage
 
         await Clipboard.SetTextAsync(sb.ToString());
         await DisplayAlert("Exported", $"Copied to clipboard:\n\n{bullets.Count} focus points\n{(challenge != null ? $"Focus tasks from {challenge.FocusCategory}" : "No active challenge")}", "OK");
+    }
+
+    private async Task UpdateFromConversationAsync()
+    {
+        // Step 1: paste conversation
+        var conversation = await ShowMultilineEditorAsync(
+            "Paste Conversation",
+            "Paste your LLM conversation transcript here:");
+        if (string.IsNullOrWhiteSpace(conversation)) return;
+
+        // Step 2: build and copy the update prompt
+        var prompt = BuildUpdatePrompt(conversation);
+        await Clipboard.SetTextAsync(prompt);
+
+        await DisplayAlert("Prompt Copied",
+            "The update analysis prompt has been copied to clipboard.\n\n" +
+            "Paste it into your LLM, then come back and tap " +
+            "'Paste LLM Update Response'.",
+            "OK");
+
+        // Step 3: paste LLM response
+        var response = await ShowMultilineEditorAsync(
+            "Paste LLM Update Response",
+            "Paste the LLM's structured update response here:");
+        if (string.IsNullOrWhiteSpace(response)) return;
+
+        // Step 4: parse response
+        var parsed = ParseUpdateResponse(response.Trim());
+        if (parsed.AddPoints.Count == 0 &&
+            parsed.MovePoints.Count == 0 &&
+            parsed.ArchivePoints.Count == 0)
+        {
+            await DisplayAlert("Parse Failed",
+                "Could not find any focusUpdate entries in the response. " +
+                "Make sure the LLM returned the exact format requested.",
+                "OK");
+            return;
+        }
+
+        // Step 5: show review UI
+        await ShowUpdateReviewAsync(parsed);
+    }
+
+    private string BuildUpdatePrompt(string conversation)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("You are analyzing a conversation to suggest updates " +
+            "to a prioritized focus context list. The list represents the " +
+            "user's current strategic context, priorities, and constraints " +
+            "in order of importance.");
+        sb.AppendLine();
+        sb.AppendLine("CURRENT FOCUS CONTEXT POINTS (in priority order):");
+        foreach (var p in _points)
+            sb.AppendLine($"[ID:{p.Id}] Position {p.SortOrder}: {p.Text}");
+        sb.AppendLine();
+        sb.AppendLine("CONVERSATION TO ANALYZE:");
+        sb.AppendLine(conversation);
+        sb.AppendLine();
+        sb.AppendLine("Based on the conversation, suggest:");
+        sb.AppendLine("1. New points to add (with suggested insertion position)");
+        sb.AppendLine("2. Existing points to move to a different position " +
+            "(reprioritize)");
+        sb.AppendLine("3. Existing points to archive (no longer relevant)");
+        sb.AppendLine();
+        sb.AppendLine("Return ONLY C#-parseable output in exactly this format. " +
+            "Number each suggestion starting from 1. " +
+            "Omit any section that has no suggestions:");
+        sb.AppendLine();
+        sb.AppendLine("// New points to add:");
+        sb.AppendLine("focusUpdate.AddPoint[1].Position = <position_number>;");
+        sb.AppendLine("focusUpdate.AddPoint[1].Text = \"<point_text>\";");
+        sb.AppendLine();
+        sb.AppendLine("// Points to move (reprioritize):");
+        sb.AppendLine("focusUpdate.MovePoint[1].Id = <existing_point_id>;");
+        sb.AppendLine("focusUpdate.MovePoint[1].NewPosition = <new_position>;");
+        sb.AppendLine("focusUpdate.MovePoint[1].Reason = \"<brief reason>\";");
+        sb.AppendLine();
+        sb.AppendLine("// Points to archive:");
+        sb.AppendLine("focusUpdate.ArchivePoint[1].Id = <existing_point_id>;");
+        sb.AppendLine("focusUpdate.ArchivePoint[1].Reason = \"<brief reason>\";");
+        return sb.ToString();
+    }
+
+    private record AddPointSuggestion(int Position, string Text);
+    private record MovePointSuggestion(int Id, int NewPosition, string Reason);
+    private record ArchivePointSuggestion(int Id, string Reason);
+    private record UpdateSuggestions(
+        List<AddPointSuggestion> AddPoints,
+        List<MovePointSuggestion> MovePoints,
+        List<ArchivePointSuggestion> ArchivePoints);
+
+    private static UpdateSuggestions ParseUpdateResponse(string response)
+    {
+        var addPoints = new List<AddPointSuggestion>();
+        var movePoints = new List<MovePointSuggestion>();
+        var archivePoints = new List<ArchivePointSuggestion>();
+
+        // Parse AddPoints
+        int idx = 1;
+        while (true)
+        {
+            var posKey = $"focusUpdate.AddPoint[{idx}].Position";
+            var textKey = $"focusUpdate.AddPoint[{idx}].Text";
+            var posLine = FindValue(response, posKey);
+            var textLine = FindQuotedValue(response, textKey);
+            if (posLine == null && textLine == null) break;
+            if (int.TryParse(posLine?.Trim(), out int pos) &&
+                textLine != null)
+                addPoints.Add(new AddPointSuggestion(pos, textLine));
+            idx++;
+        }
+
+        // Parse MovePoints
+        idx = 1;
+        while (true)
+        {
+            var idKey = $"focusUpdate.MovePoint[{idx}].Id";
+            var posKey = $"focusUpdate.MovePoint[{idx}].NewPosition";
+            var reasonKey = $"focusUpdate.MovePoint[{idx}].Reason";
+            var idVal = FindValue(response, idKey);
+            var posVal = FindValue(response, posKey);
+            var reasonVal = FindQuotedValue(response, reasonKey);
+            if (idVal == null && posVal == null) break;
+            if (int.TryParse(idVal?.Trim(), out int id) &&
+                int.TryParse(posVal?.Trim(), out int newPos))
+                movePoints.Add(new MovePointSuggestion(
+                    id, newPos, reasonVal ?? ""));
+            idx++;
+        }
+
+        // Parse ArchivePoints
+        idx = 1;
+        while (true)
+        {
+            var idKey = $"focusUpdate.ArchivePoint[{idx}].Id";
+            var reasonKey = $"focusUpdate.ArchivePoint[{idx}].Reason";
+            var idVal = FindValue(response, idKey);
+            var reasonVal = FindQuotedValue(response, reasonKey);
+            if (idVal == null) break;
+            if (int.TryParse(idVal?.Trim(), out int id))
+                archivePoints.Add(new ArchivePointSuggestion(
+                    id, reasonVal ?? ""));
+            idx++;
+        }
+
+        return new UpdateSuggestions(addPoints, movePoints, archivePoints);
+    }
+
+    private static string? FindValue(string response, string key)
+    {
+        var idx = response.IndexOf(key,
+            StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return null;
+        var eqIdx = response.IndexOf('=', idx);
+        if (eqIdx < 0) return null;
+        var semi = response.IndexOf(';', eqIdx);
+        return semi >= 0
+            ? response[(eqIdx + 1)..semi].Trim()
+            : response[(eqIdx + 1)..].Trim();
+    }
+
+    private static string? FindQuotedValue(string response, string key)
+    {
+        var idx = response.IndexOf(key,
+            StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return null;
+        var eqIdx = response.IndexOf('=', idx);
+        if (eqIdx < 0) return null;
+        var rest = response[(eqIdx + 1)..].TrimStart();
+        if (!rest.StartsWith('"')) return null;
+        int end = 1;
+        while (end < rest.Length)
+        {
+            if (rest[end] == '"' && rest[end - 1] != '\\') break;
+            end++;
+        }
+        return end < rest.Length
+            ? rest[1..end].Replace("\\\"", "\"").Trim()
+            : null;
+    }
+
+    private async Task ShowUpdateReviewAsync(UpdateSuggestions suggestions)
+    {
+        int accepted = 0;
+        int skipped = 0;
+
+        // Review Add suggestions
+        foreach (var add in suggestions.AddPoints)
+        {
+            bool accept = await DisplayAlert(
+                "Add Point?",
+                $"Insert at position {add.Position}:\n\n\"{add.Text}\"",
+                "Accept", "Skip");
+            if (accept)
+            {
+                // Insert at suggested position by adjusting SortOrder
+                var maxSort = _points.Count > 0
+                    ? _points.Max(p => p.SortOrder)
+                    : 0;
+                var newPoint = await _service.AddPointAsync(
+                    _auth.CurrentUsername, add.Text, maxSort + 1);
+                // Move to correct position
+                await _service.MoveToPositionAsync(
+                    _auth.CurrentUsername, newPoint.Id, add.Position);
+                accepted++;
+            }
+            else skipped++;
+        }
+
+        // Review Move suggestions
+        foreach (var move in suggestions.MovePoints)
+        {
+            var point = _points.FirstOrDefault(p => p.Id == move.Id);
+            if (point == null) continue;
+            bool accept = await DisplayAlert(
+                "Move Point?",
+                $"Move from position {point.SortOrder} → {move.NewPosition}:\n\n" +
+                $"\"{point.Text}\"\n\nReason: {move.Reason}",
+                "Accept", "Skip");
+            if (accept)
+            {
+                await _service.MoveToPositionAsync(
+                    _auth.CurrentUsername, move.Id, move.NewPosition);
+                accepted++;
+            }
+            else skipped++;
+        }
+
+        // Review Archive suggestions
+        foreach (var archive in suggestions.ArchivePoints)
+        {
+            var point = _points.FirstOrDefault(p => p.Id == archive.Id);
+            if (point == null) continue;
+            bool accept = await DisplayAlert(
+                "Archive Point?",
+                $"Archive:\n\n\"{point.Text}\"\n\nReason: {archive.Reason}",
+                "Accept", "Skip");
+            if (accept)
+            {
+                await _service.ArchivePointAsync(archive.Id);
+                accepted++;
+            }
+            else skipped++;
+        }
+
+        // Refresh the list
+        await LoadBulletsAsync();
+
+        await DisplayAlert("Update Complete",
+            $"{accepted} change{(accepted == 1 ? "" : "s")} accepted, " +
+            $"{skipped} skipped.",
+            "OK");
+    }
+
+    private async Task<string> ShowMultilineEditorAsync(
+        string title, string message)
+    {
+        var tcs = new TaskCompletionSource<string>();
+        var editorPage = new ContentPage
+        {
+            Title = title,
+            BackgroundColor = Color.FromArgb("#F5F5F5")
+        };
+        var editor = new Editor
+        {
+            Placeholder = "Paste here...",
+            HeightRequest = 300,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            FontSize = 13,
+            Margin = new Thickness(16)
+        };
+        var confirmBtn = new Button
+        {
+            Text = "Done",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Margin = new Thickness(16, 0)
+        };
+        confirmBtn.Clicked += async (_, _) =>
+        {
+            tcs.TrySetResult(editor.Text ?? "");
+            await Navigation.PopAsync();
+        };
+        editorPage.Content = new VerticalStackLayout
+        {
+            Spacing = 12,
+            Padding = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = message,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#444"),
+                    Margin = new Thickness(16, 16, 16, 0),
+                    LineBreakMode = LineBreakMode.WordWrap
+                },
+                editor,
+                confirmBtn
+            }
+        };
+        await Navigation.PushAsync(editorPage);
+        return await tcs.Task;
     }
 }
