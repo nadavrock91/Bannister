@@ -32,6 +32,7 @@ public class OpeningClipPromptPage : ContentPage
 
     private readonly List<string> _parsedPrompts = new();
     private readonly List<string> _parsedTitles = new();
+    private readonly List<string> _parsedHooks = new();
 
     public OpeningClipPromptPage(
         AuthService auth,
@@ -424,38 +425,40 @@ public class OpeningClipPromptPage : ContentPage
         return
             "I have a task for you but I need maximum variety because " +
             "you tend to repeat yourself when asked for multiple variations. " +
-            "So before you do anything else, design your own randomization " +
-            "system from scratch.\n\n" +
+            "So before you do anything else, work through the following " +
+            "steps in order.\n\n" +
 
             "Step 1 — Build your randomization engine:\n" +
             "Think about what kinds of lists would create genuine variety " +
             "in short-form hook video clip prompts. You decide everything: " +
             "how many lists to create, what each list contains, how many " +
             "items are in each list, and how to draw from and combine them. " +
-            "Examples of the kinds of things you might consider (but are not " +
-            "limited to): psychological triggers, narrative structures, " +
-            "visual event types, emotional arcs, camera relationships, " +
-            "consequence types, mystery categories, physical laws to violate. " +
-            "Do not use my examples as your list — invent your own. " +
-            "Randomly assign values from your lists to each of the 5 clip slots. " +
-            "Randomly shuffle the order of whatever process you set up. " +
-            "Show your work briefly — what lists you made, what you drew, " +
-            "what order you set up.\n\n" +
+            "Do not use any examples I might suggest — invent your own lists " +
+            "from scratch. Randomly assign values from your lists to 100 " +
+            "idea slots. Randomly shuffle the order of your process. " +
+            "Show your work briefly.\n\n" +
 
-            "Step 2 — Apply your randomization engine:\n" +
-            "For each of the 5 clip slots, apply the process you designed " +
-            "in Step 1. Work through it slot by slot. For each slot, first " +
-            "apply the analytical step your randomization assigned to it, " +
-            "then use that analysis to generate the Grok video prompt for " +
-            "that slot. The analysis for each slot should be genuinely " +
-            "different from the others because your randomization assigned " +
-            "different lenses.\n\n" +
+            "Step 2 — Generate 100 raw hook ideas:\n" +
+            "Apply your randomization engine to generate exactly 100 distinct " +
+            "hook ideas for a 10-second AI-generated video clip starting from " +
+            "the attached frame. For each idea write only a single sentence " +
+            "describing what happens. Number them 1–100. Do not write full " +
+            "prompts yet — just the raw ideas. Apply a different randomized " +
+            "lens from Step 1 to each idea slot so no two ideas share the " +
+            "same underlying mechanism.\n\n" +
 
-            "The task itself:\n" +
-            "Use the attached starting frame as the first frame of a " +
-            "10-second AI-generated video. Generate 5 Grok video-generation " +
-            "prompts that begin naturally from this exact starting frame and " +
-            "are designed to maximize 10-second viewer retention. " +
+            "Step 3 — Score and rank:\n" +
+            "Review all 100 ideas. Score each one on viewer retention " +
+            "potential (scroll-stopping power, curiosity gap, emotional " +
+            "trigger, visual clarity, muted-viewer comprehension). " +
+            "Select the top 30 highest-scoring ideas. These must be " +
+            "genuinely diverse — if your top 30 share similar mechanisms, " +
+            "replace the duplicates with the next highest-scoring " +
+            "distinct idea.\n\n" +
+
+            "Step 4 — Write the 30 Grok prompts:\n" +
+            "For each of your top 30 selected ideas, write a full Grok " +
+            "video-generation prompt. " +
             $"Preserve the current experiment's core foundation of {foundation}. " +
             "Each prompt must describe the chronological action that should " +
             "happen from the supplied first frame. The viewer should be able " +
@@ -463,20 +466,22 @@ public class OpeningClipPromptPage : ContentPage
             "Keep each prompt practical for Grok video generation." +
             doNotSection + "\n\n" +
 
-            "After your Step 1 and Step 2 working, return ONLY the final " +
-            "5 prompts in exactly this format at the end of your response. " +
-            "Each entry must have a clipTitle (3-5 word hook idea label for " +
-            "quick skimming) and a clipPrompt (the full Grok prompt):\n" +
+            "After completing all four steps, return ONLY the final " +
+            "30 prompts in exactly this format at the end of your response. " +
+            "Each entry must have three parts:\n" +
+            "- clipTitle: 8-12 words describing what actually happens in " +
+            "the clip (the event, not a poetic label)\n" +
+            "- clipHook: one sentence explaining why this is a hook " +
+            "(what psychological mechanism makes the viewer need to see " +
+            "what happens next)\n" +
+            "- clipPrompts: the full Grok video generation prompt\n\n" +
             "clipTitle[1] = \"...\";\n" +
+            "clipHook[1] = \"...\";\n" +
             "clipPrompts[1] = \"...\";\n" +
             "clipTitle[2] = \"...\";\n" +
+            "clipHook[2] = \"...\";\n" +
             "clipPrompts[2] = \"...\";\n" +
-            "clipTitle[3] = \"...\";\n" +
-            "clipPrompts[3] = \"...\";\n" +
-            "clipTitle[4] = \"...\";\n" +
-            "clipPrompts[4] = \"...\";\n" +
-            "clipTitle[5] = \"...\";\n" +
-            "clipPrompts[5] = \"...\";";
+            "... (continue for all 30)";
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -491,7 +496,7 @@ public class OpeningClipPromptPage : ContentPage
             "Paste response here...");
         if (string.IsNullOrWhiteSpace(result)) return;
 
-        var (titles, prompts) = ParseClipPrompts(result.Trim());
+        var (titles, hooks, prompts) = ParseClipPrompts(result.Trim());
         if (prompts.Count == 0)
         {
             await DisplayAlert("Parse Failed",
@@ -505,66 +510,56 @@ public class OpeningClipPromptPage : ContentPage
         _parsedPrompts.AddRange(prompts);
         _parsedTitles.Clear();
         _parsedTitles.AddRange(titles);
+        _parsedHooks.Clear();
+        _parsedHooks.AddRange(hooks);
         RenderParsedPrompts();
     }
 
-    private static (List<string> Titles, List<string> Prompts)
-        ParseClipPrompts(string response)
+    private static (List<string> Titles, List<string> Hooks,
+        List<string> Prompts) ParseClipPrompts(string response)
     {
         var titles = new List<string>();
+        var hooks = new List<string>();
         var prompts = new List<string>();
 
-        for (int i = 1; i <= 5; i++)
+        for (int i = 1; i <= 30; i++)
         {
             // Parse title
-            var titlePattern = $"clipTitle[{i}]";
-            var titleIdx = response.IndexOf(titlePattern,
-                StringComparison.OrdinalIgnoreCase);
-            if (titleIdx >= 0)
-            {
-                var eqIdx = response.IndexOf('=', titleIdx);
-                if (eqIdx >= 0)
-                {
-                    var rest = response[(eqIdx + 1)..].TrimStart();
-                    if (rest.StartsWith('"'))
-                    {
-                        int end = 1;
-                        while (end < rest.Length)
-                        {
-                            if (rest[end] == '"' && rest[end - 1] != '\\')
-                                break;
-                            end++;
-                        }
-                        titles.Add(end < rest.Length
-                            ? rest[1..end].Replace("\\\"", "\"").Trim()
-                            : $"Hook {i}");
-                    }
-                    else titles.Add($"Hook {i}");
-                }
-                else titles.Add($"Hook {i}");
-            }
-            else titles.Add($"Hook {i}");
+            titles.Add(ParseQuotedField(response,
+                $"clipTitle[{i}]") ?? $"Hook {i}");
+
+            // Parse hook summary
+            hooks.Add(ParseQuotedField(response,
+                $"clipHook[{i}]") ?? "");
 
             // Parse prompt
-            var promptPattern = $"clipPrompts[{i}]";
-            var promptIdx = response.IndexOf(promptPattern,
-                StringComparison.OrdinalIgnoreCase);
-            if (promptIdx < 0) continue;
-            var peqIdx = response.IndexOf('=', promptIdx);
-            if (peqIdx < 0) continue;
-            var prest = response[(peqIdx + 1)..].TrimStart();
-            if (!prest.StartsWith('"')) continue;
-            int pend = 1;
-            while (pend < prest.Length)
-            {
-                if (prest[pend] == '"' && prest[pend - 1] != '\\') break;
-                pend++;
-            }
-            if (pend < prest.Length)
-                prompts.Add(prest[1..pend]
-                    .Replace("\\\"", "\"").Trim());
+            var prompt = ParseQuotedField(response,
+                $"clipPrompts[{i}]");
+            if (prompt != null)
+                prompts.Add(prompt);
         }
-        return (titles, prompts);
+        return (titles, hooks, prompts);
+    }
+
+    private static string? ParseQuotedField(
+        string response, string key)
+    {
+        var idx = response.IndexOf(key,
+            StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return null;
+        var eqIdx = response.IndexOf('=', idx);
+        if (eqIdx < 0) return null;
+        var rest = response[(eqIdx + 1)..].TrimStart();
+        if (!rest.StartsWith('"')) return null;
+        int end = 1;
+        while (end < rest.Length)
+        {
+            if (rest[end] == '"' && rest[end - 1] != '\\') break;
+            end++;
+        }
+        return end < rest.Length
+            ? rest[1..end].Replace("\\\"", "\"").Trim()
+            : null;
     }
 
     private void RenderParsedPrompts()
@@ -576,8 +571,9 @@ public class OpeningClipPromptPage : ContentPage
             int capturedI = i;
             var promptText = _parsedPrompts[i];
             var title = i < _parsedTitles.Count
-                ? _parsedTitles[i]
-                : $"Hook {i + 1}";
+                ? _parsedTitles[i] : $"Hook {i + 1}";
+            var hook = i < _parsedHooks.Count
+                ? _parsedHooks[i] : "";
 
             var card = new Frame
             {
@@ -587,20 +583,43 @@ public class OpeningClipPromptPage : ContentPage
                 BorderColor = Color.FromArgb("#C5CAE9"),
                 HasShadow = false
             };
-            var inner = new VerticalStackLayout { Spacing = 8 };
+            var inner = new VerticalStackLayout { Spacing = 6 };
 
+            // Number + title (longer, describes what happens)
             inner.Children.Add(new Label
             {
                 Text = $"{i + 1}. {title}",
-                FontSize = 15,
+                FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#1565C0")
+                TextColor = Color.FromArgb("#1565C0"),
+                LineBreakMode = LineBreakMode.WordWrap
             });
+
+            // Hook summary (why it works psychologically)
+            if (!string.IsNullOrWhiteSpace(hook))
+                inner.Children.Add(new Label
+                {
+                    Text = hook,
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#5B63EE"),
+                    FontAttributes = FontAttributes.Italic,
+                    LineBreakMode = LineBreakMode.WordWrap
+                });
+
+            // Separator
+            inner.Children.Add(new BoxView
+            {
+                HeightRequest = 1,
+                BackgroundColor = Color.FromArgb("#E8EAF6"),
+                Margin = new Thickness(0, 2, 0, 2)
+            });
+
+            // Full prompt (smaller, secondary)
             inner.Children.Add(new Label
             {
                 Text = promptText,
-                FontSize = 12,
-                TextColor = Color.FromArgb("#444"),
+                FontSize = 11,
+                TextColor = Color.FromArgb("#555"),
                 LineBreakMode = LineBreakMode.WordWrap
             });
 
@@ -611,7 +630,7 @@ public class OpeningClipPromptPage : ContentPage
                 TextColor = Colors.White,
                 CornerRadius = 8,
                 FontSize = 13,
-                HeightRequest = 38,
+                HeightRequest = 36,
                 HorizontalOptions = LayoutOptions.Start,
                 Padding = new Thickness(14, 0)
             };
@@ -653,6 +672,8 @@ public class OpeningClipPromptPage : ContentPage
             FontSize = 13,
             Margin = new Thickness(16)
         };
+        editorPage.Disappearing += (_, _) =>
+            tcs.TrySetResult(editor.Text ?? "");
         var confirmBtn = new Button
         {
             Text = "Done",
@@ -664,7 +685,7 @@ public class OpeningClipPromptPage : ContentPage
         confirmBtn.Clicked += async (_, _) =>
         {
             tcs.TrySetResult(editor.Text ?? "");
-            await Navigation.PopAsync();
+            await Navigation.PopModalAsync();
         };
         editorPage.Content = new VerticalStackLayout
         {
@@ -684,7 +705,7 @@ public class OpeningClipPromptPage : ContentPage
                 confirmBtn
             }
         };
-        await Navigation.PushAsync(editorPage);
+        await Navigation.PushModalAsync(editorPage);
         return await tcs.Task;
     }
 
