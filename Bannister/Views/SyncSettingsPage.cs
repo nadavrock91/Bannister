@@ -17,6 +17,7 @@ public class SyncSettingsPage : ContentPage
     private readonly ActivityService _activities;
     private readonly GameService _games;
     private readonly PendingActivityIdeaService _pendingIdeas;
+    private readonly SharedActivityService _sharedActivityService;
 
     private RadioButton _rbMaster;
     private RadioButton _rbSecondary;
@@ -45,7 +46,8 @@ public class SyncSettingsPage : ContentPage
         OperationApplierService applier,
         ActivityService activities,
         GameService games,
-        PendingActivityIdeaService pendingIdeas)
+        PendingActivityIdeaService pendingIdeas,
+        SharedActivityService sharedActivityService)
     {
         _deviceMode = deviceMode;
         _sync = sync;
@@ -55,6 +57,7 @@ public class SyncSettingsPage : ContentPage
         _activities = activities;
         _games = games;
         _pendingIdeas = pendingIdeas;
+        _sharedActivityService = sharedActivityService;
 
         Title = "Sync & Devices";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -317,6 +320,26 @@ public class SyncSettingsPage : ContentPage
         };
         _btnApplyQueuedOps.Clicked += OnApplyQueuedOperationsClicked;
         stack.Children.Add(_btnApplyQueuedOps);
+
+        var sharedBtn = new Button
+        {
+            Text = " Shared Activities",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 40,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        sharedBtn.Clicked += async (_, _) =>
+            await Navigation.PushAsync(new SharedActivitiesPage(
+                _sharedActivityService,
+                _activities,
+                _games,
+                _auth,
+                _sync));
+        stack.Children.Add(sharedBtn);
 
         _lblQueueReminder = new Label
         {

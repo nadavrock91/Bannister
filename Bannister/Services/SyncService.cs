@@ -486,4 +486,120 @@ public class SyncService
         if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
         return $"{bytes / (1024.0 * 1024.0):F2} MB";
     }
+
+    // ── Shared Activity Sync ─────────────────────────────────────
+
+    public async Task<bool> UploadSharedActivitiesAsync(
+        string uploaderName,
+        SharedActivityLink link,
+        List<Activity> activities,
+        string password)
+    {
+        try
+        {
+            var payload = new
+            {
+                UpdatedBy = uploaderName,
+                UpdatedAt = DateTime.UtcNow,
+                Activities = activities.Select(a => new
+                {
+                    a.Game,
+                    a.Name,
+                    a.Category,
+                    a.ExpGain,
+                    a.ImagePath,
+                    a.IsActive,
+                    a.DisplayDaysOfWeek,
+                    a.DisplayDayOfMonth,
+                    a.IsAutoAward,
+                    a.AutoAwardFrequency,
+                    a.AutoAwardDays,
+                    a.LastAutoAwarded,
+                    a.HabitStreak,
+                    a.TimesCompleted,
+                    a.MeaningfulUntilLevel
+                }).ToList()
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var encrypted = SharedActivityService.Encrypt(
+                json, password, link.LinkCode);
+
+            var (url, headers) = await BuildRequestAsync("upload_shared");
+            if (url == null) return false;
+
+            using var client = new HttpClient();
+            foreach (var h in headers)
+                client.DefaultRequestHeaders.Add(h.Key, h.Value);
+
+            using var form = new MultipartFormDataContent();
+            form.Add(new StringContent(link.LinkCode), "link_code");
+            form.Add(new ByteArrayContent(encrypted), "file",
+                $"shared_{link.LinkCode.ToUpperInvariant()}.enc");
+
+            var response = await client.PostAsync(url, form);
+            return response.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    public async Task<(string UpdatedBy, DateTime UpdatedAt,
+        List<SharedActivityDownloadItem> Activities)?>
+        DownloadSharedActivitiesAsync(SharedActivityLink link,
+            string password)
+    {
+        try
+        {
+            var (url, headers) = await BuildRequestAsync("download_shared");
+            if (url == null) return null;
+
+            using var client = new HttpClient();
+            foreach (var h in headers)
+                client.DefaultRequestHeaders.Add(h.Key, h.Value);
+
+            var requestUrl =
+                $"{url}&link_code={Uri.EscapeDataString(link.LinkCode)}";
+            var response = await client.GetAsync(requestUrl);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var encrypted = await response.Content.ReadAsByteArrayAsync();
+            if (encrypted.Length < 16) return null;
+
+            var json = SharedActivityService.Decrypt(
+                encrypted, password, link.LinkCode);
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var updatedBy = root.GetProperty("UpdatedBy").GetString() ?? "";
+            var updatedAt = root.GetProperty("UpdatedAt").GetDateTime();
+            var acts = JsonSerializer.Deserialize<List<SharedActivityDownloadItem>>(
+                root.GetProperty("Activities").GetRawText(),
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new();
+
+            return (updatedBy, updatedAt, acts);
+        }
+        catch { return null; }
+    }
+
+    public class SharedActivityDownloadItem
+    {
+        public string Game { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Category { get; set; } = "";
+        public int ExpGain { get; set; }
+        public string ImagePath { get; set; } = "";
+        public bool IsActive { get; set; } = true;
+        public string DisplayDaysOfWeek { get; set; } = "";
+        public int DisplayDayOfMonth { get; set; }
+        public bool IsAutoAward { get; set; }
+        public string AutoAwardFrequency { get; set; } = "None";
+        public string AutoAwardDays { get; set; } = "";
+        public DateTime? LastAutoAwarded { get; set; }
+        public int HabitStreak { get; set; }
+        public int TimesCompleted { get; set; }
+        public int MeaningfulUntilLevel { get; set; } = 100;
+    }
 }

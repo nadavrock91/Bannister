@@ -47,6 +47,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<OperationQueueService>();
         builder.Services.AddSingleton<DatabaseService>();
         builder.Services.AddSingleton<SyncService>();
+        builder.Services.AddSingleton<SharedActivityService>();
         builder.Services.AddSingleton<AuthService>();
         builder.Services.AddSingleton<OperationApplierService>();
         builder.Services.AddSingleton<PendingActivityIdeaService>();
@@ -205,6 +206,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ResetEnforcerDetailPage>();
         builder.Services.AddTransient<EnforcerLevelsPage>();
         builder.Services.AddTransient<AllGamesTransferPage>();
+        builder.Services.AddTransient<SharedActivitiesPage>();
+        builder.Services.AddTransient<SharedActivitySelectionPage>();
 
 
 #if DEBUG
