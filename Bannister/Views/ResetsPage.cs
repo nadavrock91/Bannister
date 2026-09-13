@@ -332,9 +332,42 @@ public class ResetsPage : ContentPage
             await RefreshAsync();
         };
 
+        var deleteBtn = new Button
+        {
+            Text = " Delete",
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 6,
+            FontSize = 11,
+            HeightRequest = 28,
+            HorizontalOptions = LayoutOptions.End,
+            Padding = new Thickness(10, 0)
+        };
+        deleteBtn.Clicked += async (_, _) =>
+        {
+            bool confirm = await DisplayAlert(
+                "Delete Enforcer",
+                $"Permanently delete \"{enforcer.Name}\"? " +
+                "This cannot be undone. All conditions and levels " +
+                "will also be deleted.",
+                "Delete", "Cancel");
+            if (!confirm) return;
+            await _service.DeleteEnforcerAsync(enforcer.Id);
+            await RefreshAsync();
+        };
+
+        var actionRow = new HorizontalStackLayout
+        {
+            Spacing = 6,
+            HorizontalOptions = LayoutOptions.End,
+            Margin = new Thickness(0, 6, 0, 0)
+        };
+        actionRow.Children.Add(archiveBtn);
+        actionRow.Children.Add(deleteBtn);
+
         var outerStack = new VerticalStackLayout { Spacing = 0 };
         outerStack.Children.Add(inner);
-        outerStack.Children.Add(archiveBtn);
+        outerStack.Children.Add(actionRow);
         card.Content = outerStack;
 
         // Tap card to open detail page
