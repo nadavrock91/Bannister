@@ -13,6 +13,8 @@ public class SharedActivitiesPage : ContentPage
     private readonly ExpService _expService;
     private readonly DatabaseService _db;
     private VerticalStackLayout _linksContainer = null!;
+    private Grid _loadingOverlay = null!;
+    private Label _loadingLabel = null!;
 
     public SharedActivitiesPage(SharedActivityService sharedService,
         ActivityService activityService, GameService gameService,
@@ -73,7 +75,27 @@ public class SharedActivitiesPage : ContentPage
         stack.Children.Add(btnRow);
         _linksContainer = new VerticalStackLayout { Spacing = 12 };
         stack.Children.Add(_linksContainer);
-        Content = new ScrollView { Content = stack };
+        var rootGrid = new Grid();
+        rootGrid.Children.Add(new ScrollView { Content = stack });
+
+        _loadingLabel = new Label
+        {
+            Text = "Pulling activities...",
+            FontSize = 16,
+            TextColor = Colors.White,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        _loadingOverlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#CC000000"),
+            IsVisible = false,
+            InputTransparent = false,
+            Children = { _loadingLabel }
+        };
+        rootGrid.Children.Add(_loadingOverlay);
+        Content = rootGrid;
     }
 
     private async Task RefreshLinksAsync()
@@ -221,9 +243,14 @@ public class SharedActivitiesPage : ContentPage
     {
         var pwd = await AskPasswordAsync(link);
         if (pwd == null) return;
+
+        _loadingOverlay.IsVisible = true;
+        _loadingLabel.Text = "Downloading from server...";
+
         var result = await _syncService.DownloadSharedActivitiesAsync(link, pwd);
         if (result == null)
         {
+            _loadingOverlay.IsVisible = false;
             await DisplayAlert("Nothing available",
                 "No data found for this link on the server, or decryption failed.", "OK");
             return;
@@ -233,20 +260,27 @@ public class SharedActivitiesPage : ContentPage
 
         if (!string.IsNullOrWhiteSpace(dlError))
         {
+            _loadingOverlay.IsVisible = false;
             await DisplayAlert("Pull Failed", dlError, "OK");
             return;
         }
         if (link.LastDownloadedAt.HasValue &&
             updatedAt <= link.LastDownloadedAt.Value)
         {
+            _loadingOverlay.IsVisible = false;
             await DisplayAlert("Up to date", "No new updates from your partner.", "OK");
             return;
         }
+
+        _loadingOverlay.IsVisible = false;
         bool confirm = await DisplayAlert("New Updates",
             $"{updatedBy} pushed {items.Count} activit{(items.Count == 1 ? "y" : "ies")} " +
             $"on {updatedAt.ToLocalTime():dd MMM HH:mm}.\n\nApply these updates locally?",
             "Apply", "Skip");
         if (!confirm) return;
+
+        _loadingOverlay.IsVisible = true;
+        _loadingLabel.Text = "Applying updates...";
 
         int applied = 0;
         foreach (var item in items)
@@ -365,6 +399,7 @@ public class SharedActivitiesPage : ContentPage
             summary.Add($"{applied} activit{(applied == 1 ? "y" : "ies")} updated");
         if (expInserted > 0)
             summary.Add($"{expInserted} EXP records added");
+        _loadingOverlay.IsVisible = false;
         await DisplayAlert("Done", string.Join(", ", summary) + ".", "OK");
     }
 
