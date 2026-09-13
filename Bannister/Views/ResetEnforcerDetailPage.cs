@@ -324,14 +324,17 @@ public class ResetEnforcerDetailPage : ContentPage
 
                 if (condition.HasTimeWindow)
                 {
-                    var timeText = new List<string>();
-                    if (!string.IsNullOrWhiteSpace(condition.StartDisplay))
-                        timeText.Add($"From: {condition.StartDisplay}");
-                    if (!string.IsNullOrWhiteSpace(condition.EndDisplay))
-                        timeText.Add($"To: {condition.EndDisplay}");
                     condGrid.Add(new Label
                     {
-                        Text = string.Join("  ", timeText),
+                        Text = string.Join("\n",
+                            new[]
+                            {
+                                string.IsNullOrWhiteSpace(condition.StartDisplay)
+                                    ? null : $"From: {condition.StartDisplay}",
+                                string.IsNullOrWhiteSpace(condition.EndDisplay)
+                                    ? null : $"To:   {condition.EndDisplay}"
+                            }
+                            .Where(s => s != null)),
                         FontSize = 11,
                         TextColor = Color.FromArgb("#5B63EE"),
                         FontAttributes = FontAttributes.Italic
@@ -448,50 +451,146 @@ public class ResetEnforcerDetailPage : ContentPage
     private async Task EditConditionTimeAsync(
         ResetCondition condition)
     {
-        // Start day
-        string? startDayChoice = await DisplayActionSheet(
-            "Start Day", "Any Day", null,
-            "Sunday","Monday","Tuesday","Wednesday",
-            "Thursday","Friday","Saturday");
-        condition.StartDay = startDayChoice switch
+        // ── START DATE/TIME ───────────────────────────────────────
+        string? startChoice = await DisplayActionSheet(
+            "Start Date/Time", "Skip (no start)", null,
+            " Today + Now",
+            " Today + Custom time",
+            " Custom date + Custom time",
+            " Clear start");
+
+        if (startChoice == " Today + Now")
         {
-            "Sunday" => 0, "Monday" => 1, "Tuesday" => 2,
-            "Wednesday" => 3, "Thursday" => 4,
-            "Friday" => 5, "Saturday" => 6,
-            _ => -1
-        };
-
-        // Start time
-        string? startTimeInput = await DisplayPromptAsync(
-            "Start Time",
-            "Enter start time (HH:MM, 24h). Leave blank to skip.",
-            "Set", "Skip",
-            placeholder: "e.g. 09:00");
-        condition.StartTime = ParseTimeToMinutes(startTimeInput);
-
-        // End day
-        string? endDayChoice = await DisplayActionSheet(
-            "End Day", "Any Day", null,
-            "Sunday","Monday","Tuesday","Wednesday",
-            "Thursday","Friday","Saturday");
-        condition.EndDay = endDayChoice switch
+            condition.StartDateTime = DateTime.UtcNow;
+        }
+        else if (startChoice == " Today + Custom time")
         {
-            "Sunday" => 0, "Monday" => 1, "Tuesday" => 2,
-            "Wednesday" => 3, "Thursday" => 4,
-            "Friday" => 5, "Saturday" => 6,
-            _ => -1
-        };
+            string? timeInput = await DisplayPromptAsync(
+                "Start Time",
+                "Enter time (HH:MM, 24h):",
+                "Set", "Cancel",
+                placeholder: "e.g. 09:00",
+                keyboard: Keyboard.Numeric);
+            var mins = ParseTimeToMinutes(timeInput);
+            if (mins >= 0)
+            {
+                var today = DateTime.Today;
+                condition.StartDateTime = new DateTime(
+                    today.Year, today.Month, today.Day,
+                    mins / 60, mins % 60, 0,
+                    DateTimeKind.Local).ToUniversalTime();
+            }
+            else
+            {
+                condition.StartDateTime = DateTime.Today
+                    .ToUniversalTime();
+            }
+        }
+        else if (startChoice == " Custom date + Custom time")
+        {
+            string? dateInput = await DisplayPromptAsync(
+                "Start Date",
+                "Enter date (YYYY-MM-DD):",
+                "Set", "Cancel",
+                placeholder: DateTime.Today
+                    .ToString("yyyy-MM-dd"),
+                initialValue: DateTime.Today
+                    .ToString("yyyy-MM-dd"));
+            string? timeInput = await DisplayPromptAsync(
+                "Start Time",
+                "Enter time (HH:MM, 24h):",
+                "Set", "Cancel",
+                placeholder: "e.g. 09:00",
+                keyboard: Keyboard.Numeric);
+            var parsed = ParseDateTimeInputs(dateInput, timeInput);
+            if (parsed.HasValue)
+                condition.StartDateTime = parsed.Value;
+        }
+        else if (startChoice == " Clear start")
+        {
+            condition.StartDateTime = null;
+        }
+        // else Skip — leave unchanged
 
-        // End time
-        string? endTimeInput = await DisplayPromptAsync(
-            "End Time",
-            "Enter end time (HH:MM, 24h). Leave blank to skip.",
-            "Set", "Skip",
-            placeholder: "e.g. 17:00");
-        condition.EndTime = ParseTimeToMinutes(endTimeInput);
+        // ── END DATE/TIME ─────────────────────────────────────────
+        string? endChoice = await DisplayActionSheet(
+            "End Date/Time", "Skip (no end)", null,
+            " Today + Now",
+            " Today + Custom time",
+            " Custom date + Custom time",
+            " Clear end");
+
+        if (endChoice == " Today + Now")
+        {
+            condition.EndDateTime = DateTime.UtcNow;
+        }
+        else if (endChoice == " Today + Custom time")
+        {
+            string? timeInput = await DisplayPromptAsync(
+                "End Time",
+                "Enter time (HH:MM, 24h):",
+                "Set", "Cancel",
+                placeholder: "e.g. 17:00",
+                keyboard: Keyboard.Numeric);
+            var mins = ParseTimeToMinutes(timeInput);
+            if (mins >= 0)
+            {
+                var today = DateTime.Today;
+                condition.EndDateTime = new DateTime(
+                    today.Year, today.Month, today.Day,
+                    mins / 60, mins % 60, 0,
+                    DateTimeKind.Local).ToUniversalTime();
+            }
+            else
+            {
+                condition.EndDateTime = DateTime.Today
+                    .ToUniversalTime();
+            }
+        }
+        else if (endChoice == " Custom date + Custom time")
+        {
+            string? dateInput = await DisplayPromptAsync(
+                "End Date",
+                "Enter date (YYYY-MM-DD):",
+                "Set", "Cancel",
+                placeholder: DateTime.Today
+                    .ToString("yyyy-MM-dd"),
+                initialValue: DateTime.Today
+                    .ToString("yyyy-MM-dd"));
+            string? timeInput = await DisplayPromptAsync(
+                "End Time",
+                "Enter time (HH:MM, 24h):",
+                "Set", "Cancel",
+                placeholder: "e.g. 17:00",
+                keyboard: Keyboard.Numeric);
+            var parsed = ParseDateTimeInputs(dateInput, timeInput);
+            if (parsed.HasValue)
+                condition.EndDateTime = parsed.Value;
+        }
+        else if (endChoice == " Clear end")
+        {
+            condition.EndDateTime = null;
+        }
 
         await _service.UpdateConditionAsync(condition);
         await RefreshDisplayAsync();
+    }
+
+    private static DateTime? ParseDateTimeInputs(
+        string? dateStr, string? timeStr)
+    {
+        if (string.IsNullOrWhiteSpace(dateStr)) return null;
+        if (!DateTime.TryParse(dateStr.Trim(), out DateTime date))
+            return null;
+        var mins = ParseTimeToMinutes(timeStr);
+        if (mins >= 0)
+        {
+            return new DateTime(
+                date.Year, date.Month, date.Day,
+                mins / 60, mins % 60, 0,
+                DateTimeKind.Local).ToUniversalTime();
+        }
+        return date.ToUniversalTime();
     }
 
     private static int ParseTimeToMinutes(string? input)
