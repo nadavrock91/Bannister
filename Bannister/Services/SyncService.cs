@@ -708,6 +708,8 @@ public class SyncService
         try
         {
             var (url, headers) = await BuildRequestAsync("download_shared");
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST DL] URL={url ?? "NULL"}");
             if (url == null) return null;
 
             using var client = new HttpClient();
@@ -718,7 +720,11 @@ public class SyncService
                 $"shared_manifest_{linkCode.ToUpperInvariant()}.enc";
             var requestUrl =
                 $"{url}&link_code={Uri.EscapeDataString(fileName)}";
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST DL] Request URL={requestUrl}");
             var response = await client.GetAsync(requestUrl);
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST DL] Status={(int)response.StatusCode}");
             if (!response.IsSuccessStatusCode) return null;
 
             var encrypted = await response.Content.ReadAsByteArrayAsync();
@@ -739,7 +745,12 @@ public class SyncService
 
             return (createdBy, items);
         }
-        catch { return null; }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST DL] Exception: {ex.GetType().Name}: {ex.Message}");
+            return null;
+        }
     }
 
     public async Task<(string UpdatedBy, DateTime UpdatedAt,
