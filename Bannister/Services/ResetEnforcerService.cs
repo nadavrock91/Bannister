@@ -285,7 +285,7 @@ public class ResetEnforcerService
             return (await conn.Table<EnforcerLevel>()
                 .Where(l => l.ResetEnforcerId == enforcerId)
                 .ToListAsync())
-                .OrderBy(l => l.SortOrder)
+                .OrderBy(l => l.LevelNumber)
                 .ToList();
         }
         catch { return new(); }
