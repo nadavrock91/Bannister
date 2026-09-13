@@ -417,10 +417,26 @@ public class SharedActivitiesPage : ContentPage
                 await _sharedService.CreateLinkAsync(_auth.CurrentUsername,
                     linkCode, partnerName.Trim(), password, selected);
 
-                string manifestNote = manifestOk
-                    ? ""
-                    : "\n\n⚠️ Manifest upload failed — joiner will " +
-                      "need to know the activity list manually.";
+                string manifestNote = "";
+                if (!manifestOk)
+                {
+                    // Try to read the error log
+                    string errorDetail = "";
+                    try
+                    {
+                        var logPath = System.IO.Path.Combine(
+                            FileSystem.AppDataDirectory,
+                            "shared_manifest_error.txt");
+                        if (System.IO.File.Exists(logPath))
+                            errorDetail = await System.IO.File.ReadAllTextAsync(
+                                logPath);
+                    }
+                    catch { }
+
+                    manifestNote = string.IsNullOrWhiteSpace(errorDetail)
+                        ? "\n\n⚠️ Manifest upload failed."
+                        : $"\n\n⚠️ Manifest upload failed:\n{errorDetail}";
+                }
                 await DisplayAlert("Link Created",
                     $"Share this code with {partnerName}:\n\nCODE: {linkCode}\n\n" +
                     "They must enter this code and the same " +

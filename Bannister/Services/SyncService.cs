@@ -580,7 +580,29 @@ public class SyncService
                 $"shared_{link.LinkCode.ToUpperInvariant()}.enc");
 
             var response = await client.PostAsync(url, form);
-            return response.IsSuccessStatusCode;
+            if (response.IsSuccessStatusCode) return true;
+
+            // Log the actual error response for debugging
+            var errorBody = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine(
+                $"[SHARED MANIFEST] Upload failed. " +
+                $"Status: {(int)response.StatusCode} {response.StatusCode}. " +
+                $"Body: {errorBody}");
+
+            // Store error in a file so we can read it without VS
+            try
+            {
+                var logPath = System.IO.Path.Combine(
+                    FileSystem.AppDataDirectory, "shared_manifest_error.txt");
+                await System.IO.File.WriteAllTextAsync(logPath,
+                    $"Status: {(int)response.StatusCode}\n" +
+                    $"Body: {errorBody}\n" +
+                    $"URL: {url}\n" +
+                    $"Time: {DateTime.Now}");
+            }
+            catch { }
+
+            return false;
         }
         catch { return false; }
     }
