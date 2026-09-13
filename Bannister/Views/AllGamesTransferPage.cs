@@ -9,11 +9,9 @@ public class AllGamesTransferPage : ContentPage
     private readonly GameService _games;
     private readonly ActivityService _activities;
     private readonly AuthService _auth;
-
-    private List<GameImportGroup> _importGroups = new();
-    private VerticalStackLayout _importContainer = null!;
-    private Label _importStatusLabel = null!;
-    private Button _importConfirmBtn = null!;
+    private List<GameExportGroup> _exportGroups = new();
+    private VerticalStackLayout _exportContainer = null!;
+    private Label _exportStatusLabel = null!;
 
     private class ActivityExportDto
     {
@@ -32,17 +30,14 @@ public class AllGamesTransferPage : ContentPage
         public List<ActivityExportDto> Activities { get; set; } = new();
     }
 
-    private class GameImportGroup
+    private class GameExportGroup
     {
         public GameExportDto Game { get; set; } = new();
-        public List<(ActivityExportDto Activity, bool Selected)>
-            Activities { get; set; } = new();
+        public List<Activity> AllActivities { get; set; } = new();
+        public HashSet<int> SelectedIndices { get; set; } = new();
     }
 
-    public AllGamesTransferPage(
-        GameService games,
-        ActivityService activities,
-        AuthService auth)
+    public AllGamesTransferPage(GameService games, ActivityService activities, AuthService auth)
     {
         _games = games;
         _activities = activities;
@@ -52,408 +47,243 @@ public class AllGamesTransferPage : ContentPage
         BuildUI();
     }
 
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await LoadExportGroupsAsync();
+    }
+
     private void BuildUI()
     {
-        var stack = new VerticalStackLayout
+        var stack = new VerticalStackLayout { Padding = 20, Spacing = 16 };
+        stack.Children.Add(new Label { Text = " Transfer All Games", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
+        stack.Children.Add(new Label { Text = "Select activities to export per game, then copy to clipboard. On the other device paste the JSON to import.", FontSize = 13, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
+
+        var exportHeader = new Grid
         {
-            Padding = 20,
-            Spacing = 16
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) },
+            ColumnSpacing = 8
         };
-
-        stack.Children.Add(new Label
+        exportHeader.Add(new Label { Text = "Export", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+        var globalSelectAll = SmallButton("All", "#E3F2FD", "#1565C0", 28);
+        globalSelectAll.Clicked += (_, _) =>
         {
-            Text = " Transfer All Games",
-            FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
-        {
-            Text = "Export all games and activities to JSON, or import " +
-                   "from a previously exported JSON.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
-        stack.Children.Add(new Label
-        {
-            Text = "Export",
-            FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0"),
-            Margin = new Thickness(0, 8, 0, 0)
-        });
-        stack.Children.Add(new Label
-        {
-            Text = "Exports all active games and their active activities " +
-                   "as JSON to clipboard.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
-        var exportBtn = new Button
-        {
-            Text = " Export All to Clipboard",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            FontSize = 14,
-            HeightRequest = 44,
-            FontAttributes = FontAttributes.Bold
+            foreach (var g in _exportGroups)
+                for (int i = 0; i < g.AllActivities.Count; i++) g.SelectedIndices.Add(i);
+            RenderExportGroups();
         };
-        exportBtn.Clicked += async (_, _) => await ExportAllAsync();
+        exportHeader.Add(globalSelectAll, 1, 0);
+        var globalSelectNone = SmallButton("None", "#ECEFF1", "#37474F", 28);
+        globalSelectNone.Clicked += (_, _) =>
+        {
+            foreach (var g in _exportGroups) g.SelectedIndices.Clear();
+            RenderExportGroups();
+        };
+        exportHeader.Add(globalSelectNone, 2, 0);
+        stack.Children.Add(exportHeader);
+
+        _exportStatusLabel = new Label { Text = "Loading...", FontSize = 12, TextColor = Color.FromArgb("#666"), IsVisible = true };
+        stack.Children.Add(_exportStatusLabel);
+        _exportContainer = new VerticalStackLayout { Spacing = 12 };
+        stack.Children.Add(_exportContainer);
+        var exportBtn = new Button { Text = " Copy Selected to Clipboard", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        exportBtn.Clicked += async (_, _) => await ExportSelectedAsync();
         stack.Children.Add(exportBtn);
 
-        stack.Children.Add(new BoxView
-        {
-            HeightRequest = 1,
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            Margin = new Thickness(0, 8, 0, 0)
-        });
-        stack.Children.Add(new Label
-        {
-            Text = "Import",
-            FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#2E7D32")
-        });
-        stack.Children.Add(new Label
-        {
-            Text = "Paste exported JSON. Select which activities to " +
-                   "import per game. Duplicates will be flagged.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
-        var pasteBtn = new Button
-        {
-            Text = " Paste Import JSON",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            FontSize = 14,
-            HeightRequest = 44
-        };
-        pasteBtn.Clicked += async (_, _) => await PasteImportAsync();
+        stack.Children.Add(new BoxView { HeightRequest = 1, BackgroundColor = Color.FromArgb("#E0E0E0"), Margin = new Thickness(0, 8, 0, 0) });
+        stack.Children.Add(new Label { Text = "Import", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32") });
+        stack.Children.Add(new Label { Text = "Paste exported JSON. All activities are imported. Duplicates (same name in same game) will ask what to do.", FontSize = 12, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
+        var pasteBtn = new Button { Text = " Paste & Import JSON", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        pasteBtn.Clicked += async (_, _) => await PasteAndImportAsync();
         stack.Children.Add(pasteBtn);
-
-        _importStatusLabel = new Label
-        {
-            Text = "",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            IsVisible = false,
-            LineBreakMode = LineBreakMode.WordWrap
-        };
-        stack.Children.Add(_importStatusLabel);
-
-        _importContainer = new VerticalStackLayout { Spacing = 16 };
-        stack.Children.Add(_importContainer);
-
-        _importConfirmBtn = new Button
-        {
-            Text = "✅ Import Selected",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            FontSize = 14,
-            HeightRequest = 44,
-            FontAttributes = FontAttributes.Bold,
-            IsVisible = false
-        };
-        _importConfirmBtn.Clicked += async (_, _) =>
-            await ImportSelectedAsync();
-        stack.Children.Add(_importConfirmBtn);
-
         Content = new ScrollView { Content = stack };
     }
 
-    private async Task ExportAllAsync()
+    private static Button SmallButton(string text, string background, string foreground, double height) => new()
+    {
+        Text = text, BackgroundColor = Color.FromArgb(background), TextColor = Color.FromArgb(foreground),
+        CornerRadius = 4, FontSize = 10, HeightRequest = height, Padding = new Thickness(6, 0)
+    };
+
+    private async Task LoadExportGroupsAsync()
     {
         var games = await _games.GetGamesAsync(_auth.CurrentUsername);
-        if (games.Count == 0)
-        {
-            await DisplayAlert("No games",
-                "No active games found to export.", "OK");
-            return;
-        }
-
-        var export = new List<GameExportDto>();
+        _exportGroups.Clear();
         foreach (var game in games)
         {
-            var acts = await _activities.GetActivitiesAsync(
-                _auth.CurrentUsername, game.GameId);
-            export.Add(new GameExportDto
+            var acts = await _activities.GetActivitiesAsync(_auth.CurrentUsername, game.GameId);
+            var group = new GameExportGroup
             {
-                GameId = game.GameId,
-                DisplayName = game.DisplayName,
-                Activities = acts.Select(a => new ActivityExportDto
-                {
-                    Name = a.Name,
-                    Category = a.Category ?? "",
-                    ExpGain = a.ExpGain,
-                    ImagePath = a.ImagePath ?? "",
-                    IsAutoAward = a.IsAutoAward,
-                    MeaningfulUntilLevel = a.MeaningfulUntilLevel
-                }).ToList()
-            });
+                Game = new GameExportDto { GameId = game.GameId, DisplayName = game.DisplayName },
+                AllActivities = acts.OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase).ToList()
+            };
+            for (int i = 0; i < group.AllActivities.Count; i++) group.SelectedIndices.Add(i);
+            _exportGroups.Add(group);
         }
-
-        var json = JsonSerializer.Serialize(
-            new { ExportedAt = DateTime.UtcNow, Games = export },
-            new JsonSerializerOptions { WriteIndented = true });
-
-        await Clipboard.SetTextAsync(json);
-
-        int totalActs = export.Sum(g => g.Activities.Count);
-        await DisplayAlert("Exported",
-            $"{games.Count} games and {totalActs} activities " +
-            "copied to clipboard.\n\nPaste on another device in " +
-            "the Import section of this page.",
-            "OK");
+        int total = _exportGroups.Sum(g => g.AllActivities.Count);
+        _exportStatusLabel.Text = $"{_exportGroups.Count} games, {total} activities — all selected by default.";
+        RenderExportGroups();
     }
 
-    private async Task PasteImportAsync()
+    private void RenderExportGroups()
+    {
+        _exportContainer.Children.Clear();
+        foreach (var group in _exportGroups.OrderBy(g => g.Game.DisplayName, StringComparer.OrdinalIgnoreCase))
+        {
+            var gameSection = new VerticalStackLayout { Spacing = 4 };
+            var headerRow = new Grid
+            {
+                ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) },
+                ColumnSpacing = 6
+            };
+            headerRow.Add(new Label { Text = group.Game.DisplayName, FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+            var capturedGroup = group;
+            var allBtn = SmallButton("All", "#E3F2FD", "#1565C0", 24);
+            allBtn.Clicked += (_, _) =>
+            {
+                for (int i = 0; i < capturedGroup.AllActivities.Count; i++) capturedGroup.SelectedIndices.Add(i);
+                RenderExportGroups();
+            };
+            headerRow.Add(allBtn, 1, 0);
+            var noneBtn = SmallButton("None", "#ECEFF1", "#37474F", 24);
+            noneBtn.Clicked += (_, _) => { capturedGroup.SelectedIndices.Clear(); RenderExportGroups(); };
+            headerRow.Add(noneBtn, 2, 0);
+            gameSection.Children.Add(headerRow);
+
+            var actStack = new VerticalStackLayout { Spacing = 2, Margin = new Thickness(12, 0, 0, 0) };
+            for (int i = 0; i < group.AllActivities.Count; i++)
+            {
+                int capturedI = i;
+                var act = group.AllActivities[i];
+                bool selected = group.SelectedIndices.Contains(i);
+                var row = new Grid
+                {
+                    ColumnDefinitions = { new ColumnDefinition(new GridLength(32)), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+                    ColumnSpacing = 6
+                };
+                var cb = new CheckBox { IsChecked = selected };
+                cb.CheckedChanged += (_, e) =>
+                {
+                    if (e.Value)
+                        capturedGroup.SelectedIndices.Add(capturedI);
+                    else
+                        capturedGroup.SelectedIndices.Remove(capturedI);
+                };
+                row.Add(cb, 0, 0);
+                row.Add(new Label { Text = act.Name, FontSize = 13, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation }, 1, 0);
+                row.Add(new Label { Text = $"+{act.ExpGain}", FontSize = 11, TextColor = Color.FromArgb("#2E7D32"), VerticalOptions = LayoutOptions.Center }, 2, 0);
+                actStack.Children.Add(row);
+            }
+            gameSection.Children.Add(actStack);
+            _exportContainer.Children.Add(gameSection);
+        }
+    }
+
+    private async Task ExportSelectedAsync()
+    {
+        var export = new List<GameExportDto>();
+        int totalSelected = 0;
+        foreach (var group in _exportGroups)
+        {
+            if (group.SelectedIndices.Count == 0) continue;
+            var selectedActs = group.SelectedIndices.OrderBy(i => i)
+                .Select(i => group.AllActivities[i])
+                .Select(a => new ActivityExportDto
+                {
+                    Name = a.Name, Category = a.Category ?? "", ExpGain = a.ExpGain,
+                    ImagePath = a.ImagePath ?? "", IsAutoAward = a.IsAutoAward,
+                    MeaningfulUntilLevel = a.MeaningfulUntilLevel
+                }).ToList();
+            export.Add(new GameExportDto { GameId = group.Game.GameId, DisplayName = group.Game.DisplayName, Activities = selectedActs });
+            totalSelected += selectedActs.Count;
+        }
+        if (totalSelected == 0)
+        {
+            await DisplayAlert("Nothing selected", "Select at least one activity to export.", "OK");
+            return;
+        }
+        var json = JsonSerializer.Serialize(new { ExportedAt = DateTime.UtcNow, Games = export }, new JsonSerializerOptions { WriteIndented = true });
+        await Clipboard.SetTextAsync(json);
+        await DisplayAlert("Exported", $"{totalSelected} activit{(totalSelected == 1 ? "y" : "ies")} across {export.Count} games copied to clipboard.", "OK");
+    }
+
+    private async Task PasteAndImportAsync()
     {
         var json = await Clipboard.GetTextAsync();
         if (string.IsNullOrWhiteSpace(json))
         {
-            await DisplayAlert("Empty clipboard",
-                "Copy exported JSON to clipboard first.", "OK");
+            await DisplayAlert("Empty clipboard", "Copy exported JSON to clipboard first.", "OK");
             return;
         }
-
+        List<GameExportDto> gameDtos;
         try
         {
             using var doc = JsonDocument.Parse(json);
             var gamesEl = doc.RootElement.GetProperty("Games");
-            var gameDtos = JsonSerializer
-                .Deserialize<List<GameExportDto>>(
-                    gamesEl.GetRawText(),
-                    new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
-            if (gameDtos == null || gameDtos.Count == 0)
-            {
-                await DisplayAlert("Nothing found",
-                    "No games found in the JSON.", "OK");
-                return;
-            }
-
-            _importGroups.Clear();
-            int totalActivities = 0;
-
-            foreach (var gameDto in gameDtos
-                .OrderBy(g => g.DisplayName,
-                    StringComparer.OrdinalIgnoreCase))
-            {
-                List<Activity> existing = new();
-                try
-                {
-                    existing = await _activities.GetActivitiesAsync(
-                        _auth.CurrentUsername, gameDto.GameId);
-                }
-                catch { }
-
-                var existingNames = existing
-                    .Select(a => a.Name.Trim())
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                var group = new GameImportGroup { Game = gameDto };
-                foreach (var act in gameDto.Activities
-                    .OrderBy(a => a.Name,
-                        StringComparer.OrdinalIgnoreCase))
-                {
-                    bool isDupe = existingNames.Contains(act.Name.Trim());
-                    group.Activities.Add((act, !isDupe));
-                    totalActivities++;
-                }
-                _importGroups.Add(group);
-            }
-
-            RenderImportGroups();
-
-            _importStatusLabel.Text =
-                $"{gameDtos.Count} games, {totalActivities} activities. " +
-                "Duplicates are unchecked. Review and tap Import Selected.";
-            _importStatusLabel.IsVisible = true;
-            _importConfirmBtn.IsVisible = true;
+            gameDtos = JsonSerializer.Deserialize<List<GameExportDto>>(gamesEl.GetRawText(),
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Parse error",
-                $"Could not read JSON: {ex.Message}", "OK");
+            await DisplayAlert("Parse error", $"Could not read JSON: {ex.Message}", "OK");
+            return;
         }
-    }
-
-    private void RenderImportGroups()
-    {
-        _importContainer.Children.Clear();
-
-        for (int gi = 0; gi < _importGroups.Count; gi++)
+        if (gameDtos.Count == 0)
         {
-            int capturedGi = gi;
-            var group = _importGroups[gi];
-
-            var gameHeader = new Grid
-            {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition(GridLength.Star),
-                    new ColumnDefinition(GridLength.Auto),
-                    new ColumnDefinition(GridLength.Auto)
-                },
-                ColumnSpacing = 8,
-                Margin = new Thickness(0, 4, 0, 2)
-            };
-
-            gameHeader.Add(new Label
-            {
-                Text = group.Game.DisplayName,
-                FontSize = 15,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#1565C0"),
-                VerticalOptions = LayoutOptions.Center
-            }, 0, 0);
-
-            var selAllBtn = new Button
-            {
-                Text = "All",
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0"),
-                CornerRadius = 4,
-                FontSize = 11,
-                HeightRequest = 26,
-                Padding = new Thickness(8, 0)
-            };
-            selAllBtn.Clicked += (_, _) =>
-            {
-                var g = _importGroups[capturedGi];
-                _importGroups[capturedGi] = new GameImportGroup
-                {
-                    Game = g.Game,
-                    Activities = g.Activities
-                        .Select(x => (x.Activity, true)).ToList()
-                };
-                RenderImportGroups();
-            };
-            gameHeader.Add(selAllBtn, 1, 0);
-
-            var selNoneBtn = new Button
-            {
-                Text = "None",
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#37474F"),
-                CornerRadius = 4,
-                FontSize = 11,
-                HeightRequest = 26,
-                Padding = new Thickness(8, 0)
-            };
-            selNoneBtn.Clicked += (_, _) =>
-            {
-                var g = _importGroups[capturedGi];
-                _importGroups[capturedGi] = new GameImportGroup
-                {
-                    Game = g.Game,
-                    Activities = g.Activities
-                        .Select(x => (x.Activity, false)).ToList()
-                };
-                RenderImportGroups();
-            };
-            gameHeader.Add(selNoneBtn, 2, 0);
-
-            _importContainer.Children.Add(gameHeader);
-
-            var actStack = new VerticalStackLayout
-            {
-                Spacing = 4,
-                Margin = new Thickness(12, 0, 0, 8)
-            };
-
-            for (int ai = 0; ai < group.Activities.Count; ai++)
-            {
-                int capturedAi = ai;
-                var (act, selected) = group.Activities[ai];
-
-                var row = new Grid
-                {
-                    ColumnDefinitions =
-                    {
-                        new ColumnDefinition(new GridLength(32)),
-                        new ColumnDefinition(GridLength.Star),
-                        new ColumnDefinition(GridLength.Auto),
-                        new ColumnDefinition(GridLength.Auto)
-                    },
-                    ColumnSpacing = 6
-                };
-
-                var cb = new CheckBox { IsChecked = selected };
-                cb.CheckedChanged += (_, e) =>
-                {
-                    var g = _importGroups[capturedGi];
-                    var acts = g.Activities.ToList();
-                    acts[capturedAi] = (acts[capturedAi].Activity, e.Value);
-                    g.Activities = acts;
-                };
-                row.Add(cb, 0, 0);
-
-                row.Add(new Label
-                {
-                    Text = act.Name,
-                    FontSize = 13,
-                    TextColor = Color.FromArgb("#222"),
-                    VerticalOptions = LayoutOptions.Center,
-                    LineBreakMode = LineBreakMode.TailTruncation
-                }, 1, 0);
-
-                row.Add(new Label
-                {
-                    Text = $"+{act.ExpGain}",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#2E7D32"),
-                    VerticalOptions = LayoutOptions.Center
-                }, 2, 0);
-
-                row.Add(new Label
-                {
-                    Text = !selected ? "⚠ dupe" : "",
-                    FontSize = 10,
-                    TextColor = Color.FromArgb("#E65100"),
-                    VerticalOptions = LayoutOptions.Center
-                }, 3, 0);
-
-                actStack.Children.Add(row);
-            }
-
-            _importContainer.Children.Add(actStack);
+            await DisplayAlert("Nothing found", "No games found in the JSON.", "OK");
+            return;
         }
-    }
 
-    private async Task ImportSelectedAsync()
-    {
         int imported = 0;
         int skipped = 0;
-
-        foreach (var group in _importGroups)
+        bool skipAllDupes = false;
+        bool overwriteAllDupes = false;
+        foreach (var gameDto in gameDtos.OrderBy(g => g.DisplayName, StringComparer.OrdinalIgnoreCase))
         {
-            var selectedActs = group.Activities
-                .Where(x => x.Selected)
-                .Select(x => x.Activity)
-                .ToList();
-
-            foreach (var act in selectedActs)
+            List<Activity> existing = new();
+            try { existing = await _activities.GetActivitiesAsync(_auth.CurrentUsername, gameDto.GameId); }
+            catch { }
+            var existingNames = existing.ToDictionary(a => a.Name.Trim(), a => a, StringComparer.OrdinalIgnoreCase);
+            foreach (var act in gameDto.Activities)
             {
+                bool isDupe = existingNames.ContainsKey(act.Name.Trim());
+                if (isDupe)
+                {
+                    if (skipAllDupes)
+                    {
+                        skipped++;
+                        continue;
+                    }
+                    if (!overwriteAllDupes)
+                    {
+                        string choice = await DisplayActionSheet(
+                            $"Duplicate: \"{act.Name}\" in {gameDto.DisplayName}", null, null,
+                            "Skip this one", "Skip all duplicates",
+                            "Import anyway (keep both)", "Import all duplicates (keep all)");
+                        if (choice == "Skip this one")
+                        {
+                            skipped++;
+                            continue;
+                        }
+                        else if (choice == "Skip all duplicates")
+                        {
+                            skipAllDupes = true;
+                            skipped++;
+                            continue;
+                        }
+                        else if (choice == "Import all duplicates (keep all)")
+                        {
+                            overwriteAllDupes = true;
+                        }
+                    }
+                }
+
                 try
                 {
                     var newActivity = new Activity
                     {
                         Username = _auth.CurrentUsername,
-                        Game = group.Game.GameId,
+                        Game = gameDto.GameId,
                         Name = act.Name,
                         Category = act.Category,
                         ExpGain = act.ExpGain,
@@ -465,21 +295,11 @@ public class AllGamesTransferPage : ContentPage
                     await _activities.CreateActivityAsync(newActivity);
                     imported++;
                 }
-                catch
-                {
-                    skipped++;
-                }
+                catch { skipped++; }
             }
         }
-
         await DisplayAlert("Import Complete",
             $"{imported} activit{(imported == 1 ? "y" : "ies")} imported" +
-            (skipped > 0 ? $", {skipped} failed." : "."),
-            "OK");
-
-        _importGroups.Clear();
-        _importContainer.Children.Clear();
-        _importStatusLabel.IsVisible = false;
-        _importConfirmBtn.IsVisible = false;
+            (skipped > 0 ? $", {skipped} skipped." : "."), "OK");
     }
 }
