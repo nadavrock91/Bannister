@@ -13,6 +13,12 @@ public class ResetCondition
 
     public string Text { get; set; } = "";
 
+    /// <summary>
+    /// What gets reset when this condition is triggered.
+    /// e.g. "Streak", "No junk food count", "Savings progress"
+    /// </summary>
+    public string WhatGetsReset { get; set; } = "";
+
     /// <summary>Full start date+time. Null = not set.</summary>
     public DateTime? StartDateTime { get; set; }
 

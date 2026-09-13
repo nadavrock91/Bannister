@@ -313,14 +313,25 @@ public class ResetEnforcerDetailPage : ContentPage
                     RowSpacing = 2
                 };
 
-                condGrid.Add(new Label
+                var condTextStack = new VerticalStackLayout { Spacing = 2 };
+                condTextStack.Children.Add(new Label
                 {
                     Text = condition.Text,
                     FontSize = 13,
                     TextColor = Color.FromArgb("#222"),
-                    VerticalOptions = LayoutOptions.Center,
                     LineBreakMode = LineBreakMode.WordWrap
-                }, 0, 0);
+                });
+                if (!string.IsNullOrWhiteSpace(condition.WhatGetsReset))
+                {
+                    condTextStack.Children.Add(new Label
+                    {
+                        Text = $"⚡ Resets: {condition.WhatGetsReset}",
+                        FontSize = 11,
+                        TextColor = Color.FromArgb("#C62828"),
+                        FontAttributes = FontAttributes.Bold
+                    });
+                }
+                condGrid.Add(condTextStack, 0, 0);
 
                 if (condition.HasTimeWindow)
                 {
@@ -463,15 +474,27 @@ public class ResetEnforcerDetailPage : ContentPage
             return;
         }
 
-        // Show the approved condition for confirmation
+        // Ask what gets reset — separate from the condition text
+        // and never sent to the LLM
+        string? whatGetsReset = await DisplayPromptAsync(
+            "What Gets Reset?",
+            "When this condition is triggered, what gets reset?\n\n" +
+            $"Condition: \"{result}\"",
+            "Save", "Cancel",
+            placeholder: "e.g. Streak, No junk food count, Savings progress");
+        if (string.IsNullOrWhiteSpace(whatGetsReset)) return;
+
         bool confirm = await DisplayAlert(
-            "Approved Condition",
-            $"Save this condition?\n\n\"{result}\"",
+            "Save Condition",
+            $"Condition:\n\"{result}\"\n\n" +
+            $"Resets: {whatGetsReset.Trim()}",
             "Save", "Cancel");
         if (!confirm) return;
 
         var condition = await _service.AddConditionAsync(
             _enforcer.Id, result);
+        condition.WhatGetsReset = whatGetsReset.Trim();
+        await _service.UpdateConditionAsync(condition);
 
         // Optionally set time window
         bool addTime = await DisplayAlert(
