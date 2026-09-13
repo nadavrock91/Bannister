@@ -483,6 +483,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<WebsiteIdea>();
             await _db!.CreateTableAsync<CropPresetItem>();
             await _db!.CreateTableAsync<HomeQuickAccessSetting>();
+            await _db!.CreateTableAsync<HomeButtonVisibilitySetting>();
             await _db!.CreateTableAsync<DoNotItem>();
             await _db!.CreateTableAsync<ResetEnforcer>();
             await _db!.CreateTableAsync<ResetCondition>();

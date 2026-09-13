@@ -11,8 +11,17 @@ public class HomePage : ContentPage
 {
     private sealed record HomeNavButton(string Id, Button SourceButton);
 
+    /// <summary>
+    /// All nav button IDs in the order they are defined.
+    /// Populated once during BuildUI(). Used by SettingsPage
+    /// for visibility toggles without needing a HomePage reference.
+    /// </summary>
+    public static IReadOnlyList<string> AllButtonIds { get; private set; }
+        = Array.Empty<string>();
+
     private readonly AuthService _auth;
     private readonly HomeQuickAccessService _homeQuickAccess;
+    private readonly HomeButtonVisibilityService _buttonVisibility;
     private readonly GameService _games;
     private readonly DragonService _dragons;
     private readonly BackupService _backup;
@@ -120,6 +129,8 @@ public class HomePage : ContentPage
     private List<HomeNavButton> _homeNavButtons = new();
     private HashSet<string> _quickAccessCache =
         new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _enabledButtonsCache =
+        new(StringComparer.OrdinalIgnoreCase);
     private Grid _loadingOverlay;
     private Label _loadingOverlayLabel;
     private Label _ownerModeStatusLabel;
@@ -142,7 +153,8 @@ public class HomePage : ContentPage
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
         HomePopupPreferenceService popupPreferences, HomeQuickAccessService homeQuickAccess, DeviceModeService deviceMode, EmotionService emotionService,
-        StatTrackerService statTracker, ResetEnforcerService resetEnforcerService)
+        StatTrackerService statTracker, ResetEnforcerService resetEnforcerService,
+        HomeButtonVisibilityService buttonVisibility)
     {
         _auth = auth;
         _games = games;
@@ -191,6 +203,7 @@ public class HomePage : ContentPage
         _assetThumbnailService = assetThumbnailService;
         _popupPreferences = popupPreferences;
         _homeQuickAccess = homeQuickAccess;
+        _buttonVisibility = buttonVisibility;
         _deviceMode = deviceMode;
         _emotionService = emotionService;
         _statTracker = statTracker;
@@ -432,6 +445,7 @@ public class HomePage : ContentPage
         _allHomeNavButtons = navButtons
             .Select(item => new HomeNavButton(item.sortKey, item.btn))
             .ToList();
+        AllButtonIds = _allHomeNavButtons.Select(b => b.Id).ToList();
         _homeNavButtons = GetVisibleHomeNavButtons();
 
         _buttonSectionsStack = new VerticalStackLayout
@@ -713,6 +727,11 @@ public class HomePage : ContentPage
         {
             foreach (var button in quickButtons)
             {
+                bool isSettings = button.Id.Equals("Settings",
+                    StringComparison.OrdinalIgnoreCase);
+                if (!isSettings &&
+                    !_enabledButtonsCache.Contains(button.Id))
+                    continue;
                 _buttonSectionsStack.Children.Add(CreateNavButtonWrapper(button, quickAccess.Contains(button.Id)));
             }
         }
@@ -733,6 +752,11 @@ public class HomePage : ContentPage
             _buttonSectionsStack.Children.Add(CreateButtonRangeHeader(range));
             foreach (var button in groupButtons)
             {
+                bool isSettings = button.Id.Equals("Settings",
+                    StringComparison.OrdinalIgnoreCase);
+                if (!isSettings &&
+                    !_enabledButtonsCache.Contains(button.Id))
+                    continue;
                 _buttonSectionsStack.Children.Add(CreateNavButtonWrapper(button, quickAccess.Contains(button.Id)));
             }
         }
@@ -905,6 +929,12 @@ public class HomePage : ContentPage
             // Load pinned buttons from SQLite
             _quickAccessCache = await _homeQuickAccess
                 .GetPinnedButtonsAsync(_auth.CurrentUsername);
+
+            _enabledButtonsCache = await _buttonVisibility
+                .GetEnabledButtonsAsync(
+                    _auth.CurrentUsername,
+                    AllButtonIds);
+            RefreshButtonsLayout();
 
             await LoadDataAsync();
             if (!IsHomePromptRunActive(promptRunId)) return;
@@ -3487,7 +3517,8 @@ public class HomePage : ContentPage
 
     private async Task NavigateToSettingsAsync()
     {
-        var page = new SettingsPage(_auth, _db, _backup);
+        var page = new SettingsPage(
+            _auth, _db, _backup, _buttonVisibility);
         await Navigation.PushAsync(page);
     }
 
