@@ -457,13 +457,32 @@ public class OpeningClipPromptPage : ContentPage
             "distinct idea.\n\n" +
 
             "Step 4 — Write the 30 Grok prompts:\n" +
-            "For each of your top 30 selected ideas, write a full Grok " +
-            "video-generation prompt. " +
+            "For each of your top 30 selected ideas, write a detailed " +
+            "Grok video-generation prompt of at least 100 words. " +
             $"Preserve the current experiment's core foundation of {foundation}. " +
-            "Each prompt must describe the chronological action that should " +
-            "happen from the supplied first frame. The viewer should be able " +
-            "to watch muted and still perceive an unfolding event. " +
-            "Keep each prompt practical for Grok video generation." +
+            "Every prompt must follow these mandatory requirements:\n" +
+            "- Describe the full chronological action beat by beat from the " +
+            "supplied first frame through to the final second of the clip.\n" +
+            "- Specify FAST, EXPLOSIVE, REALISTIC movement throughout. " +
+            "Characters and objects must move with real physical weight, " +
+            "momentum, and speed. No slow motion. No floaty movement. " +
+            "No generic cinematic drift. Every second of the clip must " +
+            "contain visible, purposeful, fast motion.\n" +
+            "- Describe the speed and physicality of each action explicitly: " +
+            "e.g. 'instantly', 'slams', 'snaps', 'hurls', 'crashes', " +
+            "'detonates', 'tears through', 'accelerates hard'. " +
+            "Never use passive or slow verbs.\n" +
+            "- Break the 10 seconds into at least 3 distinct beats or " +
+            "sub-events so the clip has meaningful progression, not one " +
+            "repeated action.\n" +
+            "- Describe what the camera sees in concrete physical terms — " +
+            "what moves, where it moves, how fast, what the result is.\n" +
+            "- The viewer must be able to watch muted and immediately " +
+            "understand an unfolding event with clear cause and consequence.\n" +
+            "- End each prompt with a one-line technical note specifying: " +
+            "cinematic realism, fast realistic motion, no dialogue, no text.\n" +
+            "Keep each prompt practical and directly executable by " +
+            "Grok video generation." +
             doNotSection + "\n\n" +
 
             "After completing all four steps, return ONLY the final " +

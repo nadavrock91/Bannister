@@ -61,6 +61,7 @@ public class HomePage : ContentPage
     private readonly DeviceModeService _deviceMode;
     private readonly EmotionService _emotionService;
     private readonly StatTrackerService _statTracker;
+    private readonly ResetEnforcerService _resetEnforcerService;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -70,6 +71,7 @@ public class HomePage : ContentPage
     private bool _deadlineCheckInChecked = false;
     private bool _allowanceDailyPromptChecked = false;
     private bool _isHomeVisible = false;
+    private bool _isNavigating;
     private int _homePromptRunId = 0;
     private bool _homePromptSequenceRunning = false;
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
@@ -97,6 +99,7 @@ public class HomePage : ContentPage
     private Button _btnDatabases;
     private Button _btnDeadlines;
     private Button _btnDesignations;
+    private Button _btnDiscipline;
     private Button _btnDragons;
     private Button _btnEmotionalManagement;
     private Button _btnStatsTracker;
@@ -139,7 +142,7 @@ public class HomePage : ContentPage
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
         HomePopupPreferenceService popupPreferences, HomeQuickAccessService homeQuickAccess, DeviceModeService deviceMode, EmotionService emotionService,
-        StatTrackerService statTracker)
+        StatTrackerService statTracker, ResetEnforcerService resetEnforcerService)
     {
         _auth = auth;
         _games = games;
@@ -191,6 +194,7 @@ public class HomePage : ContentPage
         _deviceMode = deviceMode;
         _emotionService = emotionService;
         _statTracker = statTracker;
+        _resetEnforcerService = resetEnforcerService;
         _ownerMode.StateChanged += OnOwnerModeStateChanged;
 
         Title = "Bannister";
@@ -324,6 +328,10 @@ public class HomePage : ContentPage
         _btnDesignations = CreateButton("Designations", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
         _btnDesignations.Clicked += OnDesignationsClicked;
         navButtons.Add(("Designations", _btnDesignations));
+
+        _btnDiscipline = CreateButton("Discipline", Color.FromArgb("#4A148C"), Colors.White);
+        _btnDiscipline.Clicked += OnDisciplineClicked;
+        navButtons.Add(("Discipline", _btnDiscipline));
 
         _btnDragons = CreateButton("🐉 Dragons (0)", Colors.White, Color.FromArgb("#5B63EE"));
         _btnDragons.Clicked += OnDragonsClicked;
@@ -824,6 +832,7 @@ public class HomePage : ContentPage
             "Databases" => OnDatabasesClicked,
             "Deadlines" => OnDeadlinesClicked,
             "Designations" => OnDesignationsClicked,
+            "Discipline" => OnDisciplineClicked,
             "Dragons" => OnDragonsClicked,
             "Emotional Management" => OnEmotionalManagementClicked,
             "Games" => OnGamesClicked,
@@ -2464,6 +2473,18 @@ public class HomePage : ContentPage
     {
         var page = new MusicProductionHubPage(_auth, _musicProduction, _db, _ideas, _customPrompts);
         await Navigation.PushAsync(page);
+    }
+
+    private async void OnDisciplineClicked(object? sender, EventArgs e)
+    {
+        if (_isNavigating) return;
+        _isNavigating = true;
+        try
+        {
+            await Navigation.PushAsync(
+                new DisciplineHubPage(_auth, _resetEnforcerService));
+        }
+        finally { _isNavigating = false; }
     }
 
     private async void OnImageProductionClicked(object? sender, EventArgs e)
