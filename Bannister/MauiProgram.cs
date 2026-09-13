@@ -204,6 +204,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ResetsPage>();
         builder.Services.AddTransient<ResetEnforcerDetailPage>();
         builder.Services.AddTransient<EnforcerLevelsPage>();
+        builder.Services.AddTransient<AllGamesTransferPage>();
 
 
 #if DEBUG

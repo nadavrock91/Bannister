@@ -102,6 +102,20 @@ public class GamesListPage : ContentPage
         btnAddGame.Clicked += OnAddGameClicked;
         mainStack.Children.Add(btnAddGame);
 
+        var btnTransfer = new Button
+        {
+            Text = " Export / Import Activities",
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            TextColor = Color.FromArgb("#F57F17"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        btnTransfer.Clicked += async (_, _) =>
+            await Navigation.PushAsync(
+                new AllGamesTransferPage(_games, _activities, _auth));
+        mainStack.Children.Add(btnTransfer);
+
         // ===== GROUPINGS SECTION =====
         mainStack.Children.Add(new BoxView
         {
