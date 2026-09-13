@@ -487,26 +487,32 @@ public class ResetEnforcerDetailPage : ContentPage
     private static string BuildConditionVettingPrompt(string condition)
     {
         return
-            "You are a discipline-system condition auditor. " +
-            "A user wants to add the following as a reset condition " +
-            "for a personal accountability enforcer:\n\n" +
+            "You are a clarity auditor for personal accountability " +
+            "conditions. Evaluate the following proposed condition " +
+            "in complete isolation — you have no other context about " +
+            "what it relates to, and you must not infer any:\n\n" +
             $"\"{condition}\"\n\n" +
-            "A reset condition must be absolutely clear-cut with " +
-            "zero room for judgment, self-negotiation, or edge cases. " +
-            "If it happened, it happened. If it did not, it did not. " +
-            "There must be no grey area.\n\n" +
-            "Evaluate this condition:\n" +
-            "1. Is it unambiguous and binary — did it happen or not, " +
-            "with no room for interpretation?\n" +
-            "2. Are there any edge cases, exceptions, or situations " +
-            "where the user could reasonably argue it does not apply?\n" +
+            "A valid condition must be absolutely binary and " +
+            "clear-cut: either it happened or it did not. " +
+            "There must be zero room for judgment, " +
+            "self-negotiation, or edge-case reasoning. " +
+            "It must be evaluable without knowing anything else " +
+            "about the person's goals, commitments, or context.\n\n" +
+            "Evaluate:\n" +
+            "1. Can this condition be assessed as a pure yes/no " +
+            "with no ambiguity, regardless of context?\n" +
+            "2. Are there any edge cases, exceptions, or " +
+            "interpretations that could allow the person to argue " +
+            "it does not apply in a specific instance?\n" +
             "3. If there is any ambiguity, suggest an alternative " +
-            "phrasing that eliminates it. The alternative should be " +
-            "stricter and more specific, not looser.\n\n" +
-            "If the condition is clear-cut as written or after your " +
-            "suggested rephrasing, respond with the final approved " +
-            "condition text followed by the word 'approved' encoded " +
-            "in 8-bit ASCII binary on its own line.\n\n" +
+            "phrasing that makes it unambiguously binary. " +
+            "Make it stricter and more specific, never looser. " +
+            "Do not add context about what it relates to — " +
+            "the rephrasing must stand alone.\n\n" +
+            "If the condition is unambiguously binary as written " +
+            "or after your suggested rephrasing, output the final " +
+            "approved condition text followed on the next line by " +
+            "the word 'approved' in 8-bit ASCII binary.\n\n" +
             "The 8-bit ASCII binary for 'approved' is:\n" +
             "01100001 01110000 01110000 01110010 01101111 01110110 " +
             "01100101 01100100\n\n" +
@@ -514,8 +520,9 @@ public class ResetEnforcerDetailPage : ContentPage
             "CONDITION: <final condition text>\n" +
             "01100001 01110000 01110000 01110010 01101111 01110110 " +
             "01100101 01100100\n\n" +
-            "If the condition cannot be made unambiguous, explain why " +
-            "and do NOT include the binary string.";
+            "If the condition cannot be made unambiguously binary " +
+            "when evaluated in isolation, explain why and do NOT " +
+            "include the binary string.";
     }
 
     private static string? ParseVettedCondition(string response)
