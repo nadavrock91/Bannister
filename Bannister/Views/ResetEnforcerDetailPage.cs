@@ -495,34 +495,33 @@ public class ResetEnforcerDetailPage : ContentPage
             "A valid condition must be absolutely binary and " +
             "clear-cut: either it happened or it did not. " +
             "There must be zero room for judgment, " +
-            "self-negotiation, or edge-case reasoning. " +
-            "It must be evaluable without knowing anything else " +
-            "about the person's goals, commitments, or context.\n\n" +
+            "self-negotiation, or edge-case reasoning.\n\n" +
+            "CRITICAL RULES you must follow:\n" +
+            "1. If the original phrasing is already clear and binary, " +
+            "keep it EXACTLY as written. Do not rephrase, expand, " +
+            "or add restrictions the user did not ask for.\n" +
+            "2. If clarification is needed, APPEND a minimal " +
+            "parenthetical or clause to the original — do not " +
+            "replace it with a longer rewrite.\n" +
+            "3. Only address edge cases the user's original phrasing " +
+            "actually creates. Do not invent new restrictions, " +
+            "add related activities, or expand scope beyond what " +
+            "was stated.\n" +
+            "4. The final condition must not be longer or more " +
+            "restrictive than necessary to make it binary.\n\n" +
             "Evaluate:\n" +
-            "1. Can this condition be assessed as a pure yes/no " +
-            "with no ambiguity, regardless of context?\n" +
-            "2. Are there any edge cases, exceptions, or " +
-            "interpretations that could allow the person to argue " +
-            "it does not apply in a specific instance?\n" +
-            "3. If there is any ambiguity, suggest an alternative " +
-            "phrasing that makes it unambiguously binary. " +
-            "Make it stricter and more specific, never looser. " +
-            "Do not add context about what it relates to — " +
-            "the rephrasing must stand alone.\n\n" +
-            "If the condition is unambiguously binary as written " +
-            "or after your suggested rephrasing, output the final " +
-            "approved condition text followed on the next line by " +
-            "the word 'approved' in 8-bit ASCII binary.\n\n" +
-            "The 8-bit ASCII binary for 'approved' is:\n" +
+            "1. Is the condition already unambiguously binary as " +
+            "written? If yes, use it exactly as written.\n" +
+            "2. If not, what is the minimal change needed to make " +
+            "it binary? Append only what is needed.\n\n" +
+            "If the condition is approved (as written or with " +
+            "minimal appended clarification), output:\n" +
+            "CONDITION: <condition text — original or minimally amended>\n" +
             "01100001 01110000 01110000 01110010 01101111 01110110 " +
             "01100101 01100100\n\n" +
-            "Format your response as:\n" +
-            "CONDITION: <final condition text>\n" +
-            "01100001 01110000 01110000 01110010 01101111 01110110 " +
-            "01100101 01100100\n\n" +
-            "If the condition cannot be made unambiguously binary " +
-            "when evaluated in isolation, explain why and do NOT " +
-            "include the binary string.";
+            "If it cannot be made binary without a fundamental " +
+            "rewrite, explain why concisely and do NOT include " +
+            "the binary string.";
     }
 
     private static string? ParseVettedCondition(string response)
