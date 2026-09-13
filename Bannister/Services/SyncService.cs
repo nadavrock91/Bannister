@@ -756,7 +756,8 @@ public class SyncService
     public async Task<(string UpdatedBy, DateTime UpdatedAt,
         List<SharedActivityDownloadItem> Activities,
         List<SharedExpRecordDto> ExpRecords,
-        List<SharedExpStateDto> ExpStates)?>
+        List<SharedExpStateDto> ExpStates,
+        string? Error)?>
         DownloadSharedActivitiesAsync(SharedActivityLink link,
             string password)
     {
@@ -772,13 +773,34 @@ public class SyncService
             var requestUrl =
                 $"{url}&link_code={Uri.EscapeDataString(link.LinkCode)}";
             var response = await client.GetAsync(requestUrl);
-            if (!response.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                var errBody = await response.Content.ReadAsStringAsync();
+                return (string.Empty, DateTime.MinValue,
+                    new(), new(), new(),
+                    $"HTTP {(int)response.StatusCode}: {errBody}");
+            }
 
             var encrypted = await response.Content.ReadAsByteArrayAsync();
-            if (encrypted.Length < 16) return null;
+            if (encrypted.Length < 16)
+                return (string.Empty, DateTime.MinValue,
+                    new(), new(), new(),
+                    "Downloaded file too small — may be empty or corrupt.");
 
-            var json = SharedActivityService.Decrypt(
-                encrypted, password, link.LinkCode);
+            string json;
+            try
+            {
+                json = SharedActivityService.Decrypt(
+                    encrypted, password, link.LinkCode);
+            }
+            catch (Exception decEx)
+            {
+                return (string.Empty, DateTime.MinValue,
+                    new(), new(), new(),
+                    $"Decryption failed: {decEx.GetType().Name}: " +
+                    $"{decEx.Message}. " +
+                    "Check that both sides used the exact same password.");
+            }
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
@@ -808,9 +830,14 @@ public class SyncService
                         PropertyNameCaseInsensitive = true
                     }) ?? new();
 
-            return (updatedBy, updatedAt, acts, expRecords, expStates);
+            return (updatedBy, updatedAt, acts, expRecords, expStates, null);
         }
-        catch { return null; }
+        catch (Exception ex)
+        {
+            return (string.Empty, DateTime.MinValue,
+                new(), new(), new(),
+                $"Exception: {ex.GetType().Name}: {ex.Message}");
+        }
     }
 
     public class SharedActivityDownloadItem

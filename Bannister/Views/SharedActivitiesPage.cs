@@ -228,8 +228,14 @@ public class SharedActivitiesPage : ContentPage
                 "No data found for this link on the server, or decryption failed.", "OK");
             return;
         }
-        var (updatedBy, updatedAt, items, expRecords, expStates) =
-            result.Value;
+        var (updatedBy, updatedAt, items, expRecords,
+            expStates, dlError) = result.Value;
+
+        if (!string.IsNullOrWhiteSpace(dlError))
+        {
+            await DisplayAlert("Pull Failed", dlError, "OK");
+            return;
+        }
         if (link.LastDownloadedAt.HasValue &&
             updatedAt <= link.LastDownloadedAt.Value)
         {
