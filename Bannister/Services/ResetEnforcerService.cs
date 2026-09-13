@@ -136,9 +136,46 @@ public class ResetEnforcerService
         enforcer.TotalResets++;
         enforcer.LastResetDate = DateTime.UtcNow;
         enforcer.StreakStartDate = DateTime.UtcNow;
-        await conn.UpdateAsync(enforcer);
 
-        await CheckAutoLevelAsync(enforcer, conn);
+        // Move one level down from current
+        var levels = (await GetLevelsAsync(id))
+            .OrderBy(l => l.LevelNumber)
+            .ToList();
+
+        if (levels.Count > 0)
+        {
+            int currentIdx = enforcer.CurrentLevelIndex;
+            // Find current level in sorted list by index mapping
+            // CurrentLevelIndex is index into SortOrder list;
+            // rebuild sorted index
+            int sortedCurrentIdx = -1;
+            if (currentIdx >= 0 && currentIdx < levels.Count)
+            {
+                // Find the level that was at CurrentLevelIndex
+                // in the original SortOrder list
+                var allLevels = await GetLevelsAsync(id);
+                var currentLevel = allLevels.Count > currentIdx
+                    ? allLevels[currentIdx]
+                    : null;
+                if (currentLevel != null)
+                    sortedCurrentIdx = levels
+                        .FindIndex(l => l.Id == currentLevel.Id);
+            }
+
+            int newSortedIdx = sortedCurrentIdx > 0
+                ? sortedCurrentIdx - 1
+                : 0; // Already at lowest, stay there
+
+            // Map back to SortOrder index
+            var newLevel = levels[newSortedIdx];
+            var allLevelsForMapping = await GetLevelsAsync(id);
+            int newOriginalIdx = allLevelsForMapping
+                .FindIndex(l => l.Id == newLevel.Id);
+            enforcer.CurrentLevelIndex = newOriginalIdx >= 0
+                ? newOriginalIdx : 0;
+        }
+
+        await conn.UpdateAsync(enforcer);
     }
 
     /// <summary>
@@ -162,18 +199,26 @@ public class ResetEnforcerService
         int days = enforcer.DaysInARow;
         int resets = enforcer.TotalResets;
 
-        // Find highest-priority level whose trigger is satisfied
-        // Check all levels in SortOrder; last matching wins
+        // Only positive levels can auto-trigger
+        // Find the highest positive level whose trigger is met
+        var positiveLevels = levels
+            .Where(l => l.LevelNumber > 0)
+            .OrderBy(l => l.LevelNumber)
+            .ToList();
+
         int newIndex = enforcer.CurrentLevelIndex;
-        for (int i = 0; i < levels.Count; i++)
+        foreach (var level in positiveLevels)
         {
-            var level = levels[i];
             bool daysTrigger = level.TriggerDays >= 0
                 && days >= level.TriggerDays;
             bool resetsTrigger = level.TriggerResets >= 0
                 && resets >= level.TriggerResets;
             if (daysTrigger || resetsTrigger)
-                newIndex = i;
+            {
+                // Map to original SortOrder index
+                int idx = levels.FindIndex(l => l.Id == level.Id);
+                if (idx >= 0) newIndex = idx;
+            }
         }
 
         if (newIndex != enforcer.CurrentLevelIndex)

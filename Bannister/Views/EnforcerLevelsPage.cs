@@ -147,16 +147,18 @@ public class EnforcerLevelsPage : ContentPage
         }
 
         // Triggers
-        var triggerParts = new List<string>();
-        if (level.TriggerDays >= 0)
-            triggerParts.Add($"Streak ≥ {level.TriggerDays} days");
-        if (level.TriggerResets >= 0)
-            triggerParts.Add($"Resets ≥ {level.TriggerResets}");
-        if (triggerParts.Count > 0)
+        if (level.LevelNumber > 0)
         {
+            var triggerParts = new List<string>();
+            if (level.TriggerDays >= 0)
+                triggerParts.Add($"Streak ≥ {level.TriggerDays} days");
+            if (level.TriggerResets >= 0)
+                triggerParts.Add($"Resets ≥ {level.TriggerResets}");
             inner.Children.Add(new Label
             {
-                Text = "Auto: " + string.Join(" OR ", triggerParts),
+                Text = triggerParts.Count > 0
+                    ? "Auto: " + string.Join(" OR ", triggerParts)
+                    : "Manual only",
                 FontSize = 12,
                 TextColor = Color.FromArgb("#555"),
                 FontAttributes = FontAttributes.Italic
@@ -166,9 +168,9 @@ public class EnforcerLevelsPage : ContentPage
         {
             inner.Children.Add(new Label
             {
-                Text = "Manual only",
+                Text = "Triggered by Reset button",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#999"),
+                TextColor = Color.FromArgb("#E65100"),
                 FontAttributes = FontAttributes.Italic
             });
         }
@@ -235,6 +237,14 @@ public class EnforcerLevelsPage : ContentPage
         if (string.IsNullOrWhiteSpace(levelNumInput)) return;
         if (!int.TryParse(levelNumInput.Trim(), out int levelNumber))
             levelNumber = 1;
+        if (levelNumber == 0)
+        {
+            await DisplayAlert("Invalid",
+                "Level 0 is not allowed. Use +1 or higher for " +
+                "positive levels, -1 or lower for negative levels.",
+                "OK");
+            return;
+        }
 
         string imagePath = "";
         bool pickImg = await DisplayAlert(
@@ -256,28 +266,32 @@ public class EnforcerLevelsPage : ContentPage
         }
 
         int triggerDays = -1;
-        string? daysInput = await DisplayPromptAsync(
-            "Auto Trigger: Streak Days",
-            "Auto-set this level when streak reaches X days. " +
-            "Leave blank to skip.",
-            "Set", "Skip",
-            placeholder: "e.g. 30",
-            keyboard: Keyboard.Numeric);
-        if (!string.IsNullOrWhiteSpace(daysInput) &&
-            int.TryParse(daysInput.Trim(), out int pd) && pd >= 0)
-            triggerDays = pd;
-
         int triggerResets = -1;
-        string? resetsInput = await DisplayPromptAsync(
-            "Auto Trigger: Total Resets",
-            "Auto-set this level when total resets reaches X. " +
-            "Leave blank to skip.",
-            "Set", "Skip",
-            placeholder: "e.g. 5",
-            keyboard: Keyboard.Numeric);
-        if (!string.IsNullOrWhiteSpace(resetsInput) &&
-            int.TryParse(resetsInput.Trim(), out int pr) && pr >= 0)
-            triggerResets = pr;
+
+        if (levelNumber > 0)
+        {
+            string? daysInput = await DisplayPromptAsync(
+                "Auto Trigger: Streak Days",
+                "Auto-set this level when streak reaches X days. " +
+                "Leave blank to skip.",
+                "Set", "Skip",
+                placeholder: "e.g. 30",
+                keyboard: Keyboard.Numeric);
+            if (!string.IsNullOrWhiteSpace(daysInput) &&
+                int.TryParse(daysInput.Trim(), out int pd) && pd >= 0)
+                triggerDays = pd;
+
+            string? resetsInput = await DisplayPromptAsync(
+                "Auto Trigger: Total Resets",
+                "Auto-set this level when total resets reaches X. " +
+                "Leave blank to skip.",
+                "Set", "Skip",
+                placeholder: "e.g. 5",
+                keyboard: Keyboard.Numeric);
+            if (!string.IsNullOrWhiteSpace(resetsInput) &&
+                int.TryParse(resetsInput.Trim(), out int pr) && pr >= 0)
+                triggerResets = pr;
+        }
 
         await _service.AddLevelAsync(
             _enforcer.Id, name.Trim(), imagePath,
@@ -302,31 +316,51 @@ public class EnforcerLevelsPage : ContentPage
             keyboard: Keyboard.Numeric);
         if (!string.IsNullOrWhiteSpace(levelNumInput) &&
             int.TryParse(levelNumInput.Trim(), out int newLevelNum))
-            level.LevelNumber = newLevelNum;
+        {
+            if (newLevelNum == 0)
+            {
+                await DisplayAlert("Invalid",
+                    "Level 0 is not allowed.", "OK");
+                // Keep existing
+            }
+            else
+            {
+                level.LevelNumber = newLevelNum;
+            }
+        }
 
-        string? daysInput = await DisplayPromptAsync(
-            "Auto Trigger: Streak Days",
-            "Days trigger (blank = disable):",
-            "Set", "Skip",
-            initialValue: level.TriggerDays >= 0
-                ? level.TriggerDays.ToString() : "",
-            keyboard: Keyboard.Numeric);
-        if (string.IsNullOrWhiteSpace(daysInput))
+        if (level.LevelNumber > 0)
+        {
+            string? daysInput = await DisplayPromptAsync(
+                "Auto Trigger: Streak Days",
+                "Days trigger (blank = disable):",
+                "Set", "Skip",
+                initialValue: level.TriggerDays >= 0
+                    ? level.TriggerDays.ToString() : "",
+                keyboard: Keyboard.Numeric);
+            if (string.IsNullOrWhiteSpace(daysInput))
+                level.TriggerDays = -1;
+            else if (int.TryParse(daysInput.Trim(), out int d))
+                level.TriggerDays = d >= 0 ? d : -1;
+
+            string? resetsInput = await DisplayPromptAsync(
+                "Auto Trigger: Total Resets",
+                "Resets trigger (blank = disable):",
+                "Set", "Skip",
+                initialValue: level.TriggerResets >= 0
+                    ? level.TriggerResets.ToString() : "",
+                keyboard: Keyboard.Numeric);
+            if (string.IsNullOrWhiteSpace(resetsInput))
+                level.TriggerResets = -1;
+            else if (int.TryParse(resetsInput.Trim(), out int r))
+                level.TriggerResets = r >= 0 ? r : -1;
+        }
+        else
+        {
+            // Negative levels cannot auto-trigger — clear any existing
             level.TriggerDays = -1;
-        else if (int.TryParse(daysInput.Trim(), out int d))
-            level.TriggerDays = d >= 0 ? d : -1;
-
-        string? resetsInput = await DisplayPromptAsync(
-            "Auto Trigger: Total Resets",
-            "Resets trigger (blank = disable):",
-            "Set", "Skip",
-            initialValue: level.TriggerResets >= 0
-                ? level.TriggerResets.ToString() : "",
-            keyboard: Keyboard.Numeric);
-        if (string.IsNullOrWhiteSpace(resetsInput))
             level.TriggerResets = -1;
-        else if (int.TryParse(resetsInput.Trim(), out int r))
-            level.TriggerResets = r >= 0 ? r : -1;
+        }
 
         bool changeImg = await DisplayAlert(
             "Change Image", "Change the level image?",
