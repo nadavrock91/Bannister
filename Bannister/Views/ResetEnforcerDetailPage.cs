@@ -429,23 +429,192 @@ public class ResetEnforcerDetailPage : ContentPage
     {
         string? text = await DisplayPromptAsync(
             "New Reset Condition",
-            "What triggers a reset?",
-            "Add", "Cancel",
+            "Describe the condition you want to add:",
+            "Next", "Cancel",
             placeholder: "e.g. Missed a daily commitment");
         if (string.IsNullOrWhiteSpace(text)) return;
 
+        // Build vetting prompt and copy to clipboard
+        var prompt = BuildConditionVettingPrompt(text.Trim());
+        await Clipboard.SetTextAsync(prompt);
+
+        await DisplayAlert("Vetting Prompt Copied",
+            "Paste into your LLM. It will check for ambiguity and " +
+            "suggest clearer phrasing if needed.\n\n" +
+            "When done, paste the response back here.",
+            "OK");
+
+        // Paste LLM response
+        var response = await ShowConditionEditorAsync(
+            "Paste LLM Response",
+            "Paste the full LLM response here:");
+        if (string.IsNullOrWhiteSpace(response)) return;
+
+        // Parse and validate
+        var result = ParseVettedCondition(response.Trim());
+        if (result == null)
+        {
+            await DisplayAlert("Not Approved",
+                "The LLM did not approve this condition. " +
+                "The binary 'approved' signature was not found.\n\n" +
+                "Review the LLM's feedback and try again with " +
+                "a clearer condition.",
+                "OK");
+            return;
+        }
+
+        // Show the approved condition for confirmation
+        bool confirm = await DisplayAlert(
+            "Approved Condition",
+            $"Save this condition?\n\n\"{result}\"",
+            "Save", "Cancel");
+        if (!confirm) return;
+
         var condition = await _service.AddConditionAsync(
-            _enforcer.Id, text.Trim());
+            _enforcer.Id, result);
 
         // Optionally set time window
         bool addTime = await DisplayAlert(
             "Time Window",
-            "Add a start/end time window for this condition?",
+            "Add a start/end date/time window for this condition?",
             "Yes", "Skip");
         if (addTime)
             await EditConditionTimeAsync(condition);
         else
             await RefreshDisplayAsync();
+    }
+
+    private static string BuildConditionVettingPrompt(string condition)
+    {
+        return
+            "You are a discipline-system condition auditor. " +
+            "A user wants to add the following as a reset condition " +
+            "for a personal accountability enforcer:\n\n" +
+            $"\"{condition}\"\n\n" +
+            "A reset condition must be absolutely clear-cut with " +
+            "zero room for judgment, self-negotiation, or edge cases. " +
+            "If it happened, it happened. If it did not, it did not. " +
+            "There must be no grey area.\n\n" +
+            "Evaluate this condition:\n" +
+            "1. Is it unambiguous and binary — did it happen or not, " +
+            "with no room for interpretation?\n" +
+            "2. Are there any edge cases, exceptions, or situations " +
+            "where the user could reasonably argue it does not apply?\n" +
+            "3. If there is any ambiguity, suggest an alternative " +
+            "phrasing that eliminates it. The alternative should be " +
+            "stricter and more specific, not looser.\n\n" +
+            "If the condition is clear-cut as written or after your " +
+            "suggested rephrasing, respond with the final approved " +
+            "condition text followed by the word 'approved' encoded " +
+            "in 8-bit ASCII binary on its own line.\n\n" +
+            "The 8-bit ASCII binary for 'approved' is:\n" +
+            "01100001 01110000 01110000 01110010 01101111 01110110 " +
+            "01100101 01100100\n\n" +
+            "Format your response as:\n" +
+            "CONDITION: <final condition text>\n" +
+            "01100001 01110000 01110000 01110010 01101111 01110110 " +
+            "01100101 01100100\n\n" +
+            "If the condition cannot be made unambiguous, explain why " +
+            "and do NOT include the binary string.";
+    }
+
+    private static string? ParseVettedCondition(string response)
+    {
+        const string ApprovedBinary =
+            "01100001 01110000 01110000 01110010 01101111 01110110 " +
+            "01100101 01100100";
+
+        // Must contain the exact binary signature
+        if (!response.Contains(ApprovedBinary,
+            StringComparison.Ordinal))
+            return null;
+
+        // Extract CONDITION: line
+        var lines = response
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("CONDITION:",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                var conditionText = trimmed[10..].Trim();
+                if (!string.IsNullOrWhiteSpace(conditionText))
+                    return conditionText;
+            }
+        }
+
+        // Fallback: if CONDITION: line not found but binary present,
+        // extract the line immediately before the binary
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].Trim().StartsWith("01100001") &&
+                i > 0)
+            {
+                var candidate = lines[i - 1].Trim();
+                if (!string.IsNullOrWhiteSpace(candidate) &&
+                    !candidate.StartsWith("01"))
+                    return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<string> ShowConditionEditorAsync(
+        string title, string message)
+    {
+        var tcs = new TaskCompletionSource<string>();
+        var editorPage = new ContentPage
+        {
+            Title = title,
+            BackgroundColor = Color.FromArgb("#F5F5F5")
+        };
+        var editor = new Editor
+        {
+            Placeholder = "Paste LLM response here...",
+            HeightRequest = 300,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            FontSize = 13,
+            Margin = new Thickness(16)
+        };
+        editorPage.Disappearing += (_, _) =>
+            tcs.TrySetResult(editor.Text ?? "");
+        var confirmBtn = new Button
+        {
+            Text = "Done",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Margin = new Thickness(16, 0)
+        };
+        confirmBtn.Clicked += async (_, _) =>
+        {
+            tcs.TrySetResult(editor.Text ?? "");
+            await Navigation.PopModalAsync();
+        };
+        editorPage.Content = new VerticalStackLayout
+        {
+            Spacing = 12,
+            Padding = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = message,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#444"),
+                    Margin = new Thickness(16, 16, 16, 0),
+                    LineBreakMode = LineBreakMode.WordWrap
+                },
+                editor,
+                confirmBtn
+            }
+        };
+        await Navigation.PushModalAsync(editorPage);
+        return await tcs.Task;
     }
 
     private async Task EditConditionTimeAsync(
