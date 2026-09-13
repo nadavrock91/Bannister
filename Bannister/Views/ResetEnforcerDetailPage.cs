@@ -10,6 +10,8 @@ public class ResetEnforcerDetailPage : ContentPage
     private ResetEnforcer _enforcer;
     private VerticalStackLayout _conditionsContainer = null!;
     private Label _resetCountLabel = null!;
+    private Image _enforcerImage = null!;
+    private bool _hasImage = false;
 
     public ResetEnforcerDetailPage(
         ResetEnforcerService service,
@@ -39,17 +41,49 @@ public class ResetEnforcerDetailPage : ContentPage
         };
 
         // Header with image
-        if (!string.IsNullOrWhiteSpace(_enforcer.ImagePath) &&
-            File.Exists(_enforcer.ImagePath))
+        _enforcerImage = new Image
         {
-            stack.Children.Add(new Image
-            {
-                Source = ImageSource.FromFile(_enforcer.ImagePath),
-                HeightRequest = 200,
-                Aspect = Aspect.AspectFit,
-                HorizontalOptions = LayoutOptions.Center
-            });
-        }
+            HeightRequest = 200,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Center,
+            IsVisible = false
+        };
+        UpdateImageDisplay();
+        stack.Children.Add(_enforcerImage);
+
+        var changeImageBtn = new Button
+        {
+            Text = " Change Image",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            FontSize = 12,
+            HeightRequest = 36,
+            HorizontalOptions = LayoutOptions.Center,
+            Padding = new Thickness(14, 0)
+        };
+        changeImageBtn.Clicked += async (_, _) =>
+            await ChangeImageAsync();
+        stack.Children.Add(changeImageBtn);
+
+        var cycleAspectBtn = new Button
+        {
+            Text = "⟳ Cycle Image Fit",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            FontSize = 12,
+            HeightRequest = 36,
+            HorizontalOptions = LayoutOptions.Center,
+            Padding = new Thickness(14, 0)
+        };
+        cycleAspectBtn.Clicked += async (_, _) =>
+        {
+            _enforcer.ImageAspect = (_enforcer.ImageAspect + 1) % 3;
+            await _service.UpdateEnforcerAsync(_enforcer);
+            UpdateImageDisplay();
+        };
+        stack.Children.Add(cycleAspectBtn);
 
         stack.Children.Add(new Label
         {
@@ -215,5 +249,51 @@ public class ResetEnforcerDetailPage : ContentPage
         if (string.IsNullOrWhiteSpace(text)) return;
         await _service.AddConditionAsync(_enforcer.Id, text.Trim());
         await RefreshAsync();
+    }
+
+    private void UpdateImageDisplay()
+    {
+        _hasImage = !string.IsNullOrWhiteSpace(_enforcer.ImagePath) &&
+            File.Exists(_enforcer.ImagePath);
+        if (_hasImage)
+        {
+            _enforcerImage.Source =
+                ImageSource.FromFile(_enforcer.ImagePath);
+            _enforcerImage.Aspect = AspectFromInt(_enforcer.ImageAspect);
+            _enforcerImage.IsVisible = true;
+        }
+        else
+        {
+            _enforcerImage.IsVisible = false;
+        }
+    }
+
+    private static Aspect AspectFromInt(int value) => value switch
+    {
+        1 => Aspect.AspectFill,
+        2 => Aspect.Fill,
+        _ => Aspect.AspectFit
+    };
+
+    private async Task ChangeImageAsync()
+    {
+        try
+        {
+            var result = await FilePicker.PickAsync(new PickOptions
+            {
+                PickerTitle = "Select enforcer image",
+                FileTypes = FilePickerFileType.Images
+            });
+            if (result == null) return;
+
+            _enforcer.ImagePath = result.FullPath;
+            await _service.UpdateEnforcerAsync(_enforcer);
+            UpdateImageDisplay();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error",
+                $"Could not pick image: {ex.Message}", "OK");
+        }
     }
 }

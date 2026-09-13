@@ -15,6 +15,12 @@ public class ResetEnforcer
 
     public string ImagePath { get; set; } = "";
 
+    /// <summary>
+    /// Stored as int: 0=AspectFit, 1=AspectFill, 2=Fill
+    /// Default 0 (AspectFit) so full image is always visible.
+    /// </summary>
+    public int ImageAspect { get; set; } = 0;
+
     public int TotalResets { get; set; } = 0;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

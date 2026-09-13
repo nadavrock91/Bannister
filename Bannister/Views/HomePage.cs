@@ -329,7 +329,7 @@ public class HomePage : ContentPage
         _btnDesignations.Clicked += OnDesignationsClicked;
         navButtons.Add(("Designations", _btnDesignations));
 
-        _btnDiscipline = CreateButton("Discipline", Color.FromArgb("#4A148C"), Colors.White);
+        _btnDiscipline = CreateButton("Discipline");
         _btnDiscipline.Clicked += OnDisciplineClicked;
         navButtons.Add(("Discipline", _btnDiscipline));
 
@@ -511,6 +511,12 @@ public class HomePage : ContentPage
             Margin = new Thickness(0, 16, 0, 8)
         };
     }
+
+    private Button CreateButton(string text) =>
+        CreateButton(
+            text,
+            Color.FromArgb("#E8EAF6"),
+            Color.FromArgb("#283593"));
 
     private Button CreateButton(string text, Color bgColor, Color textColor, int height = 48, bool bold = true)
     {

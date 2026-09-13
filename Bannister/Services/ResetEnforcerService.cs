@@ -79,6 +79,13 @@ public class ResetEnforcerService
         await conn.UpdateAsync(enforcer);
     }
 
+    public async Task UpdateEnforcerAsync(ResetEnforcer enforcer)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(enforcer);
+    }
+
     public async Task<ResetEnforcer?> GetEnforcerAsync(int id)
     {
         await EnsureInitializedAsync();

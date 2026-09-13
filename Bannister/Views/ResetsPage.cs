@@ -112,6 +112,7 @@ public class ResetsPage : ContentPage
             RowDefinitions =
             {
                 new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto),
                 new RowDefinition(GridLength.Auto)
             },
             RowSpacing = 4
@@ -121,16 +122,36 @@ public class ResetsPage : ContentPage
         if (!string.IsNullOrWhiteSpace(enforcer.ImagePath) &&
             File.Exists(enforcer.ImagePath))
         {
-            var image = new Image
+            var cardImg = new Image
             {
                 Source = ImageSource.FromFile(enforcer.ImagePath),
                 HeightRequest = 70,
                 WidthRequest = 70,
-                Aspect = Aspect.AspectFill,
+                Aspect = AspectFromInt(enforcer.ImageAspect),
                 VerticalOptions = LayoutOptions.Center
             };
-            inner.Add(image, 0, 0);
-            Grid.SetRowSpan(image, 2);
+            inner.Add(cardImg, 0, 0);
+            Grid.SetRowSpan(cardImg, 2);
+
+            var cycleBtn = new Button
+            {
+                Text = "⟳",
+                FontSize = 10,
+                HeightRequest = 22,
+                WidthRequest = 70,
+                CornerRadius = 4,
+                Padding = 0,
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#37474F")
+            };
+            var capturedEnf = enforcer;
+            cycleBtn.Clicked += async (_, _) =>
+            {
+                capturedEnf.ImageAspect = (capturedEnf.ImageAspect + 1) % 3;
+                await _service.UpdateEnforcerAsync(capturedEnf);
+                cardImg.Aspect = AspectFromInt(capturedEnf.ImageAspect);
+            };
+            inner.Add(cycleBtn, 0, 2);
         }
         else
         {
@@ -202,6 +223,13 @@ public class ResetsPage : ContentPage
 
         return card;
     }
+
+    private static Aspect AspectFromInt(int value) => value switch
+    {
+        1 => Aspect.AspectFill,
+        2 => Aspect.Fill,
+        _ => Aspect.AspectFit
+    };
 
     private async Task AddEnforcerAsync()
     {
