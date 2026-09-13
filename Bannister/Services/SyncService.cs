@@ -612,7 +612,7 @@ public class SyncService
     /// File key: shared_manifest_{LINKCODE}.enc
     /// Downloaded by joiner to see what is being offered before accepting.
     /// </summary>
-    public async Task<bool> UploadSharedManifestAsync(
+    public async Task<string?> UploadSharedManifestAsync(
         string creatorName,
         string linkCode,
         string password,
@@ -621,6 +621,9 @@ public class SyncService
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST] Step 1: Starting for {linkCode}");
+
             var manifest = new
             {
                 CreatedBy = creatorName,
@@ -634,12 +637,27 @@ public class SyncService
                 }).ToList()
             };
 
-            var json = JsonSerializer.Serialize(manifest);
+            var json = System.Text.Json.JsonSerializer.Serialize(manifest);
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST] Step 2: Serialized {activities.Count} " +
+                $"activities, json length={json.Length}");
+
             var encrypted = SharedActivityService.Encrypt(
                 json, password, linkCode + "_manifest");
 
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST] Step 3: Encrypted, building request");
+
             var (url, headers) = await BuildRequestAsync("upload_shared");
-            if (url == null) return false;
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST] Step 4: URL={url ?? "NULL"} " +
+                $"headers={headers.Count}");
+
+            if (url == null)
+                return "URL is null — sync server not configured. " +
+                       "Go to Settings → Sync & Devices and save credentials.";
 
             using var client = new HttpClient();
             foreach (var h in headers)
@@ -647,14 +665,36 @@ public class SyncService
 
             var fileName =
                 $"shared_manifest_{linkCode.ToUpperInvariant()}.enc";
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST] Step 5: POSTing file={fileName} to {url}");
+
             using var form = new MultipartFormDataContent();
             form.Add(new StringContent(linkCode), "link_code");
             form.Add(new ByteArrayContent(encrypted), "file", fileName);
 
             var response = await client.PostAsync(url, form);
-            return response.IsSuccessStatusCode;
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST] Step 6: Status={(int)response.StatusCode} " +
+                $"{response.StatusCode}");
+
+            if (response.IsSuccessStatusCode) return null;
+
+            var errorBody = await response.Content.ReadAsStringAsync();
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST] Step 7: Error body={errorBody}");
+
+            return $"HTTP {(int)response.StatusCode}: {errorBody}";
         }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[MANIFEST] EXCEPTION: {ex.GetType().Name}: " +
+                $"{ex.Message}");
+            return $"Exception: {ex.GetType().Name}: {ex.Message}";
+        }
     }
 
     /// <summary>
