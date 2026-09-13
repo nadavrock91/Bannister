@@ -117,11 +117,12 @@ public class AllGamesTransferPage : ContentPage
                 Game = new GameExportDto { GameId = game.GameId, DisplayName = game.DisplayName },
                 AllActivities = acts.OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase).ToList()
             };
-            for (int i = 0; i < group.AllActivities.Count; i++) group.SelectedIndices.Add(i);
             _exportGroups.Add(group);
         }
         int total = _exportGroups.Sum(g => g.AllActivities.Count);
-        _exportStatusLabel.Text = $"{_exportGroups.Count} games, {total} activities — all selected by default.";
+        _exportStatusLabel.Text =
+            $"{_exportGroups.Count} games, {total} activities. " +
+            "Select what to export.";
         RenderExportGroups();
     }
 
