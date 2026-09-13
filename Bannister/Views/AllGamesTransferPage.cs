@@ -213,70 +213,126 @@ public class AllGamesTransferPage : ContentPage
         var json = await Clipboard.GetTextAsync();
         if (string.IsNullOrWhiteSpace(json))
         {
-            await DisplayAlert("Empty clipboard", "Copy exported JSON to clipboard first.", "OK");
+            await DisplayAlert("Empty clipboard",
+                "Copy exported JSON to clipboard first.", "OK");
             return;
         }
+
         List<GameExportDto> gameDtos;
         try
         {
             using var doc = JsonDocument.Parse(json);
             var gamesEl = doc.RootElement.GetProperty("Games");
-            gameDtos = JsonSerializer.Deserialize<List<GameExportDto>>(gamesEl.GetRawText(),
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+            gameDtos = JsonSerializer.Deserialize<List<GameExportDto>>(
+                gamesEl.GetRawText(),
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new();
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Parse error", $"Could not read JSON: {ex.Message}", "OK");
-            return;
-        }
-        if (gameDtos.Count == 0)
-        {
-            await DisplayAlert("Nothing found", "No games found in the JSON.", "OK");
+            await DisplayAlert("Parse error",
+                $"Could not read JSON: {ex.Message}", "OK");
             return;
         }
 
-        int imported = 0;
-        int skipped = 0;
-        bool skipAllDupes = false;
-        bool overwriteAllDupes = false;
-        foreach (var gameDto in gameDtos.OrderBy(g => g.DisplayName, StringComparer.OrdinalIgnoreCase))
+        if (gameDtos.Count == 0)
+        {
+            await DisplayAlert("Nothing found",
+                "No games found in the JSON.", "OK");
+            return;
+        }
+
+        // Get existing games to detect which need creating
+        var existingGames = await _games.GetGamesAsync(
+            _auth.CurrentUsername);
+        var existingGameIds = existingGames
+            .Select(g => g.GameId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Detect all duplicates across all games upfront
+        var allDuplicates = new List<string>();
+        foreach (var gameDto in gameDtos)
         {
             List<Activity> existing = new();
-            try { existing = await _activities.GetActivitiesAsync(_auth.CurrentUsername, gameDto.GameId); }
+            try
+            {
+                existing = await _activities.GetActivitiesAsync(
+                    _auth.CurrentUsername, gameDto.GameId);
+            }
             catch { }
-            var existingNames = existing.ToDictionary(a => a.Name.Trim(), a => a, StringComparer.OrdinalIgnoreCase);
+
+            var existingNames = existing
+                .Select(a => a.Name.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             foreach (var act in gameDto.Activities)
             {
-                bool isDupe = existingNames.ContainsKey(act.Name.Trim());
-                if (isDupe)
+                if (existingNames.Contains(act.Name.Trim()))
+                    allDuplicates.Add(
+                        $"{gameDto.DisplayName} → {act.Name}");
+            }
+        }
+
+        // Single prompt for all duplicates
+        bool skipDupes = false;
+        if (allDuplicates.Count > 0)
+        {
+            string dupeList = string.Join("\n",
+                allDuplicates.Select(d => $"• {d}"));
+            string choice = await DisplayActionSheet(
+                $"{allDuplicates.Count} duplicate " +
+                $"{(allDuplicates.Count == 1 ? "activity" : "activities")} " +
+                $"found:\n{dupeList}",
+                null, null,
+                "Skip all duplicates",
+                "Import all anyway (keep both)");
+            skipDupes = choice == "Skip all duplicates";
+        }
+
+        int gamesCreated = 0;
+        int imported = 0;
+        int skipped = 0;
+
+        foreach (var gameDto in gameDtos
+            .OrderBy(g => g.DisplayName,
+                StringComparer.OrdinalIgnoreCase))
+        {
+            // Create game if it doesn't exist
+            if (!existingGameIds.Contains(gameDto.GameId))
+            {
+                try
                 {
-                    if (skipAllDupes)
-                    {
-                        skipped++;
-                        continue;
-                    }
-                    if (!overwriteAllDupes)
-                    {
-                        string choice = await DisplayActionSheet(
-                            $"Duplicate: \"{act.Name}\" in {gameDto.DisplayName}", null, null,
-                            "Skip this one", "Skip all duplicates",
-                            "Import anyway (keep both)", "Import all duplicates (keep all)");
-                        if (choice == "Skip this one")
-                        {
-                            skipped++;
-                            continue;
-                        }
-                        else if (choice == "Skip all duplicates")
-                        {
-                            skipAllDupes = true;
-                            skipped++;
-                            continue;
-                        }
-                        else if (choice == "Import all duplicates (keep all)")
-                        {
-                            overwriteAllDupes = true;
-                        }
-                    }
+                    await _games.CreateGameAsync(
+                        _auth.CurrentUsername,
+                        gameDto.DisplayName);
+                    existingGameIds.Add(gameDto.GameId);
+                    gamesCreated++;
+                }
+                catch { }
+            }
+
+            // Get existing activity names for dupe check
+            List<Activity> existingActs = new();
+            try
+            {
+                existingActs = await _activities.GetActivitiesAsync(
+                    _auth.CurrentUsername, gameDto.GameId);
+            }
+            catch { }
+
+            var existingNames = existingActs
+                .Select(a => a.Name.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var act in gameDto.Activities)
+            {
+                bool isDupe = existingNames.Contains(act.Name.Trim());
+                if (isDupe && skipDupes)
+                {
+                    skipped++;
+                    continue;
                 }
 
                 try
@@ -296,11 +352,23 @@ public class AllGamesTransferPage : ContentPage
                     await _activities.CreateActivityAsync(newActivity);
                     imported++;
                 }
-                catch { skipped++; }
+                catch
+                {
+                    skipped++;
+                }
             }
         }
+
+        var summary = new List<string>();
+        if (gamesCreated > 0)
+            summary.Add($"{gamesCreated} game" +
+                $"{(gamesCreated == 1 ? "" : "s")} created");
+        summary.Add($"{imported} activit" +
+            $"{(imported == 1 ? "y" : "ies")} imported");
+        if (skipped > 0)
+            summary.Add($"{skipped} skipped");
+
         await DisplayAlert("Import Complete",
-            $"{imported} activit{(imported == 1 ? "y" : "ies")} imported" +
-            (skipped > 0 ? $", {skipped} skipped." : "."), "OK");
+            string.Join(", ", summary) + ".", "OK");
     }
 }
