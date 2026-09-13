@@ -585,6 +585,101 @@ public class SyncService
         catch { return false; }
     }
 
+    /// <summary>
+    /// Uploads an encrypted manifest of activity names being shared.
+    /// File key: shared_manifest_{LINKCODE}.enc
+    /// Downloaded by joiner to see what is being offered before accepting.
+    /// </summary>
+    public async Task<bool> UploadSharedManifestAsync(
+        string creatorName,
+        string linkCode,
+        string password,
+        List<(string GameId, string GameName,
+            string ActivityName, int ExpGain)> activities)
+    {
+        try
+        {
+            var manifest = new
+            {
+                CreatedBy = creatorName,
+                CreatedAt = DateTime.UtcNow,
+                Activities = activities.Select(a => new
+                {
+                    a.GameId,
+                    a.GameName,
+                    a.ActivityName,
+                    a.ExpGain
+                }).ToList()
+            };
+
+            var json = JsonSerializer.Serialize(manifest);
+            var encrypted = SharedActivityService.Encrypt(
+                json, password, linkCode + "_manifest");
+
+            var (url, headers) = await BuildRequestAsync("upload_shared");
+            if (url == null) return false;
+
+            using var client = new HttpClient();
+            foreach (var h in headers)
+                client.DefaultRequestHeaders.Add(h.Key, h.Value);
+
+            var fileName =
+                $"shared_manifest_{linkCode.ToUpperInvariant()}.enc";
+            using var form = new MultipartFormDataContent();
+            form.Add(new StringContent(linkCode), "link_code");
+            form.Add(new ByteArrayContent(encrypted), "file", fileName);
+
+            var response = await client.PostAsync(url, form);
+            return response.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Downloads and decrypts the activity manifest for a link code.
+    /// Returns null if not found or decryption fails.
+    /// </summary>
+    public async Task<(string CreatedBy,
+        List<SharedManifestItem> Activities)?>
+        DownloadSharedManifestAsync(string linkCode, string password)
+    {
+        try
+        {
+            var (url, headers) = await BuildRequestAsync("download_shared");
+            if (url == null) return null;
+
+            using var client = new HttpClient();
+            foreach (var h in headers)
+                client.DefaultRequestHeaders.Add(h.Key, h.Value);
+
+            var fileName =
+                $"shared_manifest_{linkCode.ToUpperInvariant()}.enc";
+            var requestUrl =
+                $"{url}&link_code={Uri.EscapeDataString(fileName)}";
+            var response = await client.GetAsync(requestUrl);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var encrypted = await response.Content.ReadAsByteArrayAsync();
+            if (encrypted.Length < 16) return null;
+
+            var json = SharedActivityService.Decrypt(
+                encrypted, password, linkCode + "_manifest");
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var createdBy = root.GetProperty("CreatedBy").GetString() ?? "";
+            var items = JsonSerializer.Deserialize<List<SharedManifestItem>>(
+                root.GetProperty("Activities").GetRawText(),
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new();
+
+            return (createdBy, items);
+        }
+        catch { return null; }
+    }
+
     public async Task<(string UpdatedBy, DateTime UpdatedAt,
         List<SharedActivityDownloadItem> Activities,
         List<SharedExpRecordDto> ExpRecords,
@@ -679,5 +774,13 @@ public class SyncService
         public int TotalExp { get; set; }
         public int Level { get; set; }
         public DateTime LastUpdated { get; set; }
+    }
+
+    public class SharedManifestItem
+    {
+        public string GameId { get; set; } = "";
+        public string GameName { get; set; } = "";
+        public string ActivityName { get; set; } = "";
+        public int ExpGain { get; set; }
     }
 }

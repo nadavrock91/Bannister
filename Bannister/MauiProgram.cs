@@ -208,6 +208,7 @@ public static class MauiProgram
         builder.Services.AddTransient<AllGamesTransferPage>();
         builder.Services.AddTransient<SharedActivitiesPage>();
         builder.Services.AddTransient<SharedActivitySelectionPage>();
+        builder.Services.AddTransient<SharedManifestApprovalPage>();
 
 
 #if DEBUG

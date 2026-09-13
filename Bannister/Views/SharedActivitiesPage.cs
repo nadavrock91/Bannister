@@ -388,11 +388,43 @@ public class SharedActivitiesPage : ContentPage
             _activityService, _gameService, _auth, async selected =>
             {
                 if (selected.Count == 0) return;
+
+                var games = await _gameService.GetGamesAsync(
+                    _auth.CurrentUsername);
+                var gameNameMap = games.ToDictionary(
+                    g => g.GameId,
+                    g => g.DisplayName,
+                    StringComparer.OrdinalIgnoreCase);
+
+                var manifestItems = new List<(string GameId,
+                    string GameName, string ActivityName, int ExpGain)>();
+                foreach (var (gameId, actName) in selected)
+                {
+                    var acts = await _activityService.GetActivitiesAsync(
+                        _auth.CurrentUsername, gameId);
+                    var act = acts.FirstOrDefault(a => string.Equals(
+                        a.Name, actName, StringComparison.OrdinalIgnoreCase));
+                    if (act == null) continue;
+                    manifestItems.Add((gameId,
+                        gameNameMap.GetValueOrDefault(gameId, gameId),
+                        actName, act.ExpGain));
+                }
+
+                bool manifestOk = await _syncService
+                    .UploadSharedManifestAsync(_auth.CurrentUsername,
+                        linkCode, password, manifestItems);
+
                 await _sharedService.CreateLinkAsync(_auth.CurrentUsername,
                     linkCode, partnerName.Trim(), password, selected);
+
+                string manifestNote = manifestOk
+                    ? ""
+                    : "\n\n⚠️ Manifest upload failed — joiner will " +
+                      "need to know the activity list manually.";
                 await DisplayAlert("Link Created",
                     $"Share this code with {partnerName}:\n\nCODE: {linkCode}\n\n" +
-                    "They must enter this code and the same password to join.", "OK");
+                    "They must enter this code and the same " +
+                    $"password to join.{manifestNote}", "OK");
                 await RefreshLinksAsync();
             });
         await Navigation.PushAsync(selectionPage);
@@ -400,23 +432,73 @@ public class SharedActivitiesPage : ContentPage
 
     private async Task JoinShareLinkAsync()
     {
-        string? code = await DisplayPromptAsync("Link Code",
-            "Enter the link code from your partner:", "Next", "Cancel",
+        string? code = await DisplayPromptAsync(
+            "Link Code",
+            "Enter the link code from your partner:",
+            "Next", "Cancel",
             placeholder: "e.g. AB3D5F8G");
         if (string.IsNullOrWhiteSpace(code)) return;
-        string? password = await DisplayPromptAsync("Shared Password",
-            "Enter the shared password for this link:", "Join", "Cancel",
+        code = code.Trim().ToUpperInvariant();
+
+        string? password = await DisplayPromptAsync(
+            "Shared Password",
+            "Enter the shared password for this link:",
+            "Next", "Cancel",
             placeholder: "Shared password");
         if (string.IsNullOrWhiteSpace(password)) return;
-        string? partnerName = await DisplayPromptAsync("Partner Name",
-            "What is your partner's display name?", "Join", "Cancel",
+
+        string? partnerName = await DisplayPromptAsync(
+            "Partner Name",
+            "What is your partner's display name?",
+            "Next", "Cancel",
             placeholder: "e.g. Main PC");
         if (string.IsNullOrWhiteSpace(partnerName)) return;
+
+        var manifest = await _syncService
+            .DownloadSharedManifestAsync(code, password);
+
+        List<(string GameId, string ActivityName)> approved;
+        if (manifest == null)
+        {
+            bool proceed = await DisplayAlert(
+                "No Manifest Found",
+                "Could not download the activity list from the " +
+                "server. This could mean the creator hasn't pushed " +
+                "yet, or the password is wrong.\n\n" +
+                "Join anyway and pull later?",
+                "Join Anyway", "Cancel");
+            if (!proceed) return;
+            approved = new List<(string, string)>();
+        }
+        else
+        {
+            var (createdBy, items) = manifest.Value;
+            var tcs = new TaskCompletionSource<
+                List<(string GameId, string ActivityName)>>();
+            var selPage = new SharedManifestApprovalPage(
+                createdBy, items,
+                async approvedItems =>
+                {
+                    tcs.TrySetResult(approvedItems);
+                    await Task.CompletedTask;
+                });
+
+            await Navigation.PushAsync(selPage);
+            approved = await tcs.Task;
+            if (approved.Count == 0)
+            {
+                await DisplayAlert("Nothing selected",
+                    "No activities approved. Join cancelled.", "OK");
+                return;
+            }
+        }
+
         await _sharedService.CreateLinkAsync(_auth.CurrentUsername,
-            code.Trim().ToUpperInvariant(), partnerName.Trim(), password,
-            new List<(string, string)>());
+            code, partnerName.Trim(), password, approved);
         await DisplayAlert("Joined",
-            $"Link with {partnerName} saved.\n\nTap Pull to fetch their latest activities.",
+            $"Link with {partnerName} saved with {approved.Count} approved activit" +
+            $"{(approved.Count == 1 ? "y" : "ies")}.\n\n" +
+            "Tap Pull to fetch their latest data.",
             "OK");
         await RefreshLinksAsync();
     }
