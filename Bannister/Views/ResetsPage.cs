@@ -8,6 +8,8 @@ public class ResetsPage : ContentPage
     private readonly ResetEnforcerService _service;
     private readonly AuthService _auth;
     private VerticalStackLayout _cardsContainer = null!;
+    private VerticalStackLayout _archivedContainer = null!;
+    private Frame _archivedSection = null!;
 
     public ResetsPage(ResetEnforcerService service, AuthService auth)
     {
@@ -64,6 +66,64 @@ public class ResetsPage : ContentPage
         _cardsContainer = new VerticalStackLayout { Spacing = 12 };
         stack.Children.Add(_cardsContainer);
 
+        // Archived section — collapsed by default
+        _archivedContainer = new VerticalStackLayout
+        {
+            Spacing = 12,
+            IsVisible = false
+        };
+
+        var archivedHeader = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            }
+        };
+        var archivedTitle = new Label
+        {
+            Text = " Archived",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#666"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        var toggleArchivedBtn = new Button
+        {
+            Text = "▶ Show",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 6,
+            FontSize = 12,
+            HeightRequest = 32,
+            Padding = new Thickness(10, 0)
+        };
+        toggleArchivedBtn.Clicked += (_, _) =>
+        {
+            bool showing = _archivedContainer.IsVisible;
+            _archivedContainer.IsVisible = !showing;
+            toggleArchivedBtn.Text = showing ? "▶ Show" : "▼ Hide";
+        };
+        archivedHeader.Add(archivedTitle, 0, 0);
+        archivedHeader.Add(toggleArchivedBtn, 1, 0);
+
+        _archivedSection = new Frame
+        {
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            Padding = 12,
+            CornerRadius = 10,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            HasShadow = false,
+            IsVisible = false,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 8,
+                Children = { archivedHeader, _archivedContainer }
+            }
+        };
+        stack.Children.Add(_archivedSection);
+
         Content = new ScrollView { Content = stack };
     }
 
@@ -77,25 +137,44 @@ public class ResetsPage : ContentPage
         enforcers = await _service.GetEnforcersAsync(
             _auth.CurrentUsername);
         _cardsContainer.Children.Clear();
+        _archivedContainer.Children.Clear();
 
-        if (enforcers.Count == 0)
+        var active = enforcers.Where(e => !e.IsArchived).ToList();
+        var archived = enforcers.Where(e => e.IsArchived).ToList();
+
+        if (active.Count == 0)
         {
             _cardsContainer.Children.Add(new Label
             {
-                Text = "No reset enforcers yet. Tap '+ Add New Reset " +
-                       "Enforcer' to create one.",
+                Text = "No active reset enforcers. Tap " +
+                       "'+ Add New Reset Enforcer' to create one.",
                 FontSize = 13,
                 TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
             });
-            return;
+        }
+        else
+        {
+            foreach (var enforcer in active)
+                _cardsContainer.Children.Add(
+                    BuildEnforcerCard(enforcer));
         }
 
-        foreach (var enforcer in enforcers)
-            _cardsContainer.Children.Add(BuildEnforcerCard(enforcer));
+        if (archived.Count > 0)
+        {
+            foreach (var enforcer in archived)
+                _archivedContainer.Children.Add(
+                    BuildEnforcerCard(enforcer, isArchived: true));
+            _archivedSection.IsVisible = true;
+        }
+        else
+        {
+            _archivedSection.IsVisible = false;
+        }
     }
 
-    private View BuildEnforcerCard(ResetEnforcer enforcer)
+    private View BuildEnforcerCard(
+        ResetEnforcer enforcer, bool isArchived = false)
     {
         var card = new Frame
         {
@@ -223,7 +302,40 @@ public class ResetsPage : ContentPage
         inner.Add(resetBtn, 2, 0);
         Grid.SetRowSpan(resetBtn, 2);
 
-        card.Content = inner;
+        var archiveBtn = new Button
+        {
+            Text = isArchived ? "↩ Unarchive" : " Archive",
+            BackgroundColor = isArchived
+                ? Color.FromArgb("#E8F5E9")
+                : Color.FromArgb("#F5F5F5"),
+            TextColor = isArchived
+                ? Color.FromArgb("#2E7D32")
+                : Color.FromArgb("#757575"),
+            CornerRadius = 6,
+            FontSize = 11,
+            HeightRequest = 28,
+            HorizontalOptions = LayoutOptions.End,
+            Padding = new Thickness(10, 0),
+            Margin = new Thickness(0, 6, 0, 0)
+        };
+        var capturedArchived = isArchived;
+        archiveBtn.Clicked += async (_, _) =>
+        {
+            string action = capturedArchived ? "Unarchive" : "Archive";
+            bool confirm = await DisplayAlert(
+                $"{action} Enforcer",
+                $"{action} \"{enforcer.Name}\"?",
+                action, "Cancel");
+            if (!confirm) return;
+            await _service.ArchiveEnforcerAsync(
+                enforcer.Id, !capturedArchived);
+            await RefreshAsync();
+        };
+
+        var outerStack = new VerticalStackLayout { Spacing = 0 };
+        outerStack.Children.Add(inner);
+        outerStack.Children.Add(archiveBtn);
+        card.Content = outerStack;
 
         // Tap card to open detail page
         var tap = new TapGestureRecognizer();

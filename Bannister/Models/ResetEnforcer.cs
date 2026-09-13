@@ -38,6 +38,8 @@ public class ResetEnforcer
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public bool IsArchived { get; set; } = false;
+
     // Computed — not stored
     [Ignore]
     public int DaysInARow

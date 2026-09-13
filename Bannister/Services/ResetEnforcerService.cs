@@ -75,6 +75,16 @@ public class ResetEnforcerService
         await conn.UpdateAsync(enforcer);
     }
 
+    public async Task ArchiveEnforcerAsync(int id, bool archived)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var enforcer = await conn.FindAsync<ResetEnforcer>(id);
+        if (enforcer == null) return;
+        enforcer.IsArchived = archived;
+        await conn.UpdateAsync(enforcer);
+    }
+
     public async Task DeleteEnforcerAsync(int id)
     {
         await EnsureInitializedAsync();
