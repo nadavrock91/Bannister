@@ -252,12 +252,13 @@ public class ResetEnforcerDetailPage : ContentPage
             _enforcer.CurrentLevelIndex < levels.Count)
         {
             var current = levels[_enforcer.CurrentLevelIndex];
-            _levelLabel.Text = current.IsPositive
-                ? $"✅ {current.Name}"
-                : $"⚠️ {current.Name}";
-            _levelLabel.TextColor = current.IsPositive
+            _levelLabel.Text =
+                $"{current.LevelIcon} {current.LevelDisplay} — {current.Name}";
+            _levelLabel.TextColor = current.LevelNumber > 0
                 ? Color.FromArgb("#2E7D32")
-                : Color.FromArgb("#E65100");
+                : current.LevelNumber < 0
+                    ? Color.FromArgb("#E65100")
+                    : Color.FromArgb("#555");
             _levelLabel.IsVisible = true;
 
             if (!string.IsNullOrWhiteSpace(current.ImagePath) &&
@@ -295,16 +296,24 @@ public class ResetEnforcerDetailPage : ContentPage
         {
             foreach (var condition in conditions)
             {
-                var row = new Grid
+                var condGrid = new Grid
                 {
                     ColumnDefinitions =
                     {
                         new ColumnDefinition(GridLength.Star),
+                        new ColumnDefinition(new GridLength(36)),
                         new ColumnDefinition(new GridLength(36))
                     },
-                    ColumnSpacing = 8
+                    ColumnSpacing = 6,
+                    RowDefinitions =
+                    {
+                        new RowDefinition(GridLength.Auto),
+                        new RowDefinition(GridLength.Auto)
+                    },
+                    RowSpacing = 2
                 };
-                row.Add(new Label
+
+                condGrid.Add(new Label
                 {
                     Text = condition.Text,
                     FontSize = 13,
@@ -313,7 +322,39 @@ public class ResetEnforcerDetailPage : ContentPage
                     LineBreakMode = LineBreakMode.WordWrap
                 }, 0, 0);
 
-                var delBtn = new Button
+                if (condition.HasTimeWindow)
+                {
+                    var timeText = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(condition.StartDisplay))
+                        timeText.Add($"From: {condition.StartDisplay}");
+                    if (!string.IsNullOrWhiteSpace(condition.EndDisplay))
+                        timeText.Add($"To: {condition.EndDisplay}");
+                    condGrid.Add(new Label
+                    {
+                        Text = string.Join("  ", timeText),
+                        FontSize = 11,
+                        TextColor = Color.FromArgb("#5B63EE"),
+                        FontAttributes = FontAttributes.Italic
+                    }, 0, 1);
+                }
+
+                var editCondBtn = new Button
+                {
+                    Text = "✏",
+                    FontSize = 12,
+                    HeightRequest = 34,
+                    WidthRequest = 34,
+                    CornerRadius = 6,
+                    Padding = 0,
+                    BackgroundColor = Color.FromArgb("#E3F2FD"),
+                    TextColor = Color.FromArgb("#1565C0")
+                };
+                var capturedCond = condition;
+                editCondBtn.Clicked += async (_, _) =>
+                    await EditConditionTimeAsync(capturedCond);
+                condGrid.Add(editCondBtn, 1, 0);
+
+                var delCondBtn = new Button
                 {
                     Text = "✕",
                     FontSize = 13,
@@ -324,19 +365,19 @@ public class ResetEnforcerDetailPage : ContentPage
                     BackgroundColor = Color.FromArgb("#FFEBEE"),
                     TextColor = Color.FromArgb("#C62828")
                 };
-                var capturedId = condition.Id;
-                delBtn.Clicked += async (_, _) =>
+                var capturedCondId = condition.Id;
+                delCondBtn.Clicked += async (_, _) =>
                 {
                     bool confirm = await DisplayAlert(
                         "Delete Condition",
                         $"Delete \"{condition.Text}\"?",
                         "Delete", "Cancel");
                     if (!confirm) return;
-                    await _service.DeleteConditionAsync(capturedId);
+                    await _service.DeleteConditionAsync(capturedCondId);
                     await RefreshDisplayAsync();
                 };
-                row.Add(delBtn, 1, 0);
-                _conditionsContainer.Children.Add(row);
+                condGrid.Add(delCondBtn, 2, 0);
+                _conditionsContainer.Children.Add(condGrid);
             }
         }
     }
@@ -366,7 +407,7 @@ public class ResetEnforcerDetailPage : ContentPage
         }
 
         var options = levels
-            .Select(l => $"{(l.IsPositive ? "✅" : "⚠️")} {l.Name}")
+            .Select(l => $"{l.LevelIcon} {l.LevelDisplay} — {l.Name}")
             .ToArray();
 
         string? choice = await DisplayActionSheet(
@@ -389,8 +430,80 @@ public class ResetEnforcerDetailPage : ContentPage
             "Add", "Cancel",
             placeholder: "e.g. Missed a daily commitment");
         if (string.IsNullOrWhiteSpace(text)) return;
-        await _service.AddConditionAsync(_enforcer.Id, text.Trim());
+
+        var condition = await _service.AddConditionAsync(
+            _enforcer.Id, text.Trim());
+
+        // Optionally set time window
+        bool addTime = await DisplayAlert(
+            "Time Window",
+            "Add a start/end time window for this condition?",
+            "Yes", "Skip");
+        if (addTime)
+            await EditConditionTimeAsync(condition);
+        else
+            await RefreshDisplayAsync();
+    }
+
+    private async Task EditConditionTimeAsync(
+        ResetCondition condition)
+    {
+        // Start day
+        string? startDayChoice = await DisplayActionSheet(
+            "Start Day", "Any Day", null,
+            "Sunday","Monday","Tuesday","Wednesday",
+            "Thursday","Friday","Saturday");
+        condition.StartDay = startDayChoice switch
+        {
+            "Sunday" => 0, "Monday" => 1, "Tuesday" => 2,
+            "Wednesday" => 3, "Thursday" => 4,
+            "Friday" => 5, "Saturday" => 6,
+            _ => -1
+        };
+
+        // Start time
+        string? startTimeInput = await DisplayPromptAsync(
+            "Start Time",
+            "Enter start time (HH:MM, 24h). Leave blank to skip.",
+            "Set", "Skip",
+            placeholder: "e.g. 09:00");
+        condition.StartTime = ParseTimeToMinutes(startTimeInput);
+
+        // End day
+        string? endDayChoice = await DisplayActionSheet(
+            "End Day", "Any Day", null,
+            "Sunday","Monday","Tuesday","Wednesday",
+            "Thursday","Friday","Saturday");
+        condition.EndDay = endDayChoice switch
+        {
+            "Sunday" => 0, "Monday" => 1, "Tuesday" => 2,
+            "Wednesday" => 3, "Thursday" => 4,
+            "Friday" => 5, "Saturday" => 6,
+            _ => -1
+        };
+
+        // End time
+        string? endTimeInput = await DisplayPromptAsync(
+            "End Time",
+            "Enter end time (HH:MM, 24h). Leave blank to skip.",
+            "Set", "Skip",
+            placeholder: "e.g. 17:00");
+        condition.EndTime = ParseTimeToMinutes(endTimeInput);
+
+        await _service.UpdateConditionAsync(condition);
         await RefreshDisplayAsync();
+    }
+
+    private static int ParseTimeToMinutes(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return -1;
+        var parts = input.Trim().Split(':');
+        if (parts.Length == 2 &&
+            int.TryParse(parts[0], out int h) &&
+            int.TryParse(parts[1], out int m) &&
+            h >= 0 && h <= 23 && m >= 0 && m <= 59)
+            return h * 60 + m;
+        return -1;
     }
 
     private void UpdateImageDisplay()

@@ -16,27 +16,29 @@ public class EnforcerLevel
     public string ImagePath { get; set; } = "";
 
     /// <summary>
-    /// Positive = achievement level, Negative = failure/penalty level.
+    /// Signed level number. Positive = achievement (+1, +2...),
+    /// Negative = penalty (-1, -2...). 0 = neutral/base.
     /// </summary>
-    public bool IsPositive { get; set; } = true;
+    public int LevelNumber { get; set; } = 1;
 
     /// <summary>
     /// Display order within the enforcer's level list.
     /// </summary>
     public int SortOrder { get; set; } = 0;
 
-    // Auto level-up triggers — any set to -1 means not used
-    /// <summary>
-    /// Auto-advance to this level when DaysInARow reaches this value.
-    /// -1 = not used.
-    /// </summary>
     public int TriggerDays { get; set; } = -1;
-
-    /// <summary>
-    /// Auto-advance to this level when TotalResets reaches this value.
-    /// -1 = not used.
-    /// </summary>
     public int TriggerResets { get; set; } = -1;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [Ignore]
+    public string LevelDisplay =>
+        LevelNumber > 0 ? $"Level +{LevelNumber}" :
+        LevelNumber < 0 ? $"Level {LevelNumber}" :
+        "Level 0";
+
+    [Ignore]
+    public string LevelIcon =>
+        LevelNumber > 0 ? "✅" :
+        LevelNumber < 0 ? "⚠️" : "➖";
 }

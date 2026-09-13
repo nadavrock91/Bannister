@@ -87,14 +87,18 @@ public class EnforcerLevelsPage : ContentPage
     {
         var card = new Frame
         {
-            BackgroundColor = level.IsPositive
+            BackgroundColor = level.LevelNumber > 0
                 ? Color.FromArgb("#F1F8E9")
-                : Color.FromArgb("#FFF3E0"),
+                : level.LevelNumber < 0
+                    ? Color.FromArgb("#FFF3E0")
+                    : Color.FromArgb("#F5F5F5"),
             Padding = 12,
             CornerRadius = 10,
-            BorderColor = level.IsPositive
+            BorderColor = level.LevelNumber > 0
                 ? Color.FromArgb("#A5D6A7")
-                : Color.FromArgb("#FFCC80"),
+                : level.LevelNumber < 0
+                    ? Color.FromArgb("#FFCC80")
+                    : Color.FromArgb("#E0E0E0"),
             HasShadow = false
         };
 
@@ -104,7 +108,7 @@ public class EnforcerLevelsPage : ContentPage
         var headerRow = new HorizontalStackLayout { Spacing = 8 };
         headerRow.Children.Add(new Label
         {
-            Text = level.IsPositive ? "✅" : "⚠️",
+            Text = level.LevelIcon,
             FontSize = 16,
             VerticalOptions = LayoutOptions.Center
         });
@@ -114,6 +118,17 @@ public class EnforcerLevelsPage : ContentPage
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#222"),
+            VerticalOptions = LayoutOptions.Center
+        });
+        headerRow.Children.Add(new Label
+        {
+            Text = level.LevelDisplay,
+            FontSize = 12,
+            TextColor = level.LevelNumber > 0
+                ? Color.FromArgb("#2E7D32")
+                : level.LevelNumber < 0
+                    ? Color.FromArgb("#E65100")
+                    : Color.FromArgb("#555"),
             VerticalOptions = LayoutOptions.Center
         });
         inner.Children.Add(headerRow);
@@ -210,12 +225,16 @@ public class EnforcerLevelsPage : ContentPage
             placeholder: "e.g. Knight, Fallen");
         if (string.IsNullOrWhiteSpace(name)) return;
 
-        string typeChoice = await DisplayActionSheet(
-            "Level Type", "Cancel", null,
-            "✅ Positive (achievement)",
-            "⚠️ Negative (penalty)");
-        if (typeChoice == "Cancel" || typeChoice == null) return;
-        bool isPositive = typeChoice.Contains("Positive");
+        string? levelNumInput = await DisplayPromptAsync(
+            "Level Number",
+            "Enter a level number. Positive = achievement (+1, +2...), " +
+            "Negative = penalty (-1, -2...). 0 = neutral.",
+            "Set", "Cancel",
+            initialValue: "1",
+            keyboard: Keyboard.Numeric);
+        if (string.IsNullOrWhiteSpace(levelNumInput)) return;
+        if (!int.TryParse(levelNumInput.Trim(), out int levelNumber))
+            levelNumber = 1;
 
         string imagePath = "";
         bool pickImg = await DisplayAlert(
@@ -262,7 +281,7 @@ public class EnforcerLevelsPage : ContentPage
 
         await _service.AddLevelAsync(
             _enforcer.Id, name.Trim(), imagePath,
-            isPositive, triggerDays, triggerResets);
+            levelNumber, triggerDays, triggerResets);
         await RefreshAsync();
     }
 
@@ -274,6 +293,16 @@ public class EnforcerLevelsPage : ContentPage
             initialValue: level.Name);
         if (!string.IsNullOrWhiteSpace(name))
             level.Name = name.Trim();
+
+        string? levelNumInput = await DisplayPromptAsync(
+            "Level Number",
+            "Level number (positive=achievement, negative=penalty):",
+            "Set", "Skip",
+            initialValue: level.LevelNumber.ToString(),
+            keyboard: Keyboard.Numeric);
+        if (!string.IsNullOrWhiteSpace(levelNumInput) &&
+            int.TryParse(levelNumInput.Trim(), out int newLevelNum))
+            level.LevelNumber = newLevelNum;
 
         string? daysInput = await DisplayPromptAsync(
             "Auto Trigger: Streak Days",

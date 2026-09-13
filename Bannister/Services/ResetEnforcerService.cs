@@ -65,6 +65,26 @@ public class ResetEnforcerService
         };
         var conn = await _db.GetConnectionAsync();
         await conn.InsertAsync(enforcer);
+
+        // Auto-create Level 1 if an image was assigned
+        if (!string.IsNullOrWhiteSpace(imagePath))
+        {
+            var level1 = new EnforcerLevel
+            {
+                ResetEnforcerId = enforcer.Id,
+                Name = "Level 1",
+                ImagePath = imagePath,
+                LevelNumber = 1,
+                SortOrder = 0,
+                TriggerDays = -1,
+                TriggerResets = -1,
+                CreatedAt = DateTime.UtcNow
+            };
+            await conn.InsertAsync(level1);
+            enforcer.CurrentLevelIndex = 0;
+            await conn.UpdateAsync(enforcer);
+        }
+
         return enforcer;
     }
 
@@ -195,6 +215,13 @@ public class ResetEnforcerService
         return condition;
     }
 
+    public async Task UpdateConditionAsync(ResetCondition condition)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(condition);
+    }
+
     public async Task DeleteConditionAsync(int id)
     {
         await EnsureInitializedAsync();
@@ -221,7 +248,7 @@ public class ResetEnforcerService
 
     public async Task<EnforcerLevel> AddLevelAsync(
         int enforcerId, string name, string imagePath,
-        bool isPositive, int triggerDays, int triggerResets)
+        int levelNumber, int triggerDays, int triggerResets)
     {
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
@@ -231,7 +258,7 @@ public class ResetEnforcerService
             ResetEnforcerId = enforcerId,
             Name = name.Trim(),
             ImagePath = imagePath,
-            IsPositive = isPositive,
+            LevelNumber = levelNumber,
             SortOrder = existing.Count,
             TriggerDays = triggerDays,
             TriggerResets = triggerResets,
