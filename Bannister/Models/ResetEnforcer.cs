@@ -15,13 +15,39 @@ public class ResetEnforcer
 
     public string ImagePath { get; set; } = "";
 
-    /// <summary>
-    /// Stored as int: 0=AspectFit, 1=AspectFill, 2=Fill
-    /// Default 0 (AspectFit) so full image is always visible.
-    /// </summary>
     public int ImageAspect { get; set; } = 0;
 
     public int TotalResets { get; set; } = 0;
 
+    /// <summary>
+    /// Date of the last reset press. Null = never reset.
+    /// </summary>
+    public DateTime? LastResetDate { get; set; }
+
+    /// <summary>
+    /// Date the current streak started (day after last reset,
+    /// or CreatedAt if never reset).
+    /// </summary>
+    public DateTime StreakStartDate { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Current level index into the enforcer's EnforcerLevel list.
+    /// 0 = first level. -1 = no levels defined.
+    /// </summary>
+    public int CurrentLevelIndex { get; set; } = -1;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Computed — not stored
+    [Ignore]
+    public int DaysInARow
+    {
+        get
+        {
+            var start = StreakStartDate.Date;
+            var today = DateTime.UtcNow.Date;
+            var days = (today - start).Days;
+            return Math.Max(0, days);
+        }
+    }
 }

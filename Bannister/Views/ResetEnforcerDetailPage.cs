@@ -8,10 +8,13 @@ public class ResetEnforcerDetailPage : ContentPage
     private readonly ResetEnforcerService _service;
     private readonly AuthService _auth;
     private ResetEnforcer _enforcer;
-    private VerticalStackLayout _conditionsContainer = null!;
-    private Label _resetCountLabel = null!;
+
     private Image _enforcerImage = null!;
-    private bool _hasImage = false;
+    private Label _resetCountLabel = null!;
+    private Label _streakLabel = null!;
+    private Label _levelLabel = null!;
+    private Image _levelImage = null!;
+    private VerticalStackLayout _conditionsContainer = null!;
 
     public ResetEnforcerDetailPage(
         ResetEnforcerService service,
@@ -29,7 +32,11 @@ public class ResetEnforcerDetailPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await RefreshAsync();
+        // Check auto level on every visit
+        await _service.CheckAutoLevelAsync(_enforcer);
+        var updated = await _service.GetEnforcerAsync(_enforcer.Id);
+        if (updated != null) _enforcer = updated;
+        await RefreshDisplayAsync();
     }
 
     private void BuildUI()
@@ -37,20 +44,24 @@ public class ResetEnforcerDetailPage : ContentPage
         var stack = new VerticalStackLayout
         {
             Padding = 20,
-            Spacing = 16
+            Spacing = 14
         };
 
-        // Header with image
+        // Enforcer image
         _enforcerImage = new Image
         {
             HeightRequest = 200,
-            Aspect = Aspect.AspectFit,
-            HorizontalOptions = LayoutOptions.Center,
+            Aspect = AspectFromInt(_enforcer.ImageAspect),
+            HorizontalOptions = LayoutOptions.Fill,
             IsVisible = false
         };
-        UpdateImageDisplay();
         stack.Children.Add(_enforcerImage);
 
+        var imgBtnRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.Center
+        };
         var changeImageBtn = new Button
         {
             Text = " Change Image",
@@ -59,23 +70,21 @@ public class ResetEnforcerDetailPage : ContentPage
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 36,
-            HorizontalOptions = LayoutOptions.Center,
             Padding = new Thickness(14, 0)
         };
         changeImageBtn.Clicked += async (_, _) =>
             await ChangeImageAsync();
-        stack.Children.Add(changeImageBtn);
+        imgBtnRow.Children.Add(changeImageBtn);
 
         var cycleAspectBtn = new Button
         {
-            Text = "⟳ Cycle Image Fit",
+            Text = "⟳ Fit",
             BackgroundColor = Color.FromArgb("#ECEFF1"),
             TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 36,
-            HorizontalOptions = LayoutOptions.Center,
-            Padding = new Thickness(14, 0)
+            Padding = new Thickness(10, 0)
         };
         cycleAspectBtn.Clicked += async (_, _) =>
         {
@@ -83,8 +92,10 @@ public class ResetEnforcerDetailPage : ContentPage
             await _service.UpdateEnforcerAsync(_enforcer);
             UpdateImageDisplay();
         };
-        stack.Children.Add(cycleAspectBtn);
+        imgBtnRow.Children.Add(cycleAspectBtn);
+        stack.Children.Add(imgBtnRow);
 
+        // Name
         stack.Children.Add(new Label
         {
             Text = _enforcer.Name,
@@ -94,16 +105,46 @@ public class ResetEnforcerDetailPage : ContentPage
             HorizontalOptions = LayoutOptions.Center
         });
 
-        // Reset count
+        // Stats
+        _streakLabel = new Label
+        {
+            Text = $" {_enforcer.DaysInARow} days in a row",
+            FontSize = 16,
+            TextColor = Color.FromArgb("#2E7D32"),
+            FontAttributes = FontAttributes.Bold,
+            HorizontalOptions = LayoutOptions.Center
+        };
+        stack.Children.Add(_streakLabel);
+
         _resetCountLabel = new Label
         {
             Text = $"Total Resets: {_enforcer.TotalResets}",
-            FontSize = 16,
+            FontSize = 14,
             TextColor = Color.FromArgb("#C62828"),
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
         };
         stack.Children.Add(_resetCountLabel);
+
+        // Current level display
+        _levelImage = new Image
+        {
+            HeightRequest = 100,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Center,
+            IsVisible = false
+        };
+        stack.Children.Add(_levelImage);
+
+        _levelLabel = new Label
+        {
+            Text = "",
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            HorizontalOptions = LayoutOptions.Center,
+            IsVisible = false
+        };
+        stack.Children.Add(_levelLabel);
 
         // Reset button
         var resetBtn = new Button
@@ -118,6 +159,46 @@ public class ResetEnforcerDetailPage : ContentPage
         };
         resetBtn.Clicked += async (_, _) => await DoResetAsync();
         stack.Children.Add(resetBtn);
+
+        // Action buttons row
+        var actionRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        var levelsBtn = new Button
+        {
+            Text = " Manage Levels",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 38,
+            Padding = new Thickness(12, 0)
+        };
+        levelsBtn.Clicked += async (_, _) =>
+        {
+            await Navigation.PushAsync(
+                new EnforcerLevelsPage(_service, _enforcer));
+        };
+        actionRow.Children.Add(levelsBtn);
+
+        var setLevelBtn = new Button
+        {
+            Text = "✏ Set Level",
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            TextColor = Color.FromArgb("#F57F17"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 38,
+            Padding = new Thickness(12, 0)
+        };
+        setLevelBtn.Clicked += async (_, _) =>
+            await ManualSetLevelAsync();
+        actionRow.Children.Add(setLevelBtn);
+
+        stack.Children.Add(actionRow);
 
         // Conditions section
         stack.Children.Add(new Label
@@ -154,20 +235,52 @@ public class ResetEnforcerDetailPage : ContentPage
         stack.Children.Add(addConditionBtn);
 
         Content = new ScrollView { Content = stack };
+
+        UpdateImageDisplay();
     }
 
-    private async Task RefreshAsync()
+    private async Task RefreshDisplayAsync()
     {
-        var updated = await _service.GetEnforcerAsync(_enforcer.Id);
-        if (updated != null)
+        _streakLabel.Text =
+            $" {_enforcer.DaysInARow} days in a row";
+        _resetCountLabel.Text =
+            $"Total Resets: {_enforcer.TotalResets}";
+
+        // Update level display
+        var levels = await _service.GetLevelsAsync(_enforcer.Id);
+        if (_enforcer.CurrentLevelIndex >= 0 &&
+            _enforcer.CurrentLevelIndex < levels.Count)
         {
-            _enforcer = updated;
-            _resetCountLabel.Text = $"Total Resets: {_enforcer.TotalResets}";
+            var current = levels[_enforcer.CurrentLevelIndex];
+            _levelLabel.Text = current.IsPositive
+                ? $"✅ {current.Name}"
+                : $"⚠️ {current.Name}";
+            _levelLabel.TextColor = current.IsPositive
+                ? Color.FromArgb("#2E7D32")
+                : Color.FromArgb("#E65100");
+            _levelLabel.IsVisible = true;
+
+            if (!string.IsNullOrWhiteSpace(current.ImagePath) &&
+                File.Exists(current.ImagePath))
+            {
+                _levelImage.Source =
+                    ImageSource.FromFile(current.ImagePath);
+                _levelImage.IsVisible = true;
+            }
+            else
+            {
+                _levelImage.IsVisible = false;
+            }
+        }
+        else
+        {
+            _levelLabel.IsVisible = false;
+            _levelImage.IsVisible = false;
         }
 
+        // Refresh conditions
         var conditions = await _service.GetConditionsAsync(_enforcer.Id);
         _conditionsContainer.Children.Clear();
-
         if (conditions.Count == 0)
         {
             _conditionsContainer.Children.Add(new Label
@@ -177,54 +290,54 @@ public class ResetEnforcerDetailPage : ContentPage
                 TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
             });
-            return;
         }
-
-        foreach (var condition in conditions)
+        else
         {
-            var row = new Grid
+            foreach (var condition in conditions)
             {
-                ColumnDefinitions =
+                var row = new Grid
                 {
-                    new ColumnDefinition(GridLength.Star),
-                    new ColumnDefinition(new GridLength(36))
-                },
-                ColumnSpacing = 8
-            };
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition(GridLength.Star),
+                        new ColumnDefinition(new GridLength(36))
+                    },
+                    ColumnSpacing = 8
+                };
+                row.Add(new Label
+                {
+                    Text = condition.Text,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#222"),
+                    VerticalOptions = LayoutOptions.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
+                }, 0, 0);
 
-            row.Add(new Label
-            {
-                Text = condition.Text,
-                FontSize = 13,
-                TextColor = Color.FromArgb("#222"),
-                VerticalOptions = LayoutOptions.Center,
-                LineBreakMode = LineBreakMode.WordWrap
-            }, 0, 0);
-
-            var delBtn = new Button
-            {
-                Text = "✕",
-                FontSize = 13,
-                HeightRequest = 34,
-                WidthRequest = 34,
-                CornerRadius = 6,
-                Padding = 0,
-                BackgroundColor = Color.FromArgb("#FFEBEE"),
-                TextColor = Color.FromArgb("#C62828")
-            };
-            var capturedId = condition.Id;
-            delBtn.Clicked += async (_, _) =>
-            {
-                bool confirm = await DisplayAlert(
-                    "Delete Condition",
-                    $"Delete \"{condition.Text}\"?",
-                    "Delete", "Cancel");
-                if (!confirm) return;
-                await _service.DeleteConditionAsync(capturedId);
-                await RefreshAsync();
-            };
-            row.Add(delBtn, 1, 0);
-            _conditionsContainer.Children.Add(row);
+                var delBtn = new Button
+                {
+                    Text = "✕",
+                    FontSize = 13,
+                    HeightRequest = 34,
+                    WidthRequest = 34,
+                    CornerRadius = 6,
+                    Padding = 0,
+                    BackgroundColor = Color.FromArgb("#FFEBEE"),
+                    TextColor = Color.FromArgb("#C62828")
+                };
+                var capturedId = condition.Id;
+                delBtn.Clicked += async (_, _) =>
+                {
+                    bool confirm = await DisplayAlert(
+                        "Delete Condition",
+                        $"Delete \"{condition.Text}\"?",
+                        "Delete", "Cancel");
+                    if (!confirm) return;
+                    await _service.DeleteConditionAsync(capturedId);
+                    await RefreshDisplayAsync();
+                };
+                row.Add(delBtn, 1, 0);
+                _conditionsContainer.Children.Add(row);
+            }
         }
     }
 
@@ -232,11 +345,40 @@ public class ResetEnforcerDetailPage : ContentPage
     {
         bool confirm = await DisplayAlert(
             "Confirm Reset",
-            $"Increment reset count for \"{_enforcer.Name}\"?",
+            $"Reset \"{_enforcer.Name}\"? " +
+            "This will increment the reset count and reset the streak.",
             "Reset", "Cancel");
         if (!confirm) return;
         await _service.IncrementResetAsync(_enforcer.Id);
-        await RefreshAsync();
+        var updated = await _service.GetEnforcerAsync(_enforcer.Id);
+        if (updated != null) _enforcer = updated;
+        await RefreshDisplayAsync();
+    }
+
+    private async Task ManualSetLevelAsync()
+    {
+        var levels = await _service.GetLevelsAsync(_enforcer.Id);
+        if (levels.Count == 0)
+        {
+            await DisplayAlert("No Levels",
+                "Add levels first via Manage Levels.", "OK");
+            return;
+        }
+
+        var options = levels
+            .Select(l => $"{(l.IsPositive ? "✅" : "⚠️")} {l.Name}")
+            .ToArray();
+
+        string? choice = await DisplayActionSheet(
+            "Set Current Level", "Cancel", null, options);
+        if (choice == null || choice == "Cancel") return;
+
+        int idx = Array.IndexOf(options, choice);
+        if (idx < 0) return;
+
+        _enforcer.CurrentLevelIndex = idx;
+        await _service.UpdateEnforcerAsync(_enforcer);
+        await RefreshDisplayAsync();
     }
 
     private async Task AddConditionAsync()
@@ -248,18 +390,18 @@ public class ResetEnforcerDetailPage : ContentPage
             placeholder: "e.g. Missed a daily commitment");
         if (string.IsNullOrWhiteSpace(text)) return;
         await _service.AddConditionAsync(_enforcer.Id, text.Trim());
-        await RefreshAsync();
+        await RefreshDisplayAsync();
     }
 
     private void UpdateImageDisplay()
     {
-        _hasImage = !string.IsNullOrWhiteSpace(_enforcer.ImagePath) &&
-            File.Exists(_enforcer.ImagePath);
-        if (_hasImage)
+        if (!string.IsNullOrWhiteSpace(_enforcer.ImagePath) &&
+            File.Exists(_enforcer.ImagePath))
         {
             _enforcerImage.Source =
                 ImageSource.FromFile(_enforcer.ImagePath);
-            _enforcerImage.Aspect = AspectFromInt(_enforcer.ImageAspect);
+            _enforcerImage.Aspect =
+                AspectFromInt(_enforcer.ImageAspect);
             _enforcerImage.IsVisible = true;
         }
         else
@@ -267,13 +409,6 @@ public class ResetEnforcerDetailPage : ContentPage
             _enforcerImage.IsVisible = false;
         }
     }
-
-    private static Aspect AspectFromInt(int value) => value switch
-    {
-        1 => Aspect.AspectFill,
-        2 => Aspect.Fill,
-        _ => Aspect.AspectFit
-    };
 
     private async Task ChangeImageAsync()
     {
@@ -285,7 +420,6 @@ public class ResetEnforcerDetailPage : ContentPage
                 FileTypes = FilePickerFileType.Images
             });
             if (result == null) return;
-
             _enforcer.ImagePath = result.FullPath;
             await _service.UpdateEnforcerAsync(_enforcer);
             UpdateImageDisplay();
@@ -296,4 +430,11 @@ public class ResetEnforcerDetailPage : ContentPage
                 $"Could not pick image: {ex.Message}", "OK");
         }
     }
+
+    private static Aspect AspectFromInt(int value) => value switch
+    {
+        1 => Aspect.AspectFill,
+        2 => Aspect.Fill,
+        _ => Aspect.AspectFit
+    };
 }

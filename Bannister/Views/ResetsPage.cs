@@ -71,6 +71,11 @@ public class ResetsPage : ContentPage
     {
         var enforcers = await _service.GetEnforcersAsync(
             _auth.CurrentUsername);
+        foreach (var e in enforcers)
+            await _service.CheckAutoLevelAsync(e);
+        // Reload after potential level updates
+        enforcers = await _service.GetEnforcersAsync(
+            _auth.CurrentUsername);
         _cardsContainer.Children.Clear();
 
         if (enforcers.Count == 0)
@@ -183,6 +188,15 @@ public class ResetsPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Start
         }, 1, 1);
+
+        inner.Add(new Label
+        {
+            Text = $" {enforcer.DaysInARow}d streak",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#2E7D32"),
+            FontAttributes = FontAttributes.Bold,
+            VerticalOptions = LayoutOptions.Start
+        }, 1, 2);
 
         // Reset button
         var resetBtn = new Button

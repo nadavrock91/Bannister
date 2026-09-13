@@ -202,6 +202,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ConsequencesHubPage>();
         builder.Services.AddTransient<ResetsPage>();
         builder.Services.AddTransient<ResetEnforcerDetailPage>();
+        builder.Services.AddTransient<EnforcerLevelsPage>();
 
 
 #if DEBUG
