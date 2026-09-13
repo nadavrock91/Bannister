@@ -493,10 +493,50 @@ public class SyncService
         string uploaderName,
         SharedActivityLink link,
         List<Activity> activities,
-        string password)
+        string password,
+        ExpService expService)
     {
         try
         {
+            // Collect EXP history per shared activity.
+            var conn = await _db.GetConnectionAsync();
+            var activityKeys = activities
+                .Select(a => (a.Game, a.Name))
+                .ToHashSet();
+            var allExpLogs = await conn.Table<ExpLog>()
+                .Where(r => r.Username == uploaderName)
+                .ToListAsync();
+            var expRecords = allExpLogs
+                .Where(r => activityKeys.Contains((r.Game, r.ActivityName)))
+                .Select(r => new
+                {
+                    GameId = r.Game,
+                    r.ActivityName,
+                    ExpGained = r.DeltaExp,
+                    Timestamp = r.LoggedAt,
+                    Note = ""
+                })
+                .ToList();
+
+            // Current EXP state per shared game. Level is derived from TotalExp.
+            var expStates = new List<object>();
+            foreach (var gameId in activities.Select(a => a.Game).Distinct())
+            {
+                var state = await conn.Table<ExpState>()
+                    .Where(s => s.Username == uploaderName && s.Game == gameId)
+                    .FirstOrDefaultAsync();
+                if (state == null) continue;
+                var (level, _, _) = await expService.GetProgressAsync(
+                    uploaderName, gameId);
+                expStates.Add(new
+                {
+                    GameId = state.Game,
+                    state.TotalExp,
+                    Level = level,
+                    LastUpdated = state.UpdatedAt
+                });
+            }
+
             var payload = new
             {
                 UpdatedBy = uploaderName,
@@ -518,7 +558,9 @@ public class SyncService
                     a.HabitStreak,
                     a.TimesCompleted,
                     a.MeaningfulUntilLevel
-                }).ToList()
+                }).ToList(),
+                ExpRecords = expRecords,
+                ExpStates = expStates
             };
 
             var json = JsonSerializer.Serialize(payload);
@@ -544,7 +586,9 @@ public class SyncService
     }
 
     public async Task<(string UpdatedBy, DateTime UpdatedAt,
-        List<SharedActivityDownloadItem> Activities)?>
+        List<SharedActivityDownloadItem> Activities,
+        List<SharedExpRecordDto> ExpRecords,
+        List<SharedExpStateDto> ExpStates)?>
         DownloadSharedActivitiesAsync(SharedActivityLink link,
             string password)
     {
@@ -579,7 +623,24 @@ public class SyncService
                     PropertyNameCaseInsensitive = true
                 }) ?? new();
 
-            return (updatedBy, updatedAt, acts);
+            var expRecords = new List<SharedExpRecordDto>();
+            var expStates = new List<SharedExpStateDto>();
+            if (root.TryGetProperty("ExpRecords", out var expRecordsEl))
+                expRecords = JsonSerializer.Deserialize<List<SharedExpRecordDto>>(
+                    expRecordsEl.GetRawText(),
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }) ?? new();
+            if (root.TryGetProperty("ExpStates", out var expStatesEl))
+                expStates = JsonSerializer.Deserialize<List<SharedExpStateDto>>(
+                    expStatesEl.GetRawText(),
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }) ?? new();
+
+            return (updatedBy, updatedAt, acts, expRecords, expStates);
         }
         catch { return null; }
     }
@@ -601,5 +662,22 @@ public class SyncService
         public int HabitStreak { get; set; }
         public int TimesCompleted { get; set; }
         public int MeaningfulUntilLevel { get; set; } = 100;
+    }
+
+    public class SharedExpRecordDto
+    {
+        public string GameId { get; set; } = "";
+        public string ActivityName { get; set; } = "";
+        public int ExpGained { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Note { get; set; } = "";
+    }
+
+    public class SharedExpStateDto
+    {
+        public string GameId { get; set; } = "";
+        public int TotalExp { get; set; }
+        public int Level { get; set; }
+        public DateTime LastUpdated { get; set; }
     }
 }

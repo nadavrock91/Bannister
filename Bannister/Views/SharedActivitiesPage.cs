@@ -10,17 +10,22 @@ public class SharedActivitiesPage : ContentPage
     private readonly GameService _gameService;
     private readonly AuthService _auth;
     private readonly SyncService _syncService;
+    private readonly ExpService _expService;
+    private readonly DatabaseService _db;
     private VerticalStackLayout _linksContainer = null!;
 
     public SharedActivitiesPage(SharedActivityService sharedService,
         ActivityService activityService, GameService gameService,
-        AuthService auth, SyncService syncService)
+        AuthService auth, SyncService syncService,
+        ExpService expService, DatabaseService db)
     {
         _sharedService = sharedService;
         _activityService = activityService;
         _gameService = gameService;
         _auth = auth;
         _syncService = syncService;
+        _expService = expService;
+        _db = db;
         Title = "Shared Activities";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -195,7 +200,8 @@ public class SharedActivitiesPage : ContentPage
             return;
         }
         var ok = await _syncService.UploadSharedActivitiesAsync(
-            _auth.CurrentUsername, link, activitiesToPush, pwd);
+            _auth.CurrentUsername, link, activitiesToPush, pwd,
+            _expService);
         if (ok)
         {
             link.LastUploadedAt = DateTime.UtcNow;
@@ -222,7 +228,8 @@ public class SharedActivitiesPage : ContentPage
                 "No data found for this link on the server, or decryption failed.", "OK");
             return;
         }
-        var (updatedBy, updatedAt, items) = result.Value;
+        var (updatedBy, updatedAt, items, expRecords, expStates) =
+            result.Value;
         if (link.LastDownloadedAt.HasValue &&
             updatedAt <= link.LastDownloadedAt.Value)
         {
@@ -283,12 +290,80 @@ public class SharedActivitiesPage : ContentPage
             }
             catch { }
         }
+
+        // Insert EXP records not already present in the actual ExpLog table.
+        var conn = await GetDbConnectionAsync();
+        int expInserted = 0;
+        foreach (var rec in expRecords)
+        {
+            var existing = await conn.Table<ExpLog>()
+                .Where(r => r.Username == _auth.CurrentUsername &&
+                    r.Game == rec.GameId &&
+                    r.ActivityName == rec.ActivityName &&
+                    r.LoggedAt == rec.Timestamp)
+                .FirstOrDefaultAsync();
+            if (existing != null) continue;
+
+            var state = await conn.Table<ExpState>()
+                .Where(s => s.Username == _auth.CurrentUsername &&
+                    s.Game == rec.GameId)
+                .FirstOrDefaultAsync();
+            int totalBefore = state?.TotalExp ?? 0;
+            var (levelBefore, _, _) = ExpEngine.GetProgress(totalBefore);
+            var (levelAfter, _, _) = ExpEngine.GetProgress(
+                totalBefore + rec.ExpGained);
+            await conn.InsertAsync(new ExpLog
+            {
+                Username = _auth.CurrentUsername,
+                Game = rec.GameId,
+                ActivityName = rec.ActivityName,
+                DeltaExp = rec.ExpGained,
+                TotalExp = totalBefore + rec.ExpGained,
+                LevelBefore = levelBefore,
+                LevelAfter = levelAfter,
+                LoggedAt = rec.Timestamp
+            });
+            expInserted++;
+        }
+
+        // ExpState stores TotalExp; game level is derived by ExpEngine.
+        foreach (var state in expStates)
+        {
+            var localState = await conn.Table<ExpState>()
+                .Where(s => s.Username == _auth.CurrentUsername &&
+                    s.Game == state.GameId)
+                .FirstOrDefaultAsync();
+            if (localState == null)
+            {
+                await conn.InsertAsync(new ExpState
+                {
+                    Username = _auth.CurrentUsername,
+                    Game = state.GameId,
+                    TotalExp = state.TotalExp,
+                    UpdatedAt = state.LastUpdated
+                });
+            }
+            else if (state.TotalExp > localState.TotalExp)
+            {
+                localState.TotalExp = state.TotalExp;
+                localState.UpdatedAt = state.LastUpdated;
+                await conn.UpdateAsync(localState);
+            }
+        }
+
         link.LastDownloadedAt = DateTime.UtcNow;
         await _sharedService.UpdateLinkAsync(link);
         await RefreshLinksAsync();
-        await DisplayAlert("Done",
-            $"{applied} activit{(applied == 1 ? "y" : "ies")} updated.", "OK");
+        var summary = new List<string>();
+        if (applied > 0)
+            summary.Add($"{applied} activit{(applied == 1 ? "y" : "ies")} updated");
+        if (expInserted > 0)
+            summary.Add($"{expInserted} EXP records added");
+        await DisplayAlert("Done", string.Join(", ", summary) + ".", "OK");
     }
+
+    private async Task<SQLite.ISQLiteAsyncConnection> GetDbConnectionAsync() =>
+        await _db.GetConnectionAsync();
 
     private async Task CreateShareLinkAsync()
     {
