@@ -494,7 +494,8 @@ public class SyncService
         SharedActivityLink link,
         List<Activity> activities,
         string password,
-        ExpService expService)
+        ExpService expService,
+        StreakService streakService)
     {
         try
         {
@@ -537,6 +538,43 @@ public class SyncService
                 });
             }
 
+            // Collect StreakAttempts and StreakGoals per shared activity.
+            var streakAttempts = new List<object>();
+            var streakGoals = new List<object>();
+            foreach (var activity in activities)
+            {
+                var attempts = await streakService.GetStreakAttemptsAsync(
+                    uploaderName, activity.Game, activity.Id);
+                foreach (var sa in attempts)
+                    streakAttempts.Add(new
+                    {
+                        sa.ActivityId,
+                        ActivityName = activity.Name,
+                        Game = activity.Game,
+                        sa.AttemptNumber,
+                        StartDate = sa.StartedAt ?? DateTime.MinValue,
+                        EndDate = sa.EndedAt,
+                        sa.IsActive,
+                        CurrentStreak = sa.DaysAchieved,
+                        LongestStreak = sa.DaysAchieved,
+                        TotalDays = sa.DaysAchieved,
+                        Notes = ""
+                    });
+
+                var goals = await conn.Table<StreakGoal>()
+                    .Where(g => g.ActivityId == activity.Id)
+                    .ToListAsync();
+                foreach (var sg in goals)
+                    streakGoals.Add(new
+                    {
+                        sg.ActivityId,
+                        ActivityName = activity.Name,
+                        Game = activity.Game,
+                        sg.TargetDays,
+                        Notes = ""
+                    });
+            }
+
             var payload = new
             {
                 UpdatedBy = uploaderName,
@@ -560,7 +598,9 @@ public class SyncService
                     a.MeaningfulUntilLevel
                 }).ToList(),
                 ExpRecords = expRecords,
-                ExpStates = expStates
+                ExpStates = expStates,
+                StreakAttempts = streakAttempts,
+                StreakGoals = streakGoals
             };
 
             var json = JsonSerializer.Serialize(payload);
@@ -757,6 +797,8 @@ public class SyncService
         List<SharedActivityDownloadItem> Activities,
         List<SharedExpRecordDto> ExpRecords,
         List<SharedExpStateDto> ExpStates,
+        List<SharedStreakAttemptDto> StreakAttempts,
+        List<SharedStreakGoalDto> StreakGoals,
         string? Error)?>
         DownloadSharedActivitiesAsync(SharedActivityLink link,
             string password)
@@ -777,14 +819,14 @@ public class SyncService
             {
                 var errBody = await response.Content.ReadAsStringAsync();
                 return (string.Empty, DateTime.MinValue,
-                    new(), new(), new(),
+                    new(), new(), new(), new(), new(),
                     $"HTTP {(int)response.StatusCode}: {errBody}");
             }
 
             var encrypted = await response.Content.ReadAsByteArrayAsync();
             if (encrypted.Length < 16)
                 return (string.Empty, DateTime.MinValue,
-                    new(), new(), new(),
+                    new(), new(), new(), new(), new(),
                     "Downloaded file too small — may be empty or corrupt.");
 
             string json;
@@ -796,7 +838,7 @@ public class SyncService
             catch (Exception decEx)
             {
                 return (string.Empty, DateTime.MinValue,
-                    new(), new(), new(),
+                    new(), new(), new(), new(), new(),
                     $"Decryption failed: {decEx.GetType().Name}: " +
                     $"{decEx.Message}. " +
                     "Check that both sides used the exact same password.");
@@ -830,12 +872,32 @@ public class SyncService
                         PropertyNameCaseInsensitive = true
                     }) ?? new();
 
-            return (updatedBy, updatedAt, acts, expRecords, expStates, null);
+            var streakAttempts = new List<SharedStreakAttemptDto>();
+            var streakGoals = new List<SharedStreakGoalDto>();
+            if (root.TryGetProperty("StreakAttempts", out var saEl))
+                streakAttempts = JsonSerializer
+                    .Deserialize<List<SharedStreakAttemptDto>>(
+                        saEl.GetRawText(),
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }) ?? new();
+            if (root.TryGetProperty("StreakGoals", out var sgEl))
+                streakGoals = JsonSerializer
+                    .Deserialize<List<SharedStreakGoalDto>>(
+                        sgEl.GetRawText(),
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }) ?? new();
+
+            return (updatedBy, updatedAt, acts, expRecords, expStates,
+                streakAttempts, streakGoals, null);
         }
         catch (Exception ex)
         {
             return (string.Empty, DateTime.MinValue,
-                new(), new(), new(),
+                new(), new(), new(), new(), new(),
                 $"Exception: {ex.GetType().Name}: {ex.Message}");
         }
     }
@@ -866,6 +928,30 @@ public class SyncService
         public int ExpGained { get; set; }
         public DateTime Timestamp { get; set; }
         public string Note { get; set; } = "";
+    }
+
+    public class SharedStreakAttemptDto
+    {
+        public int ActivityId { get; set; }
+        public string ActivityName { get; set; } = "";
+        public string Game { get; set; } = "";
+        public int AttemptNumber { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public bool IsActive { get; set; }
+        public int CurrentStreak { get; set; }
+        public int LongestStreak { get; set; }
+        public int TotalDays { get; set; }
+        public string Notes { get; set; } = "";
+    }
+
+    public class SharedStreakGoalDto
+    {
+        public int ActivityId { get; set; }
+        public string ActivityName { get; set; } = "";
+        public string Game { get; set; } = "";
+        public int TargetDays { get; set; }
+        public string Notes { get; set; } = "";
     }
 
     public class SharedExpStateDto

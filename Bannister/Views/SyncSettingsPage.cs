@@ -19,6 +19,7 @@ public class SyncSettingsPage : ContentPage
     private readonly PendingActivityIdeaService _pendingIdeas;
     private readonly SharedActivityService _sharedActivityService;
     private readonly ExpService _expService;
+    private readonly StreakService _streakService;
 
     private RadioButton _rbMaster;
     private RadioButton _rbSecondary;
@@ -49,7 +50,8 @@ public class SyncSettingsPage : ContentPage
         GameService games,
         PendingActivityIdeaService pendingIdeas,
         SharedActivityService sharedActivityService,
-        ExpService expService)
+        ExpService expService,
+        StreakService streakService)
     {
         _deviceMode = deviceMode;
         _sync = sync;
@@ -61,6 +63,7 @@ public class SyncSettingsPage : ContentPage
         _pendingIdeas = pendingIdeas;
         _sharedActivityService = sharedActivityService;
         _expService = expService;
+        _streakService = streakService;
 
         Title = "Sync & Devices";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -343,7 +346,8 @@ public class SyncSettingsPage : ContentPage
                 _auth,
                 _sync,
                 _expService,
-                _db));
+                _db,
+                _streakService));
         stack.Children.Add(sharedBtn);
 
         _lblQueueReminder = new Label

@@ -12,6 +12,7 @@ public class SharedActivitiesPage : ContentPage
     private readonly SyncService _syncService;
     private readonly ExpService _expService;
     private readonly DatabaseService _db;
+    private readonly StreakService _streakService;
     private VerticalStackLayout _linksContainer = null!;
     private Grid _loadingOverlay = null!;
     private Label _loadingLabel = null!;
@@ -19,7 +20,8 @@ public class SharedActivitiesPage : ContentPage
     public SharedActivitiesPage(SharedActivityService sharedService,
         ActivityService activityService, GameService gameService,
         AuthService auth, SyncService syncService,
-        ExpService expService, DatabaseService db)
+        ExpService expService, DatabaseService db,
+        StreakService streakService)
     {
         _sharedService = sharedService;
         _activityService = activityService;
@@ -28,6 +30,7 @@ public class SharedActivitiesPage : ContentPage
         _syncService = syncService;
         _expService = expService;
         _db = db;
+        _streakService = streakService;
         Title = "Shared Activities";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -334,7 +337,7 @@ public class SharedActivitiesPage : ContentPage
         _loadingLabel.Text = "Uploading to server...";
         var ok = await _syncService.UploadSharedActivitiesAsync(
             _auth.CurrentUsername, link, activitiesToPush, pwd,
-            _expService);
+            _expService, _streakService);
 
         _loadingOverlay.IsVisible = false;
         if (ok)
@@ -372,7 +375,8 @@ public class SharedActivitiesPage : ContentPage
             return;
         }
         var (updatedBy, updatedAt, items, expRecords,
-            expStates, dlError) = result.Value;
+            expStates, streakAttempts, streakGoals,
+            dlError) = result.Value;
 
         if (!string.IsNullOrWhiteSpace(dlError))
         {
@@ -507,6 +511,95 @@ public class SharedActivitiesPage : ContentPage
             }
         }
 
+        // Apply StreakGoals using the actual StreakGoal table; the current
+        // StreakService has no goal CRUD methods.
+        foreach (var sg in streakGoals)
+        {
+            try
+            {
+                var localActs = await _activityService.GetActivitiesAsync(
+                    _auth.CurrentUsername, sg.Game);
+                var localAct = localActs.FirstOrDefault(a => string.Equals(
+                    a.Name, sg.ActivityName,
+                    StringComparison.OrdinalIgnoreCase));
+                if (localAct == null) continue;
+
+                var existingGoals = await conn.Table<StreakGoal>()
+                    .Where(g => g.ActivityId == localAct.Id)
+                    .ToListAsync();
+                if (existingGoals.Count == 0)
+                {
+                    await conn.InsertAsync(new StreakGoal
+                    {
+                        ActivityId = localAct.Id,
+                        TargetDays = sg.TargetDays,
+                        SetDate = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    var goal = existingGoals[0];
+                    goal.TargetDays = sg.TargetDays;
+                    await conn.UpdateAsync(goal);
+                }
+            }
+            catch { }
+        }
+
+        // Apply StreakAttempts. The service exposes reads but not general
+        // create/update operations, so persistence uses the shared DB connection.
+        int streakApplied = 0;
+        foreach (var sa in streakAttempts)
+        {
+            try
+            {
+                var localActs = await _activityService.GetActivitiesAsync(
+                    _auth.CurrentUsername, sa.Game);
+                var localAct = localActs.FirstOrDefault(a => string.Equals(
+                    a.Name, sa.ActivityName,
+                    StringComparison.OrdinalIgnoreCase));
+                if (localAct == null) continue;
+
+                var existingAttempts = await _streakService
+                    .GetStreakAttemptsAsync(_auth.CurrentUsername,
+                        sa.Game, localAct.Id);
+                var existing = existingAttempts.FirstOrDefault(
+                    a => a.AttemptNumber == sa.AttemptNumber);
+                var startedAt = sa.StartDate == DateTime.MinValue
+                    ? (DateTime?)null
+                    : sa.StartDate;
+
+                if (existing == null)
+                {
+                    await conn.InsertAsync(new StreakAttempt
+                    {
+                        Username = _auth.CurrentUsername,
+                        Game = sa.Game,
+                        ActivityId = localAct.Id,
+                        ActivityName = localAct.Name,
+                        AttemptNumber = sa.AttemptNumber,
+                        StartedAt = startedAt,
+                        EndedAt = sa.EndDate,
+                        IsActive = sa.IsActive,
+                        DaysAchieved = sa.CurrentStreak,
+                        LastUsedDate = sa.EndDate ?? startedAt,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    existing.StartedAt = startedAt;
+                    existing.EndedAt = sa.EndDate;
+                    existing.IsActive = sa.IsActive;
+                    existing.DaysAchieved = sa.CurrentStreak;
+                    existing.LastUsedDate = sa.EndDate ?? startedAt;
+                    await conn.UpdateAsync(existing);
+                }
+                streakApplied++;
+            }
+            catch { }
+        }
+
         link.LastDownloadedAt = DateTime.UtcNow;
         await _sharedService.UpdateLinkAsync(link);
         await RefreshLinksAsync();
@@ -515,6 +608,8 @@ public class SharedActivitiesPage : ContentPage
             summary.Add($"{applied} activit{(applied == 1 ? "y" : "ies")} updated");
         if (expInserted > 0)
             summary.Add($"{expInserted} EXP records added");
+        if (streakApplied > 0)
+            summary.Add($"{streakApplied} streak records synced");
         _loadingOverlay.IsVisible = false;
         await DisplayAlert("Done", string.Join(", ", summary) + ".", "OK");
     }
