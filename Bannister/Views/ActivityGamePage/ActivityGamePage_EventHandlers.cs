@@ -369,18 +369,121 @@ public partial class ActivityGamePage
     private async Task ShowContextMenu(ActivityGameViewModel activityVM)
     {
         var activity = activityVM.Activity;
-        string publicToggleOption = activity.IsPublic
+        string notesOption = !string.IsNullOrEmpty(activity.Notes)
+            ? "Edit Notes"
+            : "Add Notes";
+        string publicOpt = activity.IsPublic
             ? " Remove from Public"
             : " Mark as Public";
+
+        var options = new List<string>
+        {
+            "Edit Activity",
+            "Edit Category",
+            $"Set Multiplier (current: x{activity.Multiplier})",
+            "Applied X Times (one-time)",
+            "Update Streak Values",
+            $"Times Completed: {activity.TimesCompleted}",
+            notesOption,
+            "Duplicate as Negative",
+            "Set Manual Priority",
+            "Set Auto-Award",
+            "Move to Another Game",
+            "Assign to Grouping",
+            "Disable Activity",
+            "Remove Activity",
+            publicOpt
+        };
 
         string result = await DisplayActionSheet(
             activity.Name,
             "Cancel",
             null,
-            publicToggleOption,
-            "More Actions");
+            options.ToArray());
 
-        if (result == " Mark as Public" ||
+        if (string.IsNullOrEmpty(result) || result == "Cancel") return;
+
+        if (result == "Edit Activity")
+        {
+            var editPage = new EditActivityPage(
+                _auth, _activities, _game!.GameId, activity);
+            await Navigation.PushModalAsync(editPage);
+            await RefreshActivitiesAsync();
+        }
+        else if (result == "Edit Category")
+        {
+            await HandleEditCategory(activity, activityVM);
+        }
+        else if (result.StartsWith("Set Multiplier"))
+        {
+            var multiplierPage = new SetMultiplierPage(activity);
+            await Navigation.PushModalAsync(multiplierPage);
+            var multiplier = await multiplierPage.WaitForResultAsync();
+            if (multiplier.HasValue)
+            {
+                activity.Multiplier = multiplier.Value;
+                await _activities.UpdateActivityAsync(activity);
+                activityVM.UpdateActivity(activity);
+                await RefreshActivitiesAsync();
+            }
+        }
+        else if (result.StartsWith("Applied X Times"))
+        {
+            await HandleAppliedXTimes(
+                activity, activityVM,
+                isStreakAttempt: false, attemptVM: null);
+        }
+        else if (result == "Update Streak Values")
+        {
+            await HandleUpdateStreakValues(
+                activity, activityVM, attemptVM: null);
+        }
+        else if (result.StartsWith("Times Completed"))
+        {
+            await HandleEditTimesCompleted(activity, activityVM);
+        }
+        else if (result == "Edit Notes" || result == "Add Notes")
+        {
+            await HandleEditNotes(activity, activityVM);
+        }
+        else if (result == "Duplicate as Negative")
+        {
+            await HandleDuplicateAsNegative(activity);
+        }
+        else if (result == "Set Manual Priority")
+        {
+            await HandleSetManualPriority(activity, activityVM);
+        }
+        else if (result == "Set Auto-Award")
+        {
+            var autoAwardPage = new SetAutoAwardPage(activity);
+            await Navigation.PushModalAsync(autoAwardPage);
+            if (await autoAwardPage.WaitForResultAsync())
+            {
+                await _activities.UpdateActivityAsync(activity);
+                activityVM.UpdateActivity(activity);
+                await RefreshActivitiesAsync();
+                await DisplayAlert("Success",
+                    $"Auto-award configured for '{activity.Name}'", "OK");
+            }
+        }
+        else if (result == "Move to Another Game")
+        {
+            await HandleMoveToAnotherGame(activity);
+        }
+        else if (result == "Assign to Grouping")
+        {
+            await HandleAssignToGrouping(activity);
+        }
+        else if (result == "Disable Activity")
+        {
+            await DisableActivity(activityVM);
+        }
+        else if (result == "Remove Activity")
+        {
+            await RemoveActivity(activityVM);
+        }
+        else if (result == " Mark as Public" ||
             result == " Remove from Public")
         {
             activity.IsPublic = !activity.IsPublic;
@@ -392,11 +495,6 @@ public partial class ActivityGamePage
                     : $"\"{activity.Name}\" will be hidden in Private Mode.",
                 "OK");
             await RefreshActivitiesAsync();
-        }
-        else if (result == "More Actions")
-        {
-            await ShowUnifiedContextMenu(
-                activity, isStreakAttempt: false, attemptVM: null);
         }
     }
 
