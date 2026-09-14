@@ -303,6 +303,13 @@ public class Activity
     /// After 3 times, a black image is auto-assigned.
     /// </summary>
     public int MissingImagePromptCount { get; set; } = 0;
+
+    /// <summary>
+    /// When Private Mode is enabled, only activities with
+    /// IsPublic=true are shown. Default false = hidden in
+    /// private mode.
+    /// </summary>
+    public bool IsPublic { get; set; } = false;
     
     /// <summary>
     /// Returns true if this activity should be displayed today based on day restrictions

@@ -368,7 +368,36 @@ public partial class ActivityGamePage
     /// </summary>
     private async Task ShowContextMenu(ActivityGameViewModel activityVM)
     {
-        await ShowUnifiedContextMenu(activityVM.Activity, isStreakAttempt: false, attemptVM: null);
+        var activity = activityVM.Activity;
+        string publicToggleOption = activity.IsPublic
+            ? " Remove from Public"
+            : " Mark as Public";
+
+        string result = await DisplayActionSheet(
+            activity.Name,
+            "Cancel",
+            null,
+            publicToggleOption,
+            "More Actions");
+
+        if (result == " Mark as Public" ||
+            result == " Remove from Public")
+        {
+            activity.IsPublic = !activity.IsPublic;
+            await _activities.UpdateActivityAsync(activity);
+            await DisplayAlert(
+                activity.IsPublic ? "Marked Public" : "Marked Private",
+                activity.IsPublic
+                    ? $"\"{activity.Name}\" will show in Private Mode."
+                    : $"\"{activity.Name}\" will be hidden in Private Mode.",
+                "OK");
+            await RefreshActivitiesAsync();
+        }
+        else if (result == "More Actions")
+        {
+            await ShowUnifiedContextMenu(
+                activity, isStreakAttempt: false, attemptVM: null);
+        }
     }
 
     private async Task DisableActivity(ActivityGameViewModel activityVM)

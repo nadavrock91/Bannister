@@ -101,6 +101,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<HomePopupPreferenceService>();
         builder.Services.AddSingleton<HomeQuickAccessService>();
         builder.Services.AddSingleton<HomeButtonVisibilityService>();
+        builder.Services.AddSingleton<PrivacyModeService>();
         builder.Services.AddSingleton<ListsService>();
         builder.Services.AddSingleton<CustomGameService>();
         builder.Services.AddSingleton<OpenAIKeyService>();

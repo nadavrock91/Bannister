@@ -14,7 +14,9 @@ public class SettingsPage : ContentPage
     private readonly DatabaseService _db;
     private readonly BackupService _backup;
     private readonly HomeButtonVisibilityService _buttonVisibility;
+    private readonly PrivacyModeService _privacyMode;
     private VerticalStackLayout _pageVisibilityContainer = null!;
+    private Switch _privateModeSwitch = null!;
     private Switch _calendarBeforeGamesSwitch;
     private Label _calendarBeforeGamesStatus;
     private Switch _websiteBuilderInterruptSwitch;
@@ -29,12 +31,19 @@ public class SettingsPage : ContentPage
     private bool _loadingSettings;
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup,
-        HomeButtonVisibilityService buttonVisibility)
+        HomeButtonVisibilityService buttonVisibility,
+        PrivacyModeService? privacyMode = null)
     {
         _auth = auth;
         _db = db;
         _backup = backup;
         _buttonVisibility = buttonVisibility;
+        _privacyMode = privacyMode
+            ?? (PrivacyModeService?)Application.Current?.Handler?
+                .MauiContext?.Services.GetService(
+                    typeof(PrivacyModeService))
+            ?? throw new InvalidOperationException(
+                "PrivacyModeService is not registered.");
 
         Title = "Settings";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -46,6 +55,9 @@ public class SettingsPage : ContentPage
     {
         base.OnAppearing();
         await LoadHomeSettingsAsync();
+        bool isPrivate = await _privacyMode
+            .IsPrivateModeEnabledAsync(_auth.CurrentUsername);
+        _privateModeSwitch.IsToggled = isPrivate;
         await LoadPageVisibilitySectionAsync();
     }
 
@@ -353,6 +365,71 @@ public class SettingsPage : ContentPage
 
         securityFrame.Content = securityStack;
         mainStack.Children.Add(securityFrame);
+
+        // Private Mode section
+        var privateModeSection = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+
+        privateModeSection.Children.Add(new Label
+        {
+            Text = "Private Mode",
+            FontSize = 17,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222")
+        });
+        privateModeSection.Children.Add(new Label
+        {
+            Text = "When enabled only activities marked as Public " +
+                   "are shown. Use this for demos or screen sharing.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var privateModeRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+        privateModeRow.Add(new Label
+        {
+            Text = "Enable Private Mode",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#222"),
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+
+        _privateModeSwitch = new Switch
+        {
+            VerticalOptions = LayoutOptions.Center
+        };
+        _privateModeSwitch.Toggled += async (_, e) =>
+        {
+            await _privacyMode.SetPrivateModeAsync(
+                _auth.CurrentUsername, e.Value);
+        };
+        privateModeRow.Add(_privateModeSwitch, 1, 0);
+        privateModeSection.Children.Add(privateModeRow);
+
+        var privateModeHint = new Label
+        {
+            Text = " Private Mode is ON — only public activities visible",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#C62828"),
+            FontAttributes = FontAttributes.Bold,
+            IsVisible = false
+        };
+        _privateModeSwitch.Toggled += (_, e) =>
+            privateModeHint.IsVisible = e.Value;
+        privateModeSection.Children.Add(privateModeHint);
+        mainStack.Children.Add(privateModeSection);
 
         _pageVisibilityContainer = new VerticalStackLayout
         {

@@ -1,5 +1,6 @@
 using Bannister.Helpers;
 using Bannister.Models;
+using Bannister.Services;
 using Bannister.ViewModels;
 
 namespace Bannister.Views;
@@ -9,6 +10,8 @@ namespace Bannister.Views;
 /// </summary>
 public partial class ActivityGamePage
 {
+    private PrivacyModeService _privacyMode = null!;
+
     private async Task LoadGameAsync()
     {
         try
@@ -228,11 +231,33 @@ public partial class ActivityGamePage
 
     private async Task<List<Models.Activity>> GetCurrentActivitiesAsync()
     {
+        List<Models.Activity> activities;
         if (_isGroupingMode && _groupingService != null)
         {
-            return await _groupingService.GetActivitiesInGroupingAsync(_groupingId);
+            activities = await _groupingService
+                .GetActivitiesInGroupingAsync(_groupingId);
         }
-        return await _activities.GetActivitiesAsync(_auth.CurrentUsername, _game!.GameId);
+        else
+        {
+            activities = await _activities.GetActivitiesAsync(
+                _auth.CurrentUsername, _game!.GameId);
+        }
+
+        _privacyMode ??= (PrivacyModeService?)Application.Current?
+            .Handler?.MauiContext?.Services.GetService(
+                typeof(PrivacyModeService))
+            ?? throw new InvalidOperationException(
+                "PrivacyModeService is not registered.");
+
+        // Apply Private Mode filter.
+        bool privateMode = await _privacyMode
+            .IsPrivateModeEnabledAsync(_auth.CurrentUsername);
+        if (privateMode)
+            activities = activities
+                .Where(a => a.IsPublic)
+                .ToList();
+
+        return activities;
     }
 
     private async Task LoadCategoriesAsync()
