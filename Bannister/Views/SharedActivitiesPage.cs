@@ -188,15 +188,16 @@ public class SharedActivitiesPage : ContentPage
         };
     }
 
-    private async Task<string?> AskPasswordAsync(
-        SharedActivityLink link)
+    private async Task<string?> ShowPasswordPromptAsync(
+        string title, string message,
+        string confirmButtonText = "OK")
     {
         var tcs = new TaskCompletionSource<string?>();
 
         var entry = new Entry
         {
             IsPassword = true,
-            Placeholder = "Shared password",
+            Placeholder = "Password",
             BackgroundColor = Colors.White,
             TextColor = Color.FromArgb("#222"),
             FontSize = 14,
@@ -205,7 +206,7 @@ public class SharedActivitiesPage : ContentPage
 
         var okBtn = new Button
         {
-            Text = "OK",
+            Text = confirmButtonText,
             BackgroundColor = Color.FromArgb("#1565C0"),
             TextColor = Colors.White,
             CornerRadius = 8,
@@ -237,9 +238,11 @@ public class SharedActivitiesPage : ContentPage
         btnRow.Add(okBtn, 0, 0);
         btnRow.Add(cancelBtn, 1, 0);
 
+        bool confirmed = false;
+
         var pwdPage = new ContentPage
         {
-            Title = "Shared Password",
+            Title = title,
             BackgroundColor = Color.FromArgb("#F5F5F5"),
             Content = new VerticalStackLayout
             {
@@ -249,8 +252,7 @@ public class SharedActivitiesPage : ContentPage
                 {
                     new Label
                     {
-                        Text = $"Enter the shared password for " +
-                               $"link {link.LinkCode}:",
+                        Text = message,
                         FontSize = 14,
                         TextColor = Color.FromArgb("#444"),
                         Margin = new Thickness(16, 0),
@@ -264,6 +266,7 @@ public class SharedActivitiesPage : ContentPage
 
         okBtn.Clicked += async (_, _) =>
         {
+            confirmed = true;
             var pwd = entry.Text ?? "";
             await Navigation.PopModalAsync();
             tcs.TrySetResult(string.IsNullOrWhiteSpace(pwd)
@@ -277,10 +280,20 @@ public class SharedActivitiesPage : ContentPage
         };
 
         pwdPage.Disappearing += (_, _) =>
-            tcs.TrySetResult(null);
+        {
+            if (!confirmed) tcs.TrySetResult(null);
+        };
 
         await Navigation.PushModalAsync(pwdPage);
-        var result = await tcs.Task;
+        return await tcs.Task;
+    }
+
+    private async Task<string?> AskPasswordAsync(
+        SharedActivityLink link)
+    {
+        var result = await ShowPasswordPromptAsync(
+            "Shared Password",
+            $"Enter the shared password for link {link.LinkCode}:");
 
         if (result == null) return null;
 
@@ -503,13 +516,16 @@ public class SharedActivitiesPage : ContentPage
             "What is your partner's display name?", "Next", "Cancel",
             placeholder: "e.g. VM Demo Account");
         if (string.IsNullOrWhiteSpace(partnerName)) return;
-        string? password = await DisplayPromptAsync("Shared Password",
-            "Set a shared password. Both users must enter the same password.",
-            "Next", "Cancel", placeholder: "Choose a shared password");
+        string? password = await ShowPasswordPromptAsync(
+            "Shared Password",
+            "Set a shared password. Both users must enter the " +
+            "same password.",
+            "Next");
         if (string.IsNullOrWhiteSpace(password)) return;
-        string? confirmPwd = await DisplayPromptAsync("Confirm Password",
-            "Enter the password again:", "Next", "Cancel",
-            placeholder: "Repeat password");
+        string? confirmPwd = await ShowPasswordPromptAsync(
+            "Confirm Password",
+            "Enter the password again to confirm:",
+            "Confirm");
         if (confirmPwd != password)
         {
             await DisplayAlert("Mismatch", "Passwords do not match.", "OK");
@@ -571,11 +587,10 @@ public class SharedActivitiesPage : ContentPage
         if (string.IsNullOrWhiteSpace(code)) return;
         code = code.Trim().ToUpperInvariant();
 
-        string? password = await DisplayPromptAsync(
+        string? password = await ShowPasswordPromptAsync(
             "Shared Password",
             "Enter the shared password for this link:",
-            "Next", "Cancel",
-            placeholder: "Shared password");
+            "Join");
         if (string.IsNullOrWhiteSpace(password)) return;
 
         string? partnerName = await DisplayPromptAsync(
