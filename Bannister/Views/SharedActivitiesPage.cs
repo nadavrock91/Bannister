@@ -310,6 +310,10 @@ public class SharedActivitiesPage : ContentPage
     {
         var pwd = await AskPasswordAsync(link);
         if (pwd == null) return;
+
+        _loadingOverlay.IsVisible = true;
+        _loadingLabel.Text = "Collecting activities...";
+
         var activitiesToPush = new List<Activity>();
         foreach (var (gameId, actName) in _sharedService.GetSharedActivities(link))
         {
@@ -321,13 +325,18 @@ public class SharedActivitiesPage : ContentPage
         }
         if (activitiesToPush.Count == 0)
         {
+            _loadingOverlay.IsVisible = false;
             await DisplayAlert("Nothing to push",
                 "None of the shared activities were found locally.", "OK");
             return;
         }
+
+        _loadingLabel.Text = "Uploading to server...";
         var ok = await _syncService.UploadSharedActivitiesAsync(
             _auth.CurrentUsername, link, activitiesToPush, pwd,
             _expService);
+
+        _loadingOverlay.IsVisible = false;
         if (ok)
         {
             link.LastUploadedAt = DateTime.UtcNow;
@@ -336,11 +345,14 @@ public class SharedActivitiesPage : ContentPage
             await _sharedService.UpdateLinkAsync(link);
             await RefreshLinksAsync();
             await DisplayAlert("Pushed",
-                $"{activitiesToPush.Count} activities pushed to partner.", "OK");
+                $"{activitiesToPush.Count} activities pushed " +
+                "to partner.", "OK");
         }
         else
+        {
             await DisplayAlert("Failed",
                 "Upload failed. Check your sync server settings.", "OK");
+        }
     }
 
     private async Task PullLinkAsync(SharedActivityLink link)
