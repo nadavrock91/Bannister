@@ -188,18 +188,109 @@ public class SharedActivitiesPage : ContentPage
         };
     }
 
-    private async Task<string?> AskPasswordAsync(SharedActivityLink link)
+    private async Task<string?> AskPasswordAsync(
+        SharedActivityLink link)
     {
-        string? pwd = await DisplayPromptAsync("Shared Password",
-            $"Enter the shared password for link {link.LinkCode}:",
-            "OK", "Cancel", placeholder: "Shared password");
-        if (string.IsNullOrWhiteSpace(pwd)) return null;
-        if (!_sharedService.VerifyPassword(pwd, link.PasswordHash))
+        var tcs = new TaskCompletionSource<string?>();
+
+        var entry = new Entry
         {
-            await DisplayAlert("Wrong password", "Password does not match this link.", "OK");
+            IsPassword = true,
+            Placeholder = "Shared password",
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            FontSize = 14,
+            Margin = new Thickness(16, 8)
+        };
+
+        var okBtn = new Button
+        {
+            Text = "OK",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 14,
+            HeightRequest = 44,
+            Margin = new Thickness(16, 0, 8, 0)
+        };
+
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            FontSize = 14,
+            HeightRequest = 44,
+            Margin = new Thickness(8, 0, 16, 0)
+        };
+
+        var btnRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        btnRow.Add(okBtn, 0, 0);
+        btnRow.Add(cancelBtn, 1, 0);
+
+        var pwdPage = new ContentPage
+        {
+            Title = "Shared Password",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            Content = new VerticalStackLayout
+            {
+                Spacing = 8,
+                Padding = new Thickness(0, 20, 0, 20),
+                Children =
+                {
+                    new Label
+                    {
+                        Text = $"Enter the shared password for " +
+                               $"link {link.LinkCode}:",
+                        FontSize = 14,
+                        TextColor = Color.FromArgb("#444"),
+                        Margin = new Thickness(16, 0),
+                        LineBreakMode = LineBreakMode.WordWrap
+                    },
+                    entry,
+                    btnRow
+                }
+            }
+        };
+
+        okBtn.Clicked += async (_, _) =>
+        {
+            var pwd = entry.Text ?? "";
+            await Navigation.PopModalAsync();
+            tcs.TrySetResult(string.IsNullOrWhiteSpace(pwd)
+                ? null : pwd);
+        };
+
+        cancelBtn.Clicked += async (_, _) =>
+        {
+            await Navigation.PopModalAsync();
+            tcs.TrySetResult(null);
+        };
+
+        pwdPage.Disappearing += (_, _) =>
+            tcs.TrySetResult(null);
+
+        await Navigation.PushModalAsync(pwdPage);
+        var result = await tcs.Task;
+
+        if (result == null) return null;
+
+        if (!_sharedService.VerifyPassword(result, link.PasswordHash))
+        {
+            await DisplayAlert("Wrong password",
+                "Password does not match this link.", "OK");
             return null;
         }
-        return pwd;
+        return result;
     }
 
     private async Task PushLinkAsync(SharedActivityLink link)
