@@ -187,6 +187,9 @@ public partial class ActivityGamePage
         string notesOption = !string.IsNullOrEmpty(activity.Notes)
             ? "📝 Edit Notes"
             : "📝 Add Notes";
+        string publicOpt = activity.IsPublic
+            ? " Remove from Public"
+            : " Mark as Public";
 
         var options = new List<string>
         {
@@ -227,6 +230,7 @@ public partial class ActivityGamePage
         options.Add("📂 Assign to Grouping");
         options.Add("⏸️ Disable Activity");
         options.Add("🗑️ Remove Activity");
+        options.Add(publicOpt);
 
         string title = isStreakAttempt && attemptVM != null
             ? $"{activity.Name} - {attemptVM.Name}"
@@ -371,6 +375,19 @@ public partial class ActivityGamePage
                     await RefreshActivitiesAsync();
                 }
             }
+        }
+        else if (action == " Mark as Public" ||
+                 action == " Remove from Public")
+        {
+            activity.IsPublic = !activity.IsPublic;
+            await _activities.UpdateActivityAsync(activity);
+            await DisplayAlert(
+                activity.IsPublic ? "Marked Public" : "Marked Private",
+                activity.IsPublic
+                    ? $"\"{activity.Name}\" will show in Private Mode."
+                    : $"\"{activity.Name}\" will be hidden in Private Mode.",
+                "OK");
+            await RefreshActivitiesAsync();
         }
     }
 
