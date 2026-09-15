@@ -21,6 +21,7 @@ public class GameListViewModel
 
 public class GamesListPage : ContentPage
 {
+    private Button _privateModeToggleBtn = null!;
     private readonly AuthService _auth;
     private readonly GameService _games;
     private readonly ActivityService _activities;
@@ -66,20 +67,51 @@ public class GamesListPage : ContentPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        var headerGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+
+        var titleStack = new VerticalStackLayout { Spacing = 2 };
+        titleStack.Children.Add(new Label
         {
             Text = "Games",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             TextColor = Colors.White
         });
-
-        mainStack.Children.Add(new Label
+        titleStack.Children.Add(new Label
         {
             Text = "Select a game to play",
             TextColor = Colors.White,
             Opacity = 0.9
         });
+        headerGrid.Add(titleStack, 0, 0);
+
+        _privateModeToggleBtn = new Button
+        {
+            Text = "",
+            FontSize = 20,
+            BackgroundColor = Colors.Transparent,
+            BorderColor = Colors.White,
+            BorderWidth = 1,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            WidthRequest = 52,
+            Padding = 0,
+            VerticalOptions = LayoutOptions.Center,
+            TextColor = Colors.White
+        };
+        _privateModeToggleBtn.Clicked += async (_, _) =>
+            await TogglePrivateModeAsync();
+        headerGrid.Add(_privateModeToggleBtn, 1, 0);
+
+        mainStack.Children.Add(headerGrid);
 
         // Games grid container using FlexLayout for wrapping
         _gamesGrid = new FlexLayout
@@ -224,15 +256,35 @@ public class GamesListPage : ContentPage
 
         bool privateModeOn = _privacyMode.IsPrivateModeEnabled(
             _auth.CurrentUsername);
-        BackgroundColor = privateModeOn
-            ? Color.FromArgb("#2D2F6F")
-            : Color.FromArgb("#6B73FF");
+        UpdatePrivateModeVisuals(privateModeOn);
         
         _isNavigating = false;
         _loadingOverlay.IsVisible = false;
         
         await LoadGamesAsync();
         await LoadGroupingsAsync();
+    }
+
+    private async Task TogglePrivateModeAsync()
+    {
+        bool current = _privacyMode.IsPrivateModeEnabled(
+            _auth.CurrentUsername);
+        bool newValue = !current;
+        await _privacyMode.SetPrivateModeAsync(
+            _auth.CurrentUsername, newValue);
+        UpdatePrivateModeVisuals(newValue);
+        await LoadGamesAsync();
+    }
+
+    private void UpdatePrivateModeVisuals(bool isPrivate)
+    {
+        BackgroundColor = isPrivate
+            ? Color.FromArgb("#2D2F6F")
+            : Color.FromArgb("#6B73FF");
+        _privateModeToggleBtn.Text = isPrivate ? "" : "";
+        _privateModeToggleBtn.BorderColor = isPrivate
+            ? Color.FromArgb("#FFD700")
+            : Colors.White;
     }
 
     private async Task LoadGamesAsync()
