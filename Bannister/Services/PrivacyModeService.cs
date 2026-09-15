@@ -1,34 +1,41 @@
 namespace Bannister.Services;
 
 /// <summary>
-/// Stores per-user Private Mode state in SecureStorage.
-/// When Private Mode is on, only IsPublic=true activities show.
+/// Stores Private Mode state in Preferences — device-local,
+/// survives app reinstalls, never synced with the database.
+/// Each device keeps its own mode independently.
 /// </summary>
 public class PrivacyModeService
 {
     private const string KeyPrefix = "privacy_mode_";
 
-    public async Task<bool> IsPrivateModeEnabledAsync(
-        string username)
+    public bool IsPrivateModeEnabled(string username)
     {
         try
         {
-            var val = await SecureStorage.GetAsync(
-                KeyPrefix + username);
-            return val == "1";
+            return Preferences.Default.Get(
+                KeyPrefix + username, false);
         }
         catch { return false; }
     }
 
-    public async Task SetPrivateModeAsync(
-        string username, bool enabled)
+    public void SetPrivateMode(string username, bool enabled)
     {
         try
         {
-            await SecureStorage.SetAsync(
-                KeyPrefix + username,
-                enabled ? "1" : "0");
+            Preferences.Default.Set(
+                KeyPrefix + username, enabled);
         }
         catch { }
+    }
+
+    // Async wrappers for compatibility with existing callers
+    public Task<bool> IsPrivateModeEnabledAsync(string username)
+        => Task.FromResult(IsPrivateModeEnabled(username));
+
+    public Task SetPrivateModeAsync(string username, bool enabled)
+    {
+        SetPrivateMode(username, enabled);
+        return Task.CompletedTask;
     }
 }

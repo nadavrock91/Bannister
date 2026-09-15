@@ -257,6 +257,10 @@ public partial class ActivityGamePage
                 .Where(a => a.IsPublic)
                 .ToList();
 
+        BackgroundColor = privateMode
+            ? Color.FromArgb("#D8D8D8")
+            : Color.FromArgb("#F5F5F5");
+
         return activities;
     }
 

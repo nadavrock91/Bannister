@@ -27,6 +27,7 @@ public class GamesListPage : ContentPage
     private readonly ExpService _exp;
     private readonly DatabaseService _db;
     private readonly ActivityGroupingService _groupingService;
+    private readonly PrivacyModeService _privacyMode;
     private bool _isNavigating = false;
     
     private FlexLayout _gamesGrid;
@@ -35,7 +36,8 @@ public class GamesListPage : ContentPage
     private Button _restoreBtn;
 
     public GamesListPage(AuthService auth, GameService games, ActivityService activities, ExpService exp, DatabaseService db,
-        ActivityGroupingService groupingService)
+        ActivityGroupingService groupingService,
+        PrivacyModeService privacyMode)
     {
         _auth = auth;
         _games = games;
@@ -43,6 +45,7 @@ public class GamesListPage : ContentPage
         _exp = exp;
         _db = db;
         _groupingService = groupingService;
+        _privacyMode = privacyMode;
         
         Title = "Games";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -218,6 +221,12 @@ public class GamesListPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        bool privateModeOn = _privacyMode.IsPrivateModeEnabled(
+            _auth.CurrentUsername);
+        BackgroundColor = privateModeOn
+            ? Color.FromArgb("#2D2F6F")
+            : Color.FromArgb("#6B73FF");
         
         _isNavigating = false;
         _loadingOverlay.IsVisible = false;

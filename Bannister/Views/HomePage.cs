@@ -22,6 +22,7 @@ public class HomePage : ContentPage
     private readonly AuthService _auth;
     private readonly HomeQuickAccessService _homeQuickAccess;
     private readonly HomeButtonVisibilityService _buttonVisibility;
+    private readonly PrivacyModeService _privacyMode;
     private readonly GameService _games;
     private readonly DragonService _dragons;
     private readonly BackupService _backup;
@@ -154,7 +155,8 @@ public class HomePage : ContentPage
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
         HomePopupPreferenceService popupPreferences, HomeQuickAccessService homeQuickAccess, DeviceModeService deviceMode, EmotionService emotionService,
         StatTrackerService statTracker, ResetEnforcerService resetEnforcerService,
-        HomeButtonVisibilityService buttonVisibility)
+        HomeButtonVisibilityService buttonVisibility,
+        PrivacyModeService privacyMode)
     {
         _auth = auth;
         _games = games;
@@ -204,6 +206,7 @@ public class HomePage : ContentPage
         _popupPreferences = popupPreferences;
         _homeQuickAccess = homeQuickAccess;
         _buttonVisibility = buttonVisibility;
+        _privacyMode = privacyMode;
         _deviceMode = deviceMode;
         _emotionService = emotionService;
         _statTracker = statTracker;
@@ -934,6 +937,11 @@ public class HomePage : ContentPage
                 .GetEnabledButtonsAsync(
                     _auth.CurrentUsername,
                     AllButtonIds);
+            bool privateModeOn = _privacyMode.IsPrivateModeEnabled(
+                _auth.CurrentUsername);
+            BackgroundColor = privateModeOn
+                ? Color.FromArgb("#2D2F6F")
+                : Color.FromArgb("#6B73FF");
             RefreshButtonsLayout();
 
             await LoadDataAsync();
