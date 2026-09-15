@@ -95,7 +95,7 @@ public class GamesListPage : ContentPage
 
         _privateModeToggleBtn = new Button
         {
-            Text = " Public",
+            Text = "🌐 Public",
             FontSize = 12,
             BackgroundColor = Colors.Transparent,
             BorderColor = Colors.White,
@@ -282,7 +282,7 @@ public class GamesListPage : ContentPage
             ? Color.FromArgb("#1A1A2E")
             : Color.FromArgb("#6B73FF");
         _privateModeToggleBtn.Text = isPrivate
-            ? " Private" : " Public";
+            ? "🔒 Private" : "🌐 Public";
         _privateModeToggleBtn.TextColor = isPrivate
             ? Color.FromArgb("#FFD700")
             : Colors.White;
@@ -409,6 +409,25 @@ public class GamesListPage : ContentPage
         grid.Children.Add(menuBtn);
 
         frame.Content = grid;
+
+        bool isPrivate = _privacyMode.IsPrivateModeEnabled(
+            _auth.CurrentUsername);
+        if (isPrivate)
+        {
+            frame.BackgroundColor = Color.FromArgb("#2D2D3F");
+            frame.BorderColor = Color.FromArgb("#4A4A6A");
+            foreach (var child in grid.Children)
+            {
+                if (child is VerticalStackLayout vsl)
+                {
+                    foreach (var c in vsl.Children)
+                    {
+                        if (c is Label lbl)
+                            lbl.TextColor = Colors.White;
+                    }
+                }
+            }
+        }
 
         var tapGesture = new TapGestureRecognizer();
         tapGesture.Tapped += async (s, e) => await OnGameTapped(vm);
