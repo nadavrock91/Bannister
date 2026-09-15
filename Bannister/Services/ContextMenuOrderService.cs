@@ -10,21 +10,21 @@ public class ContextMenuOrderService
     public static readonly List<(string Key, string Label)>
         DefaultItems = new()
     {
-        ("edit_activity",       "✏️ Edit Activity"),
-        ("edit_category",       "Edit Category"),
-        ("set_multiplier",      "Set Multiplier"),
-        ("applied_x_times",     "Applied X Times (one-time)"),
-        ("update_streak",       "Update Streak Values"),
-        ("times_completed",     "Times Completed"),
-        ("notes",               " Add/Edit Notes"),
-        ("duplicate_negative",  "Duplicate as Negative"),
-        ("manual_priority",     "Set Manual Priority"),
-        ("auto_award",          "Set Auto-Award"),
-        ("move_game",           " Move to Another Game"),
-        ("assign_grouping",     " Assign to Grouping"),
-        ("disable",             "⏸️ Disable Activity"),
-        ("remove",              "️ Remove Activity"),
-        ("public_toggle",       " Mark as Public"),
+        ("add_edit_notes",     " Add/Edit Notes"),
+        ("applied_x_times",    "Applied X Times (one-time)"),
+        ("assign_grouping",    " Assign to Grouping"),
+        ("auto_award",         "Set Auto-Award"),
+        ("disable",            "⏸️ Disable Activity"),
+        ("duplicate_negative", "Duplicate as Negative"),
+        ("edit_activity",      "✏️ Edit Activity"),
+        ("edit_category",      "Edit Category"),
+        ("manual_priority",    "Set Manual Priority"),
+        ("move_game",          " Move to Another Game"),
+        ("public_toggle",      " Mark as Public"),
+        ("remove",             "️ Remove Activity"),
+        ("set_multiplier",     "Set Multiplier"),
+        ("times_completed",    "Times Completed"),
+        ("update_streak",      "Update Streak Values"),
     };
 
     public ContextMenuOrderService(DatabaseService db)

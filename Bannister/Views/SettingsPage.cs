@@ -16,7 +16,6 @@ public class SettingsPage : ContentPage
     private readonly HomeButtonVisibilityService _buttonVisibility;
     private readonly PrivacyModeService _privacyMode;
     private readonly ContextMenuOrderService _contextMenuOrder;
-    private VerticalStackLayout _pageVisibilityContainer = null!;
     private Switch _privateModeSwitch = null!;
     private Switch _calendarBeforeGamesSwitch;
     private Label _calendarBeforeGamesStatus;
@@ -66,7 +65,6 @@ public class SettingsPage : ContentPage
         bool isPrivate = await _privacyMode
             .IsPrivateModeEnabledAsync(_auth.CurrentUsername);
         _privateModeSwitch.IsToggled = isPrivate;
-        await LoadPageVisibilitySectionAsync();
     }
 
     private void BuildUI()
@@ -457,96 +455,25 @@ public class SettingsPage : ContentPage
 
         mainStack.Children.Add(privateModeSection);
 
-        _pageVisibilityContainer = new VerticalStackLayout
+        var pageVisibilityBtn = new Button
         {
-            Spacing = 4,
-            Margin = new Thickness(0, 8, 0, 0)
+            Text = " Page Visibility",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 40,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(0, 4, 0, 0)
         };
-        mainStack.Children.Add(_pageVisibilityContainer);
+        pageVisibilityBtn.Clicked += async (_, _) =>
+            await Navigation.PushAsync(
+                new PageVisibilityPage(
+                    _buttonVisibility, _auth));
+        mainStack.Children.Add(pageVisibilityBtn);
 
         scrollView.Content = mainStack;
         Content = scrollView;
-    }
-
-    private async Task LoadPageVisibilitySectionAsync()
-    {
-        // Uses HomePage.AllButtonIds — the single source of truth.
-        // If HomePage hasn't been visited yet AllButtonIds may be
-        // empty; the service handles new rows lazily so this is safe.
-        var allIds = HomePage.AllButtonIds;
-        if (allIds.Count == 0) return;
-
-        _pageVisibilityContainer.Children.Clear();
-
-        _pageVisibilityContainer.Children.Add(new Label
-        {
-            Text = "Page Visibility",
-            FontSize = 17,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
-            Margin = new Thickness(0, 8, 0, 4)
-        });
-        _pageVisibilityContainer.Children.Add(new Label
-        {
-            Text = "Choose which pages appear on the home screen. " +
-                   "Settings is always visible.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.WordWrap,
-            Margin = new Thickness(0, 0, 0, 8)
-        });
-
-        var settings = await _buttonVisibility
-            .GetAllSettingsAsync(_auth.CurrentUsername, allIds);
-
-        foreach (var setting in settings)
-        {
-            bool isSettingsBtn = setting.ButtonId.Equals(
-                "Settings", StringComparison.OrdinalIgnoreCase);
-
-            var row = new Grid
-            {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition(GridLength.Star),
-                    new ColumnDefinition(GridLength.Auto)
-                },
-                ColumnSpacing = 12,
-                Margin = new Thickness(0, 2, 0, 2)
-            };
-
-            row.Add(new Label
-            {
-                Text = setting.ButtonId,
-                FontSize = 14,
-                TextColor = isSettingsBtn
-                    ? Color.FromArgb("#999")
-                    : Color.FromArgb("#222"),
-                VerticalOptions = LayoutOptions.Center
-            }, 0, 0);
-
-            var toggle = new Switch
-            {
-                IsToggled = isSettingsBtn || setting.IsEnabled,
-                IsEnabled = !isSettingsBtn,
-                VerticalOptions = LayoutOptions.Center
-            };
-
-            if (!isSettingsBtn)
-            {
-                var capturedSetting = setting;
-                toggle.Toggled += async (_, e) =>
-                {
-                    await _buttonVisibility.SetButtonEnabledAsync(
-                        _auth.CurrentUsername,
-                        capturedSetting.ButtonId,
-                        e.Value);
-                };
-            }
-
-            row.Add(toggle, 1, 0);
-            _pageVisibilityContainer.Children.Add(row);
-        }
     }
 
     private Frame BuildHabitScoldingSection()

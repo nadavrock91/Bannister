@@ -384,7 +384,7 @@ public partial class ActivityGamePage
             ["applied_x_times"]    = "Applied X Times (one-time)",
             ["update_streak"]      = "Update Streak Values",
             ["times_completed"]    = $"Times Completed: {activity.TimesCompleted}",
-            ["notes"]              = notesOption,
+            ["add_edit_notes"]     = notesOption,
             ["duplicate_negative"] = "Duplicate as Negative",
             ["manual_priority"]    = "Set Manual Priority",
             ["auto_award"]         = "Set Auto-Award",

@@ -212,6 +212,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SharedActivitySelectionPage>();
         builder.Services.AddTransient<SharedManifestApprovalPage>();
         builder.Services.AddTransient<ContextMenuOrderPage>();
+        builder.Services.AddTransient<PageVisibilityPage>();
 
 
 #if DEBUG
