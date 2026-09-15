@@ -15,6 +15,7 @@ public class SettingsPage : ContentPage
     private readonly BackupService _backup;
     private readonly HomeButtonVisibilityService _buttonVisibility;
     private readonly PrivacyModeService _privacyMode;
+    private readonly ContextMenuOrderService _contextMenuOrder;
     private VerticalStackLayout _pageVisibilityContainer = null!;
     private Switch _privateModeSwitch = null!;
     private Switch _calendarBeforeGamesSwitch;
@@ -32,7 +33,8 @@ public class SettingsPage : ContentPage
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup,
         HomeButtonVisibilityService buttonVisibility,
-        PrivacyModeService? privacyMode = null)
+        PrivacyModeService? privacyMode = null,
+        ContextMenuOrderService? contextMenuOrder = null)
     {
         _auth = auth;
         _db = db;
@@ -44,6 +46,12 @@ public class SettingsPage : ContentPage
                     typeof(PrivacyModeService))
             ?? throw new InvalidOperationException(
                 "PrivacyModeService is not registered.");
+        _contextMenuOrder = contextMenuOrder
+            ?? (ContextMenuOrderService?)Application.Current?.Handler?
+                .MauiContext?.Services.GetService(
+                    typeof(ContextMenuOrderService))
+            ?? throw new InvalidOperationException(
+                "ContextMenuOrderService is not registered.");
 
         Title = "Settings";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -429,6 +437,24 @@ public class SettingsPage : ContentPage
         _privateModeSwitch.Toggled += (_, e) =>
             privateModeHint.IsVisible = e.Value;
         privateModeSection.Children.Add(privateModeHint);
+
+        var menuOrderBtn = new Button
+        {
+            Text = "☰ Customize Context Menu Order",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 40,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        menuOrderBtn.Clicked += async (_, _) =>
+            await Navigation.PushAsync(
+                new ContextMenuOrderPage(
+                    _contextMenuOrder, _auth));
+        privateModeSection.Children.Add(menuOrderBtn);
+
         mainStack.Children.Add(privateModeSection);
 
         _pageVisibilityContainer = new VerticalStackLayout

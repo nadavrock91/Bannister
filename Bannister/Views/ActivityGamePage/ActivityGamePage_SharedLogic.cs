@@ -11,7 +11,19 @@ namespace Bannister.Views;
 /// UPDATE THIS FILE when adding new functionality that should apply to all activity completions.
 /// </summary>
 public partial class ActivityGamePage
-{/// <summary>
+{
+    private ContextMenuOrderService? _contextMenuOrder;
+
+    private ContextMenuOrderService GetContextMenuOrderService()
+    {
+        return _contextMenuOrder ??=
+            Application.Current?.Handler?.MauiContext?.Services
+                .GetService<ContextMenuOrderService>()
+            ?? throw new InvalidOperationException(
+                "ContextMenuOrderService is not registered.");
+    }
+
+/// <summary>
  /// Full activity completion including EXP application.
  /// Used by streak cards which do everything in a single click.
  /// 
@@ -191,19 +203,34 @@ public partial class ActivityGamePage
             ? " Remove from Public"
             : " Mark as Public";
 
-        var options = new List<string>
+        var optionMap = new Dictionary<string, string>
         {
-            "✏️ Edit Activity",
-            "Edit Category",
-            $"Set Multiplier (current: x{activity.Multiplier})",
-            "Applied X Times (one-time)",
-            "Update Streak Values",
-            $"Times Completed: {activity.TimesCompleted}",
-            notesOption,
-            "Duplicate as Negative",
-            "Set Manual Priority",
-            "Set Auto-Award"
+            ["edit_activity"]      = "✏️ Edit Activity",
+            ["edit_category"]      = "Edit Category",
+            ["set_multiplier"]     = $"Set Multiplier (current: x{activity.Multiplier})",
+            ["applied_x_times"]    = "Applied X Times (one-time)",
+            ["update_streak"]      = "Update Streak Values",
+            ["times_completed"]    = $"Times Completed: {activity.TimesCompleted}",
+            ["notes"]              = notesOption,
+            ["duplicate_negative"] = "Duplicate as Negative",
+            ["manual_priority"]    = "Set Manual Priority",
+            ["auto_award"]         = "Set Auto-Award",
+            ["move_game"]          = " Move to Another Game",
+            ["assign_grouping"]    = " Assign to Grouping",
+            ["disable"]            = "⏸️ Disable Activity",
+            ["remove"]             = "️ Remove Activity",
+            ["public_toggle"]      = publicOpt,
         };
+
+        var orderedKeys = await GetContextMenuOrderService()
+            .GetOrderedKeysAsync(_auth.CurrentUsername);
+
+        var options = new List<string>();
+        foreach (var key in orderedKeys)
+        {
+            if (optionMap.TryGetValue(key, out var label))
+                options.Add(label);
+        }
 
         // Add streak attempt-specific options
         if (isStreakAttempt && attemptVM != null)
@@ -211,7 +238,7 @@ public partial class ActivityGamePage
             if (attemptVM.IsActive)
             {
                 options.Add("✏️ Edit Attempt Days");
-                options.Add("📅 Edit Start Date");
+                options.Add(" Edit Start Date");
                 if (await HasPreviousEndedAttemptAsync(attemptVM))
                 {
                     options.Add("Delete This Attempt and Restart Previous");
@@ -220,17 +247,11 @@ public partial class ActivityGamePage
             else
             {
                 options.Add("✏️ Edit Attempt Days");
-                options.Add("📅 Edit Date Range");
-                options.Add("🔄 Reactivate Streak");
+                options.Add(" Edit Date Range");
+                options.Add(" Reactivate Streak");
             }
-            options.Add("🗑️ Delete This Attempt");
+            options.Add("️ Delete This Attempt");
         }
-
-        options.Add("📦 Move to Another Game");
-        options.Add("📂 Assign to Grouping");
-        options.Add("⏸️ Disable Activity");
-        options.Add("🗑️ Remove Activity");
-        options.Add(publicOpt);
 
         string title = isStreakAttempt && attemptVM != null
             ? $"{activity.Name} - {attemptVM.Name}"
@@ -313,7 +334,7 @@ public partial class ActivityGamePage
         {
             await EditAttemptDays(attemptVM);
         }
-        else if ((action == "📅 Edit Start Date" || action == "📅 Edit Date Range") && attemptVM != null)
+        else if ((action == " Edit Start Date" || action == " Edit Date Range") && attemptVM != null)
         {
             await EditAttemptDates(attemptVM);
         }
@@ -321,19 +342,19 @@ public partial class ActivityGamePage
         {
             await DeleteAttemptAndRestartPrevious(attemptVM);
         }
-        else if (action == "🗑️ Delete This Attempt" && attemptVM != null)
+        else if (action == "️ Delete This Attempt" && attemptVM != null)
         {
             await DeleteAttempt(attemptVM);
         }
-        else if (action == "🔄 Reactivate Streak" && attemptVM != null)
+        else if (action == " Reactivate Streak" && attemptVM != null)
         {
             await ReactivateAttempt(attemptVM);
         }
-        else if (action == "📦 Move to Another Game")
+        else if (action == " Move to Another Game")
         {
             await HandleMoveToAnotherGame(activity);
         }
-        else if (action == "📂 Assign to Grouping")
+        else if (action == " Assign to Grouping")
         {
             await HandleAssignToGrouping(activity);
         }
@@ -352,7 +373,7 @@ public partial class ActivityGamePage
                 await RefreshActivitiesAsync();
             }
         }
-        else if (action == "🗑️ Remove Activity")
+        else if (action == "️ Remove Activity")
         {
             bool confirm = await DisplayAlert(
                 "Remove Activity",

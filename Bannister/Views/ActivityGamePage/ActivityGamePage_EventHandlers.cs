@@ -376,24 +376,34 @@ public partial class ActivityGamePage
             ? " Remove from Public"
             : " Mark as Public";
 
-        var options = new List<string>
+        var optionMap = new Dictionary<string, string>
         {
-            "Edit Activity",
-            "Edit Category",
-            $"Set Multiplier (current: x{activity.Multiplier})",
-            "Applied X Times (one-time)",
-            "Update Streak Values",
-            $"Times Completed: {activity.TimesCompleted}",
-            notesOption,
-            "Duplicate as Negative",
-            "Set Manual Priority",
-            "Set Auto-Award",
-            "Move to Another Game",
-            "Assign to Grouping",
-            "Disable Activity",
-            "Remove Activity",
-            publicOpt
+            ["edit_activity"]      = "Edit Activity",
+            ["edit_category"]      = "Edit Category",
+            ["set_multiplier"]     = $"Set Multiplier (current: x{activity.Multiplier})",
+            ["applied_x_times"]    = "Applied X Times (one-time)",
+            ["update_streak"]      = "Update Streak Values",
+            ["times_completed"]    = $"Times Completed: {activity.TimesCompleted}",
+            ["notes"]              = notesOption,
+            ["duplicate_negative"] = "Duplicate as Negative",
+            ["manual_priority"]    = "Set Manual Priority",
+            ["auto_award"]         = "Set Auto-Award",
+            ["move_game"]          = "Move to Another Game",
+            ["assign_grouping"]    = "Assign to Grouping",
+            ["disable"]            = "Disable Activity",
+            ["remove"]             = "Remove Activity",
+            ["public_toggle"]      = publicOpt,
         };
+
+        var orderedKeys = await GetContextMenuOrderService()
+            .GetOrderedKeysAsync(_auth.CurrentUsername);
+
+        var options = new List<string>();
+        foreach (var key in orderedKeys)
+        {
+            if (optionMap.TryGetValue(key, out var label))
+                options.Add(label);
+        }
 
         string result = await DisplayActionSheet(
             activity.Name,
