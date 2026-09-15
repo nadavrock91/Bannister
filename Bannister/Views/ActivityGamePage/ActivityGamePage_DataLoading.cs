@@ -558,7 +558,9 @@ public partial class ActivityGamePage
                     _showAllActivities);
 
                 filtered = visibleActivities
-                    .Select(a => _allActivities.First(vm => vm.Id == a.Id))
+                    .Select(a => _allActivities.FirstOrDefault(vm => vm.Id == a.Id))
+                    .Where(a => a != null)
+                    .Select(a => a!)
                     .ToList();
             }
         }

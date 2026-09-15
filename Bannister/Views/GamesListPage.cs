@@ -95,15 +95,15 @@ public class GamesListPage : ContentPage
 
         _privateModeToggleBtn = new Button
         {
-            Text = "",
-            FontSize = 20,
+            Text = " Public",
+            FontSize = 12,
             BackgroundColor = Colors.Transparent,
             BorderColor = Colors.White,
             BorderWidth = 1,
             CornerRadius = 8,
             HeightRequest = 44,
-            WidthRequest = 52,
-            Padding = 0,
+            WidthRequest = 90,
+            Padding = new Thickness(6, 0),
             VerticalOptions = LayoutOptions.Center,
             TextColor = Colors.White
         };
@@ -279,9 +279,13 @@ public class GamesListPage : ContentPage
     private void UpdatePrivateModeVisuals(bool isPrivate)
     {
         BackgroundColor = isPrivate
-            ? Color.FromArgb("#2D2F6F")
+            ? Color.FromArgb("#1A1A2E")
             : Color.FromArgb("#6B73FF");
-        _privateModeToggleBtn.Text = isPrivate ? "" : "";
+        _privateModeToggleBtn.Text = isPrivate
+            ? " Private" : " Public";
+        _privateModeToggleBtn.TextColor = isPrivate
+            ? Color.FromArgb("#FFD700")
+            : Colors.White;
         _privateModeToggleBtn.BorderColor = isPrivate
             ? Color.FromArgb("#FFD700")
             : Colors.White;
