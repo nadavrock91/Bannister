@@ -104,10 +104,11 @@ public class ContextMenuOrderService
         var conn = await _db.GetConnectionAsync();
         for (int i = 0; i < orderedKeys.Count; i++)
         {
+            string key = orderedKeys[i]; // capture to local — no indexer in SQL
             var existing = await conn
                 .Table<ContextMenuOrderSetting>()
                 .Where(r => r.Username == username
-                    && r.OptionKey == orderedKeys[i])
+                    && r.OptionKey == key)
                 .FirstOrDefaultAsync();
             if (existing != null)
             {
