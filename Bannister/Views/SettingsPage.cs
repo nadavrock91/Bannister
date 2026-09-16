@@ -62,9 +62,10 @@ public class SettingsPage : ContentPage
     {
         base.OnAppearing();
         await LoadHomeSettingsAsync();
-        bool isPrivate = await _privacyMode
-            .IsPrivateModeEnabledAsync(_auth.CurrentUsername);
-        _privateModeSwitch.IsToggled = isPrivate;
+        var currentMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        _privateModeSwitch.IsToggled =
+            currentMode != ActivityDisplayMode.All;
     }
 
     private void BuildUI()
@@ -420,6 +421,8 @@ public class SettingsPage : ContentPage
         {
             await _privacyMode.SetPrivateModeAsync(
                 _auth.CurrentUsername, e.Value);
+            // Note: switch maps to All (off) or PublicOnly (on)
+            // Full 3-mode control is in the Games hub toggle
         };
         privateModeRow.Add(_privateModeSwitch, 1, 0);
         privateModeSection.Children.Add(privateModeRow);
@@ -433,7 +436,13 @@ public class SettingsPage : ContentPage
             IsVisible = false
         };
         _privateModeSwitch.Toggled += (_, e) =>
+        {
             privateModeHint.IsVisible = e.Value;
+            privateModeHint.Text = e.Value
+                ? " Restricted Mode ON — tap Games hub button " +
+                  "to switch between Public/Private/All"
+                : "";
+        };
         privateModeSection.Children.Add(privateModeHint);
 
         var menuOrderBtn = new Button

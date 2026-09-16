@@ -108,7 +108,7 @@ public class GamesListPage : ContentPage
             TextColor = Colors.White
         };
         _privateModeToggleBtn.Clicked += async (_, _) =>
-            await TogglePrivateModeAsync();
+            await CycleDisplayModeAsync();
         headerGrid.Add(_privateModeToggleBtn, 1, 0);
 
         mainStack.Children.Add(headerGrid);
@@ -254,9 +254,9 @@ public class GamesListPage : ContentPage
     {
         base.OnAppearing();
 
-        bool privateModeOn = _privacyMode.IsPrivateModeEnabled(
+        var mode = _privacyMode.GetDisplayMode(
             _auth.CurrentUsername);
-        UpdatePrivateModeVisuals(privateModeOn);
+        UpdateModeVisuals(mode);
         
         _isNavigating = false;
         _loadingOverlay.IsVisible = false;
@@ -265,30 +265,41 @@ public class GamesListPage : ContentPage
         await LoadGroupingsAsync();
     }
 
-    private async Task TogglePrivateModeAsync()
+    private async Task CycleDisplayModeAsync()
     {
-        bool current = _privacyMode.IsPrivateModeEnabled(
+        var newMode = _privacyMode.CycleMode(
             _auth.CurrentUsername);
-        bool newValue = !current;
-        await _privacyMode.SetPrivateModeAsync(
-            _auth.CurrentUsername, newValue);
-        UpdatePrivateModeVisuals(newValue);
+        UpdateModeVisuals(newMode);
         await LoadGamesAsync();
     }
 
-    private void UpdatePrivateModeVisuals(bool isPrivate)
+    private void UpdateModeVisuals(ActivityDisplayMode mode)
     {
-        BackgroundColor = isPrivate
-            ? Color.FromArgb("#1A1A2E")
-            : Color.FromArgb("#6B73FF");
-        _privateModeToggleBtn.Text = isPrivate
-            ? "🔒 Private" : "🌐 Public";
-        _privateModeToggleBtn.TextColor = isPrivate
-            ? Color.FromArgb("#FFD700")
-            : Colors.White;
-        _privateModeToggleBtn.BorderColor = isPrivate
-            ? Color.FromArgb("#FFD700")
-            : Colors.White;
+        switch (mode)
+        {
+            case ActivityDisplayMode.PublicOnly:
+                BackgroundColor = Color.FromArgb("#1A1A2E");
+                _privateModeToggleBtn.Text = " Public";
+                _privateModeToggleBtn.TextColor =
+                    Color.FromArgb("#00E5FF");
+                _privateModeToggleBtn.BorderColor =
+                    Color.FromArgb("#00E5FF");
+                break;
+            case ActivityDisplayMode.PrivateOnly:
+                BackgroundColor = Color.FromArgb("#2D0A4E");
+                _privateModeToggleBtn.Text = " Private";
+                _privateModeToggleBtn.TextColor =
+                    Color.FromArgb("#FFD700");
+                _privateModeToggleBtn.BorderColor =
+                    Color.FromArgb("#FFD700");
+                break;
+            default: // All
+                BackgroundColor = Color.FromArgb("#6B73FF");
+                _privateModeToggleBtn.Text = " All";
+                _privateModeToggleBtn.TextColor = Colors.White;
+                _privateModeToggleBtn.BorderColor = Colors.White;
+                break;
+        }
     }
 
     private async Task LoadGamesAsync()
@@ -410,22 +421,24 @@ public class GamesListPage : ContentPage
 
         frame.Content = grid;
 
-        bool isPrivate = _privacyMode.IsPrivateModeEnabled(
+        var cardMode = _privacyMode.GetDisplayMode(
             _auth.CurrentUsername);
-        if (isPrivate)
+        if (cardMode != ActivityDisplayMode.All)
         {
-            frame.BackgroundColor = Color.FromArgb("#2D2D3F");
-            frame.BorderColor = Color.FromArgb("#4A4A6A");
+            frame.BackgroundColor = cardMode ==
+                ActivityDisplayMode.PublicOnly
+                ? Color.FromArgb("#1E2D4E")
+                : Color.FromArgb("#2D1A4E");
+            frame.BorderColor = cardMode ==
+                ActivityDisplayMode.PublicOnly
+                ? Color.FromArgb("#00E5FF")
+                : Color.FromArgb("#9C27B0");
             foreach (var child in grid.Children)
             {
                 if (child is VerticalStackLayout vsl)
-                {
                     foreach (var c in vsl.Children)
-                    {
                         if (c is Label lbl)
                             lbl.TextColor = Colors.White;
-                    }
-                }
             }
         }
 

@@ -250,16 +250,24 @@ public partial class ActivityGamePage
                 "PrivacyModeService is not registered.");
 
         // Apply Private Mode filter.
-        bool privateMode = await _privacyMode
-            .IsPrivateModeEnabledAsync(_auth.CurrentUsername);
-        if (privateMode)
-            activities = activities
-                .Where(a => a.IsPublic)
-                .ToList();
-
-            BackgroundColor = privateMode
-                ? Color.FromArgb("#1A1A2E")
-                : Color.FromArgb("#F5F5F5");
+        var displayMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        activities = displayMode switch
+        {
+            ActivityDisplayMode.PublicOnly => activities
+                .Where(a => a.IsPublic).ToList(),
+            ActivityDisplayMode.PrivateOnly => activities
+                .Where(a => !a.IsPublic).ToList(),
+            _ => activities
+        };
+        BackgroundColor = displayMode switch
+        {
+            ActivityDisplayMode.PublicOnly =>
+                Color.FromArgb("#1A1A2E"),
+            ActivityDisplayMode.PrivateOnly =>
+                Color.FromArgb("#2D0A4E"),
+            _ => Color.FromArgb("#F5F5F5")
+        };
 
         return activities;
     }
