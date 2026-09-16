@@ -319,6 +319,101 @@ public class SortActivitiesPage : ContentPage
         _nextBtn.IsEnabled =
             _currentPage < _pagedGroups.Count - 1;
 
+        // Set All row
+        var setAllRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(new GridLength(40)),
+                new ColumnDefinition(new GridLength(40)),
+                new ColumnDefinition(new GridLength(40))
+            },
+            ColumnSpacing = 4,
+            Padding = new Thickness(10, 6),
+            BackgroundColor = Color.FromArgb("#ECEFF1")
+        };
+
+        setAllRow.Add(new Label
+        {
+            Text = "Set all to →",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#555"),
+            FontAttributes = FontAttributes.Bold,
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+
+        var setAllPubBtn = VisBtn("", false,
+            "#1565C0", "#E3F2FD", "#1565C0");
+        setAllPubBtn.Clicked += async (_, _) =>
+        {
+            if (_isSaving) return;
+            _isSaving = true;
+            try
+            {
+                foreach (var act in acts)
+                {
+                    act.ActivityVisibility = 1;
+                    act.VisibilityMigrated = true;
+                    await _activityService.UpdateActivityAsync(act);
+                }
+                RenderCurrentPage();
+            }
+            finally { _isSaving = false; }
+        };
+        setAllRow.Add(setAllPubBtn, 1, 0);
+
+        var setAllPrivBtn = VisBtn("", false,
+            "#6A0DAD", "#F3E5F5", "#6A0DAD");
+        setAllPrivBtn.Clicked += async (_, _) =>
+        {
+            if (_isSaving) return;
+            _isSaving = true;
+            try
+            {
+                foreach (var act in acts)
+                {
+                    act.ActivityVisibility = 0;
+                    act.VisibilityMigrated = true;
+                    await _activityService.UpdateActivityAsync(act);
+                }
+                RenderCurrentPage();
+            }
+            finally { _isSaving = false; }
+        };
+        setAllRow.Add(setAllPrivBtn, 2, 0);
+
+        var setAllBothBtn = VisBtn("", false,
+            "#2E7D32", "#E8F5E9", "#2E7D32");
+        setAllBothBtn.Clicked += async (_, _) =>
+        {
+            if (_isSaving) return;
+            _isSaving = true;
+            try
+            {
+                foreach (var act in acts)
+                {
+                    act.ActivityVisibility = 2;
+                    act.VisibilityMigrated = true;
+                    await _activityService.UpdateActivityAsync(act);
+                }
+                RenderCurrentPage();
+            }
+            finally { _isSaving = false; }
+        };
+        setAllRow.Add(setAllBothBtn, 3, 0);
+
+        _contentContainer.Children.Add(new Frame
+        {
+            Content = setAllRow,
+            Padding = 0,
+            CornerRadius = 6,
+            HasShadow = false,
+            BorderColor = Color.FromArgb("#BDBDBD"),
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            Margin = new Thickness(0, 0, 0, 6)
+        });
+
         foreach (var act in acts)
             _contentContainer.Children.Add(
                 BuildActivityRow(act));
