@@ -11,12 +11,25 @@ public class SortActivitiesPage : ContentPage
 
     private List<Game> _games = new();
     private List<Activity> _allActivities = new();
-    private int? _viewFilter = null; // null=all 1=public 0=private
+
+    // null=show all, 1=public, 0=private, 2=both
+    private int? _viewFilter = null;
+
+    // Pagination
+    private int _currentPage = 0;
+    private const int PageSize = 1; // one game per page
+    private List<(Game Game, List<Activity> Activities)>
+        _pagedGroups = new();
 
     private VerticalStackLayout _contentContainer = null!;
     private Button _filterAllBtn = null!;
     private Button _filterPublicBtn = null!;
     private Button _filterPrivateBtn = null!;
+    private Button _filterBothBtn = null!;
+    private Label _pageLabel = null!;
+    private Button _prevBtn = null!;
+    private Button _nextBtn = null!;
+    private bool _isSaving = false;
 
     public SortActivitiesPage(
         ActivityService activityService,
@@ -54,56 +67,125 @@ public class SortActivitiesPage : ContentPage
         });
         stack.Children.Add(new Label
         {
-            Text = "Set each activity to Public, Private, or Both. " +
-                   "Use the filter to narrow the view.",
+            Text = "Tap  Public,  Private, or  Both per activity. " +
+                   "Highlighted button = current setting.",
             FontSize = 13,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
         });
 
-        // Legend
-        var legendRow = new HorizontalStackLayout { Spacing = 16 };
-        legendRow.Children.Add(MakeLegend(
-            " Public", "#1565C0"));
-        legendRow.Children.Add(MakeLegend(
-            " Private", "#6A0DAD"));
-        legendRow.Children.Add(MakeLegend(
-            " Both", "#2E7D32"));
-        stack.Children.Add(legendRow);
-
         // Filter row
-        var filterRow = new HorizontalStackLayout { Spacing = 8 };
+        var filterRow = new HorizontalStackLayout { Spacing = 6 };
 
         _filterAllBtn = MakeFilterBtn("Show All", true, "#555555");
         _filterAllBtn.Clicked += (_, _) =>
         {
             _viewFilter = null;
+            _currentPage = 0;
             UpdateFilterButtons();
-            RenderContent();
+            BuildPagedGroups();
+            RenderCurrentPage();
         };
         filterRow.Children.Add(_filterAllBtn);
 
-        _filterPublicBtn = MakeFilterBtn(
-            " Public", false, "#1565C0");
+        _filterPublicBtn = MakeFilterBtn(" Public", false, "#1565C0");
         _filterPublicBtn.Clicked += (_, _) =>
         {
             _viewFilter = 1;
+            _currentPage = 0;
             UpdateFilterButtons();
-            RenderContent();
+            BuildPagedGroups();
+            RenderCurrentPage();
         };
         filterRow.Children.Add(_filterPublicBtn);
 
-        _filterPrivateBtn = MakeFilterBtn(
-            " Private", false, "#6A0DAD");
+        _filterPrivateBtn = MakeFilterBtn(" Private", false, "#6A0DAD");
         _filterPrivateBtn.Clicked += (_, _) =>
         {
             _viewFilter = 0;
+            _currentPage = 0;
             UpdateFilterButtons();
-            RenderContent();
+            BuildPagedGroups();
+            RenderCurrentPage();
         };
         filterRow.Children.Add(_filterPrivateBtn);
 
+        _filterBothBtn = MakeFilterBtn(" Both", false, "#2E7D32");
+        _filterBothBtn.Clicked += (_, _) =>
+        {
+            _viewFilter = 2;
+            _currentPage = 0;
+            UpdateFilterButtons();
+            BuildPagedGroups();
+            RenderCurrentPage();
+        };
+        filterRow.Children.Add(_filterBothBtn);
+
         stack.Children.Add(filterRow);
+
+        // Pagination controls
+        var navRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(new GridLength(44)),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(new GridLength(44))
+            },
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+
+        _prevBtn = new Button
+        {
+            Text = "◀",
+            FontSize = 14,
+            HeightRequest = 36,
+            CornerRadius = 6,
+            Padding = 0,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0")
+        };
+        _prevBtn.Clicked += (_, _) =>
+        {
+            if (_currentPage > 0)
+            {
+                _currentPage--;
+                RenderCurrentPage();
+            }
+        };
+        navRow.Add(_prevBtn, 0, 0);
+
+        _pageLabel = new Label
+        {
+            Text = "",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#444"),
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        navRow.Add(_pageLabel, 1, 0);
+
+        _nextBtn = new Button
+        {
+            Text = "▶",
+            FontSize = 14,
+            HeightRequest = 36,
+            CornerRadius = 6,
+            Padding = 0,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0")
+        };
+        _nextBtn.Clicked += (_, _) =>
+        {
+            if (_currentPage < _pagedGroups.Count - 1)
+            {
+                _currentPage++;
+                RenderCurrentPage();
+            }
+        };
+        navRow.Add(_nextBtn, 2, 0);
+
+        stack.Children.Add(navRow);
 
         _contentContainer = new VerticalStackLayout { Spacing = 2 };
         stack.Children.Add(_contentContainer);
@@ -111,23 +193,15 @@ public class SortActivitiesPage : ContentPage
         Content = new ScrollView { Content = stack };
     }
 
-    private static Label MakeLegend(string text, string hex)
-        => new Label
-        {
-            Text = text,
-            FontSize = 11,
-            TextColor = Color.FromArgb(hex)
-        };
-
     private static Button MakeFilterBtn(
         string text, bool active, string activeHex)
         => new Button
         {
             Text = text,
-            FontSize = 12,
-            HeightRequest = 32,
+            FontSize = 11,
+            HeightRequest = 30,
             CornerRadius = 6,
-            Padding = new Thickness(10, 0),
+            Padding = new Thickness(8, 0),
             BackgroundColor = active
                 ? Color.FromArgb(activeHex)
                 : Color.FromArgb("#ECEFF1"),
@@ -138,15 +212,17 @@ public class SortActivitiesPage : ContentPage
 
     private void UpdateFilterButtons()
     {
-        StyleFilterBtn(_filterAllBtn,
+        StyleBtn(_filterAllBtn,
             _viewFilter == null, "#555555");
-        StyleFilterBtn(_filterPublicBtn,
+        StyleBtn(_filterPublicBtn,
             _viewFilter == 1, "#1565C0");
-        StyleFilterBtn(_filterPrivateBtn,
+        StyleBtn(_filterPrivateBtn,
             _viewFilter == 0, "#6A0DAD");
+        StyleBtn(_filterBothBtn,
+            _viewFilter == 2, "#2E7D32");
     }
 
-    private static void StyleFilterBtn(
+    private static void StyleBtn(
         Button btn, bool active, string activeHex)
     {
         btn.BackgroundColor = active
@@ -164,7 +240,7 @@ public class SortActivitiesPage : ContentPage
         _allActivities = await _activityService
             .GetActivitiesAsync(_auth.CurrentUsername);
 
-        // Run migration for any unmigrated activities
+        // One-time migration
         var toMigrate = _allActivities
             .Where(a => !a.VisibilityMigrated)
             .ToList();
@@ -174,60 +250,56 @@ public class SortActivitiesPage : ContentPage
             act.VisibilityMigrated = true;
             await _activityService.UpdateActivityAsync(act);
         }
-        if (toMigrate.Count > 0)
-            _allActivities = await _activityService
-                .GetActivitiesAsync(_auth.CurrentUsername);
 
-        RenderContent();
+        BuildPagedGroups();
+        RenderCurrentPage();
     }
 
-    private void RenderContent()
+    private void BuildPagedGroups()
+    {
+        _pagedGroups = _games
+            .OrderBy(g => g.DisplayName,
+                StringComparer.OrdinalIgnoreCase)
+            .Select(g =>
+            {
+                var acts = _allActivities
+                    .Where(a => string.Equals(
+                        a.Game, g.GameId,
+                        StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(a => a.Name,
+                        StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (_viewFilter == 1)
+                    acts = acts.Where(a =>
+                        a.ActivityVisibility == 1 ||
+                        a.ActivityVisibility == 2).ToList();
+                else if (_viewFilter == 0)
+                    acts = acts.Where(a =>
+                        a.ActivityVisibility == 0 ||
+                        a.ActivityVisibility == 2).ToList();
+                else if (_viewFilter == 2)
+                    acts = acts.Where(a =>
+                        a.ActivityVisibility == 2).ToList();
+
+                return (Game: g, Activities: acts);
+            })
+            .Where(x => x.Activities.Count > 0)
+            .ToList();
+
+        _currentPage = Math.Min(
+            _currentPage, Math.Max(0, _pagedGroups.Count - 1));
+    }
+
+    private void RenderCurrentPage()
     {
         _contentContainer.Children.Clear();
 
-        var sortedGames = _games
-            .OrderBy(g => g.DisplayName,
-                StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        bool anyShown = false;
-        foreach (var game in sortedGames)
+        if (_pagedGroups.Count == 0)
         {
-            var acts = _allActivities
-                .Where(a => string.Equals(
-                    a.Game, game.GameId,
-                    StringComparison.OrdinalIgnoreCase))
-                .OrderBy(a => a.Name,
-                    StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            if (_viewFilter == 1)
-                acts = acts.Where(a =>
-                    a.ActivityVisibility == 1 ||
-                    a.ActivityVisibility == 2).ToList();
-            else if (_viewFilter == 0)
-                acts = acts.Where(a =>
-                    a.ActivityVisibility == 0 ||
-                    a.ActivityVisibility == 2).ToList();
-
-            if (acts.Count == 0) continue;
-            anyShown = true;
-
-            _contentContainer.Children.Add(new Label
-            {
-                Text = game.DisplayName,
-                FontSize = 15,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#1565C0"),
-                Margin = new Thickness(0, 10, 0, 2)
-            });
-
-            foreach (var act in acts)
-                _contentContainer.Children.Add(
-                    BuildActivityRow(act));
-        }
-
-        if (!anyShown)
+            _pageLabel.Text = "No activities";
+            _prevBtn.IsEnabled = false;
+            _nextBtn.IsEnabled = false;
             _contentContainer.Children.Add(new Label
             {
                 Text = "No activities match the current filter.",
@@ -235,6 +307,21 @@ public class SortActivitiesPage : ContentPage
                 TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
             });
+            return;
+        }
+
+        var (game, acts) = _pagedGroups[_currentPage];
+
+        _pageLabel.Text =
+            $"{game.DisplayName} ({_currentPage + 1}" +
+            $"/{_pagedGroups.Count})";
+        _prevBtn.IsEnabled = _currentPage > 0;
+        _nextBtn.IsEnabled =
+            _currentPage < _pagedGroups.Count - 1;
+
+        foreach (var act in acts)
+            _contentContainer.Children.Add(
+                BuildActivityRow(act));
     }
 
     private View BuildActivityRow(Activity activity)
@@ -244,12 +331,12 @@ public class SortActivitiesPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(new GridLength(38)),
-                new ColumnDefinition(new GridLength(38)),
-                new ColumnDefinition(new GridLength(38))
+                new ColumnDefinition(new GridLength(40)),
+                new ColumnDefinition(new GridLength(40)),
+                new ColumnDefinition(new GridLength(40))
             },
             ColumnSpacing = 4,
-            Padding = new Thickness(10, 6),
+            Padding = new Thickness(10, 8),
             BackgroundColor = Colors.White
         };
 
@@ -262,39 +349,63 @@ public class SortActivitiesPage : ContentPage
             LineBreakMode = LineBreakMode.TailTruncation
         }, 0, 0);
 
+        //  Public
         var pubBtn = VisBtn("",
             activity.ActivityVisibility == 1,
             "#1565C0", "#E3F2FD", "#1565C0");
         pubBtn.Clicked += async (_, _) =>
         {
-            activity.ActivityVisibility = 1;
-            activity.VisibilityMigrated = true;
-            await _activityService.UpdateActivityAsync(activity);
-            RenderContent();
+            if (_isSaving) return;
+            _isSaving = true;
+            try
+            {
+                activity.ActivityVisibility = 1;
+                activity.VisibilityMigrated = true;
+                await _activityService
+                    .UpdateActivityAsync(activity);
+                RenderCurrentPage();
+            }
+            finally { _isSaving = false; }
         };
         row.Add(pubBtn, 1, 0);
 
+        //  Private
         var privBtn = VisBtn("",
             activity.ActivityVisibility == 0,
             "#6A0DAD", "#F3E5F5", "#6A0DAD");
         privBtn.Clicked += async (_, _) =>
         {
-            activity.ActivityVisibility = 0;
-            activity.VisibilityMigrated = true;
-            await _activityService.UpdateActivityAsync(activity);
-            RenderContent();
+            if (_isSaving) return;
+            _isSaving = true;
+            try
+            {
+                activity.ActivityVisibility = 0;
+                activity.VisibilityMigrated = true;
+                await _activityService
+                    .UpdateActivityAsync(activity);
+                RenderCurrentPage();
+            }
+            finally { _isSaving = false; }
         };
         row.Add(privBtn, 2, 0);
 
+        //  Both
         var bothBtn = VisBtn("",
             activity.ActivityVisibility == 2,
             "#2E7D32", "#E8F5E9", "#2E7D32");
         bothBtn.Clicked += async (_, _) =>
         {
-            activity.ActivityVisibility = 2;
-            activity.VisibilityMigrated = true;
-            await _activityService.UpdateActivityAsync(activity);
-            RenderContent();
+            if (_isSaving) return;
+            _isSaving = true;
+            try
+            {
+                activity.ActivityVisibility = 2;
+                activity.VisibilityMigrated = true;
+                await _activityService
+                    .UpdateActivityAsync(activity);
+                RenderCurrentPage();
+            }
+            finally { _isSaving = false; }
         };
         row.Add(bothBtn, 3, 0);
 
@@ -315,9 +426,9 @@ public class SortActivitiesPage : ContentPage
         => new Button
         {
             Text = text,
-            FontSize = 13,
-            HeightRequest = 34,
-            WidthRequest = 34,
+            FontSize = 14,
+            HeightRequest = 36,
+            WidthRequest = 36,
             CornerRadius = 6,
             Padding = 0,
             BackgroundColor = active
