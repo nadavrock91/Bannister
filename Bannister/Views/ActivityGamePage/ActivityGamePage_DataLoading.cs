@@ -250,14 +250,38 @@ public partial class ActivityGamePage
                 "PrivacyModeService is not registered.");
 
         // Apply Private Mode filter.
+        // One-time migration: convert IsPublic=true to ActivityVisibility=1
+        var toMigrate = activities
+            .Where(a => !a.VisibilityMigrated)
+            .ToList();
+        if (toMigrate.Count > 0)
+        {
+            foreach (var act in toMigrate)
+            {
+                act.ActivityVisibility = act.IsPublic ? 1 : 0;
+                act.VisibilityMigrated = true;
+                await _activities.UpdateActivityAsync(act);
+            }
+            // Refresh after migration
+            activities = await _activities.GetActivitiesAsync(
+                _auth.CurrentUsername, _game.GameId);
+            bool privateMode2 = await _privacyMode
+                .IsPrivateModeEnabledAsync(_auth.CurrentUsername);
+            if (privateMode2)
+                activities = activities
+                    .Where(a => a.IsPublic).ToList();
+        }
+
         var displayMode = _privacyMode.GetDisplayMode(
             _auth.CurrentUsername);
         activities = displayMode switch
         {
             ActivityDisplayMode.PublicOnly => activities
-                .Where(a => a.IsPublic).ToList(),
+                .Where(a => a.ActivityVisibility == 1 ||
+                            a.ActivityVisibility == 2).ToList(),
             ActivityDisplayMode.PrivateOnly => activities
-                .Where(a => !a.IsPublic).ToList(),
+                .Where(a => a.ActivityVisibility == 0 ||
+                            a.ActivityVisibility == 2).ToList(),
             _ => activities
         };
         BackgroundColor = displayMode switch

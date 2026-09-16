@@ -1,0 +1,7 @@
+2026-09-16 06:36:15: -- Analysis Started by Analyze command
+2026-09-16 06:36:15: L: Reading State File C:/rock/Bannister/_gsdata_/_file_state_v4._gs
+2026-09-16 06:36:17: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister_open_source/_gsdata_/_file_state_v4._gs
+2026-09-16 06:44:58: Getting new AccessToken from RefreshToken
+2026-09-16 06:56:27: Changes: 10,043, Conflicts: 0, CopyTime: 0, FixState: 34, Errors: 0, All: 25438
+2026-09-16 06:56:27: Left to Right: Copy File: 10008 Delete File: 35 
+2026-09-16 06:56:27: -- Analysis Complete. Time 00:20:12, Speed: 1,521 files/s

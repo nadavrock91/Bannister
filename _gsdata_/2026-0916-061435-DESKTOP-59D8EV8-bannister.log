@@ -1,0 +1,7 @@
+2026-09-16 06:14:36: -- Analysis Started by Analyze command
+2026-09-16 06:14:36: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-09-16 06:14:37: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-09-16 06:36:09: File ModTime changed but CheckSum remains the same, request CopyState: /Bannister/obj/Debug/net8.0-android/android/bin/classes/crc645d80431ce5f73f11/StartSingleSnapHelper.class
+2026-09-16 06:36:10: Changes: 2,585, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 25423
+2026-09-16 06:36:10: Left to Right: Copy File: 2578 Delete File: 7 
+2026-09-16 06:36:10: -- Analysis Complete. Time 00:21:33, Speed: 551 files/s

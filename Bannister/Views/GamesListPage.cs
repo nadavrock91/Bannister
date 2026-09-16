@@ -151,6 +151,21 @@ public class GamesListPage : ContentPage
                 new AllGamesTransferPage(_games, _activities, _auth));
         mainStack.Children.Add(btnTransfer);
 
+        var btnSort = new Button
+        {
+            Text = " Sort Activities",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        btnSort.Clicked += async (_, _) =>
+            await Navigation.PushAsync(
+                new SortActivitiesPage(
+                    _activities, _games, _auth));
+        mainStack.Children.Add(btnSort);
+
         // ===== GROUPINGS SECTION =====
         mainStack.Children.Add(new BoxView
         {

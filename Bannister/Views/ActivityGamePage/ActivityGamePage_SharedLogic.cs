@@ -199,9 +199,12 @@ public partial class ActivityGamePage
         string notesOption = !string.IsNullOrEmpty(activity.Notes)
             ? "📝 Edit Notes"
             : "📝 Add Notes";
-        string publicOpt = activity.IsPublic
-            ? " Remove from Public"
-            : " Mark as Public";
+        string publicOpt = activity.ActivityVisibility switch
+        {
+            1 => " Visibility: Public",
+            2 => " Visibility: Both",
+            _ => " Visibility: Private"
+        };
 
         var optionMap = new Dictionary<string, string>
         {
@@ -397,17 +400,36 @@ public partial class ActivityGamePage
                 }
             }
         }
-        else if (action == " Mark as Public" ||
-                 action == " Remove from Public")
+        else if (action == " Visibility: Public" ||
+                 action == " Visibility: Both" ||
+                 action == " Visibility: Private")
         {
-            activity.IsPublic = !activity.IsPublic;
+            string[] visOptions =
+            {
+                " Public",
+                " Private",
+                " Both"
+            };
+            string? vis = await DisplayActionSheet(
+                "Set Visibility for " + activity.Name,
+                "Cancel", null, visOptions);
+            if (vis == null || vis == "Cancel") return;
+            activity.ActivityVisibility = vis switch
+            {
+                " Public" => 1,
+                " Both"   => 2,
+                _          => 0
+            };
+            activity.VisibilityMigrated = true;
             await _activities.UpdateActivityAsync(activity);
-            await DisplayAlert(
-                activity.IsPublic ? "Marked Public" : "Marked Private",
-                activity.IsPublic
-                    ? $"\"{activity.Name}\" will show in Private Mode."
-                    : $"\"{activity.Name}\" will be hidden in Private Mode.",
-                "OK");
+            string visLabel = activity.ActivityVisibility switch
+            {
+                1 => "Public",
+                2 => "Both (all modes)",
+                _ => "Private"
+            };
+            await DisplayAlert("Visibility Set",
+                $"\"{activity.Name}\" → {visLabel}.", "OK");
             await RefreshActivitiesAsync();
         }
     }

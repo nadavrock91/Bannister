@@ -310,6 +310,20 @@ public class Activity
     /// private mode.
     /// </summary>
     public bool IsPublic { get; set; } = false;
+
+    /// <summary>
+    /// 0 = Private (PrivateOnly + All)
+    /// 1 = Public (PublicOnly + All)
+    /// 2 = Both (all three modes)
+    /// Default 0. Migrated from IsPublic on first load.
+    /// </summary>
+    public int ActivityVisibility { get; set; } = 0;
+
+    /// <summary>
+    /// True when this activity migrated from IsPublic.
+    /// Set to true after migration so migration runs only once.
+    /// </summary>
+    public bool VisibilityMigrated { get; set; } = false;
     
     /// <summary>
     /// Returns true if this activity should be displayed today based on day restrictions
