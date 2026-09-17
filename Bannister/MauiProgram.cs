@@ -215,6 +215,7 @@ public static class MauiProgram
         builder.Services.AddTransient<PageVisibilityPage>();
         builder.Services.AddTransient<SortActivitiesPage>();
         builder.Services.AddTransient<SortGamesPage>();
+        builder.Services.AddTransient<PrivacyLogPage>();
 
 
 #if DEBUG

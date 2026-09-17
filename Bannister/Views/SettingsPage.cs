@@ -16,6 +16,8 @@ public class SettingsPage : ContentPage
     private readonly HomeButtonVisibilityService _buttonVisibility;
     private readonly PrivacyModeService _privacyMode;
     private readonly ContextMenuOrderService _contextMenuOrder;
+    private readonly ActivityService _activityService;
+    private readonly GameService _gameService;
     private Switch _privateModeSwitch = null!;
     private Switch _calendarBeforeGamesSwitch;
     private Label _calendarBeforeGamesStatus;
@@ -33,7 +35,9 @@ public class SettingsPage : ContentPage
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup,
         HomeButtonVisibilityService buttonVisibility,
         PrivacyModeService? privacyMode = null,
-        ContextMenuOrderService? contextMenuOrder = null)
+        ContextMenuOrderService? contextMenuOrder = null,
+        ActivityService? activityService = null,
+        GameService? gameService = null)
     {
         _auth = auth;
         _db = db;
@@ -51,6 +55,18 @@ public class SettingsPage : ContentPage
                     typeof(ContextMenuOrderService))
             ?? throw new InvalidOperationException(
                 "ContextMenuOrderService is not registered.");
+        _activityService = activityService
+            ?? (ActivityService?)Application.Current?.Handler?
+                .MauiContext?.Services.GetService(
+                    typeof(ActivityService))
+            ?? throw new InvalidOperationException(
+                "ActivityService is not registered.");
+        _gameService = gameService
+            ?? (GameService?)Application.Current?.Handler?
+                .MauiContext?.Services.GetService(
+                    typeof(GameService))
+            ?? throw new InvalidOperationException(
+                "GameService is not registered.");
 
         Title = "Settings";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -461,6 +477,22 @@ public class SettingsPage : ContentPage
                 new ContextMenuOrderPage(
                     _contextMenuOrder, _auth));
         privateModeSection.Children.Add(menuOrderBtn);
+
+        var privacyLogBtn = new Button
+        {
+            Text = " Privacy Log",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 40,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        privacyLogBtn.Clicked += async (_, _) =>
+            await Navigation.PushAsync(new PrivacyLogPage(
+                _activityService, _gameService, _auth));
+        privateModeSection.Children.Add(privacyLogBtn);
 
         mainStack.Children.Add(privateModeSection);
 
