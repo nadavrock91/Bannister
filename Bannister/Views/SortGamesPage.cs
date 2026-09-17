@@ -6,6 +6,7 @@ namespace Bannister.Views;
 public class SortGamesPage : ContentPage
 {
     private readonly GameService _gameService;
+    private readonly ActivityService _activityService;
     private readonly AuthService _auth;
 
     private List<Game> _games = new();
@@ -20,9 +21,11 @@ public class SortGamesPage : ContentPage
 
     public SortGamesPage(
         GameService gameService,
+        ActivityService activityService,
         AuthService auth)
     {
         _gameService = gameService;
+        _activityService = activityService;
         _auth = auth;
         Title = "Sort Games";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -107,6 +110,20 @@ public class SortGamesPage : ContentPage
 
         stack.Children.Add(filterRow);
 
+        var autoSortBtn = new Button
+        {
+            Text = " Auto-Sort from Activities",
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            TextColor = Color.FromArgb("#2E7D32"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 40,
+            FontAttributes = FontAttributes.Bold
+        };
+        autoSortBtn.Clicked += async (_, _) =>
+            await AutoSortFromActivitiesAsync();
+        stack.Children.Add(autoSortBtn);
+
         _contentContainer = new VerticalStackLayout { Spacing = 2 };
         stack.Children.Add(_contentContainer);
 
@@ -162,6 +179,51 @@ public class SortGamesPage : ContentPage
         _games = await _gameService.GetGamesAsync(
             _auth.CurrentUsername);
         RenderContent();
+    }
+
+    private async Task AutoSortFromActivitiesAsync()
+    {
+        if (_isSaving) return;
+        bool confirm = await DisplayAlert(
+            "Auto-Sort Games",
+            "Sets each game's visibility based on its activities:\n\n" +
+            "• Only public activities → Game = Public\n" +
+            "• Only private activities → Game = Private\n" +
+            "• Mix of both → Game = Both\n" +
+            "• No activities → unchanged\n\nProceed?",
+            "Auto-Sort", "Cancel");
+        if (!confirm) return;
+        _isSaving = true;
+        try
+        {
+            int changed = 0;
+            foreach (var game in _games)
+            {
+                var acts = await _activityService
+                    .GetActivitiesAsync(
+                        _auth.CurrentUsername, game.GameId);
+                if (acts.Count == 0) continue;
+                bool hasPublic = acts.Any(a =>
+                    a.ActivityVisibility == 1 ||
+                    a.ActivityVisibility == 2);
+                bool hasPrivate = acts.Any(a =>
+                    a.ActivityVisibility == 0 ||
+                    a.ActivityVisibility == 2);
+                int newVis = (hasPublic && hasPrivate) ? 2
+                    : hasPublic ? 1 : 0;
+                if (game.GameVisibility != newVis)
+                {
+                    game.GameVisibility = newVis;
+                    await _gameService.UpdateGameAsync(game);
+                    changed++;
+                }
+            }
+            await DisplayAlert("Done",
+                $"{changed} game{(changed == 1 ? "" : "s")} updated.",
+                "OK");
+            RenderContent();
+        }
+        finally { _isSaving = false; }
     }
 
     private void RenderContent()

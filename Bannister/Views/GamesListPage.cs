@@ -177,7 +177,7 @@ public class GamesListPage : ContentPage
         };
         btnSortGames.Clicked += async (_, _) =>
             await Navigation.PushAsync(
-                new SortGamesPage(_games, _auth));
+                new SortGamesPage(_games, _activities, _auth));
         mainStack.Children.Add(btnSortGames);
 
         // ===== GROUPINGS SECTION =====
