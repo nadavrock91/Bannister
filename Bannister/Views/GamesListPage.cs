@@ -166,6 +166,20 @@ public class GamesListPage : ContentPage
                     _activities, _games, _auth));
         mainStack.Children.Add(btnSort);
 
+        var btnSortGames = new Button
+        {
+            Text = " Sort Games",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        btnSortGames.Clicked += async (_, _) =>
+            await Navigation.PushAsync(
+                new SortGamesPage(_games, _auth));
+        mainStack.Children.Add(btnSortGames);
+
         // ===== GROUPINGS SECTION =====
         mainStack.Children.Add(new BoxView
         {
@@ -322,6 +336,19 @@ public class GamesListPage : ContentPage
         _gamesGrid.Children.Clear();
         
         var games = await _games.GetGamesAsync(_auth.CurrentUsername);
+
+        var gameDisplayMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        games = gameDisplayMode switch
+        {
+            ActivityDisplayMode.PublicOnly => games
+                .Where(g => g.GameVisibility == 1 ||
+                            g.GameVisibility == 2).ToList(),
+            ActivityDisplayMode.PrivateOnly => games
+                .Where(g => g.GameVisibility == 0 ||
+                            g.GameVisibility == 2).ToList(),
+            _ => games
+        };
 
         if (games.Count == 0)
         {

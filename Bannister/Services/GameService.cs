@@ -43,6 +43,12 @@ namespace Bannister.Services
                 .FirstOrDefaultAsync();
         }
 
+        public async Task UpdateGameAsync(Game game)
+        {
+            var conn = await _db.GetConnectionAsync();
+            await conn.UpdateAsync(game);
+        }
+
         public async Task<Game> CreateGameAsync(string username, string displayName)
         {
             var conn = await _db.GetConnectionAsync();

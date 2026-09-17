@@ -41,6 +41,14 @@ public class Game
     public DateTime? LastVisitedAt { get; set; }
 
     /// <summary>
+    /// 0 = Private (PrivateOnly + All)
+    /// 1 = Public (PublicOnly + All)
+    /// 2 = Both (all three modes)
+    /// Default 1 = Public so existing games stay visible.
+    /// </summary>
+    public int GameVisibility { get; set; } = 1;
+
+    /// <summary>
     /// Computed property: Days remaining until 30-day deadline
     /// </summary>
     [Ignore]
