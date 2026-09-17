@@ -324,6 +324,12 @@ public class Activity
     /// Set to true after migration so migration runs only once.
     /// </summary>
     public bool VisibilityMigrated { get; set; } = false;
+
+    /// <summary>
+    /// Last time ActivityVisibility was changed.
+    /// Set to UtcNow on first load if null.
+    /// </summary>
+    public DateTime? VisibilityChangedAt { get; set; }
     
     /// <summary>
     /// Returns true if this activity should be displayed today based on day restrictions

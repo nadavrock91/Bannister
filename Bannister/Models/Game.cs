@@ -49,6 +49,12 @@ public class Game
     public int GameVisibility { get; set; } = 1;
 
     /// <summary>
+    /// Last time GameVisibility was changed.
+    /// Set to UtcNow on first load if null.
+    /// </summary>
+    public DateTime? VisibilityChangedAt { get; set; }
+
+    /// <summary>
     /// Computed property: Days remaining until 30-day deadline
     /// </summary>
     [Ignore]

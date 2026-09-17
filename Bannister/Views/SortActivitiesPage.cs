@@ -248,6 +248,8 @@ public class SortActivitiesPage : ContentPage
         {
             act.ActivityVisibility = act.IsPublic ? 1 : 0;
             act.VisibilityMigrated = true;
+            act.VisibilityChangedAt = act.VisibilityChangedAt
+                ?? DateTime.UtcNow;
             await _activityService.UpdateActivityAsync(act);
         }
 
@@ -355,6 +357,7 @@ public class SortActivitiesPage : ContentPage
                 {
                     act.ActivityVisibility = 1;
                     act.VisibilityMigrated = true;
+                    act.VisibilityChangedAt = DateTime.UtcNow;
                     await _activityService.UpdateActivityAsync(act);
                 }
                 RenderCurrentPage();
@@ -375,6 +378,7 @@ public class SortActivitiesPage : ContentPage
                 {
                     act.ActivityVisibility = 0;
                     act.VisibilityMigrated = true;
+                    act.VisibilityChangedAt = DateTime.UtcNow;
                     await _activityService.UpdateActivityAsync(act);
                 }
                 RenderCurrentPage();
@@ -395,6 +399,7 @@ public class SortActivitiesPage : ContentPage
                 {
                     act.ActivityVisibility = 2;
                     act.VisibilityMigrated = true;
+                    act.VisibilityChangedAt = DateTime.UtcNow;
                     await _activityService.UpdateActivityAsync(act);
                 }
                 RenderCurrentPage();
@@ -435,14 +440,23 @@ public class SortActivitiesPage : ContentPage
             BackgroundColor = Colors.White
         };
 
-        row.Add(new Label
+        var nameStack = new VerticalStackLayout { Spacing = 1 };
+        nameStack.Children.Add(new Label
         {
             Text = activity.Name,
             FontSize = 13,
             TextColor = Color.FromArgb("#222"),
-            VerticalOptions = LayoutOptions.Center,
             LineBreakMode = LineBreakMode.TailTruncation
-        }, 0, 0);
+        });
+        if (activity.VisibilityChangedAt.HasValue)
+            nameStack.Children.Add(new Label
+            {
+                Text = activity.VisibilityChangedAt.Value
+                    .ToLocalTime().ToString("dd MMM yyyy"),
+                FontSize = 10,
+                TextColor = Color.FromArgb("#999")
+            });
+        row.Add(nameStack, 0, 0);
 
         //  Public
         var pubBtn = VisBtn("",
@@ -456,6 +470,7 @@ public class SortActivitiesPage : ContentPage
             {
                 activity.ActivityVisibility = 1;
                 activity.VisibilityMigrated = true;
+                activity.VisibilityChangedAt = DateTime.UtcNow;
                 await _activityService
                     .UpdateActivityAsync(activity);
                 RenderCurrentPage();
@@ -476,6 +491,7 @@ public class SortActivitiesPage : ContentPage
             {
                 activity.ActivityVisibility = 0;
                 activity.VisibilityMigrated = true;
+                activity.VisibilityChangedAt = DateTime.UtcNow;
                 await _activityService
                     .UpdateActivityAsync(activity);
                 RenderCurrentPage();
@@ -496,6 +512,7 @@ public class SortActivitiesPage : ContentPage
             {
                 activity.ActivityVisibility = 2;
                 activity.VisibilityMigrated = true;
+                activity.VisibilityChangedAt = DateTime.UtcNow;
                 await _activityService
                     .UpdateActivityAsync(activity);
                 RenderCurrentPage();

@@ -260,6 +260,8 @@ public partial class ActivityGamePage
             {
                 act.ActivityVisibility = act.IsPublic ? 1 : 0;
                 act.VisibilityMigrated = true;
+                act.VisibilityChangedAt = act.VisibilityChangedAt
+                    ?? DateTime.UtcNow;
                 await _activities.UpdateActivityAsync(act);
             }
             // Refresh after migration

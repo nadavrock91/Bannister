@@ -178,6 +178,17 @@ public class SortGamesPage : ContentPage
     {
         _games = await _gameService.GetGamesAsync(
             _auth.CurrentUsername);
+
+        // Seed timestamp for games that have never had one set
+        var unseeded = _games
+            .Where(g => !g.VisibilityChangedAt.HasValue)
+            .ToList();
+        foreach (var g in unseeded)
+        {
+            g.VisibilityChangedAt = DateTime.UtcNow;
+            await _gameService.UpdateGameAsync(g);
+        }
+
         RenderContent();
     }
 
@@ -214,6 +225,7 @@ public class SortGamesPage : ContentPage
                 if (game.GameVisibility != newVis)
                 {
                     game.GameVisibility = newVis;
+                    game.VisibilityChangedAt = DateTime.UtcNow;
                     await _gameService.UpdateGameAsync(game);
                     changed++;
                 }
@@ -325,6 +337,7 @@ public class SortGamesPage : ContentPage
             foreach (var g in games)
             {
                 g.GameVisibility = visibility;
+                g.VisibilityChangedAt = DateTime.UtcNow;
                 await _gameService.UpdateGameAsync(g);
             }
             RenderContent();
@@ -348,14 +361,23 @@ public class SortGamesPage : ContentPage
             BackgroundColor = Colors.White
         };
 
-        row.Add(new Label
+        var nameStack = new VerticalStackLayout { Spacing = 1 };
+        nameStack.Children.Add(new Label
         {
             Text = game.DisplayName,
             FontSize = 14,
             TextColor = Color.FromArgb("#222"),
-            VerticalOptions = LayoutOptions.Center,
             LineBreakMode = LineBreakMode.TailTruncation
-        }, 0, 0);
+        });
+        if (game.VisibilityChangedAt.HasValue)
+            nameStack.Children.Add(new Label
+            {
+                Text = game.VisibilityChangedAt.Value
+                    .ToLocalTime().ToString("dd MMM yyyy"),
+                FontSize = 10,
+                TextColor = Color.FromArgb("#999")
+            });
+        row.Add(nameStack, 0, 0);
 
         var pubBtn = VisBtn("",
             game.GameVisibility == 1,
@@ -367,6 +389,7 @@ public class SortGamesPage : ContentPage
             try
             {
                 game.GameVisibility = 1;
+                game.VisibilityChangedAt = DateTime.UtcNow;
                 await _gameService.UpdateGameAsync(game);
                 RenderContent();
             }
@@ -384,6 +407,7 @@ public class SortGamesPage : ContentPage
             try
             {
                 game.GameVisibility = 0;
+                game.VisibilityChangedAt = DateTime.UtcNow;
                 await _gameService.UpdateGameAsync(game);
                 RenderContent();
             }
@@ -401,6 +425,7 @@ public class SortGamesPage : ContentPage
             try
             {
                 game.GameVisibility = 2;
+                game.VisibilityChangedAt = DateTime.UtcNow;
                 await _gameService.UpdateGameAsync(game);
                 RenderContent();
             }

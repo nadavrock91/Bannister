@@ -421,6 +421,7 @@ public partial class ActivityGamePage
                 _          => 0
             };
             activity.VisibilityMigrated = true;
+            activity.VisibilityChangedAt = DateTime.UtcNow;
             await _activities.UpdateActivityAsync(activity);
             string visLabel = activity.ActivityVisibility switch
             {
