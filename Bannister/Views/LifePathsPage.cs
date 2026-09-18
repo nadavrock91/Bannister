@@ -1,6 +1,5 @@
 using Bannister.Models;
 using Bannister.Services;
-using System.Text.Json;
 
 namespace Bannister.Views;
 
@@ -9,307 +8,93 @@ public class LifePathsPage : ContentPage
     private readonly AuthService _auth;
     private readonly GameService _gameService;
     private readonly DatabaseService _db;
-    private readonly LifePathService _lifePathService;
+    private readonly LifePathService? _lifePathService;
     private Label _statusLabel = null!;
     private Button _generateBtn = null!;
-    private VerticalStackLayout _previewContainer = null!;
+    private VerticalStackLayout _rowsContainer = null!;
+    private Button _btnMonth = null!;
+    private Button _btnYear = null!;
+    private Button _btnDecade = null!;
+    private TimelineData? _data;
+    private List<Game> _allGames = new();
+    private string _zoom = "year";
 
     public LifePathsPage(AuthService auth, GameService gameService,
         DatabaseService db, LifePathService? lifePathService = null)
     {
-        _auth = auth;
-        _gameService = gameService;
-        _db = db;
-        _lifePathService = lifePathService
-            ?? Application.Current?.Handler?.MauiContext?.Services
-                .GetService<LifePathService>()
-            ?? throw new InvalidOperationException(
-                "LifePathService not registered.");
-        Title = "Life Paths";
-        BackgroundColor = Color.FromArgb("#0D1117");
-        BuildUI();
+        _auth = auth; _gameService = gameService; _db = db;
+        _lifePathService = lifePathService ?? Application.Current?.Handler?.MauiContext?.Services.GetService<LifePathService>();
+        Title = "Life Paths"; BackgroundColor = Color.FromArgb("#0D1117"); BuildUI();
     }
-
     protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-        await GenerateAsync();
-    }
+    { base.OnAppearing(); await LoadDataAsync(); }
 
     private void BuildUI()
     {
-        var stack = new VerticalStackLayout { Padding = 20, Spacing = 14 };
-        stack.Children.Add(new Label
-        {
-            Text = " Life Paths", FontSize = 24,
-            FontAttributes = FontAttributes.Bold, TextColor = Colors.White
-        });
-        stack.Children.Add(new Label
-        {
-            Text = "A visual history of your games over time — activity, gaps, and long-term patterns.",
-            FontSize = 13, TextColor = Color.FromArgb("#8B949E"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-        _statusLabel = new Label
-        {
-            Text = "Loading timeline data...", FontSize = 13,
-            TextColor = Color.FromArgb("#58A6FF")
-        };
-        stack.Children.Add(_statusLabel);
-        _generateBtn = new Button
-        {
-            Text = " Refresh Timeline",
-            BackgroundColor = Color.FromArgb("#21262D"),
-            TextColor = Color.FromArgb("#58A6FF"), CornerRadius = 8,
-            FontSize = 13, HeightRequest = 40,
-            BorderColor = Color.FromArgb("#30363D"), BorderWidth = 1
-        };
-        _generateBtn.Clicked += async (_, _) => await GenerateAsync();
-        stack.Children.Add(_generateBtn);
-        _previewContainer = new VerticalStackLayout { Spacing = 4 };
-        stack.Children.Add(new ScrollView { Content = _previewContainer });
-        Content = new ScrollView { Content = stack };
+        var page = new VerticalStackLayout { Padding = new Thickness(16,16,16,24), Spacing = 12, BackgroundColor = Color.FromArgb("#0D1117") };
+        page.Children.Add(new Label { Text = " Life Paths", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Colors.White });
+        page.Children.Add(new Label { Text = "Your games over time — activity, gaps, and long-term patterns.", FontSize = 12, TextColor = Color.FromArgb("#8B949E") });
+        var zoom = new HorizontalStackLayout { Spacing = 6 };
+        _btnMonth = ZoomBtn("Month", false); _btnYear = ZoomBtn("Year", true); _btnDecade = ZoomBtn("Decade", false);
+        _btnMonth.Clicked += (_,_) => SetZoom("month"); _btnYear.Clicked += (_,_) => SetZoom("year"); _btnDecade.Clicked += (_,_) => SetZoom("decade");
+        zoom.Children.Add(_btnMonth); zoom.Children.Add(_btnYear); zoom.Children.Add(_btnDecade); page.Children.Add(zoom);
+        _statusLabel = new Label { Text = "Loading...", FontSize = 12, TextColor = Color.FromArgb("#58A6FF") }; page.Children.Add(_statusLabel);
+        _generateBtn = new Button { Text = " Refresh", BackgroundColor = Color.FromArgb("#21262D"), TextColor = Color.FromArgb("#58A6FF"), CornerRadius = 6, HeightRequest = 34, HorizontalOptions = LayoutOptions.Start, Padding = new Thickness(12,0), BorderColor = Color.FromArgb("#30363D"), BorderWidth = 1 };
+        _generateBtn.Clicked += async (_,_) => await LoadDataAsync(); page.Children.Add(_generateBtn);
+        var legend = new HorizontalStackLayout { Spacing = 16 }; legend.Children.Add(Legend(Color.FromArgb("#1F6FEB"),"Active")); legend.Children.Add(Legend(Color.FromArgb("#21262D"),"Gap")); legend.Children.Add(Legend(Color.FromArgb("#F85149"),"Ended")); page.Children.Add(legend);
+        _rowsContainer = new VerticalStackLayout { Spacing = 2 }; page.Children.Add(_rowsContainer); Content = new ScrollView { Content = page, BackgroundColor = Color.FromArgb("#0D1117") };
     }
+    private static Button ZoomBtn(string text, bool active) => new() { Text=text, FontSize=11, HeightRequest=28, CornerRadius=4, Padding=new Thickness(10,0), BackgroundColor=active?Color.FromArgb("#1F6FEB"):Color.FromArgb("#21262D"), TextColor=active?Colors.White:Color.FromArgb("#8B949E"), BorderColor=Color.FromArgb("#30363D"), BorderWidth=1 };
+    private static View Legend(Color color,string text) { var r=new HorizontalStackLayout{Spacing=4}; r.Children.Add(new BoxView{Color=color,WidthRequest=14,HeightRequest=8,CornerRadius=2}); r.Children.Add(new Label{Text=text,FontSize=10,TextColor=Color.FromArgb("#8B949E")}); return r; }
+    private void SetZoom(string zoom) { _zoom=zoom; Style(_btnMonth,zoom=="month"); Style(_btnYear,zoom=="year"); Style(_btnDecade,zoom=="decade"); if(_data!=null) RenderRows(); }
+    private static void Style(Button b,bool active) { b.BackgroundColor=active?Color.FromArgb("#1F6FEB"):Color.FromArgb("#21262D"); b.TextColor=active?Colors.White:Color.FromArgb("#8B949E"); }
 
-    private async Task GenerateAsync()
+    private async Task LoadDataAsync()
     {
-        _statusLabel.Text = "Querying game history...";
-        _generateBtn.IsEnabled = false;
-        _previewContainer.Children.Clear();
-        try
-        {
-            var (data, allGames) = await BuildTimelineDataAsync();
-            var json = JsonSerializer.Serialize(data,
-                new JsonSerializerOptions { WriteIndented = false,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-            var jsonPath = Path.Combine(FileSystem.AppDataDirectory,
-                "lifepaths_data.json");
-            await File.WriteAllTextAsync(jsonPath, json);
-            RenderPreview(data, allGames);
-            var htmlPath = Path.Combine(FileSystem.AppDataDirectory,
-                "lifepaths.html");
-            await File.WriteAllTextAsync(htmlPath, BuildHtmlArtifact(json));
-            _statusLabel.Text = $"✓ Timeline ready — {data.Games.Count} games, {data.TotalLogs} activity records";
-            await Navigation.PushAsync(
-                new LifePathWebViewPage(htmlPath));
-        }
-        catch (Exception ex) { _statusLabel.Text = $"Error: {ex.Message}"; }
-        finally { _generateBtn.IsEnabled = true; }
+        _statusLabel.Text="Loading game history..."; _generateBtn.IsEnabled=false; _rowsContainer.Children.Clear();
+        try { var (data,games)=await BuildTimelineDataAsync(); _data=data; _allGames=games; _statusLabel.Text=$"✓ {data.Games.Count} games · {data.TotalLogs:N0} records"; RenderRows(); }
+        catch(Exception ex) { _statusLabel.Text=$"Error: {ex.Message}"; } finally { _generateBtn.IsEnabled=true; }
     }
+    private void RenderRows()
+    {
+        _rowsContainer.Children.Clear(); if(_data==null)return; var games=_data.Games.OrderBy(g=>g.StartDate).ToList(); if(games.Count==0)return;
+        var min=games.Min(g=>g.StartDate); var max=games.Max(g=>g.EndDate); if(max<DateTime.Now)max=DateTime.Now; DateTime start,end;
+        if(_zoom=="decade"){start=new DateTime(min.Year/10*10,1,1);end=new DateTime(max.Year/10*10+10,1,1);} else if(_zoom=="month"){start=new DateTime(min.Year,min.Month,1);end=new DateTime(max.Year,max.Month,1).AddMonths(1);} else {start=new DateTime(min.Year,1,1);end=new DateTime(max.Year+1,1,1);}
+        double span=(end-start).TotalDays; _rowsContainer.Children.Add(Axis(start,end,span)); foreach(var g in games)_rowsContainer.Children.Add(GameRow(g,start,span));
+    }
+    private View Axis(DateTime start,DateTime end,double span)
+    {
+        const double lw=130,bw=220; var grid=new Grid{ColumnDefinitions={new ColumnDefinition(new GridLength(lw)),new ColumnDefinition(new GridLength(bw))}}; var ticks=new Grid();
+        foreach(var t in Ticks(start,end)){double x=(t.Date-start).TotalDays/span*bw; ticks.Children.Add(new Label{Text=t.Label,FontSize=9,TextColor=Color.FromArgb("#8B949E"),TranslationX=x});}
+        grid.Add(new Label{Text="Game",FontSize=10,TextColor=Color.FromArgb("#8B949E")},0,0);grid.Add(ticks,1,0);return grid;
+    }
+    private View GameRow(GameTimelineRow game,DateTime start,double span)
+    {
+        const double lw=130,bw=220,bh=14; double rh=game.SubBlocks.Count>0?36:20; var grid=new Grid{ColumnDefinitions={new ColumnDefinition(new GridLength(lw)),new ColumnDefinition(new GridLength(bw)),new ColumnDefinition(new GridLength(30))},ColumnSpacing=4};
+        grid.Add(new Label{Text=game.DisplayName,FontSize=11,TextColor=game.IsActive?Colors.White:Color.FromArgb("#8B949E"),LineBreakMode=LineBreakMode.TailTruncation},0,0);
+        var canvas=new GraphicsView{HeightRequest=rh,WidthRequest=bw,Drawable=new BarDrawable(game,start,span,bw,rh,bh)};var tap=new TapGestureRecognizer();tap.Tapped+=async(_,_)=>await ShowDetail(game);canvas.GestureRecognizers.Add(tap);grid.Add(canvas,1,0);
+        if(_lifePathService!=null){var edit=new Button{Text="✏",HeightRequest=24,WidthRequest=28,Padding=0,BackgroundColor=Color.FromArgb("#21262D"),TextColor=Color.FromArgb("#58A6FF")};var captured=_allGames.FirstOrDefault(g=>g.GameId==game.GameId);edit.Clicked+=async(_,_)=>{if(captured==null)return;await Navigation.PushAsync(new LifePathEditorPage(captured,_lifePathService,_gameService,_auth));await LoadDataAsync();};grid.Add(edit,2,0);}return grid;
+    }
+    private async Task ShowDetail(GameTimelineRow g){await DisplayAlert(g.DisplayName,$"Started: {g.StartDate:dd MMM yyyy}\nLast active: {g.EndDate:dd MMM yyyy}\nRecords: {g.TotalLogs:N0}\nFocus blocks: {g.SubBlocks.Count}","OK");}
+    private List<(DateTime Date,string Label)> Ticks(DateTime s,DateTime e){var r=new List<(DateTime,string)>();if(_zoom=="month")for(var d=new DateTime(s.Year,s.Month,1);d<=e;d=d.AddMonths(1))r.Add((d,d.ToString("MMM yy")));else if(_zoom=="decade")for(int y=s.Year/10*10;y<=e.Year+10;y+=10)r.Add((new DateTime(y,1,1),y.ToString()));else for(int y=s.Year;y<=e.Year+1;y++)r.Add((new DateTime(y,1,1),y.ToString()));return r;}
 
-    private async Task<(TimelineData Data, List<Game> Games)> BuildTimelineDataAsync()
+    private async Task<(TimelineData Data,List<Game> Games)> BuildTimelineDataAsync()
     {
-        var username = _auth.CurrentUsername;
-        var conn = await _db.GetConnectionAsync();
-        var allGames = await conn.Table<Game>()
-            .Where(g => g.Username == username).ToListAsync();
-        var allLogs = await conn.Table<ExpLog>()
-            .Where(e => e.Username == username).ToListAsync();
-        var logsByGame = allLogs.GroupBy(e => e.Game).ToDictionary(
-            g => g.Key, g => g.OrderBy(e => e.LoggedAt).ToList());
-        var rows = new List<GameTimelineRow>();
-        foreach (var game in allGames.OrderBy(g => g.CreatedAt))
-        {
-            var logs = logsByGame.TryGetValue(game.GameId, out var found)
-                ? found : new List<ExpLog>();
-            var start = game.CreatedAt.ToLocalTime();
-            DateTime? last = logs.Count > 0
-                ? logs[^1].LoggedAt.ToLocalTime() : null;
-            var end = last ?? game.LastVisitedAt?.ToLocalTime() ?? start;
-            var lifePathEnd = game.LifePathEndedAt?.ToLocalTime();
-            var blocks = await _lifePathService.GetBlocksForGameAsync(
-                username, game.GameId);
-            rows.Add(new GameTimelineRow
-            {
-                GameId = game.GameId, DisplayName = game.DisplayName,
-                StartDate = start, EndDate = lifePathEnd ?? end,
-                EndedAt = lifePathEnd,
-                EndReason = game.LifePathEndReason ?? "",
-                IsActive = game.IsActive,
-                TotalLogs = logs.Count, Periods = DetectPeriods(logs, start),
-                MonthlyDensity = logs.GroupBy(l => new { l.LoggedAt.Year, l.LoggedAt.Month })
-                    .ToDictionary(g => $"{g.Key.Year}-{g.Key.Month:D2}", g => g.Count()),
-                SubBlocks = blocks.Select(b => new SubBlock
-                {
-                    Id = b.Id, ParentId = b.ParentBlockId, Label = b.Label,
-                    Reason = b.Reason, StartDate = b.StartDate,
-                    EndDate = b.EndDate, Level = b.Level, ColorHex = b.ColorHex
-                }).ToList()
-            });
-        }
-        return (new TimelineData
-        {
-            Username = username, GeneratedAt = DateTime.Now,
-            Games = rows, TotalLogs = allLogs.Count
-        }, allGames);
+        var username=_auth.CurrentUsername;var conn=await _db.GetConnectionAsync();var allGames=await conn.Table<Game>().Where(g=>g.Username==username).ToListAsync();var allLogs=await conn.Table<ExpLog>().Where(e=>e.Username==username).ToListAsync();var byGame=allLogs.GroupBy(e=>e.Game).ToDictionary(g=>g.Key,g=>g.OrderBy(e=>e.LoggedAt).ToList());var rows=new List<GameTimelineRow>();
+        foreach(var game in allGames.OrderBy(g=>g.CreatedAt)){var logs=byGame.TryGetValue(game.GameId,out var found)?found:new();var start=game.CreatedAt.ToLocalTime();DateTime? last=logs.Count>0?logs.Last().LoggedAt.ToLocalTime():null;var end=last??game.LastVisitedAt?.ToLocalTime()??start;var blocks=new List<SubBlock>();if(_lifePathService!=null){var bs=await _lifePathService.GetBlocksForGameAsync(username,game.GameId);blocks=bs.Select(b=>new SubBlock{Id=b.Id,ParentId=b.ParentBlockId,Label=b.Label,Reason=b.Reason,StartDate=b.StartDate,EndDate=b.EndDate,Level=b.Level,ColorHex=b.ColorHex}).ToList();}rows.Add(new GameTimelineRow{GameId=game.GameId,DisplayName=game.DisplayName,StartDate=start,EndDate=game.LifePathEndedAt?.ToLocalTime()??end,EndedAt=game.LifePathEndedAt?.ToLocalTime(),EndReason=game.LifePathEndReason??"",IsActive=game.IsActive,TotalLogs=logs.Count,Periods=DetectPeriods(logs,start),SubBlocks=blocks});}
+        return (new TimelineData{Username=username,GeneratedAt=DateTime.Now,Games=rows,TotalLogs=allLogs.Count},allGames);
     }
+    private static List<ActivePeriod> DetectPeriods(List<ExpLog> logs,DateTime start){var r=new List<ActivePeriod>();if(logs.Count==0){r.Add(new ActivePeriod{Start=start,End=start,IsGap=true});return r;}var s=logs.OrderBy(l=>l.LoggedAt).ToList();var ps=s[0].LoggedAt.ToLocalTime();var pe=ps;int n=1;for(int i=1;i<s.Count;i++){var c=s[i].LoggedAt.ToLocalTime();if((c-pe).TotalDays>30){r.Add(new ActivePeriod{Start=ps,End=pe,LogCount=n});r.Add(new ActivePeriod{Start=pe,End=c,IsGap=true});ps=c;pe=c;n=1;}else{pe=c;n++;}}r.Add(new ActivePeriod{Start=ps,End=pe,LogCount=n});return r;}
 
-    private static List<ActivePeriod> DetectPeriods(
-        List<ExpLog> logs, DateTime gameStart)
+    private class TimelineData{public string Username{get;set;}="";public DateTime GeneratedAt{get;set;}public List<GameTimelineRow> Games{get;set;}=new();public int TotalLogs{get;set;}}
+    private class GameTimelineRow{public string GameId{get;set;}="";public string DisplayName{get;set;}="";public DateTime StartDate{get;set;}public DateTime EndDate{get;set;}public DateTime? EndedAt{get;set;}public string EndReason{get;set;}="";public bool IsActive{get;set;}public int TotalLogs{get;set;}public List<ActivePeriod> Periods{get;set;}=new();public List<SubBlock> SubBlocks{get;set;}=new();}
+    private class SubBlock{public int Id{get;set;}public int? ParentId{get;set;}public string Label{get;set;}="";public string Reason{get;set;}="";public DateTime StartDate{get;set;}public DateTime? EndDate{get;set;}public int Level{get;set;}public string ColorHex{get;set;}="";}
+    private class ActivePeriod{public DateTime Start{get;set;}public DateTime End{get;set;}public bool IsGap{get;set;}public int LogCount{get;set;}}
+    private sealed class BarDrawable:IDrawable
     {
-        var periods = new List<ActivePeriod>();
-        if (logs.Count == 0)
-        {
-            periods.Add(new ActivePeriod
-            {
-                Start = gameStart, End = gameStart, IsGap = true, LogCount = 0
-            });
-            return periods;
-        }
-        const int GapDays = 30;
-        var sorted = logs.OrderBy(l => l.LoggedAt).ToList();
-        var periodStart = sorted[0].LoggedAt.ToLocalTime();
-        var periodEnd = periodStart;
-        var count = 1;
-        for (var i = 1; i < sorted.Count; i++)
-        {
-            var current = sorted[i].LoggedAt.ToLocalTime();
-            if ((current - periodEnd).TotalDays > GapDays)
-            {
-                periods.Add(new ActivePeriod { Start = periodStart,
-                    End = periodEnd, IsGap = false, LogCount = count });
-                periods.Add(new ActivePeriod { Start = periodEnd,
-                    End = current, IsGap = true, LogCount = 0 });
-                periodStart = current;
-                periodEnd = current;
-                count = 1;
-            }
-            else { periodEnd = current; count++; }
-        }
-        periods.Add(new ActivePeriod { Start = periodStart, End = periodEnd,
-            IsGap = false, LogCount = count });
-        return periods;
-    }
-
-    private void RenderPreview(TimelineData data, List<Game> allGames)
-    {
-        foreach (var game in data.Games.OrderByDescending(g => g.TotalLogs))
-        {
-            var row = new Grid
-            {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition(new GridLength(160)),
-                    new ColumnDefinition(GridLength.Star),
-                    new ColumnDefinition(new GridLength(60)),
-                    new ColumnDefinition(new GridLength(34))
-                }, ColumnSpacing = 8, Margin = new Thickness(0, 2)
-            };
-            row.Add(new Label { Text = game.DisplayName, FontSize = 12,
-                TextColor = Colors.White, LineBreakMode = LineBreakMode.TailTruncation,
-                VerticalOptions = LayoutOptions.Center }, 0, 0);
-            row.Add(new BoxView { BackgroundColor = Color.FromArgb("#21262D"),
-                HeightRequest = 18, CornerRadius = 3,
-                VerticalOptions = LayoutOptions.Center }, 1, 0);
-            row.Add(new Label { Text = game.TotalLogs.ToString(), FontSize = 11,
-                TextColor = Color.FromArgb("#8B949E"),
-                HorizontalOptions = LayoutOptions.End,
-                VerticalOptions = LayoutOptions.Center }, 2, 0);
-            var capturedGame = allGames.FirstOrDefault(g => g.GameId == game.GameId);
-            var editBtn = new Button { Text = "✏️", FontSize = 11,
-                HeightRequest = 24, WidthRequest = 30, Padding = 0,
-                BackgroundColor = Color.FromArgb("#21262D"),
-                TextColor = Color.FromArgb("#58A6FF") };
-            editBtn.Clicked += async (_, _) =>
-            {
-                if (capturedGame == null) return;
-                await Navigation.PushAsync(new LifePathEditorPage(
-                    capturedGame, _lifePathService, _gameService, _auth));
-                await GenerateAsync();
-            };
-            row.Add(editBtn, 3, 0);
-            _previewContainer.Children.Add(row);
-        }
-    }
-
-    private static string BuildHtmlArtifact(string json)
-    {
-        var encoded = JsonSerializer.Serialize(json);
-        return $"<!doctype html><html><head><meta charset='utf-8'><title>Life Paths</title>" +
-            "<style>body{background:#0D1117;color:#C9D1D9;font-family:sans-serif;padding:20px}" +
-            "h1{color:#E6EDF3}.timeline{width:100%;overflow:auto}svg{min-width:800px}" +
-            "</style></head><body><h1>Life Paths</h1><div class='timeline'><svg id='timeline'></svg></div><script>" +
-            $"const data={encoded};const d=JSON.parse(data);" +
-            "const svg=document.getElementById('timeline');const LABEL_W=180;const ROW_H=42;" +
-            "const starts=d.games.map(g=>new Date(g.startDate));const ends=d.games.map(g=>new Date(g.endDate));" +
-            "const min=Math.min(...starts),max=Math.max(...ends),span=Math.max(max-min,86400000),W=1000;" +
-            "function toX(v){return LABEL_W+((new Date(v)-min)/span)*(W-LABEL_W-20)};" +
-            "function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}" +
-            "let svgContent='';d.games.forEach((game,i)=>{const y=i*ROW_H+24;" +
-            "svgContent+=`<text x='${LABEL_W-8}' y='${y+8}' fill='#C9D1D9' text-anchor='end'>${esc(game.displayName)}</text>`;" +
-            "const x0=toX(game.startDate),x1=Math.max(toX(game.endDate),x0+2);" +
-            "svgContent+=`<rect x='${x0}' y='${y}' width='${x1-x0}' height='16' rx='3' fill='#1F6FEB' opacity='.45'/>`;" +
-            "// Sub-blocks: level 1 and nested level 2 blocks are rendered below the game bar.\n" +
-            "if(game.subBlocks&&game.subBlocks.length>0){game.subBlocks.filter(b=>b.level===1&&!b.parentId).forEach(block=>{" +
-            "const bx0=toX(block.startDate),bx1=block.endDate?toX(block.endDate):toX(new Date()),bw=Math.max(bx1-bx0,2);" +
-            "const subY=y+19,subH=8,blockColor=block.colorHex||'#388BFD';" +
-            "svgContent+=`<rect x='${bx0}' y='${subY}' width='${bw}' height='${subH}' rx='2' fill='${blockColor}' opacity='.85' data-label='${esc(block.label)}'/>`;" +
-            "if(bw>60)svgContent+=`<text x='${bx0+4}' y='${subY+subH-1}' fill='white' font-size='8'>${esc(block.label.substring(0,20))}</text>`;" +
-            "game.subBlocks.filter(c=>c.parentId===block.id&&c.level===2).forEach(child=>{" +
-            "const cx0=toX(child.startDate),cx1=child.endDate?toX(child.endDate):toX(new Date());" +
-            "svgContent+=`<rect x='${cx0}' y='${subY+subH+2}' width='${Math.max(cx1-cx0,2)}' height='6' rx='2' fill='${child.colorHex||blockColor}' opacity='.6' data-label='${esc(child.label)}'/>`;" +
-            "});});}" +
-            "if(game.endedAt){const ex=toX(game.endedAt);svgContent+=`<line x1='${ex}' y1='${y-2}' x2='${ex}' y2='${y+20}' stroke='#F85149' stroke-width='2'/>`;}});" +
-            "svg.setAttribute('width',W);svg.setAttribute('height',Math.max(80,d.games.length*ROW_H+30));svg.innerHTML=svgContent;" +
-            "</script></body></html>";
-    }
-
-    private class TimelineData
-    {
-        public string Username { get; set; } = "";
-        public DateTime GeneratedAt { get; set; }
-        public List<GameTimelineRow> Games { get; set; } = new();
-        public int TotalLogs { get; set; }
-    }
-    private class GameTimelineRow
-    {
-        public string GameId { get; set; } = "";
-        public string DisplayName { get; set; } = "";
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public DateTime? EndedAt { get; set; }
-        public string EndReason { get; set; } = "";
-        public bool IsActive { get; set; }
-        public int TotalLogs { get; set; }
-        public List<ActivePeriod> Periods { get; set; } = new();
-        public Dictionary<string, int> MonthlyDensity { get; set; } = new();
-        public List<SubBlock> SubBlocks { get; set; } = new();
-    }
-    private class SubBlock
-    {
-        public int Id { get; set; }
-        public int? ParentId { get; set; }
-        public string Label { get; set; } = "";
-        public string Reason { get; set; } = "";
-        public DateTime StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
-        public int Level { get; set; }
-        public string ColorHex { get; set; } = "";
-    }
-    private class ActivePeriod
-    {
-        public DateTime Start { get; set; }
-        public DateTime End { get; set; }
-        public bool IsGap { get; set; }
-        public int LogCount { get; set; }
-    }
-}
-
-public class LifePathWebViewPage : ContentPage
-{
-    public LifePathWebViewPage(string htmlPath)
-    {
-        Title = "Life Paths";
-        BackgroundColor = Color.FromArgb("#0D1117");
-        var webView = new WebView
-        {
-            Source = new UrlWebViewSource
-            {
-                Url = $"file://{htmlPath}"
-            },
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill
-        };
-        Content = new Grid { Children = { webView } };
+        private readonly GameTimelineRow _game;private readonly DateTime _start;private readonly double _span,_width,_height,_bar;
+        public BarDrawable(GameTimelineRow game,DateTime start,double span,double width,double height,double bar){_game=game;_start=start;_span=span;_width=width;_height=height;_bar=bar;}
+        private float X(DateTime d)=>(float)((d-_start).TotalDays/_span*_width);
+        public void Draw(ICanvas c,RectF r){c.FillColor=Color.FromArgb("#21262D");c.FillRoundedRectangle(0,0,(float)_width,(float)_bar,3);foreach(var p in _game.Periods){var x=Math.Max(0,X(p.Start));var x2=Math.Max(x+2,X(p.End));c.FillColor=p.IsGap?Color.FromArgb("#21262D"):Color.FromArgb("#1F6FEB");c.FillRoundedRectangle(x,0,Math.Min((float)_width-x,x2-x),(float)_bar,3);}foreach(var b in _game.SubBlocks){var x=Math.Max(0,X(b.StartDate));var x2=b.EndDate.HasValue?X(b.EndDate.Value):X(DateTime.Now);c.FillColor=Color.FromArgb(string.IsNullOrWhiteSpace(b.ColorHex)?"#388BFD":b.ColorHex);c.FillRoundedRectangle(x,b.Level==2?(float)_bar+12:(float)_bar+2,Math.Max(2,x2-x),b.Level==2?5:8,2);}if(_game.EndedAt.HasValue){c.StrokeColor=Color.FromArgb("#F85149");c.StrokeSize=2;var x=X(_game.EndedAt.Value);c.DrawLine(x,0,x,(float)_height);}}
     }
 }
