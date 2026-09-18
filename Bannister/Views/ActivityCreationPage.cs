@@ -24,11 +24,13 @@ public class ActivityCreationPage : ContentPage
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
     private readonly GameService _games;
+    private readonly PrivacyModeService _privacyMode;
     private readonly StreakService? _streaks;
 
     private string _gameId = "";
     private string? _selectedImageFilename = null;
     private List<string> _categories = new();
+    private int _selectedVisibility = 1; // default Public
     
     // For modal usage - returns created activity
     private TaskCompletionSource<Activity?>? _modalTcs;
@@ -151,11 +153,25 @@ public class ActivityCreationPage : ContentPage
         }
     }
 
-    public ActivityCreationPage(AuthService auth, ActivityService activities, GameService games)
+    public ActivityCreationPage(
+        AuthService auth,
+        ActivityService activities,
+        GameService games,
+        PrivacyModeService privacyMode)
     {
         _auth = auth;
         _activities = activities;
         _games = games;
+        _privacyMode = privacyMode;
+
+        var currentMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        _selectedVisibility = currentMode switch
+        {
+            ActivityDisplayMode.PrivateOnly => 0,
+            ActivityDisplayMode.PublicOnly => 1,
+            _ => 1 // All mode defaults to Public
+        };
         
         // Try to get StreakService from DI
         _streaks = Application.Current?.Handler?.MauiContext?.Services.GetService<StreakService>();
@@ -184,7 +200,12 @@ public class ActivityCreationPage : ContentPage
         bool prefillStreakTracked = false,
         int? prefillStreakTargetDays = null)
     {
-        var page = new ActivityCreationPage(auth, activities, games);
+        var privacyMode = Application.Current?.Handler?.MauiContext?
+            .Services.GetService<PrivacyModeService>()
+            ?? throw new InvalidOperationException(
+                "PrivacyModeService is not available.");
+        var page = new ActivityCreationPage(
+            auth, activities, games, privacyMode);
         page._isModalMode = true;
         page._modalTcs = new TaskCompletionSource<Activity?>();
         page.GameId = gameId;
@@ -357,6 +378,91 @@ public class ActivityCreationPage : ContentPage
         };
         categorySuggestions.SelectionChanged += OnCategorySuggestionSelected;
         mainStack.Children.Add(categorySuggestions);
+
+        // ── Visibility ────────────────────────────────────────
+        var visSection = new VerticalStackLayout { Spacing = 6 };
+        visSection.Children.Add(new Label
+        {
+            Text = "Visibility",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222")
+        });
+        visSection.Children.Add(new Label
+        {
+            Text = "Controls which display mode shows this activity.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var visRow = new HorizontalStackLayout { Spacing = 8 };
+
+        Button MakeVisBtn(string text, int vis, string activeHex)
+        {
+            bool isActive = _selectedVisibility == vis;
+            var btn = new Button
+            {
+                Text = text,
+                FontSize = 12,
+                HeightRequest = 34,
+                CornerRadius = 6,
+                Padding = new Thickness(12, 0),
+                BackgroundColor = isActive
+                    ? Color.FromArgb(activeHex)
+                    : Color.FromArgb("#ECEFF1"),
+                TextColor = isActive
+                    ? Colors.White
+                    : Color.FromArgb("#37474F")
+            };
+            return btn;
+        }
+
+        var pubBtn = MakeVisBtn(" Public", 1, "#1565C0");
+        var privBtn = MakeVisBtn(" Private", 0, "#6A0DAD");
+        var bothBtn = MakeVisBtn(" Both", 2, "#2E7D32");
+
+        void UpdateVisBtns()
+        {
+            pubBtn.BackgroundColor = _selectedVisibility == 1
+                ? Color.FromArgb("#1565C0")
+                : Color.FromArgb("#ECEFF1");
+            pubBtn.TextColor = _selectedVisibility == 1
+                ? Colors.White : Color.FromArgb("#37474F");
+
+            privBtn.BackgroundColor = _selectedVisibility == 0
+                ? Color.FromArgb("#6A0DAD")
+                : Color.FromArgb("#ECEFF1");
+            privBtn.TextColor = _selectedVisibility == 0
+                ? Colors.White : Color.FromArgb("#37474F");
+
+            bothBtn.BackgroundColor = _selectedVisibility == 2
+                ? Color.FromArgb("#2E7D32")
+                : Color.FromArgb("#ECEFF1");
+            bothBtn.TextColor = _selectedVisibility == 2
+                ? Colors.White : Color.FromArgb("#37474F");
+        }
+
+        pubBtn.Clicked += (_, _) =>
+        {
+            _selectedVisibility = 1;
+            UpdateVisBtns();
+        };
+        privBtn.Clicked += (_, _) =>
+        {
+            _selectedVisibility = 0;
+            UpdateVisBtns();
+        };
+        bothBtn.Clicked += (_, _) =>
+        {
+            _selectedVisibility = 2;
+            UpdateVisBtns();
+        };
+
+        visRow.Children.Add(pubBtn);
+        visRow.Children.Add(privBtn);
+        visRow.Children.Add(bothBtn);
+        visSection.Children.Add(visRow);
+        mainStack.Children.Add(visSection);
 
         // Reward Type Picker
         mainStack.Children.Add(new Label
@@ -1273,6 +1379,8 @@ public class ActivityCreationPage : ContentPage
                 PercentOfLevel = percentOfLevel,
                 PercentCutoffLevel = percentCutoff,
                 ImagePath = _selectedImageFilename ?? "",
+                ActivityVisibility = _selectedVisibility,
+                VisibilityMigrated = true,
                 IsStreakTracked = chkStreakTracked.IsChecked,
                 StreakTargetDays = isStreakContainer ? streakTargetDays : 365,
                 IsStreakContainer = isStreakContainer,
