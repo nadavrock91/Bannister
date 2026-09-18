@@ -55,6 +55,17 @@ public class Game
     public DateTime? VisibilityChangedAt { get; set; }
 
     /// <summary>
+    /// Optional: when this game ended as a life chapter.
+    /// Independent of IsActive.
+    /// </summary>
+    public DateTime? LifePathEndedAt { get; set; }
+
+    /// <summary>
+    /// Optional reason for ending this life chapter.
+    /// </summary>
+    public string LifePathEndReason { get; set; } = "";
+
+    /// <summary>
     /// Computed property: Days remaining until 30-day deadline
     /// </summary>
     [Ignore]
