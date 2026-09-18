@@ -17,6 +17,8 @@ public class JournalEntry
 
     public DateTime? UpdatedAt { get; set; }
 
+    public bool WasAnalyzed { get; set; } = false;
+
     [Ignore]
     public string TimeDisplay =>
         CreatedAt.ToLocalTime().ToString("HH:mm");

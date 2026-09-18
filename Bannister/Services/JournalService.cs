@@ -53,6 +53,31 @@ public class JournalService
         return entry;
     }
 
+    public async Task<List<JournalEntry>> GetEntriesInRangeAsync(
+        string username, DateTime? from = null, DateTime? to = null)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var all = await conn.Table<JournalEntry>()
+            .Where(e => e.Username == username).ToListAsync();
+        if (from.HasValue) all = all.Where(e => e.CreatedAt >= from.Value).ToList();
+        if (to.HasValue) all = all.Where(e => e.CreatedAt <= to.Value).ToList();
+        return all.OrderBy(e => e.CreatedAt).ToList();
+    }
+
+    public async Task MarkEntriesAnalyzedAsync(string username, List<int> entryIds)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var entries = await conn.Table<JournalEntry>()
+            .Where(e => e.Username == username).ToListAsync();
+        foreach (var entry in entries.Where(e => entryIds.Contains(e.Id)))
+        {
+            entry.WasAnalyzed = true;
+            await conn.UpdateAsync(entry);
+        }
+    }
+
     public async Task UpdateAsync(JournalEntry entry)
     {
         await EnsureInitializedAsync();

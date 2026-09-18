@@ -141,6 +141,29 @@ public class JournalPage : ContentPage
         modeRow.Children.Add(aiTab);
         stack.Children.Add(modeRow);
 
+        var analyzeBtn = new Button
+        {
+            Text = " Analyze",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 6,
+            FontSize = 12,
+            HeightRequest = 32,
+            HorizontalOptions = LayoutOptions.End,
+            Padding = new Thickness(12, 0)
+        };
+        analyzeBtn.Clicked += async (_, _) =>
+        {
+            var services = Application.Current?.Handler?.MauiContext?.Services;
+            var analysis = services?.GetService<JournalAnalysisService>();
+            var provider = services?.GetService<IJournalAnalysisProvider>();
+            var db = services?.GetService<DatabaseService>();
+            if (analysis == null || provider == null || db == null) return;
+            await Navigation.PushAsync(new JournalAnalysisPage(
+                _auth, analysis, provider, _journalService, db));
+        };
+        stack.Children.Add(analyzeBtn);
+
         _soloSection = new VerticalStackLayout { Spacing = 8 };
         _entryEditor = new Editor
         {
