@@ -15,6 +15,10 @@ public class JournalPage : ContentPage
     private Label _dateLabel = null!;
     private DateTime _selectedDate = DateTime.Today;
     private bool _isSaving = false;
+    private bool _isAiMode = false;
+    private Editor _aiEditor = null!;
+    private VerticalStackLayout _soloSection = null!;
+    private VerticalStackLayout _aiSection = null!;
 
     public JournalPage(
         AuthService auth,
@@ -97,6 +101,47 @@ public class JournalPage : ContentPage
         stack.Children.Add(headerGrid);
         UpdateDateLabel();
 
+        var modeRow = new HorizontalStackLayout { Spacing = 0 };
+        var soloTab = new Button
+        {
+            Text = "✏️ Solo", FontSize = 13, HeightRequest = 36,
+            CornerRadius = 0, Padding = new Thickness(20, 0),
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White
+        };
+        var aiTab = new Button
+        {
+            Text = " AI Conversation", FontSize = 13,
+            HeightRequest = 36, CornerRadius = 0,
+            Padding = new Thickness(20, 0),
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F")
+        };
+        soloTab.Clicked += (_, _) =>
+        {
+            _isAiMode = false;
+            soloTab.BackgroundColor = Color.FromArgb("#1565C0");
+            soloTab.TextColor = Colors.White;
+            aiTab.BackgroundColor = Color.FromArgb("#ECEFF1");
+            aiTab.TextColor = Color.FromArgb("#37474F");
+            _soloSection.IsVisible = true;
+            _aiSection.IsVisible = false;
+        };
+        aiTab.Clicked += (_, _) =>
+        {
+            _isAiMode = true;
+            aiTab.BackgroundColor = Color.FromArgb("#6A1B9A");
+            aiTab.TextColor = Colors.White;
+            soloTab.BackgroundColor = Color.FromArgb("#ECEFF1");
+            soloTab.TextColor = Color.FromArgb("#37474F");
+            _soloSection.IsVisible = false;
+            _aiSection.IsVisible = true;
+        };
+        modeRow.Children.Add(soloTab);
+        modeRow.Children.Add(aiTab);
+        stack.Children.Add(modeRow);
+
+        _soloSection = new VerticalStackLayout { Spacing = 8 };
         _entryEditor = new Editor
         {
             Placeholder = "Write your thoughts...",
@@ -107,7 +152,7 @@ public class JournalPage : ContentPage
             FontSize = 14,
             Margin = new Thickness(0, 4)
         };
-        stack.Children.Add(_entryEditor);
+        _soloSection.Children.Add(_entryEditor);
 
         _saveBtn = new Button
         {
@@ -120,7 +165,46 @@ public class JournalPage : ContentPage
             FontAttributes = FontAttributes.Bold
         };
         _saveBtn.Clicked += async (_, _) => await SaveEntryAsync();
-        stack.Children.Add(_saveBtn);
+        _soloSection.Children.Add(_saveBtn);
+        stack.Children.Add(_soloSection);
+
+        _aiSection = new VerticalStackLayout
+        {
+            Spacing = 8,
+            IsVisible = false
+        };
+        _aiSection.Children.Add(new Label
+        {
+            Text = "Paste your full AI conversation below, " +
+                   "then tap Save.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        _aiEditor = new Editor
+        {
+            Placeholder = "Paste AI conversation here...",
+            HeightRequest = 180,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            FontSize = 13,
+            Margin = new Thickness(0, 4)
+        };
+        _aiSection.Children.Add(_aiEditor);
+        var aiSaveBtn = new Button
+        {
+            Text = " Save Conversation",
+            BackgroundColor = Color.FromArgb("#6A1B9A"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 14,
+            HeightRequest = 44,
+            FontAttributes = FontAttributes.Bold
+        };
+        aiSaveBtn.Clicked += async (_, _) => await SaveAiEntryAsync();
+        _aiSection.Children.Add(aiSaveBtn);
+        stack.Children.Add(_aiSection);
 
         stack.Children.Add(new BoxView
         {
@@ -242,7 +326,7 @@ public class JournalPage : ContentPage
                 title,
                 category: "Journal",
                 fullIdea: text,
-                notes: $"Journal entry — " +
+                notes: $"Solo journal entry — " +
                        $"{DateTime.Now:dd MMM yyyy HH:mm}");
 
             _entryEditor.Text = "";
@@ -254,6 +338,38 @@ public class JournalPage : ContentPage
         {
             _saveBtn.Text = " Save Entry";
             _saveBtn.IsEnabled = true;
+            _isSaving = false;
+        }
+    }
+
+    private async Task SaveAiEntryAsync()
+    {
+        if (_isSaving) return;
+        var text = _aiEditor.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        _isSaving = true;
+        try
+        {
+            await _journalService.CreateAsync(
+                _auth.CurrentUsername, text);
+
+            string title = text.Length > 60
+                ? text[..57] + "..."
+                : text;
+            await _ideasService.CreateIdeaAsync(
+                _auth.CurrentUsername,
+                title,
+                category: "Journal - AI",
+                fullIdea: text,
+                notes: $"AI conversation — " +
+                       $"{DateTime.Now:dd MMM yyyy HH:mm}");
+
+            _aiEditor.Text = "";
+            await LoadEntriesAsync();
+        }
+        finally
+        {
             _isSaving = false;
         }
     }
