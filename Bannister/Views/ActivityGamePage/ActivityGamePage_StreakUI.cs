@@ -308,24 +308,6 @@ public partial class ActivityGamePage
             HorizontalOptions = LayoutOptions.Center
         };
 
-        var activity = attemptVM.GetActivity();
-        bool imageOnly = activity?.IsImageOnly ?? false;
-        string? imagePath = activity?.ImagePath;
-
-        if (imageOnly &&
-            !string.IsNullOrWhiteSpace(imagePath) &&
-            File.Exists(imagePath))
-        {
-            contentStack.Children.Insert(0, new Image
-            {
-                Source = ImageSource.FromFile(imagePath),
-                HeightRequest = 60,
-                Aspect = Aspect.AspectFit,
-                HorizontalOptions = LayoutOptions.Center,
-                Margin = new Thickness(0, 0, 0, 6)
-            });
-        }
-
         var attemptLabel = new Label
         {
             Text = attemptVM.Name,
@@ -380,6 +362,27 @@ public partial class ActivityGamePage
                 TextColor = Color.FromArgb("#9E9E9E")
             };
             contentStack.Children.Add(dateLabel);
+        }
+
+        // IsImageOnly — show image at top of card
+        var cardActivity = attemptVM.GetActivity();
+        if (cardActivity?.IsImageOnly == true)
+        {
+            string? imgPath = cardActivity.ImagePath;
+            if (!string.IsNullOrWhiteSpace(imgPath) &&
+                File.Exists(imgPath))
+            {
+                var actImg = new Image
+                {
+                    Source = ImageSource.FromFile(imgPath),
+                    HeightRequest = 70,
+                    WidthRequest = 70,
+                    Aspect = Aspect.AspectFit,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(0, 4, 0, 8)
+                };
+                contentStack.Children.Insert(0, actImg);
+            }
         }
 
         grid.Children.Add(contentStack);
