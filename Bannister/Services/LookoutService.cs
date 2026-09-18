@@ -36,6 +36,17 @@ public class LookoutService
             .ToList();
     }
 
+    public async Task<List<LookoutScenario>> GetAllAsync(
+        string username)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<LookoutScenario>()
+            .Where(l => l.Username == username)
+            .OrderByDescending(l => l.DisplayDate)
+            .ToListAsync();
+    }
+
     public async Task<Dictionary<int, int>> GetCountsByDayAsync(string username, int year, int month)
     {
         await EnsureInitializedAsync();

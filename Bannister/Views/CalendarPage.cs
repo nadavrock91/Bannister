@@ -140,6 +140,26 @@ public class CalendarPage : ContentPage
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(dedupBtn, 5, 0);
 
+        var allLookuoutsBtn = new Button
+        {
+            Text = " Lookouts",
+            FontSize = 12,
+            HeightRequest = 38,
+            BackgroundColor = Color.FromArgb("#6A1B9A"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            Padding = new Thickness(12, 0)
+        };
+        allLookuoutsBtn.Clicked += async (_, _) =>
+        {
+            var page = new AllLookoutsPage(
+                _auth, _lookoutService);
+            await Navigation.PushAsync(page);
+        };
+        navRow.ColumnDefinitions.Add(
+            new ColumnDefinition(GridLength.Auto));
+        navRow.Add(allLookuoutsBtn, 6, 0);
+
         var moveBtn = new Button
         {
             Text = "📦 Move", FontSize = 12, HeightRequest = 38,
@@ -148,7 +168,7 @@ public class CalendarPage : ContentPage
         };
         moveBtn.Clicked += OnMoveTasksClicked;
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        navRow.Add(moveBtn, 6, 0);
+        navRow.Add(moveBtn, 7, 0);
 
         var postponedBtn = new Button
         {
@@ -159,7 +179,7 @@ public class CalendarPage : ContentPage
         };
         postponedBtn.Clicked += async (s, e) => await Navigation.PushAsync(new PostponedTasksManagementPage(_auth, _postponedTaskService));
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        navRow.Add(postponedBtn, 7, 0);
+        navRow.Add(postponedBtn, 8, 0);
 
         var routinesBtn = new Button
         {
@@ -169,7 +189,7 @@ public class CalendarPage : ContentPage
         };
         routinesBtn.Clicked += async (s, e) => await Navigation.PushAsync(new RoutinesPage(_auth, _routineService));
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        navRow.Add(routinesBtn, 8, 0);
+        navRow.Add(routinesBtn, 9, 0);
 
         _weekStartButton = new Button
         {
@@ -184,7 +204,7 @@ public class CalendarPage : ContentPage
         ToolTipProperties.SetText(_weekStartButton, "Change calendar week display order");
         _weekStartButton.Clicked += async (s, e) => await ChangeWeekStartAsync();
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        navRow.Add(_weekStartButton, 9, 0);
+        navRow.Add(_weekStartButton, 10, 0);
 
         mainStack.Children.Add(navRow);
 
