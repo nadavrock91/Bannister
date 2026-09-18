@@ -279,10 +279,15 @@ public partial class ActivityGamePage
     /// </summary>
     private Frame BuildStreakAttemptCard(StreakAttemptViewModel attemptVM)
     {
+        var cardActivity = attemptVM.GetActivity();
+
         var outerFrame = new Frame
         {
             WidthRequest = 180,
-            HeightRequest = 200,
+            HeightRequest = (cardActivity?.IsImageOnly == true &&
+                !string.IsNullOrWhiteSpace(cardActivity.ImagePath) &&
+                File.Exists(cardActivity.ImagePath))
+                ? 240 : 200,
             Padding = 0,
             CornerRadius = 12,
             HasShadow = true,
@@ -365,7 +370,6 @@ public partial class ActivityGamePage
         }
 
         // IsImageOnly — show image at top of card
-        var cardActivity = attemptVM.GetActivity();
         if (cardActivity?.IsImageOnly == true)
         {
             string? imgPath = cardActivity.ImagePath;
