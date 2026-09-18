@@ -11,6 +11,8 @@ namespace Bannister.Views;
 public partial class ActivityGamePage
 {
     private PrivacyModeService _privacyMode = null!;
+    private HashSet<string> _imageOnlyCategoryNames =
+        new(StringComparer.OrdinalIgnoreCase);
 
     private async Task LoadGameAsync()
     {
@@ -304,6 +306,11 @@ public partial class ActivityGamePage
 
         var allActivities = await GetCurrentActivitiesAsync();
 
+        _imageOnlyCategoryNames = allActivities
+            .Where(a => a.IsStreakContainer && a.IsImageOnly)
+            .Select(a => a.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         // Group categories case-insensitively, keeping the first occurrence's casing
         _categories = allActivities
             .Select(a => a.Category ?? "Misc")
@@ -361,7 +368,12 @@ public partial class ActivityGamePage
         categoryPicker.SelectedIndexChanged -= OnCategoryChanged;
         
         // Category picker gets ALL actual categories (no "All" or "Expired")
-        categoryPicker.ItemsSource = _categories;
+        categoryPicker.ItemsSource = _categories
+            .Select(category =>
+                _imageOnlyCategoryNames.Contains(category)
+                    ? " [Image Only]"
+                    : category)
+            .ToList();
         
         // Small delay to ensure ItemsSource is fully set (Windows MAUI fix)
         await Task.Delay(50);
@@ -716,7 +728,12 @@ public partial class ActivityGamePage
         if (_tempNonNavigableCategory != null)
         {
             // Show that we're viewing a category that has no activities today
-            lblPageInfo.Text = $"—/{_navigableCategories.Count}: {_tempNonNavigableCategory}";
+            string tempCategoryDisplay =
+                _imageOnlyCategoryNames.Contains(_tempNonNavigableCategory)
+                ? ""
+                : _tempNonNavigableCategory;
+            lblPageInfo.Text =
+                $"—/{_navigableCategories.Count}: {tempCategoryDisplay}";
             btnPrevPage.IsEnabled = _navigableCategories.Count > 0;
             btnNextPage.IsEnabled = _navigableCategories.Count > 0;
             
@@ -739,9 +756,14 @@ public partial class ActivityGamePage
             _currentCategoryIndex = 0;
 
         string currentCategory = _navigableCategories[_currentCategoryIndex];
+        string currentCategoryDisplay =
+            _imageOnlyCategoryNames.Contains(currentCategory)
+            ? ""
+            : currentCategory;
         
         // Show navigable count for arrows, but display current category
-        lblPageInfo.Text = $"{_currentCategoryIndex + 1}/{_navigableCategories.Count}: {currentCategory}";
+        lblPageInfo.Text =
+            $"{_currentCategoryIndex + 1}/{_navigableCategories.Count}: {currentCategoryDisplay}";
         btnPrevPage.IsEnabled = _currentCategoryIndex > 0;
         btnNextPage.IsEnabled = _currentCategoryIndex < _navigableCategories.Count - 1;
 

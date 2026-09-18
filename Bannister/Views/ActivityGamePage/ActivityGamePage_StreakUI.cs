@@ -1,3 +1,4 @@
+using Bannister.Converters;
 using Bannister.Models;
 using Bannister.Services;
 using Bannister.ViewModels;
@@ -284,13 +285,34 @@ public partial class ActivityGamePage
             HorizontalOptions = LayoutOptions.Center
         };
 
+        var streakActivity = attemptVM.GetActivity();
+        bool imageOnly = streakActivity.IsImageOnly;
+        string? imagePath = streakActivity.ImagePath;
+
+        if (imageOnly && !string.IsNullOrWhiteSpace(imagePath))
+        {
+            var activityImage = new Image
+            {
+                Source = new ImagePathConverter().Convert(
+                    imagePath, typeof(ImageSource), null,
+                    System.Globalization.CultureInfo.CurrentCulture)
+                    as ImageSource,
+                HeightRequest = 60,
+                Aspect = Aspect.AspectFit,
+                HorizontalOptions = LayoutOptions.Center,
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            contentStack.Children.Add(activityImage);
+        }
+
         var attemptLabel = new Label
         {
             Text = attemptVM.Name,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
-            TextColor = attemptVM.IsActive ? Color.FromArgb("#E65100") : Color.FromArgb("#757575")
+            TextColor = attemptVM.IsActive ? Color.FromArgb("#E65100") : Color.FromArgb("#757575"),
+            IsVisible = !imageOnly
         };
         contentStack.Children.Add(attemptLabel);
 

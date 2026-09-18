@@ -330,6 +330,12 @@ public class Activity
     /// Set to UtcNow on first load if null.
     /// </summary>
     public DateTime? VisibilityChangedAt { get; set; }
+
+    /// <summary>
+    /// When true, activity name is hidden in UI and only
+    /// the image is shown. Notes field serves as private label.
+    /// </summary>
+    public bool IsImageOnly { get; set; } = false;
     
     /// <summary>
     /// Returns true if this activity should be displayed today based on day restrictions

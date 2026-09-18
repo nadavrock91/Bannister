@@ -199,6 +199,9 @@ public partial class ActivityGamePage
         string notesOption = !string.IsNullOrEmpty(activity.Notes)
             ? "📝 Edit Notes"
             : "📝 Add Notes";
+        string imageOnlyOpt = activity.IsImageOnly
+            ? " Image Only: ON (tap to disable)"
+            : " Image Only: OFF (tap to enable)";
         string publicOpt = activity.ActivityVisibility switch
         {
             1 => " Visibility: Public",
@@ -234,6 +237,11 @@ public partial class ActivityGamePage
             if (optionMap.TryGetValue(key, out var label))
                 options.Add(label);
         }
+        int publicOptIndex = options.IndexOf(publicOpt);
+        if (publicOptIndex >= 0)
+            options.Insert(publicOptIndex, imageOnlyOpt);
+        else
+            options.Add(imageOnlyOpt);
 
         // Add streak attempt-specific options
         if (isStreakAttempt && attemptVM != null)
@@ -431,6 +439,28 @@ public partial class ActivityGamePage
             };
             await DisplayAlert("Visibility Set",
                 $"\"{activity.Name}\" → {visLabel}.", "OK");
+            await RefreshActivitiesAsync();
+        }
+        else if (action == " Image Only: ON (tap to disable)" ||
+                 action == " Image Only: OFF (tap to enable)")
+        {
+            activity.IsImageOnly = !activity.IsImageOnly;
+            await _activities.UpdateActivityAsync(activity);
+            if (activity.IsImageOnly &&
+                string.IsNullOrWhiteSpace(activity.Notes))
+            {
+                bool addNote = await DisplayAlert(
+                    "Add Private Label?",
+                    "Image Only mode is on. Would you like to " +
+                    "copy the activity name to Notes as a " +
+                    "private reminder?",
+                    "Yes, copy name to notes", "Skip");
+                if (addNote)
+                {
+                    activity.Notes = activity.Name;
+                    await _activities.UpdateActivityAsync(activity);
+                }
+            }
             await RefreshActivitiesAsync();
         }
     }

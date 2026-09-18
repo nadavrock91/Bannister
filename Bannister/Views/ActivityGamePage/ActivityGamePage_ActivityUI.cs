@@ -358,6 +358,11 @@ public partial class ActivityGamePage
         // Activity Image
         var image = new Image { Aspect = Aspect.AspectFit };
         image.SetBinding(Image.SourceProperty, new Binding("ImagePath", converter: new ImagePathConverter()));
+        if (activity.Activity.IsImageOnly)
+        {
+            image.IsVisible = true;
+            image.HeightRequest = 120;
+        }
         grid.Children.Add(image);
 
         // Activity Name
@@ -370,7 +375,8 @@ public partial class ActivityGamePage
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
             LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 2
+            MaxLines = 2,
+            IsVisible = !activity.Activity.IsImageOnly
         };
         nameLabel.SetBinding(Label.TextProperty, "Name");
         grid.Children.Add(nameLabel);
