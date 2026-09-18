@@ -1,4 +1,3 @@
-using Bannister.Converters;
 using Bannister.Models;
 using Bannister.Services;
 using Bannister.ViewModels;
@@ -66,6 +65,30 @@ public partial class ActivityGamePage
             TextColor = Color.FromArgb("#E65100")
         };
         infoStack.Children.Add(titleLabel);
+
+        bool imageOnly = streakActivity.IsImageOnly;
+        string? imagePath = streakActivity.ImagePath;
+
+        if (imageOnly)
+        {
+            titleLabel.IsVisible = false;
+
+            if (!string.IsNullOrWhiteSpace(imagePath) &&
+                File.Exists(imagePath))
+            {
+                var headerImg = new Image
+                {
+                    Source = ImageSource.FromFile(imagePath),
+                    HeightRequest = 50,
+                    WidthRequest = 50,
+                    Aspect = Aspect.AspectFit,
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Start,
+                    Margin = new Thickness(0, 0, 0, 2)
+                };
+                infoStack.Children.Insert(0, headerImg);
+            }
+        }
         
         var activeAttempt = attempts.FirstOrDefault(a => a.IsActive);
         string attemptInfo = activeAttempt != null 
@@ -285,24 +308,22 @@ public partial class ActivityGamePage
             HorizontalOptions = LayoutOptions.Center
         };
 
-        var streakActivity = attemptVM.GetActivity();
-        bool imageOnly = streakActivity.IsImageOnly;
-        string? imagePath = streakActivity.ImagePath;
+        var activity = attemptVM.GetActivity();
+        bool imageOnly = activity?.IsImageOnly ?? false;
+        string? imagePath = activity?.ImagePath;
 
-        if (imageOnly && !string.IsNullOrWhiteSpace(imagePath))
+        if (imageOnly &&
+            !string.IsNullOrWhiteSpace(imagePath) &&
+            File.Exists(imagePath))
         {
-            var activityImage = new Image
+            contentStack.Children.Insert(0, new Image
             {
-                Source = new ImagePathConverter().Convert(
-                    imagePath, typeof(ImageSource), null,
-                    System.Globalization.CultureInfo.CurrentCulture)
-                    as ImageSource,
+                Source = ImageSource.FromFile(imagePath),
                 HeightRequest = 60,
                 Aspect = Aspect.AspectFit,
                 HorizontalOptions = LayoutOptions.Center,
-                Margin = new Thickness(0, 0, 0, 4)
-            };
-            contentStack.Children.Add(activityImage);
+                Margin = new Thickness(0, 0, 0, 6)
+            });
         }
 
         var attemptLabel = new Label
@@ -311,8 +332,7 @@ public partial class ActivityGamePage
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
-            TextColor = attemptVM.IsActive ? Color.FromArgb("#E65100") : Color.FromArgb("#757575"),
-            IsVisible = !imageOnly
+            TextColor = attemptVM.IsActive ? Color.FromArgb("#E65100") : Color.FromArgb("#757575")
         };
         contentStack.Children.Add(attemptLabel);
 
