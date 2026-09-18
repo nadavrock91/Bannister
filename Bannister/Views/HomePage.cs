@@ -2690,7 +2690,20 @@ public class HomePage : ContentPage
 
     private async void OnLifePathsClicked(object? sender, EventArgs e)
     {
-        var page = new LifePathsPage(_auth, _games, _db);
+        var lifePathService =
+            Application.Current?.Handler
+                ?.MauiContext?.Services
+                .GetService<LifePathService>();
+        var privacyMode =
+            Application.Current?.Handler
+                ?.MauiContext?.Services
+                .GetService<PrivacyModeService>();
+        var page = new LifePathsPage(
+            _auth,
+            _games,
+            _db,
+            lifePathService,
+            privacyMode);
         await Navigation.PushAsync(page);
     }
 
