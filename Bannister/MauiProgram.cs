@@ -102,6 +102,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<HomeQuickAccessService>();
         builder.Services.AddSingleton<HomeButtonVisibilityService>();
         builder.Services.AddSingleton<PrivacyModeService>();
+        builder.Services.AddSingleton<DailyReminderService>();
         builder.Services.AddSingleton<ContextMenuOrderService>();
         builder.Services.AddSingleton<ListsService>();
         builder.Services.AddSingleton<CustomGameService>();
@@ -216,6 +217,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SortActivitiesPage>();
         builder.Services.AddTransient<SortGamesPage>();
         builder.Services.AddTransient<PrivacyLogPage>();
+        builder.Services.AddTransient<DailyRemindersPage>();
 
 
 #if DEBUG

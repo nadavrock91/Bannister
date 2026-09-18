@@ -20,6 +20,7 @@ public class CalendarPage : ContentPage
     private readonly LookoutService _lookoutService;
     private readonly RoutineService _routineService;
     private readonly PostponedTaskService _postponedTaskService;
+    private readonly DailyReminderService _reminderService;
 
     private Label _monthLabel;
     private Grid _calendarGrid;
@@ -41,7 +42,7 @@ public class CalendarPage : ContentPage
     private Dictionary<int, int> _lookoutCounts = new();
     private Dictionary<int, int> _postponedCounts = new();
 
-    public CalendarPage(AuthService auth, TaskService taskService, IdeasService? ideasService = null, DatabaseService? db = null, LookoutService? lookoutService = null, RoutineService? routineService = null, PostponedTaskService? postponedTaskService = null)
+    public CalendarPage(AuthService auth, TaskService taskService, IdeasService? ideasService = null, DatabaseService? db = null, LookoutService? lookoutService = null, RoutineService? routineService = null, PostponedTaskService? postponedTaskService = null, DailyReminderService? reminderService = null)
     {
         _auth = auth;
         _taskService = taskService;
@@ -50,6 +51,11 @@ public class CalendarPage : ContentPage
         _lookoutService = lookoutService ?? new LookoutService(_db);
         _routineService = routineService ?? new RoutineService(_db, _auth);
         _postponedTaskService = postponedTaskService ?? new PostponedTaskService(_db);
+        _reminderService = reminderService
+            ?? Application.Current?.Handler?.MauiContext?
+                .Services.GetService<DailyReminderService>()
+            ?? throw new InvalidOperationException(
+                "DailyReminderService not registered.");
         Title = "Calendar";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
@@ -205,6 +211,26 @@ public class CalendarPage : ContentPage
         _weekStartButton.Clicked += async (s, e) => await ChangeWeekStartAsync();
         navRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         navRow.Add(_weekStartButton, 10, 0);
+
+        var remindersBtn = new Button
+        {
+            Text = " Reminders",
+            FontSize = 12,
+            HeightRequest = 38,
+            BackgroundColor = Color.FromArgb("#E65100"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            Padding = new Thickness(12, 0)
+        };
+        remindersBtn.Clicked += async (_, _) =>
+        {
+            var page = new DailyRemindersPage(
+                _auth, _reminderService, _taskService);
+            await Navigation.PushAsync(page);
+        };
+        navRow.ColumnDefinitions.Add(
+            new ColumnDefinition(GridLength.Auto));
+        navRow.Add(remindersBtn, 11, 0);
 
         mainStack.Children.Add(navRow);
 
