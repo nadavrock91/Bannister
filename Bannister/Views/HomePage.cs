@@ -120,6 +120,7 @@ public class HomePage : ContentPage
     private Button _btnAudioLibrary;
     private Button _btnMoneyManagement;
     private Button _btnLists;
+    private Button _btnJournal = null!;
     private Button _btnToBeTested;
     private Button _btnVideoGeneration;
     private Button _btnWebsiteBuilder;
@@ -388,6 +389,13 @@ public class HomePage : ContentPage
         _btnLists = CreateButton("Lists", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
         _btnLists.Clicked += OnListsClicked;
         navButtons.Add(("Lists", _btnLists));
+
+        _btnJournal = CreateButton(
+            "Journal",
+            Color.FromArgb("#FFF8E1"),
+            Color.FromArgb("#E65100"));
+        _btnJournal.Clicked += OnJournalClicked;
+        navButtons.Add(("Journal", _btnJournal));
 
         _btnMoneyManagement = CreateButton("Money Management", Color.FromArgb("#E8F5E9"), Color.FromArgb("#1B5E20"));
         _btnMoneyManagement.Clicked += OnMoneyManagementClicked;
@@ -876,6 +884,7 @@ public class HomePage : ContentPage
             "Image Production" => OnImageProductionClicked,
             "Learning" => OnLearningClicked,
             "Lists" => OnListsClicked,
+            "Journal" => OnJournalClicked,
             "Money Management" => OnMoneyManagementClicked,
             "Music Production" => OnMusicProductionClicked,
             "Prompts" => OnPromptsClicked,
@@ -2652,6 +2661,21 @@ public class HomePage : ContentPage
     private async void OnListsClicked(object? sender, EventArgs e)
     {
         var page = new ListsPage(_auth, _listsService);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnJournalClicked(object? sender, EventArgs e)
+    {
+        var journalService =
+            Application.Current?.Handler?.MauiContext?
+            .Services.GetService<JournalService>();
+        var ideasService =
+            Application.Current?.Handler?.MauiContext?
+            .Services.GetService<IdeasService>();
+        if (journalService == null || ideasService == null)
+            return;
+        var page = new JournalPage(
+            _auth, journalService, ideasService);
         await Navigation.PushAsync(page);
     }
 
