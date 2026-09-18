@@ -76,8 +76,14 @@ public partial class ActivityGamePage
             if (!string.IsNullOrWhiteSpace(imagePath))
             {
                 string resolvedHeaderPath = Path.IsPathRooted(imagePath)
-                    ? imagePath
-                    : Path.Combine(FileSystem.AppDataDirectory, imagePath);
+                    ? (File.Exists(imagePath)
+                        ? imagePath
+                        : Path.Combine(FileSystem.AppDataDirectory,
+                            "ActivityImages",
+                            Path.GetFileName(imagePath)))
+                    : Path.Combine(FileSystem.AppDataDirectory,
+                        "ActivityImages",
+                        imagePath);
 
                 if (File.Exists(resolvedHeaderPath))
                 {
@@ -676,8 +682,13 @@ public partial class ActivityGamePage
         {
             string resolvedPath = Path.IsPathRooted(
                 streakContainer.ImagePath)
-                ? streakContainer.ImagePath
+                ? (File.Exists(streakContainer.ImagePath)
+                    ? streakContainer.ImagePath
+                    : Path.Combine(FileSystem.AppDataDirectory,
+                        "ActivityImages",
+                        Path.GetFileName(streakContainer.ImagePath)))
                 : Path.Combine(FileSystem.AppDataDirectory,
+                    "ActivityImages",
                     streakContainer.ImagePath);
 
             if (File.Exists(resolvedPath))
