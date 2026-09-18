@@ -73,20 +73,26 @@ public partial class ActivityGamePage
         {
             titleLabel.IsVisible = false;
 
-            if (!string.IsNullOrWhiteSpace(imagePath) &&
-                File.Exists(imagePath))
+            if (!string.IsNullOrWhiteSpace(imagePath))
             {
-                var headerImg = new Image
+                string resolvedHeaderPath = Path.IsPathRooted(imagePath)
+                    ? imagePath
+                    : Path.Combine(FileSystem.AppDataDirectory, imagePath);
+
+                if (File.Exists(resolvedHeaderPath))
                 {
-                    Source = ImageSource.FromFile(imagePath),
-                    HeightRequest = 50,
-                    WidthRequest = 50,
-                    Aspect = Aspect.AspectFit,
-                    VerticalOptions = LayoutOptions.Center,
-                    HorizontalOptions = LayoutOptions.Start,
-                    Margin = new Thickness(0, 0, 0, 2)
-                };
-                infoStack.Children.Insert(0, headerImg);
+                    var headerImg = new Image
+                    {
+                        Source = ImageSource.FromFile(resolvedHeaderPath),
+                        HeightRequest = 50,
+                        WidthRequest = 50,
+                        Aspect = Aspect.AspectFit,
+                        VerticalOptions = LayoutOptions.Center,
+                        HorizontalOptions = LayoutOptions.Start,
+                        Margin = new Thickness(0, 0, 0, 2)
+                    };
+                    infoStack.Children.Insert(0, headerImg);
+                }
             }
         }
         
@@ -279,15 +285,10 @@ public partial class ActivityGamePage
     /// </summary>
     private Frame BuildStreakAttemptCard(StreakAttemptViewModel attemptVM)
     {
-        var cardActivity = attemptVM.GetActivity();
-
         var outerFrame = new Frame
         {
             WidthRequest = 180,
-            HeightRequest = (cardActivity?.IsImageOnly == true &&
-                !string.IsNullOrWhiteSpace(cardActivity.ImagePath) &&
-                File.Exists(cardActivity.ImagePath))
-                ? 240 : 200,
+            HeightRequest = 200,
             Padding = 0,
             CornerRadius = 12,
             HasShadow = true,
@@ -367,26 +368,6 @@ public partial class ActivityGamePage
                 TextColor = Color.FromArgb("#9E9E9E")
             };
             contentStack.Children.Add(dateLabel);
-        }
-
-        // IsImageOnly — show image at top of card
-        if (cardActivity?.IsImageOnly == true)
-        {
-            string? imgPath = cardActivity.ImagePath;
-            if (!string.IsNullOrWhiteSpace(imgPath) &&
-                File.Exists(imgPath))
-            {
-                var actImg = new Image
-                {
-                    Source = ImageSource.FromFile(imgPath),
-                    HeightRequest = 70,
-                    WidthRequest = 70,
-                    Aspect = Aspect.AspectFit,
-                    HorizontalOptions = LayoutOptions.Center,
-                    Margin = new Thickness(0, 4, 0, 8)
-                };
-                contentStack.Children.Insert(0, actImg);
-            }
         }
 
         grid.Children.Add(contentStack);
@@ -689,6 +670,28 @@ public partial class ActivityGamePage
         
         var header = BuildStreakContainerHeader(streakContainer, attempts);
         mainStack.Children.Add(header);
+
+        if (streakContainer.IsImageOnly &&
+            !string.IsNullOrWhiteSpace(streakContainer.ImagePath))
+        {
+            string resolvedPath = Path.IsPathRooted(
+                streakContainer.ImagePath)
+                ? streakContainer.ImagePath
+                : Path.Combine(FileSystem.AppDataDirectory,
+                    streakContainer.ImagePath);
+
+            if (File.Exists(resolvedPath))
+            {
+                mainStack.Children.Add(new Image
+                {
+                    Source = ImageSource.FromFile(resolvedPath),
+                    HeightRequest = 180,
+                    Aspect = Aspect.AspectFit,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(0, 8, 0, 0)
+                });
+            }
+        }
 
         var goalsHeader = await BuildStreakGoalsHeaderAsync(streakContainer, attempts);
         mainStack.Children.Add(goalsHeader);
