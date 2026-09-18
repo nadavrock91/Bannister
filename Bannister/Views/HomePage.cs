@@ -121,6 +121,7 @@ public class HomePage : ContentPage
     private Button _btnMoneyManagement;
     private Button _btnLists;
     private Button _btnJournal = null!;
+    private Button _btnLifePaths = null!;
     private Button _btnToBeTested;
     private Button _btnVideoGeneration;
     private Button _btnWebsiteBuilder;
@@ -396,6 +397,13 @@ public class HomePage : ContentPage
             Color.FromArgb("#E65100"));
         _btnJournal.Clicked += OnJournalClicked;
         navButtons.Add(("Journal", _btnJournal));
+
+        _btnLifePaths = CreateButton(
+            "Life Paths",
+            Color.FromArgb("#0D1117"),
+            Color.FromArgb("#58A6FF"));
+        _btnLifePaths.Clicked += OnLifePathsClicked;
+        navButtons.Add(("Life Paths", _btnLifePaths));
 
         _btnMoneyManagement = CreateButton("Money Management", Color.FromArgb("#E8F5E9"), Color.FromArgb("#1B5E20"));
         _btnMoneyManagement.Clicked += OnMoneyManagementClicked;
@@ -885,6 +893,7 @@ public class HomePage : ContentPage
             "Learning" => OnLearningClicked,
             "Lists" => OnListsClicked,
             "Journal" => OnJournalClicked,
+            "Life Paths" => OnLifePathsClicked,
             "Money Management" => OnMoneyManagementClicked,
             "Music Production" => OnMusicProductionClicked,
             "Prompts" => OnPromptsClicked,
@@ -2676,6 +2685,12 @@ public class HomePage : ContentPage
             return;
         var page = new JournalPage(
             _auth, journalService, ideasService);
+        await Navigation.PushAsync(page);
+    }
+
+    private async void OnLifePathsClicked(object? sender, EventArgs e)
+    {
+        var page = new LifePathsPage(_auth, _games, _db);
         await Navigation.PushAsync(page);
     }
 

@@ -220,6 +220,7 @@ public static class MauiProgram
         builder.Services.AddTransient<PrivacyLogPage>();
         builder.Services.AddTransient<DailyRemindersPage>();
         builder.Services.AddTransient<JournalPage>();
+        builder.Services.AddTransient<LifePathsPage>();
 
 
 #if DEBUG
