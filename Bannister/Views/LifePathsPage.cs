@@ -90,7 +90,8 @@ public class LifePathsPage : ContentPage
                 "lifepaths.html");
             await File.WriteAllTextAsync(htmlPath, BuildHtmlArtifact(json));
             _statusLabel.Text = $"✓ Timeline ready — {data.Games.Count} games, {data.TotalLogs} activity records";
-            await Launcher.OpenAsync(new Uri($"file://{htmlPath}"));
+            await Navigation.PushAsync(
+                new LifePathWebViewPage(htmlPath));
         }
         catch (Exception ex) { _statusLabel.Text = $"Error: {ex.Message}"; }
         finally { _generateBtn.IsEnabled = true; }
@@ -291,5 +292,24 @@ public class LifePathsPage : ContentPage
         public DateTime End { get; set; }
         public bool IsGap { get; set; }
         public int LogCount { get; set; }
+    }
+}
+
+public class LifePathWebViewPage : ContentPage
+{
+    public LifePathWebViewPage(string htmlPath)
+    {
+        Title = "Life Paths";
+        BackgroundColor = Color.FromArgb("#0D1117");
+        var webView = new WebView
+        {
+            Source = new UrlWebViewSource
+            {
+                Url = $"file://{htmlPath}"
+            },
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+        Content = new Grid { Children = { webView } };
     }
 }

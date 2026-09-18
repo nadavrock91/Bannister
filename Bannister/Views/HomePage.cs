@@ -400,8 +400,8 @@ public class HomePage : ContentPage
 
         _btnLifePaths = CreateButton(
             "Life Paths",
-            Color.FromArgb("#0D1117"),
-            Color.FromArgb("#58A6FF"));
+            Color.FromArgb("#E8EAF6"),
+            Color.FromArgb("#3949AB"));
         _btnLifePaths.Clicked += OnLifePathsClicked;
         navButtons.Add(("Life Paths", _btnLifePaths));
 
