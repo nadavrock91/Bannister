@@ -34,4 +34,14 @@ public class UserListItem
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    /// <summary>
+    /// Priority: 1=High 2=Medium 3=Low 0=None
+    /// </summary>
+    public int Priority { get; set; } = 0;
+
+    /// <summary>
+    /// True when this item has been executed/done.
+    /// </summary>
+    public bool IsExecuted { get; set; } = false;
 }

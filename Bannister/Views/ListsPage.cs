@@ -190,7 +190,7 @@ public class ListsPage : ContentPage
             return;
         }
 
-        var headers = new List<string> { "Id", "ListOrder", "Text", "Notes", "CreatedAt", "UpdatedAt" };
+        var headers = new List<string> { "Id", "ListOrder", "Text", "Notes", "Priority", "CreatedAt", "UpdatedAt", "Done" };
         var fullRows = _currentItems.Select(BuildGridRow).ToList();
         var displayRows = fullRows
             .Select(row => row.Select(v => v.Length > 50 ? v.Substring(0, 47) + "..." : v).ToList())
@@ -207,7 +207,13 @@ public class ListsPage : ContentPage
             .OnCellTapped((s, e) =>
             {
                 if (e.RowIndex >= 0 && e.RowIndex < _currentItems.Count)
+                {
                     _selectedItem = _currentItems[e.RowIndex];
+                    if (e.ColumnName == "Priority")
+                        _ = CyclePriorityAsync(_selectedItem);
+                    else if (e.ColumnName == "Done")
+                        _ = ToggleDoneAsync(_selectedItem);
+                }
             })
             .WithUpdateCallback(async (idValue, columnName, newValue) =>
             {
@@ -223,15 +229,40 @@ public class ListsPage : ContentPage
 
     private static List<string> BuildGridRow(UserListItem item)
     {
+        string priorityDisplay = item.Priority switch
+        {
+            1 => " High",
+            2 => " Med",
+            3 => " Low",
+            _ => "—"
+        };
+
         return new List<string>
         {
             item.Id.ToString(CultureInfo.InvariantCulture),
             item.SortOrder.ToString(CultureInfo.InvariantCulture),
             item.Text,
             item.Notes ?? "",
+            priorityDisplay,
             item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
-            item.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+            item.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
+            item.IsExecuted ? "✅" : "⬜"
         };
+    }
+
+    private async Task CyclePriorityAsync(UserListItem item)
+    {
+        item.Priority = (item.Priority + 1) % 4;
+        await _lists.UpdateItemAsync(item);
+        await LoadItemsAsync();
+    }
+
+    private async Task ToggleDoneAsync(UserListItem item)
+    {
+        item.IsExecuted = !item.IsExecuted;
+        item.UpdatedAt = DateTime.Now;
+        await _lists.UpdateItemAsync(item);
+        await LoadItemsAsync();
     }
 
     private async Task CreateListAsync()
@@ -257,7 +288,15 @@ public class ListsPage : ContentPage
             return;
 
         string? notes = await DisplayPromptAsync("Notes", "Optional notes:", "Save", "Skip", initialValue: "");
-        await _lists.AddItemAsync(_selectedList.Id, text.Trim(), notes ?? "");
+        string? priorityStr = await DisplayActionSheet("Priority", "Skip (None)", null, " High", " Medium", " Low");
+        int priority = priorityStr switch
+        {
+            " High" => 1,
+            " Medium" => 2,
+            " Low" => 3,
+            _ => 0
+        };
+        await _lists.AddItemAsync(_selectedList.Id, text.Trim(), notes ?? "", priority);
         await LoadItemsAsync();
     }
 

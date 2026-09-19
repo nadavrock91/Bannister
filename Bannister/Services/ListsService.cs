@@ -69,7 +69,7 @@ public class ListsService
             .ToListAsync();
     }
 
-    public async Task<UserListItem> AddItemAsync(int listId, string text, string notes = "")
+    public async Task<UserListItem> AddItemAsync(int listId, string text, string notes = "", int priority = 0)
     {
         await EnsureInitializedAsync();
         var items = await GetItemsAsync(listId);
@@ -79,6 +79,7 @@ public class ListsService
             SortOrder = items.Count == 0 ? 1 : items.Max(i => i.SortOrder) + 1,
             Text = text.Trim(),
             Notes = notes.Trim(),
+            Priority = priority,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
