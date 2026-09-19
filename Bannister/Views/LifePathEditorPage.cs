@@ -23,15 +23,30 @@ public class RowBarDrawable : IDrawable
         canvas.FillColor = Color.FromArgb("#161B22"); canvas.FillRoundedRectangle(0, 2, Width, Height - 4, 3);
         if (IsGameRow)
         {
-            foreach (var p in Periods.Where(p => !p.IsGap)) { float x0 = Math.Max(0, X(p.Start)), x1 = Math.Min(Width, X(p.End)); if (x1 <= x0) continue; canvas.FillColor = BarColor.WithAlpha(Math.Min(1f, .3f + p.LogCount / 250f)); canvas.FillRoundedRectangle(x0, 2, x1 - x0, Height - 4, 2); }
-            float segY = Height - 5f; float segH = 4f;
             foreach (var seg in FocusSegments)
             {
                 float sx0 = Math.Max(0, X(seg.Start));
                 float sx1 = Math.Min(Width, X(seg.End ?? DateTime.Now));
                 if (sx1 <= sx0) continue;
-                canvas.FillColor = seg.BlockColor;
-                canvas.FillRoundedRectangle(sx0, segY, sx1 - sx0, segH, 2);
+                canvas.FillColor = seg.BlockColor.WithAlpha(0.55f);
+                canvas.FillRoundedRectangle(sx0, 2, sx1 - sx0, Height - 4, 2);
+            }
+            foreach (var p in Periods)
+            {
+                if (p.IsGap) continue;
+                float x0 = Math.Max(0, X(p.Start));
+                float x1 = Math.Min(Width, X(p.End));
+                if (x1 <= x0) continue;
+                float alpha = Math.Min(0.9f, 0.2f + p.LogCount / 150f);
+                canvas.FillColor = Colors.White.WithAlpha(alpha);
+                canvas.FillRoundedRectangle(x0, 2, x1 - x0, 4, 1);
+            }
+            float tx = X(DateTime.Now);
+            if (tx > 0 && tx < Width)
+            {
+                canvas.StrokeColor = Color.FromArgb("#3FB950");
+                canvas.StrokeSize = 1.5f;
+                canvas.DrawLine(tx, 0, tx, Height);
             }
         }
         else
@@ -39,7 +54,16 @@ public class RowBarDrawable : IDrawable
             float x0 = Math.Max(0, X(BlockStart)), x1 = Math.Min(Width, X(BlockEnd ?? DateTime.Now)); if (x1 < x0 + 2) x1 = x0 + 2; canvas.FillColor = IsSelected ? BarColor : BarColor.WithAlpha(.72f); canvas.FillRoundedRectangle(x0, 2, x1 - x0, Height - 4, 3); if (IsSelected) { canvas.StrokeColor = Colors.White; canvas.StrokeSize = 1.5f; canvas.DrawRoundedRectangle(x0, 2, x1 - x0, Height - 4, 3); }
             if (x1 - x0 > 50) { int days = (int)((BlockEnd ?? DateTime.Now) - BlockStart).TotalDays; string duration = days >= 365 ? $"{days / 365}y" : days >= 30 ? $"{days / 30}mo" : $"{days}d"; canvas.FontColor = Colors.White.WithAlpha(.85f); canvas.FontSize = 8; canvas.DrawString(duration, x0 + 4, 2, x1 - x0 - 6, Height - 4, HorizontalAlignment.Left, VerticalAlignment.Center); }
         }
-        float today = X(DateTime.Now); if (today > 0 && today < Width) { canvas.StrokeColor = Color.FromArgb("#3FB950").WithAlpha(IsGameRow ? 1f : .5f); canvas.StrokeSize = IsGameRow ? 1.5f : 1f; canvas.DrawLine(today, 0, today, Height); }
+        if (!IsGameRow)
+        {
+            float today = X(DateTime.Now);
+            if (today > 0 && today < Width)
+            {
+                canvas.StrokeColor = Color.FromArgb("#3FB950").WithAlpha(.5f);
+                canvas.StrokeSize = 1f;
+                canvas.DrawLine(today, 0, today, Height);
+            }
+        }
     }
 }
 
