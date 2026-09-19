@@ -35,6 +35,7 @@ public class ActivityCreationPage : ContentPage
     // For modal usage - returns created activity
     private TaskCompletionSource<Activity?>? _modalTcs;
     private bool _isModalMode = false;
+    private bool _isImageOnly = false;
 
     // UI Controls
     private Entry txtName;
@@ -463,6 +464,35 @@ public class ActivityCreationPage : ContentPage
         visRow.Children.Add(bothBtn);
         visSection.Children.Add(visRow);
         mainStack.Children.Add(visSection);
+
+        // ── Image Only ───────────────────────────────────────
+        var imageOnlyRow = new HorizontalStackLayout
+        {
+            Spacing = 10,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        var imageOnlyCheck = new CheckBox
+        {
+            IsChecked = false,
+            Color = Color.FromArgb("#1565C0")
+        };
+        imageOnlyCheck.CheckedChanged += (_, e) =>
+        {
+            _isImageOnly = e.Value;
+        };
+        imageOnlyRow.Children.Add(imageOnlyCheck);
+        imageOnlyRow.Children.Add(new Label
+        {
+            Text = " Image Only mode\n" +
+                   "(hides activity name in UI, " +
+                   "copies name to Notes " +
+                   "as private label)",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        mainStack.Children.Add(imageOnlyRow);
 
         // Reward Type Picker
         mainStack.Children.Add(new Label
@@ -1379,6 +1409,8 @@ public class ActivityCreationPage : ContentPage
                 PercentOfLevel = percentOfLevel,
                 PercentCutoffLevel = percentCutoff,
                 ImagePath = _selectedImageFilename ?? "",
+                IsImageOnly = _isImageOnly,
+                Notes = _isImageOnly ? activityName : "",
                 ActivityVisibility = _selectedVisibility,
                 VisibilityMigrated = true,
                 IsStreakTracked = chkStreakTracked.IsChecked,

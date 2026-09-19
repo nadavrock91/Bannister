@@ -153,14 +153,55 @@ public class AutoAwardConfirmationPage : ContentPage
         int totalExp = expPerDay * pendingDays;
 
         var infoStack = new VerticalStackLayout { Spacing = 4 };
-        infoStack.Children.Add(new Label
+        if (activity.IsImageOnly &&
+            !string.IsNullOrWhiteSpace(activity.ImagePath))
         {
-            Text = activity.Name,
-            FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333333"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
+            string resolvedPath =
+                Path.IsPathRooted(activity.ImagePath)
+                ? (File.Exists(activity.ImagePath)
+                    ? activity.ImagePath
+                    : Path.Combine(
+                        FileSystem.AppDataDirectory,
+                        "ActivityImages",
+                        Path.GetFileName(activity.ImagePath)))
+                : Path.Combine(
+                    FileSystem.AppDataDirectory,
+                    "ActivityImages",
+                    activity.ImagePath);
+
+            if (File.Exists(resolvedPath))
+            {
+                infoStack.Children.Add(new Image
+                {
+                    Source = ImageSource.FromFile(resolvedPath),
+                    HeightRequest = 60,
+                    WidthRequest = 60,
+                    Aspect = Aspect.AspectFit,
+                    HorizontalOptions = LayoutOptions.Start,
+                    Margin = new Thickness(0, 0, 0, 4)
+                });
+            }
+            else
+            {
+                infoStack.Children.Add(new Label
+                {
+                    Text = "",
+                    FontSize = 28,
+                    TextColor = Color.FromArgb("#999")
+                });
+            }
+        }
+        else
+        {
+            infoStack.Children.Add(new Label
+            {
+                Text = activity.Name,
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#333333"),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+        }
         infoStack.Children.Add(new Label
         {
             Text = $"{GetFrequencyDescription(activity)} - {pendingDays} pending day{(pendingDays == 1 ? "" : "s")}",
