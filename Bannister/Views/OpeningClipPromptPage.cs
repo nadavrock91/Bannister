@@ -8,6 +8,7 @@ public class OpeningClipPromptPage : ContentPage
     private readonly AuthService _auth;
     private readonly CustomPromptService _customPrompts;
     private readonly DoNotService _doNotService;
+    private ClipPromptTemplateService? _templateService;
 
     private const string Area = "OpeningClipPrompts";
     private const string FoundationStorageKey_Prefix = "opening_clip_foundation_";
@@ -23,6 +24,14 @@ public class OpeningClipPromptPage : ContentPage
     // Stage 3 — build & copy
     private Button _buildButton = null!;
     private Label _outputStatusLabel = null!;
+    private VerticalStackLayout _templateList = null!;
+    private Entry _templateNameEntry = null!;
+    private Editor _templateBodyEditor = null!;
+    private Editor _templateExtraDoNotsEditor = null!;
+    private Button _templateSaveButton = null!;
+    private int? _editingTemplateId;
+    private List<ClipPromptTemplate> _templates = new();
+    private VerticalStackLayout _templatePickerContainer = null!;
 
     // Stage 4 — paste response
     private Button _pasteResponseButton = null!;
@@ -37,11 +46,13 @@ public class OpeningClipPromptPage : ContentPage
     public OpeningClipPromptPage(
         AuthService auth,
         CustomPromptService customPrompts,
-        DoNotService doNotService)
+        DoNotService doNotService,
+        ClipPromptTemplateService? templateService = null)
     {
         _auth = auth;
         _customPrompts = customPrompts;
         _doNotService = doNotService;
+        _templateService = templateService;
         Title = "Opening Clip Prompts";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -52,6 +63,7 @@ public class OpeningClipPromptPage : ContentPage
         base.OnAppearing();
         await LoadFoundationAsync();
         await RefreshDoNotListAsync();
+        await RefreshTemplateListAsync();
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -89,7 +101,64 @@ public class OpeningClipPromptPage : ContentPage
         stack.Children.Add(BuildStageCard(
             "Stage 5 — Generated Prompts", BuildStage5Content()));
 
+        stack.Children.Insert(0, BuildStageCard(
+            "Stage 0 — Prompt Templates", BuildStage0Content()));
+
         Content = new ScrollView { Content = stack };
+    }
+
+    private View BuildStage0Content()
+    {
+        var v = new VerticalStackLayout { Spacing = 8 };
+        v.Children.Add(new Label
+        {
+            Text = "Save reusable prompt bodies and any extra exclusions.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        _templateList = new VerticalStackLayout { Spacing = 6 };
+        v.Children.Add(_templateList);
+
+        _templateNameEntry = new Entry
+        {
+            Placeholder = "Template name",
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#FAFAFA")
+        };
+        _templateBodyEditor = new Editor
+        {
+            Placeholder = "Prompt body",
+            HeightRequest = 180,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            FontSize = 12,
+            BackgroundColor = Color.FromArgb("#FAFAFA")
+        };
+        _templateExtraDoNotsEditor = new Editor
+        {
+            Placeholder = "Additional do-nots for this template...",
+            HeightRequest = 90,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            FontSize = 12,
+            BackgroundColor = Color.FromArgb("#FAFAFA")
+        };
+        _templateSaveButton = new Button
+        {
+            Text = "Save Template",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 38,
+            HorizontalOptions = LayoutOptions.Start,
+            Padding = new Thickness(14, 0)
+        };
+        _templateSaveButton.Clicked += async (_, _) =>
+            await SaveTemplateFormAsync();
+        v.Children.Add(_templateNameEntry);
+        v.Children.Add(_templateBodyEditor);
+        v.Children.Add(_templateExtraDoNotsEditor);
+        v.Children.Add(_templateSaveButton);
+        return v;
     }
 
     private static Frame BuildStageCard(string title, View content)
@@ -114,6 +183,104 @@ public class OpeningClipPromptPage : ContentPage
     }
 
     // ── Stage 1: Foundation ───────────────────────────────────────────
+    private async Task RefreshTemplateListAsync()
+    {
+        _templateService ??= Handler?.MauiContext?.Services
+            .GetService<ClipPromptTemplateService>();
+        if (_templateService == null || _templateList == null) return;
+
+        _templates = await _templateService.GetAllTemplatesAsync();
+        _templateList.Children.Clear();
+        _templateList.Children.Add(new Label
+        {
+            Text = "Default (built-in)",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        foreach (var template in _templates)
+        {
+            var row = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 6
+            };
+            row.Add(new Label
+            {
+                Text = template.Name,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#444"),
+                VerticalOptions = LayoutOptions.Center
+            }, 0, 0);
+            var edit = new Button
+            {
+                Text = "Edit",
+                FontSize = 11,
+                HeightRequest = 32,
+                Padding = new Thickness(8, 0),
+                BackgroundColor = Color.FromArgb("#E3F2FD"),
+                TextColor = Color.FromArgb("#1565C0")
+            };
+            edit.Clicked += (_, _) =>
+            {
+                _editingTemplateId = template.Id;
+                _templateNameEntry.Text = template.Name;
+                _templateBodyEditor.Text = template.PromptBody;
+                _templateExtraDoNotsEditor.Text = template.ExtraDoNots;
+                _templateSaveButton.Text = "Update Template";
+            };
+            row.Add(edit, 1, 0);
+            var delete = new Button
+            {
+                Text = "Delete",
+                FontSize = 11,
+                HeightRequest = 32,
+                Padding = new Thickness(8, 0),
+                BackgroundColor = Color.FromArgb("#FFEBEE"),
+                TextColor = Color.FromArgb("#C62828")
+            };
+            delete.Clicked += async (_, _) =>
+            {
+                if (!await DisplayAlert("Delete Template",
+                    $"Delete \"{template.Name}\"?", "Delete", "Cancel"))
+                    return;
+                await _templateService.DeleteTemplateAsync(template.Id);
+                await RefreshTemplateListAsync();
+            };
+            row.Add(delete, 2, 0);
+            _templateList.Children.Add(row);
+        }
+    }
+
+    private async Task SaveTemplateFormAsync()
+    {
+        if (_templateService == null ||
+            string.IsNullOrWhiteSpace(_templateNameEntry.Text) ||
+            string.IsNullOrWhiteSpace(_templateBodyEditor.Text))
+            return;
+
+        var template = new ClipPromptTemplate
+        {
+            Id = _editingTemplateId ?? 0,
+            Name = _templateNameEntry.Text.Trim(),
+            PromptBody = _templateBodyEditor.Text.Trim(),
+            ExtraDoNots = _templateExtraDoNotsEditor.Text?.Trim() ?? ""
+        };
+        await _templateService.SaveTemplateAsync(template);
+        _editingTemplateId = null;
+        _templateNameEntry.Text = "";
+        _templateBodyEditor.Text = "";
+        _templateExtraDoNotsEditor.Text = "";
+        _templateSaveButton.Text = "Save Template";
+        await RefreshTemplateListAsync();
+    }
+
     private View BuildStage1Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
@@ -205,6 +372,12 @@ public class OpeningClipPromptPage : ContentPage
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
         });
+        _templatePickerContainer = new VerticalStackLayout
+        {
+            Spacing = 6,
+            IsVisible = false
+        };
+        v.Children.Add(_templatePickerContainer);
         _buildButton = new Button
         {
             Text = " Build & Copy Prompt to Clipboard",
@@ -399,7 +572,13 @@ public class OpeningClipPromptPage : ContentPage
             foundation = DefaultFoundation;
 
         var doNots = _doNotItems.Select(i => i.Text).ToList();
-        var prompt = BuildPrompt(foundation, doNots);
+        await RefreshTemplateListAsync();
+        var selectedIndex = await ShowTemplatePickerAsync();
+        if (!selectedIndex.HasValue) return;
+
+        var prompt = selectedIndex.Value == 0
+            ? BuildPrompt(foundation, doNots)
+            : BuildCustomPrompt(_templates[selectedIndex.Value - 1], doNots);
         await Clipboard.SetTextAsync(prompt);
 
         _outputStatusLabel.Text =
@@ -411,6 +590,84 @@ public class OpeningClipPromptPage : ContentPage
         _buildButton.Text = "✓ Copied!";
         await Task.Delay(1800);
         _buildButton.Text = original;
+    }
+
+    private async Task<int?> ShowTemplatePickerAsync()
+    {
+        _templatePickerContainer.Children.Clear();
+        _templatePickerContainer.Children.Add(new Label
+        {
+            Text = "Choose a prompt template:",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#555")
+        });
+
+        var tcs = new TaskCompletionSource<int?>();
+        void Select(int? index)
+        {
+            _templatePickerContainer.IsVisible = false;
+            tcs.TrySetResult(index);
+        }
+
+        var defaultButton = new Button
+        {
+            Text = "Default (built-in)",
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            TextColor = Color.FromArgb("#2E7D32"),
+            CornerRadius = 7,
+            HeightRequest = 38
+        };
+        defaultButton.Clicked += (_, _) => Select(0);
+        _templatePickerContainer.Children.Add(defaultButton);
+
+        for (int i = 0; i < _templates.Count; i++)
+        {
+            int capturedIndex = i + 1;
+            var templateButton = new Button
+            {
+                Text = _templates[i].Name,
+                BackgroundColor = Color.FromArgb("#E3F2FD"),
+                TextColor = Color.FromArgb("#1565C0"),
+                CornerRadius = 7,
+                HeightRequest = 38
+            };
+            templateButton.Clicked += (_, _) => Select(capturedIndex);
+            _templatePickerContainer.Children.Add(templateButton);
+        }
+
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#888"),
+            HeightRequest = 32
+        };
+        cancelButton.Clicked += (_, _) => Select(null);
+        _templatePickerContainer.Children.Add(cancelButton);
+        _templatePickerContainer.IsVisible = true;
+        return await tcs.Task;
+    }
+
+    private static string BuildCustomPrompt(
+        ClipPromptTemplate template,
+        List<string> persistentDoNots)
+    {
+        var exclusions = persistentDoNots
+            .Concat((template.ExtraDoNots ?? "")
+                .Split(new[] { '\r', '\n' },
+                    StringSplitOptions.RemoveEmptyEntries))
+            .Select(item => item.Trim())
+            .Where(item => item.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (exclusions.Count == 0)
+            return template.PromptBody;
+
+        return template.PromptBody.TrimEnd() +
+            "\n\nABSOLUTE EXCLUSIONS — do not generate any variation " +
+            "that includes any of the following, even partially:\n" +
+            string.Join("\n", exclusions.Select(item => $"- {item}"));
     }
 
     private static string BuildPrompt(
