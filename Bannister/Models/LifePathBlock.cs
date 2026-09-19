@@ -22,4 +22,10 @@ public class LifePathBlock
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string EvidenceEntryIds { get; set; } = "[]";
     public string AnalysisNote { get; set; } = "";
+    /// <summary>
+    /// When true, HomePage shows a check-in prompt
+    /// on load asking if this focus is still ongoing.
+    /// Only meaningful for blocks with no EndDate.
+    /// </summary>
+    public bool HomePromptEnabled { get; set; } = false;
 }

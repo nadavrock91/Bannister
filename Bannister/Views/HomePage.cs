@@ -972,6 +972,9 @@ public class HomePage : ContentPage
                 if (!IsHomePromptRunActive(promptRunId)) return;
             }
 
+            await RunLifePathCheckInPromptsAsync();
+            if (!IsHomePromptRunActive(promptRunId)) return;
+
             if (!_introChecked)
             {
                 _introChecked = true;
@@ -1006,6 +1009,46 @@ public class HomePage : ContentPage
             _homePromptSequenceRunning = false;
             System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing prompt sequence finished/reset, promptRunId={promptRunId}, current-run-id={_homePromptRunId}, is-visible={_isHomeVisible}");
         }
+    }
+
+    private async Task RunLifePathCheckInPromptsAsync()
+    {
+        try
+        {
+            var lifePathService = Application.Current?.Handler
+                ?.MauiContext?.Services
+                .GetService<LifePathService>();
+            if (lifePathService == null) return;
+
+            var username = _auth.CurrentUsername;
+            if (string.IsNullOrWhiteSpace(username)) return;
+
+            var allBlocks = await lifePathService
+                .GetAllBlocksAsync(username);
+            var toPrompt = allBlocks
+                .Where(b => b.HomePromptEnabled &&
+                    !b.EndDate.HasValue)
+                .ToList();
+
+            foreach (var block in toPrompt)
+            {
+                int days = (int)(DateTime.Now - block.StartDate).TotalDays;
+                string dayStr = days == 1 ? "1 day" : $"{days} days";
+                bool ongoing = await DisplayAlert(
+                    "Focus Check-in",
+                    $"\"{block.Label}\"\n\n" +
+                    $"Started {block.StartDate:dd MMM yyyy} ({dayStr} ago)\n\n" +
+                    "Is this focus still ongoing?",
+                    "Still Ongoing", "Direction Deviated");
+
+                if (!ongoing)
+                {
+                    block.EndDate = DateTime.Today;
+                    await lifePathService.UpdateAsync(block);
+                }
+            }
+        }
+        catch { }
     }
 
     private async Task ClearLearningLastFiltersAsync()
