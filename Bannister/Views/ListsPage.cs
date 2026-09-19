@@ -8,6 +8,7 @@ public class ListsPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly ListsService _lists;
+    private readonly IdeaLoggerService _ideaLogger;
 
     private Picker _listPicker;
     private Label _statusLabel;
@@ -19,10 +20,15 @@ public class ListsPage : ContentPage
     private UserListItem? _selectedItem;
     private bool _isLoadingLists;
 
-    public ListsPage(AuthService auth, ListsService lists)
+    public ListsPage(AuthService auth, ListsService lists, IdeaLoggerService? ideaLogger = null)
     {
         _auth = auth;
         _lists = lists;
+        _ideaLogger = ideaLogger
+            ?? Application.Current?.Handler?.MauiContext?.Services
+                .GetService<IdeaLoggerService>()
+            ?? throw new InvalidOperationException(
+                "IdeaLoggerService not available");
         Title = "Lists";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -56,6 +62,7 @@ public class ListsPage : ContentPage
                 new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
             ColumnSpacing = 8
@@ -78,17 +85,32 @@ public class ListsPage : ContentPage
         addItemBtn.Clicked += async (s, e) => await AddItemAsync();
         topRow.Add(addItemBtn, 2, 0);
 
-        var deleteItemBtn = CreateHeaderButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+        var deleteItemBtn = CreateHeaderButton("Delete Item", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
         deleteItemBtn.Clicked += async (s, e) => await DeleteSelectedItemAsync();
         topRow.Add(deleteItemBtn, 3, 0);
 
+        var deleteListBtn = CreateHeaderButton("Delete List", Color.FromArgb("#FFEBEE"), Color.FromArgb("#B71C1C"));
+        deleteListBtn.Clicked += async (_, _) =>
+        {
+            if (_selectedList == null) return;
+            bool confirm = await DisplayAlert(
+                "Delete List",
+                $"Delete \"{_selectedList.Name}\" and all its items? This cannot be undone.",
+                "Delete", "Cancel");
+            if (!confirm) return;
+            await _lists.DeleteListAsync(_selectedList);
+            _selectedList = null;
+            await LoadListsAsync();
+        };
+        topRow.Add(deleteListBtn, 4, 0);
+
         var upBtn = CreateHeaderButton("Up", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
         upBtn.Clicked += async (s, e) => await MoveSelectedItemAsync(-1);
-        topRow.Add(upBtn, 4, 0);
+        topRow.Add(upBtn, 5, 0);
 
         var downBtn = CreateHeaderButton("Down", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
         downBtn.Clicked += async (s, e) => await MoveSelectedItemAsync(1);
-        topRow.Add(downBtn, 5, 0);
+        topRow.Add(downBtn, 6, 0);
 
         mainGrid.Add(topRow, 0, 0);
 
@@ -297,6 +319,24 @@ public class ListsPage : ContentPage
             _ => 0
         };
         await _lists.AddItemAsync(_selectedList.Id, text.Trim(), notes ?? "", priority);
+
+        // Offer to also log to Idea Logger
+        bool logIdea = await DisplayAlert(
+            "Log as Idea?",
+            "Would you also like to log " +
+            $"\"{text.Trim()}\" to the Idea Logger?",
+            "Yes, Log It",
+            "No Thanks");
+
+        if (logIdea)
+        {
+            await _ideaLogger.LogIdeaAsync(
+                this,
+                _auth.CurrentUsername,
+                text.Trim(),
+                notes ?? "");
+        }
+
         await LoadItemsAsync();
     }
 
