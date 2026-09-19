@@ -368,10 +368,11 @@ public partial class ActivityGamePage
         categoryPicker.SelectedIndexChanged -= OnCategoryChanged;
         
         // Category picker gets ALL actual categories (no "All" or "Expired")
+        // Keep picker indices aligned with the real category list.
         categoryPicker.ItemsSource = _categories
             .Select(category =>
                 _imageOnlyCategoryNames.Contains(category)
-                    ? ""
+                    ? "\U0001F5BC"
                     : category)
             .ToList();
         
