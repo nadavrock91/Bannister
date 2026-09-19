@@ -72,6 +72,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<CustomPromptService>();
         builder.Services.AddSingleton<PromptLibraryService>();
         builder.Services.AddSingleton<TaskService>();
+        builder.Services.AddSingleton<SequenceTaskService>();
         builder.Services.AddSingleton<WeeklyChallengeService>();
         builder.Services.AddSingleton<IdeasService>();
         builder.Services.AddSingleton<IdeaLoggerService>(sp =>

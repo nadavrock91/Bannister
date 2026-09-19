@@ -40,6 +40,7 @@ public class HomePage : ContentPage
     private readonly PromptLibraryService _promptLibraryService;
     private readonly TaskService _taskService;
     private readonly WeeklyChallengeService _challengeService;
+    private readonly SequenceTaskService _sequenceTaskService;
     private readonly IdeasService _ideas;
     private readonly IdeaLoggerService _ideaLogger;
     private readonly OperationQueueService _operationQueue;
@@ -145,7 +146,7 @@ public class HomePage : ContentPage
     public HomePage(AuthService auth, GameService games, DragonService dragons,
         BackupService backup, AttemptService attempts, StreakService streaks, DatabaseService db, ExpService exp,
         CountdownService countdowns, LearningService learning, ActivityService activities, PromptService prompts,
-        StoryProductionService storyProduction, MusicProductionService musicProduction, TaskService taskService, WeeklyChallengeService challengeService,
+         StoryProductionService storyProduction, MusicProductionService musicProduction, TaskService taskService, WeeklyChallengeService challengeService, SequenceTaskService sequenceTaskService,
         IdeasService ideas, IdeaLoggerService ideaLogger, ConversationService conversationService,
         SubActivityService subActivityService, AudioLibraryService audioLibService,
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
@@ -178,6 +179,7 @@ public class HomePage : ContentPage
         _promptLibraryService = promptLibraryService;
         _taskService = taskService;
         _challengeService = challengeService;
+        _sequenceTaskService = sequenceTaskService;
         _ideas = ideas;
         _ideaLogger = ideaLogger;
         _operationQueue = operationQueue;
@@ -2783,7 +2785,7 @@ public class HomePage : ContentPage
 
     private async void OnTasksClicked(object? sender, EventArgs e)
     {
-        var page = new TasksPage(_auth, _taskService, _challengeService, _ideas, _db);
+        var page = new TasksPage(_auth, _taskService, _challengeService, _sequenceTaskService, _ideas, _db);
         await Navigation.PushAsync(page);
     }
 

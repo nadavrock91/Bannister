@@ -12,6 +12,7 @@ public class TasksPage : ContentPage
     private readonly AuthService _auth;
     private readonly TaskService _tasks;
     private readonly WeeklyChallengeService _challengeService;
+    private readonly SequenceTaskService _sequenceTaskService;
     private readonly IdeasService? _ideasService;
     private readonly DatabaseService? _db;
     
@@ -61,11 +62,12 @@ public class TasksPage : ContentPage
     private bool _sortAscending = false;
     private DataGridView? _mainDataGrid;
 
-    public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService, IdeasService? ideasService = null, DatabaseService? db = null)
+    public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService, SequenceTaskService sequenceTaskService, IdeasService? ideasService = null, DatabaseService? db = null)
     {
         _auth = auth;
         _tasks = tasks;
         _challengeService = challengeService;
+        _sequenceTaskService = sequenceTaskService;
         _ideasService = ideasService;
         _db = db;
         
@@ -365,6 +367,23 @@ public class TasksPage : ContentPage
             await Navigation.PushAsync(page);
         };
         challengeNavStack.Children.Add(historyBtn);
+
+        var sequenceBtn = new Button
+        {
+            Text = "Sequence Tasks",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold
+        };
+        sequenceBtn.Clicked += async (_, _) =>
+        {
+            await Navigation.PushAsync(
+                new SequenceTaskPage(_sequenceTaskService));
+        };
+        challengeNavStack.Children.Add(sequenceBtn);
 
         _challengeSummaryLabel = new Label
         {
