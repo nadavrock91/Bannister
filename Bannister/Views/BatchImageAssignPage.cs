@@ -109,18 +109,74 @@ public class BatchImageAssignPage : ContentPage
             }
             finally { _isSaving = false; }
         };
-        actions.Children.Add(clearBtn); _content.Children.Add(actions);
+        actions.Children.Add(clearBtn);
+        var setAllImageOnlyBtn = new Button { Text = " All ON", BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0"), CornerRadius = 8, FontSize = 12, HeightRequest = 40, Padding = new Thickness(10, 0) };
+        setAllImageOnlyBtn.Clicked += async (_, _) =>
+        {
+            if (_isSaving) return;
+            _isSaving = true;
+            try
+            {
+                foreach (var act in acts)
+                {
+                    act.IsImageOnly = true;
+                    act.VisibilityMigrated = true;
+                    await _activityService.UpdateActivityAsync(act);
+                }
+                RenderCurrentPage();
+            }
+            finally { _isSaving = false; }
+        };
+        actions.Children.Add(setAllImageOnlyBtn);
+
+        var unsetAllImageOnlyBtn = new Button { Text = " All OFF", BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F"), CornerRadius = 8, FontSize = 12, HeightRequest = 40, Padding = new Thickness(10, 0) };
+        unsetAllImageOnlyBtn.Clicked += async (_, _) =>
+        {
+            if (_isSaving) return;
+            _isSaving = true;
+            try
+            {
+                foreach (var act in acts)
+                {
+                    act.IsImageOnly = false;
+                    act.VisibilityMigrated = true;
+                    await _activityService.UpdateActivityAsync(act);
+                }
+                RenderCurrentPage();
+            }
+            finally { _isSaving = false; }
+        };
+        actions.Children.Add(unsetAllImageOnlyBtn);
+        _content.Children.Add(actions);
         foreach (var act in acts) _content.Children.Add(BuildActivityRow(act));
     }
 
     private View BuildActivityRow(Activity act)
     {
         bool hasIdea = !string.IsNullOrWhiteSpace(act.ImageIdea);
-        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(new GridLength(24)) }, Padding = new Thickness(10, 8), ColumnSpacing = 8, BackgroundColor = Colors.White };
+        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(new GridLength(56)), new ColumnDefinition(new GridLength(24)) }, Padding = new Thickness(10, 8), ColumnSpacing = 8, BackgroundColor = Colors.White };
         var labels = new VerticalStackLayout { Spacing = 2 };
         labels.Children.Add(new Label { Text = act.Name, FontSize = 13, TextColor = Color.FromArgb("#222"), LineBreakMode = LineBreakMode.WordWrap });
         labels.Children.Add(new Label { Text = hasIdea ? $" {act.ImageIdea}" : "No image idea yet", FontSize = 11, TextColor = hasIdea ? Color.FromArgb("#1565C0") : Color.FromArgb("#999"), FontAttributes = hasIdea ? FontAttributes.None : FontAttributes.Italic, LineBreakMode = LineBreakMode.WordWrap });
-        row.Add(labels, 0, 0); row.Add(new BoxView { Color = hasIdea ? Color.FromArgb("#2E7D32") : Color.FromArgb("#E0E0E0"), WidthRequest = 10, HeightRequest = 10, CornerRadius = 5, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }, 1, 0);
+        row.Add(labels, 0, 0);
+        bool imgOnly = act.IsImageOnly;
+        var toggleBtn = new Button { Text = imgOnly ? " ON" : " OFF", BackgroundColor = imgOnly ? Color.FromArgb("#1565C0") : Color.FromArgb("#ECEFF1"), TextColor = imgOnly ? Colors.White : Color.FromArgb("#37474F"), CornerRadius = 6, FontSize = 10, HeightRequest = 32, WidthRequest = 52, Padding = 0, VerticalOptions = LayoutOptions.Center };
+        toggleBtn.Clicked += async (_, _) =>
+        {
+            if (_isSaving) return;
+            _isSaving = true;
+            try
+            {
+                act.IsImageOnly = !act.IsImageOnly;
+                act.VisibilityMigrated = true;
+                await _activityService.UpdateActivityAsync(act);
+                RenderCurrentPage();
+            }
+            finally { _isSaving = false; }
+        };
+        row.Add(toggleBtn, 1, 0);
+        var dotBoxView = new BoxView { Color = hasIdea ? Color.FromArgb("#2E7D32") : Color.FromArgb("#E0E0E0"), WidthRequest = 10, HeightRequest = 10, CornerRadius = 5, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+        row.Add(dotBoxView, 2, 0);
         return new Frame { Content = row, Padding = 0, CornerRadius = 6, HasShadow = false, BorderColor = Color.FromArgb("#E0E0E0"), BackgroundColor = Colors.White, Margin = new Thickness(0, 1) };
     }
 
