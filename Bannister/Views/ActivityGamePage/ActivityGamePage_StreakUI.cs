@@ -670,7 +670,10 @@ public partial class ActivityGamePage
     /// <summary>
     /// Build the full view for a streak container category.
     /// </summary>
-    private async Task BuildStreakContainerViewAsync(VerticalStackLayout mainStack, Activity streakContainer)
+    private async Task BuildStreakContainerViewAsync(
+        VerticalStackLayout mainStack,
+        Activity streakContainer,
+        CancellationToken ct = default)
     {
         var attempts = await _streaks.GetStreakAttemptsAsync(
             _auth.CurrentUsername, 
@@ -700,6 +703,7 @@ public partial class ActivityGamePage
                     streakContainer.ImagePath);
             headerImageExists = await Task.Run(() =>
                 File.Exists(resolvedHeaderPath));
+            if (ct.IsCancellationRequested) return;
         }
 
         var header = BuildStreakContainerHeader(
@@ -729,10 +733,12 @@ public partial class ActivityGamePage
 
             bool exists = await Task.Run(() =>
                 File.Exists(resolvedPath));
+            if (ct.IsCancellationRequested) return;
             if (exists)
             {
                 var imgSource = await Task.Run(() =>
                     ImageSource.FromFile(resolvedPath));
+                if (ct.IsCancellationRequested) return;
                 mainStack.Children.Add(new Image
                 {
                     Source = imgSource,

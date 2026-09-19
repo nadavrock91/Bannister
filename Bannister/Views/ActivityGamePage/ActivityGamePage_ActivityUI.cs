@@ -10,6 +10,8 @@ namespace Bannister.Views;
 /// </summary>
 public partial class ActivityGamePage
 {
+    private CancellationTokenSource? _renderCts;
+
     private Grid BuildActivitiesPanel()
     {
         var grid = new Grid
@@ -210,6 +212,13 @@ public partial class ActivityGamePage
     // *** MODIFIED: Now async and checks for streak containers ***
     private async void BuildActivitiesGridWithHeaders(List<ActivityGameViewModel> activities)
     {
+        // Cancel any in-flight render
+        _renderCts?.Cancel();
+        _renderCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _renderCts = cts;
+        var ct = cts.Token;
+
         var mainStack = new VerticalStackLayout { Spacing = 8 };
 
         // Check if the currently displayed category is a streak container.
@@ -221,7 +230,9 @@ public partial class ActivityGamePage
             if (streakContainer != null)
             {
                 // This is a streak container category - show streak attempts instead
-                await BuildStreakContainerViewAsync(mainStack, streakContainer);
+                await BuildStreakContainerViewAsync(
+                    mainStack, streakContainer, ct);
+                if (ct.IsCancellationRequested) return;
                 activitiesCollection.Content = mainStack;
                 return;
             }
@@ -298,6 +309,7 @@ public partial class ActivityGamePage
             columnIndex++;
         }
 
+        if (ct.IsCancellationRequested) return;
         activitiesCollection.Content = mainStack;
     }
 
