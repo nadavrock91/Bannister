@@ -17,10 +17,11 @@ public class StoryProductionHubPage : ContentPage
     private readonly AssetLibraryService _assetLibraryService;
     private readonly AssetThumbnailService _assetThumbnailService;
     private readonly WritingExperimentService? _experimentService;
+    private readonly ClipsExperimentService? _clipsExperimentService;
     
     private Label _statsLabel;
 
-    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null, WritingExperimentService? experimentService = null)
+    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null, WritingExperimentService? experimentService = null, ClipsExperimentService? clipsExperimentService = null)
     {
         _auth = auth;
         _storyService = storyService;
@@ -31,6 +32,7 @@ public class StoryProductionHubPage : ContentPage
         _assetLibraryService = assetLibraryService;
         _assetThumbnailService = assetThumbnailService;
         _experimentService = experimentService;
+        _clipsExperimentService = clipsExperimentService;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -141,6 +143,18 @@ public class StoryProductionHubPage : ContentPage
         });
         mainStack.Children.Add(processesBtn);
 
+        var clipsExperimentBtn = CreateMenuButton(
+            "🎬 AI Clips Experiment",
+            "Compare short-video hook concepts by viewer retention",
+            Color.FromArgb("#E3F2FD"),
+            Color.FromArgb("#1565C0"));
+        clipsExperimentBtn.GestureRecognizers.Clear();
+        clipsExperimentBtn.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await OnClipsExperimentClicked())
+        });
+        mainStack.Children.Add(clipsExperimentBtn);
+
         Content = new ScrollView { Content = mainStack };
     }
 
@@ -247,5 +261,19 @@ public class StoryProductionHubPage : ContentPage
 
         var page = new WritingProcessesPage(_auth, _storyService, experimentService, _ideaLogger);
         await Navigation.PushAsync(page);
+    }
+
+    private async Task OnClipsExperimentClicked()
+    {
+        var service = _clipsExperimentService
+            ?? Handler?.MauiContext?.Services
+                .GetService<ClipsExperimentService>();
+        if (service == null)
+        {
+            await DisplayAlert("Unavailable", "Clips Experiment service is unavailable.", "OK");
+            return;
+        }
+
+        await Navigation.PushAsync(new ClipsExperimentPage(service));
     }
 }

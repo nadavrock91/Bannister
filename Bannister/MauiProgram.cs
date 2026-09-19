@@ -65,6 +65,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<PromptService>();
         builder.Services.AddSingleton<StoryProductionService>();
         builder.Services.AddSingleton<WritingExperimentService>();
+        builder.Services.AddSingleton<ClipsExperimentService>();
         builder.Services.AddSingleton<AssetLibraryService>();
         builder.Services.AddSingleton<AssetThumbnailService>();
         builder.Services.AddSingleton<MusicProductionService>();
@@ -227,6 +228,7 @@ public static class MauiProgram
         builder.Services.AddTransient<LifePathEditorPage>();
         builder.Services.AddTransient<JournalAnalysisPage>();
         builder.Services.AddTransient<BatchImageAssignPage>();
+        builder.Services.AddTransient<ClipsExperimentPage>();
 
 
 #if DEBUG

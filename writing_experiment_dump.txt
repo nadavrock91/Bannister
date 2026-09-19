@@ -1,0 +1,1732 @@
+﻿
+
+===== .\Bannister\Models\WritingExperiment.cs =====
+using SQLite;
+
+namespace Bannister.Models;
+
+public class WritingExperiment
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+    public string Username { get; set; } = "";
+    public string BaselineProcessName { get; set; } = "";
+    public string ChallengerProcessName { get; set; } = "";
+    public string Phase { get; set; } = "baseline"; // baseline, challenger, completed
+    public int CurrentWeek { get; set; } = 1;
+    public string Status { get; set; } = "active"; // active, archived
+    public string ProcessQueueJson { get; set; } = ""; // JSON array of {WeekNumber, ProcessName} for future weeks
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? CompletedAt { get; set; }
+}
+
+public class WritingExperimentEntry
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+    public int ExperimentId { get; set; }
+    public DateTime Date { get; set; }
+    public string AssignedProcess { get; set; } = "";
+    public string StoryTitle { get; set; } = "";
+    public bool IsBaseline { get; set; } = true;
+    public string ExecutionNotes { get; set; } = ""; // how exactly the process was followed
+    public int Retention10s { get; set; } = -1; // -1 = not recorded, 0-100 percent
+    public int Retention30s { get; set; } = -1;
+    public int Retention1m { get; set; } = -1;
+    public int Retention2m { get; set; } = -1;
+    public int Retention3m { get; set; } = -1;
+    public bool IsCompleted { get; set; } = false;
+    public DateTime? CompletedAt { get; set; }
+}
+
+
+===== .\Bannister\Services\WritingExperimentService.cs =====
+using Bannister.Models;
+
+namespace Bannister.Services;
+
+public class WritingExperimentService
+{
+    private readonly DatabaseService _db;
+    private bool _initialized;
+
+    public WritingExperimentService(DatabaseService db)
+    {
+        _db = db;
+    }
+
+    public async Task EnsureInitializedAsync()
+    {
+        if (_initialized) return;
+        var conn = await _db.GetConnectionAsync();
+        await conn.CreateTableAsync<WritingExperiment>();
+        await conn.CreateTableAsync<WritingExperimentEntry>();
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperiment ADD COLUMN ProcessQueueJson TEXT DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention10s INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention30s INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention1m INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention2m INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN Retention3m INTEGER DEFAULT -1"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE WritingExperimentEntry ADD COLUMN StoryTitle TEXT DEFAULT ''"); } catch { }
+        _initialized = true;
+    }
+
+    public async Task<WritingExperiment?> GetActiveExperimentAsync(string username)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<WritingExperiment>()
+            .Where(e => e.Username == username && e.Status == "active")
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<WritingExperiment> StartExperimentAsync(string username, string baselineProcess)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+
+        var existing = await GetActiveExperimentAsync(username);
+        if (existing != null)
+        {
+            existing.Status = "archived";
+            existing.CompletedAt = DateTime.UtcNow;
+            await conn.UpdateAsync(existing);
+        }
+
+        var experiment = new WritingExperiment
+        {
+            Username = username,
+            BaselineProcessName = baselineProcess,
+            Phase = "baseline",
+            CurrentWeek = 1
+        };
+        await conn.InsertAsync(experiment);
+        return experiment;
+    }
+
+    public async Task<WritingExperimentEntry?> GetEntryForDateAsync(int experimentId, DateTime date)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<WritingExperimentEntry>()
+            .Where(e => e.ExperimentId == experimentId && e.Date == date.Date)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<WritingExperimentEntry> CreateEntryAsync(
+        int experimentId,
+        string assignedProcess,
+        bool isBaseline,
+        DateTime? date = null)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var entry = new WritingExperimentEntry
+        {
+            ExperimentId = experimentId,
+            Date = (date ?? DateTime.UtcNow).Date,
+            AssignedProcess = assignedProcess,
+            IsBaseline = isBaseline
+        };
+        await conn.InsertAsync(entry);
+        return entry;
+    }
+
+    public async Task CompleteEntryAsync(WritingExperimentEntry entry)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(entry);
+    }
+
+    public async Task<List<WritingExperimentEntry>> GetEntriesAsync(int experimentId)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<WritingExperimentEntry>()
+            .Where(e => e.ExperimentId == experimentId)
+            .OrderBy(e => e.Date)
+            .ToListAsync();
+    }
+
+    public async Task ChangeProcessForRangeAsync(
+        int experimentId,
+        DateTime fromDate,
+        DateTime toDate,
+        string processName,
+        bool isBaseline)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var entries = await conn.Table<WritingExperimentEntry>()
+            .Where(e => e.ExperimentId == experimentId)
+            .ToListAsync();
+
+        foreach (var entry in entries)
+        {
+            if (entry.Date.Date >= fromDate.Date && entry.Date.Date <= toDate.Date)
+            {
+                entry.AssignedProcess = processName;
+                entry.IsBaseline = isBaseline;
+                await conn.UpdateAsync(entry);
+            }
+        }
+    }
+
+    public async Task<int> GetBaselineEntryCountAsync(int experimentId)
+    {
+        var entries = await GetEntriesAsync(experimentId);
+        return entries.Count(e => e.IsBaseline && e.IsCompleted);
+    }
+
+    public async Task SetChallengerAsync(int experimentId, string challengerProcess)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var experiment = await conn.FindAsync<WritingExperiment>(experimentId);
+        if (experiment == null) return;
+        experiment.ChallengerProcessName = challengerProcess;
+        experiment.Phase = "challenger";
+        await conn.UpdateAsync(experiment);
+    }
+
+    public async Task UpdateExperimentAsync(WritingExperiment experiment)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(experiment);
+    }
+
+    public async Task<(double baselineAvg, double challengerAvg, int baselineCount, int challengerCount)> GetComparisonAsync(int experimentId)
+    {
+        var entries = await GetEntriesAsync(experimentId);
+        var completed = entries.Where(e => e.IsCompleted).ToList();
+        var baselineEntries = completed.Where(e => e.IsBaseline).ToList();
+        var challengerEntries = completed.Where(e => !e.IsBaseline).ToList();
+
+        double baselineAvg = baselineEntries.Count > 0 ? baselineEntries.Average(GetAverageRetention) : 0;
+        double challengerAvg = challengerEntries.Count > 0 ? challengerEntries.Average(GetAverageRetention) : 0;
+
+        return (baselineAvg, challengerAvg, baselineEntries.Count, challengerEntries.Count);
+    }
+
+    private static double GetAverageRetention(WritingExperimentEntry entry)
+    {
+        var values = new[]
+        {
+            entry.Retention10s,
+            entry.Retention30s,
+            entry.Retention1m,
+            entry.Retention2m,
+            entry.Retention3m
+        }.Where(value => value >= 0).ToArray();
+
+        return values.Length > 0 ? values.Average() : 0;
+    }
+
+    public async Task<List<WritingExperiment>> GetArchivedExperimentsAsync(string username)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<WritingExperiment>()
+            .Where(e => e.Username == username && e.Status == "archived")
+            .OrderByDescending(e => e.CompletedAt)
+            .ToListAsync();
+    }
+}
+
+
+===== .\Bannister\Views\storyproduction\WritingExperimentPage.cs =====
+using Bannister.Models;
+using Bannister.Services;
+
+namespace Bannister.Views;
+
+public class WritingExperimentPage : ContentPage
+{
+    private readonly AuthService _auth;
+    private readonly WritingExperimentService _experimentService;
+    private readonly StoryProductionService _storyService;
+    private readonly IdeaLoggerService? _ideaLogger;
+    private VerticalStackLayout _mainContent = null!;
+    private Label _phaseLabel = null!;
+    private Label _statusLabel = null!;
+    private VerticalStackLayout _todaySection = null!;
+    private VerticalStackLayout _comparisonSection = null!;
+    private Picker _weekPicker = null!;
+    private List<(DateTime Start, DateTime End)> _weekRanges = new();
+    private int _selectedWeekIndex = -1;
+
+    public WritingExperimentPage(AuthService auth, WritingExperimentService experimentService, StoryProductionService storyService, IdeaLoggerService? ideaLogger = null)
+    {
+        _auth = auth;
+        _experimentService = experimentService;
+        _storyService = storyService;
+        _ideaLogger = ideaLogger;
+        Title = "Writing Experiment";
+        BackgroundColor = Color.FromArgb("#FFF8E1");
+        BuildUI();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        var experiment = await _experimentService.GetActiveExperimentAsync(_auth.CurrentUsername);
+        _selectedWeekIndex = experiment == null
+            ? -1
+            : Preferences.Get($"WritingExp_SelectedWeek_{experiment.Id}", -1);
+        await RefreshAsync();
+    }
+
+    private void BuildUI()
+    {
+        _mainContent = new VerticalStackLayout { Padding = 20, Spacing = 14 };
+        _mainContent.Children.Add(new Label { Text = "\U0001F9EA Writing Experiment", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#6A1B9A") });
+        _mainContent.Children.Add(new Label
+        {
+            Text = "Test which writing process produces the best retention. Week 1 establishes a baseline with one process daily. Then challenge it.",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+        _phaseLabel = new Label { FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") };
+        _statusLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#888") };
+        _todaySection = new VerticalStackLayout { Spacing = 10 };
+        _comparisonSection = new VerticalStackLayout { Spacing = 8 };
+        _mainContent.Children.Add(_phaseLabel);
+        _mainContent.Children.Add(_statusLabel);
+        _mainContent.Children.Add(_todaySection);
+        _mainContent.Children.Add(_comparisonSection);
+
+        var rootGrid = new Grid();
+        rootGrid.Children.Add(new ScrollView { Content = _mainContent });
+        Content = rootGrid;
+    }
+
+    private async Task RefreshAsync()
+    {
+        var experiment = await _experimentService.GetActiveExperimentAsync(_auth.CurrentUsername);
+        _todaySection.Children.Clear();
+        _comparisonSection.Children.Clear();
+
+        if (experiment == null)
+        {
+            _phaseLabel.Text = "No active experiment";
+            _statusLabel.Text = "";
+            await ShowStartExperimentAsync();
+            return;
+        }
+
+        var entries = await _experimentService.GetEntriesAsync(experiment.Id);
+        int baselineCount = entries.Count(e => e.IsBaseline && e.IsCompleted);
+        int challengerCount = entries.Count(e => !e.IsBaseline && e.IsCompleted);
+
+        var queue = ParseProcessQueue(experiment.ProcessQueueJson);
+        int maxQueuedWeek = queue.Count > 0 ? queue.Max(item => item.WeekNumber) : 0;
+        int availableWeekCount = Math.Max(
+            maxQueuedWeek,
+            Math.Max(1, ((DateTime.Today - experiment.StartedAt.Date).Days / 7) + 1));
+        int currentWeekIndex = Math.Min(
+            availableWeekCount - 1,
+            Math.Max(0, (DateTime.Today - experiment.StartedAt.Date).Days / 7));
+        int selectedWeekIndex = _selectedWeekIndex >= 0 && _selectedWeekIndex < availableWeekCount
+            ? _selectedWeekIndex
+            : currentWeekIndex;
+        int selectedWeekNumber = selectedWeekIndex + 1;
+        var selectedWeekStart = experiment.StartedAt.Date.AddDays(selectedWeekIndex * 7);
+        var selectedWeekEnd = selectedWeekStart.AddDays(6);
+        int completedInWeek = entries.Count(entry =>
+            entry.IsCompleted &&
+            entry.Date.Date >= selectedWeekStart &&
+            entry.Date.Date <= selectedWeekEnd);
+        var queuedItem = queue.FirstOrDefault(item => item.WeekNumber == selectedWeekNumber);
+        string weekProcess = queuedItem?.ProcessName ?? experiment.BaselineProcessName;
+        bool isBaselineProcess = string.Equals(
+            weekProcess,
+            experiment.BaselineProcessName,
+            StringComparison.OrdinalIgnoreCase);
+        _phaseLabel.Text = isBaselineProcess
+            ? $"\U0001F4CA Week {selectedWeekNumber} â€” Baseline"
+            : $"\U0001F9EA Week {selectedWeekNumber} â€” {weekProcess}";
+        _statusLabel.Text = $"Process: {weekProcess} â€¢ {completedInWeek}/7 days completed";
+
+        await ShowWeekViewAsync(experiment, entries);
+        if (experiment.Phase == "challenger" && baselineCount > 0 && challengerCount > 0)
+            await ShowComparisonAsync(experiment);
+
+        if (experiment.Phase == "baseline" && baselineCount >= 7)
+        {
+            var button = new Button { Text = "âš”ï¸ Start Challenger Phase", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 44, FontSize = 14, FontAttributes = FontAttributes.Bold };
+            button.Clicked += async (_, _) => await StartChallengerAsync(experiment);
+            _todaySection.Children.Add(button);
+        }
+
+        var archiveButton = new Button { Text = "Archive Experiment", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#666"), CornerRadius = 8, HeightRequest = 36, FontSize = 12 };
+        archiveButton.Clicked += async (_, _) =>
+        {
+            if (!await DisplayAlert("Archive?", "Archive this experiment and start fresh?", "Archive", "Cancel")) return;
+            experiment.Status = "archived";
+            experiment.CompletedAt = DateTime.UtcNow;
+            await _experimentService.UpdateExperimentAsync(experiment);
+            await RefreshAsync();
+        };
+        _todaySection.Children.Add(archiveButton);
+    }
+
+    private async Task ShowStartExperimentAsync()
+    {
+        var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
+        if (processes.Count == 0)
+        {
+            _todaySection.Children.Add(new Label { Text = "No writing processes defined. Create one in Writing Processes first.", FontSize = 13, TextColor = Color.FromArgb("#C62828"), FontAttributes = FontAttributes.Italic });
+            return;
+        }
+        _todaySection.Children.Add(new Label { Text = "Start a new experiment by picking your baseline process.\nThis process will be assigned every day for Week 1 to establish retention data.", FontSize = 13, TextColor = Color.FromArgb("#555") });
+        foreach (var process in processes)
+        {
+            var button = new Button { Text = process.Name, BackgroundColor = Color.FromArgb("#F3E5F5"), TextColor = Color.FromArgb("#6A1B9A"), CornerRadius = 8, HeightRequest = 40, FontSize = 13 };
+            var captured = process;
+            button.Clicked += async (_, _) => { await _experimentService.StartExperimentAsync(_auth.CurrentUsername, captured.Name); await RefreshAsync(); };
+            _todaySection.Children.Add(button);
+        }
+    }
+
+    private async Task ShowWeekViewAsync(WritingExperiment experiment, List<WritingExperimentEntry> entries)
+    {
+        _todaySection.Children.Clear();
+        var today = DateTime.UtcNow.Date;
+        var experimentStart = experiment.StartedAt.Date;
+        var queuedWeeks = ParseProcessQueue(experiment.ProcessQueueJson);
+        int maxQueuedWeek = queuedWeeks.Count > 0
+            ? queuedWeeks.Max(item => item.WeekNumber)
+            : 0;
+
+        _weekRanges.Clear();
+        var weekStart = experimentStart;
+        int weekNumber = 1;
+        while (weekStart <= today || weekNumber <= maxQueuedWeek)
+        {
+            _weekRanges.Add((weekStart, weekStart.AddDays(6)));
+            weekStart = weekStart.AddDays(7);
+            weekNumber++;
+        }
+
+        var weekAverages = new Dictionary<int, string>();
+        for (int i = 0; i < _weekRanges.Count; i++)
+        {
+            var (weekRangeStart, weekRangeEnd) = _weekRanges[i];
+            var weekEntries = entries
+                .Where(entry => entry.IsCompleted &&
+                    entry.Date.Date >= weekRangeStart &&
+                    entry.Date.Date <= weekRangeEnd)
+                .ToList();
+
+            if (weekEntries.Count == 0) continue;
+
+            var parts = new List<string>();
+            var retention10s = weekEntries.Where(entry => entry.Retention10s >= 0).Select(entry => entry.Retention10s).ToList();
+            var retention30s = weekEntries.Where(entry => entry.Retention30s >= 0).Select(entry => entry.Retention30s).ToList();
+            var retention1m = weekEntries.Where(entry => entry.Retention1m >= 0).Select(entry => entry.Retention1m).ToList();
+            var retention2m = weekEntries.Where(entry => entry.Retention2m >= 0).Select(entry => entry.Retention2m).ToList();
+            var retention3m = weekEntries.Where(entry => entry.Retention3m >= 0).Select(entry => entry.Retention3m).ToList();
+
+            if (retention10s.Count >= 3) parts.Add($"10s:{(int)retention10s.Average()}%");
+            if (retention30s.Count >= 3) parts.Add($"30s:{(int)retention30s.Average()}%");
+            if (retention1m.Count >= 3) parts.Add($"1m:{(int)retention1m.Average()}%");
+            if (retention2m.Count >= 3) parts.Add($"2m:{(int)retention2m.Average()}%");
+            if (retention3m.Count >= 3) parts.Add($"3m:{(int)retention3m.Average()}%");
+
+            if (parts.Count > 0)
+                weekAverages[i] = string.Join(" ", parts);
+        }
+
+        int currentWeekIndex = Math.Min(
+            _weekRanges.Count - 1,
+            Math.Max(0, (today - experimentStart).Days / 7));
+        if (_selectedWeekIndex >= 0 && _selectedWeekIndex < _weekRanges.Count)
+            currentWeekIndex = _selectedWeekIndex;
+
+        _weekPicker = new Picker
+        {
+            Title = "Select week...",
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            HorizontalOptions = LayoutOptions.Start,
+            WidthRequest = 220
+        };
+        for (int i = 0; i < _weekRanges.Count; i++)
+        {
+            var (start, end) = _weekRanges[i];
+            var queuedItem = queuedWeeks.FirstOrDefault(item => item.WeekNumber == i + 1);
+            string suffix = queuedItem != null ? $" \u2192 {queuedItem.ProcessName}" : "";
+            string retentionSuffix = weekAverages.TryGetValue(i, out var averageSummary)
+                ? $" [{averageSummary}]"
+                : "";
+            _weekPicker.Items.Add($"Week {i + 1}: {start:M/d} - {end:M/d}{suffix}{retentionSuffix}");
+        }
+        _weekPicker.SelectedIndex = currentWeekIndex;
+        _weekPicker.SelectedIndexChanged += async (_, _) =>
+        {
+            if (_weekPicker.SelectedIndex < 0) return;
+            _selectedWeekIndex = _weekPicker.SelectedIndex;
+            Preferences.Set($"WritingExp_SelectedWeek_{experiment.Id}", _selectedWeekIndex);
+            await RefreshAsync();
+        };
+
+        var (windowStart, windowEnd) = _weekRanges[currentWeekIndex];
+
+        var changeProcessButton = new Button
+        {
+            Text = "\U0001F504 Change Week Process",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            Padding = new Thickness(12, 0)
+        };
+        changeProcessButton.Clicked += async (_, _) => await ChangeWeekProcessAsync(experiment);
+
+        var queueButton = new Button
+        {
+            Text = "\U0001F4C5 Queue Future Weeks",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            Padding = new Thickness(12, 0)
+        };
+        queueButton.Clicked += async (_, _) => await ManageProcessQueueAsync(experiment);
+
+        _todaySection.Children.Add(new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children = { changeProcessButton, queueButton }
+        });
+
+        var processQueue = ParseProcessQueue(experiment.ProcessQueueJson);
+        if (processQueue.Count > 0)
+        {
+            _todaySection.Children.Add(new Label
+            {
+                Text = $"\U0001F4C5 Queued Weeks ({processQueue.Count})",
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#1565C0"),
+                Margin = new Thickness(0, 8, 0, 0)
+            });
+
+            foreach (var item in processQueue.OrderBy(item => item.WeekNumber))
+            {
+                var queueFrame = new Frame
+                {
+                    Padding = 10,
+                    CornerRadius = 8,
+                    BackgroundColor = Color.FromArgb("#E3F2FD"),
+                    BorderColor = Colors.Transparent,
+                    HasShadow = false,
+                    Content = new Label
+                    {
+                        Text = $"Week {item.WeekNumber}: {item.ProcessName}",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#1565C0"),
+                        LineBreakMode = LineBreakMode.WordWrap
+                    }
+                };
+                _todaySection.Children.Add(queueFrame);
+            }
+        }
+
+        _todaySection.Children.Add(_weekPicker);
+
+        int selectedIndex = _weekPicker.SelectedIndex >= 0
+            ? _weekPicker.SelectedIndex
+            : _weekRanges.Count - 1;
+        if (weekAverages.ContainsKey(selectedIndex))
+        {
+            var (selectedStart, selectedEnd) = _weekRanges[selectedIndex];
+            var selectedWeekEntries = entries
+                .Where(entry => entry.IsCompleted &&
+                    entry.Date.Date >= selectedStart &&
+                    entry.Date.Date <= selectedEnd)
+                .ToList();
+
+            var summaryStack = new VerticalStackLayout
+            {
+                Spacing = 4,
+                Margin = new Thickness(0, 4, 0, 8)
+            };
+            summaryStack.Children.Add(new Label
+            {
+                Text = $"Week {selectedIndex + 1} Average Retention ({selectedWeekEntries.Count} recordings)",
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#6A1B9A")
+            });
+
+            var intervalsRow = new HorizontalStackLayout { Spacing = 16 };
+
+            void AddIntervalAverage(string name, List<int> values)
+            {
+                if (values.Count < 3) return;
+
+                int average = (int)values.Average();
+                Color color = average >= 70
+                    ? Color.FromArgb("#2E7D32")
+                    : average >= 40
+                        ? Color.FromArgb("#F57F17")
+                        : Color.FromArgb("#C62828");
+
+                intervalsRow.Children.Add(new VerticalStackLayout
+                {
+                    Spacing = 2,
+                    Children =
+                    {
+                        new Label
+                        {
+                            Text = $"{average}%",
+                            FontSize = 22,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = color,
+                            HorizontalTextAlignment = TextAlignment.Center
+                        },
+                        new Label
+                        {
+                            Text = name,
+                            FontSize = 10,
+                            TextColor = Color.FromArgb("#888"),
+                            HorizontalTextAlignment = TextAlignment.Center
+                        },
+                        new Label
+                        {
+                            Text = $"({values.Count} rec)",
+                            FontSize = 8,
+                            TextColor = Color.FromArgb("#BBB"),
+                            HorizontalTextAlignment = TextAlignment.Center
+                        }
+                    }
+                });
+            }
+
+            AddIntervalAverage("10 sec", selectedWeekEntries.Where(entry => entry.Retention10s >= 0).Select(entry => entry.Retention10s).ToList());
+            AddIntervalAverage("30 sec", selectedWeekEntries.Where(entry => entry.Retention30s >= 0).Select(entry => entry.Retention30s).ToList());
+            AddIntervalAverage("1 min", selectedWeekEntries.Where(entry => entry.Retention1m >= 0).Select(entry => entry.Retention1m).ToList());
+            AddIntervalAverage("2 min", selectedWeekEntries.Where(entry => entry.Retention2m >= 0).Select(entry => entry.Retention2m).ToList());
+            AddIntervalAverage("3 min", selectedWeekEntries.Where(entry => entry.Retention3m >= 0).Select(entry => entry.Retention3m).ToList());
+
+            if (intervalsRow.Children.Count > 0)
+            {
+                summaryStack.Children.Add(intervalsRow);
+                _todaySection.Children.Add(summaryStack);
+            }
+        }
+
+        _todaySection.Children.Add(new Label { Text = "Mark Days Completed", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+
+        int selectedWeekNumber = currentWeekIndex + 1;
+        var selectedQueuedItem = queuedWeeks.FirstOrDefault(item => item.WeekNumber == selectedWeekNumber);
+
+        for (var date = windowStart; date <= windowEnd; date = date.AddDays(1))
+        {
+            var existingEntry = entries.FirstOrDefault(e => e.Date.Date == date);
+            bool isBaseline;
+            string assignedProcess;
+            if (selectedQueuedItem != null)
+            {
+                assignedProcess = selectedQueuedItem.ProcessName;
+                isBaseline = string.Equals(
+                    assignedProcess,
+                    experiment.BaselineProcessName,
+                    StringComparison.OrdinalIgnoreCase);
+            }
+            else if (experiment.Phase == "baseline")
+            {
+                isBaseline = true;
+                assignedProcess = experiment.BaselineProcessName;
+            }
+            else
+            {
+                int dayIndex = entries.Count(e => e.Date.Date < date);
+                isBaseline = dayIndex % 2 == 0;
+                assignedProcess = isBaseline ? experiment.BaselineProcessName : experiment.ChallengerProcessName;
+            }
+
+            if (existingEntry != null)
+            {
+                assignedProcess = existingEntry.AssignedProcess;
+                isBaseline = existingEntry.IsBaseline;
+            }
+
+            var dayGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = new GridLength(70) },
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Auto }
+                },
+                ColumnSpacing = 8
+            };
+            var dateLabel = new Label { Text = date.ToString("ddd M/d"), FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center };
+            Grid.SetColumn(dateLabel, 0);
+            dayGrid.Children.Add(dateLabel);
+            var processStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+            processStack.Children.Add(new Label { Text = assignedProcess, FontSize = 11, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
+            if (!string.IsNullOrWhiteSpace(existingEntry?.StoryTitle))
+            {
+                processStack.Children.Add(new Label
+                {
+                    Text = $"\U0001F4D6 {existingEntry.StoryTitle}",
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    LineBreakMode = LineBreakMode.TailTruncation
+                });
+            }
+            Grid.SetColumn(processStack, 1);
+            dayGrid.Children.Add(processStack);
+
+            if (existingEntry?.IsCompleted == true)
+            {
+                var summary = new Label { Text = BuildRetentionSummary(existingEntry), FontSize = 9, TextColor = Color.FromArgb("#2E7D32"), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap };
+                var editButton = new Button
+                {
+                    Text = "\u270F",
+                    BackgroundColor = Colors.Transparent,
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    WidthRequest = 28,
+                    HeightRequest = 28,
+                    Padding = 0,
+                    FontSize = 10
+                };
+                var capturedEditEntry = existingEntry;
+                editButton.Clicked += async (_, _) =>
+                {
+                    var newTitle = await DisplayPromptAsync(
+                        "Story Title",
+                        "What story did you write this day?",
+                        "Save",
+                        "Cancel",
+                        initialValue: capturedEditEntry.StoryTitle ?? "",
+                        maxLength: 200);
+                    if (newTitle == null) return;
+                    capturedEditEntry.StoryTitle = newTitle.Trim();
+                    await _experimentService.CompleteEntryAsync(capturedEditEntry);
+                    await RefreshAsync();
+                };
+
+                var completedActions = new HorizontalStackLayout
+                {
+                    Spacing = 4,
+                    VerticalOptions = LayoutOptions.Center,
+                    Children = { summary, editButton }
+                };
+                Grid.SetColumn(completedActions, 2);
+                dayGrid.Children.Add(completedActions);
+            }
+            else
+            {
+                var recordButton = new Button { Text = "\U0001F4DD Record", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 4, HeightRequest = 28, FontSize = 11, Padding = new Thickness(8, 0) };
+                var capturedDate = date;
+                var capturedProcess = assignedProcess;
+                var capturedIsBaseline = isBaseline;
+                var capturedEntry = existingEntry;
+                recordButton.Clicked += async (_, _) =>
+                {
+                    var entry = capturedEntry ?? await _experimentService.CreateEntryAsync(experiment.Id, capturedProcess, capturedIsBaseline, capturedDate);
+                    await RecordResultsAsync(entry);
+                };
+                Grid.SetColumn(recordButton, 2);
+                dayGrid.Children.Add(recordButton);
+            }
+
+            var dayFrame = new Frame
+            {
+                Padding = 10,
+                CornerRadius = 8,
+                BackgroundColor = existingEntry?.IsCompleted == true ? Color.FromArgb("#E8F5E9") : date == today ? (isBaseline ? Color.FromArgb("#E8EAF6") : Color.FromArgb("#FFF3E0")) : Color.FromArgb("#FAFAFA"),
+                BorderColor = date == today ? Color.FromArgb("#6A1B9A") : Colors.Transparent,
+                HasShadow = false,
+                Content = dayGrid
+            };
+            _todaySection.Children.Add(dayFrame);
+        }
+    }
+
+    private async Task RecordResultsAsync(WritingExperimentEntry entry)
+    {
+        string? executionNotes = await DisplayPromptAsync("Execution Notes", "How did you follow the process? What did you do?", "Next", "Cancel", maxLength: 1000);
+        if (executionNotes == null) return;
+        entry.ExecutionNotes = executionNotes.Trim();
+
+        string? storyTitle = await DisplayPromptAsync(
+            "Story Title",
+            "What story did you write today? (optional)",
+            "Next",
+            "Skip",
+            initialValue: entry.StoryTitle ?? "",
+            maxLength: 200);
+        if (storyTitle != null)
+            entry.StoryTitle = storyTitle.Trim();
+
+        var tcs = new TaskCompletionSource<bool>();
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var inputFields = new Dictionary<string, Entry>();
+        var intervals = new[] { (Key: "10s", Label: "10 seconds"), (Key: "30s", Label: "30 seconds"), (Key: "1m", Label: "1 minute"), (Key: "2m", Label: "2 minutes"), (Key: "3m", Label: "3 minutes") };
+        var formStack = new VerticalStackLayout { Spacing = 12 };
+        formStack.Children.Add(new Label { Text = "Retention Test", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#6A1B9A") });
+        formStack.Children.Add(new Label { Text = "What percentage of the story do you retain at each interval?", FontSize = 12, TextColor = Color.FromArgb("#666") });
+
+        foreach (var interval in intervals)
+        {
+            var input = new Entry
+            {
+                Placeholder = "0-100",
+                Keyboard = Keyboard.Numeric,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#333"),
+                BackgroundColor = Color.FromArgb("#FAFAFA"),
+                HeightRequest = 36,
+                WidthRequest = 80,
+                HorizontalTextAlignment = TextAlignment.Center
+            };
+
+            var percentLabel = new Label
+            {
+                Text = "%",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#666"),
+                VerticalOptions = LayoutOptions.Center
+            };
+
+            var inputRow = new HorizontalStackLayout
+            {
+                Spacing = 4,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = interval.Label + ":",
+                        FontSize = 13,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#333"),
+                        VerticalOptions = LayoutOptions.Center,
+                        WidthRequest = 90
+                    },
+                    input,
+                    percentLabel
+                }
+            };
+
+            formStack.Children.Add(inputRow);
+            inputFields[interval.Key] = input;
+        }
+
+        void CloseOverlay(bool saved)
+        {
+            if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(saved);
+        }
+
+        var saveButton = new Button { Text = "Save Retention", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 44 };
+        saveButton.Clicked += (_, _) =>
+        {
+            foreach (var (key, input) in inputFields)
+            {
+                int value = -1;
+                if (int.TryParse(input.Text, out int parsed))
+                    value = Math.Clamp(parsed, 0, 100);
+
+                switch (key)
+                {
+                    case "10s": entry.Retention10s = value; break;
+                    case "30s": entry.Retention30s = value; break;
+                    case "1m": entry.Retention1m = value; break;
+                    case "2m": entry.Retention2m = value; break;
+                    case "3m": entry.Retention3m = value; break;
+                }
+            }
+            entry.IsCompleted = true;
+            entry.CompletedAt = DateTime.UtcNow;
+            CloseOverlay(true);
+        };
+        var skipButton = new Button { Text = "Skip (mark done without retention)", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#666"), CornerRadius = 8, HeightRequest = 36, FontSize = 12 };
+        skipButton.Clicked += (_, _) =>
+        {
+            entry.IsCompleted = true;
+            entry.CompletedAt = DateTime.UtcNow;
+            CloseOverlay(true);
+        };
+        var cancelButton = new Button { Text = "Cancel", BackgroundColor = Colors.Transparent, TextColor = Color.FromArgb("#999"), HeightRequest = 36, FontSize = 12 };
+        cancelButton.Clicked += (_, _) => CloseOverlay(false);
+        formStack.Children.Add(saveButton);
+        formStack.Children.Add(skipButton);
+        formStack.Children.Add(cancelButton);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            MaximumWidthRequest = 500,
+            MaximumHeightRequest = 700,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(16, 20),
+            Content = new ScrollView { Content = formStack }
+        };
+        overlay.Children.Add(card);
+        if (Content is not Grid mainGrid) return;
+        mainGrid.Children.Add(overlay);
+
+        if (!await tcs.Task) return;
+        await _experimentService.CompleteEntryAsync(entry);
+        await RefreshAsync();
+    }
+
+    private async Task ChangeWeekProcessAsync(WritingExperiment experiment)
+    {
+        int selectedIndex = _selectedWeekIndex >= 0 && _selectedWeekIndex < _weekRanges.Count
+            ? _selectedWeekIndex
+            : _weekRanges.Count - 1;
+        var (fromDate, toDate) = _weekRanges[selectedIndex];
+        if (toDate > DateTime.Today) toDate = DateTime.Today;
+        var selected = await ShowProcessPickerAsync(
+            $"Change Process ({fromDate:M/d} â€” {toDate:M/d})",
+            experiment);
+        if (string.IsNullOrEmpty(selected)) return;
+
+        bool isBaseline = selected == experiment.BaselineProcessName;
+        await _experimentService.ChangeProcessForRangeAsync(
+            experiment.Id,
+            fromDate,
+            toDate,
+            selected,
+            isBaseline);
+
+        await DisplayAlert(
+            "Updated",
+            $"Changed process to '{selected}' for {fromDate:M/d} - {toDate:M/d}.",
+            "OK");
+        await RefreshAsync();
+    }
+
+    private async Task<string?> ShowProcessPickerAsync(string title, WritingExperiment experiment)
+    {
+        var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
+        var tcs = new TaskCompletionSource<string?>();
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var formStack = new VerticalStackLayout { Spacing = 10 };
+        formStack.Children.Add(new Label
+        {
+            Text = title,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#6A1B9A")
+        });
+
+        var searchEntry = new Entry
+        {
+            Placeholder = "Search processes...",
+            FontSize = 12,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            HeightRequest = 34
+        };
+        formStack.Children.Add(searchEntry);
+
+        var listStack = new VerticalStackLayout { Spacing = 4 };
+        void CloseOverlay(string? result)
+        {
+            if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(result);
+        }
+
+        void RebuildList(string search)
+        {
+            listStack.Children.Clear();
+            var filtered = string.IsNullOrWhiteSpace(search)
+                ? processes
+                : processes.Where(process => process.Name.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            foreach (var process in filtered)
+            {
+                var processFrame = new Frame
+                {
+                    Padding = 10,
+                    CornerRadius = 6,
+                    BackgroundColor = Color.FromArgb("#F3E5F5"),
+                    BorderColor = Colors.Transparent,
+                    HasShadow = false,
+                    HorizontalOptions = LayoutOptions.Fill
+                };
+                processFrame.Content = new Label
+                {
+                    Text = process.Name == experiment.BaselineProcessName ? $"\u2B50 {process.Name}" : process.Name,
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    LineBreakMode = LineBreakMode.WordWrap
+                };
+                var capturedName = process.Name;
+                var tap = new TapGestureRecognizer();
+                tap.Tapped += (_, _) => CloseOverlay(capturedName);
+                processFrame.GestureRecognizers.Add(tap);
+                listStack.Children.Add(processFrame);
+            }
+
+            var newProcessButton = new Button
+            {
+                Text = "+ New Process",
+                BackgroundColor = Color.FromArgb("#FFF3E0"),
+                TextColor = Color.FromArgb("#E65100"),
+                CornerRadius = 6,
+                HeightRequest = 36,
+                FontSize = 12,
+                HorizontalOptions = LayoutOptions.Fill
+            };
+            newProcessButton.Clicked += async (_, _) =>
+            {
+                string? name = await DisplayPromptAsync("New Process", "Process name:", "Create", "Cancel", maxLength: 200);
+                if (string.IsNullOrWhiteSpace(name)) return;
+                string trimmedName = name.Trim();
+
+                if (processes.Any(process => string.Equals(process.Name, trimmedName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    await DisplayAlert("Duplicate", $"A process named '{trimmedName}' already exists.", "OK");
+                    return;
+                }
+
+                string? description = await DisplayPromptAsync(
+                    "Description (optional)",
+                    "What is this process?",
+                    "Save",
+                    "Skip",
+                    maxLength: 500);
+
+                try
+                {
+                    await _storyService.AddWritingProcessAsync(_auth.CurrentUsername, trimmedName);
+                }
+                catch (ReadOnlyDatabaseException)
+                {
+                    await DisplayAlert("Read Only", "Cannot add processes on a secondary device.", "OK");
+                    return;
+                }
+
+                if (_ideaLogger != null)
+                {
+                    bool logIdea = await DisplayAlert(
+                        "Log as Idea?",
+                        $"Open the idea logger to log '{trimmedName}' under 'Story Production Processes'?",
+                        "Yes",
+                        "No");
+                    if (logIdea)
+                    {
+                        await _ideaLogger.LogIdeaAsync(
+                            this,
+                            _auth.CurrentUsername,
+                            trimmedName,
+                            "Story Production Processes");
+                    }
+                }
+
+                CloseOverlay(trimmedName);
+            };
+            listStack.Children.Add(newProcessButton);
+        }
+
+        searchEntry.TextChanged += (_, e) => RebuildList(e.NewTextValue ?? "");
+        RebuildList("");
+        formStack.Children.Add(new ScrollView { MaximumHeightRequest = 300, Content = listStack });
+
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#999"),
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        cancelButton.Clicked += (_, _) => CloseOverlay(null);
+        formStack.Children.Add(cancelButton);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            MaximumWidthRequest = 500,
+            MaximumHeightRequest = 600,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(16, 20),
+            Content = new ScrollView { Content = formStack }
+        };
+        overlay.Children.Add(card);
+        if (Content is not Grid mainGrid) return null;
+        mainGrid.Children.Add(overlay);
+
+        var selected = await tcs.Task;
+        return selected;
+    }
+
+    private async Task ManageProcessQueueAsync(WritingExperiment experiment)
+    {
+        var queue = ParseProcessQueue(experiment.ProcessQueueJson);
+        var tcs = new TaskCompletionSource<bool>();
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var formStack = new VerticalStackLayout { Spacing = 10 };
+        formStack.Children.Add(new Label
+        {
+            Text = "Queue Future Weeks",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1565C0")
+        });
+        var countLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#666") };
+        formStack.Children.Add(countLabel);
+
+        var queueList = new VerticalStackLayout { Spacing = 6 };
+        void RebuildQueueList()
+        {
+            countLabel.Text = $"{queue.Count} week(s) planned";
+            queueList.Children.Clear();
+
+            if (queue.Count == 0)
+            {
+                queueList.Children.Add(new Label
+                {
+                    Text = "No future weeks queued.",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#999"),
+                    FontAttributes = FontAttributes.Italic
+                });
+                return;
+            }
+
+            foreach (var item in queue.OrderBy(item => item.WeekNumber).ToList())
+            {
+                var row = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = GridLength.Auto },
+                        new ColumnDefinition { Width = GridLength.Auto }
+                    },
+                    ColumnSpacing = 4
+                };
+                var label = new Label
+                {
+                    Text = $"Week {item.WeekNumber}: {item.ProcessName}",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#1565C0"),
+                    LineBreakMode = LineBreakMode.WordWrap,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                Grid.SetColumn(label, 0);
+                row.Children.Add(label);
+
+                var changeButton = new Button
+                {
+                    Text = "Change",
+                    BackgroundColor = Colors.Transparent,
+                    TextColor = Color.FromArgb("#6A1B9A"),
+                    HeightRequest = 30,
+                    FontSize = 10,
+                    Padding = new Thickness(6, 0)
+                };
+                var capturedItem = item;
+                changeButton.Clicked += async (_, _) =>
+                {
+                    var picked = await ShowProcessPickerAsync(
+                        $"Process for Week {capturedItem.WeekNumber}",
+                        experiment);
+                    if (!string.IsNullOrEmpty(picked))
+                    {
+                        capturedItem.ProcessName = picked;
+                        RebuildQueueList();
+                    }
+                };
+                Grid.SetColumn(changeButton, 1);
+                row.Children.Add(changeButton);
+
+                var removeButton = new Button
+                {
+                    Text = "Remove",
+                    BackgroundColor = Colors.Transparent,
+                    TextColor = Color.FromArgb("#C62828"),
+                    HeightRequest = 30,
+                    FontSize = 10,
+                    Padding = new Thickness(6, 0)
+                };
+                removeButton.Clicked += (_, _) =>
+                {
+                    queue.Remove(capturedItem);
+                    RebuildQueueList();
+                };
+                Grid.SetColumn(removeButton, 2);
+                row.Children.Add(removeButton);
+
+                queueList.Children.Add(new Frame
+                {
+                    Padding = 10,
+                    CornerRadius = 8,
+                    BackgroundColor = Color.FromArgb("#E3F2FD"),
+                    BorderColor = Colors.Transparent,
+                    HasShadow = false,
+                    Content = row
+                });
+            }
+        }
+
+        RebuildQueueList();
+        formStack.Children.Add(new ScrollView { MaximumHeightRequest = 320, Content = queueList });
+
+        var addButton = new Button
+        {
+            Text = "+ Add Week",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        addButton.Clicked += async (_, _) =>
+        {
+            int nextWeek = queue.Count > 0
+                ? queue.Max(item => item.WeekNumber) + 1
+                : experiment.CurrentWeek + 1;
+            var picked = await ShowProcessPickerAsync($"Process for Week {nextWeek}", experiment);
+            if (!string.IsNullOrEmpty(picked))
+            {
+                queue.Add(new ProcessQueueItem { WeekNumber = nextWeek, ProcessName = picked });
+                RebuildQueueList();
+            }
+        };
+
+        var clearButton = new Button
+        {
+            Text = "Clear All",
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 6,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        clearButton.Clicked += (_, _) =>
+        {
+            queue.Clear();
+            RebuildQueueList();
+        };
+
+        var doneButton = new Button
+        {
+            Text = "Done",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            HeightRequest = 36,
+            FontSize = 12
+        };
+        doneButton.Clicked += (_, _) =>
+        {
+            if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(true);
+        };
+
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#999"),
+            HeightRequest = 34,
+            FontSize = 11
+        };
+        cancelButton.Clicked += (_, _) =>
+        {
+            if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(false);
+        };
+
+        formStack.Children.Add(new HorizontalStackLayout
+        {
+            Spacing = 6,
+            Children = { addButton, clearButton, doneButton }
+        });
+        formStack.Children.Add(cancelButton);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            MaximumWidthRequest = 600,
+            MaximumHeightRequest = 650,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(16, 20),
+            Content = new ScrollView { Content = formStack }
+        };
+        overlay.Children.Add(card);
+        if (Content is not Grid mainGrid) return;
+        mainGrid.Children.Add(overlay);
+
+        bool save = await tcs.Task;
+        if (!save) return;
+
+        experiment.ProcessQueueJson = System.Text.Json.JsonSerializer.Serialize(queue);
+        await _experimentService.UpdateExperimentAsync(experiment);
+        await RefreshAsync();
+    }
+
+    private async Task StartChallengerAsync(WritingExperiment experiment)
+    {
+        var challengers = (await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername)).Where(p => p.Name != experiment.BaselineProcessName).ToList();
+        if (challengers.Count == 0) { await DisplayAlert("No Challengers", "Create another writing process to challenge against.", "OK"); return; }
+        string? selected = await DisplayActionSheet("Pick Challenger Process", "Cancel", null, challengers.Select(p => p.Name).ToArray());
+        if (string.IsNullOrEmpty(selected) || selected == "Cancel") return;
+        await _experimentService.SetChallengerAsync(experiment.Id, selected);
+        await RefreshAsync();
+    }
+
+    private async Task ShowComparisonAsync(WritingExperiment experiment)
+    {
+        var (baselineAvg, challengerAvg, baselineCount, challengerCount) = await _experimentService.GetComparisonAsync(experiment.Id);
+        _comparisonSection.Children.Add(new Label { Text = "\U0001F4CA Comparison", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, RowDefinitions = { new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto) }, RowSpacing = 6, ColumnSpacing = 12 };
+        AddComparisonCell(grid, $"\U0001F4CA {experiment.BaselineProcessName}", 0, 0, 13, "#3F51B5", true);
+        AddComparisonCell(grid, $"âš”ï¸ {experiment.ChallengerProcessName}", 1, 0, 13, "#E65100", true);
+        AddComparisonCell(grid, $"{baselineAvg:F1}%", 0, 1, 24, "#3F51B5", true);
+        AddComparisonCell(grid, $"{challengerAvg:F1}%", 1, 1, 24, "#E65100", true);
+        AddComparisonCell(grid, $"{baselineCount} entries", 0, 2, 11, "#888", false);
+        AddComparisonCell(grid, $"{challengerCount} entries", 1, 2, 11, "#888", false);
+        _comparisonSection.Children.Add(new Frame { Padding = 14, CornerRadius = 10, BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false, Content = grid });
+
+        if (baselineCount >= 7 && challengerCount >= 7)
+        {
+            string recommendation = baselineAvg > challengerAvg + .5 ? $"\U0001F3C6 Baseline ({experiment.BaselineProcessName}) wins by {baselineAvg - challengerAvg:F1} percentage points. Consider keeping it as your default."
+                : challengerAvg > baselineAvg + .5 ? $"\U0001F3C6 Challenger ({experiment.ChallengerProcessName}) wins by {challengerAvg - baselineAvg:F1} percentage points. Consider switching your default."
+                : "\U0001F91D Too close to call. Consider running more days or testing a different challenger.";
+            _comparisonSection.Children.Add(new Label { Text = recommendation, FontSize = 13, TextColor = Color.FromArgb("#6A1B9A"), FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap });
+        }
+    }
+
+    private static void AddComparisonCell(Grid grid, string text, int column, int row, double size, string color, bool bold)
+    {
+        var label = new Label { Text = text, FontSize = size, FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None, TextColor = Color.FromArgb(color), HorizontalTextAlignment = TextAlignment.Center };
+        Grid.SetColumn(label, column);
+        Grid.SetRow(label, row);
+        grid.Children.Add(label);
+    }
+
+    private static string BuildRetentionSummary(WritingExperimentEntry entry)
+    {
+        var values = new List<string>();
+        if (entry.Retention10s >= 0) values.Add($"10s:{entry.Retention10s}%");
+        if (entry.Retention30s >= 0) values.Add($"30s:{entry.Retention30s}%");
+        if (entry.Retention1m >= 0) values.Add($"1m:{entry.Retention1m}%");
+        if (entry.Retention2m >= 0) values.Add($"2m:{entry.Retention2m}%");
+        if (entry.Retention3m >= 0) values.Add($"3m:{entry.Retention3m}%");
+        return values.Count > 0 ? string.Join(" ", values) : "âœ…";
+    }
+
+    private class ProcessQueueItem
+    {
+        public ProcessQueueItem() { }
+
+        public int WeekNumber { get; set; }
+        public string ProcessName { get; set; } = "";
+    }
+
+    private static List<ProcessQueueItem> ParseProcessQueue(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new List<ProcessQueueItem>();
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<ProcessQueueItem>>(json) ?? new();
+        }
+        catch
+        {
+            return new();
+        }
+    }
+
+}
+
+
+===== .\Bannister\Views\storyproduction\WritingProcessesPage.cs =====
+using Bannister.Models;
+using Bannister.Services;
+
+namespace Bannister.Views;
+
+public class WritingProcessesPage : ContentPage
+{
+    private readonly AuthService _auth;
+    private readonly StoryProductionService _storyService;
+    private readonly WritingExperimentService _experimentService;
+    private readonly IdeaLoggerService? _ideaLogger;
+    private VerticalStackLayout _listStack;
+    private bool _processesExpanded;
+
+    public WritingProcessesPage(AuthService auth, StoryProductionService storyService, WritingExperimentService experimentService, IdeaLoggerService? ideaLogger = null)
+    {
+        _auth = auth;
+        _storyService = storyService;
+        _experimentService = experimentService;
+        _ideaLogger = ideaLogger;
+
+        Title = "Writing Processes";
+        BackgroundColor = Color.FromArgb("#F5F5F5");
+
+        BuildUI();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await LoadProcessesAsync();
+    }
+
+    private void BuildUI()
+    {
+        var mainStack = new VerticalStackLayout
+        {
+            Padding = 20,
+            Spacing = 16
+        };
+
+        mainStack.Children.Add(new Label
+        {
+            Text = "Writing Processes",
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#7B1FA2")
+        });
+
+        var experimentBtn = new Button
+        {
+            Text = "\U0001F9EA Writing Experiment",
+            BackgroundColor = Color.FromArgb("#FFF8E1"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        experimentBtn.Clicked += async (_, _) =>
+        {
+            var page = new WritingExperimentPage(_auth, _experimentService, _storyService, _ideaLogger);
+            await Navigation.PushAsync(page);
+        };
+        mainStack.Children.Add(experimentBtn);
+
+        mainStack.Children.Add(new Label
+        {
+            Text = "Manage the writing processes you can assign to story projects.",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        var addBtn = new Button
+        {
+            Text = "+ Add Process",
+            BackgroundColor = Color.FromArgb("#7B1FA2"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontAttributes = FontAttributes.Bold,
+            HorizontalOptions = LayoutOptions.Start
+        };
+        addBtn.Clicked += OnAddClicked;
+        mainStack.Children.Add(addBtn);
+
+        _listStack = new VerticalStackLayout { Spacing = 8 };
+        mainStack.Children.Add(_listStack);
+
+        Content = new ScrollView { Content = mainStack };
+    }
+
+    private async Task LoadProcessesAsync()
+    {
+        _listStack.Children.Clear();
+
+        var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
+
+        var processesHeader = new Label
+        {
+            Text = _processesExpanded
+                ? $"\u25BC \U0001F4DD Processes ({processes.Count})"
+                : $"\u25B6 \U0001F4DD Processes ({processes.Count})",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#6A1B9A"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        var headerTap = new TapGestureRecognizer();
+        headerTap.Tapped += async (_, _) =>
+        {
+            _processesExpanded = !_processesExpanded;
+            await LoadProcessesAsync();
+        };
+        processesHeader.GestureRecognizers.Add(headerTap);
+        _listStack.Children.Add(processesHeader);
+
+        if (!_processesExpanded) return;
+
+        if (processes.Count == 0)
+        {
+            _listStack.Children.Add(new Label
+            {
+                Text = "No writing processes defined yet. Add one to get started.",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#999"),
+                FontAttributes = FontAttributes.Italic,
+                Margin = new Thickness(0, 12)
+            });
+            return;
+        }
+
+        var allProjects = await _storyService.GetProjectsAsync(_auth.CurrentUsername);
+        var originalProjects = allProjects.Where(project => project.ParentProjectId == null).ToList();
+
+        foreach (var process in processes)
+        {
+            var processFrame = new Frame
+            {
+                Padding = 12,
+                CornerRadius = 8,
+                BackgroundColor = Colors.White,
+                HasShadow = true,
+                BorderColor = Colors.Transparent
+            };
+
+            var processStack = new VerticalStackLayout { Spacing = 6 };
+            var headerGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Auto }
+                },
+                ColumnSpacing = 12
+            };
+
+            headerGrid.Add(new Label
+            {
+                Text = process.Name,
+                FontSize = 16,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#333")
+            }, 0, 0);
+
+            {
+                var processProjects = originalProjects
+                    .Where(project => string.Equals(
+                        project.WritingProcess?.Trim(),
+                        process.Name,
+                        StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                int totalCount = processProjects.Count;
+                var withStats = processProjects.Where(project =>
+                    project.YouTubeStatsCapturedAt.HasValue ||
+                    project.FacebookStatsCapturedAt.HasValue ||
+                    project.TikTokStatsCapturedAt.HasValue).ToList();
+                int statsCount = withStats.Count;
+                var ytProjects = withStats.Where(project => project.YouTubeStatsCapturedAt.HasValue).ToList();
+                var fbProjects = withStats.Where(project => project.FacebookStatsCapturedAt.HasValue).ToList();
+                var ttProjects = withStats.Where(project => project.TikTokStatsCapturedAt.HasValue).ToList();
+
+                var deleteButton = new Button
+                {
+                    Text = "Delete",
+                    BackgroundColor = Color.FromArgb("#FFCDD2"),
+                    TextColor = Color.FromArgb("#C62828"),
+                    CornerRadius = 8,
+                    HeightRequest = 36,
+                    FontSize = 12,
+                    Padding = new Thickness(12, 0),
+                    VerticalOptions = LayoutOptions.Center
+                };
+                var capturedProcess = process;
+                deleteButton.Clicked += async (_, _) =>
+                    await DeleteProcessAsync(capturedProcess, totalCount);
+                headerGrid.Add(deleteButton, 1, 0);
+
+                processStack.Children.Add(headerGrid);
+                string statsText = statsCount == 1 ? "1 has stats" : $"{statsCount} have stats";
+                processStack.Children.Add(new Label
+                {
+                    Text = $"{totalCount} project(s) Â· {statsText}",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#888")
+                });
+
+                if (ytProjects.Count > 0)
+                {
+                    var topYt = ytProjects.OrderByDescending(p => p.YouTubeViews).First();
+                    processStack.Children.Add(BuildPlatformStats(
+                        "YouTube", "#C62828", ytProjects.Count,
+                        ytProjects.Average(p => p.YouTubeViews),
+                        ytProjects.Average(p => p.YouTubeLikes),
+                        ytProjects.Average(p => p.YouTubeComments),
+                        ytProjects.Average(p => p.YouTubeAverageViewDurationSeconds),
+                        topYt.Name, topYt.YouTubeViews, topYt.YouTubeLikes));
+                }
+
+                if (fbProjects.Count > 0)
+                {
+                    var topFb = fbProjects.OrderByDescending(p => p.FacebookViews).First();
+                    processStack.Children.Add(BuildPlatformStats(
+                        "Facebook", "#1565C0", fbProjects.Count,
+                        fbProjects.Average(p => p.FacebookViews),
+                        fbProjects.Average(p => p.FacebookLikes),
+                        fbProjects.Average(p => p.FacebookComments),
+                        fbProjects.Average(p => p.FacebookAverageViewDurationSeconds),
+                        topFb.Name, topFb.FacebookViews, topFb.FacebookLikes));
+                }
+
+                if (ttProjects.Count > 0)
+                {
+                    var topTt = ttProjects.OrderByDescending(p => p.TikTokViews).First();
+                    processStack.Children.Add(BuildPlatformStats(
+                        "TikTok", "#000000", ttProjects.Count,
+                        ttProjects.Average(p => p.TikTokViews),
+                        ttProjects.Average(p => p.TikTokLikes),
+                        ttProjects.Average(p => p.TikTokComments),
+                        ttProjects.Average(p => p.TikTokAverageWatchTimeSeconds),
+                        topTt.Name, topTt.TikTokViews, topTt.TikTokLikes));
+                }
+
+                if (statsCount == 0 && totalCount > 0)
+                {
+                    processStack.Children.Add(new Label
+                    {
+                        Text = "No stats logged yet for any project in this process.",
+                        FontSize = 11,
+                        TextColor = Color.FromArgb("#AAA"),
+                        FontAttributes = FontAttributes.Italic
+                    });
+                }
+            }
+            processFrame.Content = processStack;
+            _listStack.Children.Add(processFrame);
+        }
+    }
+
+    private static View BuildPlatformStats(
+        string platform,
+        string color,
+        int projectCount,
+        double avgViews,
+        double avgLikes,
+        double avgComments,
+        double avgDurationSeconds,
+        string topProjectName,
+        int topViews,
+        int topLikes)
+    {
+        var stack = new VerticalStackLayout { Spacing = 2, Margin = new Thickness(0, 4, 0, 0) };
+
+        stack.Children.Add(new Label
+        {
+            Text = $"{platform} ({projectCount} logged)",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb(color)
+        });
+
+        string durationDisplay = avgDurationSeconds >= 60
+            ? $"{(int)(avgDurationSeconds / 60)}m {(int)(avgDurationSeconds % 60)}s"
+            : $"{(int)avgDurationSeconds}s";
+
+        stack.Children.Add(new Label
+        {
+            Text = $"Avg: {avgViews:F0} views Â· {avgLikes:F0} likes Â· {avgComments:F0} comments Â· {durationDisplay} avg watch",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#666")
+        });
+
+        string topName = topProjectName.Length > 30 ? topProjectName[..27] + "..." : topProjectName;
+        stack.Children.Add(new Label
+        {
+            Text = $"Top: \"{topName}\" ({topViews} views, {topLikes} likes)",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#444"),
+            FontAttributes = FontAttributes.Italic
+        });
+
+        return stack;
+    }
+
+    private async void OnAddClicked(object? sender, EventArgs e)
+    {
+        string? name = await DisplayPromptAsync(
+            "New Writing Process",
+            "Enter process name:",
+            "Add",
+            "Cancel",
+            placeholder: "e.g., Fable, Video Essay, Documentary...");
+
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        // Check for duplicate
+        var existing = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
+        if (existing.Any(p => string.Equals(p.Name, name.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            await DisplayAlert("Duplicate", $"A process named '{name.Trim()}' already exists.", "OK");
+            return;
+        }
+
+        try
+        {
+            await _storyService.AddWritingProcessAsync(_auth.CurrentUsername, name.Trim());
+
+            // Offer to add as idea under Story Production Processes category
+            if (_ideaLogger != null)
+            {
+                bool addAsIdea = await DisplayAlert(
+                    "Log as Idea?",
+                    $"Open the idea logger to log '{name.Trim()}' under 'Story Production Processes'?",
+                    "Yes",
+                    "No");
+
+                if (addAsIdea)
+                {
+                    await _ideaLogger.LogIdeaAsync(
+                        this,
+                        _auth.CurrentUsername,
+                        name.Trim(),
+                        "Story Production Processes");
+                }
+            }
+
+            await LoadProcessesAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await DisplayAlert("Read Only", "Cannot add processes on a secondary device.", "OK");
+        }
+    }
+
+    private async Task DeleteProcessAsync(WritingProcessDefinition process, int usageCount)
+    {
+        string message = usageCount > 0
+            ? $"Delete '{process.Name}'?\n\nThis process is used by {usageCount} project(s). Those projects will keep their current process label but it won't appear in the defined list."
+            : $"Delete '{process.Name}'?";
+
+        bool confirm = await DisplayAlert("Delete Process", message, "Delete", "Cancel");
+        if (!confirm) return;
+
+        try
+        {
+            await _storyService.DeleteWritingProcessAsync(process.Id);
+            await LoadProcessesAsync();
+        }
+        catch (ReadOnlyDatabaseException)
+        {
+            await DisplayAlert("Read Only", "Cannot delete processes on a secondary device.", "OK");
+        }
+    }
+}
+
