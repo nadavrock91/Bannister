@@ -36,7 +36,12 @@ public class HomePopupPreferenceService
         if (_db.IsReadOnly) return;
 
         var conn = await _db.GetConnectionAsync();
-        try { await conn.CreateTableAsync<HomePopupPreference>(); } catch { }
+        try
+        {
+            await conn.CreateTableAsync<HomePopupPreference>();
+            await conn.CreateTableAsync<PopupSeenToday>();
+        }
+        catch { }
     }
 
     public async Task<bool> IsEnabledAsync(string username, string popupKey, string deviceRole)
@@ -123,180 +128,84 @@ public class HomePopupPreferenceService
         return true;
     }
 
-    public async Task<bool> IsSeenTodayAsync(string username, string popupKey)
+    public async Task<bool> IsSeenTodayAsync(
+        string username,
+        string popupKey)
     {
+        if (!HasSeenTodayGate(popupKey))
+            return false;
         try
         {
-            if (popupKey == "habit_scolding")
-            {
-                var conn = await _db.GetConnectionAsync();
-                try { await conn.CreateTableAsync<HabitAllowance>(); } catch { }
-                try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN LastScoldedOn TEXT"); } catch { }
-
-                var allowances = await conn.Table<HabitAllowance>()
-                    .Where(a => a.Username == username && a.LastScoldedOn != null)
-                    .ToListAsync();
-                return allowances.Any(a => a.LastScoldedOn?.Date == DateTime.Today);
-            }
-
-            if (popupKey == "pending_prompts")
-            {
-                var today = DateTime.Today.ToString("yyyy-MM-dd");
-                var thisMonth = DateTime.Today.ToString("yyyy-MM");
-
-                var dailyKeys = GetPendingPromptDailyKeys(username);
-                var monthlyKeys = GetPendingPromptMonthlyKeys(username);
-
-                foreach (var key in dailyKeys)
-                {
-                    if (await SecureStorage.GetAsync(key) != today)
-                        return false;
-                }
-
-                foreach (var key in monthlyKeys)
-                {
-                    if (await SecureStorage.GetAsync(key) != thisMonth)
-                        return false;
-                }
-
-                return true;
-            }
-
-            if (popupKey == "subactivity")
-            {
-                var today = DateTime.Today.ToString("yyyy-MM-dd");
-                return await SecureStorage.GetAsync($"subactivity_daily_prompt_{username}") == today;
-            }
-
-            if (popupKey == "life_path_checkin")
-            {
-                var today = DateTime.Today.ToString("yyyy-MM-dd");
-                return await SecureStorage.GetAsync($"life_path_checkin_daily_{username}") == today;
-            }
-
-            // Dynamic per-block keys e.g. life_path_checkin_42
-            if (popupKey.StartsWith("life_path_checkin_"))
-            {
-                var today = DateTime.Today
-                    .ToString("yyyy-MM-dd");
-                var stored = await SecureStorage.GetAsync(
-                    $"lp_checkin_{username}_{popupKey}");
-                return stored == today;
-            }
+            var conn = await _db.GetConnectionAsync();
+            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var row = await conn.Table<PopupSeenToday>()
+                .Where(r => r.Username == username &&
+                            r.PopupKey == popupKey)
+                .FirstOrDefaultAsync();
+            return row?.SeenDate == today;
         }
-        catch
-        {
-            return false;
-        }
-
-        return false;
+        catch { return false; }
     }
 
-    public async Task<bool> SetSeenTodayAsync(string username, string popupKey, bool seen)
+    public async Task<bool> SetSeenTodayAsync(
+        string username,
+        string popupKey,
+        bool seen)
     {
+        if (!HasSeenTodayGate(popupKey))
+            return false;
         try
         {
-            if (popupKey == "habit_scolding")
+            var conn = await _db.GetConnectionAsync();
+            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var existing = await conn.Table<PopupSeenToday>()
+                .Where(r => r.Username == username &&
+                            r.PopupKey == popupKey)
+                .FirstOrDefaultAsync();
+
+            if (seen)
             {
-                if (_db.IsReadOnly) return false;
-
-                var conn = await _db.GetConnectionAsync();
-                try { await conn.CreateTableAsync<HabitAllowance>(); } catch { }
-                try { await conn.ExecuteAsync("ALTER TABLE habit_allowances ADD COLUMN LastScoldedOn TEXT"); } catch { }
-
-                var allowances = await conn.Table<HabitAllowance>()
-                    .Where(a => a.Username == username)
-                    .ToListAsync();
-
-                foreach (var allowance in allowances)
+                if (existing == null)
                 {
-                    allowance.LastScoldedOn = seen ? DateTime.UtcNow : null;
-                    await conn.UpdateAsync(allowance);
-                }
-
-                return true;
-            }
-
-            if (popupKey == "pending_prompts")
-            {
-                var today = DateTime.Today.ToString("yyyy-MM-dd");
-                var thisMonth = DateTime.Today.ToString("yyyy-MM");
-
-                foreach (var key in GetPendingPromptDailyKeys(username))
-                {
-                    if (seen)
-                        await SecureStorage.SetAsync(key, today);
-                    else
-                        SecureStorage.Remove(key);
-                }
-
-                foreach (var key in GetPendingPromptMonthlyKeys(username))
-                {
-                    if (seen)
-                        await SecureStorage.SetAsync(key, thisMonth);
-                    else
-                        SecureStorage.Remove(key);
-                }
-
-                return true;
-            }
-
-            if (popupKey == "subactivity")
-            {
-                var today = DateTime.Today.ToString("yyyy-MM-dd");
-                var key = $"subactivity_daily_prompt_{username}";
-
-                if (seen)
-                {
-                    await SecureStorage.SetAsync(key, today);
+                    await conn.InsertAsync(new PopupSeenToday
+                    {
+                        Username = username,
+                        PopupKey = popupKey,
+                        SeenDate = today,
+                        UpdatedAt = DateTime.UtcNow
+                    });
                 }
                 else
                 {
-                    SecureStorage.Remove(key);
-                    await _subActivityService.ResetTodaySubmissionsAsync(username);
+                    existing.SeenDate = today;
+                    existing.UpdatedAt = DateTime.UtcNow;
+                    await conn.UpdateAsync(existing);
                 }
-
-                return true;
             }
-
-            if (popupKey == "life_path_checkin")
+            else if (existing != null)
             {
-                var key = $"life_path_checkin_daily_{username}";
-                if (seen)
-                    await SecureStorage.SetAsync(
-                        key, DateTime.Today.ToString("yyyy-MM-dd"));
-                else
-                    SecureStorage.Remove(key);
-                return true;
+                existing.SeenDate = "";
+                existing.UpdatedAt = DateTime.UtcNow;
+                await conn.UpdateAsync(existing);
             }
 
-            // Dynamic per-block keys e.g. life_path_checkin_42
-            if (popupKey.StartsWith("life_path_checkin_"))
-            {
-                var key =
-                    $"lp_checkin_{username}_{popupKey}";
-                if (seen)
-                    await SecureStorage.SetAsync(
-                        key,
-                        DateTime.Today
-                            .ToString("yyyy-MM-dd"));
-                else
-                    SecureStorage.Remove(key);
-                return true;
-            }
+            return true;
         }
-        catch
-        {
-            return false;
-        }
-
-        return false;
+        catch { return false; }
     }
 
     public bool HasSeenTodayGate(string popupKey)
     {
-        if (popupKey.StartsWith(
-            "life_path_checkin_"))
+        if (popupKey.StartsWith("life_path_checkin_"))
+            return true;
+        if (popupKey.StartsWith("daily_login_prompts_shown_") ||
+            popupKey.StartsWith("allowance_daily_prompt_") ||
+            popupKey.StartsWith("deadlines_checkin_") ||
+            popupKey.StartsWith("expired_activities_prompt_") ||
+            popupKey.StartsWith("daily_habit_allowance_prompt_") ||
+            popupKey.StartsWith("weekly_commitment_prompt_") ||
+            popupKey.StartsWith("weekly_habit_allowance_prompt_") ||
+            popupKey.StartsWith("monthly_habit_allowance_prompt_"))
             return true;
         return popupKey switch
         {
