@@ -305,6 +305,7 @@ public class ActivityCreationPage : ContentPage
             // Load existing categories
             var existingActivities = await _activities.GetActivitiesAsync(_auth.CurrentUsername, GameId);
             _categories = existingActivities
+                .Where(a => !a.IsStreakContainer)
                 .Select(a => a.Category ?? "Misc")
                 .Distinct()
                 .OrderBy(c => c)
