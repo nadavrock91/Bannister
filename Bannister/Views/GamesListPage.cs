@@ -166,6 +166,21 @@ public class GamesListPage : ContentPage
                     _activities, _games, _auth));
         mainStack.Children.Add(btnSort);
 
+        var btnBatchImage = new Button
+        {
+            Text = " Batch Image Assign",
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        btnBatchImage.Clicked += async (_, _) =>
+            await Navigation.PushAsync(
+                new BatchImageAssignPage(
+                    _activities, _games, _auth));
+        mainStack.Children.Add(btnBatchImage);
+
         var btnSortGames = new Button
         {
             Text = " Sort Games",

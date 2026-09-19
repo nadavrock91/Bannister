@@ -226,6 +226,7 @@ public static class MauiProgram
         builder.Services.AddTransient<LifePathsPage>();
         builder.Services.AddTransient<LifePathEditorPage>();
         builder.Services.AddTransient<JournalAnalysisPage>();
+        builder.Services.AddTransient<BatchImageAssignPage>();
 
 
 #if DEBUG

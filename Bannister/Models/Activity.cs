@@ -20,6 +20,13 @@ public class Activity
 
     public string ImagePath { get; set; } = "";
 
+    /// <summary>
+    /// Text description of what image should
+    /// represent this activity. Set via Batch
+    /// Image Assign from LLM suggestions.
+    /// </summary>
+    public string ImageIdea { get; set; } = "";
+
     public string Category { get; set; } = "Misc";
 
     public bool IsZeroCount { get; set; } = false;
