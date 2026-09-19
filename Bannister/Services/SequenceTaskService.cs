@@ -73,6 +73,13 @@ public class SequenceTaskService
         else await conn.UpdateAsync(item);
     }
 
+    public async Task UpdateItemAsync(SequenceTaskItem item)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(item);
+    }
+
     public async Task DeleteItemAsync(int id)
     {
         await InitAsync();
