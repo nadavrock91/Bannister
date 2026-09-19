@@ -89,8 +89,19 @@
                                 
                                 <!-- Activity Name & EXP -->
                                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <Image Grid.Column="0"
+                                           IsVisible="{Binding ShowImage}"
+                                           HeightRequest="40"
+                                           WidthRequest="40"
+                                           Aspect="AspectFit">
+                                        <Image.Source>
+                                            <FileImageSource
+                                                File="{Binding ResolvedImagePath}"/>
+                                        </Image.Source>
+                                    </Image>
                                     <Label Grid.Column="0"
                                            Text="{Binding ActivityName}"
+                                           IsVisible="{Binding ShowName}"
                                            FontSize="16"
                                            FontAttributes="Bold"
                                            TextColor="#12161E"/>

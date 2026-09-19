@@ -465,15 +465,51 @@ public class ActivitySelectionPage : ContentPage
             });
         }
         
-        nameStack.Children.Add(new Label
+        if (activity.IsImageOnly &&
+            !string.IsNullOrWhiteSpace(activity.ImagePath))
         {
-            Text = activity.Name,
-            FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
-            LineBreakMode = LineBreakMode.TailTruncation,
-            MaxLines = 2
-        });
+            string resolvedPath =
+                Path.IsPathRooted(activity.ImagePath)
+                ? (File.Exists(activity.ImagePath)
+                    ? activity.ImagePath
+                    : Path.Combine(
+                        FileSystem.AppDataDirectory,
+                        "ActivityImages",
+                        Path.GetFileName(activity.ImagePath)))
+                : Path.Combine(
+                    FileSystem.AppDataDirectory,
+                    "ActivityImages",
+                    activity.ImagePath);
+
+            if (File.Exists(resolvedPath))
+                nameStack.Children.Add(new Image
+                {
+                    Source = ImageSource.FromFile(resolvedPath),
+                    HeightRequest = 50,
+                    WidthRequest = 50,
+                    Aspect = Aspect.AspectFit,
+                    HorizontalOptions = LayoutOptions.Start
+                });
+            else
+                nameStack.Children.Add(new Label
+                {
+                    Text = "",
+                    FontSize = 24,
+                    TextColor = Color.FromArgb("#999")
+                });
+        }
+        else
+        {
+            nameStack.Children.Add(new Label
+            {
+                Text = activity.Name,
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#333"),
+                LineBreakMode = LineBreakMode.TailTruncation,
+                MaxLines = 2
+            });
+        }
         grid.Add(nameStack, 0, 0);
 
         // Show EXP or streak info

@@ -60,15 +60,30 @@ public partial class ExpLogPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"ExpLogPage: First log entry: {logs[0].ActivityName}, {logs[0].DeltaExp} EXP");
         }
         
-        // Create view models with Id for deletion
-        _viewModels = logs.Select(log => new ExpLogViewModel
+        var conn = await _db.GetConnectionAsync();
+        var activities = await conn.Table<Activity>()
+            .Where(a => a.Username == _auth.CurrentUsername &&
+                        a.Game == _gameId)
+            .ToListAsync();
+        var activityMap = activities.ToDictionary(
+            a => a.Id, a => a);
+
+        _viewModels = logs.Select(log =>
         {
-            Id = log.Id,
-            ActivityName = log.ActivityName,
-            ExpEarned = log.DeltaExp,
-            ExecutedAt = log.LoggedAt,
-            LevelBefore = log.LevelBefore,
-            LevelAfter = log.LevelAfter
+            activityMap.TryGetValue(log.ActivityId,
+                out var act);
+            return new ExpLogViewModel
+            {
+                Id = log.Id,
+                ActivityId = log.ActivityId,
+                ActivityName = log.ActivityName,
+                ExpEarned = log.DeltaExp,
+                ExecutedAt = log.LoggedAt,
+                LevelBefore = log.LevelBefore,
+                LevelAfter = log.LevelAfter,
+                IsImageOnly = act?.IsImageOnly ?? false,
+                ImagePath = act?.ImagePath ?? ""
+            };
         }).ToList();
 
         System.Diagnostics.Debug.WriteLine($"ExpLogPage: Created {_viewModels.Count} view models");
@@ -165,7 +180,34 @@ public partial class ExpLogPage : ContentPage
 public class ExpLogViewModel
 {
     public int Id { get; set; }
+    public int ActivityId { get; set; }
     public string ActivityName { get; set; } = string.Empty;
+    public bool IsImageOnly { get; set; }
+    public string ImagePath { get; set; } = "";
+    public bool ShowImage =>
+        IsImageOnly && !string.IsNullOrWhiteSpace(ImagePath);
+    public bool ShowName => !ShowImage;
+    public string ResolvedImagePath
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(ImagePath))
+                return "";
+            if (Path.IsPathRooted(ImagePath))
+            {
+                if (File.Exists(ImagePath))
+                    return ImagePath;
+                return Path.Combine(
+                    FileSystem.AppDataDirectory,
+                    "ActivityImages",
+                    Path.GetFileName(ImagePath));
+            }
+            return Path.Combine(
+                FileSystem.AppDataDirectory,
+                "ActivityImages",
+                ImagePath);
+        }
+    }
     public int ExpEarned { get; set; }
     public DateTime ExecutedAt { get; set; }
     public int LevelBefore { get; set; }
