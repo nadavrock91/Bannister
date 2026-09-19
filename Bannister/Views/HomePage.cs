@@ -964,6 +964,9 @@ public class HomePage : ContentPage
 
             await LoadDataAsync();
             if (!IsHomePromptRunActive(promptRunId)) return;
+            // Let UI fully render before showing prompts
+            await Task.Delay(800);
+            if (!IsHomePromptRunActive(promptRunId)) return;
             bool homePromptShown = await ShowHomePromptManagerIfNeededAsync(promptRunId);
             if (!IsHomePromptRunActive(promptRunId)) return;
             if (!homePromptShown)
@@ -1637,6 +1640,11 @@ public class HomePage : ContentPage
                             $"({dayStr} ago). Is this still ongoing?",
                         IsPendingAsync: async () =>
                         {
+                            // Skip if already seen today
+                            if (await _popupPreferences
+                                .IsSeenTodayAsync(
+                                    username, blockId))
+                                return false;
                             var fresh = await capturedService
                                 .GetAllBlocksAsync(username);
                             return fresh.Any(b =>
@@ -1659,6 +1667,10 @@ public class HomePage : ContentPage
                                 await capturedService.UpdateAsync(
                                     capturedBlock);
                             }
+                            // Mark as seen today regardless of answer
+                            await _popupPreferences
+                                .SetSeenTodayAsync(
+                                    username, blockId, true);
                         },
                         SkipTodayAsync: async () =>
                         {
