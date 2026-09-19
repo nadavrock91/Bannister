@@ -139,6 +139,39 @@ public class SequenceTaskPage : ContentPage
         foreach (var item in items)
             body.Children.Add(BuildItemRow(group, item));
 
+        var addTaskEditor = new Editor
+        {
+            Placeholder = "Add a task...",
+            HeightRequest = 70,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222")
+        };
+        var addTaskButton = MakeButton("Add", "#E8F5E9", "#2E7D32");
+        addTaskButton.Clicked += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(addTaskEditor.Text)) return;
+            await _service.SaveItemAsync(new SequenceTaskItem
+            {
+                GroupId = group.Id,
+                Description = addTaskEditor.Text.Trim(),
+                CreatedDate = DateTime.Now
+            });
+            await RefreshAsync();
+        };
+        var addTaskRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8
+        };
+        addTaskRow.Add(addTaskEditor, 0, 0);
+        addTaskRow.Add(addTaskButton, 1, 0);
+        body.Children.Add(addTaskRow);
+
         var close = MakeButton("Close Group", "#ECEFF1", "#37474F");
         close.Clicked += async (_, _) =>
         {
