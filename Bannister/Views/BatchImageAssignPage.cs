@@ -146,46 +146,45 @@ public class BatchImageAssignPage : ContentPage
     private static List<(string Name, string Idea)> ParseImageIdeas(string response)
     {
         var results = new List<(string, string)>();
-        for (int idx = 1; ; idx++)
+
+        for (int idx = 1; idx <= 200; idx++)
         {
-            var name = GetQuotedValue(response, $"activityImage[{idx}].Name");
-            var idea = GetQuotedValue(response, $"activityImage[{idx}].ImageIdea");
-            if (name == null && idea == null) break;
+            string nameKey = $"activityImage[{idx}].Name";
+            string ideaKey = $"activityImage[{idx}].ImageIdea";
+            int namePos = response.IndexOf(nameKey, StringComparison.OrdinalIgnoreCase);
+            if (namePos < 0) break;
+            int ideaPos = response.IndexOf(ideaKey, namePos, StringComparison.OrdinalIgnoreCase);
+            if (ideaPos < 0) break;
+            string? name = ExtractQuoted(response, namePos + nameKey.Length);
+            string? idea = ExtractQuoted(response, ideaPos + ideaKey.Length);
             if (name != null && idea != null) results.Add((name, idea));
         }
+
         return results;
     }
 
-    private static string? GetQuotedValue(string text, string key)
+    private static string? ExtractQuoted(string text, int searchFrom)
     {
-        int idx = text.IndexOf(key, StringComparison.OrdinalIgnoreCase);
-        if (idx < 0) return null;
-        int eq = text.IndexOf('=', idx);
+        int eq = text.IndexOf('=', searchFrom);
         if (eq < 0) return null;
-        var rest = text[(eq + 1)..].TrimStart();
-
-        // Handle quoted value
+        int maxLook = Math.Min(eq + 500, text.Length);
+        var rest = text[(eq + 1)..maxLook].TrimStart();
         if (rest.StartsWith('"'))
         {
             int end = 1;
             while (end < rest.Length)
             {
-                if (rest[end] == '"' &&
-                    (end == 0 || rest[end - 1] != '\\'))
-                    break;
+                char c = rest[end];
+                char prev = rest[end - 1];
+                if (c == '"' && prev != '\\') break;
                 end++;
             }
             if (end < rest.Length)
-                return rest[1..end]
-                    .Replace("\\\"", "\"")
-                    .Trim();
+                return rest[1..end].Replace("\\\"", "\"").Trim();
+            int nl = rest.IndexOfAny(new[] { '\n', '\r' });
+            return nl > 1 ? rest[1..nl].Trim() : null;
         }
-
-        // Handle unquoted value — read to end of line or semicolon
         int lineEnd = rest.IndexOfAny(new[] { '\n', '\r', ';' });
-        if (lineEnd > 0)
-            return rest[..lineEnd].Trim();
-
-        return rest.Trim();
+        return lineEnd > 0 ? rest[..lineEnd].Trim() : rest.Trim();
     }
 }
