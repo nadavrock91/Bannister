@@ -218,6 +218,9 @@ public partial class ActivityGamePage
             ["update_streak"]      = "Update Streak Values",
             ["times_completed"]    = $"Times Completed: {activity.TimesCompleted}",
             ["add_edit_notes"]     = notesOption,
+            ["edit_image_idea"]    = string.IsNullOrWhiteSpace(activity.ImageIdea)
+                ? " Add Image Idea"
+                : $" Edit Image Idea: {activity.ImageIdea[..Math.Min(30, activity.ImageIdea.Length)]}...",
             ["duplicate_negative"] = "Duplicate as Negative",
             ["manual_priority"]    = "Set Manual Priority",
             ["auto_award"]         = "Set Auto-Award",
@@ -318,6 +321,11 @@ public partial class ActivityGamePage
         else if (action.Contains("Notes"))
         {
             await HandleEditNotes(activity, activityVM);
+        }
+        else if (action.StartsWith(" Add Image Idea") ||
+                 action.StartsWith(" Edit Image Idea:"))
+        {
+            await HandleEditImageIdea(activity, activityVM);
         }
         else if (action == "Duplicate as Negative")
         {
@@ -671,6 +679,23 @@ public partial class ActivityGamePage
         }
 
         await Shell.Current.GoToAsync(queryParams);
+    }
+
+    private async Task HandleEditImageIdea(
+        Activity activity,
+        ActivityGameViewModel? activityVM)
+    {
+        string? result = await DisplayPromptAsync(
+            " Image Idea",
+            "Describe what image should represent this activity:",
+            initialValue: activity.ImageIdea ?? "",
+            maxLength: 300,
+            placeholder: "e.g., A person lifting weights at a gym...");
+        if (result == null) return;
+        activity.ImageIdea = result.Trim();
+        await _activities.UpdateActivityAsync(activity);
+        activityVM?.UpdateActivity(activity);
+        await RefreshActivitiesAsync();
     }
 
     private async Task HandleSetManualPriority(Activity activity, ActivityGameViewModel? activityVM)
