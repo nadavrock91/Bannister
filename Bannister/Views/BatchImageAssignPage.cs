@@ -124,7 +124,69 @@ public class BatchImageAssignPage : ContentPage
 
     private async Task ImportResponseAsync(List<Activity> acts)
     {
-        string? response = await DisplayPromptAsync("Import Response", "Paste the LLM C# response:", "Import", "Cancel", placeholder: "activityImage[1].Name = ...");
+        var tcs = new TaskCompletionSource<string?>();
+        var editorFull = new Editor
+        {
+            Placeholder = "Paste LLM response here...",
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            FontSize = 12,
+            VerticalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Fill,
+            AutoSize = EditorAutoSizeOption.Disabled
+        };
+
+        var confirmBtnFull = new Button
+        {
+            Text = "Import",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        var pasteGrid = new Grid
+        {
+            Padding = new Thickness(16),
+            RowSpacing = 10,
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            }
+        };
+
+        pasteGrid.Add(new Label
+        {
+            Text = "Paste the C# format block " +
+                   "from the LLM response " +
+                   "(multi-line is supported):",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#555"),
+            LineBreakMode = LineBreakMode.WordWrap
+        }, 0, 0);
+        pasteGrid.Add(editorFull, 0, 1);
+        pasteGrid.Add(confirmBtnFull, 0, 2);
+
+        var pastePage = new ContentPage
+        {
+            Title = "Paste LLM Response",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            Content = pasteGrid
+        };
+
+        confirmBtnFull.Clicked += async (_, _) =>
+        {
+            tcs.TrySetResult(editorFull.Text ?? "");
+            await Navigation.PopAsync();
+        };
+        pastePage.Disappearing += (_, _) =>
+            tcs.TrySetResult(null);
+
+        await Navigation.PushAsync(pastePage);
+        string? response = await tcs.Task;
         if (string.IsNullOrWhiteSpace(response) || _isSaving) return;
         var parsed = ParseImageIdeas(response);
         if (parsed.Count == 0) { await DisplayAlert("Parse Failed", "Could not find activityImage entries.", "OK"); return; }
