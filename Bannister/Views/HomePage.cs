@@ -972,8 +972,8 @@ public class HomePage : ContentPage
                 if (!IsHomePromptRunActive(promptRunId)) return;
             }
 
-            await RunLifePathCheckInPromptsAsync();
-            if (!IsHomePromptRunActive(promptRunId)) return;
+            // Life path check-ins now handled by HomePromptDefinition
+            // entries in CreateHomePromptDefinitionsAsync().
 
             if (!_introChecked)
             {
@@ -1502,7 +1502,7 @@ public class HomePage : ContentPage
 
     private async Task<List<HomePromptDefinition>> GetPendingHomePromptDefinitionsAsync(int promptRunId)
     {
-        var definitions = CreateHomePromptDefinitions(promptRunId);
+        var definitions = await CreateHomePromptDefinitionsAsync(promptRunId);
         var pending = new List<HomePromptDefinition>();
 
         foreach (var definition in definitions)
@@ -1523,9 +1523,9 @@ public class HomePage : ContentPage
         return pending;
     }
 
-    private List<HomePromptDefinition> CreateHomePromptDefinitions(int promptRunId)
+    private async Task<List<HomePromptDefinition>> CreateHomePromptDefinitionsAsync(int promptRunId)
     {
-        return new List<HomePromptDefinition>
+        var definitions = new List<HomePromptDefinition>
         {
             new(
                 "daily_login",
@@ -1595,6 +1595,82 @@ public class HomePage : ContentPage
                 () => CheckMonthlyHabitAllowanceAsync(promptRunId),
                 SkipMonthlyHabitAllowancePromptThisMonthAsync)
         };
+
+        try
+        {
+            var lifePathService = Application.Current?.Handler
+                ?.MauiContext?.Services
+                .GetService<LifePathService>();
+            var username = _auth.CurrentUsername;
+            var deviceRole = _deviceMode.IsReadOnly
+                ? "secondary" : "primary";
+
+            if (lifePathService != null &&
+                !string.IsNullOrWhiteSpace(username) &&
+                await _popupPreferences.IsEnabledAsync(
+                    username, "life_path_checkin", deviceRole))
+            {
+                var allBlocks = await lifePathService
+                    .GetAllBlocksAsync(username);
+                var checkInBlocks = allBlocks
+                    .Where(b => b.HomePromptEnabled &&
+                        !b.EndDate.HasValue)
+                    .ToList();
+
+                foreach (var block in checkInBlocks)
+                {
+                    var capturedBlock = block;
+                    var capturedService = lifePathService;
+                    int days = (int)(DateTime.Now -
+                        capturedBlock.StartDate).TotalDays;
+                    string dayStr = days == 1
+                        ? "1 day" : $"{days} days";
+                    string blockId =
+                        $"life_path_checkin_{capturedBlock.Id}";
+
+                    definitions.Add(new HomePromptDefinition(
+                        Id: blockId,
+                        DisplayName: "Focus Check-in",
+                        Description:
+                            $"\"{capturedBlock.Label}\" — started " +
+                            $"{capturedBlock.StartDate:dd MMM yyyy} " +
+                            $"({dayStr} ago). Is this still ongoing?",
+                        IsPendingAsync: async () =>
+                        {
+                            var fresh = await capturedService
+                                .GetAllBlocksAsync(username);
+                            return fresh.Any(b =>
+                                b.Id == capturedBlock.Id &&
+                                !b.EndDate.HasValue);
+                        },
+                        AddressAsync: async () =>
+                        {
+                            bool ongoing = await DisplayAlert(
+                                "Focus Check-in",
+                                $"\"{capturedBlock.Label}\"\n\n" +
+                                $"Started {capturedBlock.StartDate:dd MMM yyyy} " +
+                                $"({dayStr} ago)\n\n" +
+                                "Is this focus still ongoing?",
+                                "Still Ongoing",
+                                "Direction Deviated");
+                            if (!ongoing)
+                            {
+                                capturedBlock.EndDate = DateTime.Today;
+                                await capturedService.UpdateAsync(
+                                    capturedBlock);
+                            }
+                        },
+                        SkipTodayAsync: async () =>
+                        {
+                            await _popupPreferences.SetSeenTodayAsync(
+                                username, blockId, true);
+                        }));
+                }
+            }
+        }
+        catch { }
+
+        return definitions;
     }
 
     private async Task<bool> IsDailyLoginPromptPendingAsync()
