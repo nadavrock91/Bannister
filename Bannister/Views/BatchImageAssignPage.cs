@@ -158,10 +158,34 @@ public class BatchImageAssignPage : ContentPage
 
     private static string? GetQuotedValue(string text, string key)
     {
-        int idx = text.IndexOf(key, StringComparison.OrdinalIgnoreCase); if (idx < 0) return null;
-        int eq = text.IndexOf('=', idx); if (eq < 0) return null;
-        var rest = text[(eq + 1)..].TrimStart(); if (!rest.StartsWith('"')) return null;
-        int end = 1; while (end < rest.Length && !(rest[end] == '"' && rest[end - 1] != '\\')) end++;
-        return end < rest.Length ? rest[1..end].Replace("\\\"", "\"").Trim() : null;
+        int idx = text.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return null;
+        int eq = text.IndexOf('=', idx);
+        if (eq < 0) return null;
+        var rest = text[(eq + 1)..].TrimStart();
+
+        // Handle quoted value
+        if (rest.StartsWith('"'))
+        {
+            int end = 1;
+            while (end < rest.Length)
+            {
+                if (rest[end] == '"' &&
+                    (end == 0 || rest[end - 1] != '\\'))
+                    break;
+                end++;
+            }
+            if (end < rest.Length)
+                return rest[1..end]
+                    .Replace("\\\"", "\"")
+                    .Trim();
+        }
+
+        // Handle unquoted value — read to end of line or semicolon
+        int lineEnd = rest.IndexOfAny(new[] { '\n', '\r', ';' });
+        if (lineEnd > 0)
+            return rest[..lineEnd].Trim();
+
+        return rest.Trim();
     }
 }
