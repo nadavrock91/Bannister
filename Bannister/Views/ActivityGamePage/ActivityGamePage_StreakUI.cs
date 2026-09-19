@@ -675,10 +675,20 @@ public partial class ActivityGamePage
         Activity streakContainer,
         CancellationToken ct = default)
     {
+        System.Diagnostics.Debug.WriteLine(
+            $"[STREAK_VIEW] ENTER: " +
+            $"{streakContainer?.Name} " +
+            $"IsImageOnly=" +
+            $"{streakContainer?.IsImageOnly}");
+
+        System.Diagnostics.Debug.WriteLine(
+            "[STREAK_VIEW] Calling GetStreakAttemptsAsync...");
         var attempts = await _streaks.GetStreakAttemptsAsync(
             _auth.CurrentUsername, 
             GetActivityGameId(streakContainer), 
             streakContainer.Id);
+        System.Diagnostics.Debug.WriteLine(
+            $"[STREAK_VIEW] Got {attempts.Count} attempts");
         
         bool headerImageExists = false;
         string resolvedHeaderPath = "";
@@ -706,15 +716,22 @@ public partial class ActivityGamePage
             if (ct.IsCancellationRequested) return;
         }
 
+        System.Diagnostics.Debug.WriteLine(
+            "[STREAK_VIEW] Building header...");
         var header = BuildStreakContainerHeader(
             streakContainer, attempts,
             headerImageExists);
+        System.Diagnostics.Debug.WriteLine(
+            "[STREAK_VIEW] Header built, adding to stack...");
         mainStack.Children.Add(header);
 
         if (streakContainer.IsImageOnly &&
             !string.IsNullOrWhiteSpace(
                 streakContainer.ImagePath))
         {
+            System.Diagnostics.Debug.WriteLine(
+                $"[STREAK_VIEW] Checking banner image: " +
+                $"{streakContainer?.ImagePath}");
             string resolvedPath =
                 Path.IsPathRooted(
                     streakContainer.ImagePath)
@@ -747,10 +764,16 @@ public partial class ActivityGamePage
                     HorizontalOptions = LayoutOptions.Center,
                     Margin = new Thickness(0, 8, 0, 0)
                 });
+                System.Diagnostics.Debug.WriteLine(
+                    "[STREAK_VIEW] Banner added");
             }
         }
 
+        System.Diagnostics.Debug.WriteLine(
+            "[STREAK_VIEW] Building goals header...");
         var goalsHeader = await BuildStreakGoalsHeaderAsync(streakContainer, attempts);
+        System.Diagnostics.Debug.WriteLine(
+            "[STREAK_VIEW] Goals header done");
         mainStack.Children.Add(goalsHeader);
         
         if (attempts.Count == 0)
@@ -833,6 +856,9 @@ public partial class ActivityGamePage
             
             columnIndex++;
         }
+
+        System.Diagnostics.Debug.WriteLine(
+            "[STREAK_VIEW] EXIT");
     }
 
     private async Task<View> BuildStreakGoalsHeaderAsync(Activity streakContainer, List<StreakAttempt> attempts)

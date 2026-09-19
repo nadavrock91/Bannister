@@ -495,6 +495,8 @@ public partial class ActivityGamePage
 
     private async Task RefreshActivitiesAsync()
     {
+        System.Diagnostics.Debug.WriteLine(
+            "[REFRESH] ENTER RefreshActivitiesAsync");
         if (_game == null) return;
 
         // Save current selections and temporary multipliers before refreshing
@@ -648,7 +650,13 @@ public partial class ActivityGamePage
         filtered = ApplyManualPrioritySort(filtered);
         _currentlyVisibleActivities = filtered.ToList();
 
+        System.Diagnostics.Debug.WriteLine(
+            $"[REFRESH] Calling BuildGrid " +
+            $"filtered={filtered.Count} " +
+            $"category={_currentCategoryIndex}");
         BuildActivitiesGridWithHeaders(filtered);
+        System.Diagnostics.Debug.WriteLine(
+            "[REFRESH] BuildGrid called (fire+forget)");
         await RefreshPendingActivityIdeaCountAsync();
     }
 
@@ -745,7 +753,12 @@ public partial class ActivityGamePage
                 string.Equals(c, _tempNonNavigableCategory, StringComparison.OrdinalIgnoreCase));
             if (tempPickerIndex >= 0 && tempPickerIndex < _categories.Count)
             {
-                categoryPicker.SelectedIndex = tempPickerIndex;
+                categoryPicker.SelectedIndexChanged -=
+                    OnCategoryChanged;
+                categoryPicker.SelectedIndex =
+                    tempPickerIndex;
+                categoryPicker.SelectedIndexChanged +=
+                    OnCategoryChanged;
             }
             return;
         }
@@ -778,7 +791,11 @@ public partial class ActivityGamePage
             string.Equals(c, currentCategory, StringComparison.OrdinalIgnoreCase));
         if (pickerIndex >= 0 && pickerIndex < _categories.Count)
         {
+            categoryPicker.SelectedIndexChanged -=
+                OnCategoryChanged;
             categoryPicker.SelectedIndex = pickerIndex;
+            categoryPicker.SelectedIndexChanged +=
+                OnCategoryChanged;
         }
     }
 

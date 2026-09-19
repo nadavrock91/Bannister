@@ -219,6 +219,11 @@ public partial class ActivityGamePage
         _renderCts = cts;
         var ct = cts.Token;
 
+        System.Diagnostics.Debug.WriteLine(
+            $"[BUILD_GRID] ENTER activities=" +
+            $"{activities.Count} " +
+            $"categoryIdx={_currentCategoryIndex}");
+
         var mainStack = new VerticalStackLayout { Spacing = 8 };
 
         // Check if the currently displayed category is a streak container.
@@ -226,10 +231,15 @@ public partial class ActivityGamePage
         {
             string currentCategory = _tempNonNavigableCategory ?? _navigableCategories[_currentCategoryIndex];
             var streakContainer = GetStreakContainerForCategory(currentCategory);
+            System.Diagnostics.Debug.WriteLine(
+                $"[BUILD_GRID] streakContainer=" +
+                $"{streakContainer?.Name ?? "null"}");
             
             if (streakContainer != null)
             {
                 // This is a streak container category - show streak attempts instead
+                System.Diagnostics.Debug.WriteLine(
+                    "[BUILD_GRID] About to await streak render");
                 await BuildStreakContainerViewAsync(
                     mainStack, streakContainer, ct);
                 if (ct.IsCancellationRequested) return;
