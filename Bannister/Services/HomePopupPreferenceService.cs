@@ -173,6 +173,16 @@ public class HomePopupPreferenceService
                 var today = DateTime.Today.ToString("yyyy-MM-dd");
                 return await SecureStorage.GetAsync($"life_path_checkin_daily_{username}") == today;
             }
+
+            // Dynamic per-block keys e.g. life_path_checkin_42
+            if (popupKey.StartsWith("life_path_checkin_"))
+            {
+                var today = DateTime.Today
+                    .ToString("yyyy-MM-dd");
+                var stored = await SecureStorage.GetAsync(
+                    $"lp_checkin_{username}_{popupKey}");
+                return stored == today;
+            }
         }
         catch
         {
@@ -259,6 +269,21 @@ public class HomePopupPreferenceService
                     SecureStorage.Remove(key);
                 return true;
             }
+
+            // Dynamic per-block keys e.g. life_path_checkin_42
+            if (popupKey.StartsWith("life_path_checkin_"))
+            {
+                var key =
+                    $"lp_checkin_{username}_{popupKey}";
+                if (seen)
+                    await SecureStorage.SetAsync(
+                        key,
+                        DateTime.Today
+                            .ToString("yyyy-MM-dd"));
+                else
+                    SecureStorage.Remove(key);
+                return true;
+            }
         }
         catch
         {
@@ -270,6 +295,9 @@ public class HomePopupPreferenceService
 
     public bool HasSeenTodayGate(string popupKey)
     {
+        if (popupKey.StartsWith(
+            "life_path_checkin_"))
+            return true;
         return popupKey switch
         {
             "habit_scolding" => true,
