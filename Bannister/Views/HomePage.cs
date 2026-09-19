@@ -1015,6 +1015,18 @@ public class HomePage : ContentPage
     {
         try
         {
+            var deviceRole = _deviceMode.IsReadOnly
+                ? "secondary" : "primary";
+            if (!await _popupPreferences.IsEnabledAsync(
+                    _auth.CurrentUsername,
+                    "life_path_checkin",
+                    deviceRole))
+                return;
+            if (await _popupPreferences.IsSeenTodayAsync(
+                    _auth.CurrentUsername,
+                    "life_path_checkin"))
+                return;
+
             var lifePathService = Application.Current?.Handler
                 ?.MauiContext?.Services
                 .GetService<LifePathService>();
@@ -1047,6 +1059,12 @@ public class HomePage : ContentPage
                     await lifePathService.UpdateAsync(block);
                 }
             }
+
+            if (toPrompt.Count > 0)
+                await _popupPreferences.SetSeenTodayAsync(
+                    _auth.CurrentUsername,
+                    "life_path_checkin",
+                    true);
         }
         catch { }
     }

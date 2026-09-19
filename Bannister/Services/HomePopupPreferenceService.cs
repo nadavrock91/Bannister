@@ -19,7 +19,8 @@ public class HomePopupPreferenceService
         "missed_activities",
         "habit_scolding",
         "subactivity",
-        "pending_prompts"
+        "pending_prompts",
+        "life_path_checkin"
     };
 
     public HomePopupPreferenceService(DatabaseService db, SubActivityService subActivityService)
@@ -166,6 +167,12 @@ public class HomePopupPreferenceService
                 var today = DateTime.Today.ToString("yyyy-MM-dd");
                 return await SecureStorage.GetAsync($"subactivity_daily_prompt_{username}") == today;
             }
+
+            if (popupKey == "life_path_checkin")
+            {
+                var today = DateTime.Today.ToString("yyyy-MM-dd");
+                return await SecureStorage.GetAsync($"life_path_checkin_daily_{username}") == today;
+            }
         }
         catch
         {
@@ -241,6 +248,17 @@ public class HomePopupPreferenceService
 
                 return true;
             }
+
+            if (popupKey == "life_path_checkin")
+            {
+                var key = $"life_path_checkin_daily_{username}";
+                if (seen)
+                    await SecureStorage.SetAsync(
+                        key, DateTime.Today.ToString("yyyy-MM-dd"));
+                else
+                    SecureStorage.Remove(key);
+                return true;
+            }
         }
         catch
         {
@@ -257,6 +275,7 @@ public class HomePopupPreferenceService
             "habit_scolding" => true,
             "subactivity" => true,
             "pending_prompts" => true,
+            "life_path_checkin" => true,
             _ => false
         };
     }

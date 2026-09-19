@@ -18,7 +18,8 @@ public class HomePopupsSettingsPage : ContentPage
         ("missed_activities", "Missed Activities", "Reminder about scheduled activities that were skipped."),
         ("habit_scolding", "Habit Scolding", "Nudge when your habit allowance has been stuck at 1 for too long."),
         ("subactivity", "Sub-Activities", "Prompt to check off sub-activity steps you completed today."),
-        ("pending_prompts", "Pending Prompts", "Daily login reminders, weekly commitments, and habit slots that need attention.")
+        ("pending_prompts", "Pending Prompts", "Daily login reminders, weekly commitments, and habit slots that need attention."),
+        ("life_path_checkin", "Life Path Check-in", "Daily prompt asking whether active focus blocks are still ongoing or have deviated.")
     };
 
     public HomePopupsSettingsPage(AuthService auth, HomePopupPreferenceService service)
