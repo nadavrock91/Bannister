@@ -371,7 +371,7 @@ public partial class ActivityGamePage
         categoryPicker.ItemsSource = _categories
             .Select(category =>
                 _imageOnlyCategoryNames.Contains(category)
-                    ? " [Image Only]"
+                    ? ""
                     : category)
             .ToList();
         
@@ -728,12 +728,14 @@ public partial class ActivityGamePage
         if (_tempNonNavigableCategory != null)
         {
             // Show that we're viewing a category that has no activities today
-            string tempCategoryDisplay =
-                _imageOnlyCategoryNames.Contains(_tempNonNavigableCategory)
-                ? ""
-                : _tempNonNavigableCategory;
-            lblPageInfo.Text =
-                $"—/{_navigableCategories.Count}: {tempCategoryDisplay}";
+            if (_imageOnlyCategoryNames.Contains(
+                _tempNonNavigableCategory))
+                lblPageInfo.Text =
+                    $"—/{_navigableCategories.Count}: ";
+            else
+                lblPageInfo.Text =
+                    $"—/{_navigableCategories.Count}: " +
+                    _tempNonNavigableCategory;
             btnPrevPage.IsEnabled = _navigableCategories.Count > 0;
             btnNextPage.IsEnabled = _navigableCategories.Count > 0;
             
@@ -756,14 +758,17 @@ public partial class ActivityGamePage
             _currentCategoryIndex = 0;
 
         string currentCategory = _navigableCategories[_currentCategoryIndex];
-        string currentCategoryDisplay =
-            _imageOnlyCategoryNames.Contains(currentCategory)
-            ? ""
-            : currentCategory;
-        
         // Show navigable count for arrows, but display current category
-        lblPageInfo.Text =
-            $"{_currentCategoryIndex + 1}/{_navigableCategories.Count}: {currentCategoryDisplay}";
+        if (_imageOnlyCategoryNames.Contains(
+            currentCategory))
+            lblPageInfo.Text =
+                $"{_currentCategoryIndex + 1}/" +
+                $"{_navigableCategories.Count}: ";
+        else
+            lblPageInfo.Text =
+                $"{_currentCategoryIndex + 1}/" +
+                $"{_navigableCategories.Count}: " +
+                currentCategory;
         btnPrevPage.IsEnabled = _currentCategoryIndex > 0;
         btnNextPage.IsEnabled = _currentCategoryIndex < _navigableCategories.Count - 1;
 
