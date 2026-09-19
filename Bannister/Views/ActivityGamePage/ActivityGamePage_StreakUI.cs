@@ -18,7 +18,10 @@ public partial class ActivityGamePage
     /// <summary>
     /// Build the streak container header with activity name and Start New Attempt button.
     /// </summary>
-    private Frame BuildStreakContainerHeader(Activity streakActivity, List<StreakAttempt> attempts)
+    private Frame BuildStreakContainerHeader(
+        Activity streakActivity,
+        List<StreakAttempt> attempts,
+        bool imageFileExists = false)
     {
         var headerFrame = new Frame
         {
@@ -85,7 +88,7 @@ public partial class ActivityGamePage
                         "ActivityImages",
                         imagePath);
 
-                if (File.Exists(resolvedHeaderPath))
+                if (imageFileExists)
                 {
                     var headerImg = new Image
                     {
@@ -674,28 +677,65 @@ public partial class ActivityGamePage
             GetActivityGameId(streakContainer), 
             streakContainer.Id);
         
-        var header = BuildStreakContainerHeader(streakContainer, attempts);
+        bool headerImageExists = false;
+        string resolvedHeaderPath = "";
+        if (streakContainer.IsImageOnly &&
+            !string.IsNullOrWhiteSpace(
+                streakContainer.ImagePath))
+        {
+            resolvedHeaderPath =
+                Path.IsPathRooted(
+                    streakContainer.ImagePath)
+                ? (File.Exists(
+                    streakContainer.ImagePath)
+                    ? streakContainer.ImagePath
+                    : Path.Combine(
+                        FileSystem.AppDataDirectory,
+                        "ActivityImages",
+                        Path.GetFileName(
+                            streakContainer.ImagePath)))
+                : Path.Combine(
+                    FileSystem.AppDataDirectory,
+                    "ActivityImages",
+                    streakContainer.ImagePath);
+            headerImageExists = await Task.Run(() =>
+                File.Exists(resolvedHeaderPath));
+        }
+
+        var header = BuildStreakContainerHeader(
+            streakContainer, attempts,
+            headerImageExists);
         mainStack.Children.Add(header);
 
         if (streakContainer.IsImageOnly &&
-            !string.IsNullOrWhiteSpace(streakContainer.ImagePath))
+            !string.IsNullOrWhiteSpace(
+                streakContainer.ImagePath))
         {
-            string resolvedPath = Path.IsPathRooted(
-                streakContainer.ImagePath)
-                ? (File.Exists(streakContainer.ImagePath)
+            string resolvedPath =
+                Path.IsPathRooted(
+                    streakContainer.ImagePath)
+                ? (File.Exists(
+                    streakContainer.ImagePath)
                     ? streakContainer.ImagePath
-                    : Path.Combine(FileSystem.AppDataDirectory,
+                    : Path.Combine(
+                        FileSystem.AppDataDirectory,
                         "ActivityImages",
-                        Path.GetFileName(streakContainer.ImagePath)))
-                : Path.Combine(FileSystem.AppDataDirectory,
+                        Path.GetFileName(
+                            streakContainer.ImagePath)))
+                : Path.Combine(
+                    FileSystem.AppDataDirectory,
                     "ActivityImages",
                     streakContainer.ImagePath);
 
-            if (File.Exists(resolvedPath))
+            bool exists = await Task.Run(() =>
+                File.Exists(resolvedPath));
+            if (exists)
             {
+                var imgSource = await Task.Run(() =>
+                    ImageSource.FromFile(resolvedPath));
                 mainStack.Children.Add(new Image
                 {
-                    Source = ImageSource.FromFile(resolvedPath),
+                    Source = imgSource,
                     HeightRequest = 180,
                     Aspect = Aspect.AspectFit,
                     HorizontalOptions = LayoutOptions.Center,
