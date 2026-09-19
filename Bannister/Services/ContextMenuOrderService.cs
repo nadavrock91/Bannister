@@ -11,6 +11,7 @@ public class ContextMenuOrderService
         DefaultItems = new()
     {
         ("add_edit_notes",     " Add/Edit Notes"),
+        ("edit_image_idea",    " Edit Image Idea"),
         ("applied_x_times",    "Applied X Times (one-time)"),
         ("assign_grouping",    " Assign to Grouping"),
         ("auto_award",         "Set Auto-Award"),
