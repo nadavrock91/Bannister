@@ -1,6 +1,7 @@
 using Bannister.Models;
 using Bannister.Services;
 using Bannister.ViewModels;
+using CommunityToolkit.Maui.Views;
 
 namespace Bannister.Views;
 
@@ -271,13 +272,13 @@ public partial class ActivityGamePage
             ? $"{activity.Name} - {attemptVM.Name}"
             : activity.Name;
 
-        string action = await DisplayActionSheet(
-            title,
-            "Cancel",
-            null,
-            options.ToArray());
+        var popup = new ActivityContextMenuPopup(
+            title, options);
+        this.ShowPopup(popup);
+        string? action =
+            await popup.GetResultAsync();
 
-        if (string.IsNullOrEmpty(action) || action == "Cancel") return;
+        if (action == null) return;
 
         // Handle actions - find matching ActivityGameViewModel if needed for some operations
         var activityVM = _allActivities?.FirstOrDefault(vm => vm.Activity.Id == activity.Id);

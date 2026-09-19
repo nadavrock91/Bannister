@@ -2,6 +2,7 @@ using Bannister.Helpers;
 using Bannister.Models;
 using Bannister.Services;
 using Bannister.ViewModels;
+using CommunityToolkit.Maui.Views;
 
 namespace Bannister.Views;
 
@@ -419,13 +420,13 @@ public partial class ActivityGamePage
         else
             options.Add(imageOnlyOpt);
 
-        string result = await DisplayActionSheet(
-            activity.Name,
-            "Cancel",
-            null,
-            options.ToArray());
+        var popup = new ActivityContextMenuPopup(
+            activity.Name, options);
+        this.ShowPopup(popup);
+        string? result =
+            await popup.GetResultAsync();
 
-        if (string.IsNullOrEmpty(result) || result == "Cancel") return;
+        if (result == null) return;
 
         if (result == "Edit Activity")
         {
