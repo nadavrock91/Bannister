@@ -268,6 +268,26 @@
                             TextColor="White"
                             CornerRadius="8" />
 
+                    <Button Text=" Set Default Image Path"
+                            Clicked="OnSetDefaultImagePath"
+                            BackgroundColor="#607D8B"
+                            TextColor="White"
+                            CornerRadius="6"
+                            Margin="0,4,0,0"/>
+
+                    <Button Text=" Browse &amp; Copy to Default"
+                            Clicked="OnBrowseAndCopyToDefault"
+                            BackgroundColor="#455A64"
+                            TextColor="White"
+                            CornerRadius="6"
+                            Margin="0,4,0,0"/>
+
+                    <Label x:Name="lblDefaultPath"
+                           FontSize="11"
+                           TextColor="#888"
+                           Margin="0,2,0,0"
+                           LineBreakMode="TailTruncation"/>
+
                     <Button Text="Set to Black"
                             Clicked="OnSetToBlack"
                             BackgroundColor="#333"

@@ -12,6 +12,8 @@ namespace Bannister.Views;
 public partial class EditActivityPage : ContentPage
 {
     private const string NewCategoryOption = "+ New Category...";
+    private const string DefaultImagePathKey =
+        "default_image_source_path";
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
     private readonly StreakService? _streaks;
@@ -50,6 +52,14 @@ public partial class EditActivityPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        string savedPath = Preferences.Default.Get(
+            DefaultImagePathKey, "");
+        if (lblDefaultPath != null)
+            lblDefaultPath.Text =
+                string.IsNullOrWhiteSpace(savedPath)
+                ? "No default path set"
+                : $"Default: {savedPath}";
 
         // Populate fields with existing data
         txtActivityName.Text = _activity.Name;
@@ -489,6 +499,97 @@ public partial class EditActivityPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert("Error", $"Could not load image: {ex.Message}", "OK");
+        }
+    }
+
+    private async void OnSetDefaultImagePath(
+        object sender, EventArgs e)
+    {
+        try
+        {
+            var result = await FilePicker.PickAsync(
+                new PickOptions
+                {
+                    FileTypes = FilePickerFileType.Images,
+                    PickerTitle = "Pick any image to set its folder as default"
+                });
+            if (result == null) return;
+
+            string folder = Path.GetDirectoryName(
+                result.FullPath) ?? "";
+            if (string.IsNullOrWhiteSpace(folder))
+                return;
+
+            Preferences.Default.Set(
+                DefaultImagePathKey, folder);
+            if (lblDefaultPath != null)
+                lblDefaultPath.Text = $"Default: {folder}";
+
+            await DisplayAlert(
+                "Default Path Set",
+                $"Default image folder set to:\n{folder}",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", ex.Message, "OK");
+        }
+    }
+
+    private async void OnBrowseAndCopyToDefault(
+        object sender, EventArgs e)
+    {
+        try
+        {
+            string defaultPath = Preferences.Default.Get(
+                DefaultImagePathKey, "");
+            if (string.IsNullOrWhiteSpace(defaultPath) ||
+                !Directory.Exists(defaultPath))
+            {
+                await DisplayAlert(
+                    "No Default Path",
+                    "Please set a default image path first " +
+                    "using \"Set Default Image Path\".",
+                    "OK");
+                return;
+            }
+
+            var result = await FilePicker.PickAsync(
+                new PickOptions
+                {
+                    FileTypes = FilePickerFileType.Images,
+                    PickerTitle = "Pick image to copy to default folder"
+                });
+            if (result == null) return;
+
+            string destFolder = GetImagesFolderPath();
+            Directory.CreateDirectory(destFolder);
+            string origName = Path.GetFileName(result.FullPath);
+            string destPath = Path.Combine(destFolder, origName);
+
+            if (!File.Exists(destPath))
+            {
+                string defaultDest = Path.Combine(
+                    defaultPath, origName);
+                if (!File.Exists(defaultDest))
+                    File.Copy(result.FullPath, defaultDest);
+
+                using var src = await result.OpenReadAsync();
+                using var dst = File.Create(destPath);
+                await src.CopyToAsync(dst);
+            }
+
+            _selectedImageFilename = origName;
+            imgActivityPreview.Source =
+                ImageSource.FromFile(destPath);
+            await DisplayAlert(
+                "Image Set",
+                $"\"{origName}\" copied to ActivityImages and assigned.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", ex.Message, "OK");
         }
     }
 
