@@ -567,26 +567,41 @@ public partial class EditActivityPage : ContentPage
             string destFolder = GetImagesFolderPath();
             Directory.CreateDirectory(destFolder);
             string origName = Path.GetFileName(result.FullPath);
-            string destPath = Path.Combine(destFolder, origName);
 
+            // Resolve unique name for default folder
+            string defaultDest =
+                Path.Combine(defaultPath, origName);
+            string finalName = origName;
+            if (File.Exists(defaultDest))
+            {
+                // Same name different file — increment
+                finalName = GetUniqueFileName(
+                    defaultPath, origName);
+                defaultDest = Path.Combine(
+                    defaultPath, finalName);
+            }
+
+            // Copy to default folder
+            File.Copy(result.FullPath, defaultDest);
+
+            // Copy to ActivityImages with same
+            // final name
+            string destPath =
+                Path.Combine(destFolder, finalName);
             if (!File.Exists(destPath))
             {
-                string defaultDest = Path.Combine(
-                    defaultPath, origName);
-                if (!File.Exists(defaultDest))
-                    File.Copy(result.FullPath, defaultDest);
-
-                using var src = await result.OpenReadAsync();
+                using var src =
+                    await result.OpenReadAsync();
                 using var dst = File.Create(destPath);
                 await src.CopyToAsync(dst);
             }
 
-            _selectedImageFilename = origName;
+            _selectedImageFilename = finalName;
             imgActivityPreview.Source =
                 ImageSource.FromFile(destPath);
             await DisplayAlert(
                 "Image Set",
-                $"\"{origName}\" copied to ActivityImages and assigned.",
+                $"\"{finalName}\" copied to ActivityImages and assigned.",
                 "OK");
         }
         catch (Exception ex)
@@ -929,6 +944,55 @@ public partial class EditActivityPage : ContentPage
         return int.TryParse(value?.Trim(), out int priority) && priority > 0
             ? priority
             : null;
+    }
+
+    private static string GetUniqueFileName(
+        string folder, string filename)
+    {
+        string ext = Path.GetExtension(filename);
+        string nameNoExt =
+            Path.GetFileNameWithoutExtension(
+                filename);
+
+        // Check if name already ends with
+        // a number e.g. "pizza1" or "pizza 1"
+        // Strip trailing digits to get base name
+        int suffixNum = 1;
+        string baseName = nameNoExt;
+
+        // Try to parse existing trailing number
+        int i = nameNoExt.Length - 1;
+        while (i >= 0 &&
+            char.IsDigit(nameNoExt[i]))
+            i--;
+
+        if (i < nameNoExt.Length - 1)
+        {
+            // Has trailing digits
+            string numPart =
+                nameNoExt[(i + 1)..];
+            string namePart =
+                nameNoExt[..(i + 1)];
+            if (int.TryParse(numPart,
+                out int existingNum))
+            {
+                baseName = namePart;
+                suffixNum = existingNum + 1;
+            }
+        }
+
+        // Find a unique name
+        string candidate =
+            Path.Combine(folder,
+                $"{baseName}{suffixNum}{ext}");
+        while (File.Exists(candidate))
+        {
+            suffixNum++;
+            candidate = Path.Combine(folder,
+                $"{baseName}{suffixNum}{ext}");
+        }
+
+        return Path.GetFileName(candidate);
     }
 
     private static string GetImagesFolderPath()
