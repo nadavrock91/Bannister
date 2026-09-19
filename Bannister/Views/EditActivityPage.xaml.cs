@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Bannister.Models;
 using Bannister.Services;
+using CommunityToolkit.Maui.Storage;
 using Microsoft.Maui.Controls;
 
 namespace Bannister.Views;
@@ -507,27 +508,28 @@ public partial class EditActivityPage : ContentPage
     {
         try
         {
-            var result = await FilePicker.PickAsync(
-                new PickOptions
-                {
-                    FileTypes = FilePickerFileType.Images,
-                    PickerTitle = "Pick any image to set its folder as default"
-                });
-            if (result == null) return;
+            var folderResult =
+                await FolderPicker.Default
+                    .PickAsync(
+                        CancellationToken.None);
 
-            string folder = Path.GetDirectoryName(
-                result.FullPath) ?? "";
+            if (!folderResult.IsSuccessful)
+                return;
+
+            string folder = folderResult.Folder.Path;
             if (string.IsNullOrWhiteSpace(folder))
                 return;
 
             Preferences.Default.Set(
                 DefaultImagePathKey, folder);
+
             if (lblDefaultPath != null)
-                lblDefaultPath.Text = $"Default: {folder}";
+                lblDefaultPath.Text =
+                    $"Default: {folder}";
 
             await DisplayAlert(
                 "Default Path Set",
-                $"Default image folder set to:\n{folder}",
+                $"Default image folder:\n{folder}",
                 "OK");
         }
         catch (Exception ex)
