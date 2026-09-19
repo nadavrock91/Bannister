@@ -7,14 +7,22 @@ public class ResetsPage : ContentPage
 {
     private readonly ResetEnforcerService _service;
     private readonly AuthService _auth;
+    private readonly PrivacyModeService _privacyMode;
     private VerticalStackLayout _cardsContainer = null!;
     private VerticalStackLayout _archivedContainer = null!;
     private Frame _archivedSection = null!;
 
-    public ResetsPage(ResetEnforcerService service, AuthService auth)
+    public ResetsPage(
+        ResetEnforcerService service,
+        AuthService auth,
+        PrivacyModeService? privacyMode = null)
     {
         _service = service;
         _auth = auth;
+        _privacyMode = privacyMode
+            ?? Application.Current?.Handler?.MauiContext
+                ?.Services.GetService<PrivacyModeService>()
+            ?? new PrivacyModeService();
         Title = "Resets";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -136,6 +144,20 @@ public class ResetsPage : ContentPage
         // Reload after potential level updates
         enforcers = await _service.GetEnforcersAsync(
             _auth.CurrentUsername);
+        var displayMode = _privacyMode
+            .GetDisplayMode(_auth.CurrentUsername);
+        enforcers = displayMode switch
+        {
+            ActivityDisplayMode.PublicOnly =>
+                enforcers.Where(e =>
+                    e.Visibility == 1 ||
+                    e.Visibility == 2).ToList(),
+            ActivityDisplayMode.PrivateOnly =>
+                enforcers.Where(e =>
+                    e.Visibility == 0 ||
+                    e.Visibility == 2).ToList(),
+            _ => enforcers
+        };
         _cardsContainer.Children.Clear();
         _archivedContainer.Children.Clear();
 
@@ -258,6 +280,38 @@ public class ResetsPage : ContentPage
             VerticalOptions = LayoutOptions.End
         }, 1, 0);
 
+        string visText = enforcer.Visibility switch
+        {
+            1 => " Public",
+            2 => " Both",
+            _ => " Private"
+        };
+        var visBtn = new Button
+        {
+            Text = visText,
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            TextColor = enforcer.Visibility switch
+            {
+                1 => Color.FromArgb("#1565C0"),
+                2 => Color.FromArgb("#2E7D32"),
+                _ => Color.FromArgb("#6A0DAD")
+            },
+            CornerRadius = 6,
+            FontSize = 11,
+            HeightRequest = 26,
+            Padding = new Thickness(8, 0),
+            HorizontalOptions = LayoutOptions.Start,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            BorderWidth = 1
+        };
+        visBtn.Clicked += async (_, _) =>
+        {
+            enforcer.Visibility =
+                (enforcer.Visibility + 1) % 3;
+            await _service.UpdateEnforcerAsync(enforcer);
+            await RefreshAsync();
+        };
+
         // Reset count
         inner.Add(new Label
         {
@@ -364,6 +418,7 @@ public class ResetsPage : ContentPage
         };
         actionRow.Children.Add(archiveBtn);
         actionRow.Children.Add(deleteBtn);
+        actionRow.Children.Insert(0, visBtn);
 
         var outerStack = new VerticalStackLayout { Spacing = 0 };
         outerStack.Children.Add(inner);

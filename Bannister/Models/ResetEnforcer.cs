@@ -40,6 +40,14 @@ public class ResetEnforcer
 
     public bool IsArchived { get; set; } = false;
 
+    /// <summary>
+    /// 0 = Private (PrivateOnly + All)
+    /// 1 = Public (PublicOnly + All)
+    /// 2 = Both (all three modes)
+    /// Default 1 = Public.
+    /// </summary>
+    public int Visibility { get; set; } = 1;
+
     // Computed — not stored
     [Ignore]
     public int DaysInARow
