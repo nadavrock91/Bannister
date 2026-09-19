@@ -89,9 +89,27 @@ public class BatchImageAssignPage : ContentPage
         var (game, acts) = _pagedGroups[_currentPage];
         _pageLabel.Text = $"{game.DisplayName} ({_currentPage + 1}/{_pagedGroups.Count})"; _prev.IsEnabled = _currentPage > 0; _next.IsEnabled = _currentPage < _pagedGroups.Count - 1;
         var actions = new HorizontalStackLayout { Spacing = 8 };
-        var export = new Button { Text = " Export Prompt", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, HeightRequest = 40, Padding = new Thickness(14, 0) }; export.Clicked += async (_, _) => await ExportPromptAsync(game, acts);
+        var export = new Button { Text = " Export Prompt", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, HeightRequest = 40, Padding = new Thickness(14, 0) }; export.Clicked += async (_, _) => await ExportChunkedAsync(game, acts);
         var import = new Button { Text = " Import Response", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, HeightRequest = 40, Padding = new Thickness(14, 0) }; import.Clicked += async (_, _) => await ImportResponseAsync(acts);
-        actions.Children.Add(export); actions.Children.Add(import); _content.Children.Add(actions);
+        actions.Children.Add(export); actions.Children.Add(import);
+        var clearBtn = new Button { Text = " Clear Ideas", BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828"), CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(12, 0) };
+        clearBtn.Clicked += async (_, _) =>
+        {
+            bool confirm = await DisplayAlert("Clear Image Ideas", $"Clear all image ideas for \"{game.DisplayName}\" ({acts.Count} activities)?", "Clear", "Cancel");
+            if (!confirm || _isSaving) return;
+            _isSaving = true;
+            try
+            {
+                foreach (var act in acts)
+                {
+                    act.ImageIdea = "";
+                    await _activityService.UpdateActivityAsync(act);
+                }
+                await LoadDataAsync();
+            }
+            finally { _isSaving = false; }
+        };
+        actions.Children.Add(clearBtn); _content.Children.Add(actions);
         foreach (var act in acts) _content.Children.Add(BuildActivityRow(act));
     }
 
@@ -120,6 +138,45 @@ public class BatchImageAssignPage : ContentPage
         for (int i = 0; i < acts.Count; i++) sb.AppendLine($"[{i + 1}] {acts[i].Name}" + (string.IsNullOrWhiteSpace(acts[i].ImageIdea) ? "" : $" (current idea: {acts[i].ImageIdea})"));
         await Clipboard.SetTextAsync(sb.ToString());
         await DisplayAlert("Prompt Copied", $"Prompt for {acts.Count} activities copied to clipboard.", "OK");
+    }
+
+    private async Task ExportChunkedAsync(Game game, List<Activity> acts)
+    {
+        if (acts.Count == 0) return;
+        int chunkSize = acts.Count;
+        if (acts.Count > 20)
+        {
+            string? chunkStr = await DisplayPromptAsync("Chunk Size", $"This page has {acts.Count} activities. How many should be included per LLM export? (Recommended: 10–20)", "OK", "Cancel", initialValue: "15", keyboard: Keyboard.Numeric);
+            if (string.IsNullOrWhiteSpace(chunkStr)) return;
+            if (!int.TryParse(chunkStr, out chunkSize) || chunkSize < 1) chunkSize = 15;
+        }
+
+        var chunks = new List<List<Activity>>();
+        for (int i = 0; i < acts.Count; i += chunkSize)
+            chunks.Add(acts.Skip(i).Take(chunkSize).ToList());
+
+        for (int c = 0; c < chunks.Count; c++)
+        {
+            var chunk = chunks[c];
+            if (chunks.Count > 1)
+            {
+                bool proceed = await DisplayAlert($"Chunk {c + 1} of {chunks.Count}", $"Exporting activities {c * chunkSize + 1}–{c * chunkSize + chunk.Count} of {acts.Count}.\n\nExport this chunk?", "Export", "Stop Here");
+                if (!proceed) return;
+            }
+
+            await ExportPromptAsync(game, chunk);
+            bool doImport = await DisplayAlert("Import Response", chunks.Count > 1 ? $"Paste the LLM response for chunk {c + 1} of {chunks.Count}." : "Paste the LLM response to import image ideas.", "Import Now", chunks.Count > 1 && c < chunks.Count - 1 ? "Skip This Chunk" : "Cancel");
+            if (doImport) await ImportResponseAsync(chunk);
+
+            if (c < chunks.Count - 1)
+            {
+                bool next = await DisplayAlert("Continue?", $"Chunk {c + 1} done. {chunks.Count - c - 1} chunk(s) remaining.", "Next Chunk", "Stop Here");
+                if (!next) return;
+            }
+        }
+
+        if (chunks.Count > 1)
+            await DisplayAlert("Complete", $"All {chunks.Count} chunks processed.", "OK");
     }
 
     private async Task ImportResponseAsync(List<Activity> acts)
