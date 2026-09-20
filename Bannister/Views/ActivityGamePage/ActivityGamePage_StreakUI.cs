@@ -331,6 +331,8 @@ public partial class ActivityGamePage
             HorizontalOptions = LayoutOptions.Center,
             TextColor = attemptVM.IsActive ? Color.FromArgb("#E65100") : Color.FromArgb("#757575")
         };
+        if (attemptVM.GetActivity().IsImageOnly)
+            attemptLabel.IsVisible = false;
         contentStack.Children.Add(attemptLabel);
 
         const double defaultDaysFontSize = 34;
@@ -823,7 +825,21 @@ public partial class ActivityGamePage
             return;
         }
 
+        var displayMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        bool parentVisible = displayMode switch
+        {
+            ActivityDisplayMode.PublicOnly =>
+                streakContainer.ActivityVisibility == 1 ||
+                streakContainer.ActivityVisibility == 2,
+            ActivityDisplayMode.PrivateOnly =>
+                streakContainer.ActivityVisibility == 0 ||
+                streakContainer.ActivityVisibility == 2,
+            _ => true
+        };
+
         var attemptVMs = attempts
+            .Where(_ => parentVisible)
             .OrderByDescending(a => a.IsActive)
             .ThenByDescending(a => a.AttemptNumber)
             .Select(a => new StreakAttemptViewModel(a, streakContainer) { CurrentLevel = _currentLevel })
