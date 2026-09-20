@@ -222,15 +222,6 @@ public class SequenceTaskPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         }, 0, 0);
 
-        var feedbackLabel = new Label
-        {
-            Text = "✓ Prompt copied — paste into LLM before continuing",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#2E7D32"),
-            Margin = new Thickness(8, 4, 8, 0),
-            IsVisible = false
-        };
-
         if (!item.IsCompleted)
         {
             var done = MakeButton("Done", "#E8F5E9", "#2E7D32");
@@ -247,8 +238,10 @@ public class SequenceTaskPage : ContentPage
                         .Replace("{task}", item.Description);
                     await Clipboard.SetTextAsync(prompt);
                     done.Text = "✓ Copied!";
-                    feedbackLabel.IsVisible = true;
-                    await Task.Delay(2000);
+                    await DisplayAlert(
+                        "Prompt Copied",
+                        "✓ Prompt copied to clipboard — paste into your LLM before continuing to the next task.",
+                        "OK");
                 }
                 finally { _busy = false; }
                 await RefreshAsync();
@@ -256,7 +249,6 @@ public class SequenceTaskPage : ContentPage
             row.Add(done, 1, 0);
         }
         body.Children.Add(row);
-        body.Children.Add(feedbackLabel);
         if (item.IsCompleted)
             body.Children.Add(new Label
             {
