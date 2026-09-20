@@ -422,7 +422,9 @@ public partial class ActivityGamePage
             _auth.CurrentUsername);
         bool IsCategoryVisible(string category)
         {
-            var container = allActivities.FirstOrDefault(a =>
+            var container = _allActivities
+                .Select(vm => vm.Activity)
+                .FirstOrDefault(a =>
                 a.IsStreakContainer &&
                 a.Name.Equals(category,
                     StringComparison.OrdinalIgnoreCase));
