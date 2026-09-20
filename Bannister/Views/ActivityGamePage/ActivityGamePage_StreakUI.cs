@@ -683,6 +683,20 @@ public partial class ActivityGamePage
             $"IsImageOnly=" +
             $"{streakContainer?.IsImageOnly}");
 
+        var displayMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        bool parentVisible = displayMode switch
+        {
+            ActivityDisplayMode.PublicOnly =>
+                streakContainer.ActivityVisibility == 1 ||
+                streakContainer.ActivityVisibility == 2,
+            ActivityDisplayMode.PrivateOnly =>
+                streakContainer.ActivityVisibility == 0 ||
+                streakContainer.ActivityVisibility == 2,
+            _ => true
+        };
+        if (!parentVisible) return;
+
         System.Diagnostics.Debug.WriteLine(
             "[STREAK_VIEW] Calling GetStreakAttemptsAsync...");
         var attempts = await _streaks.GetStreakAttemptsAsync(
@@ -824,19 +838,6 @@ public partial class ActivityGamePage
             mainStack.Children.Add(noAttemptsFrame);
             return;
         }
-
-        var displayMode = _privacyMode.GetDisplayMode(
-            _auth.CurrentUsername);
-        bool parentVisible = displayMode switch
-        {
-            ActivityDisplayMode.PublicOnly =>
-                streakContainer.ActivityVisibility == 1 ||
-                streakContainer.ActivityVisibility == 2,
-            ActivityDisplayMode.PrivateOnly =>
-                streakContainer.ActivityVisibility == 0 ||
-                streakContainer.ActivityVisibility == 2,
-            _ => true
-        };
 
         var attemptVMs = attempts
             .Where(_ => parentVisible)
