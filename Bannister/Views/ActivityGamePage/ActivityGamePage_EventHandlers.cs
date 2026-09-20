@@ -78,7 +78,8 @@ public partial class ActivityGamePage
             string zeroCountInfo = isFirstZeroCountCompletion ? " (Zero Count x10)" : "";
             int displayedExp = isFirstZeroCountCompletion ? expForThisActivity * 10 : expForThisActivity;
             string displayedSign = displayedExp >= 0 ? "+" : "";
-            details.Add($"{activityVM.Name}{multiplierInfo}{zeroCountInfo}: {displayedSign}{displayedExp}");
+            var displayName = activityVM.Activity.IsImageOnly ? "" : activityVM.Name;
+            details.Add($"{displayName}{multiplierInfo}{zeroCountInfo}: {displayedSign}{displayedExp}");
             
             if (!string.IsNullOrEmpty(bonusDetails))
             {
