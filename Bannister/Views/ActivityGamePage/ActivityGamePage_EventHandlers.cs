@@ -170,9 +170,9 @@ public partial class ActivityGamePage
 
             Game? nextGame = null;
             int nextIndex = (currentIndex + 1) % games.Count;
-            int checked = 0;
+            int checkedCount = 0;
 
-            while (checked < games.Count)
+            while (checkedCount < games.Count)
             {
                 var candidate = games[nextIndex];
                 bool visible = displayMode switch
@@ -191,7 +191,7 @@ public partial class ActivityGamePage
                 }
 
                 nextIndex = (nextIndex + 1) % games.Count;
-                checked++;
+                checkedCount++;
             }
 
             if (nextGame == null)
