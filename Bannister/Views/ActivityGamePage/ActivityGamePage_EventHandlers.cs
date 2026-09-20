@@ -166,15 +166,41 @@ public partial class ActivityGamePage
                 currentIndex = 0;
             }
 
-            var nextIndex = (currentIndex + 1) % games.Count;
-            var nextGame = games[nextIndex];
-            System.Diagnostics.Debug.WriteLine($"[NEXT_GAME] nextGameId={nextGame.GameId} displayName={nextGame.DisplayName}");
+            var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
 
-            if (string.Equals(nextGame.GameId, currentId, StringComparison.OrdinalIgnoreCase))
+            Game? nextGame = null;
+            int nextIndex = (currentIndex + 1) % games.Count;
+            int checked = 0;
+
+            while (checked < games.Count)
             {
-                await DisplayAlert("Only one game", "There are no other games to navigate to.", "OK");
+                var candidate = games[nextIndex];
+                bool visible = displayMode switch
+                {
+                    ActivityDisplayMode.PublicOnly =>
+                        candidate.GameVisibility == 1 || candidate.GameVisibility == 2,
+                    ActivityDisplayMode.PrivateOnly =>
+                        candidate.GameVisibility == 0 || candidate.GameVisibility == 2,
+                    _ => true
+                };
+
+                if (visible && !string.Equals(candidate.GameId, currentId, StringComparison.OrdinalIgnoreCase))
+                {
+                    nextGame = candidate;
+                    break;
+                }
+
+                nextIndex = (nextIndex + 1) % games.Count;
+                checked++;
+            }
+
+            if (nextGame == null)
+            {
+                await DisplayAlert("No visible games", "No other visible games to navigate to.", "OK");
                 return;
             }
+
+            System.Diagnostics.Debug.WriteLine($"[NEXT_GAME] nextGameId={nextGame.GameId} displayName={nextGame.DisplayName}");
 
             await _games.UpdateLastVisitedAtAsync(username, nextGame.GameId, DateTime.Now);
             System.Diagnostics.Debug.WriteLine("[NEXT_GAME] Updated last-visited");

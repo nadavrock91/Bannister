@@ -478,6 +478,10 @@ public partial class ActivityGamePage
 
         _navigableCategories = _navigableCategories
             .Where(IsCategoryVisible)
+            .Where(category => allActivities.Any(a =>
+                (a.Category ?? "Misc").Equals(
+                    category,
+                    StringComparison.OrdinalIgnoreCase)))
             .ToList();
     }
 
