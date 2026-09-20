@@ -125,7 +125,15 @@ public class SequenceTaskPage : ContentPage
             FontSize = 12,
             TextColor = Color.FromArgb("#777")
         });
-        return Card(body);
+        var card = Card(body);
+        var cardTap = new TapGestureRecognizer();
+        cardTap.Tapped += async (_, _) =>
+        {
+            _openGroup = group;
+            await RefreshAsync();
+        };
+        card.GestureRecognizers.Add(cardTap);
+        return card;
     }
 
     private async Task<View> BuildOpenGroupAsync(SequenceTaskGroup group)
@@ -230,7 +238,14 @@ public class SequenceTaskPage : ContentPage
                         .Replace("{task}", item.Description);
                     await Clipboard.SetTextAsync(prompt);
                     done.Text = "✓ Copied!";
-                    await Task.Delay(1200);
+                    body.Children.Add(new Label
+                    {
+                        Text = "✓ Prompt copied — paste into LLM before continuing",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#2E7D32"),
+                        Margin = new Thickness(8, 4, 8, 0)
+                    });
+                    await Task.Delay(2000);
                 }
                 finally { _busy = false; }
                 await RefreshAsync();
