@@ -1091,11 +1091,28 @@ public partial class ActivityGamePage
     /// </summary>
     private Activity? GetStreakContainerForCategory(string category)
     {
-        return _allActivities
+        var container = _allActivities
             .FirstOrDefault(vm => 
                 vm.Activity.IsStreakContainer && 
                 vm.Activity.Name.Equals(category, StringComparison.OrdinalIgnoreCase))
             ?.Activity;
+
+        if (container == null) return null;
+
+        var displayMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        bool visible = displayMode switch
+        {
+            ActivityDisplayMode.PublicOnly =>
+                container.ActivityVisibility == 1 ||
+                container.ActivityVisibility == 2,
+            ActivityDisplayMode.PrivateOnly =>
+                container.ActivityVisibility == 0 ||
+                container.ActivityVisibility == 2,
+            _ => true
+        };
+
+        return visible ? container : null;
     }
 
     #region Streak Attempt-Specific Edit Methods

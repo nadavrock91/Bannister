@@ -113,6 +113,7 @@ public partial class ActivityGamePage
             
             System.Diagnostics.Debug.WriteLine($"[LOAD GAME] LoadGameAsync complete");
         }
+
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"ERROR in LoadGameAsync: {ex.Message}");
@@ -416,6 +417,28 @@ public partial class ActivityGamePage
         if (_game == null) return;
         
         allActivities ??= await GetCurrentActivitiesAsync();
+
+        var displayMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        bool IsCategoryVisible(string category)
+        {
+            var container = allActivities.FirstOrDefault(a =>
+                a.IsStreakContainer &&
+                a.Name.Equals(category,
+                    StringComparison.OrdinalIgnoreCase));
+            if (container == null) return true;
+
+            return displayMode switch
+            {
+                ActivityDisplayMode.PublicOnly =>
+                    container.ActivityVisibility == 1 ||
+                    container.ActivityVisibility == 2,
+                ActivityDisplayMode.PrivateOnly =>
+                    container.ActivityVisibility == 0 ||
+                    container.ActivityVisibility == 2,
+                _ => true
+            };
+        }
         
         if (_showAllActivities)
         {
@@ -444,9 +467,16 @@ public partial class ActivityGamePage
             // Ensure at least one category is navigable
             if (_navigableCategories.Count == 0 && _categories.Count > 0)
             {
-                _navigableCategories.Add(_categories[0]);
+                var fallback = _categories
+                    .FirstOrDefault(IsCategoryVisible);
+                if (fallback != null)
+                    _navigableCategories.Add(fallback);
             }
         }
+
+        _navigableCategories = _navigableCategories
+            .Where(IsCategoryVisible)
+            .ToList();
     }
 
     private async Task LoadChartDataAsync()
