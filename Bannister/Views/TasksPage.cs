@@ -381,7 +381,11 @@ public class TasksPage : ContentPage
         sequenceBtn.Clicked += async (_, _) =>
         {
             await Navigation.PushAsync(
-                new SequenceTaskPage(_sequenceTaskService));
+                new SequenceTaskPage(
+                    _sequenceTaskService,
+                    _auth,
+                    _tasks,
+                    _ideasService));
         };
         challengeNavStack.Children.Add(sequenceBtn);
 

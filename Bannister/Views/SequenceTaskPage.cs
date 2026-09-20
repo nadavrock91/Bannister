@@ -13,6 +13,9 @@ public class SequenceTaskPage : ContentPage
         "Return your verdict and reasoning.";
 
     private readonly SequenceTaskService _service;
+    private readonly AuthService _auth;
+    private readonly TaskService _tasks;
+    private readonly IdeasService? _ideasService;
     private readonly VerticalStackLayout _content;
     private SequenceTaskGroup? _openGroup;
     private Entry _nameEntry = null!;
@@ -20,9 +23,16 @@ public class SequenceTaskPage : ContentPage
     private Editor _tasksEditor = null!;
     private bool _busy;
 
-    public SequenceTaskPage(SequenceTaskService service)
+    public SequenceTaskPage(
+        SequenceTaskService service,
+        AuthService auth,
+        TaskService tasks,
+        IdeasService? ideasService)
     {
         _service = service;
+        _auth = auth;
+        _tasks = tasks;
+        _ideasService = ideasService;
         Title = "Sequence Tasks";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         _content = new VerticalStackLayout
@@ -139,38 +149,30 @@ public class SequenceTaskPage : ContentPage
         foreach (var item in items)
             body.Children.Add(BuildItemRow(group, item));
 
-        var addTaskEditor = new Editor
-        {
-            Placeholder = "Add a task...",
-            HeightRequest = 70,
-            AutoSize = EditorAutoSizeOption.Disabled,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222")
-        };
-        var addTaskButton = MakeButton("Add", "#E8F5E9", "#2E7D32");
+        var addTaskButton = MakeButton(
+            "+ Add Task", "#E8F5E9", "#2E7D32");
         addTaskButton.Clicked += async (_, _) =>
         {
-            if (string.IsNullOrWhiteSpace(addTaskEditor.Text)) return;
-            await _service.SaveItemAsync(new SequenceTaskItem
+            var newTask =
+                await TaskCreationHelper
+                    .ShowCreateTaskAsync(
+                        this,
+                        _auth,
+                        _tasks,
+                        _ideasService);
+            if (newTask != null)
             {
-                GroupId = group.Id,
-                Description = addTaskEditor.Text.Trim(),
-                CreatedDate = DateTime.Now
-            });
-            await RefreshAsync();
+                await _service.SaveItemAsync(
+                    new SequenceTaskItem
+                    {
+                        GroupId = group.Id,
+                        Description = newTask.Title,
+                        CreatedDate = DateTime.Now
+                    });
+                await RefreshAsync();
+            }
         };
-        var addTaskRow = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Auto)
-            },
-            ColumnSpacing = 8
-        };
-        addTaskRow.Add(addTaskEditor, 0, 0);
-        addTaskRow.Add(addTaskButton, 1, 0);
-        body.Children.Add(addTaskRow);
+        body.Children.Add(addTaskButton);
 
         var close = MakeButton("Close Group", "#ECEFF1", "#37474F");
         close.Clicked += async (_, _) =>
