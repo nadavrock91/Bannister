@@ -83,6 +83,20 @@ public class MotivationSourcesPage : ContentPage
                 TextColor = Color.FromArgb("#777")
             });
         var actions = new HorizontalStackLayout { Spacing = 8 };
+        var edit = MakeButton("Edit", "#E8EAF6", "#3949AB");
+        edit.Clicked += async (_, _) =>
+        {
+            var title = await DisplayPromptAsync(
+                "Edit Motivation Source",
+                "Title:",
+                "Save", "Cancel",
+                initialValue: source.Title);
+            if (string.IsNullOrWhiteSpace(title)) return;
+            source.Title = title.Trim();
+            await _service.SaveSourceAsync(source);
+            await RefreshAsync();
+        };
+        actions.Children.Add(edit);
         if (source.IsArchived)
         {
             var restore = MakeButton("Restore", "#E8F5E9", "#2E7D32");
