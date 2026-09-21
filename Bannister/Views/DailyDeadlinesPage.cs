@@ -5,6 +5,8 @@ namespace Bannister.Views;
 
 public class DailyDeadlinesPage : ContentPage
 {
+    private static List<Activity>? _cachedActivities;
+    private static bool _activitiesCached;
     private readonly AuthService _auth;
     private readonly DailyDeadlineService _service;
     private readonly ResetTimeService _resetTime;
@@ -21,7 +23,6 @@ public class DailyDeadlinesPage : ContentPage
     private Picker? _gamePicker;
     private Entry? _activitySearch;
     private VerticalStackLayout? _activityResultStack;
-    private Label? _activityPlaceholderLabel;
     private Label? _activityRemainingLabel;
     private Grid? _activityLoadingOverlay;
     private HashSet<int> _usedDeadlineActivityIds = new();
@@ -159,13 +160,30 @@ public class DailyDeadlinesPage : ContentPage
 
     private View BuildAddSection(bool full)
     {
-        var stack = new VerticalStackLayout { Spacing = 8 };
-        stack.Children.Add(new Label { Text = "Add Deadline From Activity", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+        var outer = new VerticalStackLayout { Spacing = 8 };
+        var toggle = new Button
+        {
+            Text = "＋ Add Deadline From Activity",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        var stack = new VerticalStackLayout { Spacing = 8, IsVisible = false };
+        var sectionHeader = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            }
+        };
+        sectionHeader.Add(new Label { Text = "Add Deadline From Activity", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+        var refresh = new Button { Text = "↺ Refresh list", FontSize = 11, HeightRequest = 32, Padding = new Thickness(8, 0), BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F") };
+        sectionHeader.Add(refresh, 1, 0);
+        stack.Children.Add(sectionHeader);
         _gamePicker = new Picker { Title = "Game", ItemsSource = new[] { "All Games" }, SelectedIndex = 0 };
         _activitySearch = new Entry { Placeholder = "Search activities..." };
         _activityResultStack = new VerticalStackLayout { Spacing = 4 };
-        _activityPlaceholderLabel = new Label { Text = "Tap game or search to load activities", FontSize = 12, TextColor = Color.FromArgb("#777") };
-        _activityResultStack.Children.Add(_activityPlaceholderLabel);
         var activityResults = new ScrollView
         {
             Content = _activityResultStack,
@@ -173,8 +191,6 @@ public class DailyDeadlinesPage : ContentPage
         };
         _gamePicker.SelectedIndexChanged += (_, _) => RefreshActivityResults();
         _activitySearch.TextChanged += (_, _) => RefreshActivityResults();
-        _gamePicker.Focused += async (_, _) => await LoadActivitiesAsync();
-        _activitySearch.Focused += async (_, _) => await LoadActivitiesAsync();
         stack.Children.Add(_gamePicker);
         stack.Children.Add(_activitySearch);
         stack.Children.Add(activityResults);
@@ -193,12 +209,56 @@ public class DailyDeadlinesPage : ContentPage
         };
         row.Children.Add(active); row.Children.Add(possible);
         stack.Children.Add(row);
-        return Card(stack);
+        refresh.Clicked += async (_, _) =>
+        {
+            _activitiesCached = false;
+            _cachedActivities = null;
+            _activitiesLoaded = false;
+            await LoadActivitiesAsync();
+        };
+        toggle.Clicked += async (_, _) =>
+        {
+            stack.IsVisible = !stack.IsVisible;
+            toggle.Text = stack.IsVisible
+                ? "－ Add Deadline From Activity"
+                : "＋ Add Deadline From Activity";
+            if (stack.IsVisible)
+            {
+                if (_activitiesCached && _cachedActivities != null)
+                {
+                    _allActivities = _cachedActivities.ToList();
+                    _availableActivities = _allActivities
+                        .Where(a => !_usedDeadlineActivityIds.Contains(a.Id))
+                        .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    _activitiesLoaded = true;
+                    RefreshActivityResults();
+                }
+                else
+                {
+                    await LoadActivitiesAsync();
+                }
+            }
+        };
+        outer.Children.Add(toggle);
+        outer.Children.Add(stack);
+        return Card(outer);
     }
 
     private async Task LoadActivitiesAsync()
     {
         if (_activitiesLoaded) return;
+        if (_activitiesCached && _cachedActivities != null)
+        {
+            _allActivities = _cachedActivities.ToList();
+            _availableActivities = _allActivities
+                .Where(a => !_usedDeadlineActivityIds.Contains(a.Id))
+                .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            _activitiesLoaded = true;
+            RefreshActivityResults();
+            return;
+        }
         var overlay = new Grid
         {
             BackgroundColor = Color.FromArgb("#80000000"),
@@ -261,6 +321,8 @@ public class DailyDeadlinesPage : ContentPage
                 remainingLabel.Text = $"{remaining} games remaining";
             }
             _allActivities = _allActivities.GroupBy(a => a.Id).Select(g => g.First()).ToList();
+            _cachedActivities = _allActivities.ToList();
+            _activitiesCached = true;
             _availableActivities = _allActivities
                 .Where(a => !_usedDeadlineActivityIds.Contains(a.Id))
                 .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase).ToList();
