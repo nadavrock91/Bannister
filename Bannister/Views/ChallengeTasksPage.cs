@@ -420,18 +420,17 @@ public class ChallengeTasksPage : ContentPage
                     await _tasks.UpdateTaskAsync(task);
                     await RefreshAsync();
                 })
-                .WithUpdateCallback(async (rowIndex, columnName, newValue) =>
+                .WithUpdateCallback(async (idValue, columnName, newValue) =>
                 {
                     if (!string.Equals(columnName, "Priority", StringComparison.OrdinalIgnoreCase))
                         return false;
-                    if (!int.TryParse(rowIndex?.ToString(), out var rowIdx))
-                        return false;
-                    if (rowIdx < 0 || rowIdx >= sortedCandidates.Count)
+                    if (!int.TryParse(idValue, out var oldPriority))
                         return false;
                     if (!int.TryParse(newValue, out var newPriority))
                         return false;
 
-                    var task = sortedCandidates[rowIdx];
+                    var task = sortedCandidates.FirstOrDefault(t => t.Priority == oldPriority);
+                    if (task == null) return false;
                     task.Priority = newPriority;
                     await _tasks.UpdateTaskAsync(task);
                     await RefreshAsync();
