@@ -14,6 +14,7 @@ public class DailyDeadlinesPage : ContentPage
     private readonly VerticalStackLayout _content = new() { Spacing = 12 };
     private CancellationTokenSource? _timerCts;
     private List<Activity> _allActivities = new();
+    private List<Activity> _availableActivities = new();
 
     public DailyDeadlinesPage(
         AuthService auth,
@@ -100,11 +101,12 @@ public class DailyDeadlinesPage : ContentPage
         _content.Children.Add(Card(activeStack));
 
         var usedActivityIds = items.Select(i => i.ActivityId).ToHashSet();
-        var availableStack = new VerticalStackLayout { Spacing = 6 };
-        availableStack.Children.Add(new Label { Text = "Add Deadline From Activity", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
-        foreach (var activity in _allActivities.Where(a => !usedActivityIds.Contains(a.Id)).OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase))
-            availableStack.Children.Add(BuildAvailableCard(activity, active.Count >= state.Allowance));
-        _content.Children.Add(Card(availableStack));
+        _availableActivities = _allActivities
+            .Where(a => !usedActivityIds.Contains(a.Id))
+            .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        _content.Children.Add(BuildAddSection(
+            _availableActivities, active.Count >= state.Allowance));
 
         var possibleStack = new VerticalStackLayout { Spacing = 6 };
         possibleStack.Children.Add(new Label { Text = "Possible", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
@@ -152,17 +154,57 @@ public class DailyDeadlinesPage : ContentPage
         return new Border { Content = row, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = Colors.White };
     }
 
-    private View BuildAvailableCard(Activity activity, bool full)
+    private View BuildAddSection(List<Activity> available, bool full)
     {
-        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 6, Padding = 8 };
-        row.Add(BuildActivityVisual(activity), 0, 0);
+        var stack = new VerticalStackLayout { Spacing = 8 };
+        stack.Children.Add(new Label { Text = "Add Deadline From Activity", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+        var gamePicker = new Picker { Title = "Game", ItemsSource = new[] { "All Games" }.Concat(available.Select(a => a.Game).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(g => g)).ToList(), SelectedIndex = 0 };
+        var search = new Entry { Placeholder = "Search activities..." };
+        var activityPicker = new Picker { Title = "Select an activity" };
+        void RefreshPicker()
+        {
+            string game = gamePicker.SelectedItem?.ToString() ?? "All Games";
+            string text = search.Text?.Trim() ?? "";
+            var filtered = available.Where(a =>
+                (game == "All Games" || string.Equals(a.Game, game, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(text) || a.Name.Contains(text, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+            activityPicker.ItemsSource = filtered.Select(a => a.Name).ToList();
+            activityPicker.SelectedIndex = filtered.Count > 0 ? 0 : -1;
+        }
+        gamePicker.SelectedIndexChanged += (_, _) => RefreshPicker();
+        search.TextChanged += (_, _) => RefreshPicker();
+        stack.Children.Add(gamePicker);
+        stack.Children.Add(search);
+        stack.Children.Add(activityPicker);
+        var row = new HorizontalStackLayout { Spacing = 8 };
         var active = new Button { Text = "Add to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E8F5E9"), TextColor = Color.FromArgb("#2E7D32") };
-        active.Clicked += async (_, _) => await AddActivityAsync(activity, true);
-        row.Add(active, 1, 0);
+        active.Clicked += async (_, _) =>
+        {
+            var selected = GetSelectedActivity(available, gamePicker, search, activityPicker);
+            if (selected != null) await AddActivityAsync(selected, true);
+        };
         var possible = new Button { Text = "Add to Possible", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F") };
-        possible.Clicked += async (_, _) => await AddActivityAsync(activity, false);
-        row.Add(possible, 2, 0);
-        return new Border { Content = row, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = Colors.White };
+        possible.Clicked += async (_, _) =>
+        {
+            var selected = GetSelectedActivity(available, gamePicker, search, activityPicker);
+            if (selected != null) await AddActivityAsync(selected, false);
+        };
+        row.Children.Add(active); row.Children.Add(possible);
+        stack.Children.Add(row);
+        RefreshPicker();
+        return Card(stack);
+    }
+
+    private static Activity? GetSelectedActivity(List<Activity> available, Picker gamePicker, Entry search, Picker activityPicker)
+    {
+        string game = gamePicker.SelectedItem?.ToString() ?? "All Games";
+        string text = search.Text?.Trim() ?? "";
+        var filtered = available.Where(a =>
+            (game == "All Games" || string.Equals(a.Game, game, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(text) || a.Name.Contains(text, StringComparison.OrdinalIgnoreCase))).ToList();
+        return activityPicker.SelectedIndex >= 0 && activityPicker.SelectedIndex < filtered.Count
+            ? filtered[activityPicker.SelectedIndex] : null;
     }
 
     private async Task AddActivityAsync(Activity activity, bool active)
