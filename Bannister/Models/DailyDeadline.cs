@@ -2,6 +2,14 @@ using SQLite;
 
 namespace Bannister.Models;
 
+[Table("reset_time_settings")]
+public class ResetTimeSetting
+{
+    [PrimaryKey, AutoIncrement] public int Id { get; set; }
+    [Indexed, Unique] public string Username { get; set; } = "";
+    public int ResetHour { get; set; }
+}
+
 [Table("daily_deadline_items")]
 public class DailyDeadlineItem
 {

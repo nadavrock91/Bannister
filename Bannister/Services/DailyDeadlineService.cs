@@ -94,7 +94,7 @@ public class DailyDeadlineService
     public async Task<DailyDeadlineLog?> GetCurrentLogAsync(string username)
     {
         await InitAsync();
-        return await GetLogAsync(username, _resetTime.GetTodayResetKey(username));
+        return await GetLogAsync(username, await _resetTime.GetTodayResetKey(username));
     }
 
     private async Task<DailyDeadlineLog?> GetLogAsync(string username, string key)
@@ -117,7 +117,7 @@ public class DailyDeadlineService
     public async Task<ResetResult> CheckAndResetAsync(string username)
     {
         var state = await GetStateAsync(username);
-        var currentKey = _resetTime.GetTodayResetKey(username);
+        var currentKey = await _resetTime.GetTodayResetKey(username);
         if (state.LastResetKey == currentKey)
             return new ResetResult { NewAllowance = state.Allowance };
 

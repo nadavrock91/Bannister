@@ -95,7 +95,7 @@ public class SettingsPage : ContentPage
         {
             _loadingSettings = true;
             _dailyResetPicker.SelectedIndex =
-                _resetTime.GetResetHour(_auth.CurrentUsername);
+                await _resetTime.GetResetHour(_auth.CurrentUsername);
             _loadingSettings = false;
         }
     }
@@ -540,10 +540,10 @@ public class SettingsPage : ContentPage
             ItemsSource = Enumerable.Range(0, 24)
                 .Select(h => $"{h:00}:00").ToList()
         };
-        _dailyResetPicker.SelectedIndexChanged += (_, _) =>
+        _dailyResetPicker.SelectedIndexChanged += async (_, _) =>
         {
             if (!_loadingSettings && _dailyResetPicker.SelectedIndex >= 0)
-                _resetTime.SetResetHour(
+                await _resetTime.SetResetHour(
                     _auth.CurrentUsername,
                     _dailyResetPicker.SelectedIndex);
         };

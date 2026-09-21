@@ -28,7 +28,7 @@ public class DailyDeadlinesPage : ContentPage
     {
         base.OnAppearing();
         await LoadAsync(true);
-        ScheduleNextReset();
+        await ScheduleNextResetAsync();
     }
 
     protected override void OnDisappearing()
@@ -107,7 +107,7 @@ public class DailyDeadlinesPage : ContentPage
         var check = new CheckBox { IsChecked = completed.Contains(item.Id), Color = Color.FromArgb("#2E7D32") };
         check.CheckedChanged += async (_, e) =>
         {
-            var log = await _service.GetCurrentLogAsync(_auth.CurrentUsername) ?? new DailyDeadlineLog { Username = _auth.CurrentUsername, LogDate = _resetTime.GetTodayResetKey(_auth.CurrentUsername) };
+            var log = await _service.GetCurrentLogAsync(_auth.CurrentUsername) ?? new DailyDeadlineLog { Username = _auth.CurrentUsername, LogDate = await _resetTime.GetTodayResetKey(_auth.CurrentUsername) };
             var ids = ParseIds(log.CompletedItemIds);
             if (e.Value) ids.Add(item.Id); else ids.Remove(item.Id);
             log.CompletedItemIds = string.Join(",", ids.OrderBy(i => i));
@@ -162,17 +162,22 @@ public class DailyDeadlinesPage : ContentPage
         await LoadAsync(false);
     }
 
-    private void ScheduleNextReset()
+    private async Task ScheduleNextResetAsync()
     {
         _timerCts?.Cancel();
         _timerCts = new CancellationTokenSource();
         var token = _timerCts.Token;
-        var delay = _resetTime.GetNextResetDateTime(_auth.CurrentUsername) - DateTime.Now;
+        var nextReset = await _resetTime.GetNextResetDateTime(_auth.CurrentUsername);
+        var delay = nextReset - DateTime.Now;
         _ = Task.Run(async () =>
         {
             try { await Task.Delay(delay > TimeSpan.Zero ? delay : TimeSpan.FromSeconds(1), token); }
             catch (TaskCanceledException) { return; }
-            await MainThread.InvokeOnMainThreadAsync(async () => { await LoadAsync(true); ScheduleNextReset(); });
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await LoadAsync(true);
+                await ScheduleNextResetAsync();
+            });
         }, token);
     }
 
