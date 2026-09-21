@@ -373,7 +373,7 @@ public class ChallengeTasksPage : ContentPage
         var headers = new List<string> { "Priority", "Title", "Category", "Actions" };
         var rows = candidates.Select(task => new List<string>
         {
-            PriorityDot(task.Priority),
+            $"{PriorityDot(task.Priority)} {task.Priority}",
             task.Title,
             task.Category,
             "\u2B50"
