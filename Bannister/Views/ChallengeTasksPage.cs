@@ -381,7 +381,7 @@ public class ChallengeTasksPage : ContentPage
                 .ToList();
             var rows = sortedCandidates.Select(task => new List<string>
             {
-                $"{PriorityDot(task.Priority)} {task.Priority}",
+                task.Priority.ToString(),
                 task.Title,
                 task.Category,
                 "\u2B50"
