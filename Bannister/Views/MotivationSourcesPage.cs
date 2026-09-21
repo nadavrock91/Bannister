@@ -232,6 +232,13 @@ public class MotivationSourcesPage : ContentPage
                 HorizontalTextAlignment = TextAlignment.Center,
                 TextColor = Color.FromArgb("#555")
             });
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += async (_, _) =>
+                await DisplayAlert(
+                    source.Title,
+                    $"Strength: {score}/100",
+                    "OK");
+            bar.GestureRecognizers.Add(tap);
             bars.Children.Add(bar);
         }
         var section = new VerticalStackLayout { Spacing = 6 };
