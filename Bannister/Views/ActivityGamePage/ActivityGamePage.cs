@@ -244,7 +244,9 @@ public partial class ActivityGamePage : ContentPage
                     prefillCategory: suggestion.Category,
                     prefillLevel: suggestion.PrefillLevel,
                     isNegative: suggestion.PrefillIsNegative,
-                    prefillStreakTracked: suggestion.PrefillStreakTracked);
+                    prefillStreakTracked: suggestion.PrefillStreakTracked,
+                    prefillStartDate: suggestion.PrefillStartDateNow ? DateTime.Now : null,
+                    prefillEndDate: suggestion.PrefillEndDateOneYear ? DateTime.Now.AddYears(1) : null);
                 await Task.Delay(500);
             }
         }

@@ -12,6 +12,8 @@ public class ActivitySuggestion
     public bool PrefillStreakTracked { get; set; }
     public bool PrefillIsNegative { get; set; }
     public string? PrefillLevel { get; set; }
+    public bool PrefillStartDateNow { get; set; }
+    public bool PrefillEndDateOneYear { get; set; }
 }
 
 [Table("activity_suggestion_logs")]
