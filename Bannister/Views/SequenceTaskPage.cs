@@ -80,7 +80,24 @@ public class SequenceTaskPage : ContentPage
         var links = await _service.GetLinksAsync(group.Id);
         var tasks = await LoadLinkedTasksAsync(links);
         var body = new VerticalStackLayout { Spacing = 10 };
-        body.Children.Add(new Label { Text = group.Name, FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
+        var headingRow = new HorizontalStackLayout { Spacing = 8 };
+        headingRow.Children.Add(new Label { Text = group.Name, FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center });
+        var editTemplate = MakeButton("Edit Template", "#E8EAF6", "#3949AB");
+        headingRow.Children.Add(editTemplate);
+        body.Children.Add(headingRow);
+        var templatePanel = new VerticalStackLayout { Spacing = 6, IsVisible = false };
+        var templateEditor = new Editor { Text = group.ExportPromptTemplate, HeightRequest = 140, AutoSize = EditorAutoSizeOption.Disabled, BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
+        var saveTemplate = MakeButton("Save Template", "#E8F5E9", "#2E7D32");
+        saveTemplate.Clicked += async (_, _) =>
+        {
+            await _service.UpdateGroupTemplateAsync(group.Id, templateEditor.Text ?? "");
+            templatePanel.IsVisible = false;
+            await RefreshAsync();
+        };
+        templatePanel.Children.Add(templateEditor);
+        templatePanel.Children.Add(saveTemplate);
+        editTemplate.Clicked += (_, _) => templatePanel.IsVisible = !templatePanel.IsVisible;
+        body.Children.Add(templatePanel);
         body.Children.Add(new Label { Text = $"{tasks.Values.Count(t => t.IsCompleted)} of {links.Count} completed", FontSize = 13, TextColor = Color.FromArgb("#666") });
         foreach (var link in links)
             if (tasks.TryGetValue(link.TaskItemId, out var task)) body.Children.Add(BuildItemRow(group, link, task));
@@ -119,7 +136,7 @@ public class SequenceTaskPage : ContentPage
     private View BuildItemRow(SequenceTaskGroup group, SequenceTaskItem link, TaskItem task)
     {
         var body = new VerticalStackLayout { Spacing = 4 };
-        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, Padding = new Thickness(8, 6) };
+        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, Padding = new Thickness(8, 6) };
         row.Add(new Label { Text = task.IsCompleted ? $"✓ {task.Title}" : task.Title, FontSize = 14, TextColor = task.IsCompleted ? Color.FromArgb("#8A8A8A") : Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center }, 0, 0);
         var copy = MakeButton("Copy", "#E3F2FD", "#1565C0");
         copy.Clicked += async (_, _) => await Clipboard.SetTextAsync(task.Title);
@@ -142,9 +159,19 @@ public class SequenceTaskPage : ContentPage
             };
             row.Add(done, 2, 0);
         }
+        var edit = MakeButton("Edit", "#FFF3E0", "#E65100");
+        edit.Clicked += async (_, _) =>
+        {
+            var newTitle = await DisplayPromptAsync("Edit Task", "Task title:", "Save", "Cancel", initialValue: task.Title);
+            if (string.IsNullOrWhiteSpace(newTitle)) return;
+            task.Title = newTitle.Trim();
+            await _tasks.UpdateTaskAsync(task);
+            await RefreshAsync();
+        };
+        row.Add(edit, 3, 0);
         var delete = MakeButton("Delete", "#FFEBEE", "#C62828");
         delete.Clicked += async (_, _) => { await _service.DeleteItemAsync(link.Id); await RefreshAsync(); };
-        row.Add(delete, 3, 0);
+        row.Add(delete, 4, 0);
         body.Children.Add(row);
         if (task.IsCompleted) body.Children.Add(new Label { Text = $"Completed {task.CompletedAt:dd MMM yyyy}", FontSize = 11, TextColor = Color.FromArgb("#999"), Margin = new Thickness(8, -4, 0, 0) });
         return new Border { Content = body, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = task.IsCompleted ? Color.FromArgb("#F2F2F2") : Colors.White, Padding = 2 };

@@ -45,6 +45,16 @@ public class SequenceTaskService
         else await conn.UpdateAsync(group);
     }
 
+    public async Task UpdateGroupTemplateAsync(int groupId, string template)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var group = await conn.FindAsync<SequenceTaskGroup>(groupId);
+        if (group == null) return;
+        group.ExportPromptTemplate = template;
+        await SaveGroupAsync(group);
+    }
+
     public async Task ArchiveGroupAsync(int id)
     {
         await InitAsync();
