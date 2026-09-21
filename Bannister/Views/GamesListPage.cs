@@ -687,6 +687,7 @@ public class GamesListPage : ContentPage
                     prefillCategory: suggestion.Category,
                     prefillLevel: suggestion.PrefillLevel,
                     isNegative: suggestion.PrefillIsNegative,
+                    prefillRewardType: suggestion.PrefillRewardType,
                     prefillStreakTracked: suggestion.PrefillStreakTracked,
                     prefillStartDate: suggestion.PrefillStartDateNow ? DateTime.Now : null,
                     prefillEndDate: suggestion.PrefillEndDateOneYear ? DateTime.Now.AddYears(1) : null);

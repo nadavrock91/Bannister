@@ -15,7 +15,7 @@ public static class ActivitySuggestions
             Description = "A streak-tracked negative reward activity. Penalizes you for going too long without leveling up.",
             PrefillStreakTracked = true,
             PrefillIsNegative = true,
-            PrefillLevel = "10",
+            PrefillRewardType = "PercentOfLevel",
             PrefillStartDateNow = true,
             PrefillEndDateOneYear = true
         },
@@ -28,7 +28,7 @@ public static class ActivitySuggestions
             Description = "A streak-tracked negative reward activity. Penalizes you for not adding new activities.",
             PrefillStreakTracked = true,
             PrefillIsNegative = true,
-            PrefillLevel = "10",
+            PrefillRewardType = "PercentOfLevel",
             PrefillStartDateNow = true,
             PrefillEndDateOneYear = true
         },
@@ -41,7 +41,7 @@ public static class ActivitySuggestions
             Description = "A streak-tracked negative reward activity. Penalizes you for not converting activities to auto-reward.",
             PrefillStreakTracked = true,
             PrefillIsNegative = true,
-            PrefillLevel = "10",
+            PrefillRewardType = "PercentOfLevel",
             PrefillStartDateNow = true,
             PrefillEndDateOneYear = true
         }
