@@ -92,6 +92,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<RoutineService>();
         builder.Services.AddSingleton<DeadlineService>();
         builder.Services.AddSingleton<ResetTimeService>();
+        builder.Services.AddSingleton<MotivationService>();
         builder.Services.AddSingleton<DailyDeadlineService>();
         builder.Services.AddSingleton<AllowanceService>();
         builder.Services.AddSingleton<PostponedTaskService>();

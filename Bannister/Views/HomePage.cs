@@ -57,6 +57,7 @@ public class HomePage : ContentPage
     private readonly DeadlineService _deadlineService;
     private readonly DailyDeadlineService _dailyDeadlineService;
     private readonly ResetTimeService _resetTime;
+    private readonly MotivationService _motivationService;
     private readonly AllowanceService _allowanceService;
     private readonly PostponedTaskService _postponedTaskService;
     private readonly QuickAccessActionService _quickAccessService;
@@ -112,6 +113,7 @@ public class HomePage : ContentPage
     private Button _btnDatabases;
     private Button _btnDeadlines;
     private Button _btnDailyDeadlines;
+    private Button _btnMotivation;
     private Button _btnDesignations;
     private Button _btnDiscipline;
     private Button _btnDragons;
@@ -156,7 +158,7 @@ public class HomePage : ContentPage
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, PromptLibraryService promptLibraryService, DesignationService designationService,
          CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
-         DailyDeadlineService dailyDeadlineService, ResetTimeService resetTime,
+         DailyDeadlineService dailyDeadlineService, ResetTimeService resetTime, MotivationService motivationService,
         AllowanceService allowanceService, PostponedTaskService postponedTaskService, QuickAccessActionService quickAccessService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
@@ -202,6 +204,7 @@ public class HomePage : ContentPage
         _deadlineService = deadlineService;
         _dailyDeadlineService = dailyDeadlineService;
         _resetTime = resetTime;
+        _motivationService = motivationService;
         _allowanceService = allowanceService;
         _postponedTaskService = postponedTaskService;
         _quickAccessService = quickAccessService;
@@ -354,6 +357,10 @@ public class HomePage : ContentPage
         _btnDailyDeadlines = CreateButton("Daily Deadlines", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
         _btnDailyDeadlines.Clicked += OnDailyDeadlinesClicked;
         navButtons.Add(("Daily Deadlines", _btnDailyDeadlines));
+
+        _btnMotivation = CreateButton("Motivation", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
+        _btnMotivation.Clicked += OnMotivationClicked;
+        navButtons.Add(("Motivation", _btnMotivation));
 
         _btnDesignations = CreateButton("Designations", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
         _btnDesignations.Clicked += OnDesignationsClicked;
@@ -893,6 +900,7 @@ public class HomePage : ContentPage
             "Databases" => OnDatabasesClicked,
             "Deadlines" => OnDeadlinesClicked,
             "Daily Deadlines" => OnDailyDeadlinesClicked,
+            "Motivation" => OnMotivationClicked,
             "Designations" => OnDesignationsClicked,
             "Discipline" => OnDisciplineClicked,
             "Dragons" => OnDragonsClicked,
@@ -2777,6 +2785,12 @@ public class HomePage : ContentPage
             _auth, _dailyDeadlineService, _activities,
             _privacyMode, _games);
         await Navigation.PushAsync(page);
+    }
+
+    private async void OnMotivationClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(
+            new MotivationHubPage(_auth, _motivationService));
     }
 
     private async void OnDesignationsClicked(object? sender, EventArgs e)
