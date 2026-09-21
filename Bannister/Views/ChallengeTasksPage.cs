@@ -424,12 +424,14 @@ public class ChallengeTasksPage : ContentPage
                 {
                     if (!string.Equals(columnName, "Priority", StringComparison.OrdinalIgnoreCase))
                         return false;
-                    if (rowIndex < 0 || rowIndex >= sortedCandidates.Count)
+                    if (!int.TryParse(rowIndex?.ToString(), out var rowIdx))
+                        return false;
+                    if (rowIdx < 0 || rowIdx >= sortedCandidates.Count)
                         return false;
                     if (!int.TryParse(newValue, out var newPriority))
                         return false;
 
-                    var task = sortedCandidates[rowIndex];
+                    var task = sortedCandidates[rowIdx];
                     task.Priority = newPriority;
                     await _tasks.UpdateTaskAsync(task);
                     await RefreshAsync();
