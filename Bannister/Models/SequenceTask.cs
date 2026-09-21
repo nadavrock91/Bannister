@@ -20,11 +20,8 @@ public class SequenceTaskItem
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }
 
-    [Indexed]
     public int GroupId { get; set; }
 
-    public string Description { get; set; } = "";
-    public DateTime CreatedDate { get; set; } = DateTime.Now;
-    public bool IsCompleted { get; set; }
-    public DateTime CompletedDate { get; set; }
+    public int TaskItemId { get; set; }
+    public int SortOrder { get; set; }
 }

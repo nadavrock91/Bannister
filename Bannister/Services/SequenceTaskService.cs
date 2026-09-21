@@ -55,29 +55,40 @@ public class SequenceTaskService
         await conn.UpdateAsync(group);
     }
 
-    public async Task<List<SequenceTaskItem>> GetItemsAsync(int groupId)
+    public async Task AddTaskItemAsync(int groupId, int taskItemId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var count = await conn.Table<SequenceTaskItem>()
+            .Where(i => i.GroupId == groupId)
+            .CountAsync();
+        await conn.InsertAsync(new SequenceTaskItem
+        {
+            GroupId = groupId,
+            TaskItemId = taskItemId,
+            SortOrder = count
+        });
+    }
+
+    public async Task<List<int>> GetTaskItemIdsAsync(int groupId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var items = await conn.Table<SequenceTaskItem>()
+            .Where(i => i.GroupId == groupId)
+            .OrderBy(i => i.SortOrder)
+            .ToListAsync();
+        return items.Select(i => i.TaskItemId).ToList();
+    }
+
+    public async Task<List<SequenceTaskItem>> GetLinksAsync(int groupId)
     {
         await InitAsync();
         var conn = await _db.GetConnectionAsync();
         return await conn.Table<SequenceTaskItem>()
             .Where(i => i.GroupId == groupId)
-            .OrderBy(i => i.CreatedDate)
+            .OrderBy(i => i.SortOrder)
             .ToListAsync();
-    }
-
-    public async Task SaveItemAsync(SequenceTaskItem item)
-    {
-        await InitAsync();
-        var conn = await _db.GetConnectionAsync();
-        if (item.Id == 0) await conn.InsertAsync(item);
-        else await conn.UpdateAsync(item);
-    }
-
-    public async Task UpdateItemAsync(SequenceTaskItem item)
-    {
-        await InitAsync();
-        var conn = await _db.GetConnectionAsync();
-        await conn.UpdateAsync(item);
     }
 
     public async Task DeleteItemAsync(int id)

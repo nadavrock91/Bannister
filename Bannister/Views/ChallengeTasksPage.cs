@@ -459,11 +459,8 @@ public class ChallengeTasksPage : ContentPage
                             }
 
                             if (group == null) return;
-                            await _sequenceTaskService.SaveItemAsync(new SequenceTaskItem
-                            {
-                                GroupId = group.Id,
-                                Description = task.Title
-                            });
+                            await _sequenceTaskService.AddTaskItemAsync(
+                                group.Id, task.Id);
                             await DisplayAlert("Sequence Tasks", $"Added to {group.Name}", "OK");
                         }
                     }
