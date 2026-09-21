@@ -6,7 +6,7 @@ namespace Bannister.Models;
 public class ResetTimeSetting
 {
     [PrimaryKey, AutoIncrement] public int Id { get; set; }
-    [Indexed, Unique] public string Username { get; set; } = "";
+    [Unique] public string Username { get; set; } = "";
     public int ResetHour { get; set; }
 }
 
