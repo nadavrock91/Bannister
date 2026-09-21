@@ -369,7 +369,7 @@ public class ChallengeTasksPage : ContentPage
         _topCandidatesList.Children.Add(header);
         if (!_topCandidatesExpanded) return;
 
-        var headers = new List<string> { "Priority", "Title", "Category", "Actions" };
+        var headers = new List<string> { "Id", "Priority", "Title", "Category", "Actions" };
         DataGridView? candidatesGrid = null;
 
         DataGridView BuildCandidatesGrid()
@@ -381,6 +381,7 @@ public class ChallengeTasksPage : ContentPage
                 .ToList();
             var rows = sortedCandidates.Select(task => new List<string>
             {
+                task.Id.ToString(),
                 task.Priority.ToString(),
                 task.Title,
                 task.Category,
@@ -391,11 +392,11 @@ public class ChallengeTasksPage : ContentPage
                 .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
                 .WithHeaderTextProvider(index => headers[index])
                 .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
-                .WithColumnWidths(60, 220)
+                .WithColumnWidths(1, 220)
                 .WithCellPadding(6)
                 .WithFontSize(12, 12)
                 .WithFullRows(rows)
-                .WithIdColumn("Priority")
+                .WithIdColumn("Id")
                 .OnHeaderTapped((_, e) =>
                 {
                     if (!string.Equals(e.ColumnName, "Priority", StringComparison.OrdinalIgnoreCase)) return;
@@ -414,7 +415,7 @@ public class ChallengeTasksPage : ContentPage
                 })
                 .OnCellTapped(async (_, e) =>
                 {
-                    if (e.ColumnIndex != 3 || e.RowIndex < 0 || e.RowIndex >= sortedCandidates.Count) return;
+                    if (e.ColumnIndex != 4 || e.RowIndex < 0 || e.RowIndex >= sortedCandidates.Count) return;
                     var task = sortedCandidates[e.RowIndex];
                     task.IsTopCandidate = false;
                     await _tasks.UpdateTaskAsync(task);
@@ -424,12 +425,12 @@ public class ChallengeTasksPage : ContentPage
                 {
                     if (!string.Equals(columnName, "Priority", StringComparison.OrdinalIgnoreCase))
                         return false;
-                    if (!int.TryParse(idValue, out var oldPriority))
+                    if (!int.TryParse(idValue, out var taskId))
                         return false;
                     if (!int.TryParse(newValue, out var newPriority))
                         return false;
 
-                    var task = sortedCandidates.FirstOrDefault(t => t.Priority == oldPriority);
+                    var task = sortedCandidates.FirstOrDefault(t => t.Id == taskId);
                     if (task == null) return false;
                     task.Priority = newPriority;
                     await _tasks.UpdateTaskAsync(task);
