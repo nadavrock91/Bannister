@@ -78,10 +78,11 @@ public class DailyDeadlineService
     {
         await InitAsync();
         var conn = await _db.GetConnectionAsync();
-        return await conn.Table<DailyDeadlineItem>()
+        var items = await conn.Table<DailyDeadlineItem>()
             .Where(i => i.Username == username)
-            .OrderBy(i => i.IsActive ? 0 : 1)
-            .ThenBy(i => i.SortOrder).ThenBy(i => i.Id).ToListAsync();
+            .ToListAsync();
+        return items.OrderBy(i => i.IsActive ? 0 : 1)
+            .ThenBy(i => i.SortOrder).ThenBy(i => i.Id).ToList();
     }
 
     public async Task SaveItemAsync(DailyDeadlineItem item)
