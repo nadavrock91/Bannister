@@ -30,7 +30,7 @@ public class ActivityCreationPage : ContentPage
     private string _gameId = "";
     private string? _selectedImageFilename = null;
     private List<string> _categories = new();
-    private int _selectedVisibility = 1; // default Public
+    private int _selectedVisibility = 0; // default Private
     
     // For modal usage - returns created activity
     private TaskCompletionSource<Activity?>? _modalTcs;

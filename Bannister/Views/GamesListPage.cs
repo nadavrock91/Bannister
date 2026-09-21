@@ -621,7 +621,30 @@ public class GamesListPage : ContentPage
 
         if (!string.IsNullOrWhiteSpace(name))
         {
-            await _games.CreateGameAsync(_auth.CurrentUsername, name.Trim());
+            string visibility = await DisplayActionSheet(
+                "Set Visibility",
+                "Cancel",
+                null,
+                "Public",
+                "Private",
+                "Both");
+            if (visibility == "Cancel" || string.IsNullOrWhiteSpace(visibility))
+                return;
+
+            int gameVisibility = visibility switch
+            {
+                "Public" => 1,
+                "Private" => 0,
+                "Both" => 2,
+                _ => -1
+            };
+            if (gameVisibility < 0) return;
+
+            var game = await _games.CreateGameAsync(
+                _auth.CurrentUsername,
+                name.Trim());
+            game.GameVisibility = gameVisibility;
+            await _games.UpdateGameAsync(game);
             await LoadGamesAsync();
         }
     }
