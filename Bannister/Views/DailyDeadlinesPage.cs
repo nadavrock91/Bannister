@@ -103,7 +103,22 @@ public class DailyDeadlinesPage : ContentPage
 
         var activeStack = new VerticalStackLayout { Spacing = 6 };
         activeStack.Children.Add(new Label { Text = "Today's Deadlines", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
-        foreach (var item in active)
+        var activeHeader = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8,
+            Padding = new Thickness(8, 4)
+        };
+        activeHeader.Add(new Label { Text = "Done", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#555"), WidthRequest = 60 }, 0, 0);
+        activeHeader.Add(new Label { Text = "Deadline", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#555") }, 1, 0);
+        activeStack.Children.Add(activeHeader);
+        foreach (var item in active.OrderBy(i => completedIds.Contains(i.Id) ? 1 : 0).ThenBy(i => i.SortOrder))
             activeStack.Children.Add(await BuildActiveRowAsync(item, completedIds));
         if (active.Count > 0 && active.All(i => completedIds.Contains(i.Id)))
             activeStack.Children.Add(new Label { Text = "✓ All done!", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32"), BackgroundColor = Color.FromArgb("#E8F5E9"), Padding = 10 });
@@ -126,20 +141,22 @@ public class DailyDeadlinesPage : ContentPage
         if (activity == null)
         {
             row.BackgroundColor = Color.FromArgb("#F0F0F0");
-            row.Add(new Label { Text = "Activity not found", TextColor = Color.FromArgb("#888"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+            row.Add(new Label { Text = "Activity not found", TextColor = Color.FromArgb("#888"), VerticalOptions = LayoutOptions.Center }, 1, 0);
             var missingDelete = MakeDeleteButton(item);
-            row.Add(missingDelete, 1, 0);
+            row.Add(missingDelete, 3, 0);
             return new Border { Content = row, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#F0F0F0") };
         }
 
-        if (completed.Contains(item.Id))
-            row.Add(new Label { Text = "✓ Done", TextColor = Color.FromArgb("#777"), FontSize = 12, VerticalOptions = LayoutOptions.Center }, 0, 0);
-        else
+        var doneCheck = new CheckBox
         {
-            var done = new Button { Text = "Done ✓", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E8F5E9"), TextColor = Color.FromArgb("#2E7D32") };
-            done.Clicked += async (_, _) => await MarkDoneAsync(item);
-            row.Add(done, 0, 0);
-        }
+            IsChecked = completed.Contains(item.Id),
+            Color = Color.FromArgb("#2E7D32"),
+            WidthRequest = 60,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center
+        };
+        doneCheck.CheckedChanged += async (_, e) => await SetCompletedAsync(item, e.Value);
+        row.Add(doneCheck, 0, 0);
         row.Add(BuildActivityVisual(activity), 1, 0);
         var move = new Button { Text = "Move to Possible", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F") };
         move.Clicked += async (_, _) => { item.IsActive = false; await _service.SaveItemAsync(item); await LoadAsync(false); };
@@ -181,11 +198,14 @@ public class DailyDeadlinesPage : ContentPage
         return del;
     }
 
-    private async Task MarkDoneAsync(DailyDeadlineItem item)
+    private async Task SetCompletedAsync(DailyDeadlineItem item, bool isCompleted)
     {
         var log = await _service.GetCurrentLogAsync(_auth.CurrentUsername) ?? new DailyDeadlineLog { Username = _auth.CurrentUsername, LogDate = await _resetTime.GetTodayResetKey(_auth.CurrentUsername) };
         var ids = ParseIds(log.CompletedItemIds);
-        ids.Add(item.Id);
+        if (isCompleted)
+            ids.Add(item.Id);
+        else
+            ids.Remove(item.Id);
         log.CompletedItemIds = string.Join(",", ids.OrderBy(i => i));
         var active = await _service.GetActiveItemsAsync(_auth.CurrentUsername);
         log.AllCompleted = active.Count > 0 && active.All(i => ids.Contains(i.Id));
