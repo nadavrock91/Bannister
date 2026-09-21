@@ -66,6 +66,11 @@ public class MotivationSourcesPage : ContentPage
         var sources = _showArchived
             ? await _service.GetAllSourcesAsync(_auth.CurrentUsername)
             : await _service.GetActiveSourcesAsync(_auth.CurrentUsername);
+        var activeSources = _showArchived
+            ? sources.Where(s => !s.IsArchived).ToList()
+            : sources;
+        if (activeSources.Any(s => s.StrengthScore.HasValue))
+            _content.Children.Add(BuildFuelTanks(activeSources));
         foreach (var source in sources)
             _content.Children.Add(BuildSourceCard(source));
         _content.Children.Add(BuildAddForm());
@@ -169,6 +174,90 @@ public class MotivationSourcesPage : ContentPage
         return card;
     }
 
+    private View BuildFuelTanks(List<MotivationSource> sources)
+    {
+        var bars = new HorizontalStackLayout { Spacing = 12 };
+        foreach (var source in sources
+            .Where(s => s.StrengthScore.HasValue)
+            .OrderByDescending(s => s.StrengthScore))
+        {
+            int score = Math.Clamp(source.StrengthScore!.Value, 1, 100);
+            double fillHeight = score / 100.0 * 180;
+            var tankGrid = new Grid
+            {
+                HeightRequest = 180,
+                WidthRequest = 48,
+                BackgroundColor = Color.FromArgb("#ECEFF1")
+            };
+            tankGrid.Children.Add(new BoxView
+            {
+                HeightRequest = fillHeight,
+                VerticalOptions = LayoutOptions.End,
+                HorizontalOptions = LayoutOptions.Fill,
+                Color = StrengthColor(score)
+            });
+            var tank = new Border
+            {
+                Content = tankGrid,
+                WidthRequest = 48,
+                HeightRequest = 180,
+                Stroke = Color.FromArgb("#B0BEC5"),
+                StrokeThickness = 1,
+                BackgroundColor = Color.FromArgb("#ECEFF1")
+            };
+            var bar = new VerticalStackLayout
+            {
+                Spacing = 3,
+                WidthRequest = 64,
+                HorizontalOptions = LayoutOptions.Center
+            };
+            bar.Children.Add(tank);
+            bar.Children.Add(new Label
+            {
+                Text = score.ToString(),
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                HorizontalTextAlignment = TextAlignment.Center,
+                TextColor = StrengthColor(score)
+            });
+            string shortTitle = source.Title.Length > 8
+                ? source.Title[..8] + "…"
+                : source.Title;
+            bar.Children.Add(new Label
+            {
+                Text = shortTitle,
+                FontSize = 10,
+                LineBreakMode = LineBreakMode.TailTruncation,
+                MaxLines = 1,
+                HorizontalTextAlignment = TextAlignment.Center,
+                TextColor = Color.FromArgb("#555")
+            });
+            bars.Children.Add(bar);
+        }
+        var section = new VerticalStackLayout { Spacing = 6 };
+        section.Children.Add(new Label
+        {
+            Text = "Motivation Fuel",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222")
+        });
+        section.Children.Add(new ScrollView
+        {
+            Orientation = ScrollOrientation.Horizontal,
+            Content = bars,
+            HeightRequest = 225
+        });
+        return section;
+    }
+
+    private static Color StrengthColor(int score) => score <= 20
+        ? Color.FromArgb("#D32F2F")
+        : score <= 40 ? Color.FromArgb("#EF6C00")
+        : score <= 60 ? Color.FromArgb("#F9A825")
+        : score <= 80 ? Color.FromArgb("#2E7D32")
+        : Color.FromArgb("#7B1FA2");
+
     private View BuildAddForm()
     {
         var form = new VerticalStackLayout { Spacing = 8 };
@@ -216,6 +305,20 @@ public class MotivationSourcesPage : ContentPage
             "61-80 = strong, persists under significant discomfort\n" +
             "81-100 = critical, near-unbreakable drive\n\n" +
             "Return ONLY a C#-parsable result in exactly this format after all questions are answered:\n" +
+            "sourceStrength[1] = {score};\n" +
+            "sourceStrength[2] = {score};\n" +
+            "(one line per source in the same order as listed above)";
+        prompt =
+            "I want you to help me rate the strength of my personal motivation sources on a scale of 1-100. These motivation sources are the things that fuel my behavior and keep me on track in a self-designed gamification system I built for myself called Bannister. In this system I have games representing life areas, activities within those games that award EXP points, levels, streaks, and other gamification mechanics. The motivation sources I am about to list are the underlying psychological drivers that cause me to engage with this system and execute in real life.\n\n" +
+            "Your job is to rate each motivation source from 1-100 using a cold shower as a calibration tool. The cold shower is deliberately arbitrary and uncomfortable with no inherent value — it is used purely as a signal of what truly drives behavior. The rating scale is:\n" +
+            "1-20 = weak, easily overridden by discomfort\n" +
+            "21-40 = below average, present but inconsistent  \n" +
+            "41-60 = moderate, reliable under normal conditions\n" +
+            "61-80 = strong, persists under significant discomfort\n" +
+            "81-100 = critical, near-unbreakable drive\n\n" +
+            "Before forming your questionnaire, if any motivation source is unclear to you, ask me clarifying questions first. Take as many clarifying rounds as you need until you fully understand each source. Then design a tailored set of scenario questions for each source — do not use a fixed script. The scenarios should probe what the source actually means to this person and how far it would drive them under real discomfort and resistance.\n\n" +
+            "My motivation sources are:\n" + list + "\n\n" +
+            "Start by asking any clarifying questions you have about these sources. Once you fully understand them, proceed with your tailored questionnaire. After all questions are answered, return ONLY a C#-parsable result in exactly this format:\n" +
             "sourceStrength[1] = {score};\n" +
             "sourceStrength[2] = {score};\n" +
             "(one line per source in the same order as listed above)";
