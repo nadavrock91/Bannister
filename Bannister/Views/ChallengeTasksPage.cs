@@ -369,7 +369,7 @@ public class ChallengeTasksPage : ContentPage
         _topCandidatesList.Children.Add(header);
         if (!_topCandidatesExpanded) return;
 
-        var headers = new List<string> { "Id", "Priority", "Title", "Category", "Actions" };
+        var headers = new List<string> { "Id", "Priority", "Title", "Category", "Remove", "Done" };
         DataGridView? candidatesGrid = null;
 
         DataGridView BuildCandidatesGrid()
@@ -385,7 +385,8 @@ public class ChallengeTasksPage : ContentPage
                 task.Priority.ToString(),
                 task.Title,
                 task.Category,
-                "\u2B50"
+                "\u2B50",
+                "\u2713"
             }).ToList();
 
             return DataGridView.Create(headers, rows)
@@ -415,10 +416,17 @@ public class ChallengeTasksPage : ContentPage
                 })
                 .OnCellTapped(async (_, e) =>
                 {
-                    if (e.ColumnIndex != 4 || e.RowIndex < 0 || e.RowIndex >= sortedCandidates.Count) return;
+                    if ((e.ColumnIndex != 4 && e.ColumnIndex != 5) || e.RowIndex < 0 || e.RowIndex >= sortedCandidates.Count) return;
                     var task = sortedCandidates[e.RowIndex];
-                    task.IsTopCandidate = false;
-                    await _tasks.UpdateTaskAsync(task);
+                    if (e.ColumnIndex == 4)
+                    {
+                        task.IsTopCandidate = false;
+                        await _tasks.UpdateTaskAsync(task);
+                    }
+                    else
+                    {
+                        await _tasks.CompleteTaskAsync(task);
+                    }
                     await RefreshAsync();
                 })
                 .WithUpdateCallback(async (idValue, columnName, newValue) =>
