@@ -12,6 +12,7 @@ public class DailyDeadlinesPage : ContentPage
     private readonly PrivacyModeService _privacyMode;
     private readonly GameService _games;
     private readonly VerticalStackLayout _content = new() { Spacing = 12 };
+    private readonly Grid _rootGrid = new();
     private CancellationTokenSource? _timerCts;
     private List<Activity> _allActivities = new();
     private List<Activity> _availableActivities = new();
@@ -20,7 +21,9 @@ public class DailyDeadlinesPage : ContentPage
     private Picker? _gamePicker;
     private Entry? _activitySearch;
     private VerticalStackLayout? _activityResultStack;
-    private Label? _activityLoadingLabel;
+    private Label? _activityPlaceholderLabel;
+    private Label? _activityRemainingLabel;
+    private Grid? _activityLoadingOverlay;
     private HashSet<int> _usedDeadlineActivityIds = new();
     private int _currentActiveCount;
     private int _currentAllowance;
@@ -42,7 +45,8 @@ public class DailyDeadlinesPage : ContentPage
         _games = games;
         Title = "Daily Deadlines";
         BackgroundColor = Color.FromArgb("#F5F5F5");
-        Content = new ScrollView { Content = _content };
+        _rootGrid.Children.Add(new ScrollView { Content = _content });
+        Content = _rootGrid;
     }
 
     protected override async void OnAppearing()
@@ -160,8 +164,8 @@ public class DailyDeadlinesPage : ContentPage
         _gamePicker = new Picker { Title = "Game", ItemsSource = new[] { "All Games" }, SelectedIndex = 0 };
         _activitySearch = new Entry { Placeholder = "Search activities..." };
         _activityResultStack = new VerticalStackLayout { Spacing = 4 };
-        _activityLoadingLabel = new Label { Text = "Tap game or search to load activities", FontSize = 12, TextColor = Color.FromArgb("#777") };
-        _activityResultStack.Children.Add(_activityLoadingLabel);
+        _activityPlaceholderLabel = new Label { Text = "Tap game or search to load activities", FontSize = 12, TextColor = Color.FromArgb("#777") };
+        _activityResultStack.Children.Add(_activityPlaceholderLabel);
         var activityResults = new ScrollView
         {
             Content = _activityResultStack,
@@ -195,40 +199,88 @@ public class DailyDeadlinesPage : ContentPage
     private async Task LoadActivitiesAsync()
     {
         if (_activitiesLoaded) return;
-        string username = _auth.CurrentUsername;
-        var games = await _games.GetGamesAsync(username);
-        _activityLoadingLabel?.SetValue(Label.TextProperty,
-            $"Loading activities... ({games.Count} remaining)");
-        var displayMode = _privacyMode.GetDisplayMode(username);
-        _allActivities = new List<Activity>();
-        for (int i = 0; i < games.Count; i++)
+        var overlay = new Grid
         {
-            var loaded = await _activities.GetActivitiesAsync(username, games[i].GameId);
-            _allActivities.AddRange(loaded.Where(a => displayMode switch
+            BackgroundColor = Color.FromArgb("#80000000"),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            ZIndex = 100
+        };
+        var remainingLabel = new Label
+        {
+            Text = "0 games remaining",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#666"),
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+        var loadingCard = new Frame
+        {
+            Content = new VerticalStackLayout
             {
-                ActivityDisplayMode.PublicOnly => a.ActivityVisibility == 1 || a.ActivityVisibility == 2,
-                ActivityDisplayMode.PrivateOnly => a.ActivityVisibility == 0 || a.ActivityVisibility == 2,
-                _ => true
-            }));
-            int remaining = games.Count - i - 1;
-            if (_activityLoadingLabel != null)
-                _activityLoadingLabel.Text = $"Loading activities... ({remaining} remaining)";
-        }
-        _allActivities = _allActivities.GroupBy(a => a.Id).Select(g => g.First()).ToList();
-        _availableActivities = _allActivities
-            .Where(a => !_usedDeadlineActivityIds.Contains(a.Id))
-            .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase).ToList();
-        if (_gamePicker != null)
+                Spacing = 8,
+                HorizontalOptions = LayoutOptions.Center,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Loading activities...",
+                        FontSize = 18,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#222"),
+                        HorizontalTextAlignment = TextAlignment.Center
+                    },
+                    remainingLabel
+                }
+            },
+            Padding = 24,
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        overlay.Children.Add(loadingCard);
+        _rootGrid.Children.Add(overlay);
+        _activityLoadingOverlay = overlay;
+        try
         {
-            _gamePicker.ItemsSource = new[] { "All Games" }
-                .Concat(_availableActivities.Select(a => a.Game)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(g => g))
-                .ToList();
-            _gamePicker.SelectedIndex = 0;
+            string username = _auth.CurrentUsername;
+            var games = await _games.GetGamesAsync(username);
+            remainingLabel.Text = $"{games.Count} games remaining";
+            var displayMode = _privacyMode.GetDisplayMode(username);
+            _allActivities = new List<Activity>();
+            for (int i = 0; i < games.Count; i++)
+            {
+                var loaded = await _activities.GetActivitiesAsync(username, games[i].GameId);
+                _allActivities.AddRange(loaded.Where(a => displayMode switch
+                {
+                    ActivityDisplayMode.PublicOnly => a.ActivityVisibility == 1 || a.ActivityVisibility == 2,
+                    ActivityDisplayMode.PrivateOnly => a.ActivityVisibility == 0 || a.ActivityVisibility == 2,
+                    _ => true
+                }));
+                int remaining = games.Count - i - 1;
+                remainingLabel.Text = $"{remaining} games remaining";
+            }
+            _allActivities = _allActivities.GroupBy(a => a.Id).Select(g => g.First()).ToList();
+            _availableActivities = _allActivities
+                .Where(a => !_usedDeadlineActivityIds.Contains(a.Id))
+                .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            if (_gamePicker != null)
+            {
+                _gamePicker.ItemsSource = new[] { "All Games" }
+                    .Concat(_availableActivities.Select(a => a.Game)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(g => g))
+                    .ToList();
+                _gamePicker.SelectedIndex = 0;
+            }
+            _activitiesLoaded = true;
+            RefreshActivityResults();
         }
-        _activitiesLoaded = true;
-        RefreshActivityResults();
+        finally
+        {
+            _rootGrid.Children.Remove(overlay);
+            _activityLoadingOverlay = null;
+        }
     }
 
     private void RefreshActivityResults()
