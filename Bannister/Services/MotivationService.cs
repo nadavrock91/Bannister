@@ -75,6 +75,17 @@ public class MotivationService
         await conn.UpdateAsync(source);
     }
 
+    public async Task ClearStrengthAsync(int id)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var source = await conn.FindAsync<MotivationSource>(id);
+        if (source == null) return;
+        source.StrengthScore = null;
+        source.StrengthRatedDate = null;
+        await conn.UpdateAsync(source);
+    }
+
     public async Task<List<MotivationNote>> GetNotesAsync(int sourceId)
     {
         await InitAsync();

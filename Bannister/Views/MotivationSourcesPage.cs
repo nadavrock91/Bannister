@@ -130,6 +130,37 @@ public class MotivationSourcesPage : ContentPage
             await RefreshAsync();
         };
         actions.Children.Add(edit);
+        if (source.StrengthScore.HasValue)
+        {
+            var adjust = MakeButton("Adjust", "#FFF3E0", "#E65100");
+            adjust.Clicked += async (_, _) =>
+            {
+                var value = await DisplayPromptAsync(
+                    "Adjust Strength",
+                    "Strength (1-100):",
+                    "Save", "Cancel",
+                    initialValue: source.StrengthScore.Value.ToString(),
+                    keyboard: Keyboard.Numeric);
+                if (!int.TryParse(value, out int score)) return;
+                await _service.UpdateStrengthAsync(source.Id,
+                    Math.Clamp(score, 1, 100));
+                await RefreshAsync();
+            };
+            actions.Children.Add(adjust);
+
+            var clear = MakeButton("Clear Score", "#FFEBEE", "#C62828");
+            clear.Clicked += async (_, _) =>
+            {
+                bool confirm = await DisplayAlert(
+                    "Clear Strength",
+                    "Clear the strength score for this source? The source itself will be kept.",
+                    "Clear", "Cancel");
+                if (!confirm) return;
+                await _service.ClearStrengthAsync(source.Id);
+                await RefreshAsync();
+            };
+            actions.Children.Add(clear);
+        }
         if (source.IsArchived)
         {
             var restore = MakeButton("Restore", "#E8F5E9", "#2E7D32");
