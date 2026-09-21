@@ -237,10 +237,15 @@ public class ActivityCreationPage : ContentPage
     private bool _prefillStreakTracked;
     private int? _prefillStreakTargetDays;
     private bool _prefillApplied = false;
+    private Action? _updateVisBtns;
+
+    private void UpdateVisBtns() => _updateVisBtns?.Invoke();
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _selectedVisibility = 0;
+        UpdateVisBtns();
 
         try
         {
@@ -443,6 +448,8 @@ public class ActivityCreationPage : ContentPage
             bothBtn.TextColor = _selectedVisibility == 2
                 ? Colors.White : Color.FromArgb("#37474F");
         }
+
+        _updateVisBtns = UpdateVisBtns;
 
         pubBtn.Clicked += (_, _) =>
         {
