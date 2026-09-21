@@ -736,9 +736,9 @@ public partial class EditActivityPage : ContentPage
         if (isPercentType)
         {
             // Percent of level type
-            if (!double.TryParse(txtPercentOfLevel.Text, out double percent) || percent <= 0)
+            if (!double.TryParse(txtPercentOfLevel.Text, out double percent) || percent == 0)
             {
-                await DisplayAlert("Required", "Please enter a valid percent (e.g., 1 for 1%)", "OK");
+                await DisplayAlert("Required", "Please enter a valid percent (e.g., 1 for 1%, -0.03 for negative 0.03%)", "OK");
                 return;
             }
             

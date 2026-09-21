@@ -1345,7 +1345,7 @@ public class ActivityCreationPage : ContentPage
             {
                 if (!double.TryParse(txtPercentOfLevel.Text, out percentOfLevel) || percentOfLevel == 0)
                 {
-                    await DisplayAlert("Validation Error", "Please enter a valid percent (e.g., 1 for 1%)", "OK");
+                    await DisplayAlert("Validation Error", "Please enter a valid percent (e.g., 1 for 1%, 0.03 for 0.03%)", "OK");
                     return;
                 }
                 if (!int.TryParse(txtPercentCutoff.Text, out percentCutoff) || percentCutoff < 1 || percentCutoff > 100)
