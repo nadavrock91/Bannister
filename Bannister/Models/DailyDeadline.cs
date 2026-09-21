@@ -14,7 +14,7 @@ public class ResetTimeSetting
 public class DailyDeadlineItem
 {
     [PrimaryKey, AutoIncrement] public int Id { get; set; }
-    [Indexed] public string Username { get; set; } = "";
+    public string Username { get; set; } = "";
     public string Title { get; set; } = "";
     public bool IsActive { get; set; }
     public int SortOrder { get; set; }
@@ -25,8 +25,8 @@ public class DailyDeadlineItem
 public class DailyDeadlineLog
 {
     [PrimaryKey, AutoIncrement] public int Id { get; set; }
-    [Indexed] public string Username { get; set; } = "";
-    [Indexed] public string LogDate { get; set; } = "";
+    public string Username { get; set; } = "";
+    public string LogDate { get; set; } = "";
     public bool AllCompleted { get; set; }
     public string CompletedItemIds { get; set; } = "";
 }
@@ -35,7 +35,7 @@ public class DailyDeadlineLog
 public class DailyDeadlineState
 {
     [PrimaryKey, AutoIncrement] public int Id { get; set; }
-    [Indexed, Unique] public string Username { get; set; } = "";
+    [Unique] public string Username { get; set; } = "";
     public int Allowance { get; set; } = 1;
     public int ConsecutiveStreak { get; set; }
     public string LastResetKey { get; set; } = "";
