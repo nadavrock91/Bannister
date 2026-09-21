@@ -12,6 +12,8 @@ public class MotivationSource
     public string Username { get; set; } = "";
     public string Title { get; set; } = "";
     public string Description { get; set; } = "";
+    public int? StrengthScore { get; set; }
+    public DateTime? StrengthRatedDate { get; set; }
     public bool IsArchived { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.Now;
 }

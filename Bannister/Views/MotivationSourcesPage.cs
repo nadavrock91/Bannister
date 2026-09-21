@@ -46,6 +46,12 @@ public class MotivationSourcesPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#222")
         });
+        var export = MakeButton("Export Strength Questionnaire", "#E3F2FD", "#1565C0");
+        export.Clicked += async (_, _) => await ExportStrengthQuestionnaireAsync();
+        _content.Children.Add(export);
+        var import = MakeButton("Import Results", "#E8F5E9", "#2E7D32");
+        import.Clicked += async (_, _) => await ImportStrengthResultsAsync();
+        _content.Children.Add(import);
         var toggle = new Button
         {
             Text = _showArchived ? "Hide Archived" : "Show Archived",
@@ -75,6 +81,28 @@ public class MotivationSourcesPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#222")
         });
+        if (source.StrengthScore.HasValue)
+        {
+            int score = source.StrengthScore.Value;
+            string badgeColor = score <= 20 ? "#D32F2F"
+                : score <= 40 ? "#EF6C00"
+                : score <= 60 ? "#F9A825"
+                : score <= 80 ? "#2E7D32" : "#7B1FA2";
+            body.Children.Add(new Border
+            {
+                Content = new Label
+                {
+                    Text = $"Strength: {score}/100",
+                    TextColor = Colors.White,
+                    FontSize = 12,
+                    HorizontalTextAlignment = TextAlignment.Center
+                },
+                BackgroundColor = Color.FromArgb(badgeColor),
+                StrokeThickness = 0,
+                Padding = new Thickness(8, 4),
+                HorizontalOptions = LayoutOptions.Start
+            });
+        }
         if (!string.IsNullOrWhiteSpace(source.Description))
             body.Children.Add(new Label
             {
@@ -164,6 +192,99 @@ public class MotivationSourcesPage : ContentPage
         };
         form.Children.Add(save);
         return new Border { Content = form, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#FAFAFA"), Padding = 12 };
+    }
+
+    private async Task ExportStrengthQuestionnaireAsync()
+    {
+        var sources = await _service.GetActiveSourcesAsync(_auth.CurrentUsername);
+        var list = string.Join("\n", sources.Select((s, i) =>
+            $"{i + 1}. {s.Title}" +
+            (string.IsNullOrWhiteSpace(s.Description) ? "" : $" — {s.Description}")));
+        var prompt =
+            "I am going to describe my motivation sources and you will help me rate their strength from 1-100 by asking me questions based on a cold shower scenario. The cold shower is used as a universal calibration tool — it is uncomfortable, arbitrary, and has no inherent value, making it a clean signal of what truly drives behavior.\n\n" +
+            "My motivation sources are:\n" + list + "\n\n" +
+            "For each source, ask me the following scenario questions one at a time and remember my answers:\n" +
+            "1. Would you take a cold shower right now to avoid losing 1000 EXP points?\n" +
+            "2. Would you take a cold shower right now to avoid losing an entire level?\n" +
+            "3. Would you add a cold shower as a daily activity and execute it every day if you gained 1000 EXP per session?\n" +
+            "4. Would you reset a habit that reached escape velocity after 1 year to avoid a cold shower? After 2 years? After 5 years? After 10 years?\n" +
+            "5. If you publicly promised online you would take a cold shower every day, would you start? How long do you think you would last?\n\n" +
+            "Based on my answers, rate each motivation source from 1-100 where:\n" +
+            "1-20 = weak, easily overridden by discomfort\n" +
+            "21-40 = below average, present but inconsistent\n" +
+            "41-60 = moderate, reliable under normal conditions\n" +
+            "61-80 = strong, persists under significant discomfort\n" +
+            "81-100 = critical, near-unbreakable drive\n\n" +
+            "Return ONLY a C#-parsable result in exactly this format after all questions are answered:\n" +
+            "sourceStrength[1] = {score};\n" +
+            "sourceStrength[2] = {score};\n" +
+            "(one line per source in the same order as listed above)";
+        await Clipboard.SetTextAsync(prompt);
+        await DisplayAlert("Prompt copied", "Prompt copied — paste into your LLM, answer its questions, then use Import Results to paste back the ratings.", "OK");
+    }
+
+    private async Task ImportStrengthResultsAsync()
+    {
+        var sources = await _service.GetActiveSourcesAsync(_auth.CurrentUsername);
+        if (sources.Count == 0)
+        {
+            await DisplayAlert("No Sources", "Add at least one active motivation source first.", "OK");
+            return;
+        }
+        var text = await ShowImportEditorAsync();
+        if (string.IsNullOrWhiteSpace(text)) return;
+        int updated = 0;
+        foreach (System.Text.RegularExpressions.Match match in
+            System.Text.RegularExpressions.Regex.Matches(
+                text, @"sourceStrength\[(\d+)\]\s*=\s*(-?\d+)"))
+        {
+            if (!int.TryParse(match.Groups[1].Value, out int index) ||
+                !int.TryParse(match.Groups[2].Value, out int score) ||
+                index < 1 || index > sources.Count || score < 1 || score > 100)
+                continue;
+            await _service.UpdateStrengthAsync(sources[index - 1].Id, score);
+            updated++;
+        }
+        await DisplayAlert("Import Complete", $"{updated} source(s) updated.", "OK");
+        await RefreshAsync();
+    }
+
+    private async Task<string?> ShowImportEditorAsync()
+    {
+        var tcs = new TaskCompletionSource<string?>();
+        var editor = new Editor
+        {
+            Placeholder = "Paste sourceStrength[N] = score; lines here...",
+            HeightRequest = 260,
+            AutoSize = EditorAutoSizeOption.Disabled,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222")
+        };
+        var save = MakeButton("Import", "#E8F5E9", "#2E7D32");
+        var page = new ContentPage
+        {
+            Title = "Import Strength Results",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            Content = new VerticalStackLayout
+            {
+                Padding = 16,
+                Spacing = 12,
+                Children =
+                {
+                    new Label { Text = "Paste the LLM results:", FontSize = 16, TextColor = Color.FromArgb("#222") },
+                    editor,
+                    save
+                }
+            }
+        };
+        save.Clicked += async (_, _) =>
+        {
+            tcs.TrySetResult(editor.Text ?? "");
+            await Navigation.PopModalAsync();
+        };
+        page.Disappearing += (_, _) => tcs.TrySetResult(null);
+        await Navigation.PushModalAsync(page);
+        return await tcs.Task;
     }
 
     private static Button MakeButton(string text, string background, string foreground) => new()
