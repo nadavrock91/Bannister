@@ -15,3 +15,17 @@ public class MotivationSource
     public bool IsArchived { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.Now;
 }
+
+[Table("motivation_notes")]
+public class MotivationNote
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+
+    [Indexed]
+    public string Username { get; set; } = "";
+    [Indexed]
+    public int SourceId { get; set; }
+    public string Content { get; set; } = "";
+    public DateTime CreatedDate { get; set; } = DateTime.Now;
+}

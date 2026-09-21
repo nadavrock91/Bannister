@@ -111,7 +111,7 @@ public class MotivationSourcesPage : ContentPage
         };
         actions.Children.Add(delete);
         body.Children.Add(actions);
-        return new Border
+        var card = new Border
         {
             Content = body,
             Stroke = Color.FromArgb("#DDDDDD"),
@@ -119,6 +119,12 @@ public class MotivationSourcesPage : ContentPage
             BackgroundColor = source.IsArchived ? Color.FromArgb("#F2F2F2") : Colors.White,
             Padding = 12
         };
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (_, _) =>
+            await Navigation.PushAsync(
+                new MotivationNotesPage(source, _service, _auth));
+        card.GestureRecognizers.Add(tap);
+        return card;
     }
 
     private View BuildAddForm()

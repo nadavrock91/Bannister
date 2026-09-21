@@ -14,6 +14,7 @@ public class MotivationService
         if (_initialized) return;
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<MotivationSource>();
+        await conn.CreateTableAsync<MotivationNote>();
         _initialized = true;
     }
 
@@ -61,5 +62,31 @@ public class MotivationService
         var conn = await _db.GetConnectionAsync();
         var source = await conn.FindAsync<MotivationSource>(id);
         if (source != null) await conn.DeleteAsync(source);
+    }
+
+    public async Task<List<MotivationNote>> GetNotesAsync(int sourceId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<MotivationNote>()
+            .Where(n => n.SourceId == sourceId)
+            .OrderByDescending(n => n.CreatedDate)
+            .ToListAsync();
+    }
+
+    public async Task SaveNoteAsync(MotivationNote note)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        if (note.Id == 0) await conn.InsertAsync(note);
+        else await conn.UpdateAsync(note);
+    }
+
+    public async Task DeleteNoteAsync(int id)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var note = await conn.FindAsync<MotivationNote>(id);
+        if (note != null) await conn.DeleteAsync(note);
     }
 }
