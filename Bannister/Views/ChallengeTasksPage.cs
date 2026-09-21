@@ -8,6 +8,7 @@ public class ChallengeTasksPage : ContentPage
     private readonly AuthService _auth;
     private readonly TaskService _tasks;
     private readonly WeeklyChallengeService _challengeService;
+    private readonly SequenceTaskService _sequenceTaskService;
     private readonly IdeasService? _ideasService;
     private readonly bool _isFocusMode;
 
@@ -24,12 +25,14 @@ public class ChallengeTasksPage : ContentPage
         AuthService auth,
         TaskService tasks,
         WeeklyChallengeService challengeService,
+        SequenceTaskService sequenceTaskService,
         IdeasService? ideasService,
         bool isFocusMode)
     {
         _auth = auth;
         _tasks = tasks;
         _challengeService = challengeService;
+        _sequenceTaskService = sequenceTaskService;
         _ideasService = ideasService;
         _isFocusMode = isFocusMode;
         Title = isFocusMode ? "Focus Tasks" : "Free Tasks";
@@ -369,7 +372,7 @@ public class ChallengeTasksPage : ContentPage
         _topCandidatesList.Children.Add(header);
         if (!_topCandidatesExpanded) return;
 
-        var headers = new List<string> { "Id", "Priority", "Title", "Category", "Remove", "Done" };
+        var headers = new List<string> { "Id", "Priority", "Title", "Category", "Remove", "Done", "Seq" };
         DataGridView? candidatesGrid = null;
 
         DataGridView BuildCandidatesGrid()
@@ -386,7 +389,8 @@ public class ChallengeTasksPage : ContentPage
                 task.Title,
                 task.Category,
                 "\u2B50",
-                "\u2713"
+                "\u2713",
+                "\u2192"
             }).ToList();
 
             return DataGridView.Create(headers, rows)
@@ -416,7 +420,7 @@ public class ChallengeTasksPage : ContentPage
                 })
                 .OnCellTapped(async (_, e) =>
                 {
-                    if ((e.ColumnIndex != 4 && e.ColumnIndex != 5) || e.RowIndex < 0 || e.RowIndex >= sortedCandidates.Count) return;
+                    if ((e.ColumnIndex != 4 && e.ColumnIndex != 5 && e.ColumnIndex != 6) || e.RowIndex < 0 || e.RowIndex >= sortedCandidates.Count) return;
                     var task = sortedCandidates[e.RowIndex];
                     if (e.ColumnIndex == 4)
                     {
@@ -425,7 +429,43 @@ public class ChallengeTasksPage : ContentPage
                     }
                     else
                     {
-                        await _tasks.CompleteTaskAsync(task);
+                        if (e.ColumnIndex == 5)
+                        {
+                            await _tasks.CompleteTaskAsync(task);
+                        }
+                        else
+                        {
+                            var groups = await _sequenceTaskService.GetActiveGroupsAsync();
+                            if (groups.Count == 0)
+                            {
+                                await DisplayAlert("Sequence Tasks", "No active sequence groups. Create one in Sequence Tasks first.", "OK");
+                                return;
+                            }
+
+                            SequenceTaskGroup? group;
+                            if (groups.Count == 1)
+                            {
+                                group = groups[0];
+                            }
+                            else
+                            {
+                                var selectedName = await DisplayActionSheet(
+                                    "Select Sequence Group",
+                                    "Cancel",
+                                    null,
+                                    groups.Select(g => g.Name).ToArray());
+                                if (string.IsNullOrWhiteSpace(selectedName) || selectedName == "Cancel") return;
+                                group = groups.FirstOrDefault(g => g.Name == selectedName);
+                            }
+
+                            if (group == null) return;
+                            await _sequenceTaskService.SaveItemAsync(new SequenceTaskItem
+                            {
+                                GroupId = group.Id,
+                                Description = task.Title
+                            });
+                            await DisplayAlert("Sequence Tasks", $"Added to {group.Name}", "OK");
+                        }
                     }
                     await RefreshAsync();
                 })

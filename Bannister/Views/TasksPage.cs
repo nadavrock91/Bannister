@@ -306,7 +306,7 @@ public class TasksPage : ContentPage
         focusBtn.Clicked += async (_, _) =>
         {
             await Navigation.PushAsync(new ChallengeTasksPage(
-                _auth, _tasks, _challengeService, _ideasService, true));
+                _auth, _tasks, _challengeService, _sequenceTaskService, _ideasService, true));
         };
         challengeNavStack.Children.Add(focusBtn);
 
@@ -323,7 +323,7 @@ public class TasksPage : ContentPage
         freeBtn.Clicked += async (_, _) =>
         {
             await Navigation.PushAsync(new ChallengeTasksPage(
-                _auth, _tasks, _challengeService, _ideasService, false));
+                _auth, _tasks, _challengeService, _sequenceTaskService, _ideasService, false));
         };
         challengeNavStack.Children.Add(freeBtn);
 
