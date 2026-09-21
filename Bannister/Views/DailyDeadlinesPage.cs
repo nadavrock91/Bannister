@@ -15,6 +15,7 @@ public class DailyDeadlinesPage : ContentPage
     private CancellationTokenSource? _timerCts;
     private List<Activity> _allActivities = new();
     private List<Activity> _availableActivities = new();
+    private Activity? _selectedPickerActivity;
 
     public DailyDeadlinesPage(
         AuthService auth,
@@ -160,7 +161,12 @@ public class DailyDeadlinesPage : ContentPage
         stack.Children.Add(new Label { Text = "Add Deadline From Activity", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
         var gamePicker = new Picker { Title = "Game", ItemsSource = new[] { "All Games" }.Concat(available.Select(a => a.Game).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(g => g)).ToList(), SelectedIndex = 0 };
         var search = new Entry { Placeholder = "Search activities..." };
-        var activityPicker = new Picker { Title = "Select an activity" };
+        var activityResultStack = new VerticalStackLayout { Spacing = 4 };
+        var activityResults = new ScrollView
+        {
+            Content = activityResultStack,
+            MaximumHeightRequest = 250
+        };
         void RefreshPicker()
         {
             string game = gamePicker.SelectedItem?.ToString() ?? "All Games";
@@ -169,25 +175,51 @@ public class DailyDeadlinesPage : ContentPage
                 (game == "All Games" || string.Equals(a.Game, game, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrWhiteSpace(text) || a.Name.Contains(text, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
-            activityPicker.ItemsSource = filtered.Select(a => a.Name).ToList();
-            activityPicker.SelectedIndex = filtered.Count > 0 ? 0 : -1;
+            activityResultStack.Children.Clear();
+            if (_selectedPickerActivity == null || !filtered.Contains(_selectedPickerActivity))
+                _selectedPickerActivity = filtered.FirstOrDefault();
+            foreach (var activity in filtered)
+            {
+                var card = new Border
+                {
+                    Content = BuildActivityVisual(activity),
+                    Padding = 6,
+                    Stroke = Color.FromArgb("#DDDDDD"),
+                    StrokeThickness = 1,
+                    BackgroundColor = ReferenceEquals(activity, _selectedPickerActivity)
+                        ? Color.FromArgb("#E3F2FD")
+                        : Colors.White
+                };
+                var captured = activity;
+                var tap = new TapGestureRecognizer();
+                tap.Tapped += (_, _) =>
+                {
+                    _selectedPickerActivity = captured;
+                    foreach (var child in activityResultStack.Children)
+                        if (child is Border other)
+                            other.BackgroundColor = Colors.White;
+                    card.BackgroundColor = Color.FromArgb("#E3F2FD");
+                };
+                card.GestureRecognizers.Add(tap);
+                activityResultStack.Children.Add(card);
+            }
         }
         gamePicker.SelectedIndexChanged += (_, _) => RefreshPicker();
         search.TextChanged += (_, _) => RefreshPicker();
         stack.Children.Add(gamePicker);
         stack.Children.Add(search);
-        stack.Children.Add(activityPicker);
+        stack.Children.Add(activityResults);
         var row = new HorizontalStackLayout { Spacing = 8 };
         var active = new Button { Text = "Add to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E8F5E9"), TextColor = Color.FromArgb("#2E7D32") };
         active.Clicked += async (_, _) =>
         {
-            var selected = GetSelectedActivity(available, gamePicker, search, activityPicker);
+            var selected = _selectedPickerActivity;
             if (selected != null) await AddActivityAsync(selected, true);
         };
         var possible = new Button { Text = "Add to Possible", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F") };
         possible.Clicked += async (_, _) =>
         {
-            var selected = GetSelectedActivity(available, gamePicker, search, activityPicker);
+            var selected = _selectedPickerActivity;
             if (selected != null) await AddActivityAsync(selected, false);
         };
         row.Children.Add(active); row.Children.Add(possible);
