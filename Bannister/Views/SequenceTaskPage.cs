@@ -130,6 +130,19 @@ public class SequenceTaskPage : ContentPage
             await _service.ArchiveGroupAsync(group.Id); _openGroup = null; await RefreshAsync();
         };
         body.Children.Add(archive);
+        var deleteGroup = MakeButton("Delete Group", "#FFEBEE", "#B71C1C");
+        deleteGroup.Clicked += async (_, _) =>
+        {
+            bool confirm = await DisplayAlert(
+                "Delete Group",
+                "Delete this group? This will remove the group and all its task links. Tasks themselves will not be deleted.",
+                "Delete", "Cancel");
+            if (!confirm) return;
+            await _service.DeleteGroupAsync(group.Id);
+            _openGroup = null;
+            await RefreshAsync();
+        };
+        body.Children.Add(deleteGroup);
         return Card(body);
     }
 

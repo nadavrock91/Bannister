@@ -65,6 +65,20 @@ public class SequenceTaskService
         await conn.UpdateAsync(group);
     }
 
+    public async Task DeleteGroupAsync(int groupId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var links = await conn.Table<SequenceTaskItem>()
+            .Where(i => i.GroupId == groupId)
+            .ToListAsync();
+        foreach (var link in links)
+            await conn.DeleteAsync(link);
+        var group = await conn.FindAsync<SequenceTaskGroup>(groupId);
+        if (group != null)
+            await conn.DeleteAsync(group);
+    }
+
     public async Task AddTaskItemAsync(int groupId, int taskItemId)
     {
         await InitAsync();
