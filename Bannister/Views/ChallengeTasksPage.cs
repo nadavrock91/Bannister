@@ -18,6 +18,7 @@ public class ChallengeTasksPage : ContentPage
     private Label _summaryLabel = null!;
     private Button _addCommitmentBtn = null!;
     private bool _topCandidatesExpanded;
+    private bool _candidatesSortDesc = true;
 
     public ChallengeTasksPage(
         AuthService auth,
@@ -346,8 +347,6 @@ public class ChallengeTasksPage : ContentPage
                 (_isFocusMode
                     ? string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase)
                     : !string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(t => t.Priority)
-            .ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase)
             .ToList();
         if (candidates.Count == 0) return;
 
@@ -371,35 +370,61 @@ public class ChallengeTasksPage : ContentPage
         if (!_topCandidatesExpanded) return;
 
         var headers = new List<string> { "Priority", "Title", "Category", "Actions" };
-        var rows = candidates.Select(task => new List<string>
+        DataGridView? candidatesGrid = null;
+
+        DataGridView BuildCandidatesGrid()
         {
-            $"{PriorityDot(task.Priority)} {task.Priority}",
-            task.Title,
-            task.Category,
-            "\u2B50"
-        }).ToList();
-
-        var candidatesGrid = DataGridView.Create(headers, rows)
-            .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
-            .WithHeaderTextProvider(index => headers[index])
-            .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
-            .WithColumnWidths(60, 220)
-            .WithCellPadding(6)
-            .WithFontSize(12, 12)
-            .WithFullRows(rows)
-            .WithIdColumn("Priority")
-            .OnHeaderTapped((_, _) => { })
-            .OnCellTapped(async (_, e) =>
+            var sortedCandidates = (_candidatesSortDesc
+                    ? candidates.OrderByDescending(t => t.Priority)
+                    : candidates.OrderBy(t => t.Priority))
+                .ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var rows = sortedCandidates.Select(task => new List<string>
             {
-                if (e.ColumnIndex != 3 || e.RowIndex < 0 || e.RowIndex >= candidates.Count) return;
-                var task = candidates[e.RowIndex];
-                task.IsTopCandidate = false;
-                await _tasks.UpdateTaskAsync(task);
-                await RefreshAsync();
-            })
-            .WithUpdateCallback((_, _, _) => Task.FromResult(false))
-            .Build();
+                $"{PriorityDot(task.Priority)} {task.Priority}",
+                task.Title,
+                task.Category,
+                "\u2B50"
+            }).ToList();
 
+            return DataGridView.Create(headers, rows)
+                .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
+                .WithHeaderTextProvider(index => headers[index])
+                .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
+                .WithColumnWidths(60, 220)
+                .WithCellPadding(6)
+                .WithFontSize(12, 12)
+                .WithFullRows(rows)
+                .WithIdColumn("Priority")
+                .OnHeaderTapped((_, e) =>
+                {
+                    if (!string.Equals(e.ColumnName, "Priority", StringComparison.OrdinalIgnoreCase)) return;
+                    _candidatesSortDesc = !_candidatesSortDesc;
+                    var replacement = BuildCandidatesGrid();
+                    replacement.ToolbarView.HorizontalOptions = LayoutOptions.Fill;
+                    replacement.GridView.HorizontalOptions = LayoutOptions.Fill;
+                    if (candidatesGrid != null)
+                    {
+                        _topCandidatesList.Children.Remove(candidatesGrid.ToolbarView);
+                        _topCandidatesList.Children.Remove(candidatesGrid.GridView);
+                    }
+                    candidatesGrid = replacement;
+                    _topCandidatesList.Children.Add(replacement.ToolbarView);
+                    _topCandidatesList.Children.Add(replacement.GridView);
+                })
+                .OnCellTapped(async (_, e) =>
+                {
+                    if (e.ColumnIndex != 3 || e.RowIndex < 0 || e.RowIndex >= sortedCandidates.Count) return;
+                    var task = sortedCandidates[e.RowIndex];
+                    task.IsTopCandidate = false;
+                    await _tasks.UpdateTaskAsync(task);
+                    await RefreshAsync();
+                })
+                .WithUpdateCallback((_, _, _) => Task.FromResult(false))
+                .Build();
+        }
+
+        candidatesGrid = BuildCandidatesGrid();
         candidatesGrid.ToolbarView.HorizontalOptions = LayoutOptions.Fill;
         candidatesGrid.GridView.HorizontalOptions = LayoutOptions.Fill;
         _topCandidatesList.Children.Add(candidatesGrid.ToolbarView);
