@@ -688,6 +688,7 @@ public class GamesListPage : ContentPage
                     prefillLevel: suggestion.PrefillLevel,
                     isNegative: suggestion.PrefillIsNegative,
                     prefillStreakTracked: suggestion.PrefillStreakTracked);
+                await Task.Delay(500);
             }
         }
         catch (Exception ex)

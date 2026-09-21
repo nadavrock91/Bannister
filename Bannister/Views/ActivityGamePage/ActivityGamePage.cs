@@ -245,6 +245,7 @@ public partial class ActivityGamePage : ContentPage
                     prefillLevel: suggestion.PrefillLevel,
                     isNegative: suggestion.PrefillIsNegative,
                     prefillStreakTracked: suggestion.PrefillStreakTracked);
+                await Task.Delay(500);
             }
         }
         catch (Exception ex)
