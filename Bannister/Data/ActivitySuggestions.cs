@@ -8,14 +8,6 @@ public static class ActivitySuggestions
     {
         new ActivitySuggestion
         {
-            Id = "universal_stagnation",
-            Name = "Stagnation Penalty",
-            Category = null,
-            GameTag = null,
-            Description = "A negative-reward activity that penalizes inactivity. Increases in cost the longer you go without leveling up or adding new activities."
-        },
-        new ActivitySuggestion
-        {
             Id = "universal_days_since_level",
             Name = "Days Since Level Increase",
             Category = "misc",
