@@ -74,6 +74,16 @@ public class DailyDeadlineService
             .OrderBy(i => i.SortOrder).ThenBy(i => i.Id).ToListAsync();
     }
 
+    public async Task<List<DailyDeadlineItem>> GetItemsWithActivitiesAsync(string username)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<DailyDeadlineItem>()
+            .Where(i => i.Username == username)
+            .OrderBy(i => i.IsActive ? 0 : 1)
+            .ThenBy(i => i.SortOrder).ThenBy(i => i.Id).ToListAsync();
+    }
+
     public async Task SaveItemAsync(DailyDeadlineItem item)
     {
         await InitAsync();

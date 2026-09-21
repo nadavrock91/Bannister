@@ -2774,7 +2774,8 @@ public class HomePage : ContentPage
     private async void OnDailyDeadlinesClicked(object? sender, EventArgs e)
     {
         var page = new DailyDeadlinesPage(
-            _auth, _dailyDeadlineService);
+            _auth, _dailyDeadlineService, _activities,
+            _privacyMode, _games);
         await Navigation.PushAsync(page);
     }
 

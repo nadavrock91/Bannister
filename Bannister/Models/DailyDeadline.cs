@@ -15,7 +15,8 @@ public class DailyDeadlineItem
 {
     [PrimaryKey, AutoIncrement] public int Id { get; set; }
     public string Username { get; set; } = "";
-    public string Title { get; set; } = "";
+    public int ActivityId { get; set; }
+    public string GameId { get; set; } = "";
     public bool IsActive { get; set; }
     public int SortOrder { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.Now;
