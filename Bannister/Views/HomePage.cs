@@ -55,6 +55,8 @@ public class HomePage : ContentPage
     private readonly CommandsCasinoService _commandsCasino;
     private readonly RoutineService _routineService;
     private readonly DeadlineService _deadlineService;
+    private readonly DailyDeadlineService _dailyDeadlineService;
+    private readonly ResetTimeService _resetTime;
     private readonly AllowanceService _allowanceService;
     private readonly PostponedTaskService _postponedTaskService;
     private readonly QuickAccessActionService _quickAccessService;
@@ -109,6 +111,7 @@ public class HomePage : ContentPage
     private Button _btnLearning;
     private Button _btnDatabases;
     private Button _btnDeadlines;
+    private Button _btnDailyDeadlines;
     private Button _btnDesignations;
     private Button _btnDiscipline;
     private Button _btnDragons;
@@ -152,7 +155,8 @@ public class HomePage : ContentPage
         DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, PromptLibraryService promptLibraryService, DesignationService designationService,
-        CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
+         CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
+         DailyDeadlineService dailyDeadlineService, ResetTimeService resetTime,
         AllowanceService allowanceService, PostponedTaskService postponedTaskService, QuickAccessActionService quickAccessService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
@@ -196,6 +200,8 @@ public class HomePage : ContentPage
         _commandsCasino = commandsCasino;
         _routineService = routineService;
         _deadlineService = deadlineService;
+        _dailyDeadlineService = dailyDeadlineService;
+        _resetTime = resetTime;
         _allowanceService = allowanceService;
         _postponedTaskService = postponedTaskService;
         _quickAccessService = quickAccessService;
@@ -344,6 +350,10 @@ public class HomePage : ContentPage
         _btnDeadlines = CreateButton("Deadlines", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
         _btnDeadlines.Clicked += OnDeadlinesClicked;
         navButtons.Add(("Deadlines", _btnDeadlines));
+
+        _btnDailyDeadlines = CreateButton("Daily Deadlines", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
+        _btnDailyDeadlines.Clicked += OnDailyDeadlinesClicked;
+        navButtons.Add(("Daily Deadlines", _btnDailyDeadlines));
 
         _btnDesignations = CreateButton("Designations", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
         _btnDesignations.Clicked += OnDesignationsClicked;
@@ -882,6 +892,7 @@ public class HomePage : ContentPage
             "Countdowns" => OnCountdownsClicked,
             "Databases" => OnDatabasesClicked,
             "Deadlines" => OnDeadlinesClicked,
+            "Daily Deadlines" => OnDailyDeadlinesClicked,
             "Designations" => OnDesignationsClicked,
             "Discipline" => OnDisciplineClicked,
             "Dragons" => OnDragonsClicked,
@@ -2760,6 +2771,13 @@ public class HomePage : ContentPage
         await Navigation.PushAsync(page);
     }
 
+    private async void OnDailyDeadlinesClicked(object? sender, EventArgs e)
+    {
+        var page = new DailyDeadlinesPage(
+            _auth, _dailyDeadlineService);
+        await Navigation.PushAsync(page);
+    }
+
     private async void OnDesignationsClicked(object? sender, EventArgs e)
     {
         var page = new DesignationsPage(_auth, _designationService);
@@ -3729,7 +3747,8 @@ public class HomePage : ContentPage
     private async Task NavigateToSettingsAsync()
     {
         var page = new SettingsPage(
-            _auth, _db, _backup, _buttonVisibility);
+            _auth, _db, _backup, _buttonVisibility,
+            resetTime: _resetTime);
         await Navigation.PushAsync(page);
     }
 

@@ -18,6 +18,7 @@ public class SettingsPage : ContentPage
     private readonly ContextMenuOrderService _contextMenuOrder;
     private readonly ActivityService _activityService;
     private readonly GameService _gameService;
+    private readonly ResetTimeService _resetTime;
     private Switch _privateModeSwitch = null!;
     private Switch _calendarBeforeGamesSwitch;
     private Label _calendarBeforeGamesStatus;
@@ -31,13 +32,15 @@ public class SettingsPage : ContentPage
     private Switch _diceModeSwitch;
     private Label _diceModeStatus;
     private bool _loadingSettings;
+    private Picker _dailyResetPicker = null!;
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup,
         HomeButtonVisibilityService buttonVisibility,
         PrivacyModeService? privacyMode = null,
         ContextMenuOrderService? contextMenuOrder = null,
         ActivityService? activityService = null,
-        GameService? gameService = null)
+        GameService? gameService = null,
+        ResetTimeService? resetTime = null)
     {
         _auth = auth;
         _db = db;
@@ -67,6 +70,12 @@ public class SettingsPage : ContentPage
                     typeof(GameService))
             ?? throw new InvalidOperationException(
                 "GameService is not registered.");
+        _resetTime = resetTime
+            ?? (ResetTimeService?)Application.Current?.Handler?
+                .MauiContext?.Services.GetService(
+                    typeof(ResetTimeService))
+            ?? throw new InvalidOperationException(
+                "ResetTimeService is not registered.");
 
         Title = "Settings";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -82,6 +91,13 @@ public class SettingsPage : ContentPage
             _auth.CurrentUsername);
         _privateModeSwitch.IsToggled =
             currentMode != ActivityDisplayMode.All;
+        if (_dailyResetPicker != null)
+        {
+            _loadingSettings = true;
+            _dailyResetPicker.SelectedIndex =
+                _resetTime.GetResetHour(_auth.CurrentUsername);
+            _loadingSettings = false;
+        }
     }
 
     private void BuildUI()
@@ -495,6 +511,45 @@ public class SettingsPage : ContentPage
         privateModeSection.Children.Add(privacyLogBtn);
 
         mainStack.Children.Add(privateModeSection);
+
+        var resetSection = new Frame
+        {
+            Padding = 20,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            BorderColor = Colors.Transparent
+        };
+        var resetStack = new VerticalStackLayout { Spacing = 10 };
+        resetStack.Children.Add(new Label
+        {
+            Text = "Daily reset time",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+        resetStack.Children.Add(new Label
+        {
+            Text = "Choose when each daily deadline period resets.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+        _dailyResetPicker = new Picker
+        {
+            Title = "Daily reset hour",
+            ItemsSource = Enumerable.Range(0, 24)
+                .Select(h => $"{h:00}:00").ToList()
+        };
+        _dailyResetPicker.SelectedIndexChanged += (_, _) =>
+        {
+            if (!_loadingSettings && _dailyResetPicker.SelectedIndex >= 0)
+                _resetTime.SetResetHour(
+                    _auth.CurrentUsername,
+                    _dailyResetPicker.SelectedIndex);
+        };
+        resetStack.Children.Add(_dailyResetPicker);
+        resetSection.Content = resetStack;
+        mainStack.Children.Add(resetSection);
 
         var pageVisibilityBtn = new Button
         {
