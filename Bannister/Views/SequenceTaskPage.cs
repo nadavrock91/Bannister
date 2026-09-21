@@ -210,6 +210,7 @@ public class SequenceTaskPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
             Padding = new Thickness(8, 6)
@@ -221,6 +222,11 @@ public class SequenceTaskPage : ContentPage
             TextColor = item.IsCompleted ? Color.FromArgb("#8A8A8A") : Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.Center
         }, 0, 0);
+
+        var copy = MakeButton("Copy", "#E3F2FD", "#1565C0");
+        copy.Clicked += async (_, _) =>
+            await Clipboard.SetTextAsync(item.Description);
+        row.Add(copy, 1, 0);
 
         if (!item.IsCompleted)
         {
@@ -246,7 +252,7 @@ public class SequenceTaskPage : ContentPage
                 finally { _busy = false; }
                 await RefreshAsync();
             };
-            row.Add(done, 1, 0);
+            row.Add(done, 2, 0);
         }
         body.Children.Add(row);
         if (item.IsCompleted)
