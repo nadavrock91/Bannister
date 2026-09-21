@@ -29,6 +29,7 @@ public class GamesListPage : ContentPage
     private readonly DatabaseService _db;
     private readonly ActivityGroupingService _groupingService;
     private readonly PrivacyModeService _privacyMode;
+    private readonly ActivitySuggestionService _activitySuggestions;
     private bool _isNavigating = false;
     
     private FlexLayout _gamesGrid;
@@ -38,7 +39,8 @@ public class GamesListPage : ContentPage
 
     public GamesListPage(AuthService auth, GameService games, ActivityService activities, ExpService exp, DatabaseService db,
         ActivityGroupingService groupingService,
-        PrivacyModeService privacyMode)
+        PrivacyModeService privacyMode,
+        ActivitySuggestionService activitySuggestions)
     {
         _auth = auth;
         _games = games;
@@ -47,6 +49,7 @@ public class GamesListPage : ContentPage
         _db = db;
         _groupingService = groupingService;
         _privacyMode = privacyMode;
+        _activitySuggestions = activitySuggestions;
         
         Title = "Games";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -645,7 +648,49 @@ public class GamesListPage : ContentPage
                 name.Trim());
             game.GameVisibility = gameVisibility;
             await _games.UpdateGameAsync(game);
+            await ShowActivitySuggestionsAsync(game);
             await LoadGamesAsync();
+        }
+    }
+
+    private async Task ShowActivitySuggestionsAsync(Game game)
+    {
+        try
+        {
+            var suggestions = await _activitySuggestions
+                .GetUnseenSuggestionsAsync(
+                    _auth.CurrentUsername,
+                    game.GameId,
+                    game.DisplayName);
+            if (suggestions.Count == 0) return;
+
+            var suggestionPage = new ActivitySuggestionPage(
+                suggestions, game.GameId);
+            await Navigation.PushAsync(suggestionPage);
+            var selected = await suggestionPage.GetSelectedAsync();
+
+            foreach (var suggestion in suggestions)
+                await _activitySuggestions.MarkSeenAsync(
+                    _auth.CurrentUsername,
+                    game.GameId,
+                    suggestion.Id);
+
+            foreach (var suggestion in selected)
+            {
+                await ActivityCreationPage.CreateActivityModalAsync(
+                    Navigation,
+                    _auth,
+                    _activities,
+                    _games,
+                    game.GameId,
+                    prefillName: suggestion.Name,
+                    prefillCategory: suggestion.Category);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Error showing activity suggestions: {ex.Message}");
         }
     }
 

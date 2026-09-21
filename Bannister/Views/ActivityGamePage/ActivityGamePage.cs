@@ -29,6 +29,7 @@ public partial class ActivityGamePage : ContentPage
     private readonly ActivityGroupingService? _groupingService;
     private readonly PendingActivityIdeaService _pendingIdeas;
     private readonly IdeasService _ideas;
+    private readonly ActivitySuggestionService _activitySuggestions;
 
     // State
     private string _gameId = "";
@@ -112,7 +113,8 @@ public partial class ActivityGamePage : ContentPage
     public ActivityGamePage(AuthService auth, GameService games, ActivityService activities,
         ExpService exp, DragonService dragons, AttemptService attempts, DatabaseService db, StreakService streaks,
         StreakGoalService streakGoals, DailyCheckService dailyChecks, ActivityGroupingService groupingService,
-        PendingActivityIdeaService pendingIdeas, IdeasService ideas)
+        PendingActivityIdeaService pendingIdeas, IdeasService ideas,
+        ActivitySuggestionService activitySuggestions)
     {
         _auth = auth;
         _games = games;
@@ -127,6 +129,7 @@ public partial class ActivityGamePage : ContentPage
         _groupingService = groupingService;
         _pendingIdeas = pendingIdeas;
         _ideas = ideas;
+        _activitySuggestions = activitySuggestions;
 
         Title = "Game";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -171,6 +174,7 @@ public partial class ActivityGamePage : ContentPage
                 try
                 {
                     await LoadGameAsync();
+                    await ShowActivitySuggestionsAsync();
                     InjectConversationButtonIfNeeded();
                     _isInitialLoad = false; // Mark as loaded
                 }
@@ -202,6 +206,49 @@ public partial class ActivityGamePage : ContentPage
     {
         // Conversation Practice button removed - access now from HomePage
         // Method kept for compatibility but does nothing
+    }
+
+    private async Task ShowActivitySuggestionsAsync()
+    {
+        if (_isGroupingMode || _game == null) return;
+
+        try
+        {
+            var suggestions = await _activitySuggestions
+                .GetUnseenSuggestionsAsync(
+                    _auth.CurrentUsername,
+                    _game.GameId,
+                    _game.DisplayName);
+            if (suggestions.Count == 0) return;
+
+            var suggestionPage = new ActivitySuggestionPage(
+                suggestions, _game.GameId);
+            await Navigation.PushAsync(suggestionPage);
+            var selected = await suggestionPage.GetSelectedAsync();
+
+            foreach (var suggestion in suggestions)
+                await _activitySuggestions.MarkSeenAsync(
+                    _auth.CurrentUsername,
+                    _game.GameId,
+                    suggestion.Id);
+
+            foreach (var suggestion in selected)
+            {
+                await ActivityCreationPage.CreateActivityModalAsync(
+                    Navigation,
+                    _auth,
+                    _activities,
+                    _games,
+                    _game.GameId,
+                    prefillName: suggestion.Name,
+                    prefillCategory: suggestion.Category);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Error showing activity suggestions: {ex.Message}");
+        }
     }
 
     private VerticalStackLayout? FindButtonStack(Element element)
