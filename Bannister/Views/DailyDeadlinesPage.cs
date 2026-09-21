@@ -104,7 +104,7 @@ public class DailyDeadlinesPage : ContentPage
         var activeStack = new VerticalStackLayout { Spacing = 6 };
         activeStack.Children.Add(new Label { Text = "Today's Deadlines", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
         foreach (var item in active)
-            activeStack.Children.Add(BuildActiveRow(item, completedIds));
+            activeStack.Children.Add(await BuildActiveRowAsync(item, completedIds));
         if (active.Count > 0 && active.All(i => completedIds.Contains(i.Id)))
             activeStack.Children.Add(new Label { Text = "✓ All done!", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32"), BackgroundColor = Color.FromArgb("#E8F5E9"), Padding = 10 });
         _content.Children.Add(Card(activeStack));
@@ -115,40 +115,51 @@ public class DailyDeadlinesPage : ContentPage
         var possibleStack = new VerticalStackLayout { Spacing = 6 };
         possibleStack.Children.Add(new Label { Text = "Possible", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
         foreach (var item in possible)
-            possibleStack.Children.Add(BuildPossibleRow(item, active.Count >= state.Allowance));
+            possibleStack.Children.Add(await BuildPossibleRowAsync(item, active.Count >= state.Allowance));
         _content.Children.Add(Card(possibleStack));
     }
 
-    private View BuildActiveRow(DailyDeadlineItem item, HashSet<int> completed)
+    private async Task<View> BuildActiveRowAsync(DailyDeadlineItem item, HashSet<int> completed)
     {
-        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 8, Padding = 8 };
-        var check = new CheckBox { IsChecked = completed.Contains(item.Id), Color = Color.FromArgb("#2E7D32") };
-        check.CheckedChanged += async (_, e) =>
+        var activity = await ResolveActivityAsync(item);
+        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 8, Padding = 8 };
+        if (activity == null)
         {
-            var log = await _service.GetCurrentLogAsync(_auth.CurrentUsername) ?? new DailyDeadlineLog { Username = _auth.CurrentUsername, LogDate = await _resetTime.GetTodayResetKey(_auth.CurrentUsername) };
-            var ids = ParseIds(log.CompletedItemIds);
-            if (e.Value) ids.Add(item.Id); else ids.Remove(item.Id);
-            log.CompletedItemIds = string.Join(",", ids.OrderBy(i => i));
-            var active = await _service.GetActiveItemsAsync(_auth.CurrentUsername);
-            log.AllCompleted = active.Count > 0 && active.All(i => ids.Contains(i.Id));
-            await _service.SaveLogAsync(log);
-            await LoadAsync(false);
-        };
-        row.Add(check, 0, 0);
-        row.Add(BuildActivityVisual(FindActivity(item)), 1, 0);
+            row.BackgroundColor = Color.FromArgb("#F0F0F0");
+            row.Add(new Label { Text = "Activity not found", TextColor = Color.FromArgb("#888"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+            var missingDelete = MakeDeleteButton(item);
+            row.Add(missingDelete, 1, 0);
+            return new Border { Content = row, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#F0F0F0") };
+        }
+
+        row.Add(BuildActivityVisual(activity), 0, 0);
+        if (completed.Contains(item.Id))
+            row.Add(new Label { Text = "✓ Done", TextColor = Color.FromArgb("#777"), FontSize = 12, VerticalOptions = LayoutOptions.Center }, 1, 0);
+        else
+        {
+            var done = new Button { Text = "Done ✓", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E8F5E9"), TextColor = Color.FromArgb("#2E7D32") };
+            done.Clicked += async (_, _) => await MarkDoneAsync(item);
+            row.Add(done, 1, 0);
+        }
         var move = new Button { Text = "Move to Possible", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F") };
         move.Clicked += async (_, _) => { item.IsActive = false; await _service.SaveItemAsync(item); await LoadAsync(false); };
         row.Add(move, 2, 0);
-        var del = new Button { Text = "Delete", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828") };
-        del.Clicked += async (_, _) => { await _service.DeleteItemAsync(item.Id); await LoadAsync(false); };
-        row.Add(del, 3, 0);
+        row.Add(MakeDeleteButton(item), 3, 0);
         return new Border { Content = row, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = Colors.White };
     }
 
-    private View BuildPossibleRow(DailyDeadlineItem item, bool full)
+    private async Task<View> BuildPossibleRowAsync(DailyDeadlineItem item, bool full)
     {
+        var activity = await ResolveActivityAsync(item);
         var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 6, Padding = 8 };
-        row.Add(BuildActivityVisual(FindActivity(item)), 0, 0);
+        if (activity == null)
+        {
+            row.BackgroundColor = Color.FromArgb("#F0F0F0");
+            row.Add(new Label { Text = "Activity not found", TextColor = Color.FromArgb("#888"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+            row.Add(MakeDeleteButton(item), 1, 0);
+            return new Border { Content = row, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#F0F0F0") };
+        }
+        row.Add(BuildActivityVisual(activity), 0, 0);
         var move = new Button { Text = "Move to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0") };
         move.Clicked += async (_, _) => { item.IsActive = true; await _service.SaveItemAsync(item); await LoadAsync(false); };
         row.Add(move, 1, 0);
@@ -156,6 +167,30 @@ public class DailyDeadlinesPage : ContentPage
         del.Clicked += async (_, _) => { await _service.DeleteItemAsync(item.Id); await LoadAsync(false); };
         row.Add(del, 2, 0);
         return new Border { Content = row, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = Colors.White };
+    }
+
+    private async Task<Activity?> ResolveActivityAsync(DailyDeadlineItem item)
+    {
+        return FindActivity(item) ?? await _activities.GetActivityAsync(item.ActivityId);
+    }
+
+    private Button MakeDeleteButton(DailyDeadlineItem item)
+    {
+        var del = new Button { Text = "Delete", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828") };
+        del.Clicked += async (_, _) => { await _service.DeleteItemAsync(item.Id); await LoadAsync(false); };
+        return del;
+    }
+
+    private async Task MarkDoneAsync(DailyDeadlineItem item)
+    {
+        var log = await _service.GetCurrentLogAsync(_auth.CurrentUsername) ?? new DailyDeadlineLog { Username = _auth.CurrentUsername, LogDate = await _resetTime.GetTodayResetKey(_auth.CurrentUsername) };
+        var ids = ParseIds(log.CompletedItemIds);
+        ids.Add(item.Id);
+        log.CompletedItemIds = string.Join(",", ids.OrderBy(i => i));
+        var active = await _service.GetActiveItemsAsync(_auth.CurrentUsername);
+        log.AllCompleted = active.Count > 0 && active.All(i => ids.Contains(i.Id));
+        await _service.SaveLogAsync(log);
+        await LoadAsync(false);
     }
 
     private View BuildAddSection(bool full)
@@ -350,6 +385,18 @@ public class DailyDeadlinesPage : ContentPage
         if (!_activitiesLoaded || _activityResultStack == null) return;
         string game = _gamePicker?.SelectedItem?.ToString() ?? "All Games";
         string text = _activitySearch?.Text?.Trim() ?? "";
+        if (game == "All Games" && string.IsNullOrWhiteSpace(text))
+        {
+            _selectedPickerActivity = null;
+            _activityResultStack.Children.Clear();
+            _activityResultStack.Children.Add(new Label
+            {
+                Text = "Select a game or type to search",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#777")
+            });
+            return;
+        }
         var filtered = _availableActivities.Where(a =>
             (game == "All Games" || string.Equals(a.Game, game, StringComparison.OrdinalIgnoreCase)) &&
             (string.IsNullOrWhiteSpace(text) || a.Name.Contains(text, StringComparison.OrdinalIgnoreCase))).ToList();
