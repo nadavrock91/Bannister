@@ -460,6 +460,7 @@ public class ActivityCreationPage : ContentPage
             UpdateVisBtns();
         };
 
+        UpdateVisBtns();
         visRow.Children.Add(pubBtn);
         visRow.Children.Add(privBtn);
         visRow.Children.Add(bothBtn);
