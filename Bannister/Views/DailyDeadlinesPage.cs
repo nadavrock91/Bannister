@@ -16,6 +16,14 @@ public class DailyDeadlinesPage : ContentPage
     private List<Activity> _allActivities = new();
     private List<Activity> _availableActivities = new();
     private Activity? _selectedPickerActivity;
+    private bool _activitiesLoaded;
+    private Picker? _gamePicker;
+    private Entry? _activitySearch;
+    private VerticalStackLayout? _activityResultStack;
+    private Label? _activityLoadingLabel;
+    private HashSet<int> _usedDeadlineActivityIds = new();
+    private int _currentActiveCount;
+    private int _currentAllowance;
 
     public DailyDeadlinesPage(
         AuthService auth,
@@ -62,23 +70,18 @@ public class DailyDeadlinesPage : ContentPage
                 await DisplayAlert("Daily Deadlines", "The previous day was incomplete. One allowance slot was lost.", "OK");
         }
 
-        var games = await _games.GetGamesAsync(username);
-        _allActivities = new List<Activity>();
-        foreach (var game in games)
-            _allActivities.AddRange(await _activities.GetActivitiesAsync(username, game.GameId));
-
-        var displayMode = _privacyMode.GetDisplayMode(username);
-        _allActivities = _allActivities.Where(a => displayMode switch
-        {
-            ActivityDisplayMode.PublicOnly => a.ActivityVisibility == 1 || a.ActivityVisibility == 2,
-            ActivityDisplayMode.PrivateOnly => a.ActivityVisibility == 0 || a.ActivityVisibility == 2,
-            _ => true
-        }).GroupBy(a => a.Id).Select(g => g.First()).ToList();
+        _activitiesLoaded = false;
+        _allActivities.Clear();
+        _availableActivities.Clear();
+        _selectedPickerActivity = null;
 
         var state = await _service.GetStateAsync(username);
         var items = await _service.GetItemsWithActivitiesAsync(username);
         var active = items.Where(i => i.IsActive).ToList();
         var possible = items.Where(i => !i.IsActive).ToList();
+        _usedDeadlineActivityIds = items.Select(i => i.ActivityId).ToHashSet();
+        _currentActiveCount = active.Count;
+        _currentAllowance = state.Allowance;
         var log = await _service.GetCurrentLogAsync(username);
         var completedIds = ParseIds(log?.CompletedItemIds);
 
@@ -101,13 +104,8 @@ public class DailyDeadlinesPage : ContentPage
             activeStack.Children.Add(new Label { Text = "✓ All done!", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32"), BackgroundColor = Color.FromArgb("#E8F5E9"), Padding = 10 });
         _content.Children.Add(Card(activeStack));
 
-        var usedActivityIds = items.Select(i => i.ActivityId).ToHashSet();
-        _availableActivities = _allActivities
-            .Where(a => !usedActivityIds.Contains(a.Id))
-            .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
         _content.Children.Add(BuildAddSection(
-            _availableActivities, active.Count >= state.Allowance));
+            active.Count >= state.Allowance));
 
         var possibleStack = new VerticalStackLayout { Spacing = 6 };
         possibleStack.Children.Add(new Label { Text = "Possible", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
@@ -155,59 +153,26 @@ public class DailyDeadlinesPage : ContentPage
         return new Border { Content = row, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = Colors.White };
     }
 
-    private View BuildAddSection(List<Activity> available, bool full)
+    private View BuildAddSection(bool full)
     {
         var stack = new VerticalStackLayout { Spacing = 8 };
         stack.Children.Add(new Label { Text = "Add Deadline From Activity", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
-        var gamePicker = new Picker { Title = "Game", ItemsSource = new[] { "All Games" }.Concat(available.Select(a => a.Game).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(g => g)).ToList(), SelectedIndex = 0 };
-        var search = new Entry { Placeholder = "Search activities..." };
-        var activityResultStack = new VerticalStackLayout { Spacing = 4 };
+        _gamePicker = new Picker { Title = "Game", ItemsSource = new[] { "All Games" }, SelectedIndex = 0 };
+        _activitySearch = new Entry { Placeholder = "Search activities..." };
+        _activityResultStack = new VerticalStackLayout { Spacing = 4 };
+        _activityLoadingLabel = new Label { Text = "Tap game or search to load activities", FontSize = 12, TextColor = Color.FromArgb("#777") };
+        _activityResultStack.Children.Add(_activityLoadingLabel);
         var activityResults = new ScrollView
         {
-            Content = activityResultStack,
+            Content = _activityResultStack,
             MaximumHeightRequest = 250
         };
-        void RefreshPicker()
-        {
-            string game = gamePicker.SelectedItem?.ToString() ?? "All Games";
-            string text = search.Text?.Trim() ?? "";
-            var filtered = available.Where(a =>
-                (game == "All Games" || string.Equals(a.Game, game, StringComparison.OrdinalIgnoreCase)) &&
-                (string.IsNullOrWhiteSpace(text) || a.Name.Contains(text, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-            activityResultStack.Children.Clear();
-            if (_selectedPickerActivity == null || !filtered.Contains(_selectedPickerActivity))
-                _selectedPickerActivity = filtered.FirstOrDefault();
-            foreach (var activity in filtered)
-            {
-                var card = new Border
-                {
-                    Content = BuildActivityVisual(activity),
-                    Padding = 6,
-                    Stroke = Color.FromArgb("#DDDDDD"),
-                    StrokeThickness = 1,
-                    BackgroundColor = ReferenceEquals(activity, _selectedPickerActivity)
-                        ? Color.FromArgb("#E3F2FD")
-                        : Colors.White
-                };
-                var captured = activity;
-                var tap = new TapGestureRecognizer();
-                tap.Tapped += (_, _) =>
-                {
-                    _selectedPickerActivity = captured;
-                    foreach (var child in activityResultStack.Children)
-                        if (child is Border other)
-                            other.BackgroundColor = Colors.White;
-                    card.BackgroundColor = Color.FromArgb("#E3F2FD");
-                };
-                card.GestureRecognizers.Add(tap);
-                activityResultStack.Children.Add(card);
-            }
-        }
-        gamePicker.SelectedIndexChanged += (_, _) => RefreshPicker();
-        search.TextChanged += (_, _) => RefreshPicker();
-        stack.Children.Add(gamePicker);
-        stack.Children.Add(search);
+        _gamePicker.SelectedIndexChanged += (_, _) => RefreshActivityResults();
+        _activitySearch.TextChanged += (_, _) => RefreshActivityResults();
+        _gamePicker.Focused += async (_, _) => await LoadActivitiesAsync();
+        _activitySearch.Focused += async (_, _) => await LoadActivitiesAsync();
+        stack.Children.Add(_gamePicker);
+        stack.Children.Add(_activitySearch);
         stack.Children.Add(activityResults);
         var row = new HorizontalStackLayout { Spacing = 8 };
         var active = new Button { Text = "Add to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E8F5E9"), TextColor = Color.FromArgb("#2E7D32") };
@@ -224,19 +189,74 @@ public class DailyDeadlinesPage : ContentPage
         };
         row.Children.Add(active); row.Children.Add(possible);
         stack.Children.Add(row);
-        RefreshPicker();
         return Card(stack);
     }
 
-    private static Activity? GetSelectedActivity(List<Activity> available, Picker gamePicker, Entry search, Picker activityPicker)
+    private async Task LoadActivitiesAsync()
     {
-        string game = gamePicker.SelectedItem?.ToString() ?? "All Games";
-        string text = search.Text?.Trim() ?? "";
-        var filtered = available.Where(a =>
+        if (_activitiesLoaded) return;
+        string username = _auth.CurrentUsername;
+        var games = await _games.GetGamesAsync(username);
+        _activityLoadingLabel?.SetValue(Label.TextProperty,
+            $"Loading activities... ({games.Count} remaining)");
+        var displayMode = _privacyMode.GetDisplayMode(username);
+        _allActivities = new List<Activity>();
+        for (int i = 0; i < games.Count; i++)
+        {
+            var loaded = await _activities.GetActivitiesAsync(username, games[i].GameId);
+            _allActivities.AddRange(loaded.Where(a => displayMode switch
+            {
+                ActivityDisplayMode.PublicOnly => a.ActivityVisibility == 1 || a.ActivityVisibility == 2,
+                ActivityDisplayMode.PrivateOnly => a.ActivityVisibility == 0 || a.ActivityVisibility == 2,
+                _ => true
+            }));
+            int remaining = games.Count - i - 1;
+            if (_activityLoadingLabel != null)
+                _activityLoadingLabel.Text = $"Loading activities... ({remaining} remaining)";
+        }
+        _allActivities = _allActivities.GroupBy(a => a.Id).Select(g => g.First()).ToList();
+        _availableActivities = _allActivities
+            .Where(a => !_usedDeadlineActivityIds.Contains(a.Id))
+            .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        if (_gamePicker != null)
+        {
+            _gamePicker.ItemsSource = new[] { "All Games" }
+                .Concat(_availableActivities.Select(a => a.Game)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(g => g))
+                .ToList();
+            _gamePicker.SelectedIndex = 0;
+        }
+        _activitiesLoaded = true;
+        RefreshActivityResults();
+    }
+
+    private void RefreshActivityResults()
+    {
+        if (!_activitiesLoaded || _activityResultStack == null) return;
+        string game = _gamePicker?.SelectedItem?.ToString() ?? "All Games";
+        string text = _activitySearch?.Text?.Trim() ?? "";
+        var filtered = _availableActivities.Where(a =>
             (game == "All Games" || string.Equals(a.Game, game, StringComparison.OrdinalIgnoreCase)) &&
             (string.IsNullOrWhiteSpace(text) || a.Name.Contains(text, StringComparison.OrdinalIgnoreCase))).ToList();
-        return activityPicker.SelectedIndex >= 0 && activityPicker.SelectedIndex < filtered.Count
-            ? filtered[activityPicker.SelectedIndex] : null;
+        _activityResultStack.Children.Clear();
+        if (_selectedPickerActivity == null || !filtered.Contains(_selectedPickerActivity))
+            _selectedPickerActivity = filtered.FirstOrDefault();
+        foreach (var activity in filtered)
+        {
+            var card = new Border { Content = BuildActivityVisual(activity), Padding = 6, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = ReferenceEquals(activity, _selectedPickerActivity) ? Color.FromArgb("#E3F2FD") : Colors.White };
+            var captured = activity;
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += (_, _) =>
+            {
+                _selectedPickerActivity = captured;
+                foreach (var child in _activityResultStack.Children)
+                    if (child is Border other) other.BackgroundColor = Colors.White;
+                card.BackgroundColor = Color.FromArgb("#E3F2FD");
+            };
+            card.GestureRecognizers.Add(tap);
+            _activityResultStack.Children.Add(card);
+        }
     }
 
     private async Task AddActivityAsync(Activity activity, bool active)
