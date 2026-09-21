@@ -9,6 +9,9 @@ public class ActivitySuggestion
     public string? Category { get; set; }
     public string? GameTag { get; set; }
     public string Description { get; set; } = "";
+    public bool PrefillStreakTracked { get; set; }
+    public bool PrefillIsNegative { get; set; }
+    public string? PrefillLevel { get; set; }
 }
 
 [Table("activity_suggestion_logs")]

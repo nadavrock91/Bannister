@@ -684,7 +684,10 @@ public class GamesListPage : ContentPage
                     _games,
                     game.GameId,
                     prefillName: suggestion.Name,
-                    prefillCategory: suggestion.Category);
+                    prefillCategory: suggestion.Category,
+                    prefillLevel: suggestion.PrefillLevel,
+                    isNegative: suggestion.PrefillIsNegative,
+                    prefillStreakTracked: suggestion.PrefillStreakTracked);
             }
         }
         catch (Exception ex)

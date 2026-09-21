@@ -13,6 +13,39 @@ public static class ActivitySuggestions
             Category = null,
             GameTag = null,
             Description = "A negative-reward activity that penalizes inactivity. Increases in cost the longer you go without leveling up or adding new activities."
+        },
+        new ActivitySuggestion
+        {
+            Id = "universal_days_since_level",
+            Name = "Days Since Level Increase",
+            Category = "misc",
+            GameTag = null,
+            Description = "A streak-tracked negative reward activity. Penalizes you for going too long without leveling up.",
+            PrefillStreakTracked = true,
+            PrefillIsNegative = true,
+            PrefillLevel = "10"
+        },
+        new ActivitySuggestion
+        {
+            Id = "universal_days_since_activity_added",
+            Name = "Days Since New Activity Added",
+            Category = "misc",
+            GameTag = null,
+            Description = "A streak-tracked negative reward activity. Penalizes you for not adding new activities.",
+            PrefillStreakTracked = true,
+            PrefillIsNegative = true,
+            PrefillLevel = "10"
+        },
+        new ActivitySuggestion
+        {
+            Id = "universal_days_since_autoreward",
+            Name = "Days Since Activity Made Auto-Reward",
+            Category = "misc",
+            GameTag = null,
+            Description = "A streak-tracked negative reward activity. Penalizes you for not converting activities to auto-reward.",
+            PrefillStreakTracked = true,
+            PrefillIsNegative = true,
+            PrefillLevel = "10"
         }
         // Add more here in future updates
     };
