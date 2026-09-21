@@ -245,6 +245,7 @@ public partial class ActivityGamePage : ContentPage
                     prefillLevel: suggestion.PrefillLevel,
                     isNegative: suggestion.PrefillIsNegative,
                     prefillRewardType: suggestion.PrefillRewardType,
+                    prefillPercent: suggestion.PrefillPercent,
                     prefillStreakTracked: suggestion.PrefillStreakTracked,
                     prefillStartDate: suggestion.PrefillStartDateNow ? DateTime.Now : null,
                     prefillEndDate: suggestion.PrefillEndDateOneYear ? DateTime.Now.AddYears(1) : null);

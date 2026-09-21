@@ -94,7 +94,7 @@ namespace Bannister.Services
             cutoffLevel = Math.Clamp(cutoffLevel, 1, MaxLevel);
             int span = ExpSpanForLevel(cutoffLevel);
             int exp = (int)Math.Round(span / 100.0);
-            return Math.Max(1, exp);
+            return exp < 0 ? Math.Min(-1, exp) : Math.Max(1, exp);
         }
 
         /// <summary>

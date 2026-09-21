@@ -16,6 +16,7 @@ public static class ActivitySuggestions
             PrefillStreakTracked = true,
             PrefillIsNegative = true,
             PrefillRewardType = "PercentOfLevel",
+            PrefillPercent = "-1",
             PrefillStartDateNow = true,
             PrefillEndDateOneYear = true
         },
@@ -29,6 +30,7 @@ public static class ActivitySuggestions
             PrefillStreakTracked = true,
             PrefillIsNegative = true,
             PrefillRewardType = "PercentOfLevel",
+            PrefillPercent = "-1",
             PrefillStartDateNow = true,
             PrefillEndDateOneYear = true
         },
@@ -42,6 +44,7 @@ public static class ActivitySuggestions
             PrefillStreakTracked = true,
             PrefillIsNegative = true,
             PrefillRewardType = "PercentOfLevel",
+            PrefillPercent = "-1",
             PrefillStartDateNow = true,
             PrefillEndDateOneYear = true
         }

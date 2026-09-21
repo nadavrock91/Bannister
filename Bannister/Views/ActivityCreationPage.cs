@@ -200,7 +200,8 @@ public class ActivityCreationPage : ContentPage
         DateTime? prefillEndDate = null,
         bool prefillStreakTracked = false,
         int? prefillStreakTargetDays = null,
-        string? prefillRewardType = null)
+        string? prefillRewardType = null,
+        string? prefillPercent = null)
     {
         var privacyMode = Application.Current?.Handler?.MauiContext?
             .Services.GetService<PrivacyModeService>()
@@ -222,6 +223,7 @@ public class ActivityCreationPage : ContentPage
         page._prefillStreakTracked = prefillStreakTracked;
         page._prefillStreakTargetDays = prefillStreakTargetDays;
         page._prefillRewardType = prefillRewardType;
+        page._prefillPercent = prefillPercent;
         
         await navigation.PushModalAsync(new NavigationPage(page));
         return await page._modalTcs.Task;
@@ -233,6 +235,7 @@ public class ActivityCreationPage : ContentPage
     private string? _prefillImage;
     private string? _prefillCategory;
     private string? _prefillRewardType;
+    private string? _prefillPercent;
     private bool _isNegative;
     private bool _noHabitTarget;
     private DateTime? _prefillStartDate;
@@ -313,6 +316,8 @@ public class ActivityCreationPage : ContentPage
                 {
                     pickerRewardType.SelectedIndex = 1;
                 }
+                if (!string.IsNullOrWhiteSpace(_prefillPercent))
+                    txtPercentOfLevel.Text = _prefillPercent;
                 
                 _prefillApplied = true;
             }
@@ -1338,7 +1343,7 @@ public class ActivityCreationPage : ContentPage
 
             if (isPercentType)
             {
-                if (!double.TryParse(txtPercentOfLevel.Text, out percentOfLevel) || percentOfLevel <= 0)
+                if (!double.TryParse(txtPercentOfLevel.Text, out percentOfLevel) || percentOfLevel == 0)
                 {
                     await DisplayAlert("Validation Error", "Please enter a valid percent (e.g., 1 for 1%)", "OK");
                     return;

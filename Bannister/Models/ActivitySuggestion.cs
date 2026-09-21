@@ -13,6 +13,7 @@ public class ActivitySuggestion
     public bool PrefillIsNegative { get; set; }
     public string? PrefillLevel { get; set; }
     public string? PrefillRewardType { get; set; }
+    public string? PrefillPercent { get; set; }
     public bool PrefillStartDateNow { get; set; }
     public bool PrefillEndDateOneYear { get; set; }
 }
