@@ -19,7 +19,6 @@ public class SettingsPage : ContentPage
     private readonly ActivityService _activityService;
     private readonly GameService _gameService;
     private readonly ResetTimeService _resetTime;
-    private Switch _privateModeSwitch = null!;
     private Switch _calendarBeforeGamesSwitch;
     private Label _calendarBeforeGamesStatus;
     private Switch _websiteBuilderInterruptSwitch;
@@ -87,10 +86,6 @@ public class SettingsPage : ContentPage
     {
         base.OnAppearing();
         await LoadHomeSettingsAsync();
-        var currentMode = _privacyMode.GetDisplayMode(
-            _auth.CurrentUsername);
-        _privateModeSwitch.IsToggled =
-            currentMode != ActivityDisplayMode.All;
         if (_dailyResetPicker != null)
         {
             _loadingSettings = true;
@@ -427,55 +422,6 @@ public class SettingsPage : ContentPage
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
         });
-
-        var privateModeRow = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Auto)
-            },
-            ColumnSpacing = 12
-        };
-        privateModeRow.Add(new Label
-        {
-            Text = "Enable Private Mode",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#222"),
-            VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
-
-        _privateModeSwitch = new Switch
-        {
-            VerticalOptions = LayoutOptions.Center
-        };
-        _privateModeSwitch.Toggled += async (_, e) =>
-        {
-            await _privacyMode.SetPrivateModeAsync(
-                _auth.CurrentUsername, e.Value);
-            // Note: switch maps to All (off) or PublicOnly (on)
-            // Full 3-mode control is in the Games hub toggle
-        };
-        privateModeRow.Add(_privateModeSwitch, 1, 0);
-        privateModeSection.Children.Add(privateModeRow);
-
-        var privateModeHint = new Label
-        {
-            Text = " Private Mode is ON — only public activities visible",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#C62828"),
-            FontAttributes = FontAttributes.Bold,
-            IsVisible = false
-        };
-        _privateModeSwitch.Toggled += (_, e) =>
-        {
-            privateModeHint.IsVisible = e.Value;
-            privateModeHint.Text = e.Value
-                ? " Restricted Mode ON — tap Games hub button " +
-                  "to switch between Public/Private/All"
-                : "";
-        };
-        privateModeSection.Children.Add(privateModeHint);
 
         var menuOrderBtn = new Button
         {

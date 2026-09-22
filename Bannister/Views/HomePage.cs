@@ -126,6 +126,7 @@ public class HomePage : ContentPage
     private Button _btnAudioLibrary;
     private Button _btnMoneyManagement;
     private Button _btnLists;
+    private Button _displayModeBtn = null!;
     private Button _btnJournal = null!;
     private Button _btnLifePaths = null!;
     private Button _btnToBeTested;
@@ -252,6 +253,7 @@ public class HomePage : ContentPage
             {
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
             ColumnSpacing = 8
@@ -268,6 +270,25 @@ public class HomePage : ContentPage
         Grid.SetColumn(headerLabel, 0);
         headerGrid.Children.Add(headerLabel);
 
+        _displayModeBtn = new Button
+        {
+            Text = "\u26A1 All",
+            FontSize = 12,
+            BackgroundColor = Colors.Transparent,
+            BorderColor = Colors.White,
+            BorderWidth = 1,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            WidthRequest = 90,
+            Padding = new Thickness(6, 0),
+            VerticalOptions = LayoutOptions.Center,
+            TextColor = Colors.White
+        };
+        _displayModeBtn.Clicked += async (_, _) =>
+            await CycleDisplayModeAsync();
+        Grid.SetColumn(_displayModeBtn, 1);
+        headerGrid.Children.Add(_displayModeBtn);
+
         _quickAccessBtn = new Button
         {
             Text = "⋮",
@@ -282,7 +303,7 @@ public class HomePage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         _quickAccessBtn.Clicked += OnQuickAccessClicked;
-        Grid.SetColumn(_quickAccessBtn, 1);
+        Grid.SetColumn(_quickAccessBtn, 2);
         headerGrid.Children.Add(_quickAccessBtn);
 
         var btnHomeMenu = new Button
@@ -299,7 +320,7 @@ public class HomePage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         btnHomeMenu.Clicked += OnHomeMenuClicked;
-        Grid.SetColumn(btnHomeMenu, 2);
+        Grid.SetColumn(btnHomeMenu, 3);
         headerGrid.Children.Add(btnHomeMenu);
 
         mainStack.Children.Add(headerGrid);
@@ -938,6 +959,10 @@ public class HomePage : ContentPage
         System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing fired, sequence-running={_homePromptSequenceRunning}, run-id-before={_homePromptRunId}, is-visible-before={_isHomeVisible}");
         _isHomeVisible = true;
 
+        var currentMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        UpdateModeVisuals(currentMode);
+
         // Clear Learning's "last filter" keys whenever the user returns to Home.
         // The next LearningPage entry will fall back to the user's saved learning_default_* filters.
         await ClearLearningLastFiltersAsync();
@@ -976,11 +1001,6 @@ public class HomePage : ContentPage
                 .GetEnabledButtonsAsync(
                     _auth.CurrentUsername,
                     AllButtonIds);
-            bool privateModeOn = _privacyMode.IsPrivateModeEnabled(
-                _auth.CurrentUsername);
-            BackgroundColor = privateModeOn
-                ? Color.FromArgb("#2D2F6F")
-                : Color.FromArgb("#6B73FF");
             RefreshButtonsLayout();
 
             await LoadDataAsync();
@@ -2334,6 +2354,46 @@ public class HomePage : ContentPage
             await SecureStorage.SetAsync($"intro_seen_{_auth.CurrentUsername}", "true");
         }
         catch { }
+    }
+
+    private async Task CycleDisplayModeAsync()
+    {
+        var newMode = _privacyMode.CycleMode(
+            _auth.CurrentUsername);
+        UpdateModeVisuals(newMode);
+        RefreshButtonsLayout();
+        await LoadDataAsync();
+    }
+
+    private void UpdateModeVisuals(ActivityDisplayMode mode)
+    {
+        switch (mode)
+        {
+            case ActivityDisplayMode.PublicOnly:
+                BackgroundColor = Color.FromArgb("#1A1A2E");
+                _displayModeBtn.Text = " Public";
+                _displayModeBtn.TextColor =
+                    Color.FromArgb("#00E5FF");
+                _displayModeBtn.BorderColor =
+                    Color.FromArgb("#00E5FF");
+                break;
+
+            case ActivityDisplayMode.PrivateOnly:
+                BackgroundColor = Color.FromArgb("#2D0A4E");
+                _displayModeBtn.Text = " Private";
+                _displayModeBtn.TextColor =
+                    Color.FromArgb("#FFD700");
+                _displayModeBtn.BorderColor =
+                    Color.FromArgb("#FFD700");
+                break;
+
+            default:
+                BackgroundColor = Color.FromArgb("#6B73FF");
+                _displayModeBtn.Text = "\u26A1 All";
+                _displayModeBtn.TextColor = Colors.White;
+                _displayModeBtn.BorderColor = Colors.White;
+                break;
+        }
     }
 
     private async Task LoadDataAsync()
