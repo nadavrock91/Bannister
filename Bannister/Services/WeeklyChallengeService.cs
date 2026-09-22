@@ -2,6 +2,21 @@ using Bannister.Models;
 
 namespace Bannister.Services;
 
+public class WeekEndResult
+{
+    public bool HasPendingResult { get; set; }
+    public bool WasSuccessful { get; set; }
+    public bool AllowanceIncreased { get; set; }
+    public bool AllowanceLost { get; set; }
+    public int NewAllowance { get; set; }
+    public int NewStreak { get; set; }
+    public int CompletedFocus { get; set; }
+    public int FocusTarget { get; set; }
+    public int CompletedFree { get; set; }
+    public int FreeTarget { get; set; }
+    public DateTime WeekStart { get; set; }
+}
+
 public class WeeklyChallengeService
 {
     private readonly DatabaseService _db;
@@ -207,6 +222,66 @@ public class WeeklyChallengeService
     /// <summary>
     /// Process end of week - call this on Sunday or when checking
     /// </summary>
+    public async Task<WeekEndResult> GetPendingWeekEndResultAsync(string username)
+    {
+        await EnsureInitializedAsync();
+        var challenge = await GetActiveChallengeAsync(username);
+        if (challenge == null)
+            return new WeekEndResult();
+
+        var currentWeekStart = GetWeekStart(DateTime.Today);
+        var previousWeekStart = currentWeekStart.AddDays(-7);
+        if (challenge.LastProcessedWeekStart.HasValue &&
+            challenge.LastProcessedWeekStart.Value >= previousWeekStart)
+            return new WeekEndResult();
+
+        var (focusTarget, freeTarget) = CalculateTaskSplit(
+            challenge.CurrentAllowance, challenge.FreeTaskRatio);
+        var conn = await _db.GetConnectionAsync();
+        var lastWeekCommitments = await conn.Table<WeeklyCommitment>()
+            .Where(c => c.ChallengeId == challenge.Id &&
+                        c.WeekStart == previousWeekStart)
+            .ToListAsync();
+
+        int completedFocus = lastWeekCommitments.Count(c =>
+            c.IsFocusTask && c.IsCompleted);
+        int completedFree = lastWeekCommitments.Count(c =>
+            !c.IsFocusTask && c.IsCompleted);
+        bool successful = lastWeekCommitments.Count > 0 &&
+            completedFocus >= focusTarget &&
+            completedFree >= freeTarget;
+        int newStreak = successful
+            ? challenge.SuccessStreak + 1
+            : 0;
+        bool allowanceIncreased = successful &&
+            newStreak > 0 && newStreak % 3 == 0;
+        int newAllowance = allowanceIncreased
+            ? challenge.CurrentAllowance + 1
+            : successful
+                ? challenge.CurrentAllowance
+                : Math.Max(1, challenge.CurrentAllowance - 1);
+
+        return new WeekEndResult
+        {
+            HasPendingResult = true,
+            WasSuccessful = successful,
+            AllowanceIncreased = allowanceIncreased,
+            AllowanceLost = newAllowance < challenge.CurrentAllowance,
+            NewAllowance = newAllowance,
+            NewStreak = newStreak,
+            CompletedFocus = completedFocus,
+            FocusTarget = focusTarget,
+            CompletedFree = completedFree,
+            FreeTarget = freeTarget,
+            WeekStart = previousWeekStart
+        };
+    }
+
+    public async Task ApproveWeekEndAsync(string username)
+    {
+        await ProcessWeekEndAsync(username);
+    }
+
     public async Task ProcessWeekEndAsync(string username)
     {
         await EnsureInitializedAsync();

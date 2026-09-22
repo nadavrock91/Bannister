@@ -1642,6 +1642,45 @@ public class HomePage : ContentPage
 
         try
         {
+            var weekEndResult = await _challengeService
+                .GetPendingWeekEndResultAsync(
+                    _auth.CurrentUsername);
+            if (weekEndResult.HasPendingResult)
+            {
+                string description = weekEndResult.WasSuccessful
+                    ? $"✅ Week complete! Focus: {weekEndResult.CompletedFocus}/{weekEndResult.FocusTarget} ✓ Free: {weekEndResult.CompletedFree}/{weekEndResult.FreeTarget} ✓\n" +
+                      $"Streak: {weekEndResult.NewStreak} weeks. " +
+                      (weekEndResult.AllowanceIncreased
+                          ? $"Allowance increased to {weekEndResult.NewAllowance}"
+                          : $"Allowance: {weekEndResult.NewAllowance}")
+                    : $"❌ Week incomplete. Focus: {weekEndResult.CompletedFocus}/{weekEndResult.FocusTarget} Free: {weekEndResult.CompletedFree}/{weekEndResult.FreeTarget}\n" +
+                      $"Streak reset. Allowance reduced to {weekEndResult.NewAllowance}.";
+
+                definitions.Add(new HomePromptDefinition(
+                    Id: "weekly_challenge_conclusion",
+                    DisplayName: "Weekly Challenge Result",
+                    Description: description,
+                    IsPendingAsync: async () =>
+                        (await _challengeService
+                            .GetPendingWeekEndResultAsync(
+                                _auth.CurrentUsername))
+                        .HasPendingResult,
+                    AddressAsync: async () =>
+                        await _challengeService
+                            .ApproveWeekEndAsync(
+                                _auth.CurrentUsername),
+                    SkipTodayAsync: () =>
+                        Task.CompletedTask));
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Error checking weekly challenge conclusion: {ex.Message}");
+        }
+
+        try
+        {
             var lifePathService = Application.Current?.Handler
                 ?.MauiContext?.Services
                 .GetService<LifePathService>();

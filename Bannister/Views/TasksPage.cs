@@ -1136,7 +1136,7 @@ public class TasksPage : ContentPage
 
     #region Weekly Challenge
 
-    private async Task RefreshChallengeWidgetAsync(bool processWeekEnd = true)
+    private async Task RefreshChallengeWidgetAsync(bool processWeekEnd = false)
     {
         var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
 
@@ -1155,28 +1155,6 @@ public class TasksPage : ContentPage
             _markFocusTopCandidateBtn.IsVisible = false;
             _markFreeTopCandidateBtn.IsVisible = false;
             return;
-        }
-
-        if (processWeekEnd)
-        {
-            await _challengeService.ProcessWeekEndAsync(_auth.CurrentUsername);
-            challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
-            if (challenge == null)
-            {
-                _challengeFrame.IsVisible = false;
-                _startChallengeBtn.IsVisible = true;
-                _allowanceChartContainer.IsVisible = false;
-                _topCandidatesList.Children.Clear();
-                _addTopCandidateBtn.IsVisible = false;
-                _consultLlmBtn.IsVisible = false;
-                _freeProgressLabel.IsVisible = false;
-                _freeCommitmentsList.IsVisible = false;
-                _addFreeCommitmentBtn.IsVisible = false;
-                _addFreeTopCandidateBtn.IsVisible = false;
-                _markFocusTopCandidateBtn.IsVisible = false;
-                _markFreeTopCandidateBtn.IsVisible = false;
-                return;
-            }
         }
 
         await RefreshAllowanceChartAsync();

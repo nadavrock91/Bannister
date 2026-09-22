@@ -257,10 +257,6 @@ public class ChallengeTasksPage : ContentPage
             return;
         }
 
-        await _challengeService.ProcessWeekEndAsync(_auth.CurrentUsername);
-        challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
-        if (challenge == null) return;
-
         var commitments = await _challengeService.GetCurrentWeekCommitmentsAsync(challenge.Id);
         var relevant = commitments.Where(c => c.IsFocusTask == _isFocusMode).ToList();
         var (focusTarget, freeTarget) = WeeklyChallengeService.CalculateTaskSplit(
