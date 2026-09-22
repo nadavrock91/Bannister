@@ -407,22 +407,6 @@ public class SettingsPage : ContentPage
             Margin = new Thickness(0, 0, 0, 16)
         };
 
-        privateModeSection.Children.Add(new Label
-        {
-            Text = "Private Mode",
-            FontSize = 17,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        privateModeSection.Children.Add(new Label
-        {
-            Text = "When enabled only activities marked as Public " +
-                   "are shown. Use this for demos or screen sharing.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
         var menuOrderBtn = new Button
         {
             Text = "☰ Customize Context Menu Order",
