@@ -713,7 +713,8 @@ public class NewHabitService
             NegativeActivityId = negativeActivityId,
             ConsecutiveDays = 0,
             Status = "pending",
-            PendingOrder = maxOrder + 1
+            PendingOrder = maxOrder + 1,
+            PendingAddedDate = DateTime.UtcNow
         };
 
         await conn.InsertAsync(newHabit);
@@ -746,6 +747,8 @@ public class NewHabitService
         habit.ConsecutiveDays = 0;
         habit.LastAppliedDate = null;
         habit.PendingOrder = maxOrder + 1;
+        if (!habit.PendingAddedDate.HasValue)
+            habit.PendingAddedDate = DateTime.UtcNow;
         
         await conn.UpdateAsync(habit);
         

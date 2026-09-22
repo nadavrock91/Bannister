@@ -31,7 +31,9 @@ public class NewHabitsPage : ContentPage
     private Label _lblActiveHeader;
     private Label _lblAllowanceCountdown;
     private VerticalStackLayout _activeHabitsContainer;
-    private VerticalStackLayout _pendingHabitsContainer;
+    private VerticalStackLayout _topPendingHabitsContainer;
+    private VerticalStackLayout _pendingQueueContainer;
+    private int _topPendingCount;
     private VerticalStackLayout _graduatedHabitsContainer;
     private VerticalStackLayout _allowanceChartContainer;
     private Button _btnAddHabit;
@@ -242,7 +244,20 @@ public class NewHabitsPage : ContentPage
         _activeHabitsContainer = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_activeHabitsContainer);
 
-        // Pending habits section
+        // Top pending spotlight
+        mainStack.Children.Add(new Label
+        {
+            Text = "⭐ Top Pending",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            Margin = new Thickness(0, 16, 0, 8)
+        });
+
+        _topPendingHabitsContainer = new VerticalStackLayout { Spacing = 8 };
+        mainStack.Children.Add(_topPendingHabitsContainer);
+
+        // Pending queue section
         var pendingHeader = new Grid
         {
             ColumnDefinitions =
@@ -255,7 +270,7 @@ public class NewHabitsPage : ContentPage
 
         pendingHeader.Add(new Label
         {
-            Text = "⏳ Pending Habits",
+            Text = "⏳ Pending Queue",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Colors.White,
@@ -277,8 +292,8 @@ public class NewHabitsPage : ContentPage
 
         mainStack.Children.Add(pendingHeader);
 
-        _pendingHabitsContainer = new VerticalStackLayout { Spacing = 8 };
-        mainStack.Children.Add(_pendingHabitsContainer);
+        _pendingQueueContainer = new VerticalStackLayout { Spacing = 8 };
+        mainStack.Children.Add(_pendingQueueContainer);
 
         // Graduated habits section
         mainStack.Children.Add(new Label
@@ -574,6 +589,8 @@ public class NewHabitsPage : ContentPage
                     habitToRemove.Status = "pending";
                     habitToRemove.ConsecutiveDays = 0;
                     habitToRemove.LastAppliedDate = null;
+                    if (!habitToRemove.PendingAddedDate.HasValue)
+                        habitToRemove.PendingAddedDate = DateTime.UtcNow;
                     await _newHabits.UpdateHabitAsync(habitToRemove);
                     removed++;
                 }
@@ -611,13 +628,48 @@ public class NewHabitsPage : ContentPage
         }
 
         // Load pending habits for this frequency
-        _pendingHabitsContainer.Children.Clear();
         var allPendingHabits = await _newHabits.GetAllPendingHabitsAsync(_auth.CurrentUsername);
         var pendingHabits = allPendingHabits.Where(h => h.Frequency == _frequency).ToList();
+        var topPendingHabits = pendingHabits
+            .Where(h => h.IsTopPending)
+            .OrderBy(h => h.PendingOrder)
+            .Take(3)
+            .ToList();
+        var queueHabits = pendingHabits
+            .Where(h => !h.IsTopPending)
+            .OrderBy(h => h.PendingOrder)
+            .ToList();
+        _topPendingCount = topPendingHabits.Count;
 
-        if (pendingHabits.Count == 0)
+        _topPendingHabitsContainer.Children.Clear();
+        if (topPendingHabits.Count == 0)
         {
-            _pendingHabitsContainer.Children.Add(new Label
+            _topPendingHabitsContainer.Children.Add(new Label
+            {
+                Text = "No spotlight habits yet. Promote one from the queue!",
+                TextColor = Colors.White,
+                Opacity = 0.7,
+                FontSize = 14,
+                HorizontalTextAlignment = TextAlignment.Center
+            });
+        }
+        else
+        {
+            for (int i = 0; i < topPendingHabits.Count; i++)
+            {
+                _topPendingHabitsContainer.Children.Add(
+                    CreatePendingHabitCard(
+                        topPendingHabits[i], i,
+                        topPendingHabits.Count,
+                        availableSlots, true));
+            }
+        }
+
+        _pendingQueueContainer.Children.Clear();
+
+        if (queueHabits.Count == 0)
+        {
+            _pendingQueueContainer.Children.Add(new Label
             {
                 Text = "No pending habits. Add habits to your queue!",
                 TextColor = Colors.White,
@@ -628,10 +680,13 @@ public class NewHabitsPage : ContentPage
         }
         else
         {
-            for (int i = 0; i < pendingHabits.Count; i++)
+            for (int i = 0; i < queueHabits.Count; i++)
             {
-                _pendingHabitsContainer.Children.Add(
-                    CreatePendingHabitCard(pendingHabits[i], i, pendingHabits.Count, availableSlots));
+                _pendingQueueContainer.Children.Add(
+                    CreatePendingHabitCard(
+                        queueHabits[i], i,
+                        queueHabits.Count,
+                        availableSlots, false));
             }
         }
 
@@ -977,7 +1032,9 @@ public class NewHabitsPage : ContentPage
         return frame;
     }
 
-    private Frame CreatePendingHabitCard(NewHabit habit, int index, int total, int availableSlots)
+    private Frame CreatePendingHabitCard(
+        NewHabit habit, int index, int total,
+        int availableSlots, bool isTopPending = false)
     {
         var frame = new Frame
         {
@@ -1022,6 +1079,16 @@ public class NewHabitsPage : ContentPage
             Text = $"📁 {habit.Game}",
             FontSize = 11,
             TextColor = Color.FromArgb("#666")
+        });
+        int pendingDays = habit.PendingAddedDate.HasValue
+            ? Math.Max(0, (int)(DateTime.UtcNow.Date -
+                habit.PendingAddedDate.Value.ToUniversalTime().Date).TotalDays)
+            : 0;
+        infoStack.Children.Add(new Label
+        {
+            Text = $"{pendingDays} day{(pendingDays == 1 ? "" : "s")} pending",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#7B1FA2")
         });
         grid.Add(infoStack, 1, 0);
 
@@ -1071,6 +1138,27 @@ public class NewHabitsPage : ContentPage
             };
             buttonStack.Children.Add(btnDown);
         }
+
+        var btnSpotlight = new Button
+        {
+            Text = isTopPending ? "↓ To Queue" : "⭐ Promote",
+            BackgroundColor = isTopPending
+                ? Color.FromArgb("#7B1FA2")
+                : Color.FromArgb("#FFB300"),
+            TextColor = Colors.White,
+            FontSize = 11,
+            Padding = new Thickness(8, 0),
+            HeightRequest = 32,
+            CornerRadius = 6,
+            IsEnabled = isTopPending || _topPendingCount < 3
+        };
+        btnSpotlight.Clicked += async (_, _) =>
+        {
+            habit.IsTopPending = !isTopPending;
+            await _newHabits.UpdateHabitAsync(habit);
+            await LoadHabitsAsync();
+        };
+        buttonStack.Children.Add(btnSpotlight);
 
         // Activate button
         var btnActivate = new Button
@@ -1488,7 +1576,8 @@ public class NewHabitsPage : ContentPage
                 DaysToGraduate = daysToGraduate,
                 Frequency = _frequency,
                 Status = "pending",
-                PendingOrder = maxOrder + 1
+                PendingOrder = maxOrder + 1,
+                PendingAddedDate = DateTime.UtcNow
             };
 
             await conn.InsertAsync(newHabit);

@@ -44,6 +44,12 @@ public class NewHabit
     
     // Order in pending queue (for pending habits)
     public int PendingOrder { get; set; } = 0;
+
+    // Whether this pending habit is featured in the Top 3 spotlight.
+    public bool IsTopPending { get; set; } = false;
+
+    // When this habit was first moved into pending status.
+    public DateTime? PendingAddedDate { get; set; }
     
     [Ignore]
     public bool IsGraduated => Status == "graduated";
