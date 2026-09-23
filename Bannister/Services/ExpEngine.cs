@@ -121,7 +121,10 @@ namespace Bannister.Services
             int exp = (int)Math.Round(span * percent / 100.0);
             if (exp < 0)
                 return Math.Min(-1, exp);
-            return Math.Max(1, exp);
+            if (exp > 0)
+                return Math.Max(1, exp);
+            // exp rounded to 0 — use sign of percent to determine minimum
+            return percent < 0 ? -1 : 1;
         }
     }
 }
