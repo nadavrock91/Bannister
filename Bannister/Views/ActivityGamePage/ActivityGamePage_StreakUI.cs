@@ -574,7 +574,7 @@ public partial class ActivityGamePage
             int displayDays = GetAttemptDisplayDays(activity, updatedAttempt);
             string streakNote = streakBroke ? " (new attempt)" : "";
             await DisplayAlert($"Day Recorded! {streakNote}",
-                $"+{totalExp} EXP{bonusMessage}\n\n" +
+                $"{(totalExp < 0 ? $"{totalExp} EXP" : $"+{totalExp} EXP")}{bonusMessage}\n\n" +
                 $"Streak: {displayDays} / {GetStreakTargetDays(activity)} days\n" +
                 $"Display Day Streak: {activity.DisplayDayStreak} days",
                 "Nice!");
