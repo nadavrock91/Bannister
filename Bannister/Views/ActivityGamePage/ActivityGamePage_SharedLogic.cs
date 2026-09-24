@@ -230,6 +230,7 @@ public partial class ActivityGamePage
             ["disable"]            = "⏸️ Disable Activity",
             ["remove"]             = "️ Remove Activity",
             ["public_toggle"]      = publicOpt,
+            ["dev_edit"]           = " Dev Edit",
         };
 
         var orderedKeys = await GetContextMenuOrderService()
@@ -246,6 +247,8 @@ public partial class ActivityGamePage
             options.Insert(publicOptIndex, imageOnlyOpt);
         else
             options.Add(imageOnlyOpt);
+        if (!options.Contains(" Dev Edit"))
+            options.Add(" Dev Edit");
 
         // Add streak attempt-specific options
         if (isStreakAttempt && attemptVM != null)
@@ -327,6 +330,10 @@ public partial class ActivityGamePage
                  action.StartsWith(" Edit Image Idea:"))
         {
             await HandleEditImageIdea(activity, activityVM);
+        }
+        else if (action == " Dev Edit")
+        {
+            await HandleDevEditAsync(activity);
         }
         else if (action == "Duplicate as Negative")
         {
@@ -471,6 +478,52 @@ public partial class ActivityGamePage
                 }
             }
             await RefreshActivitiesAsync();
+        }
+    }
+
+    private async Task HandleDevEditAsync(Activity activity)
+    {
+        try
+        {
+            var conn = await _db.GetConnectionAsync();
+            var activities = await conn.QueryAsync<Activity>(
+                "SELECT * FROM Activities WHERE Id = ?",
+                activity.Id);
+            var json = System.Text.Json.JsonSerializer.Serialize(
+                activities.FirstOrDefault());
+            string prompt =
+                $"Here is the full current data for Activity ID {activity.Id}:\n" +
+                $"{json}\n\n" +
+                "Describe what you want changed and return ONLY:\n" +
+                "SET column = value, column2 = value2\n\n" +
+                $"The app will run: UPDATE Activities SET <your clause> WHERE Id = {activity.Id}\n" +
+                "Return nothing else — no explanation, no WHERE clause.";
+
+            await Clipboard.SetTextAsync(prompt);
+            await DisplayAlert("Dev Edit Prompt Copied",
+                "The activity data prompt was copied. Paste the SET clause returned by your LLM.", "OK");
+
+            var inputPage = new SqlInputPage();
+            await Navigation.PushModalAsync(inputPage);
+            string? setClause = await inputPage.WaitForResultAsync();
+            if (string.IsNullOrWhiteSpace(setClause)) return;
+
+            setClause = setClause.Trim();
+            if (!setClause.StartsWith("SET ", StringComparison.OrdinalIgnoreCase))
+            {
+                await DisplayAlert("Invalid Dev Edit",
+                    "The response must start with SET.", "OK");
+                return;
+            }
+
+            await conn.ExecuteAsync(
+                $"UPDATE Activities {setClause} WHERE Id = ?",
+                activity.Id);
+            await RefreshActivitiesAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Dev Edit Error", ex.Message, "OK");
         }
     }
 

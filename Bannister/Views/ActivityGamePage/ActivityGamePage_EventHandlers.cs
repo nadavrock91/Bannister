@@ -430,6 +430,7 @@ public partial class ActivityGamePage
             ["disable"]            = "Disable Activity",
             ["remove"]             = "Remove Activity",
             ["public_toggle"]      = publicOpt,
+            ["dev_edit"]           = " Dev Edit",
         };
 
         var orderedKeys = await GetContextMenuOrderService()
@@ -446,6 +447,8 @@ public partial class ActivityGamePage
             options.Insert(publicOptIndex, imageOnlyOpt);
         else
             options.Add(imageOnlyOpt);
+        if (!options.Contains(" Dev Edit"))
+            options.Add(" Dev Edit");
 
         var popup = new ActivityContextMenuPopup(
             activity.Name, options);
@@ -465,6 +468,10 @@ public partial class ActivityGamePage
         else if (result == "Edit Category")
         {
             await HandleEditCategory(activity, activityVM);
+        }
+        else if (result == " Dev Edit")
+        {
+            await HandleDevEditAsync(activity);
         }
         else if (result.StartsWith("Set Multiplier"))
         {
