@@ -210,10 +210,13 @@ public partial class ActivityGamePage : ContentPage
 
     private async Task ShowActivitySuggestionsAsync()
     {
-        if (_isGroupingMode || _game == null) return;
-
         try
         {
+            await Task.Delay(800);
+
+            if (_isGroupingMode || _game == null)
+                return;
+
             var suggestions = await _activitySuggestions
                 .GetUnseenSuggestionsAsync(
                     _auth.CurrentUsername,
