@@ -487,7 +487,7 @@ public partial class ActivityGamePage
         {
             var conn = await _db.GetConnectionAsync();
             var activities = await conn.QueryAsync<Activity>(
-                "SELECT * FROM Activities WHERE Id = ?",
+                "SELECT * FROM game_activities WHERE Id = ?",
                 activity.Id);
             var json = System.Text.Json.JsonSerializer.Serialize(
                 activities.FirstOrDefault());
@@ -496,7 +496,7 @@ public partial class ActivityGamePage
                 $"{json}\n\n" +
                 "Describe what you want changed and return ONLY:\n" +
                 "SET column = value, column2 = value2\n\n" +
-                $"The app will run: UPDATE Activities SET <your clause> WHERE Id = {activity.Id}\n" +
+                $"The app will run: UPDATE game_activities SET <your clause> WHERE Id = {activity.Id}\n" +
                 "Return nothing else — no explanation, no WHERE clause.";
 
             await Clipboard.SetTextAsync(prompt);
@@ -517,7 +517,7 @@ public partial class ActivityGamePage
             }
 
             await conn.ExecuteAsync(
-                $"UPDATE Activities {setClause} WHERE Id = ?",
+                $"UPDATE game_activities {setClause} WHERE Id = ?",
                 activity.Id);
             await RefreshActivitiesAsync();
         }
