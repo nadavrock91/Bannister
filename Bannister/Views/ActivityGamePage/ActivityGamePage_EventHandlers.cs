@@ -996,6 +996,26 @@ public partial class ActivityGamePage
         {
             await RunDevSqlAsync();
         }
+        else if (result == "Reset Load Prompts")
+        {
+            bool confirm = await DisplayAlert(
+                "Reset Load Prompts",
+                "Reset all game load prompts for this game? Activity suggestions and other on-load popups will re-trigger on next entry.",
+                "Reset",
+                "Cancel");
+            if (!confirm) return;
+
+            var conn = await _db.GetConnectionAsync();
+            await conn.ExecuteAsync(
+                "DELETE FROM ActivitySuggestionLog WHERE Username = ? AND GameId = ?",
+                _auth.CurrentUsername,
+                _game.GameId);
+
+            await DisplayAlert(
+                "Reset Load Prompts",
+                "Done. Load prompts will re-trigger on next entry.",
+                "OK");
+        }
     }
 
     private async Task RunDevSqlAsync()
