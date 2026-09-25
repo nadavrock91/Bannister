@@ -31,6 +31,7 @@ public class SyncSettingsPage : ContentPage
     private Button _btnRegister;
     private Button _btnSaveCreds;
     private Button _btnDownload;
+    private Button _btnRevert;
     private Button _btnUpload;
     private Button _btnApplyQueuedOps;
     private HorizontalStackLayout _queueReminderRow;
@@ -75,6 +76,7 @@ public class SyncSettingsPage : ContentPage
     {
         base.OnAppearing();
         await LoadSettingsAsync();
+        RefreshRevertButtonState();
     }
 
     private void BuildUI()
@@ -315,6 +317,18 @@ public class SyncSettingsPage : ContentPage
         _btnDownload.Clicked += OnDownloadClicked;
         stack.Children.Add(_btnDownload);
 
+        _btnRevert = new Button
+        {
+            Text = "↩ Revert to Backup",
+            BackgroundColor = Color.FromArgb("#B71C1C"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 48,
+            IsEnabled = false
+        };
+        _btnRevert.Clicked += OnRevertClicked;
+        stack.Children.Add(_btnRevert);
+
         _btnApplyQueuedOps = new Button
         {
             Text = "Apply Queued Operations from Secondaries",
@@ -499,6 +513,8 @@ public class SyncSettingsPage : ContentPage
         _btnRegister.IsEnabled = !isBusy;
         _btnSaveCreds.IsEnabled = !isBusy;
         _btnDownload.IsEnabled = !isBusy;
+        _btnRevert.IsEnabled = !isBusy &&
+            File.Exists(GetBackupPath());
         _btnResetQueueReminder.IsEnabled = !isBusy;
 
         _busyIndicator.IsVisible = isBusy;
@@ -676,6 +692,22 @@ public class SyncSettingsPage : ContentPage
         SetBusy(true, "Downloading...");
         try
         {
+            string backupPath = GetBackupPath();
+            try
+            {
+                File.Copy(
+                    DatabaseService.DatabasePath,
+                    backupPath,
+                    overwrite: true);
+            }
+            catch (Exception backupEx)
+            {
+                await DisplayAlert(
+                    "Backup Warning",
+                    $"Could not create a backup before downloading: {backupEx.Message}\n\nThe download will continue.",
+                    "Continue");
+            }
+
             var result = await _sync.DownloadAsync();
             _lblStatus.Text = result.Message;
             _lblStatus.TextColor = result.Success ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
@@ -688,10 +720,59 @@ public class SyncSettingsPage : ContentPage
                     "for all pages to reflect the new data.",
                     "OK");
             }
+
+            RefreshRevertButtonState();
         }
         finally
         {
             SetBusy(false);
+        }
+    }
+
+    private static string GetBackupPath()
+        => Path.Combine(
+            FileSystem.AppDataDirectory,
+            "bannister_backup.db");
+
+    private void RefreshRevertButtonState()
+    {
+        if (_btnRevert == null) return;
+        _btnRevert.IsEnabled = File.Exists(GetBackupPath());
+    }
+
+    private async void OnRevertClicked(object? sender, EventArgs e)
+    {
+        string backupPath = GetBackupPath();
+        if (!File.Exists(backupPath))
+        {
+            RefreshRevertButtonState();
+            return;
+        }
+
+        bool confirm = await DisplayAlert(
+            "Revert to Backup",
+            "Revert to backup? This will replace the current database with the pre-download backup.",
+            "Revert",
+            "Cancel");
+        if (!confirm) return;
+
+        SetBusy(true, "Reverting...");
+        try
+        {
+            await _db.ReplaceDatabaseFromAsync(backupPath);
+            await DisplayAlert(
+                "Reverted",
+                "Reverted to backup.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Revert Error", ex.Message, "OK");
+        }
+        finally
+        {
+            SetBusy(false);
+            RefreshRevertButtonState();
         }
     }
 
