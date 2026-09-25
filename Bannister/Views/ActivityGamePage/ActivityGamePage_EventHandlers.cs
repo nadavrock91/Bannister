@@ -1007,7 +1007,7 @@ public partial class ActivityGamePage
 
             var conn = await _db.GetConnectionAsync();
             await conn.ExecuteAsync(
-                "DELETE FROM ActivitySuggestionLog WHERE Username = ? AND GameId = ?",
+                "DELETE FROM activity_suggestion_logs WHERE Username = ? AND GameId = ?",
                 _auth.CurrentUsername,
                 _game.GameId);
 
