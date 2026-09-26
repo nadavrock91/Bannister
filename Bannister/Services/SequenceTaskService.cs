@@ -162,8 +162,17 @@ public class SequenceTaskService
             .OrderBy(i => i.SortOrder)
             .ToListAsync();
 
-        int sortOrder = links.Count;
-        if (beforeTaskItemId != 0)
+        int sortOrder;
+        if (beforeTaskItemId == 0)
+        {
+            sortOrder = 0;
+            foreach (var link in links)
+            {
+                link.SortOrder++;
+                await conn.UpdateAsync(link);
+            }
+        }
+        else
         {
             var before = links.FirstOrDefault(
                 i => i.TaskItemId == beforeTaskItemId);
@@ -176,6 +185,10 @@ public class SequenceTaskService
                     link.SortOrder++;
                     await conn.UpdateAsync(link);
                 }
+            }
+            else
+            {
+                sortOrder = links.Count;
             }
         }
 

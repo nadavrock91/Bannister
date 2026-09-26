@@ -100,7 +100,38 @@ public class SequenceTaskPage : ContentPage
         body.Children.Add(templatePanel);
         body.Children.Add(new Label { Text = $"{tasks.Values.Count(t => t.IsCompleted)} of {links.Count} completed", FontSize = 13, TextColor = Color.FromArgb("#666") });
         foreach (var link in links)
-            if (tasks.TryGetValue(link.TaskItemId, out var task)) body.Children.Add(BuildItemRow(group, link, task));
+        {
+            if (tasks.TryGetValue(link.TaskItemId, out var task) &&
+                !task.IsCompleted)
+                body.Children.Add(BuildItemRow(group, link, task));
+        }
+
+        var completedLinks = links
+            .Where(link => tasks.TryGetValue(
+                link.TaskItemId, out var task) &&
+                task.IsCompleted)
+            .ToList();
+        var completedSection = new VerticalStackLayout
+        {
+            Spacing = 6,
+            IsVisible = false
+        };
+        foreach (var link in completedLinks)
+        {
+            if (tasks.TryGetValue(link.TaskItemId, out var task))
+                completedSection.Children.Add(
+                    BuildItemRow(group, link, task));
+        }
+        var completedToggle = MakeButton(
+            $"✓ Completed ({completedLinks.Count})",
+            "#ECEFF1",
+            "#616161");
+        completedToggle.IsVisible = completedLinks.Count > 0;
+        completedToggle.Clicked += (_, _) =>
+            completedSection.IsVisible =
+                !completedSection.IsVisible;
+        body.Children.Add(completedToggle);
+        body.Children.Add(completedSection);
 
         var exceptions = await _service.GetExceptionsAsync(group.Id);
         var exceptionPanel = new VerticalStackLayout
