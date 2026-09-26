@@ -101,6 +101,21 @@ public class SequenceTaskPage : ContentPage
         editTemplate.Clicked += (_, _) => templatePanel.IsVisible = !templatePanel.IsVisible;
         body.Children.Add(templatePanel);
         body.Children.Add(new Label { Text = $"{tasks.Values.Count(t => t.IsCompleted)} of {links.Count} completed", FontSize = 13, TextColor = Color.FromArgb("#666") });
+        var selectionActions = new HorizontalStackLayout { Spacing = 6 };
+        var selectAll = MakeButton("Select All", "#E3F2FD", "#1565C0");
+        selectAll.Clicked += async (_, _) =>
+        {
+            foreach (var link in links)
+                if (tasks.TryGetValue(link.TaskItemId, out var task) && !task.IsCompleted)
+                    _selectedTaskIds.Add(task.Id);
+            await RefreshAsync();
+        };
+        _doneSelectedButton = MakeButton($"Done Selected ({_selectedTaskIds.Count})", "#E8F5E9", "#2E7D32");
+        _doneSelectedButton.IsEnabled = _selectedTaskIds.Count > 0;
+        _doneSelectedButton.Clicked += async (_, _) => await CompleteSelectedAsync(group, links, tasks);
+        selectionActions.Children.Add(selectAll);
+        selectionActions.Children.Add(_doneSelectedButton);
+        body.Children.Add(selectionActions);
         foreach (var link in links)
         {
             if (tasks.TryGetValue(link.TaskItemId, out var task) &&
@@ -236,21 +251,6 @@ public class SequenceTaskPage : ContentPage
             var task = await TaskCreationHelper.ShowCreateTaskAsync(this, _auth, _tasks, _ideasService);
             if (task != null) { await _service.AddTaskItemAsync(group.Id, task.Id); await RefreshAsync(); }
         };
-        var selectionActions = new HorizontalStackLayout { Spacing = 6 };
-        var selectAll = MakeButton("Select All", "#E3F2FD", "#1565C0");
-        selectAll.Clicked += async (_, _) =>
-        {
-            foreach (var link in links)
-                if (tasks.TryGetValue(link.TaskItemId, out var task) && !task.IsCompleted)
-                    _selectedTaskIds.Add(task.Id);
-            await RefreshAsync();
-        };
-        _doneSelectedButton = MakeButton($"Done Selected ({_selectedTaskIds.Count})", "#E8F5E9", "#2E7D32");
-        _doneSelectedButton.IsEnabled = _selectedTaskIds.Count > 0;
-        _doneSelectedButton.Clicked += async (_, _) => await CompleteSelectedAsync(group, links, tasks);
-        selectionActions.Children.Add(selectAll);
-        selectionActions.Children.Add(_doneSelectedButton);
-        body.Children.Add(selectionActions);
         body.Children.Add(add);
 
         var export = MakeButton("Export & Archive", "#FFF3E0", "#E65100");
