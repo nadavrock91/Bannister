@@ -490,13 +490,6 @@ public partial class ActivityGamePage
         var activity = attemptVM.GetActivity();
 
         var today = DateTime.UtcNow.Date;
-        if (attempt.LastUsedDate.HasValue && attempt.LastUsedDate.Value.Date == today)
-        {
-            await DisplayAlert("Already Recorded",
-                $"You've already recorded today.\n\nCurrent streak: {attemptVM.DisplayDaysAchieved} days",
-                "OK");
-            return;
-        }
 
         // Check for gap before proceeding
         string gameId = GetActivityGameId(activity);
