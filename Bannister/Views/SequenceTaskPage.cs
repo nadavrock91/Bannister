@@ -180,23 +180,16 @@ public class SequenceTaskPage : ContentPage
                     .Where(l => tasks.TryGetValue(l.TaskItemId, out var t) && !t.IsCompleted)
                     .Select(l => tasks[l.TaskItemId])
                     .ToList();
-                var choices = incomplete
-                    .Select(t => t.Title)
-                    .Concat(new[] { "At the end" })
-                    .ToArray();
-                var choice = await DisplayActionSheet(
-                    "Insert before which task?", "Cancel", null, choices);
-                if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel") return;
+                var beforeTaskId =
+                    await ShowInsertPositionOverlayAsync(incomplete);
+                if (!beforeTaskId.HasValue) return;
 
                 var newTask = await TaskCreationHelper.ShowCreateTaskAsync(
                     this, _auth, _tasks, _ideasService);
                 if (newTask == null) return;
 
-                int beforeId = choice == "At the end"
-                    ? 0
-                    : incomplete.First(t => t.Title == choice).Id;
                 await _service.InsertTaskItemAtAsync(
-                    group.Id, newTask.Id, beforeId);
+                    group.Id, newTask.Id, beforeTaskId.Value);
                 await RefreshAsync();
             };
             exceptionButtons.Children.Add(exceptionButton);
@@ -246,6 +239,111 @@ public class SequenceTaskPage : ContentPage
         };
         body.Children.Add(deleteGroup);
         return Card(body);
+    }
+
+    private async Task<int?> ShowInsertPositionOverlayAsync(
+        List<TaskItem> incompleteTasks)
+    {
+        var tcs = new TaskCompletionSource<int?>();
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000")
+        };
+
+        var title = new Label
+        {
+            Text = "Insert before which task?",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222"),
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        Grid rootGrid = null!;
+        View? originalContent = null;
+        var list = new VerticalStackLayout { Spacing = 8 };
+        var topButton = MakeButton(
+            "⬆ Insert at Top", "#E3F2FD", "#1565C0");
+        topButton.Clicked += (_, _) => Close(0);
+        list.Children.Add(topButton);
+
+        foreach (var task in incompleteTasks)
+        {
+            var capturedTask = task;
+            var taskButton = MakeButton(
+                capturedTask.Title, "#F5F5F5", "#222222");
+            taskButton.HorizontalOptions = LayoutOptions.Fill;
+            taskButton.LineBreakMode = LineBreakMode.WordWrap;
+            taskButton.MinimumHeightRequest = 44;
+            taskButton.Clicked += (_, _) =>
+                Close(capturedTask.Id);
+            list.Children.Add(taskButton);
+        }
+
+        var cancelButton = MakeButton(
+            "Cancel", "#ECEFF1", "#616161");
+        cancelButton.Clicked += (_, _) => Close(null);
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 16,
+            WidthRequest = 360,
+            MaximumHeightRequest = 600,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    title,
+                    new ScrollView
+                    {
+                        MaximumHeightRequest = 440,
+                        Content = list
+                    },
+                    cancelButton
+                }
+            }
+        };
+
+        if (Content is Grid existingGrid)
+        {
+            rootGrid = existingGrid;
+        }
+        else
+        {
+            originalContent = Content;
+            rootGrid = new Grid();
+            if (originalContent != null)
+            {
+                Content = null;
+                rootGrid.Children.Add(originalContent);
+            }
+            Content = rootGrid;
+        }
+
+        void Close(int? result)
+        {
+            rootGrid.Children.Remove(overlay);
+            tcs.TrySetResult(result);
+        }
+
+        overlay.Children.Add(card);
+        rootGrid.Children.Add(overlay);
+
+        var selected = await tcs.Task;
+        if (originalContent != null &&
+            ReferenceEquals(Content, rootGrid))
+        {
+            rootGrid.Children.Remove(originalContent);
+            Content = null;
+            Content = originalContent;
+        }
+
+        return selected;
     }
 
     private View BuildItemRow(SequenceTaskGroup group, SequenceTaskItem link, TaskItem task)
