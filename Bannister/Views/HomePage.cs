@@ -76,6 +76,7 @@ public class HomePage : ContentPage
     private readonly EmotionService _emotionService;
     private readonly StatTrackerService _statTracker;
     private readonly ResetEnforcerService _resetEnforcerService;
+    private readonly VideoGenExperimentService _videoGenExperimentService;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -166,9 +167,11 @@ public class HomePage : ContentPage
         HomePopupPreferenceService popupPreferences, HomeQuickAccessService homeQuickAccess, DeviceModeService deviceMode, EmotionService emotionService,
         StatTrackerService statTracker, ResetEnforcerService resetEnforcerService,
         HomeButtonVisibilityService buttonVisibility,
-        PrivacyModeService privacyMode)
+        PrivacyModeService privacyMode,
+        VideoGenExperimentService videoGenExperimentService)
     {
         _auth = auth;
+        _videoGenExperimentService = videoGenExperimentService;
         _games = games;
         _dragons = dragons;
         _backup = backup;
@@ -2790,7 +2793,7 @@ public class HomePage : ContentPage
 
     private async void OnStoryProductionClicked(object? sender, EventArgs e)
     {
-        var page = new StoryProductionHubPage(_auth, _storyProduction, _assetLibraryService, _assetThumbnailService, _ideas, _ideaLogger, _subActivityService, _customPrompts);
+        var page = new StoryProductionHubPage(_auth, _storyProduction, _assetLibraryService, _assetThumbnailService, _ideas, _ideaLogger, _subActivityService, _customPrompts, videoGenExperimentService: _videoGenExperimentService);
         await Navigation.PushAsync(page);
     }
 

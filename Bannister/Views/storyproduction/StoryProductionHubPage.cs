@@ -18,10 +18,11 @@ public class StoryProductionHubPage : ContentPage
     private readonly AssetThumbnailService _assetThumbnailService;
     private readonly WritingExperimentService? _experimentService;
     private readonly ClipsExperimentService? _clipsExperimentService;
+    private readonly VideoGenExperimentService? _videoGenExperimentService;
     
     private Label _statsLabel;
 
-    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null, WritingExperimentService? experimentService = null, ClipsExperimentService? clipsExperimentService = null)
+    public StoryProductionHubPage(AuthService auth, StoryProductionService storyService, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, SubActivityService? subActivityService = null, CustomPromptService? customPrompts = null, WritingExperimentService? experimentService = null, ClipsExperimentService? clipsExperimentService = null, VideoGenExperimentService? videoGenExperimentService = null)
     {
         _auth = auth;
         _storyService = storyService;
@@ -33,6 +34,7 @@ public class StoryProductionHubPage : ContentPage
         _assetThumbnailService = assetThumbnailService;
         _experimentService = experimentService;
         _clipsExperimentService = clipsExperimentService;
+        _videoGenExperimentService = videoGenExperimentService;
         
         Title = "Story Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -155,6 +157,16 @@ public class StoryProductionHubPage : ContentPage
         });
         mainStack.Children.Add(clipsExperimentBtn);
 
+        var videoGenBtn = CreateMenuButton(
+            "🎥 Video Generation Methods",
+            "Test production methods and compare short-video retention",
+            Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        videoGenBtn.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await OnVideoGenExperimentClicked())
+        });
+        mainStack.Children.Add(videoGenBtn);
+
         Content = new ScrollView { Content = mainStack };
     }
 
@@ -275,5 +287,17 @@ public class StoryProductionHubPage : ContentPage
         }
 
         await Navigation.PushAsync(new ClipsExperimentPage(service));
+    }
+
+    private async Task OnVideoGenExperimentClicked()
+    {
+        var service = _videoGenExperimentService
+            ?? Handler?.MauiContext?.Services.GetService<VideoGenExperimentService>();
+        if (service == null)
+        {
+            await DisplayAlert("Unavailable", "Video generation experiment service is unavailable.", "OK");
+            return;
+        }
+        await Navigation.PushAsync(new VideoGenExperimentPage(service, _auth));
     }
 }
