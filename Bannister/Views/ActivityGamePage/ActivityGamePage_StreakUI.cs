@@ -703,6 +703,7 @@ public partial class ActivityGamePage
             _auth.CurrentUsername, 
             GetActivityGameId(streakContainer), 
             streakContainer.Id);
+        if (ct.IsCancellationRequested) return;
         System.Diagnostics.Debug.WriteLine(
             $"[STREAK_VIEW] Got {attempts.Count} attempts");
         
@@ -737,6 +738,7 @@ public partial class ActivityGamePage
         var header = BuildStreakContainerHeader(
             streakContainer, attempts,
             headerImageExists);
+        if (ct.IsCancellationRequested) return;
         System.Diagnostics.Debug.WriteLine(
             "[STREAK_VIEW] Header built, adding to stack...");
         mainStack.Children.Add(header);
@@ -788,6 +790,7 @@ public partial class ActivityGamePage
         System.Diagnostics.Debug.WriteLine(
             "[STREAK_VIEW] Building goals header...");
         var goalsHeader = await BuildStreakGoalsHeaderAsync(streakContainer, attempts);
+        if (ct.IsCancellationRequested) return;
         System.Diagnostics.Debug.WriteLine(
             "[STREAK_VIEW] Goals header done");
         mainStack.Children.Add(goalsHeader);
@@ -845,6 +848,7 @@ public partial class ActivityGamePage
             .ThenByDescending(a => a.AttemptNumber)
             .Select(a => new StreakAttemptViewModel(a, streakContainer) { CurrentLevel = _currentLevel })
             .ToList();
+        if (ct.IsCancellationRequested) return;
         
         Grid? currentRow = null;
         int columnIndex = 0;
