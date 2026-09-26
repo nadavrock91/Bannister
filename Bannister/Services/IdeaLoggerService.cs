@@ -324,7 +324,7 @@ public class IdeaLoggerService
         var titleEntry = new Editor
         {
             Text = prefillText ?? "", Placeholder = "Idea title",
-            BackgroundColor = Color.FromArgb("#F5F5F5"), FontSize = 14
+            BackgroundColor = Color.FromArgb("#F5F5F5"), HeightRequest = 100, FontSize = 14
         };
         StylePhoneEditor(titleEntry);
         mainStack.Children.Add(titleEntry);
