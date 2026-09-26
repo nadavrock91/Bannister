@@ -16,6 +16,43 @@ public class WeeklyMethodExperiment
     public string Notes { get; set; } = "";
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public bool IsArchived { get; set; }
+    public int? MethodId { get; set; }
+    public int? MethodSnapshotId { get; set; }
+}
+
+[Table("production_methods")]
+public class ProductionMethod
+{
+    [PrimaryKey, AutoIncrement] public int Id { get; set; }
+    public string Username { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
+    public int Version { get; set; } = 1;
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public bool IsArchived { get; set; }
+}
+
+[Table("production_method_stages")]
+public class ProductionMethodStage
+{
+    [PrimaryKey, AutoIncrement] public int Id { get; set; }
+    public int MethodId { get; set; }
+    public int Position { get; set; }
+    public string StageName { get; set; } = "";
+    public string Instructions { get; set; } = "";
+    public int? InputCount { get; set; }
+    public int? OutputCount { get; set; }
+    public int? GenerationAllowance { get; set; }
+}
+
+[Table("weekly_method_snapshots")]
+public class WeeklyMethodSnapshot
+{
+    [PrimaryKey, AutoIncrement] public int Id { get; set; }
+    public int WeeklyMethodExperimentId { get; set; }
+    public int MethodId { get; set; }
+    public int MethodVersion { get; set; }
+    public string SnapshotJson { get; set; } = "";
 }
 
 [Table("clip_experiments")]
@@ -37,4 +74,8 @@ public class ClipExperiment
     public int? ActualRetentionRating { get; set; }
     public string Notes { get; set; } = "";
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public string StartingFrameId { get; set; } = "";
+    public string ClipId { get; set; } = "";
+    public int? GenerationsUsed { get; set; }
+    public string ExecutionNotes { get; set; } = "";
 }
