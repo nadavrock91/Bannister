@@ -15,6 +15,7 @@ public class SequenceTaskService
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<SequenceTaskGroup>();
         await conn.CreateTableAsync<SequenceTaskItem>();
+        await conn.CreateTableAsync<SequenceTaskException>();
         _initialized = true;
     }
 
@@ -121,5 +122,68 @@ public class SequenceTaskService
         var conn = await _db.GetConnectionAsync();
         var item = await conn.FindAsync<SequenceTaskItem>(id);
         if (item != null) await conn.DeleteAsync(item);
+    }
+
+    public async Task<List<SequenceTaskException>> GetExceptionsAsync(int groupId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<SequenceTaskException>()
+            .Where(e => e.GroupId == groupId)
+            .OrderBy(e => e.Id)
+            .ToListAsync();
+    }
+
+    public async Task SaveExceptionAsync(SequenceTaskException exception)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        if (exception.Id == 0) await conn.InsertAsync(exception);
+        else await conn.UpdateAsync(exception);
+    }
+
+    public async Task DeleteExceptionAsync(int id)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var exception = await conn.FindAsync<SequenceTaskException>(id);
+        if (exception != null) await conn.DeleteAsync(exception);
+    }
+
+    public async Task InsertTaskItemAtAsync(
+        int groupId,
+        int taskItemId,
+        int beforeTaskItemId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var links = await conn.Table<SequenceTaskItem>()
+            .Where(i => i.GroupId == groupId)
+            .OrderBy(i => i.SortOrder)
+            .ToListAsync();
+
+        int sortOrder = links.Count;
+        if (beforeTaskItemId != 0)
+        {
+            var before = links.FirstOrDefault(
+                i => i.TaskItemId == beforeTaskItemId);
+            if (before != null)
+            {
+                sortOrder = before.SortOrder;
+                foreach (var link in links.Where(
+                    i => i.SortOrder >= sortOrder))
+                {
+                    link.SortOrder++;
+                    await conn.UpdateAsync(link);
+                }
+            }
+        }
+
+        await conn.InsertAsync(new SequenceTaskItem
+        {
+            GroupId = groupId,
+            TaskItemId = taskItemId,
+            SortOrder = sortOrder
+        });
     }
 }

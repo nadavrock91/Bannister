@@ -25,3 +25,13 @@ public class SequenceTaskItem
     public int TaskItemId { get; set; }
     public int SortOrder { get; set; }
 }
+
+[Table("sequence_task_exceptions")]
+public class SequenceTaskException
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+
+    public int GroupId { get; set; }
+    public string Label { get; set; } = "";
+}

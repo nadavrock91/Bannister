@@ -102,6 +102,108 @@ public class SequenceTaskPage : ContentPage
         foreach (var link in links)
             if (tasks.TryGetValue(link.TaskItemId, out var task)) body.Children.Add(BuildItemRow(group, link, task));
 
+        var exceptions = await _service.GetExceptionsAsync(group.Id);
+        var exceptionPanel = new VerticalStackLayout
+        {
+            Spacing = 6,
+            IsVisible = false
+        };
+        var exceptionList = new VerticalStackLayout { Spacing = 4 };
+        foreach (var exception in exceptions)
+        {
+            var exceptionRow = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto)
+                }
+            };
+            exceptionRow.Add(new Label
+            {
+                Text = exception.Label,
+                VerticalOptions = LayoutOptions.Center,
+                TextColor = Color.FromArgb("#333")
+            }, 0, 0);
+            var deleteException = MakeButton("Delete", "#FFEBEE", "#C62828");
+            deleteException.Clicked += async (_, _) =>
+            {
+                await _service.DeleteExceptionAsync(exception.Id);
+                await RefreshAsync();
+            };
+            exceptionRow.Add(deleteException, 1, 0);
+            exceptionList.Children.Add(exceptionRow);
+        }
+        exceptionPanel.Children.Add(exceptionList);
+        var exceptionInput = new Entry
+        {
+            Placeholder = "Exception type label",
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222")
+        };
+        var addException = MakeButton("Add", "#E8EAF6", "#3949AB");
+        addException.Clicked += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(exceptionInput.Text)) return;
+            await _service.SaveExceptionAsync(new SequenceTaskException
+            {
+                GroupId = group.Id,
+                Label = exceptionInput.Text.Trim()
+            });
+            await RefreshAsync();
+        };
+        var exceptionAddRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            }
+        };
+        exceptionAddRow.Add(exceptionInput, 0, 0);
+        exceptionAddRow.Add(addException, 1, 0);
+        exceptionPanel.Children.Add(exceptionAddRow);
+        var exceptionToggle = MakeButton("Exception Types", "#ECEFF1", "#37474F");
+        exceptionToggle.Clicked += (_, _) =>
+            exceptionPanel.IsVisible = !exceptionPanel.IsVisible;
+        body.Children.Add(exceptionToggle);
+        body.Children.Add(exceptionPanel);
+
+        var exceptionButtons = new HorizontalStackLayout { Spacing = 6 };
+        foreach (var exception in exceptions)
+        {
+            var exceptionButton = MakeButton(
+                exception.Label, "#FFF3E0", "#E65100");
+            exceptionButton.Clicked += async (_, _) =>
+            {
+                var incomplete = links
+                    .Where(l => tasks.TryGetValue(l.TaskItemId, out var t) && !t.IsCompleted)
+                    .Select(l => tasks[l.TaskItemId])
+                    .ToList();
+                var choices = incomplete
+                    .Select(t => t.Title)
+                    .Concat(new[] { "At the end" })
+                    .ToArray();
+                var choice = await DisplayActionSheet(
+                    "Insert before which task?", "Cancel", null, choices);
+                if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel") return;
+
+                var newTask = await TaskCreationHelper.ShowCreateTaskAsync(
+                    this, _auth, _tasks, _ideasService);
+                if (newTask == null) return;
+
+                int beforeId = choice == "At the end"
+                    ? 0
+                    : incomplete.First(t => t.Title == choice).Id;
+                await _service.InsertTaskItemAtAsync(
+                    group.Id, newTask.Id, beforeId);
+                await RefreshAsync();
+            };
+            exceptionButtons.Children.Add(exceptionButton);
+        }
+        if (exceptions.Count > 0)
+            body.Children.Add(exceptionButtons);
+
         var add = MakeButton("+ Add Task", "#E8F5E9", "#2E7D32");
         add.Clicked += async (_, _) =>
         {
