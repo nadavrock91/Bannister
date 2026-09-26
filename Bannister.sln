@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bannister", "Bannister\Bannister.csproj", "{1B986EC0-82AA-46AA-AA03-B672043EAD6C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BannisterTools", "BannisterTools\BannisterTools.csproj", "{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,6 +25,16 @@ Global
 		{1B986EC0-82AA-46AA-AA03-B672043EAD6C}.Release|x64.ActiveCfg = Release|x64
 		{1B986EC0-82AA-46AA-AA03-B672043EAD6C}.Release|x64.Build.0 = Release|x64
 		{1B986EC0-82AA-46AA-AA03-B672043EAD6C}.Release|x64.Deploy.0 = Release|x64
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Debug|x64.ActiveCfg = Debug|x64
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Debug|x64.Build.0 = Debug|x64
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Debug|x64.Deploy.0 = Debug|x64
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Release|x64.ActiveCfg = Release|x64
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Release|x64.Build.0 = Release|x64
+		{F9D7DCC0-7D5F-4F96-9D3F-9E9BD1C4F6B1}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
