@@ -77,6 +77,7 @@ public class HomePage : ContentPage
     private readonly StatTrackerService _statTracker;
     private readonly ResetEnforcerService _resetEnforcerService;
     private readonly VideoGenExperimentService _videoGenExperimentService;
+    private readonly AppSettingsService _appSettings;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -168,10 +169,12 @@ public class HomePage : ContentPage
         StatTrackerService statTracker, ResetEnforcerService resetEnforcerService,
         HomeButtonVisibilityService buttonVisibility,
         PrivacyModeService privacyMode,
-        VideoGenExperimentService videoGenExperimentService)
+        VideoGenExperimentService videoGenExperimentService,
+        AppSettingsService appSettings)
     {
         _auth = auth;
         _videoGenExperimentService = videoGenExperimentService;
+        _appSettings = appSettings;
         _games = games;
         _dragons = dragons;
         _backup = backup;
@@ -2673,7 +2676,7 @@ public class HomePage : ContentPage
         string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         string tokenKey = GetWebsiteBuilderInterruptShownKey(today);
         string? token = null;
-        try { token = await SecureStorage.GetAsync(tokenKey); } catch { }
+        token = await _appSettings.GetAsync(_auth.CurrentUsername, tokenKey);
         if (!string.IsNullOrWhiteSpace(token))
             return false;
 
@@ -2694,7 +2697,7 @@ public class HomePage : ContentPage
             "Go now",
             "Later");
 
-        try { await SecureStorage.SetAsync(tokenKey, "1"); } catch { }
+        await _appSettings.SetAsync(_auth.CurrentUsername, tokenKey, "1");
 
         if (!goNow)
             return false;
@@ -3865,7 +3868,8 @@ public class HomePage : ContentPage
     {
         var page = new SettingsPage(
             _auth, _db, _backup, _buttonVisibility,
-            resetTime: _resetTime);
+            resetTime: _resetTime,
+            appSettings: _appSettings);
         await Navigation.PushAsync(page);
     }
 
@@ -3883,26 +3887,31 @@ public class HomePage : ContentPage
 
         string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         string? lastVisited = null;
-        try { lastVisited = await SecureStorage.GetAsync(GetCalendarVisitedStorageKey()); } catch { }
+        lastVisited = await _appSettings.GetAsync(
+            _auth.CurrentUsername, GetCalendarVisitedStorageKey());
         return lastVisited != today;
     }
 
     private async Task MarkCalendarVisitedTodayAsync()
     {
         string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        try { await SecureStorage.SetAsync(GetCalendarVisitedStorageKey(), today); } catch { }
+        await _appSettings.SetAsync(
+            _auth.CurrentUsername, GetCalendarVisitedStorageKey(), today);
     }
 
     private async Task<bool> GetCalendarBeforeGamesBlockEnabledAsync()
     {
         string? value = null;
-        try { value = await SecureStorage.GetAsync(GetCalendarBeforeGamesBlockStorageKey()); } catch { }
+        value = await _appSettings.GetAsync(
+            _auth.CurrentUsername, GetCalendarBeforeGamesBlockStorageKey());
         return value != "false";
     }
 
     private async Task SetCalendarBeforeGamesBlockEnabledAsync(bool enabled)
     {
-        try { await SecureStorage.SetAsync(GetCalendarBeforeGamesBlockStorageKey(), enabled ? "true" : "false"); } catch { }
+        await _appSettings.SetAsync(
+            _auth.CurrentUsername, GetCalendarBeforeGamesBlockStorageKey(),
+            enabled ? "true" : "false");
     }
 
     private string GetCalendarVisitedStorageKey() => $"home_calendar_visited_{_auth.CurrentUsername}";
@@ -3912,7 +3921,8 @@ public class HomePage : ContentPage
     private async Task<bool> GetWebsiteBuilderInterruptEnabledAsync()
     {
         string? value = null;
-        try { value = await SecureStorage.GetAsync(GetWebsiteBuilderInterruptEnabledKey()); } catch { }
+        value = await _appSettings.GetAsync(
+            _auth.CurrentUsername, GetWebsiteBuilderInterruptEnabledKey());
         return value != "0";
     }
 

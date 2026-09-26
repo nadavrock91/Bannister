@@ -19,6 +19,7 @@ public class SettingsPage : ContentPage
     private readonly ActivityService _activityService;
     private readonly GameService _gameService;
     private readonly ResetTimeService _resetTime;
+    private readonly AppSettingsService _appSettings;
     private Switch _calendarBeforeGamesSwitch;
     private Label _calendarBeforeGamesStatus;
     private Switch _websiteBuilderInterruptSwitch;
@@ -39,7 +40,8 @@ public class SettingsPage : ContentPage
         ContextMenuOrderService? contextMenuOrder = null,
         ActivityService? activityService = null,
         GameService? gameService = null,
-        ResetTimeService? resetTime = null)
+        ResetTimeService? resetTime = null,
+        AppSettingsService? appSettings = null)
     {
         _auth = auth;
         _db = db;
@@ -75,6 +77,12 @@ public class SettingsPage : ContentPage
                     typeof(ResetTimeService))
             ?? throw new InvalidOperationException(
                 "ResetTimeService is not registered.");
+        _appSettings = appSettings
+            ?? (AppSettingsService?)Application.Current?.Handler?
+                .MauiContext?.Services.GetService(
+                    typeof(AppSettingsService))
+            ?? throw new InvalidOperationException(
+                "AppSettingsService is not registered.");
 
         Title = "Settings";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -969,28 +977,32 @@ public class SettingsPage : ContentPage
 
     private async Task<bool> GetCalendarBeforeGamesBlockEnabledAsync()
     {
-        string? value = null;
-        try { value = await SecureStorage.GetAsync(GetCalendarBeforeGamesBlockStorageKey()); } catch { }
+        string? value = await _appSettings.GetAsync(
+            _auth.CurrentUsername, GetCalendarBeforeGamesBlockStorageKey());
         return value != "false";
     }
 
     private async Task SetCalendarBeforeGamesBlockEnabledAsync(bool enabled)
     {
-        try { await SecureStorage.SetAsync(GetCalendarBeforeGamesBlockStorageKey(), enabled ? "true" : "false"); } catch { }
+        await _appSettings.SetAsync(
+            _auth.CurrentUsername, GetCalendarBeforeGamesBlockStorageKey(),
+            enabled ? "true" : "false");
     }
 
     private string GetCalendarBeforeGamesBlockStorageKey() => $"home_block_games_until_calendar_{_auth.CurrentUsername}";
 
     private async Task<bool> GetWebsiteBuilderInterruptEnabledAsync()
     {
-        string? value = null;
-        try { value = await SecureStorage.GetAsync(GetWebsiteBuilderInterruptEnabledKey()); } catch { }
+        string? value = await _appSettings.GetAsync(
+            _auth.CurrentUsername, GetWebsiteBuilderInterruptEnabledKey());
         return value != "0";
     }
 
     private async Task SetWebsiteBuilderInterruptEnabledAsync(bool enabled)
     {
-        try { await SecureStorage.SetAsync(GetWebsiteBuilderInterruptEnabledKey(), enabled ? "1" : "0"); } catch { }
+        await _appSettings.SetAsync(
+            _auth.CurrentUsername, GetWebsiteBuilderInterruptEnabledKey(),
+            enabled ? "1" : "0");
     }
 
     private string GetWebsiteBuilderInterruptEnabledKey() => $"website_builder_interrupt_enabled_{_auth.CurrentUsername}";
