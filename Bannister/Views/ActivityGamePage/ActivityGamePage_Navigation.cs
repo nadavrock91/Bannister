@@ -11,7 +11,8 @@ public partial class ActivityGamePage
     // Filter and Category Events
     private void OnCategoryChanged(object? sender, EventArgs e)
     {
-        if (categoryPicker.SelectedIndex >= 0)
+        if (categoryPicker.SelectedIndex >= 0 &&
+            categoryPicker.SelectedIndex < _categories.Count)
         {
             // User selected from dropdown - get the category name
             string selectedCategory = _categories[categoryPicker.SelectedIndex];
