@@ -20,6 +20,8 @@ public class SequenceTaskPage : ContentPage
     private Editor _templateEditor = null!;
     private Editor _tasksEditor = null!;
     private bool _busy;
+    private bool _selectionMode;
+    private readonly HashSet<int> _selectedTaskIds = new();
 
     public SequenceTaskPage(SequenceTaskService service, AuthService auth,
         TaskService tasks, IdeasService? ideasService)
@@ -99,11 +101,25 @@ public class SequenceTaskPage : ContentPage
         editTemplate.Clicked += (_, _) => templatePanel.IsVisible = !templatePanel.IsVisible;
         body.Children.Add(templatePanel);
         body.Children.Add(new Label { Text = $"{tasks.Values.Count(t => t.IsCompleted)} of {links.Count} completed", FontSize = 13, TextColor = Color.FromArgb("#666") });
+        var selectButton = MakeButton(_selectionMode ? "Exit Selection" : "Select", "#E8EAF6", "#3949AB");
+        selectButton.Clicked += async (_, _) => { _selectionMode = !_selectionMode; _selectedTaskIds.Clear(); await RefreshAsync(); };
+        body.Children.Add(selectButton);
         foreach (var link in links)
         {
             if (tasks.TryGetValue(link.TaskItemId, out var task) &&
                 !task.IsCompleted)
-                body.Children.Add(BuildItemRow(group, link, task));
+                body.Children.Add(BuildItemRow(group, link, task, _selectionMode));
+        }
+
+        if (_selectionMode)
+        {
+            var selectionActions = new HorizontalStackLayout { Spacing = 6 };
+            var selectAll = MakeButton("Select All", "#E3F2FD", "#1565C0");
+            selectAll.Clicked += async (_, _) => { foreach (var link in links) if (tasks.TryGetValue(link.TaskItemId, out var task) && !task.IsCompleted) _selectedTaskIds.Add(task.Id); await RefreshAsync(); };
+            var doneSelected = MakeButton($"Done Selected ({_selectedTaskIds.Count})", "#E8F5E9", "#2E7D32");
+            doneSelected.IsEnabled = _selectedTaskIds.Count > 0;
+            doneSelected.Clicked += async (_, _) => await CompleteSelectedAsync(group, links, tasks);
+            selectionActions.Children.Add(selectAll); selectionActions.Children.Add(doneSelected); body.Children.Add(selectionActions);
         }
 
         var completedLinks = links
@@ -377,9 +393,41 @@ public class SequenceTaskPage : ContentPage
         return selected;
     }
 
-    private View BuildItemRow(SequenceTaskGroup group, SequenceTaskItem link, TaskItem task)
+    private async Task CompleteSelectedAsync(SequenceTaskGroup group, List<SequenceTaskItem> links, Dictionary<int, TaskItem> tasks)
+    {
+        var selected = links
+            .Where(link => _selectedTaskIds.Contains(link.TaskItemId) && tasks.TryGetValue(link.TaskItemId, out var task) && !task.IsCompleted)
+            .Select(link => tasks[link.TaskItemId])
+            .ToList();
+        if (selected.Count == 0) return;
+        var numbered = string.Join("\n", selected.Select((task, index) => $"{index + 1}. {task.Title}"));
+        var prompt = (group.ExportPromptTemplate ?? "{task}").Replace("{task}", numbered);
+        await Clipboard.SetTextAsync(prompt);
+        _busy = true;
+        try
+        {
+            foreach (var task in selected)
+                await _tasks.CompleteTaskAsync(task);
+        }
+        finally { _busy = false; }
+        _selectionMode = false;
+        _selectedTaskIds.Clear();
+        await DisplayAlert("Prompt Copied", $"Prompt copied for {selected.Count} tasks — paste into LLM before continuing", "OK");
+        await RefreshAsync();
+    }
+
+    private View BuildItemRow(SequenceTaskGroup group, SequenceTaskItem link, TaskItem task, bool selectionMode = false)
     {
         var body = new VerticalStackLayout { Spacing = 4 };
+        if (selectionMode && !task.IsCompleted)
+        {
+            var selectRow = new HorizontalStackLayout { Spacing = 6 };
+            var check = new CheckBox { IsChecked = _selectedTaskIds.Contains(task.Id), VerticalOptions = LayoutOptions.Center };
+            check.CheckedChanged += (_, e) => { if (e.Value) _selectedTaskIds.Add(task.Id); else _selectedTaskIds.Remove(task.Id); };
+            selectRow.Children.Add(check);
+            selectRow.Children.Add(new Label { Text = "Select this task", VerticalOptions = LayoutOptions.Center, TextColor = Color.FromArgb("#555") });
+            body.Children.Add(selectRow);
+        }
         var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, Padding = new Thickness(8, 6) };
         row.Add(new Label { Text = task.IsCompleted ? $"✓ {task.Title}" : task.Title, FontSize = 14, TextColor = task.IsCompleted ? Color.FromArgb("#8A8A8A") : Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center }, 0, 0);
         var copy = MakeButton("Copy", "#E3F2FD", "#1565C0");
