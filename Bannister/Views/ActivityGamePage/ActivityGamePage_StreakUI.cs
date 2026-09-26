@@ -534,18 +534,19 @@ public partial class ActivityGamePage
 
         // Compute day label for EXP log
         string dayLabel;
+        string streakDisplayName = activity.IsImageOnly ? "" : activity.Name;
         if (streakBroke)
         {
-            dayLabel = $"{activity.Name} (Day 1)";
+            dayLabel = activity.IsImageOnly ? "" : $"{streakDisplayName} (Day 1)";
         }
         else if (activity.ShowStreakAsDaysSinceStarted == true && attempt.StartedAt.HasValue)
         {
             int calendarDays = (today - attempt.StartedAt.Value.ToLocalTime().Date).Days;
-            dayLabel = $"{activity.Name} (Day {calendarDays})";
+            dayLabel = activity.IsImageOnly ? "" : $"{streakDisplayName} (Day {calendarDays})";
         }
         else
         {
-            dayLabel = $"{activity.Name} (Day {attempt.DaysAchieved + 1})";
+            dayLabel = activity.IsImageOnly ? "" : $"{streakDisplayName} (Day {attempt.DaysAchieved + 1})";
         }
 
         var (totalExp, bonusDetails) = await ProcessActivityCompletionAsync(

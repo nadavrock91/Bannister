@@ -40,11 +40,12 @@ public partial class ActivityGamePage
             int effectiveMultiplier = activityVM.EffectiveMultiplier;
             int expForThisActivity = baseExp * effectiveMultiplier;
             bool isFirstZeroCountCompletion = activityVM.Activity.IsZeroCount && activityVM.Activity.TimesCompleted == 0;
+            var displayName = activityVM.Activity.IsImageOnly ? "" : activityVM.Name;
 
             if (isFirstZeroCountCompletion)
             {
                 string expGameId = _isGroupingMode ? activityVM.Activity.Game : _game!.GameId;
-                await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, activityVM.Name, expForThisActivity * 10, activityVM.Id);
+                await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, displayName, expForThisActivity * 10, activityVM.Id);
             }
             else
             {
@@ -53,7 +54,7 @@ public partial class ActivityGamePage
                 {
                     // In grouping mode, use the activity's own game for EXP
                     string expGameId = _isGroupingMode ? activityVM.Activity.Game : _game!.GameId;
-                    await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, activityVM.Name, baseExp, activityVM.Id);
+                    await _exp.ApplyExpAsync(_auth.CurrentUsername, expGameId, displayName, baseExp, activityVM.Id);
                 }
             }
 
@@ -78,7 +79,6 @@ public partial class ActivityGamePage
             string zeroCountInfo = isFirstZeroCountCompletion ? " (Zero Count x10)" : "";
             int displayedExp = isFirstZeroCountCompletion ? expForThisActivity * 10 : expForThisActivity;
             string displayedSign = displayedExp >= 0 ? "+" : "";
-            var displayName = activityVM.Activity.IsImageOnly ? "" : activityVM.Name;
             details.Add($"{displayName}{multiplierInfo}{zeroCountInfo}: {displayedSign}{displayedExp}");
             
             if (!string.IsNullOrEmpty(bonusDetails))

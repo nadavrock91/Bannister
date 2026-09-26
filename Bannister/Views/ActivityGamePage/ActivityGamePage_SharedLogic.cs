@@ -115,14 +115,15 @@ public partial class ActivityGamePage
             int streakBonus = ActivityService.CalculateStreakBonus(activity.DisplayDayStreak);
             if (streakBonus > 0)
             {
+                var bonusName = activity.IsImageOnly ? "" : activity.Name;
                 await _exp.ApplyExpAsync(
                     _auth.CurrentUsername,
                     GetActivityGameId(activity),
-                    $"{activity.Name} (Streak Bonus)",
+                    $"{bonusName} (Streak Bonus)",
                     streakBonus,
                     activity.Id);
                 bonusExp = streakBonus;
-                bonusDetails.Add($"🔥 {activity.Name} streak bonus ({activity.DisplayDayStreak} days): +{streakBonus}");
+                bonusDetails.Add($" {bonusName} streak bonus ({activity.DisplayDayStreak} days): +{streakBonus}");
             }
         }
 
