@@ -32,7 +32,11 @@ public static class MauiProgram
                     var presenter = appWindow.Presenter as Microsoft.UI.Windowing.OverlappedPresenter;
                     if (presenter != null)
                     {
-                        presenter.Maximize();
+                        var display = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(
+                            windowId, Microsoft.UI.Windowing.DisplayAreaFallback.Nearest);
+                        var workArea = display.WorkArea;
+                        appWindow.Resize(new Windows.Graphics.SizeInt32(workArea.Width - 350, workArea.Height));
+                        appWindow.Move(new Windows.Graphics.PointInt32(workArea.X, workArea.Y));
                     }
                 }));
 #endif
