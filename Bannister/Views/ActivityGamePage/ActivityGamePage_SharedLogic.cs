@@ -591,55 +591,145 @@ public partial class ActivityGamePage
 
     private async Task HandleUpdateStreakValues(Activity activity, ActivityGameViewModel? activityVM, StreakAttemptViewModel? attemptVM)
     {
-        var options = new List<string>
+        if (Content is not Grid root)
+            return;
+
+        var completion = new TaskCompletionSource<bool>();
+        var overlay = new Grid
         {
-            $"Habit + Display Day Streaks ({activity.HabitStreak}, {activity.DisplayDayStreak})"
+            BackgroundColor = Color.FromArgb("#80000000"),
+            ZIndex = 1000
         };
 
+        var cardStack = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Padding = 20
+        };
+        cardStack.Children.Add(new Label
+        {
+            Text = "Update Streak Values",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222")
+        });
+
+        Entry? attemptEntry = null;
         if (attemptVM != null)
         {
-            options.Insert(0, $"Attempt Days: {attemptVM.DaysAchieved}");
+            cardStack.Children.Add(new Label
+            {
+                Text = "Attempt Days",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#444")
+            });
+            attemptEntry = new Entry
+            {
+                Text = attemptVM.DaysAchieved.ToString(),
+                Keyboard = Keyboard.Numeric,
+                Placeholder = "Attempt days"
+            };
+            cardStack.Children.Add(attemptEntry);
         }
 
-        string action = await DisplayActionSheet(
-            "Update Streak Values",
-            "Cancel",
-            null,
-            options.ToArray());
-
-        if (string.IsNullOrEmpty(action) || action == "Cancel") return;
-
-        if (action.StartsWith("Attempt Days") && attemptVM != null)
+        cardStack.Children.Add(new Label
         {
-            await EditAttemptDays(attemptVM);
-        }
-        else if (action.StartsWith("Habit + Display Day Streaks"))
+            Text = "Habit Streak",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#444")
+        });
+        var habitEntry = new Entry
         {
-            string? habitResult = await DisplayPromptAsync(
-                "Habit Streak",
-                $"For 7-day graduation.\nCurrent: {activity.HabitStreak}",
-                "Next",
-                "Cancel",
-                initialValue: activity.HabitStreak.ToString(),
-                keyboard: Keyboard.Numeric);
+            Text = activity.HabitStreak.ToString(),
+            Keyboard = Keyboard.Numeric,
+            Placeholder = "Habit streak"
+        };
+        cardStack.Children.Add(habitEntry);
 
-            if (string.IsNullOrEmpty(habitResult)) return;
+        cardStack.Children.Add(new Label
+        {
+            Text = "Display Day Streak",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#444")
+        });
+        var displayEntry = new Entry
+        {
+            Text = activity.DisplayDayStreak.ToString(),
+            Keyboard = Keyboard.Numeric,
+            Placeholder = "Display day streak"
+        };
+        cardStack.Children.Add(displayEntry);
 
-            string? displayResult = await DisplayPromptAsync(
-                "Display Day Streak",
-                $"Scheduled days bonus.\nCurrent: {activity.DisplayDayStreak}",
-                "Save Both",
-                "Cancel",
-                initialValue: activity.DisplayDayStreak.ToString(),
-                keyboard: Keyboard.Numeric);
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8
+        };
+        var saveButton = new Button
+        {
+            Text = "Save",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        var buttons = new HorizontalStackLayout
+        {
+            Spacing = 10,
+            Children = { cancelButton, saveButton }
+        };
+        cardStack.Children.Add(buttons);
 
-            if (string.IsNullOrEmpty(displayResult)) return;
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            HasShadow = true,
+            Padding = 0,
+            WidthRequest = 340,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = cardStack
+        };
+        overlay.Children.Add(card);
 
-            if (!int.TryParse(habitResult, out int newHabitStreak) || newHabitStreak < 0 ||
-                !int.TryParse(displayResult, out int newDisplayStreak) || newDisplayStreak < 0)
+        cancelButton.Clicked += (_, _) =>
+        {
+            if (root.Children.Contains(overlay))
+                root.Children.Remove(overlay);
+            completion.TrySetResult(false);
+        };
+
+        saveButton.Clicked += async (_, _) =>
+        {
+            int parsedAttemptDays = 0;
+            if (attemptVM != null &&
+                (attemptEntry == null ||
+                 !int.TryParse(attemptEntry.Text, out parsedAttemptDays) ||
+                 parsedAttemptDays < 0))
+            {
+                await DisplayAlert("Invalid", "Please enter a valid attempt day count (0 or greater).", "OK");
+                return;
+            }
+
+            if (!int.TryParse(habitEntry.Text, out int newHabitStreak) ||
+                newHabitStreak < 0 ||
+                !int.TryParse(displayEntry.Text, out int newDisplayStreak) ||
+                newDisplayStreak < 0)
             {
                 await DisplayAlert("Invalid", "Please enter whole numbers of 0 or higher.", "OK");
                 return;
+            }
+
+            if (attemptVM != null &&
+                attemptEntry != null &&
+                parsedAttemptDays != attemptVM.DaysAchieved)
+            {
+                var attempt = attemptVM.GetAttempt();
+                attempt.DaysAchieved = parsedAttemptDays;
+                var conn = await _db.GetConnectionAsync();
+                await conn.UpdateAsync(attempt);
             }
 
             activity.HabitStreak = newHabitStreak;
@@ -651,27 +741,28 @@ public partial class ActivityGamePage
                     : null;
             }
             if (newDisplayStreak > 0)
-            {
                 activity.LastDisplayDayUsed = DateTime.UtcNow.Date;
-            }
             else
-            {
                 activity.AutoSuggestThreshold = 30;
-            }
 
             await _activities.UpdateActivityAsync(activity);
             activityVM?.UpdateActivity(activity);
-
             if (activityVM != null)
-            {
                 activityVM.DisplayDayStreak = newDisplayStreak;
-            }
 
-            await DisplayAlert("Updated",
+            if (root.Children.Contains(overlay))
+                root.Children.Remove(overlay);
+            completion.TrySetResult(true);
+
+            await DisplayAlert(
+                "Updated",
                 $"Habit streak: {activity.HabitStreak}\nDisplay day streak: {activity.DisplayDayStreak}",
                 "OK");
             await RefreshActivitiesAsync();
-        }
+        };
+
+        root.Children.Add(overlay);
+        await completion.Task;
     }
 
     private async Task HandleEditTimesCompleted(Activity activity, ActivityGameViewModel? activityVM)
