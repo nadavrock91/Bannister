@@ -33,6 +33,7 @@ public class IdeasPage : ContentPage
     private ActivityIndicator _loadingIndicator = null!;
     private Label _loadingLabel = null!;
     private Label _emptyStateLabel = null!;
+    private View? _loadingStateView;
 
     // Grid area
     private VerticalStackLayout _toolbarContainer;
@@ -422,7 +423,7 @@ public class IdeasPage : ContentPage
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        return new Grid
+        _loadingStateView = new Grid
         {
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill,
@@ -442,6 +443,7 @@ public class IdeasPage : ContentPage
                 }
             }
         };
+        return _loadingStateView;
     }
 
     private View CreatePhoneIdeaCard()
@@ -795,6 +797,8 @@ public class IdeasPage : ContentPage
 
         _loadingIndicator.IsRunning = true;
         _loadingIndicator.IsVisible = true;
+        if (_loadingStateView != null)
+            _loadingStateView.InputTransparent = false;
         _loadingLabel.IsVisible = true;
 
         try
@@ -805,6 +809,8 @@ public class IdeasPage : ContentPage
         {
             _loadingIndicator.IsRunning = false;
             _loadingIndicator.IsVisible = false;
+            if (_loadingStateView != null)
+                _loadingStateView.InputTransparent = true;
             _loadingLabel.IsVisible = false;
             _headerLabel.IsVisible = true;
             if (_ideasContentView != null)
