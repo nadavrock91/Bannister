@@ -321,12 +321,12 @@ public class IdeaLoggerService
 
         // Idea title and full text
         mainStack.Children.Add(new Label { Text = "Title:", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        var titleEntry = new Entry
+        var titleEntry = new Editor
         {
             Text = prefillText ?? "", Placeholder = "Idea title",
             BackgroundColor = Color.FromArgb("#F5F5F5"), FontSize = 14
         };
-        StylePhoneEntry(titleEntry);
+        StylePhoneEditor(titleEntry);
         mainStack.Children.Add(titleEntry);
 
         mainStack.Children.Add(new Label { Text = "Full Idea:", FontSize = 12, TextColor = Color.FromArgb("#666") });
