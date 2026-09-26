@@ -124,6 +124,16 @@ public class SequenceTaskService
         if (item != null) await conn.DeleteAsync(item);
     }
 
+    public async Task UpdateItemPendingTestAsync(int sequenceTaskItemId, bool isPendingTest)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var item = await conn.FindAsync<SequenceTaskItem>(sequenceTaskItemId);
+        if (item == null) return;
+        item.IsPendingTest = isPendingTest;
+        await conn.UpdateAsync(item);
+    }
+
     public async Task<List<SequenceTaskException>> GetExceptionsAsync(int groupId)
     {
         await InitAsync();

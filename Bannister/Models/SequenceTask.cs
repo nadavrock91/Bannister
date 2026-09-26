@@ -24,6 +24,7 @@ public class SequenceTaskItem
 
     public int TaskItemId { get; set; }
     public int SortOrder { get; set; }
+    public bool IsPendingTest { get; set; }
 }
 
 [Table("sequence_task_exceptions")]
