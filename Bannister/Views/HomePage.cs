@@ -388,9 +388,9 @@ public class HomePage : ContentPage
         _btnDailyDeadlines.Clicked += OnDailyDeadlinesClicked;
         navButtons.Add(("Daily Deadlines", _btnDailyDeadlines));
 
-        _btnDailyChampions = CreateButton("Daily Champions", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57C00"));
+        _btnDailyChampions = CreateButton("Dates Competition", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57C00"));
         _btnDailyChampions.Clicked += OnDailyChampionsClicked;
-        navButtons.Add(("Daily Champions", _btnDailyChampions));
+        navButtons.Add(("Dates Competition", _btnDailyChampions));
 
         _btnMotivation = CreateButton("Motivation", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
         _btnMotivation.Clicked += OnMotivationClicked;

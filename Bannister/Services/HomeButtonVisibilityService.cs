@@ -11,6 +11,7 @@ public class HomeButtonVisibilityService
         new(StringComparer.OrdinalIgnoreCase)
         {
             "Calendar",
+            "Dates Competition",
             "Games",
             "Settings"
         };

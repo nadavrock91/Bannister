@@ -21,7 +21,7 @@ public class DailyChampionsPage : ContentPage
         _auth = auth;
         _champions = champions;
 
-        Title = "Daily Champions";
+        Title = "Dates Competition";
         BackgroundColor = Color.FromArgb("#F5F7FB");
 
         _todayStack = new VerticalStackLayout { Spacing = 10 };
