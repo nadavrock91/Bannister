@@ -934,6 +934,7 @@ public class HomePage : ContentPage
             "Databases" => OnDatabasesClicked,
             "Deadlines" => OnDeadlinesClicked,
             "Daily Deadlines" => OnDailyDeadlinesClicked,
+            "Dates Competition" => OnDailyChampionsClicked,
             "Motivation" => OnMotivationClicked,
             "Designations" => OnDesignationsClicked,
             "Discipline" => OnDisciplineClicked,
