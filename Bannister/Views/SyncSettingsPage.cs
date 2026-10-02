@@ -11,6 +11,7 @@ public class SyncSettingsPage : ContentPage
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
     private readonly DeviceModeService _deviceMode;
     private readonly SyncService _sync;
+    private readonly SyncCounterService _syncCounter;
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
     private readonly OperationApplierService _applier;
@@ -27,6 +28,7 @@ public class SyncSettingsPage : ContentPage
     private Entry _txtUsername;
     private Entry _txtPassword;
     private Label _lblLastSync;
+    private Label _lblSyncCounter;
     private Label _lblStatus;
     private Button _btnRegister;
     private Button _btnSaveCreds;
@@ -44,6 +46,7 @@ public class SyncSettingsPage : ContentPage
     public SyncSettingsPage(
         DeviceModeService deviceMode,
         SyncService sync,
+        SyncCounterService syncCounter,
         DatabaseService db,
         AuthService auth,
         OperationApplierService applier,
@@ -56,6 +59,7 @@ public class SyncSettingsPage : ContentPage
     {
         _deviceMode = deviceMode;
         _sync = sync;
+        _syncCounter = syncCounter;
         _db = db;
         _auth = auth;
         _applier = applier;
@@ -76,6 +80,7 @@ public class SyncSettingsPage : ContentPage
     {
         base.OnAppearing();
         await LoadSettingsAsync();
+        await RefreshSyncCounterLabelAsync();
         RefreshRevertButtonState();
     }
 
@@ -279,13 +284,33 @@ public class SyncSettingsPage : ContentPage
         var frame = NewSectionFrame();
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        var headingRow = new HorizontalStackLayout
+        {
+            Spacing = 10,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        headingRow.Children.Add(new Label
         {
             Text = "Sync Now",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center
         });
+
+        _lblSyncCounter = new Label
+        {
+            Text = "Sync #0",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#5B63EE"),
+            BackgroundColor = Color.FromArgb("#EEF0FF"),
+            Padding = new Thickness(10, 4),
+            VerticalOptions = LayoutOptions.Center
+        };
+        headingRow.Children.Add(_lblSyncCounter);
+        stack.Children.Add(headingRow);
 
         _lblLastSync = new Label
         {
@@ -462,6 +487,25 @@ public class SyncSettingsPage : ContentPage
         _lblLastSync.Text = last.HasValue
             ? $"Last sync: {last.Value.ToLocalTime():MMM d, yyyy HH:mm}"
             : "Last sync: never";
+    }
+
+    private async Task RefreshSyncCounterLabelAsync()
+    {
+        if (_lblSyncCounter == null) return;
+
+        var username = await GetSyncUsernameAsync();
+        var counter = await _syncCounter.GetCounterAsync(username);
+        _lblSyncCounter.Text = $"Sync #{counter}";
+    }
+
+    private async Task<string> GetSyncUsernameAsync()
+    {
+        var username = _txtUsername?.Text?.Trim();
+        if (!string.IsNullOrWhiteSpace(username))
+            return username;
+
+        var (storedUsername, _) = await _deviceMode.GetSyncCredentialsAsync();
+        return storedUsername ?? "";
     }
 
     private void UpdateButtonsForMode()
@@ -671,6 +715,11 @@ public class SyncSettingsPage : ContentPage
         var result = await _sync.UploadAsync();
         _lblStatus.Text = result.Message;
         _lblStatus.TextColor = result.Success ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
+        if (result.Success)
+        {
+            var counter = await _syncCounter.IncrementAsync(await GetSyncUsernameAsync());
+            _lblSyncCounter.Text = $"Sync #{counter}";
+        }
         UpdateLastSyncLabel();
         }
         finally
@@ -715,6 +764,7 @@ public class SyncSettingsPage : ContentPage
 
             if (result.Success)
             {
+                await RefreshSyncCounterLabelAsync();
                 await DisplayAlert("Downloaded",
                     "Database installed. You may need to restart the app or navigate away and back " +
                     "for all pages to reflect the new data.",

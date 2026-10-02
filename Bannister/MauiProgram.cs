@@ -51,6 +51,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<OperationQueueService>();
         builder.Services.AddSingleton<DatabaseService>();
         builder.Services.AddSingleton<SyncService>();
+        builder.Services.AddSingleton<SyncCounterService>();
         builder.Services.AddSingleton<SharedActivityService>();
         builder.Services.AddSingleton<AuthService>();
         builder.Services.AddSingleton<OperationApplierService>();

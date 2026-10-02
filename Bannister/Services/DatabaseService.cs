@@ -490,6 +490,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<EnforcerLevel>();
             await _db!.CreateTableAsync<SharedActivityLink>();
             await _db!.CreateTableAsync<ContextMenuOrderSetting>();
+            await _db!.CreateTableAsync<SyncCounter>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN ShowStreakAsDaysSinceStarted INTEGER DEFAULT 0"); } catch { }
