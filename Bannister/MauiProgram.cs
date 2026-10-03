@@ -103,6 +103,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DailyDeadlineService>();
         builder.Services.AddSingleton<AllowanceService>();
         builder.Services.AddSingleton<DailyChampionService>();
+        builder.Services.AddSingleton<FeatService>();
         builder.Services.AddSingleton<PostponedTaskService>();
         builder.Services.AddSingleton<QuickAccessActionService>();
         builder.Services.AddSingleton<HookWordService>();

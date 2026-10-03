@@ -56,7 +56,7 @@ public class HomePage : ContentPage
     private readonly RoutineService _routineService;
     private readonly DeadlineService _deadlineService;
     private readonly DailyDeadlineService _dailyDeadlineService;
-    private readonly DailyChampionService _dailyChampionService;
+    private readonly FeatService _featService;
     private readonly ResetTimeService _resetTime;
     private readonly MotivationService _motivationService;
     private readonly AllowanceService _allowanceService;
@@ -163,7 +163,7 @@ public class HomePage : ContentPage
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, PromptLibraryService promptLibraryService, DesignationService designationService,
          CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
-         DailyDeadlineService dailyDeadlineService, DailyChampionService dailyChampionService, ResetTimeService resetTime, MotivationService motivationService,
+         DailyDeadlineService dailyDeadlineService, FeatService featService, ResetTimeService resetTime, MotivationService motivationService,
         AllowanceService allowanceService, PostponedTaskService postponedTaskService, QuickAccessActionService quickAccessService, CustomGameService customGames, OpenAIKeyService openAIKeyService,
         OpenAIImageService openAIImageService, OwnerModeService ownerMode, WebsiteProjectService websiteProjects,
         WebsiteIdeaService websiteIdeas, AssetLibraryService assetLibraryService, AssetThumbnailService assetThumbnailService,
@@ -212,7 +212,7 @@ public class HomePage : ContentPage
         _routineService = routineService;
         _deadlineService = deadlineService;
         _dailyDeadlineService = dailyDeadlineService;
-        _dailyChampionService = dailyChampionService;
+        _featService = featService;
         _resetTime = resetTime;
         _motivationService = motivationService;
         _allowanceService = allowanceService;
@@ -2902,7 +2902,7 @@ public class HomePage : ContentPage
 
     private async void OnDailyChampionsClicked(object? sender, EventArgs e)
     {
-        var page = new DailyChampionsPage(_auth, _dailyChampionService);
+        var page = new DailyChampionsPage(_auth, _featService);
         await Navigation.PushAsync(page);
     }
 
