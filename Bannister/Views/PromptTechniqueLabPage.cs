@@ -372,16 +372,6 @@ public class PromptTechniqueLabPage : ContentPage
             ratingRow.Children.Add(button);
         }
 
-        var notes = new Editor
-        {
-            Placeholder = "Notes",
-            HeightRequest = 120,
-            AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#777")
-        };
-
         var save = CreateActionButton("Save Result", Color.FromArgb("#1565C0"));
         save.Clicked += async (_, _) =>
         {
@@ -396,7 +386,6 @@ public class PromptTechniqueLabPage : ContentPage
                 Username = _auth.CurrentUsername,
                 TechniqueId = technique.Id,
                 QualityRating = _selectedRating,
-                Notes = notes.Text?.Trim() ?? "",
                 CreatedDate = DateTime.UtcNow
             });
 
@@ -412,7 +401,6 @@ public class PromptTechniqueLabPage : ContentPage
                 techniquePicker,
                 ratingLabel,
                 ratingRow,
-                notes,
                 save
             }
         }));
