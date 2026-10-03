@@ -89,9 +89,17 @@ public class TargetedHooksPage : ContentPage
         addPrefixBtn.Clicked += async (_, _) => await AddPrefixToLibraryAsync();
         sectionStack.Children.Add(addPrefixBtn);
 
-        var buildBtn = new Button { Text = "Build Full Prompt", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        var buildBtn = new Button { Text = "Build Full Prompt (Random Method)", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
         buildBtn.Clicked += async (_, _) => await BuildPromptAsync();
         sectionStack.Children.Add(buildBtn);
+
+        var manualBuildBtn = new Button { Text = "Build With Specific Prefix", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        manualBuildBtn.Clicked += async (_, _) => await BuildWithSpecificPrefixAsync();
+        sectionStack.Children.Add(manualBuildBtn);
+
+        var statsBtn = new Button { Text = "View Prefix Stats", BackgroundColor = Color.FromArgb("#37474F"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        statsBtn.Clicked += async (_, _) => await ShowPrefixStatsAsync();
+        sectionStack.Children.Add(statsBtn);
 
         return new Frame { BackgroundColor = Colors.White, Padding = 16, CornerRadius = 12, HasShadow = true, Content = sectionStack };
     }
@@ -128,10 +136,7 @@ public class TargetedHooksPage : ContentPage
         if (prefixChoice == null)
             return;
 
-        var suffix = (_suffixEditor.Text ?? DefaultSuffix).Trim();
-        _outputLabel.Text = string.IsNullOrWhiteSpace(suffix)
-            ? prefixChoice.PrefixText
-            : $"{prefixChoice.PrefixText}\n\n{suffix}";
+        _outputLabel.Text = BuildFullPromptText(prefixChoice.PrefixText);
         _outputLabel.TextColor = Color.FromArgb("#222");
         _copyOutputButton.IsVisible = true;
 
@@ -148,6 +153,96 @@ public class TargetedHooksPage : ContentPage
         var settings = await _hookPrefixes.GetSettingsAsync(_auth.CurrentUsername);
         settings.LastPrefixText = prefixChoice.PrefixText;
         await _hookPrefixes.SaveSettingsAsync(settings);
+    }
+
+    private async Task BuildWithSpecificPrefixAsync()
+    {
+        var prefixText = await DisplayPromptAsync(
+            "Build With Specific Prefix",
+            "Enter or paste prefix:",
+            "Build",
+            "Cancel",
+            placeholder: "Prefix text");
+        if (string.IsNullOrWhiteSpace(prefixText))
+            return;
+
+        prefixText = prefixText.Trim();
+        var fullPrompt = BuildFullPromptText(prefixText);
+        _outputLabel.Text = fullPrompt;
+        _outputLabel.TextColor = Color.FromArgb("#222");
+        _copyOutputButton.IsVisible = true;
+
+        await Clipboard.SetTextAsync(fullPrompt);
+
+        await _hookPrefixes.SaveSessionAsync(new HookPrefixSession
+        {
+            Username = _auth.CurrentUsername,
+            PrefixText = prefixText,
+            Mode = "manual",
+            CreatedDate = DateTime.UtcNow
+        });
+
+        var settings = await _hookPrefixes.GetSettingsAsync(_auth.CurrentUsername);
+        settings.LastPrefixText = prefixText;
+        await _hookPrefixes.SaveSettingsAsync(settings);
+
+        await DisplayAlert("Copied", "Full prompt copied to clipboard.", "OK");
+    }
+
+    private string BuildFullPromptText(string prefixText)
+    {
+        var suffix = (_suffixEditor.Text ?? DefaultSuffix).Trim();
+        return string.IsNullOrWhiteSpace(suffix)
+            ? prefixText
+            : $"{prefixText}\n\n{suffix}";
+    }
+
+    private async Task ShowPrefixStatsAsync()
+    {
+        var prefixes = await _hookPrefixes.GetPrefixStatsAsync(_auth.CurrentUsername);
+        var headers = new List<string>
+        {
+            "Prefix",
+            "Cropped",
+            "Extraordinary",
+            "Cropped (Combined)",
+            "Extraordinary (Combined)"
+        };
+        var rows = prefixes.Select(prefix => new List<string>
+        {
+            prefix.PrefixText,
+            prefix.TotalCropped.ToString(),
+            prefix.TotalExtraordinary.ToString(),
+            prefix.TotalCroppedAsCombined.ToString(),
+            prefix.TotalExtraordinaryAsCombined.ToString()
+        }).ToList();
+
+        var dataGrid = DataGridView.Create(headers, rows)
+            .WithHeaderStyle(Color.FromArgb("#37474F"), Colors.White)
+            .WithAlternateRowColor(Color.FromArgb("#ECEFF1"))
+            .WithColumnWidths(90, 320)
+            .WithCellPadding(6)
+            .WithFontSize(12, 12)
+            .WithPageSize(100)
+            .Build();
+
+        var stack = new VerticalStackLayout
+        {
+            Padding = 16,
+            Spacing = 12,
+            Children =
+            {
+                dataGrid.ToolbarView,
+                dataGrid.GridView
+            }
+        };
+
+        await Navigation.PushAsync(new ContentPage
+        {
+            Title = "Prefix Stats",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            Content = stack
+        });
     }
 
     private async Task CopyFullPromptAsync()
