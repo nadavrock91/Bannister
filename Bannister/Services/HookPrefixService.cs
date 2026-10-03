@@ -126,9 +126,15 @@ public class HookPrefixService
 
         var conn = await _db.GetConnectionAsync();
         if (session.Id == 0)
+        {
             await conn.InsertAsync(session);
+            if (session.PrefixId1.HasValue)
+                await IncrementGenerationAsync(conn, session.PrefixId1.Value);
+        }
         else
+        {
             await conn.UpdateAsync(session);
+        }
     }
 
     public async Task UpdateSessionCropResultAsync(
@@ -152,7 +158,26 @@ public class HookPrefixService
         session.TotalExtraordinary = extraordinary;
         await conn.UpdateAsync(session);
 
-        if (session.PrefixId1.HasValue)
+        var appliedManualPrefixStats = false;
+        if (!session.PrefixId1.HasValue &&
+            !string.IsNullOrWhiteSpace(session.PrefixText))
+        {
+            var prefix = await ResolvePrefixFromTextAsync(conn, session);
+            if (prefix != null)
+            {
+                session.PrefixId1 = prefix.Id;
+                await conn.UpdateAsync(session);
+                await ApplyStatsDeltaAsync(
+                    conn,
+                    prefix.Id,
+                    croppedDelta,
+                    extraordinaryDelta,
+                    false);
+                appliedManualPrefixStats = true;
+            }
+        }
+
+        if (session.PrefixId1.HasValue && !appliedManualPrefixStats)
             await ApplyStatsDeltaAsync(
                 conn,
                 session.PrefixId1.Value,
@@ -209,6 +234,49 @@ public class HookPrefixService
                 Math.Max(0, prefix.TotalExtraordinary + extraordinaryDelta);
         }
 
+        await conn.UpdateAsync(prefix);
+    }
+
+    private static async Task<HookPrefix?> ResolvePrefixFromTextAsync(
+        SQLite.ISQLiteAsyncConnection conn,
+        HookPrefixSession session)
+    {
+        var prefixText = session.PrefixText.Trim();
+        var prefixes = await conn.Table<HookPrefix>()
+            .Where(p => p.Username == session.Username)
+            .ToListAsync();
+        var prefix = prefixes.FirstOrDefault(p =>
+            string.Equals(
+                p.PrefixText?.Trim(),
+                prefixText,
+                StringComparison.OrdinalIgnoreCase));
+
+        if (prefix == null)
+        {
+            prefix = new HookPrefix
+            {
+                Username = session.Username,
+                PrefixText = prefixText,
+                TotalGenerations = 1,
+                CreatedDate = DateTime.UtcNow
+            };
+            await conn.InsertAsync(prefix);
+            return prefix;
+        }
+
+        prefix.TotalGenerations++;
+        await conn.UpdateAsync(prefix);
+        return prefix;
+    }
+
+    private static async Task IncrementGenerationAsync(
+        SQLite.ISQLiteAsyncConnection conn,
+        int prefixId)
+    {
+        var prefix = await conn.FindAsync<HookPrefix>(prefixId);
+        if (prefix == null) return;
+
+        prefix.TotalGenerations++;
         await conn.UpdateAsync(prefix);
     }
 

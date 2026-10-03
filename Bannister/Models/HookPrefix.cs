@@ -13,6 +13,8 @@ public class HookPrefix
 
     public string PrefixText { get; set; } = "";
 
+    public int TotalGenerations { get; set; }
+
     public int TotalCropped { get; set; }
 
     public int TotalExtraordinary { get; set; }

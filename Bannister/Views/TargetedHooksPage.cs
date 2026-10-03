@@ -202,7 +202,9 @@ public class TargetedHooksPage : ContentPage
         var prefixes = await _hookPrefixes.GetPrefixStatsAsync(_auth.CurrentUsername);
         var headers = new List<string>
         {
+            "Id",
             "Prefix",
+            "Generations",
             "Cropped",
             "Extraordinary",
             "Cropped (Combined)",
@@ -210,7 +212,9 @@ public class TargetedHooksPage : ContentPage
         };
         var rows = prefixes.Select(prefix => new List<string>
         {
+            prefix.Id.ToString(),
             prefix.PrefixText,
+            prefix.TotalGenerations.ToString(),
             prefix.TotalCropped.ToString(),
             prefix.TotalExtraordinary.ToString(),
             prefix.TotalCroppedAsCombined.ToString(),
@@ -224,6 +228,9 @@ public class TargetedHooksPage : ContentPage
             .WithCellPadding(6)
             .WithFontSize(12, 12)
             .WithPageSize(100)
+            .WithIdColumn("Id")
+            .WithUpdateCallback(async (idValue, columnName, newValue) =>
+                await UpdatePrefixStatsCellAsync(idValue, columnName, newValue))
             .Build();
 
         var stack = new VerticalStackLayout
@@ -243,6 +250,44 @@ public class TargetedHooksPage : ContentPage
             BackgroundColor = Color.FromArgb("#F5F5F5"),
             Content = stack
         });
+    }
+
+    private async Task<bool> UpdatePrefixStatsCellAsync(
+        string idValue,
+        string columnName,
+        string newValue)
+    {
+        if (!int.TryParse(idValue, out var id))
+            return false;
+
+        if (!int.TryParse(newValue, out var value) || value < 0)
+            return false;
+
+        var prefixes = await _hookPrefixes.GetPrefixStatsAsync(_auth.CurrentUsername);
+        var prefix = prefixes.FirstOrDefault(p => p.Id == id);
+        if (prefix == null)
+            return false;
+
+        switch (columnName)
+        {
+            case "Cropped":
+                prefix.TotalCropped = value;
+                break;
+            case "Extraordinary":
+                prefix.TotalExtraordinary = value;
+                break;
+            case "Cropped (Combined)":
+                prefix.TotalCroppedAsCombined = value;
+                break;
+            case "Extraordinary (Combined)":
+                prefix.TotalExtraordinaryAsCombined = value;
+                break;
+            default:
+                return false;
+        }
+
+        await _hookPrefixes.SavePrefixAsync(prefix);
+        return true;
     }
 
     private async Task CopyFullPromptAsync()
