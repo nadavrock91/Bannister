@@ -228,6 +228,7 @@ public class TargetedHooksPage : ContentPage
             .WithCellPadding(6)
             .WithFontSize(12, 12)
             .WithPageSize(100)
+            .WithFullRows(rows)
             .WithIdColumn("Id")
             .WithUpdateCallback(async (idValue, columnName, newValue) =>
                 await UpdatePrefixStatsCellAsync(idValue, columnName, newValue))
