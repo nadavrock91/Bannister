@@ -177,11 +177,12 @@ public class HookPrefixService
         await InitAsync();
         username = NormalizeUsername(username);
         var conn = await _db.GetConnectionAsync();
-        return await conn.Table<HookPrefix>()
-            .Where(x => x.Username == username)
-            .OrderByDescending(x =>
-                x.TotalCropped + x.TotalCroppedAsCombined)
+        var list = await conn.Table<HookPrefix>()
+            .Where(p => p.Username == username && !p.IsArchived)
             .ToListAsync();
+        return list
+            .OrderByDescending(x => x.TotalCropped + x.TotalCroppedAsCombined)
+            .ToList();
     }
 
     private static async Task ApplyStatsDeltaAsync(
