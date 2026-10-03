@@ -136,7 +136,6 @@ public class HooksHubPage : ContentPage
         await Navigation.PushAsync(
             new TargetedHooksPage(
                 _auth,
-                _customPrompts,
                 _cropPresets,
                 _panelSaver,
                 _hookPrefixes,

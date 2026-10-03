@@ -6,22 +6,17 @@ namespace Bannister.Views;
 public class TargetedHooksPage : ContentPage
 {
     private readonly AuthService _auth;
-    private readonly CustomPromptService _customPrompts;
     private readonly CropPresetService _cropPresets;
     private readonly IPanelSaver _panelSaver;
     private readonly HookPrefixService _hookPrefixes;
     private readonly AppSettingsService _appSettings;
     private Editor _promptEntry = null!;
-    private Picker _favoritesPicker = null!;
     private Label _outputLabel = null!;
     private Button _copyOutputButton = null!;
     private Editor _suffixEditor = null!;
-    private Entry _croppedCountEntry = null!;
     private bool _isLoadingSuffix;
-    private List<CustomPromptItem> _favorites = new();
     private static readonly Random PrefixModeRandom = new();
     private const string SuffixStorageKeyPrefix = "targeted_hooks_suffix_custom_";
-    private const string FavoritesArea = "TargetedHooks";
     private const string PrefixIdeasPrompt =
         "Generate 10 creative and varied starting-frame prompt prefixes for AI video generation. Each prefix should describe a visual scenario, character type, environment, or situation that would make a compelling 10-second hook video. Return them as a numbered list, one per line, no explanations.";
     private const string DefaultSuffix =
@@ -33,14 +28,12 @@ public class TargetedHooksPage : ContentPage
 
     public TargetedHooksPage(
         AuthService auth,
-        CustomPromptService customPrompts,
         CropPresetService cropPresets,
         IPanelSaver panelSaver,
         HookPrefixService hookPrefixes,
         AppSettingsService appSettings)
     {
         _auth = auth;
-        _customPrompts = customPrompts;
         _cropPresets = cropPresets;
         _panelSaver = panelSaver;
         _hookPrefixes = hookPrefixes;
@@ -54,7 +47,6 @@ public class TargetedHooksPage : ContentPage
     {
         base.OnAppearing();
         await LoadSuffixAsync();
-        await LoadFavoritesAsync();
     }
 
     private void BuildUI()
@@ -88,10 +80,7 @@ public class TargetedHooksPage : ContentPage
     {
         var sectionStack = new VerticalStackLayout { Spacing = 10 };
         sectionStack.Children.Add(new Label { Text = "Stage 1 - Starting Prompt", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
-        sectionStack.Children.Add(new Label { Text = "Type your prompt or choose a favourite. Build Full Prompt randomly asks for a new, existing, or combined prefix.", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        _favoritesPicker = new Picker { Title = "Choose from favourites...", BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222"), TitleColor = Color.FromArgb("#999") };
-        _favoritesPicker.SelectedIndexChanged += OnFavouriteSelected;
-        sectionStack.Children.Add(_favoritesPicker);
+        sectionStack.Children.Add(new Label { Text = "Type your prompt. Build Full Prompt randomly asks for a new, existing, or combined prefix.", FontSize = 12, TextColor = Color.FromArgb("#666") });
         _promptEntry = new Editor
         {
             Placeholder = "e.g. A lone astronaut discovering an alien forest at dawn",
@@ -104,15 +93,6 @@ public class TargetedHooksPage : ContentPage
         };
         sectionStack.Children.Add(_promptEntry);
 
-        var actionRow = new HorizontalStackLayout { Spacing = 10 };
-        var addFavBtn = new Button { Text = "Add to Favourites", BackgroundColor = Color.FromArgb("#FFF8E1"), TextColor = Color.FromArgb("#F57F17"), CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) };
-        addFavBtn.Clicked += async (_, _) => await AddToFavouritesAsync();
-        actionRow.Children.Add(addFavBtn);
-        var deleteFavBtn = new Button { Text = "Remove Favourite", BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828"), CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) };
-        deleteFavBtn.Clicked += async (_, _) => await DeleteSelectedFavouriteAsync();
-        actionRow.Children.Add(deleteFavBtn);
-        sectionStack.Children.Add(actionRow);
-
         var ideasBtn = new Button { Text = "Get Prefix Ideas", BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F"), CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) };
         ideasBtn.Clicked += async (_, _) => await CopyPrefixIdeasPromptAsync();
         sectionStack.Children.Add(ideasBtn);
@@ -120,42 +100,8 @@ public class TargetedHooksPage : ContentPage
         var buildBtn = new Button { Text = "Build Full Prompt", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
         buildBtn.Clicked += async (_, _) => await BuildPromptAsync();
         sectionStack.Children.Add(buildBtn);
-        sectionStack.Children.Add(BuildRecordCropResultSection());
 
         return new Frame { BackgroundColor = Colors.White, Padding = 16, CornerRadius = 12, HasShadow = true, Content = sectionStack };
-    }
-
-    private View BuildRecordCropResultSection()
-    {
-        var stack = new VerticalStackLayout
-        {
-            Spacing = 8,
-            Margin = new Thickness(0, 8, 0, 0)
-        };
-        stack.Children.Add(new Label { Text = "Record Crop Result", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
-        stack.Children.Add(new Label { Text = "Save how many panels from the active prefix session were cropped.", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        _croppedCountEntry = new Entry
-        {
-            Placeholder = "How many of the 20 were cropped?",
-            Keyboard = Keyboard.Numeric,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999")
-        };
-        stack.Children.Add(_croppedCountEntry);
-
-        var saveButton = new Button
-        {
-            Text = "Save Crop Result",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            FontSize = 13,
-            HeightRequest = 40
-        };
-        saveButton.Clicked += async (_, _) => await SaveCropResultAsync();
-        stack.Children.Add(saveButton);
-        return stack;
     }
 
     private Frame BuildSuffixSection()
@@ -241,30 +187,6 @@ public class TargetedHooksPage : ContentPage
         await DisplayAlert("Copied", "Prefix ideas prompt copied to clipboard.", "OK");
     }
 
-    private async Task SaveCropResultAsync()
-    {
-        if (!int.TryParse(_croppedCountEntry.Text, out var cropped) ||
-            cropped < 0)
-        {
-            await DisplayAlert("Invalid Count", "Enter a valid cropped count.", "OK");
-            return;
-        }
-
-        var session = await _hookPrefixes.GetActiveSessionAsync(_auth.CurrentUsername);
-        if (session == null)
-        {
-            await DisplayAlert("No Active Session", "Build a full prompt first, then record the crop result.", "OK");
-            return;
-        }
-
-        await _hookPrefixes.UpdateSessionCropResultAsync(
-            session.Id,
-            cropped,
-            session.TotalExtraordinary ?? 0);
-        _croppedCountEntry.Text = "";
-        await DisplayAlert("Saved", "Crop result recorded.", "OK");
-    }
-
     private async Task<PrefixChoice?> ChoosePrefixAsync()
     {
         var prefixes = await _hookPrefixes.GetPrefixesAsync(_auth.CurrentUsername);
@@ -275,61 +197,17 @@ public class TargetedHooksPage : ContentPage
             _ => "combined"
         };
 
-        var page = new PrefixChoicePage(mode, prefixes);
+        var page = new PrefixChoicePage(
+            mode,
+            prefixes,
+            _hookPrefixes,
+            _auth.CurrentUsername);
         await Navigation.PushModalAsync(page);
         var choice = await page.Completion;
         if (choice == null || string.IsNullOrWhiteSpace(choice.PrefixText))
             return null;
 
-        if (choice.AddNewToLibrary)
-        {
-            var prefix = new HookPrefix
-            {
-                Username = _auth.CurrentUsername,
-                PrefixText = choice.PrefixText,
-                CreatedDate = DateTime.UtcNow
-            };
-            await _hookPrefixes.SavePrefixAsync(prefix);
-            choice = choice with { PrefixId1 = prefix.Id };
-        }
-
         return choice;
-    }
-
-    private void OnFavouriteSelected(object? sender, EventArgs e)
-    {
-        if (_favoritesPicker.SelectedIndex >= 0 && _favoritesPicker.SelectedIndex < _favorites.Count)
-            _promptEntry.Text = _favorites[_favoritesPicker.SelectedIndex].Text;
-    }
-
-    private async Task AddToFavouritesAsync()
-    {
-        var text = (_promptEntry.Text ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(text)) { await DisplayAlert("Empty prompt", "Enter a prompt before saving to favourites.", "OK"); return; }
-        string? title = await DisplayPromptAsync("Save to Favourites", "Give this prompt a short name:", "Save", "Cancel", placeholder: "e.g. Astronaut forest dawn");
-        if (string.IsNullOrWhiteSpace(title)) return;
-        await _customPrompts.AddCustomPromptAsync(_auth.CurrentUsername, FavoritesArea, title.Trim(), text);
-        await LoadFavoritesAsync();
-        await DisplayAlert("Saved", $"'{title.Trim()}' added to favourites.", "OK");
-    }
-
-    private async Task DeleteSelectedFavouriteAsync()
-    {
-        if (_favoritesPicker.SelectedIndex < 0 || _favoritesPicker.SelectedIndex >= _favorites.Count) { await DisplayAlert("No favourite selected", "Choose a favourite from the picker first.", "OK"); return; }
-        var item = _favorites[_favoritesPicker.SelectedIndex];
-        if (!await DisplayAlert("Remove Favourite", $"Remove '{item.Title}' from favourites?", "Remove", "Cancel")) return;
-        await _customPrompts.DeleteCustomPromptAsync(item.Id);
-        _promptEntry.Text = "";
-        await LoadFavoritesAsync();
-    }
-
-    private async Task LoadFavoritesAsync()
-    {
-        _favorites = (await _customPrompts.GetCustomPromptsAsync(_auth.CurrentUsername, FavoritesArea)).OrderBy(p => p.Title, StringComparer.OrdinalIgnoreCase).ToList();
-        _favoritesPicker.Items.Clear();
-        foreach (var fav in _favorites) _favoritesPicker.Items.Add(fav.Title);
-        _favoritesPicker.SelectedIndex = -1;
-        _favoritesPicker.Title = _favorites.Count == 0 ? "No favourites yet" : "Choose from favourites...";
     }
 
     private string SuffixKey => $"{SuffixStorageKeyPrefix}{_auth.CurrentUsername}";
@@ -362,26 +240,32 @@ public class TargetedHooksPage : ContentPage
         string Mode,
         string PrefixText,
         int? PrefixId1,
-        int? PrefixId2,
-        bool AddNewToLibrary);
+        int? PrefixId2);
 
     private sealed class PrefixChoicePage : ContentPage
     {
         private readonly TaskCompletionSource<PrefixChoice?> _completion = new();
         private readonly string _mode;
         private readonly List<HookPrefix> _prefixes;
+        private readonly HookPrefixService _hookPrefixes;
+        private readonly string _username;
         private readonly Entry _newPrefixEntry;
-        private readonly CheckBox _saveNewCheckBox;
         private readonly Picker _prefixPicker1;
         private readonly Picker _prefixPicker2;
         private bool _isClosing;
 
         public Task<PrefixChoice?> Completion => _completion.Task;
 
-        public PrefixChoicePage(string mode, List<HookPrefix> prefixes)
+        public PrefixChoicePage(
+            string mode,
+            List<HookPrefix> prefixes,
+            HookPrefixService hookPrefixes,
+            string username)
         {
             _mode = mode;
             _prefixes = prefixes;
+            _hookPrefixes = hookPrefixes;
+            _username = username;
             Title = "Choose Prefix";
             BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
 
@@ -392,7 +276,6 @@ public class TargetedHooksPage : ContentPage
                 TextColor = Color.FromArgb("#222"),
                 PlaceholderColor = Color.FromArgb("#999")
             };
-            _saveNewCheckBox = new CheckBox { IsChecked = true };
             _prefixPicker1 = CreatePrefixPicker();
             _prefixPicker2 = CreatePrefixPicker();
 
@@ -443,22 +326,18 @@ public class TargetedHooksPage : ContentPage
             else
             {
                 stack.Children.Add(_newPrefixEntry);
-                stack.Children.Add(new HorizontalStackLayout
-                {
-                    Spacing = 8,
-                    Children =
-                    {
-                        _saveNewCheckBox,
-                        new Label
-                        {
-                            Text = "Add to saved prefixes",
-                            FontSize = 13,
-                            TextColor = Color.FromArgb("#333"),
-                            VerticalOptions = LayoutOptions.Center
-                        }
-                    }
-                });
             }
+
+            var addPrefixButton = new Button
+            {
+                Text = "+ Add Prefix to Library",
+                BackgroundColor = Color.FromArgb("#FFF8E1"),
+                TextColor = Color.FromArgb("#F57F17"),
+                CornerRadius = 8,
+                HeightRequest = 40
+            };
+            addPrefixButton.Clicked += async (_, _) => await AddCurrentPrefixToLibraryAsync();
+            stack.Children.Add(addPrefixButton);
 
             var cancelButton = new Button
             {
@@ -521,8 +400,7 @@ public class TargetedHooksPage : ContentPage
                     "new",
                     text,
                     null,
-                    null,
-                    _saveNewCheckBox.IsChecked));
+                    null));
                 return;
             }
 
@@ -537,8 +415,7 @@ public class TargetedHooksPage : ContentPage
                     "existing",
                     prefix.PrefixText,
                     prefix.Id,
-                    null,
-                    false));
+                    null));
                 return;
             }
 
@@ -554,8 +431,61 @@ public class TargetedHooksPage : ContentPage
                 "combined",
                 $"{first.PrefixText}\n\n{second.PrefixText}",
                 first.Id,
-                second.Id,
-                false));
+                second.Id));
+        }
+
+        private async Task AddCurrentPrefixToLibraryAsync()
+        {
+            var choice = GetCurrentPrefixChoice();
+            if (choice == null || string.IsNullOrWhiteSpace(choice.PrefixText))
+            {
+                await DisplayAlert("No Prefix", "Choose or type a prefix first.", "OK");
+                return;
+            }
+
+            var prefix = new HookPrefix
+            {
+                Username = _username,
+                PrefixText = choice.PrefixText,
+                CreatedDate = DateTime.UtcNow
+            };
+            await _hookPrefixes.SavePrefixAsync(prefix);
+            await DisplayAlert("Saved", "Prefix added to library.", "OK");
+        }
+
+        private PrefixChoice? GetCurrentPrefixChoice()
+        {
+            if (_mode == "new")
+            {
+                var text = (_newPrefixEntry.Text ?? "").Trim();
+                return string.IsNullOrWhiteSpace(text)
+                    ? null
+                    : new PrefixChoice("new", text, null, null);
+            }
+
+            if (_mode == "existing")
+            {
+                if (_prefixPicker1.SelectedIndex < 0 ||
+                    _prefixPicker1.SelectedIndex >= _prefixes.Count)
+                    return null;
+
+                var prefix = _prefixes[_prefixPicker1.SelectedIndex];
+                return new PrefixChoice("existing", prefix.PrefixText, prefix.Id, null);
+            }
+
+            if (_prefixPicker1.SelectedIndex < 0 ||
+                _prefixPicker2.SelectedIndex < 0 ||
+                _prefixPicker1.SelectedIndex >= _prefixes.Count ||
+                _prefixPicker2.SelectedIndex >= _prefixes.Count)
+                return null;
+
+            var first = _prefixes[_prefixPicker1.SelectedIndex];
+            var second = _prefixes[_prefixPicker2.SelectedIndex];
+            return new PrefixChoice(
+                "combined",
+                $"{first.PrefixText}\n\n{second.PrefixText}",
+                first.Id,
+                second.Id);
         }
 
         protected override bool OnBackButtonPressed()

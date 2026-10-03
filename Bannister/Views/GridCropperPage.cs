@@ -801,9 +801,18 @@ public class GridCropperPage : ContentPage
 
             await DisplayAlert("Done",
                 $"{panels.Count} panels saved to:\n{savedLocation}", "OK");
+
+            if (activeSession != null)
+            {
+                await _hookPrefixes.UpdateSessionCropResultAsync(
+                    activeSession.Id,
+                    panels.Count,
+                    activeSession.TotalExtraordinary ?? 0);
+            }
+
             await PromptForExtraordinaryCountAsync(
                 activeSession,
-                selectedCount);
+                panels.Count);
         }
         catch (Exception ex)
         {
@@ -834,7 +843,7 @@ public class GridCropperPage : ContentPage
             return;
 
         var value = await DisplayPromptAsync(
-            "How many cropped images were extraordinary?",
+            $"How many of the {croppedCount} cropped were extraordinary?",
             "Enter a number:",
             "Save",
             "Skip",
