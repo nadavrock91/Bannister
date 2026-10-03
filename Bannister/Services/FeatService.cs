@@ -152,7 +152,13 @@ public class FeatService
         var feats = await GetFeatsAsync(username);
         var totalFeats = feats.Count;
         var orderById = feats.ToDictionary(x => x.Id, x => x.SortOrder);
-        var dailyFeats = await GetDailyFeatsAsync(username, date);
+        var monthDay = ToMonthDayKey(date);
+        var conn = await _db.GetConnectionAsync();
+        var dailyFeats = (await conn.Table<DailyFeat>()
+                .Where(x => x.Username == username)
+                .ToListAsync())
+            .Where(x => ToMonthDayKey(x.RecordedDate) == monthDay)
+            .ToList();
 
         return dailyFeats.Sum(dailyFeat =>
             dailyFeat.FeatId > 0 && orderById.TryGetValue(dailyFeat.FeatId, out var sortOrder)
@@ -168,16 +174,17 @@ public class FeatService
         var dailyFeats = await conn.Table<DailyFeat>()
             .Where(x => x.Username == username)
             .ToListAsync();
-        var dates = dailyFeats
-            .Select(x => x.RecordedDate)
+
+        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var monthDays = dailyFeats
+            .Select(x => ToMonthDayKey(x.RecordedDate))
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var date in dates)
+        foreach (var monthDay in monthDays)
         {
-            result[date] = await GetDayScoreAsync(username, date);
+            result[monthDay] = await GetDayScoreAsync(username, monthDay);
         }
 
         return result;
@@ -185,4 +192,32 @@ public class FeatService
 
     private static string NormalizeUsername(string username) =>
         (username ?? "").Trim().ToLowerInvariant();
+
+    private static string ToMonthDayKey(string date)
+    {
+        if (string.IsNullOrWhiteSpace(date))
+            return "";
+
+        if (DateTime.TryParseExact(
+                date,
+                "yyyy-MM-dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var fullDate))
+        {
+            return fullDate.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        if (DateTime.TryParseExact(
+                date,
+                "MM-dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var monthDay))
+        {
+            return monthDay.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        return "";
+    }
 }

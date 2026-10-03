@@ -146,12 +146,13 @@ public class DailyChampionsPage : ContentPage
             _activeFeats = await _feats.GetFeatsAsync(username);
             var allFeats = await _feats.GetAllFeatsAsync(username);
             var dailyFeats = await _feats.GetDailyFeatsAsync(username, todayKey);
-            var todayScore = await _feats.GetDayScoreAsync(username, todayKey);
+            var todayScore = GetScore(dailyFeats);
+            var todayAggregateScore = await _feats.GetDayScoreAsync(username, todayKey);
             var allScores = await _feats.GetAllDayScoresAsync(username);
             var leaders = allScores
                 .Select(x => new DailyTotal
                 {
-                    Date = ParseDateKey(x.Key),
+                    Date = ParseMonthDayKey(x.Key),
                     TotalExp = x.Value
                 })
                 .OrderByDescending(x => x.TotalExp)
@@ -161,7 +162,7 @@ public class DailyChampionsPage : ContentPage
             var champion = leaders.FirstOrDefault();
 
             _featPicker.ItemsSource = _activeFeats;
-            BuildTodaySection(todayKey, dailyFeats, todayScore, champion);
+            BuildTodaySection(todayKey, dailyFeats, todayScore, todayAggregateScore, champion);
             BuildManagementSection(allFeats);
             BuildLeaderboard(leaders, DateTime.Today, champion);
             _statusLabel.Text = $"Showing feat scores for {username}.";
@@ -182,6 +183,7 @@ public class DailyChampionsPage : ContentPage
         string todayKey,
         List<DailyFeat> dailyFeats,
         int todayScore,
+        int todayAggregateScore,
         DailyTotal? champion)
     {
         _todayStack.Children.Clear();
@@ -226,10 +228,10 @@ public class DailyChampionsPage : ContentPage
         }
         else
         {
-            var isTodayChampion = champion.Date.Date == DateTime.Today;
+            var isTodayChampion = IsSameMonthDay(champion.Date, DateTime.Today);
             _todayStack.Children.Add(new Label
             {
-                Text = $"Champion: {FormatDate(champion.Date)} - {champion.TotalExp:N0} points",
+                Text = $"Champion: {FormatMonthDay(champion.Date)} - {champion.TotalExp:N0} points",
                 FontSize = 15,
                 TextColor = Color.FromArgb("#333")
             });
@@ -237,7 +239,7 @@ public class DailyChampionsPage : ContentPage
             {
                 Text = isTodayChampion
                     ? "Today is the champion!"
-                    : $"You need {Math.Max(0, champion.TotalExp - todayScore + 1):N0} more points to beat the champion",
+                    : $"You need {Math.Max(0, champion.TotalExp - todayAggregateScore + 1):N0} more points to beat the champion",
                 FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = isTodayChampion ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828")
@@ -494,8 +496,8 @@ public class DailyChampionsPage : ContentPage
         for (var i = 0; i < leaders.Count; i++)
         {
             var total = leaders[i];
-            var isToday = total.Date.Date == today.Date;
-            var isChampion = champion != null && total.Date.Date == champion.Date.Date;
+            var isToday = IsSameMonthDay(total.Date, today);
+            var isChampion = champion != null && IsSameMonthDay(total.Date, champion.Date);
             _leaderboardStack.Children.Add(CreateLeaderboardRow(i + 1, total, maxScore, isToday, isChampion));
         }
     }
@@ -535,7 +537,7 @@ public class DailyChampionsPage : ContentPage
 
         row.Add(new Label
         {
-            Text = $"{(isChampion ? "Champion - " : "")}{FormatDate(total.Date)}{(isToday ? " (today)" : "")}",
+            Text = $"{(isChampion ? "Champion - " : "")}{FormatMonthDay(total.Date)}{(isToday ? " (today)" : "")}",
             FontSize = 14,
             FontAttributes = isChampion || isToday ? FontAttributes.Bold : FontAttributes.None,
             TextColor = Color.FromArgb("#222"),
@@ -636,6 +638,17 @@ public class DailyChampionsPage : ContentPage
             ?? $"Archived feat #{dailyFeat.FeatId}";
     }
 
+    private int GetScore(List<DailyFeat> dailyFeats)
+    {
+        var totalFeats = _activeFeats.Count;
+        var orderById = _activeFeats.ToDictionary(x => x.Id, x => x.SortOrder);
+
+        return dailyFeats.Sum(dailyFeat =>
+            dailyFeat.FeatId > 0 && orderById.TryGetValue(dailyFeat.FeatId, out var sortOrder)
+                ? totalFeats - sortOrder
+                : 0);
+    }
+
     private static Button SmallButton(string text, bool enabled) =>
         new()
         {
@@ -671,11 +684,11 @@ public class DailyChampionsPage : ContentPage
     private static string DateKey(DateTime date) =>
         date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-    private static DateTime ParseDateKey(string date)
+    private static DateTime ParseMonthDayKey(string date)
     {
         return DateTime.TryParseExact(
             date,
-            "yyyy-MM-dd",
+            "MM-dd",
             CultureInfo.InvariantCulture,
             DateTimeStyles.None,
             out var parsed)
@@ -683,6 +696,9 @@ public class DailyChampionsPage : ContentPage
             : DateTime.MinValue;
     }
 
-    private static string FormatDate(DateTime date) =>
-        date.ToString("MMM d, yyyy", CultureInfo.CurrentCulture);
+    private static bool IsSameMonthDay(DateTime left, DateTime right) =>
+        left.Month == right.Month && left.Day == right.Day;
+
+    private static string FormatMonthDay(DateTime date) =>
+        date.ToString("MMM d", CultureInfo.CurrentCulture);
 }
