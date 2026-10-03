@@ -2670,6 +2670,26 @@ public class HomePage : ContentPage
             }
         }
 
+        if (await ShouldBlockGamesUntilDatesCompetitionVisitAsync())
+        {
+            string action = await DisplayActionSheet(
+                "Visit Dates Competition First",
+                "Cancel",
+                null,
+                "Open Dates Competition",
+                "Disable Block And Open Games");
+
+            if (action == "Open Dates Competition")
+            {
+                OnDailyChampionsClicked(sender, e);
+                return;
+            }
+            if (action == "Disable Block And Open Games")
+                await SetDatesCompetitionBeforeGamesBlockEnabledAsync(false);
+            else
+                return;
+        }
+
         if (await ShowWebsiteBuilderDailyInterruptAsync())
             return;
 
@@ -2902,6 +2922,7 @@ public class HomePage : ContentPage
 
     private async void OnDailyChampionsClicked(object? sender, EventArgs e)
     {
+        await MarkDatesCompetitionVisitedTodayAsync();
         var page = new DailyChampionsPage(_auth, _featService);
         await Navigation.PushAsync(page);
     }
@@ -3931,6 +3952,44 @@ public class HomePage : ContentPage
     private string GetCalendarVisitedStorageKey() => $"home_calendar_visited_{_auth.CurrentUsername}";
 
     private string GetCalendarBeforeGamesBlockStorageKey() => $"home_block_games_until_calendar_{_auth.CurrentUsername}";
+
+    private async Task<bool> ShouldBlockGamesUntilDatesCompetitionVisitAsync()
+    {
+        if (!await GetDatesCompetitionBeforeGamesBlockEnabledAsync())
+            return false;
+
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string? lastVisited = null;
+        lastVisited = await _appSettings.GetAsync(
+            _auth.CurrentUsername, GetDatesCompetitionVisitedStorageKey());
+        return lastVisited != today;
+    }
+
+    private async Task MarkDatesCompetitionVisitedTodayAsync()
+    {
+        string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        await _appSettings.SetAsync(
+            _auth.CurrentUsername, GetDatesCompetitionVisitedStorageKey(), today);
+    }
+
+    private async Task<bool> GetDatesCompetitionBeforeGamesBlockEnabledAsync()
+    {
+        string? value = null;
+        value = await _appSettings.GetAsync(
+            _auth.CurrentUsername, GetDatesCompetitionBeforeGamesBlockStorageKey());
+        return value != "false";
+    }
+
+    private async Task SetDatesCompetitionBeforeGamesBlockEnabledAsync(bool enabled)
+    {
+        await _appSettings.SetAsync(
+            _auth.CurrentUsername, GetDatesCompetitionBeforeGamesBlockStorageKey(),
+            enabled ? "true" : "false");
+    }
+
+    private string GetDatesCompetitionVisitedStorageKey() => $"home_dates_competition_visited_{_auth.CurrentUsername}";
+
+    private string GetDatesCompetitionBeforeGamesBlockStorageKey() => $"home_block_games_until_dates_competition_{_auth.CurrentUsername}";
 
     private async Task<bool> GetWebsiteBuilderInterruptEnabledAsync()
     {
