@@ -13,6 +13,9 @@ public class PromptTechniqueLabPage : ContentPage
     private readonly PromptTechniqueService _promptTechniques;
     private readonly HorizontalStackLayout _tabs;
     private readonly VerticalStackLayout _body;
+    private readonly Editor _globalPrefixEditor;
+    private readonly Frame _globalPrefixFrame;
+    private readonly List<Button> _copyPromptButtons = new();
     private string _activeTab = "Techniques";
     private List<PromptTechnique> _techniques = new();
     private int _selectedRating = 5;
@@ -30,6 +33,17 @@ public class PromptTechniqueLabPage : ContentPage
 
         _tabs = new HorizontalStackLayout { Spacing = 8 };
         _body = new VerticalStackLayout { Spacing = 14 };
+        _globalPrefixEditor = new Editor
+        {
+            Placeholder = "Enter your video idea / starting prompt here...",
+            HeightRequest = 120,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#777")
+        };
+        _globalPrefixEditor.TextChanged += (_, _) => UpdateCopyPromptButtons();
+        _globalPrefixFrame = CreateFrame(_globalPrefixEditor);
 
         BuildUI();
     }
@@ -109,7 +123,9 @@ public class PromptTechniqueLabPage : ContentPage
 
     private void BuildTechniquesTab()
     {
+        _copyPromptButtons.Clear();
         _body.Children.Add(CreateSectionTitle("Techniques"));
+        _body.Children.Add(_globalPrefixFrame);
 
         if (_techniques.Count == 0)
             _body.Children.Add(CreateMutedLabel("No techniques yet."));
@@ -148,6 +164,11 @@ public class PromptTechniqueLabPage : ContentPage
             TextColor = Color.FromArgb("#555"),
             LineBreakMode = LineBreakMode.WordWrap
         });
+        var copyPrompt = CreateActionButton("Copy Prompt", Color.FromArgb("#1565C0"));
+        copyPrompt.IsEnabled = HasGlobalPrefix();
+        copyPrompt.Clicked += async (_, _) => await CopyTechniquePromptAsync(technique);
+        _copyPromptButtons.Add(copyPrompt);
+        stack.Children.Add(copyPrompt);
 
         var frame = CreateFrame(stack);
         var tap = new TapGestureRecognizer();
@@ -177,6 +198,16 @@ public class PromptTechniqueLabPage : ContentPage
             BackgroundColor = Colors.White,
             TextColor = Color.FromArgb("#222")
         };
+        var promptSuffix = new Editor
+        {
+            Text = technique.PromptSuffix,
+            Placeholder = "Prompt suffix",
+            HeightRequest = 120,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#777")
+        };
         var status = CreateStatusPicker(technique.Status);
 
         var save = CreateActionButton("Save", Color.FromArgb("#2E7D32"));
@@ -184,6 +215,7 @@ public class PromptTechniqueLabPage : ContentPage
         {
             technique.Title = title.Text?.Trim() ?? "";
             technique.Description = description.Text?.Trim() ?? "";
+            technique.PromptSuffix = promptSuffix.Text?.Trim() ?? "";
             technique.Status = status.SelectedItem?.ToString() ?? "Testing";
             await _promptTechniques.SaveTechniqueAsync(technique);
             _expandedTechniqueId = null;
@@ -212,6 +244,7 @@ public class PromptTechniqueLabPage : ContentPage
             {
                 title,
                 description,
+                promptSuffix,
                 status,
                 new HorizontalStackLayout { Spacing = 8, Children = { save, delete } }
             }
@@ -224,6 +257,15 @@ public class PromptTechniqueLabPage : ContentPage
         var description = new Editor
         {
             Placeholder = "Description",
+            HeightRequest = 120,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#777")
+        };
+        var promptSuffix = new Editor
+        {
+            Placeholder = "Prompt suffix",
             HeightRequest = 120,
             AutoSize = EditorAutoSizeOption.TextChanges,
             BackgroundColor = Colors.White,
@@ -246,6 +288,7 @@ public class PromptTechniqueLabPage : ContentPage
                 Username = _auth.CurrentUsername,
                 Title = title.Text.Trim(),
                 Description = description.Text?.Trim() ?? "",
+                PromptSuffix = promptSuffix.Text?.Trim() ?? "",
                 Status = status.SelectedItem?.ToString() ?? "Testing",
                 CreatedDate = DateTime.UtcNow
             });
@@ -260,6 +303,7 @@ public class PromptTechniqueLabPage : ContentPage
                 CreateSectionTitle("Add Technique"),
                 title,
                 description,
+                promptSuffix,
                 status,
                 save
             }
@@ -284,34 +328,45 @@ public class PromptTechniqueLabPage : ContentPage
 
         var ratingLabel = new Label
         {
-            Text = $"Quality: {_selectedRating}/10",
+            Text = $"Quality: {RatingName(_selectedRating)}",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#222")
         };
-        var ratingRow = new HorizontalStackLayout { Spacing = 4 };
-        for (var i = 1; i <= 10; i++)
+        var ratingRow = new HorizontalStackLayout { Spacing = 8 };
+        foreach (var option in new[]
         {
-            var rating = i;
+            ("Terrible", 1, Color.FromArgb("#C62828")),
+            ("Usable", 5, Color.FromArgb("#F57C00")),
+            ("Extraordinary", 10, Color.FromArgb("#2E7D32"))
+        })
+        {
+            var rating = option.Item2;
+            var color = option.Item3;
             var button = new Button
             {
-                Text = i.ToString(),
-                WidthRequest = 38,
-                HeightRequest = 38,
-                Padding = 0,
+                Text = option.Item1,
+                HeightRequest = 40,
+                Padding = new Thickness(12, 0),
                 CornerRadius = 6,
-                BackgroundColor = i == _selectedRating ? Color.FromArgb("#1565C0") : Color.FromArgb("#E3F2FD"),
-                TextColor = i == _selectedRating ? Colors.White : Color.FromArgb("#1565C0")
+                BackgroundColor = rating == _selectedRating ? color : Color.FromArgb("#ECEFF1"),
+                TextColor = rating == _selectedRating ? Colors.White : Color.FromArgb("#333")
             };
             button.Clicked += (_, _) =>
             {
                 _selectedRating = rating;
-                ratingLabel.Text = $"Quality: {_selectedRating}/10";
+                ratingLabel.Text = $"Quality: {RatingName(_selectedRating)}";
                 foreach (var child in ratingRow.Children.OfType<Button>())
                 {
-                    var isSelected = child.Text == _selectedRating.ToString();
-                    child.BackgroundColor = isSelected ? Color.FromArgb("#1565C0") : Color.FromArgb("#E3F2FD");
-                    child.TextColor = isSelected ? Colors.White : Color.FromArgb("#1565C0");
+                    var childOption = child.Text switch
+                    {
+                        "Terrible" => (value: 1, selectedColor: Color.FromArgb("#C62828")),
+                        "Extraordinary" => (value: 10, selectedColor: Color.FromArgb("#2E7D32")),
+                        _ => (value: 5, selectedColor: Color.FromArgb("#F57C00"))
+                    };
+                    var isSelected = childOption.value == _selectedRating;
+                    child.BackgroundColor = isSelected ? childOption.selectedColor : Color.FromArgb("#ECEFF1");
+                    child.TextColor = isSelected ? Colors.White : Color.FromArgb("#333");
                 }
             };
             ratingRow.Children.Add(button);
@@ -487,6 +542,32 @@ public class PromptTechniqueLabPage : ContentPage
         _body.Children.Add(dataGrid.ToolbarView);
         _body.Children.Add(dataGrid.GridView);
     }
+
+    private async Task CopyTechniquePromptAsync(PromptTechnique technique)
+    {
+        if (!HasGlobalPrefix())
+            return;
+
+        await Clipboard.SetTextAsync($"{_globalPrefixEditor.Text?.Trim()}\n\n{technique.PromptSuffix?.Trim() ?? ""}");
+        await DisplayAlert("Copied", "Technique prompt copied to clipboard.", "OK");
+    }
+
+    private bool HasGlobalPrefix() =>
+        !string.IsNullOrWhiteSpace(_globalPrefixEditor.Text);
+
+    private void UpdateCopyPromptButtons()
+    {
+        var enabled = HasGlobalPrefix();
+        foreach (var button in _copyPromptButtons)
+            button.IsEnabled = enabled;
+    }
+
+    private static string RatingName(int rating) => rating switch
+    {
+        1 => "Terrible",
+        10 => "Extraordinary",
+        _ => "Usable"
+    };
 
     private async Task CopyExportPromptAsync()
     {

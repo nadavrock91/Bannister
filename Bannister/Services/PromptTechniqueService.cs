@@ -17,6 +17,11 @@ public class PromptTechniqueService
         if (_initialized) return;
         await _db.EnsureTableAsync<PromptTechnique>();
         await _db.EnsureTableAsync<TechniqueResult>();
+        if (!_db.IsReadOnly)
+        {
+            var conn = await _db.GetConnectionAsync();
+            try { await conn.ExecuteAsync("ALTER TABLE prompt_techniques ADD COLUMN PromptSuffix TEXT DEFAULT ''"); } catch { }
+        }
         _initialized = true;
     }
 
@@ -43,6 +48,7 @@ public class PromptTechniqueService
         technique.Username = NormalizeUsername(technique.Username);
         technique.Title = technique.Title?.Trim() ?? "";
         technique.Description = technique.Description?.Trim() ?? "";
+        technique.PromptSuffix = technique.PromptSuffix?.Trim() ?? "";
         technique.Status = string.IsNullOrWhiteSpace(technique.Status)
             ? "Testing"
             : technique.Status.Trim();

@@ -15,6 +15,8 @@ public class PromptTechnique
 
     public string Description { get; set; } = "";
 
+    public string PromptSuffix { get; set; } = "";
+
     public string Status { get; set; } = "Testing";
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
