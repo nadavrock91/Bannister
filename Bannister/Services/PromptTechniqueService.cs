@@ -125,46 +125,25 @@ public class PromptTechniqueService
     {
         var techniques = await GetTechniquesAsync(username);
         var results = await GetResultsAsync(username);
-        var failureLookup = FailureMode.All.ToDictionary(x => x.Id, x => x.Name);
 
         return techniques.Select(technique =>
         {
             var techniqueResults = results
                 .Where(x => x.TechniqueId == technique.Id)
                 .ToList();
-            var failures = techniqueResults
-                .SelectMany(x => ParseFailureIds(x.FailureModesPresent))
-                .ToList();
-            var mostCommonFailure = failures
-                .GroupBy(x => x)
-                .OrderByDescending(x => x.Count())
-                .Select(x => failureLookup.TryGetValue(x.Key, out var name) ? name : "")
-                .FirstOrDefault() ?? "";
 
             return new TechniqueStats
             {
                 TechniqueId = technique.Id,
                 Title = technique.Title,
                 Status = technique.Status,
-                AverageQuality = techniqueResults.Count == 0
-                    ? 0
-                    : techniqueResults.Average(x => x.QualityRating),
-                ResultCount = techniqueResults.Count,
-                MostCommonFailure = string.IsNullOrWhiteSpace(mostCommonFailure)
-                    ? "None"
-                    : mostCommonFailure,
-                FailureEliminationRate = techniqueResults.Count == 0
-                    ? 0
-                    : 100.0 * techniqueResults.Count(x => !ParseFailureIds(x.FailureModesPresent).Any()) / techniqueResults.Count
+                TotalGenerations = techniqueResults.Count,
+                TotalTerrible = techniqueResults.Count(x => x.QualityRating == 1),
+                TotalUsable = techniqueResults.Count(x => x.QualityRating == 5),
+                TotalExtraordinary = techniqueResults.Count(x => x.QualityRating == 10)
             };
         }).ToList();
     }
-
-    private static IEnumerable<int> ParseFailureIds(string value) =>
-        (value ?? "")
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(x => int.TryParse(x, out var id) ? id : 0)
-            .Where(x => x > 0);
 
     private static int StatusRank(string status) => status switch
     {

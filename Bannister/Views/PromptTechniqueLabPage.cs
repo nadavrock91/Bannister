@@ -372,29 +372,6 @@ public class PromptTechniqueLabPage : ContentPage
             ratingRow.Children.Add(button);
         }
 
-        var checks = FailureMode.All.ToDictionary(
-            x => x.Id,
-            x => new CheckBox { Color = Color.FromArgb("#1565C0") });
-        var checklist = new VerticalStackLayout { Spacing = 4 };
-        foreach (var mode in FailureMode.All)
-        {
-            checklist.Children.Add(new HorizontalStackLayout
-            {
-                Spacing = 8,
-                Children =
-                {
-                    checks[mode.Id],
-                    new Label
-                    {
-                        Text = mode.Name,
-                        FontSize = 13,
-                        TextColor = Color.FromArgb("#333"),
-                        VerticalOptions = LayoutOptions.Center
-                    }
-                }
-            });
-        }
-
         var notes = new Editor
         {
             Placeholder = "Notes",
@@ -414,17 +391,11 @@ public class PromptTechniqueLabPage : ContentPage
                 return;
             }
 
-            var selectedFailures = checks
-                .Where(x => x.Value.IsChecked)
-                .Select(x => x.Key)
-                .OrderBy(x => x);
-
             await _promptTechniques.SaveResultAsync(new TechniqueResult
             {
                 Username = _auth.CurrentUsername,
                 TechniqueId = technique.Id,
                 QualityRating = _selectedRating,
-                FailureModesPresent = string.Join(",", selectedFailures),
                 Notes = notes.Text?.Trim() ?? "",
                 CreatedDate = DateTime.UtcNow
             });
@@ -441,8 +412,6 @@ public class PromptTechniqueLabPage : ContentPage
                 techniquePicker,
                 ratingLabel,
                 ratingRow,
-                CreateSectionTitle("Failure Modes"),
-                checklist,
                 notes,
                 save
             }
@@ -470,7 +439,6 @@ public class PromptTechniqueLabPage : ContentPage
             var techniqueTitle = techniqueLookup.TryGetValue(result.TechniqueId, out var title)
                 ? title
                 : "Unknown technique";
-            var failures = FormatFailureModes(result.FailureModesPresent);
 
             _body.Children.Add(CreateFrame(new VerticalStackLayout
             {
@@ -486,7 +454,7 @@ public class PromptTechniqueLabPage : ContentPage
                     },
                     new Label
                     {
-                        Text = $"{failures} - {result.CreatedDate.ToLocalTime():MMM d, yyyy h:mm tt}",
+                        Text = result.CreatedDate.ToLocalTime().ToString("MMM d, yyyy h:mm tt"),
                         FontSize = 12,
                         TextColor = Color.FromArgb("#666")
                     },
@@ -511,19 +479,19 @@ public class PromptTechniqueLabPage : ContentPage
         {
             "Technique",
             "Status",
-            "Results",
-            "Avg Quality",
-            "Most Common Failure",
-            "Elimination Rate"
+            "Total",
+            "Terrible",
+            "Usable",
+            "Extraordinary"
         };
         var rows = stats.Select(x => new List<string>
         {
             x.Title,
             x.Status,
-            x.ResultCount.ToString(),
-            x.AverageQuality.ToString("0.0"),
-            x.MostCommonFailure,
-            $"{x.FailureEliminationRate:0.#}%"
+            x.TotalGenerations.ToString(),
+            x.TotalTerrible.ToString(),
+            x.TotalUsable.ToString(),
+            x.TotalExtraordinary.ToString()
         }).ToList();
 
         var dataGrid = DataGridView.Create(headers, rows)

@@ -70,11 +70,11 @@ public class TechniqueStats
 
     public string Status { get; set; } = "";
 
-    public double AverageQuality { get; set; }
+    public int TotalGenerations { get; set; }
 
-    public int ResultCount { get; set; }
+    public int TotalTerrible { get; set; }
 
-    public string MostCommonFailure { get; set; } = "";
+    public int TotalUsable { get; set; }
 
-    public double FailureEliminationRate { get; set; }
+    public int TotalExtraordinary { get; set; }
 }
