@@ -269,26 +269,29 @@ public class TargetedHooksPage : ContentPage
         if (prefix == null)
             return false;
 
-        switch (columnName)
+        var setters = new Dictionary<string, Action<HookPrefix, int>>(StringComparer.OrdinalIgnoreCase)
         {
-            case "Cropped":
-                prefix.TotalCropped = value;
-                break;
-            case "Extraordinary":
-                prefix.TotalExtraordinary = value;
-                break;
-            case "Cropped (Combined)":
-                prefix.TotalCroppedAsCombined = value;
-                break;
-            case "Extraordinary (Combined)":
-                prefix.TotalExtraordinaryAsCombined = value;
-                break;
-            default:
-                return false;
-        }
+            ["Generations"] = (item, newTotal) => item.TotalGenerations = newTotal,
+            ["Cropped"] = (item, newTotal) => item.TotalCropped = newTotal,
+            ["Extraordinary"] = (item, newTotal) => item.TotalExtraordinary = newTotal,
+            ["Cropped (Combined)"] = (item, newTotal) => item.TotalCroppedAsCombined = newTotal,
+            ["Extraordinary (Combined)"] = (item, newTotal) => item.TotalExtraordinaryAsCombined = newTotal
+        };
 
-        await _hookPrefixes.SavePrefixAsync(prefix);
-        return true;
+        if (!setters.TryGetValue(columnName, out var setValue))
+            return false;
+
+        setValue(prefix, value);
+
+        try
+        {
+            await _hookPrefixes.SavePrefixAsync(prefix);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private async Task CopyFullPromptAsync()
