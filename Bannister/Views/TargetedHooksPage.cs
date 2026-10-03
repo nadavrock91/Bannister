@@ -10,7 +10,6 @@ public class TargetedHooksPage : ContentPage
     private readonly IPanelSaver _panelSaver;
     private readonly HookPrefixService _hookPrefixes;
     private readonly AppSettingsService _appSettings;
-    private Editor _promptEntry = null!;
     private Label _outputLabel = null!;
     private Button _copyOutputButton = null!;
     private Editor _suffixEditor = null!;
@@ -53,7 +52,7 @@ public class TargetedHooksPage : ContentPage
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 20 };
         stack.Children.Add(new Label { Text = "Targeted Hooks", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
-        stack.Children.Add(new Label { Text = "Enter a starting prompt. A prefix is prepended and the suffix below is appended automatically before copying.", FontSize = 14, TextColor = Color.FromArgb("#666") });
+        stack.Children.Add(new Label { Text = "Choose a prefix and append the suffix below automatically before copying.", FontSize = 14, TextColor = Color.FromArgb("#666") });
         stack.Children.Add(BuildStage1Section());
         stack.Children.Add(BuildSuffixSection());
         stack.Children.Add(BuildOutputSection());
@@ -80,22 +79,15 @@ public class TargetedHooksPage : ContentPage
     {
         var sectionStack = new VerticalStackLayout { Spacing = 10 };
         sectionStack.Children.Add(new Label { Text = "Stage 1 - Starting Prompt", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
-        sectionStack.Children.Add(new Label { Text = "Type your prompt. Build Full Prompt randomly asks for a new, existing, or combined prefix.", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        _promptEntry = new Editor
-        {
-            Placeholder = "e.g. A lone astronaut discovering an alien forest at dawn",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            FontSize = 14,
-            HeightRequest = 120,
-            AutoSize = EditorAutoSizeOption.TextChanges
-        };
-        sectionStack.Children.Add(_promptEntry);
+        sectionStack.Children.Add(new Label { Text = "Build Full Prompt randomly asks for a new, existing, or combined prefix.", FontSize = 12, TextColor = Color.FromArgb("#666") });
 
         var ideasBtn = new Button { Text = "Get Prefix Ideas", BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F"), CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) };
         ideasBtn.Clicked += async (_, _) => await CopyPrefixIdeasPromptAsync();
         sectionStack.Children.Add(ideasBtn);
+
+        var addPrefixBtn = new Button { Text = "+ Add Prefix to Library", BackgroundColor = Color.FromArgb("#FFF8E1"), TextColor = Color.FromArgb("#F57F17"), CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) };
+        addPrefixBtn.Clicked += async (_, _) => await AddPrefixToLibraryAsync();
+        sectionStack.Children.Add(addPrefixBtn);
 
         var buildBtn = new Button { Text = "Build Full Prompt", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
         buildBtn.Clicked += async (_, _) => await BuildPromptAsync();
@@ -132,26 +124,14 @@ public class TargetedHooksPage : ContentPage
 
     private async Task BuildPromptAsync()
     {
-        var basePrompt = (_promptEntry.Text ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(basePrompt))
-        {
-            _outputLabel.Text = "Please enter a starting prompt first.";
-            _outputLabel.TextColor = Color.FromArgb("#C62828");
-            _copyOutputButton.IsVisible = false;
-            return;
-        }
-
         var prefixChoice = await ChoosePrefixAsync();
         if (prefixChoice == null)
             return;
 
         var suffix = (_suffixEditor.Text ?? DefaultSuffix).Trim();
-        var prefixedPrompt = string.IsNullOrWhiteSpace(prefixChoice.PrefixText)
-            ? basePrompt
-            : $"{prefixChoice.PrefixText}\n\n{basePrompt}";
         _outputLabel.Text = string.IsNullOrWhiteSpace(suffix)
-            ? prefixedPrompt
-            : $"{prefixedPrompt}\n\n{suffix}";
+            ? prefixChoice.PrefixText
+            : $"{prefixChoice.PrefixText}\n\n{suffix}";
         _outputLabel.TextColor = Color.FromArgb("#222");
         _copyOutputButton.IsVisible = true;
 
@@ -185,6 +165,26 @@ public class TargetedHooksPage : ContentPage
     {
         await Clipboard.SetTextAsync(PrefixIdeasPrompt);
         await DisplayAlert("Copied", "Prefix ideas prompt copied to clipboard.", "OK");
+    }
+
+    private async Task AddPrefixToLibraryAsync()
+    {
+        var text = await DisplayPromptAsync(
+            "Add Prefix to Library",
+            "Type a prefix:",
+            "Save",
+            "Cancel",
+            placeholder: "Prefix text");
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        await _hookPrefixes.SavePrefixAsync(new HookPrefix
+        {
+            Username = _auth.CurrentUsername,
+            PrefixText = text.Trim(),
+            CreatedDate = DateTime.UtcNow
+        });
+        await DisplayAlert("Saved", "Prefix added to library.", "OK");
     }
 
     private async Task<PrefixChoice?> ChoosePrefixAsync()
