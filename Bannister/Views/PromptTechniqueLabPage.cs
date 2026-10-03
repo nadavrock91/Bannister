@@ -1,0 +1,596 @@
+using Bannister.Models;
+using Bannister.Services;
+using System.Text;
+
+namespace Bannister.Views;
+
+public class PromptTechniqueLabPage : ContentPage
+{
+    private static readonly string[] Statuses =
+        { "Testing", "Promising", "Confirmed", "Abandoned" };
+
+    private readonly AuthService _auth;
+    private readonly PromptTechniqueService _promptTechniques;
+    private readonly HorizontalStackLayout _tabs;
+    private readonly VerticalStackLayout _body;
+    private string _activeTab = "Techniques";
+    private List<PromptTechnique> _techniques = new();
+    private int _selectedRating = 5;
+    private int? _expandedTechniqueId;
+
+    public PromptTechniqueLabPage(
+        AuthService auth,
+        PromptTechniqueService promptTechniques)
+    {
+        _auth = auth;
+        _promptTechniques = promptTechniques;
+
+        Title = "Prompt Technique Lab";
+        BackgroundColor = Color.FromArgb("#F5F7FB");
+
+        _tabs = new HorizontalStackLayout { Spacing = 8 };
+        _body = new VerticalStackLayout { Spacing = 14 };
+
+        BuildUI();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await RefreshAsync();
+    }
+
+    private void BuildUI()
+    {
+        var main = new VerticalStackLayout
+        {
+            Padding = 20,
+            Spacing = 16
+        };
+
+        main.Children.Add(new Label
+        {
+            Text = "Prompt Technique Lab",
+            FontSize = 26,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1565C0")
+        });
+        main.Children.Add(_tabs);
+        main.Children.Add(_body);
+
+        Content = new ScrollView { Content = main };
+        BuildTabs();
+    }
+
+    private void BuildTabs()
+    {
+        _tabs.Children.Clear();
+        foreach (var tab in new[] { "Techniques", "Log Result", "Stats" })
+        {
+            var isActive = tab == _activeTab;
+            var button = new Button
+            {
+                Text = tab,
+                BackgroundColor = isActive ? Color.FromArgb("#1565C0") : Color.FromArgb("#E3F2FD"),
+                TextColor = isActive ? Colors.White : Color.FromArgb("#1565C0"),
+                CornerRadius = 8,
+                FontSize = 13,
+                HeightRequest = 40,
+                Padding = new Thickness(14, 0)
+            };
+            button.Clicked += async (_, _) =>
+            {
+                _activeTab = tab;
+                BuildTabs();
+                await RefreshAsync();
+            };
+            _tabs.Children.Add(button);
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        _techniques = await _promptTechniques.GetTechniquesAsync(_auth.CurrentUsername);
+        _body.Children.Clear();
+
+        switch (_activeTab)
+        {
+            case "Log Result":
+                await BuildLogResultTabAsync();
+                break;
+            case "Stats":
+                await BuildStatsTabAsync();
+                break;
+            default:
+                BuildTechniquesTab();
+                break;
+        }
+    }
+
+    private void BuildTechniquesTab()
+    {
+        _body.Children.Add(CreateSectionTitle("Techniques"));
+
+        if (_techniques.Count == 0)
+            _body.Children.Add(CreateMutedLabel("No techniques yet."));
+
+        foreach (var technique in _techniques)
+            _body.Children.Add(CreateTechniqueCard(technique));
+
+        _body.Children.Add(CreateAddTechniqueCard());
+    }
+
+    private View CreateTechniqueCard(PromptTechnique technique)
+    {
+        var stack = new VerticalStackLayout { Spacing = 8 };
+        var header = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8
+        };
+        header.Add(new Label
+        {
+            Text = technique.Title,
+            FontSize = 17,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222")
+        }, 0, 0);
+        header.Add(CreateStatusBadge(technique.Status), 1, 0);
+        stack.Children.Add(header);
+        stack.Children.Add(new Label
+        {
+            Text = technique.Description,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#555"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var frame = CreateFrame(stack);
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (_, _) =>
+        {
+            _expandedTechniqueId = _expandedTechniqueId == technique.Id
+                ? null
+                : technique.Id;
+            await RefreshAsync();
+        };
+        frame.GestureRecognizers.Add(tap);
+
+        if (_expandedTechniqueId == technique.Id)
+            stack.Children.Add(CreateTechniqueEditForm(technique));
+
+        return frame;
+    }
+
+    private View CreateTechniqueEditForm(PromptTechnique technique)
+    {
+        var title = CreateEntry("Title", technique.Title);
+        var description = new Editor
+        {
+            Text = technique.Description,
+            HeightRequest = 100,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222")
+        };
+        var status = CreateStatusPicker(technique.Status);
+
+        var save = CreateActionButton("Save", Color.FromArgb("#2E7D32"));
+        save.Clicked += async (_, _) =>
+        {
+            technique.Title = title.Text?.Trim() ?? "";
+            technique.Description = description.Text?.Trim() ?? "";
+            technique.Status = status.SelectedItem?.ToString() ?? "Testing";
+            await _promptTechniques.SaveTechniqueAsync(technique);
+            _expandedTechniqueId = null;
+            await RefreshAsync();
+        };
+
+        var delete = CreateActionButton("Delete", Color.FromArgb("#C62828"));
+        delete.Clicked += async (_, _) =>
+        {
+            var confirm = await DisplayAlert(
+                "Delete Technique",
+                $"Delete {technique.Title}?",
+                "Delete",
+                "Cancel");
+            if (!confirm) return;
+
+            await _promptTechniques.DeleteTechniqueAsync(technique.Id);
+            _expandedTechniqueId = null;
+            await RefreshAsync();
+        };
+
+        return new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                title,
+                description,
+                status,
+                new HorizontalStackLayout { Spacing = 8, Children = { save, delete } }
+            }
+        };
+    }
+
+    private View CreateAddTechniqueCard()
+    {
+        var title = CreateEntry("Technique title", "");
+        var description = new Editor
+        {
+            Placeholder = "Description",
+            HeightRequest = 120,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#777")
+        };
+        var status = CreateStatusPicker("Testing");
+
+        var save = CreateActionButton("Save Technique", Color.FromArgb("#1565C0"));
+        save.Clicked += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(title.Text))
+            {
+                await DisplayAlert("Missing Title", "Add a title first.", "OK");
+                return;
+            }
+
+            await _promptTechniques.SaveTechniqueAsync(new PromptTechnique
+            {
+                Username = _auth.CurrentUsername,
+                Title = title.Text.Trim(),
+                Description = description.Text?.Trim() ?? "",
+                Status = status.SelectedItem?.ToString() ?? "Testing",
+                CreatedDate = DateTime.UtcNow
+            });
+            await RefreshAsync();
+        };
+
+        return CreateFrame(new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                CreateSectionTitle("Add Technique"),
+                title,
+                description,
+                status,
+                save
+            }
+        });
+    }
+
+    private async Task BuildLogResultTabAsync()
+    {
+        _body.Children.Add(CreateSectionTitle("Log Result"));
+
+        var activeTechniques = _techniques
+            .Where(x => x.Status != "Abandoned")
+            .ToList();
+        var techniquePicker = new Picker
+        {
+            Title = "Technique",
+            ItemDisplayBinding = new Binding(nameof(PromptTechnique.Title)),
+            ItemsSource = activeTechniques,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222")
+        };
+
+        var ratingLabel = new Label
+        {
+            Text = $"Quality: {_selectedRating}/10",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222")
+        };
+        var ratingRow = new HorizontalStackLayout { Spacing = 4 };
+        for (var i = 1; i <= 10; i++)
+        {
+            var rating = i;
+            var button = new Button
+            {
+                Text = i.ToString(),
+                WidthRequest = 38,
+                HeightRequest = 38,
+                Padding = 0,
+                CornerRadius = 6,
+                BackgroundColor = i == _selectedRating ? Color.FromArgb("#1565C0") : Color.FromArgb("#E3F2FD"),
+                TextColor = i == _selectedRating ? Colors.White : Color.FromArgb("#1565C0")
+            };
+            button.Clicked += (_, _) =>
+            {
+                _selectedRating = rating;
+                ratingLabel.Text = $"Quality: {_selectedRating}/10";
+                foreach (var child in ratingRow.Children.OfType<Button>())
+                {
+                    var isSelected = child.Text == _selectedRating.ToString();
+                    child.BackgroundColor = isSelected ? Color.FromArgb("#1565C0") : Color.FromArgb("#E3F2FD");
+                    child.TextColor = isSelected ? Colors.White : Color.FromArgb("#1565C0");
+                }
+            };
+            ratingRow.Children.Add(button);
+        }
+
+        var checks = FailureMode.All.ToDictionary(
+            x => x.Id,
+            x => new CheckBox { Color = Color.FromArgb("#1565C0") });
+        var checklist = new VerticalStackLayout { Spacing = 4 };
+        foreach (var mode in FailureMode.All)
+        {
+            checklist.Children.Add(new HorizontalStackLayout
+            {
+                Spacing = 8,
+                Children =
+                {
+                    checks[mode.Id],
+                    new Label
+                    {
+                        Text = mode.Name,
+                        FontSize = 13,
+                        TextColor = Color.FromArgb("#333"),
+                        VerticalOptions = LayoutOptions.Center
+                    }
+                }
+            });
+        }
+
+        var notes = new Editor
+        {
+            Placeholder = "Notes",
+            HeightRequest = 120,
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#777")
+        };
+
+        var save = CreateActionButton("Save Result", Color.FromArgb("#1565C0"));
+        save.Clicked += async (_, _) =>
+        {
+            if (techniquePicker.SelectedItem is not PromptTechnique technique)
+            {
+                await DisplayAlert("Choose Technique", "Pick a technique first.", "OK");
+                return;
+            }
+
+            var selectedFailures = checks
+                .Where(x => x.Value.IsChecked)
+                .Select(x => x.Key)
+                .OrderBy(x => x);
+
+            await _promptTechniques.SaveResultAsync(new TechniqueResult
+            {
+                Username = _auth.CurrentUsername,
+                TechniqueId = technique.Id,
+                QualityRating = _selectedRating,
+                FailureModesPresent = string.Join(",", selectedFailures),
+                Notes = notes.Text?.Trim() ?? "",
+                CreatedDate = DateTime.UtcNow
+            });
+
+            _selectedRating = 5;
+            await RefreshAsync();
+        };
+
+        _body.Children.Add(CreateFrame(new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                techniquePicker,
+                ratingLabel,
+                ratingRow,
+                CreateSectionTitle("Failure Modes"),
+                checklist,
+                notes,
+                save
+            }
+        }));
+
+        await BuildRecentResultsAsync();
+    }
+
+    private async Task BuildRecentResultsAsync()
+    {
+        _body.Children.Add(CreateSectionTitle("Recent Results"));
+
+        var results = (await _promptTechniques.GetResultsAsync(_auth.CurrentUsername))
+            .Take(10)
+            .ToList();
+        if (results.Count == 0)
+        {
+            _body.Children.Add(CreateMutedLabel("No results logged yet."));
+            return;
+        }
+
+        var techniqueLookup = _techniques.ToDictionary(x => x.Id, x => x.Title);
+        foreach (var result in results)
+        {
+            var techniqueTitle = techniqueLookup.TryGetValue(result.TechniqueId, out var title)
+                ? title
+                : "Unknown technique";
+            var failures = FormatFailureModes(result.FailureModesPresent);
+
+            _body.Children.Add(CreateFrame(new VerticalStackLayout
+            {
+                Spacing = 4,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = $"{techniqueTitle} - {result.QualityRating}/10",
+                        FontSize = 15,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#222")
+                    },
+                    new Label
+                    {
+                        Text = $"{failures} - {result.CreatedDate.ToLocalTime():MMM d, yyyy h:mm tt}",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    new Label
+                    {
+                        Text = result.Notes,
+                        FontSize = 13,
+                        TextColor = Color.FromArgb("#444"),
+                        LineBreakMode = LineBreakMode.WordWrap
+                    }
+                }
+            }));
+        }
+    }
+
+    private async Task BuildStatsTabAsync()
+    {
+        _body.Children.Add(CreateSectionTitle("Stats"));
+
+        var stats = await _promptTechniques.GetStatsAsync(_auth.CurrentUsername);
+        var headers = new List<string>
+        {
+            "Technique",
+            "Status",
+            "Results",
+            "Avg Quality",
+            "Most Common Failure",
+            "Elimination Rate"
+        };
+        var rows = stats.Select(x => new List<string>
+        {
+            x.Title,
+            x.Status,
+            x.ResultCount.ToString(),
+            x.AverageQuality.ToString("0.0"),
+            x.MostCommonFailure,
+            $"{x.FailureEliminationRate:0.#}%"
+        }).ToList();
+
+        var dataGrid = DataGridView.Create(headers, rows)
+            .WithHeaderStyle(Color.FromArgb("#1565C0"), Colors.White)
+            .WithAlternateRowColor(Color.FromArgb("#E3F2FD"))
+            .WithColumnWidths(100, 260)
+            .WithCellPadding(6)
+            .WithFontSize(12, 12)
+            .WithPageSize(100)
+            .Build();
+
+        var export = CreateActionButton("LLM Export", Color.FromArgb("#2E7D32"));
+        export.Clicked += async (_, _) => await CopyExportPromptAsync();
+
+        _body.Children.Add(export);
+        _body.Children.Add(dataGrid.ToolbarView);
+        _body.Children.Add(dataGrid.GridView);
+    }
+
+    private async Task CopyExportPromptAsync()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Here is my current prompt technique library for AI video generation:");
+        sb.AppendLine();
+        foreach (var technique in _techniques)
+        {
+            sb.AppendLine($"- {technique.Title} ({technique.Status}): {technique.Description}");
+        }
+        sb.AppendLine();
+        sb.AppendLine($"Common failure modes I track: {string.Join(", ", FailureMode.All.Select(x => x.Name))}");
+        sb.AppendLine();
+        sb.Append("Suggest 5 new prompting techniques I haven't tried yet that might address these failure modes. Focus on techniques for specifying action, timing, speed, and escalation in 10-second video prompts.");
+
+        await Clipboard.SetTextAsync(sb.ToString());
+        await DisplayAlert("Copied", "Prompt technique export copied to clipboard.", "OK");
+    }
+
+    private static string FormatFailureModes(string ids)
+    {
+        var lookup = FailureMode.All.ToDictionary(x => x.Id, x => x.Name);
+        var names = (ids ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => int.TryParse(x, out var id) && lookup.TryGetValue(id, out var name) ? name : "")
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList();
+
+        return names.Count == 0 ? "No failures" : string.Join(", ", names);
+    }
+
+    private static Picker CreateStatusPicker(string selected)
+    {
+        var picker = new Picker
+        {
+            Title = "Status",
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            ItemsSource = Statuses.ToList()
+        };
+        picker.SelectedItem = Statuses.Contains(selected) ? selected : "Testing";
+        return picker;
+    }
+
+    private static Entry CreateEntry(string placeholder, string text) => new()
+    {
+        Placeholder = placeholder,
+        Text = text,
+        BackgroundColor = Colors.White,
+        TextColor = Color.FromArgb("#222"),
+        PlaceholderColor = Color.FromArgb("#777")
+    };
+
+    private static Label CreateSectionTitle(string text) => new()
+    {
+        Text = text,
+        FontSize = 18,
+        FontAttributes = FontAttributes.Bold,
+        TextColor = Color.FromArgb("#222")
+    };
+
+    private static Label CreateMutedLabel(string text) => new()
+    {
+        Text = text,
+        FontSize = 13,
+        TextColor = Color.FromArgb("#666")
+    };
+
+    private static Label CreateStatusBadge(string status) => new()
+    {
+        Text = status,
+        FontSize = 12,
+        FontAttributes = FontAttributes.Bold,
+        Padding = new Thickness(8, 4),
+        BackgroundColor = StatusColor(status),
+        TextColor = Colors.White,
+        VerticalOptions = LayoutOptions.Center
+    };
+
+    private static Button CreateActionButton(string text, Color color) => new()
+    {
+        Text = text,
+        BackgroundColor = color,
+        TextColor = Colors.White,
+        CornerRadius = 8,
+        HeightRequest = 42,
+        Padding = new Thickness(14, 0)
+    };
+
+    private static Frame CreateFrame(View content) => new()
+    {
+        BackgroundColor = Colors.White,
+        CornerRadius = 8,
+        Padding = 14,
+        HasShadow = false,
+        BorderColor = Color.FromArgb("#E0E0E0"),
+        Content = content
+    };
+
+    private static Color StatusColor(string status) => status switch
+    {
+        "Confirmed" => Color.FromArgb("#2E7D32"),
+        "Promising" => Color.FromArgb("#1565C0"),
+        "Abandoned" => Color.FromArgb("#757575"),
+        _ => Color.FromArgb("#F57C00")
+    };
+}

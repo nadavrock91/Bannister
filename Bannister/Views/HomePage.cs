@@ -78,6 +78,7 @@ public class HomePage : ContentPage
     private readonly StatTrackerService _statTracker;
     private readonly ResetEnforcerService _resetEnforcerService;
     private readonly VideoGenExperimentService _videoGenExperimentService;
+    private readonly PromptTechniqueService _promptTechniqueService;
     private readonly AppSettingsService _appSettings;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
@@ -172,10 +173,12 @@ public class HomePage : ContentPage
         HomeButtonVisibilityService buttonVisibility,
         PrivacyModeService privacyMode,
         VideoGenExperimentService videoGenExperimentService,
+        PromptTechniqueService promptTechniqueService,
         AppSettingsService appSettings)
     {
         _auth = auth;
         _videoGenExperimentService = videoGenExperimentService;
+        _promptTechniqueService = promptTechniqueService;
         _appSettings = appSettings;
         _games = games;
         _dragons = dragons;
@@ -2875,7 +2878,7 @@ public class HomePage : ContentPage
 
     private async void OnVideoGenerationClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new VideoGenerationHubPage(_auth));
+        await Navigation.PushAsync(new VideoGenerationHubPage(_auth, _promptTechniqueService));
     }
 
     private async void OnCalendarClicked(object? sender, EventArgs e)

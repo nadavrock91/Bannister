@@ -5,10 +5,14 @@ namespace Bannister.Views;
 public class VideoGenerationHubPage : ContentPage
 {
     private readonly AuthService _auth;
+    private readonly PromptTechniqueService _promptTechniqueService;
 
-    public VideoGenerationHubPage(AuthService auth)
+    public VideoGenerationHubPage(
+        AuthService auth,
+        PromptTechniqueService promptTechniqueService)
     {
         _auth = auth;
+        _promptTechniqueService = promptTechniqueService;
 
         Title = "Video Generation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -45,6 +49,12 @@ public class VideoGenerationHubPage : ContentPage
             "Turn a folder of images into an MP4 video with configurable slide duration and playback order.",
             Color.FromArgb("#C2185B"),
             async () => await Navigation.PushAsync(new SlideshowPage(_auth))));
+
+        stack.Children.Add(BuildHubCard(
+            " Prompt Technique Lab",
+            "Track and compare prompting techniques for AI video generation. Log results, identify failure patterns, and discover what works.",
+            Color.FromArgb("#1565C0"),
+            async () => await Navigation.PushAsync(new PromptTechniqueLabPage(_auth, _promptTechniqueService))));
 
         Content = new ScrollView { Content = stack };
     }
