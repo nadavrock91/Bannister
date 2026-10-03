@@ -33,6 +33,10 @@ public class GridCropperPage : ContentPage
     private readonly CropPresetService _presetService;
     private readonly string _username;
     private readonly IPanelSaver _panelSaver;
+    private readonly HookPrefixService _hookPrefixes;
+    private HookCropperSettings? _prefixSettings;
+    private Switch _requirePrefixSwitch = null!;
+    private bool _loadingPrefixSettings;
     private const int Cols = 4;
     private const int Rows = 5;
     private readonly bool[,] _selected = new bool[5, 4];
@@ -45,11 +49,13 @@ public class GridCropperPage : ContentPage
     public GridCropperPage(
         AuthService auth,
         CropPresetService presetService,
-        IPanelSaver panelSaver)
+        IPanelSaver panelSaver,
+        HookPrefixService hookPrefixes)
     {
         _username = auth.CurrentUsername;
         _presetService = presetService;
         _panelSaver = panelSaver;
+        _hookPrefixes = hookPrefixes;
         Title = "Grid Cropper";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -59,11 +65,13 @@ public class GridCropperPage : ContentPage
     {
         base.OnAppearing();
         await LoadPresetsAsync();
+        await LoadPrefixSettingsAsync();
     }
 
     private void BuildUI()
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 16 };
+        stack.Children.Add(BuildSectionCard("Prefix Tracking", BuildPrefixSettingsContent()));
         stack.Children.Add(new Label { Text = " Grid Cropper", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
         stack.Children.Add(new Label { Text = "Pick a 4×5 grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save 20 copies.", FontSize = 14, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
         stack.Children.Add(BuildSectionCard("Step 1 — Pick the grid image", BuildStep1Content()));
@@ -80,6 +88,38 @@ public class GridCropperPage : ContentPage
         inner.Children.Add(new Label { Text = title, FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
         inner.Children.Add(content);
         return new Frame { BackgroundColor = Colors.White, Padding = 16, CornerRadius = 12, HasShadow = true, Content = inner };
+    }
+
+    private View BuildPrefixSettingsContent()
+    {
+        _requirePrefixSwitch = new Switch();
+        _requirePrefixSwitch.Toggled += async (_, _) =>
+        {
+            if (_loadingPrefixSettings || _prefixSettings == null)
+                return;
+
+            _prefixSettings.RequirePrefixBeforeCrop = _requirePrefixSwitch.IsToggled;
+            await _hookPrefixes.SaveSettingsAsync(_prefixSettings);
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+        grid.Add(new Label
+        {
+            Text = "Require prefix before crop",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#333"),
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+        grid.Add(_requirePrefixSwitch, 1, 0);
+        return grid;
     }
 
     private View BuildStep1Content()
@@ -672,15 +712,35 @@ public class GridCropperPage : ContentPage
     {
         if (_sourceBitmap == null || _sourceFilePath == null) return;
 
-        bool anySelected = false;
+        int selectedCount = 0;
         for (int r = 0; r < Rows; r++)
             for (int c = 0; c < Cols; c++)
-                if (_selected[r, c]) { anySelected = true; break; }
-        if (!anySelected)
+                if (_selected[r, c]) selectedCount++;
+        if (selectedCount == 0)
         {
             await DisplayAlert("Nothing to crop",
                 "Select at least one panel first.", "OK");
             return;
+        }
+
+        HookPrefixSession? activeSession = null;
+        if (_prefixSettings?.RequirePrefixBeforeCrop == true)
+        {
+            var prefixText = await PromptForCropPrefixAsync(
+                _prefixSettings.LastPrefixText);
+            if (prefixText == null)
+                return;
+
+            activeSession = await _hookPrefixes.GetActiveSessionAsync(_username);
+            if (activeSession != null)
+            {
+                activeSession.PrefixText = prefixText;
+                await _hookPrefixes.SaveSessionAsync(activeSession);
+            }
+        }
+        else
+        {
+            activeSession = await _hookPrefixes.GetActiveSessionAsync(_username);
         }
 
         int safeW = Math.Max(1, Math.Min(_cellW, _sourceBitmap.Width));
@@ -741,6 +801,9 @@ public class GridCropperPage : ContentPage
 
             await DisplayAlert("Done",
                 $"{panels.Count} panels saved to:\n{savedLocation}", "OK");
+            await PromptForExtraordinaryCountAsync(
+                activeSession,
+                selectedCount);
         }
         catch (Exception ex)
         {
@@ -754,6 +817,42 @@ public class GridCropperPage : ContentPage
             _cropButton.IsEnabled = true;
             _cropButton.Text = "✂️ Crop & Save Selected Panels";
         }
+    }
+
+    private async Task<string?> PromptForCropPrefixAsync(string lastPrefix)
+    {
+        var page = new CropPrefixPromptPage(lastPrefix);
+        await Navigation.PushModalAsync(page);
+        return await page.Completion;
+    }
+
+    private async Task PromptForExtraordinaryCountAsync(
+        HookPrefixSession? activeSession,
+        int croppedCount)
+    {
+        if (activeSession == null)
+            return;
+
+        var value = await DisplayPromptAsync(
+            "How many cropped images were extraordinary?",
+            "Enter a number:",
+            "Save",
+            "Skip",
+            keyboard: Keyboard.Numeric);
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        if (!int.TryParse(value, out var extraordinary) ||
+            extraordinary < 0)
+        {
+            await DisplayAlert("Invalid Count", "Enter a valid number.", "OK");
+            return;
+        }
+
+        await _hookPrefixes.UpdateSessionCropResultAsync(
+            activeSession.Id,
+            croppedCount,
+            extraordinary);
     }
 
     private static void ApplyButtonStyle(Button btn, bool selected)
@@ -786,6 +885,21 @@ public class GridCropperPage : ContentPage
         RefreshPresetPicker();
     }
 
+    private async Task LoadPrefixSettingsAsync()
+    {
+        _loadingPrefixSettings = true;
+        try
+        {
+            _prefixSettings = await _hookPrefixes.GetSettingsAsync(_username);
+            _requirePrefixSwitch.IsToggled =
+                _prefixSettings.RequirePrefixBeforeCrop;
+        }
+        finally
+        {
+            _loadingPrefixSettings = false;
+        }
+    }
+
     private void RefreshPresetPicker()
     {
         _presetPicker.Items.Clear();
@@ -795,6 +909,134 @@ public class GridCropperPage : ContentPage
             ? "No presets saved"
             : "Load a preset…";
         _presetPicker.SelectedIndex = -1;
+    }
+
+    private sealed class CropPrefixPromptPage : ContentPage
+    {
+        private readonly TaskCompletionSource<string?> _completion = new();
+        private readonly Entry _prefixEntry;
+        private bool _isClosing;
+
+        public Task<string?> Completion => _completion.Task;
+
+        public CropPrefixPromptPage(string lastPrefix)
+        {
+            Title = "Prefix";
+            BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
+
+            _prefixEntry = new Entry
+            {
+                Placeholder = "Different prefix",
+                TextColor = Color.FromArgb("#222"),
+                PlaceholderColor = Color.FromArgb("#999"),
+                BackgroundColor = Colors.White
+            };
+
+            var stack = new VerticalStackLayout { Spacing = 12 };
+            stack.Children.Add(new Label
+            {
+                Text = "What prefix created this grid?",
+                FontSize = 20,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#222")
+            });
+            stack.Children.Add(new Label
+            {
+                Text = string.IsNullOrWhiteSpace(lastPrefix)
+                    ? "No last prefix saved."
+                    : lastPrefix,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#444"),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+
+            var useLastButton = new Button
+            {
+                Text = "Use This",
+                IsEnabled = !string.IsNullOrWhiteSpace(lastPrefix),
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#333"),
+                CornerRadius = 8,
+                HeightRequest = 40
+            };
+            useLastButton.Clicked += (_, _) => _prefixEntry.Text = lastPrefix;
+            stack.Children.Add(useLastButton);
+            stack.Children.Add(_prefixEntry);
+
+            var cancelButton = new Button
+            {
+                Text = "Cancel",
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#333"),
+                CornerRadius = 8,
+                HeightRequest = 42
+            };
+            cancelButton.Clicked += async (_, _) => await CloseAsync(null);
+
+            var confirmButton = new Button
+            {
+                Text = "Confirm",
+                BackgroundColor = Color.FromArgb("#1565C0"),
+                TextColor = Colors.White,
+                CornerRadius = 8,
+                HeightRequest = 42
+            };
+            confirmButton.Clicked += async (_, _) =>
+            {
+                var text = (_prefixEntry.Text ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(text))
+                    return;
+
+                await CloseAsync(text);
+            };
+
+            var buttonGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Star)
+                },
+                ColumnSpacing = 10
+            };
+            buttonGrid.Add(cancelButton, 0, 0);
+            buttonGrid.Add(confirmButton, 1, 0);
+            stack.Children.Add(buttonGrid);
+
+            Content = new Grid
+            {
+                Padding = 24,
+                Children =
+                {
+                    new Frame
+                    {
+                        BackgroundColor = Colors.White,
+                        CornerRadius = 12,
+                        Padding = 20,
+                        HasShadow = true,
+                        VerticalOptions = LayoutOptions.Center,
+                        HorizontalOptions = LayoutOptions.Fill,
+                        Content = stack
+                    }
+                }
+            };
+        }
+
+        protected override bool OnBackButtonPressed()
+        {
+            _ = CloseAsync(null);
+            return true;
+        }
+
+        private async Task CloseAsync(string? result)
+        {
+            if (_isClosing)
+                return;
+
+            _isClosing = true;
+            await Navigation.PopModalAsync();
+            _completion.TrySetResult(result);
+        }
     }
 
     protected override void OnDisappearing()

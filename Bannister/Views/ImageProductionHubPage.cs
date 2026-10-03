@@ -115,6 +115,12 @@ public class ImageProductionHubPage : ContentPage
         var doNotService = services.GetService<DoNotService>()
             ?? throw new InvalidOperationException(
                 "DoNotService not available.");
+        var hookPrefixes = services.GetService<HookPrefixService>()
+            ?? throw new InvalidOperationException(
+                "HookPrefixService not available.");
+        var appSettings = services.GetService<AppSettingsService>()
+            ?? throw new InvalidOperationException(
+                "AppSettingsService not available.");
         await Navigation.PushAsync(
             new HooksHubPage(
                 _auth,
@@ -122,6 +128,8 @@ public class ImageProductionHubPage : ContentPage
                 customPrompts,
                 cropPresets,
                 panelSaver,
-                doNotService));
+                doNotService,
+                hookPrefixes,
+                appSettings));
     }
 }

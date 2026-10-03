@@ -10,6 +10,8 @@ public class HooksHubPage : ContentPage
     private readonly CropPresetService _cropPresets;
     private readonly IPanelSaver _panelSaver;
     private readonly DoNotService _doNotService;
+    private readonly HookPrefixService _hookPrefixes;
+    private readonly AppSettingsService _appSettings;
 
     public HooksHubPage(
         AuthService auth,
@@ -17,7 +19,9 @@ public class HooksHubPage : ContentPage
         CustomPromptService customPrompts,
         CropPresetService cropPresets,
         IPanelSaver panelSaver,
-        DoNotService doNotService)
+        DoNotService doNotService,
+        HookPrefixService hookPrefixes,
+        AppSettingsService appSettings)
     {
         _auth = auth;
         _hookWordService = hookWordService;
@@ -25,6 +29,8 @@ public class HooksHubPage : ContentPage
         _cropPresets = cropPresets;
         _panelSaver = panelSaver;
         _doNotService = doNotService;
+        _hookPrefixes = hookPrefixes;
+        _appSettings = appSettings;
 
         Title = "Hooks Creation";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -128,7 +134,13 @@ public class HooksHubPage : ContentPage
     private async void OnTargetedHooksTapped(object? sender, TappedEventArgs e)
     {
         await Navigation.PushAsync(
-            new TargetedHooksPage(_auth, _customPrompts, _cropPresets, _panelSaver));
+            new TargetedHooksPage(
+                _auth,
+                _customPrompts,
+                _cropPresets,
+                _panelSaver,
+                _hookPrefixes,
+                _appSettings));
     }
 
     private async void OnOpeningClipPromptsTapped(
