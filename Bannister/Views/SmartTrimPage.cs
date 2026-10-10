@@ -1,4 +1,5 @@
 using Bannister.Services;
+using Microsoft.Maui.Layouts;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -141,17 +142,14 @@ public class SmartTrimPage : ContentPage
             .ToList();
 
         var suggestionButtons = new List<(CutSuggestion suggestion, Button button)>();
-        var suggestionsGrid = new Grid
+        var suggestionsFlex = new FlexLayout
         {
-            RowSpacing = 6,
-            ColumnSpacing = 1,
-            BackgroundColor = Color.FromArgb("#CFD8DC"),
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = 34 },
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star }
-            }
+            Direction = FlexDirection.Row,
+            Wrap = FlexWrap.Wrap,
+            AlignItems = FlexAlignItems.Center,
+            JustifyContent = FlexJustify.Start,
+            Padding = new Thickness(12, 8),
+            BackgroundColor = Colors.White
         };
         var grid = new Grid
         {
@@ -200,29 +198,8 @@ public class SmartTrimPage : ContentPage
                 && File.Exists(_videoPath);
         };
 
-        int suggestionRow = 0;
         foreach (var suggestion in _suggestions)
         {
-            suggestionsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            var sentenceLabel = new Label
-            {
-                Text = FormatSuggestionSentenceNumbers(suggestion),
-                FontSize = 12,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#263238"),
-                Padding = new Thickness(6, 8),
-                VerticalTextAlignment = TextAlignment.Center,
-                HorizontalTextAlignment = TextAlignment.Center,
-                BackgroundColor = Colors.White,
-                LineBreakMode = LineBreakMode.WordWrap
-            };
-
-            var emptyCell = new BoxView
-            {
-                Color = Colors.White
-            };
-
             var infoButton = new Button
             {
                 Text = "\u24d8",
@@ -290,9 +267,7 @@ public class SmartTrimPage : ContentPage
             var actions = new HorizontalStackLayout
             {
                 Spacing = 6,
-                HorizontalOptions = LayoutOptions.End,
-                Padding = new Thickness(8, 4),
-                BackgroundColor = Colors.White,
+                Margin = new Thickness(0, 0, 10, 8),
                 Children =
                 {
                     infoButton,
@@ -300,16 +275,7 @@ public class SmartTrimPage : ContentPage
                 }
             };
 
-            Grid.SetRow(sentenceLabel, suggestionRow);
-            Grid.SetColumn(sentenceLabel, 0);
-            Grid.SetRow(emptyCell, suggestionRow);
-            Grid.SetColumn(emptyCell, 1);
-            Grid.SetRow(actions, suggestionRow);
-            Grid.SetColumn(actions, 2);
-            suggestionsGrid.Children.Add(sentenceLabel);
-            suggestionsGrid.Children.Add(emptyCell);
-            suggestionsGrid.Children.Add(actions);
-            suggestionRow++;
+            suggestionsFlex.Children.Add(actions);
         }
 
         int gridRow = 1;
@@ -353,7 +319,6 @@ public class SmartTrimPage : ContentPage
                         FontAttributes = FontAttributes.Bold,
                         TextColor = Color.FromArgb("#263238")
                     },
-                    suggestionsGrid,
                     new HorizontalStackLayout
                     {
                         Spacing = 12,
@@ -375,12 +340,15 @@ public class SmartTrimPage : ContentPage
             RowDefinitions =
             {
                 new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Star }
             }
         };
         Grid.SetRow(statsFrame, 0);
-        Grid.SetRow(comparisonScroll, 1);
+        Grid.SetRow(suggestionsFlex, 1);
+        Grid.SetRow(comparisonScroll, 2);
         contentGrid.Children.Add(statsFrame);
+        contentGrid.Children.Add(suggestionsFlex);
         contentGrid.Children.Add(comparisonScroll);
 
         return new ContentPage
@@ -465,9 +433,6 @@ public class SmartTrimPage : ContentPage
 
     private static string BuildRevisedDisplay(SmartTrimRow row) =>
         row.IsEnabled ? row.Original.Text : "[cut]";
-
-    private static string FormatSuggestionSentenceNumbers(CutSuggestion suggestion) =>
-        string.Join(", ", suggestion.Indices);
 
     private static string FormatSuggestionSaveText(CutSuggestion suggestion) =>
         $"~{suggestion.SaveSeconds}s";
