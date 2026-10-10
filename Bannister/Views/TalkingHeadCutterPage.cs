@@ -48,6 +48,9 @@ public class TalkingHeadCutterPage : ContentPage
     private readonly Label _etaLabel;
     private readonly Button _cutAllButton;
     private Grid _wrapTranscriptOverlay = null!;
+    private Grid _ffmpegSetupOverlay = null!;
+    private ProgressBar _ffmpegSetupProgressBar = null!;
+    private Label _ffmpegSetupPercentLabel = null!;
     private Editor _rawTranscriptEditor = null!;
 
     public TalkingHeadCutterPage(AuthService auth, FFmpegService ffmpeg, TruncatePresetService truncatePresets, ShortsCutterProjectService shortsProjects)
@@ -136,6 +139,7 @@ public class TalkingHeadCutterPage : ContentPage
             return;
 
         _truncatePresetsLoaded = true;
+        await EnsureFFmpegOnFirstLoadAsync();
         await LoadProjectsAsync();
         await LoadTruncatePresetsAsync(selectDefault: true);
     }
@@ -203,8 +207,100 @@ public class TalkingHeadCutterPage : ContentPage
         root.Children.Add(new ScrollView { Content = stack });
         _wrapTranscriptOverlay = CreateWrapTranscriptOverlay();
         root.Children.Add(_wrapTranscriptOverlay);
+        _ffmpegSetupOverlay = CreateFFmpegSetupOverlay();
+        root.Children.Add(_ffmpegSetupOverlay);
 
         Content = root;
+    }
+
+    private async Task EnsureFFmpegOnFirstLoadAsync()
+    {
+        string ffmpegPath = Path.Combine(FileSystem.AppDataDirectory, "ffmpeg.exe");
+        if (File.Exists(ffmpegPath))
+            return;
+
+        _ffmpegSetupProgressBar.Progress = 0;
+        _ffmpegSetupPercentLabel.Text = "0%";
+        _ffmpegSetupOverlay.IsVisible = true;
+
+        var progress = new Progress<(long bytesReceived, long totalBytes)>(value =>
+        {
+            double pct = value.totalBytes > 0
+                ? Math.Clamp((double)value.bytesReceived / value.totalBytes, 0, 1)
+                : 0;
+            _ffmpegSetupProgressBar.Progress = pct;
+            _ffmpegSetupPercentLabel.Text = $"{pct * 100:0}%";
+        });
+
+        try
+        {
+            await _ffmpeg.EnsureFFmpegAsync(progress);
+            _ffmpegSetupProgressBar.Progress = 1;
+            _ffmpegSetupPercentLabel.Text = "100%";
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("FFmpeg Setup Error", ex.Message, "OK");
+        }
+        finally
+        {
+            _ffmpegSetupOverlay.IsVisible = false;
+        }
+    }
+
+    private Grid CreateFFmpegSetupOverlay()
+    {
+        _ffmpegSetupProgressBar = new ProgressBar
+        {
+            Progress = 0,
+            ProgressColor = Color.FromArgb("#00695C")
+        };
+        _ffmpegSetupPercentLabel = new Label
+        {
+            Text = "0%",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#263238"),
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#CFD8DC"),
+            CornerRadius = 10,
+            HasShadow = true,
+            Padding = 20,
+            WidthRequest = 420,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 14,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Downloading FFmpeg (~160MB, one-time setup...)",
+                        FontSize = 18,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#263238"),
+                        HorizontalTextAlignment = TextAlignment.Center,
+                        LineBreakMode = LineBreakMode.WordWrap
+                    },
+                    _ffmpegSetupProgressBar,
+                    _ffmpegSetupPercentLabel
+                }
+            }
+        };
+
+        return new Grid
+        {
+            IsVisible = false,
+            BackgroundColor = Color.FromRgba(0, 0, 0, 0.70),
+            Padding = 16,
+            Children = { card }
+        };
     }
 
     private Frame BuildProjectBar()
