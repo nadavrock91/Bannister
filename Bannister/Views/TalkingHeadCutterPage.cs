@@ -38,6 +38,7 @@ public class TalkingHeadCutterPage : ContentPage
     private readonly Editor _transcriptEditor;
     private readonly Label _transcriptStatusLabel;
     private readonly Button _trimCompareButton;
+    private readonly Button _smartTrimButton;
     private readonly Button _copyAnalysisPromptButton;
     private readonly Editor _shortsEditor;
     private readonly VerticalStackLayout _cutsList;
@@ -91,6 +92,8 @@ public class TalkingHeadCutterPage : ContentPage
         _transcriptStatusLabel = CreateMutedLabel("No transcript imported");
         _trimCompareButton = CreateButton("\u2702\ufe0f Trim & Compare", Color.FromArgb("#6A1B9A"));
         _trimCompareButton.IsEnabled = false;
+        _smartTrimButton = CreateButton("Smart Trim", Color.FromArgb("#1565C0"));
+        _smartTrimButton.IsEnabled = false;
         _copyAnalysisPromptButton = CreateButton("Copy Shorts Analysis Prompt", Color.FromArgb("#1565C0"));
         _copyAnalysisPromptButton.IsEnabled = false;
         _shortsEditor = CreateEditor("Paste suggested shorts here...", 160);
@@ -170,10 +173,12 @@ public class TalkingHeadCutterPage : ContentPage
             _transcriptEditor,
             CreateActionButton("Import Transcript", OnImportTranscriptClicked),
             _trimCompareButton,
+            _smartTrimButton,
             _transcriptStatusLabel
         }));
 
         _trimCompareButton.Clicked += OnTrimCompareClicked;
+        _smartTrimButton.Clicked += OnSmartTrimClicked;
         _copyAnalysisPromptButton.Clicked += OnCopyAnalysisPromptClicked;
         stack.Children.Add(BuildStageCard("3", "Find Best Shorts", new View[]
         {
@@ -566,6 +571,7 @@ public class TalkingHeadCutterPage : ContentPage
             _transcriptStatusLabel.Text = "No transcript imported";
             _copyAnalysisPromptButton.IsEnabled = false;
             _trimCompareButton.IsEnabled = false;
+            _smartTrimButton.IsEnabled = false;
             return;
         }
 
@@ -573,6 +579,7 @@ public class TalkingHeadCutterPage : ContentPage
         _transcriptStatusLabel.Text = $"{_transcriptWords.Count} words imported. Duration: {FormatTime(duration)}";
         _copyAnalysisPromptButton.IsEnabled = true;
         _trimCompareButton.IsEnabled = true;
+        _smartTrimButton.IsEnabled = true;
     }
 
     private static ProposedCut ToProposedCut(ShortsCutterCut cut) =>
@@ -941,6 +948,7 @@ public class TalkingHeadCutterPage : ContentPage
             _transcriptStatusLabel.Text = "No timestamped words found";
             _copyAnalysisPromptButton.IsEnabled = false;
             _trimCompareButton.IsEnabled = false;
+            _smartTrimButton.IsEnabled = false;
             await DisplayAlert("Import Transcript", "No lines matched [MM:SS.mmm] word.", "OK");
             return;
         }
@@ -960,6 +968,28 @@ public class TalkingHeadCutterPage : ContentPage
         }
 
         await Navigation.PushAsync(new TranscriptTrimPage(_transcriptWords, _selectedVideoPath, _ffmpeg, path =>
+        {
+            _selectedVideoPath = path;
+            if (_currentProject != null)
+            {
+                _currentProject.VideoPath = path;
+                _ = _shortsProjects.SaveProjectAsync(_currentProject);
+            }
+        }));
+    }
+
+    private async void OnSmartTrimClicked(object? sender, EventArgs e)
+    {
+        if (_transcriptWords.Count == 0)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_selectedVideoPath) || !File.Exists(_selectedVideoPath))
+        {
+            await DisplayAlert("No Video Selected", "Please select a video file in Stage 1 before using Smart Trim.", "OK");
+            return;
+        }
+
+        await Navigation.PushAsync(new SmartTrimPage(_transcriptWords, _selectedVideoPath, _ffmpeg, path =>
         {
             _selectedVideoPath = path;
             if (_currentProject != null)

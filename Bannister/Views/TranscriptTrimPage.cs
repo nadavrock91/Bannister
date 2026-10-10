@@ -16,6 +16,7 @@ public class TranscriptTrimPage : ContentPage
     private readonly Editor _keepListEntry;
     private readonly Label _keepListStatusLabel;
     private readonly Button _compareButton;
+    private readonly Button _smartTrimButton;
 
     public TranscriptTrimPage(
         IEnumerable<TalkingHeadCutterPage.TranscriptWord> transcriptWords,
@@ -39,6 +40,9 @@ public class TranscriptTrimPage : ContentPage
         _compareButton = CreateButton("Build Comparison", Color.FromArgb("#00695C"));
         _compareButton.IsEnabled = false;
         _compareButton.Clicked += OnBuildComparisonClicked;
+        _smartTrimButton = CreateButton("Smart Trim", Color.FromArgb("#1565C0"));
+        _smartTrimButton.IsEnabled = false;
+        _smartTrimButton.Clicked += OnSmartTrimClicked;
 
         BuildUI();
     }
@@ -76,7 +80,8 @@ public class TranscriptTrimPage : ContentPage
                 }),
                 BuildCard("Compare", new View[]
                 {
-                    _compareButton
+                    _compareButton,
+                    _smartTrimButton
                 })
             }
         };
@@ -116,6 +121,16 @@ public class TranscriptTrimPage : ContentPage
         await Navigation.PushAsync(page);
     }
 
+    private async void OnSmartTrimClicked(object? sender, EventArgs e)
+    {
+        var selection = ParseTrimResponse(_keepListEntry.Text ?? "");
+        await Navigation.PushAsync(new SmartTrimPage(_transcriptWords, _videoPath, _ffmpeg, path =>
+        {
+            _videoPath = path;
+            _onVideoPathChanged?.Invoke(path);
+        }, selection.Ratings));
+    }
+
     private void UpdateKeepListState()
     {
         var selection = ParseTrimResponse(_keepListEntry.Text ?? "");
@@ -123,6 +138,7 @@ public class TranscriptTrimPage : ContentPage
             ? "Paste the sentence numbers to keep."
             : $"{selection.KeepNumbers.Count} sentence number(s) selected | {selection.Ratings.Count} rating(s)";
         _compareButton.IsEnabled = selection.KeepNumbers.Count > 0;
+        _smartTrimButton.IsEnabled = selection.Ratings.Count > 0;
     }
 
     private ContentPage BuildComparisonPage(TrimSelection selection)
