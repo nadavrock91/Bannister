@@ -74,6 +74,7 @@ public class TalkingHeadCutterPage : ContentPage
             CreateLabeledEntry("Silence threshold (dB)", _silenceThresholdEntry),
             CreateLabeledEntry("Min silence duration (s)", _minSilenceDurationEntry),
             CreateLabeledEntry("Truncate to (s)", _truncateToEntry),
+            CreateActionButton("Analyse", OnAnalyseSilenceClicked),
             CreateActionButton("\u2702\ufe0f Truncate Silence", OnTruncateSilenceClicked),
             _truncateProgressLabel,
             _truncateProgressBar
@@ -374,6 +375,56 @@ public class TalkingHeadCutterPage : ContentPage
         {
             _truncateProgressLabel.Text = "Truncate failed.";
             await DisplayAlert("Truncate Error", ex.Message, "OK");
+        }
+    }
+
+    private async void OnAnalyseSilenceClicked(object? sender, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_selectedVideoPath) || !File.Exists(_selectedVideoPath))
+        {
+            await DisplayAlert("Pick Video", "Choose a video file first.", "OK");
+            return;
+        }
+
+        if (!TryParseDouble(_silenceThresholdEntry.Text, out double thresholdDb)
+            || !TryParseDouble(_minSilenceDurationEntry.Text, out double minDurationSec)
+            || !TryParseDouble(_truncateToEntry.Text, out double truncateToSec))
+        {
+            await DisplayAlert("Invalid Values", "Enter numeric silence settings.", "OK");
+            return;
+        }
+
+        try
+        {
+            _truncateProgressLabel.Text = "Analysing silence...";
+            _truncateProgressBar.IsVisible = false;
+
+            string ffmpegPath = await _ffmpeg.EnsureFFmpegAsync();
+            var result = await _ffmpeg.AnalyseSilenceAsync(
+                ffmpegPath,
+                _selectedVideoPath,
+                thresholdDb,
+                minDurationSec);
+
+            if (!result.success)
+            {
+                _truncateProgressLabel.Text = "Analysis failed.";
+                await DisplayAlert("FFmpeg Error", result.error, "OK");
+                return;
+            }
+
+            double rawSilenceSeconds = result.silences.Sum(s => Math.Max(0, s.end - s.start));
+            double inputSeconds = result.estimatedDuration.TotalSeconds + rawSilenceSeconds;
+            double savedSeconds = result.silences.Sum(s => Math.Max(0, (s.end - s.start) - (truncateToSec * 2)));
+            var estimatedOutput = TimeSpan.FromSeconds(Math.Max(0, inputSeconds - savedSeconds));
+
+            _truncateProgressLabel.Text =
+                $"Estimated output duration: {FormatDuration(estimatedOutput)} (saving {savedSeconds:0}s)";
+        }
+        catch (Exception ex)
+        {
+            _truncateProgressLabel.Text = "Analysis failed.";
+            await DisplayAlert("Analysis Error", ex.Message, "OK");
         }
     }
 

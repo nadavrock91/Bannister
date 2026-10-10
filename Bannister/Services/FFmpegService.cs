@@ -160,6 +160,16 @@ public class FFmpegService
         IProgress<double>? progress = null)
     {
 #if WINDOWS
+        var analysis = await AnalyseSilenceAsync(ffmpegPath, inputPath, thresholdDb, minDurationSec);
+        if (!analysis.success)
+            return (false, analysis.error);
+
+        double silenceSeconds = analysis.silences.Sum(s => Math.Max(0, s.end - s.start));
+        var inputDuration = analysis.estimatedDuration + TimeSpan.FromSeconds(silenceSeconds);
+        var keepSegments = BuildKeepSegments(analysis.silences, inputDuration.TotalSeconds, truncateToSec);
+        if (keepSegments.Count == 0)
+            return (false, "No speech segments were found after silence analysis.");
+
         var startInfo = new ProcessStartInfo
         {
             FileName = ffmpegPath,
@@ -168,14 +178,21 @@ public class FFmpegService
             RedirectStandardOutput = false,
             CreateNoWindow = true
         };
-        string filter = string.Create(
-            CultureInfo.InvariantCulture,
-            $"silenceremove=stop_periods=-1:stop_duration={minDurationSec}:stop_threshold={thresholdDb}dB:stop_silence={truncateToSec}");
+        string selectExpression = string.Join(
+            "+",
+            keepSegments.Select(s => string.Create(
+                CultureInfo.InvariantCulture,
+                $"between(t,{s.start:0.###},{s.end:0.###})")));
+        string videoFilter = $"select='{selectExpression}',setpts=N/FRAME_RATE/TB";
+        string audioFilter = $"aselect='{selectExpression}',asetpts=N/SR/TB";
+
         startInfo.ArgumentList.Add("-y");
         startInfo.ArgumentList.Add("-i");
         startInfo.ArgumentList.Add(inputPath);
+        startInfo.ArgumentList.Add("-vf");
+        startInfo.ArgumentList.Add(videoFilter);
         startInfo.ArgumentList.Add("-af");
-        startInfo.ArgumentList.Add(filter);
+        startInfo.ArgumentList.Add(audioFilter);
         startInfo.ArgumentList.Add(outputPath);
 
         using var process = new Process { StartInfo = startInfo };
@@ -184,7 +201,7 @@ public class FFmpegService
         process.EnableRaisingEvents = true;
 
         var errorLines = new StringBuilder();
-        TimeSpan totalDuration = TimeSpan.Zero;
+        TimeSpan totalDuration = TimeSpan.FromSeconds(keepSegments.Sum(s => Math.Max(0, s.end - s.start)));
 
         process.ErrorDataReceived += (s, e) =>
         {
@@ -231,6 +248,146 @@ public class FFmpegService
         await Task.CompletedTask;
         return (false, "FFmpeg silence truncation is only available on Windows.");
 #endif
+    }
+
+    public async Task<(bool success, string error, TimeSpan estimatedDuration, List<(double start, double end)> silences)> AnalyseSilenceAsync(
+        string ffmpegPath,
+        string inputPath,
+        double thresholdDb,
+        double minDurationSec)
+    {
+#if WINDOWS
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = ffmpegPath,
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            RedirectStandardOutput = false,
+            CreateNoWindow = true
+        };
+        string filter = string.Create(
+            CultureInfo.InvariantCulture,
+            $"silencedetect=noise={thresholdDb}dB:duration={minDurationSec}");
+        startInfo.ArgumentList.Add("-i");
+        startInfo.ArgumentList.Add(inputPath);
+        startInfo.ArgumentList.Add("-af");
+        startInfo.ArgumentList.Add(filter);
+        startInfo.ArgumentList.Add("-f");
+        startInfo.ArgumentList.Add("null");
+        startInfo.ArgumentList.Add("-");
+
+        using var process = new Process { StartInfo = startInfo };
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.RedirectStandardOutput = false;
+        process.EnableRaisingEvents = true;
+
+        var errorLines = new StringBuilder();
+        var silences = new List<(double start, double end)>();
+        TimeSpan inputDuration = TimeSpan.Zero;
+        double? activeSilenceStart = null;
+
+        process.ErrorDataReceived += (s, e) =>
+        {
+            if (e.Data == null)
+                return;
+
+            errorLines.AppendLine(e.Data);
+
+            var durationMatch = Regex.Match(e.Data, @"Duration:\s*(\d+):(\d+):(\d+\.\d+)");
+            if (durationMatch.Success)
+            {
+                int h = int.Parse(durationMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+                int m = int.Parse(durationMatch.Groups[2].Value, CultureInfo.InvariantCulture);
+                double sec = double.Parse(durationMatch.Groups[3].Value, CultureInfo.InvariantCulture);
+                inputDuration = new TimeSpan(h, m, 0) + TimeSpan.FromSeconds(sec);
+            }
+
+            var startMatch = Regex.Match(e.Data, @"silence_start:\s*([0-9.]+)");
+            if (startMatch.Success)
+                activeSilenceStart = double.Parse(startMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+
+            var endMatch = Regex.Match(e.Data, @"silence_end:\s*([0-9.]+)");
+            if (endMatch.Success && activeSilenceStart.HasValue)
+            {
+                double end = double.Parse(endMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+                if (end > activeSilenceStart.Value)
+                    silences.Add((activeSilenceStart.Value, end));
+                activeSilenceStart = null;
+            }
+        };
+
+        process.Start();
+        process.BeginErrorReadLine();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+            return (false, errorLines.ToString().Trim(), TimeSpan.Zero, silences);
+
+        if (activeSilenceStart.HasValue && inputDuration > TimeSpan.Zero)
+            silences.Add((activeSilenceStart.Value, inputDuration.TotalSeconds));
+
+        double silenceSeconds = silences.Sum(s => Math.Max(0, s.end - s.start));
+        var estimatedDuration = TimeSpan.FromSeconds(Math.Max(0, inputDuration.TotalSeconds - silenceSeconds));
+        return (true, "", estimatedDuration, silences);
+#else
+        await Task.CompletedTask;
+        return (false, "FFmpeg silence analysis is only available on Windows.", TimeSpan.Zero, new List<(double start, double end)>());
+#endif
+    }
+
+    private static List<(double start, double end)> BuildKeepSegments(
+        List<(double start, double end)> silences,
+        double totalDurationSec,
+        double truncateToSec)
+    {
+        if (totalDurationSec <= 0)
+            return new List<(double start, double end)>();
+
+        if (silences.Count == 0)
+            return new List<(double start, double end)> { (0, totalDurationSec) };
+
+        var orderedSilences = silences
+            .Where(s => s.end > s.start)
+            .OrderBy(s => s.start)
+            .ToList();
+        var segments = new List<(double start, double end)>();
+
+        for (int i = 0; i <= orderedSilences.Count; i++)
+        {
+            double speechStart = i == 0
+                ? 0
+                : orderedSilences[i - 1].end - truncateToSec;
+            double speechEnd = i == orderedSilences.Count
+                ? totalDurationSec
+                : orderedSilences[i].start + truncateToSec;
+
+            speechStart = Math.Clamp(speechStart, 0, totalDurationSec);
+            speechEnd = Math.Clamp(speechEnd, 0, totalDurationSec);
+            if (speechEnd > speechStart)
+                segments.Add((speechStart, speechEnd));
+        }
+
+        return MergeSegments(segments, totalDurationSec);
+    }
+
+    private static List<(double start, double end)> MergeSegments(
+        List<(double start, double end)> segments,
+        double totalDurationSec)
+    {
+        var merged = new List<(double start, double end)>();
+        foreach (var segment in segments.OrderBy(s => s.start))
+        {
+            if (merged.Count == 0 || segment.start > merged[^1].end)
+            {
+                merged.Add(segment);
+                continue;
+            }
+
+            var last = merged[^1];
+            merged[^1] = (last.start, Math.Min(totalDurationSec, Math.Max(last.end, segment.end)));
+        }
+
+        return merged;
     }
 
     private static bool TryParseTime(string value, out TimeSpan time)
