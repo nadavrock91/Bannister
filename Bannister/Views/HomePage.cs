@@ -80,6 +80,7 @@ public class HomePage : ContentPage
     private readonly VideoGenExperimentService _videoGenExperimentService;
     private readonly PromptTechniqueService _promptTechniqueService;
     private readonly FFmpegService _ffmpegService;
+    private readonly TruncatePresetService _truncatePresetService;
     private readonly AppSettingsService _appSettings;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
@@ -177,12 +178,14 @@ public class HomePage : ContentPage
         VideoGenExperimentService videoGenExperimentService,
         PromptTechniqueService promptTechniqueService,
         FFmpegService ffmpegService,
+        TruncatePresetService truncatePresetService,
         AppSettingsService appSettings)
     {
         _auth = auth;
         _videoGenExperimentService = videoGenExperimentService;
         _promptTechniqueService = promptTechniqueService;
         _ffmpegService = ffmpegService;
+        _truncatePresetService = truncatePresetService;
         _appSettings = appSettings;
         _games = games;
         _dragons = dragons;
@@ -2892,7 +2895,7 @@ public class HomePage : ContentPage
 
     private async void OnVideoEditingClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new VideoEditingHubPage(_ffmpegService));
+        await Navigation.PushAsync(new VideoEditingHubPage(_auth, _ffmpegService, _truncatePresetService));
     }
 
     private async void OnCalendarClicked(object? sender, EventArgs e)

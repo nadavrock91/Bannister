@@ -1,3 +1,4 @@
+using Bannister.Models;
 using Bannister.Services;
 using System.Globalization;
 using System.Text;
@@ -7,15 +8,21 @@ namespace Bannister.Views;
 
 public class TalkingHeadCutterPage : ContentPage
 {
+    private readonly AuthService _auth;
     private readonly FFmpegService _ffmpeg;
+    private readonly TruncatePresetService _truncatePresets;
     private readonly List<TranscriptWord> _transcriptWords = new();
     private readonly List<ProposedCut> _cuts = new();
+    private readonly List<TruncatePreset> _truncatePresetItems = new();
 
     private string? _selectedVideoPath;
     private string? _outputFolder;
+    private bool _truncatePresetsLoaded;
+    private bool _loadingTruncatePresets;
 
     private readonly Label _selectedFileLabel;
     private readonly Frame _truncateSilenceCard;
+    private readonly Picker _truncatePresetPicker;
     private readonly Entry _silenceThresholdEntry;
     private readonly Entry _minSilenceDurationEntry;
     private readonly Entry _truncateToEntry;
@@ -34,14 +41,24 @@ public class TalkingHeadCutterPage : ContentPage
     private Grid _wrapTranscriptOverlay = null!;
     private Editor _rawTranscriptEditor = null!;
 
-    public TalkingHeadCutterPage(FFmpegService ffmpeg)
+    public TalkingHeadCutterPage(AuthService auth, FFmpegService ffmpeg, TruncatePresetService truncatePresets)
     {
+        _auth = auth;
         _ffmpeg = ffmpeg;
+        _truncatePresets = truncatePresets;
 
         Title = "Talking Head Shorts Cutter";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
         _selectedFileLabel = CreateMutedLabel("No video selected");
+        _truncatePresetPicker = new Picker
+        {
+            Title = "-- Select Preset --",
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            TitleColor = Color.FromArgb("#666")
+        };
+        _truncatePresetPicker.SelectedIndexChanged += OnTruncatePresetSelected;
         _silenceThresholdEntry = CreateNumericEntry("-35");
         _minSilenceDurationEntry = CreateNumericEntry("0.3");
         _truncateToEntry = CreateNumericEntry("0.2");
@@ -71,9 +88,13 @@ public class TalkingHeadCutterPage : ContentPage
         _cutAllButton = CreateButton("\u2702\ufe0f Cut All Shorts", Color.FromArgb("#00695C"));
         _truncateSilenceCard = BuildStageCard("1b", "Truncate Silence (optional)", new View[]
         {
+            CreateLabeledPicker("Preset", _truncatePresetPicker),
             CreateLabeledEntry("Silence threshold (dB)", _silenceThresholdEntry),
             CreateLabeledEntry("Min silence duration (s)", _minSilenceDurationEntry),
             CreateLabeledEntry("Truncate to (s)", _truncateToEntry),
+            CreateActionButton("Save as Preset", OnSaveTruncatePresetClicked),
+            CreateActionButton("Set as Default", OnSetDefaultTruncatePresetClicked),
+            CreateActionButton("Delete Preset", OnDeleteTruncatePresetClicked),
             CreateActionButton("Analyse", OnAnalyseSilenceClicked),
             CreateActionButton("\u2702\ufe0f Truncate Silence", OnTruncateSilenceClicked),
             _truncateProgressLabel,
@@ -82,6 +103,17 @@ public class TalkingHeadCutterPage : ContentPage
         _truncateSilenceCard.IsVisible = false;
 
         BuildUI();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (_truncatePresetsLoaded)
+            return;
+
+        _truncatePresetsLoaded = true;
+        await LoadTruncatePresetsAsync(selectDefault: true);
     }
 
     private void BuildUI()
@@ -280,6 +312,22 @@ public class TalkingHeadCutterPage : ContentPage
             }
         };
 
+    private View CreateLabeledPicker(string label, Picker picker) =>
+        new VerticalStackLayout
+        {
+            Spacing = 4,
+            Children =
+            {
+                new Label
+                {
+                    Text = label,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#455A64")
+                },
+                picker
+            }
+        };
+
     private Label CreateMutedLabel(string text) =>
         new()
         {
@@ -288,6 +336,140 @@ public class TalkingHeadCutterPage : ContentPage
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
         };
+
+    private async Task LoadTruncatePresetsAsync(bool selectDefault = false, int? selectPresetId = null)
+    {
+        _loadingTruncatePresets = true;
+        try
+        {
+            _truncatePresetItems.Clear();
+            _truncatePresetPicker.Items.Clear();
+            _truncatePresetPicker.Items.Add("-- Select Preset --");
+
+            var presets = await _truncatePresets.GetPresetsAsync(_auth.CurrentUsername);
+            _truncatePresetItems.AddRange(presets);
+            foreach (var preset in presets)
+                _truncatePresetPicker.Items.Add(preset.Title);
+
+            TruncatePreset? selected = null;
+            if (selectPresetId.HasValue)
+                selected = presets.FirstOrDefault(p => p.Id == selectPresetId.Value);
+            else if (selectDefault)
+                selected = presets.FirstOrDefault(p => p.IsDefault)
+                    ?? await _truncatePresets.GetDefaultPresetAsync(_auth.CurrentUsername);
+
+            if (selected != null)
+            {
+                int index = presets.FindIndex(p => p.Id == selected.Id);
+                _truncatePresetPicker.SelectedIndex = index >= 0 ? index + 1 : 0;
+                ApplyTruncatePreset(selected);
+            }
+            else
+            {
+                _truncatePresetPicker.SelectedIndex = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            _truncateProgressLabel.Text = $"Could not load presets: {ex.Message}";
+        }
+        finally
+        {
+            _loadingTruncatePresets = false;
+        }
+    }
+
+    private void OnTruncatePresetSelected(object? sender, EventArgs e)
+    {
+        if (_loadingTruncatePresets)
+            return;
+
+        var preset = GetSelectedTruncatePreset();
+        if (preset != null)
+            ApplyTruncatePreset(preset);
+    }
+
+    private TruncatePreset? GetSelectedTruncatePreset()
+    {
+        int index = _truncatePresetPicker.SelectedIndex - 1;
+        if (index < 0 || index >= _truncatePresetItems.Count)
+            return null;
+
+        return _truncatePresetItems[index];
+    }
+
+    private void ApplyTruncatePreset(TruncatePreset preset)
+    {
+        _silenceThresholdEntry.Text = FormatPresetNumber(preset.ThresholdDb);
+        _minSilenceDurationEntry.Text = FormatPresetNumber(preset.MinSilenceDuration);
+        _truncateToEntry.Text = FormatPresetNumber(preset.TruncateTo);
+    }
+
+    private async void OnSaveTruncatePresetClicked(object? sender, EventArgs e)
+    {
+        if (!TryReadTruncatePresetValues(out double thresholdDb, out double minDurationSec, out double truncateToSec))
+            return;
+
+        string title = await DisplayPromptAsync("Save Preset", "Preset title:");
+        if (string.IsNullOrWhiteSpace(title))
+            return;
+
+        var preset = new TruncatePreset
+        {
+            Username = _auth.CurrentUsername,
+            Title = title.Trim(),
+            ThresholdDb = thresholdDb,
+            MinSilenceDuration = minDurationSec,
+            TruncateTo = truncateToSec,
+            CreatedDate = DateTime.UtcNow
+        };
+
+        await _truncatePresets.SavePresetAsync(preset);
+        await LoadTruncatePresetsAsync(selectPresetId: preset.Id);
+    }
+
+    private async void OnSetDefaultTruncatePresetClicked(object? sender, EventArgs e)
+    {
+        var preset = GetSelectedTruncatePreset();
+        if (preset == null)
+        {
+            await DisplayAlert("Select Preset", "Choose a preset first.", "OK");
+            return;
+        }
+
+        preset.IsDefault = true;
+        await _truncatePresets.SavePresetAsync(preset);
+        await LoadTruncatePresetsAsync(selectPresetId: preset.Id);
+    }
+
+    private async void OnDeleteTruncatePresetClicked(object? sender, EventArgs e)
+    {
+        var preset = GetSelectedTruncatePreset();
+        if (preset == null)
+        {
+            await DisplayAlert("Select Preset", "Choose a preset first.", "OK");
+            return;
+        }
+
+        await _truncatePresets.DeletePresetAsync(preset.Id);
+        await LoadTruncatePresetsAsync();
+    }
+
+    private bool TryReadTruncatePresetValues(out double thresholdDb, out double minDurationSec, out double truncateToSec)
+    {
+        if (!TryParseDouble(_silenceThresholdEntry.Text, out thresholdDb)
+            || !TryParseDouble(_minSilenceDurationEntry.Text, out minDurationSec)
+            || !TryParseDouble(_truncateToEntry.Text, out truncateToSec))
+        {
+            DisplayAlert("Invalid Values", "Enter numeric silence settings.", "OK");
+            thresholdDb = 0;
+            minDurationSec = 0;
+            truncateToSec = 0;
+            return false;
+        }
+
+        return true;
+    }
 
     private async void OnChooseVideoClicked(object? sender, EventArgs e)
     {
@@ -864,6 +1046,9 @@ public class TalkingHeadCutterPage : ContentPage
     private static bool TryParseDouble(string? value, out double result) =>
         double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
         || double.TryParse(value, NumberStyles.Float, CultureInfo.CurrentCulture, out result);
+
+    private static string FormatPresetNumber(double value) =>
+        value.ToString("0.###", CultureInfo.InvariantCulture);
 
     private static string Slugify(string value)
     {
