@@ -12,8 +12,8 @@ public class TranscriptTrimPage : ContentPage
     private readonly FFmpegService _ffmpeg;
 
     private readonly Entry _targetMinutesEntry;
-    private readonly Editor _trimmedEditor;
-    private readonly Label _trimmedWordCountLabel;
+    private readonly Entry _keepListEntry;
+    private readonly Label _keepListStatusLabel;
     private readonly Button _compareButton;
 
     public TranscriptTrimPage(
@@ -30,10 +30,10 @@ public class TranscriptTrimPage : ContentPage
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
         _targetMinutesEntry = CreateEntry("3");
-        _trimmedEditor = CreateEditor("Paste trimmed transcript here...", 180);
-        _trimmedEditor.TextChanged += (_, _) => UpdateTrimmedState();
-        _trimmedWordCountLabel = CreateMutedLabel("0 words");
-        _compareButton = CreateButton("Build Side-by-Side Comparison", Color.FromArgb("#00695C"));
+        _keepListEntry = CreateTextEntry("Paste keep = 1,3,5...");
+        _keepListEntry.TextChanged += (_, _) => UpdateKeepListState();
+        _keepListStatusLabel = CreateMutedLabel("Paste the sentence numbers to keep.");
+        _compareButton = CreateButton("Build Comparison", Color.FromArgb("#00695C"));
         _compareButton.IsEnabled = false;
         _compareButton.Clicked += OnBuildComparisonClicked;
 
@@ -63,8 +63,8 @@ public class TranscriptTrimPage : ContentPage
                 {
                     CreateLabeledEntry("Target duration (minutes)", _targetMinutesEntry),
                     CreateActionButton("Copy Trim Prompt", OnCopyTrimPromptClicked),
-                    _trimmedEditor,
-                    _trimmedWordCountLabel
+                    CreateLabeledEntry("LLM response", _keepListEntry),
+                    _keepListStatusLabel
                 }),
                 BuildCard("Original Transcript", new View[]
                 {
@@ -87,9 +87,12 @@ public class TranscriptTrimPage : ContentPage
             ? "3"
             : _targetMinutesEntry.Text.Trim();
 
+        var sentences = BuildOriginalSentenceItems();
         string prompt =
-            $"Here is a spoken transcript. Trim it to approximately {targetMinutes} minutes of spoken content while preserving the most important ideas, the strongest opening hook, and the natural conclusion. Cut filler, repetition, and weaker tangents. Return ONLY the trimmed transcript as plain text with no timestamps, formatted as natural paragraphs.\n\n" +
-            _originalText;
+            $"Here is a spoken transcript split into numbered sentences. I want to trim it to approximately {targetMinutes} minutes. Return ONLY a comma-separated list of sentence numbers to KEEP \u2014 the ones that form the best version. Keep the strongest hook, core ideas, and natural conclusion. Cut filler, repetition, and weaker tangents.\n\n" +
+            "Sentences:\n" +
+            string.Join("\n", sentences.Select((sentence, index) => $"{index + 1}. {sentence.Text}")) +
+            "\n\nReturn format: keep = 1,3,5,7,8,9,...";
 
         await Clipboard.Default.SetTextAsync(prompt);
         await DisplayAlert("Copied", "Trim prompt copied.", "OK");
@@ -97,27 +100,31 @@ public class TranscriptTrimPage : ContentPage
 
     private async void OnBuildComparisonClicked(object? sender, EventArgs e)
     {
-        string revisedText = _trimmedEditor.Text?.Trim() ?? "";
-        if (string.IsNullOrWhiteSpace(revisedText))
+        var keepNumbers = ParseKeepNumbers(_keepListEntry.Text ?? "");
+        if (keepNumbers.Count == 0)
+        {
+            await DisplayAlert("No Sentences", "Paste a comma-separated keep list first.", "OK");
             return;
+        }
 
-        var page = BuildComparisonPage(revisedText);
+        var page = BuildComparisonPage(keepNumbers);
         await Navigation.PushAsync(page);
     }
 
-    private void UpdateTrimmedState()
+    private void UpdateKeepListState()
     {
-        string text = _trimmedEditor.Text?.Trim() ?? "";
-        _trimmedWordCountLabel.Text = $"{CountWords(text)} words";
-        _compareButton.IsEnabled = !string.IsNullOrWhiteSpace(text);
+        var keepNumbers = ParseKeepNumbers(_keepListEntry.Text ?? "");
+        _keepListStatusLabel.Text = keepNumbers.Count == 0
+            ? "Paste the sentence numbers to keep."
+            : $"{keepNumbers.Count} sentence number(s) selected";
+        _compareButton.IsEnabled = keepNumbers.Count > 0;
     }
 
-    private ContentPage BuildComparisonPage(string revisedText)
+    private ContentPage BuildComparisonPage(HashSet<int> keepNumbers)
     {
         var original = BuildOriginalSentenceItems();
-        var revised = SplitSentenceItems(revisedText);
-        var rows = AlignSentences(original, revised)
-            .Select(row => new InteractiveComparisonRow(row))
+        var rows = original
+            .Select((sentence, index) => new InteractiveComparisonRow(sentence, index + 1, keepNumbers.Contains(index + 1)))
             .ToList();
 
         var grid = new Grid
@@ -149,9 +156,9 @@ public class TranscriptTrimPage : ContentPage
                 ApplyRowState(row);
 
             var enabledSentences = rows
-                .Where(r => r.IsEnabled && r.Original?.Timestamp != null)
+                .Where(r => r.IsEnabled && r.Original.Timestamp != null)
                 .ToList();
-            int totalSentences = rows.Count(r => r.Original?.Timestamp != null);
+            int totalSentences = rows.Count(r => r.Original.Timestamp != null);
             var segments = BuildKeepSegmentsFromRows(rows);
             var estimatedDuration = TimeSpan.FromSeconds(segments.Sum(s => Math.Max(0, s.end - s.start)));
             statsLabel.Text = $"{enabledSentences.Count} of {totalSentences} sentences enabled | Estimated duration: {FormatDuration(estimatedDuration)}";
@@ -213,113 +220,6 @@ public class TranscriptTrimPage : ContentPage
         };
     }
 
-    private static List<ComparisonRow> AlignSentences(List<SentenceItem> original, List<SentenceItem> revised)
-    {
-        int[,] lcs = BuildLcsTable(original, revised);
-        var matches = BacktrackMatches(original, revised, lcs);
-        var rows = new List<ComparisonRow>();
-        int originalStart = 0;
-        int revisedStart = 0;
-
-        foreach (var match in matches)
-        {
-            AddUnmatchedRows(original, originalStart, match.originalIndex, revised, revisedStart, match.revisedIndex, rows);
-            rows.Add(new ComparisonRow(original[match.originalIndex], revised[match.revisedIndex], "same"));
-            originalStart = match.originalIndex + 1;
-            revisedStart = match.revisedIndex + 1;
-        }
-
-        AddUnmatchedRows(original, originalStart, original.Count, revised, revisedStart, revised.Count, rows);
-        return rows;
-    }
-
-    private static int[,] BuildLcsTable(List<SentenceItem> original, List<SentenceItem> revised)
-    {
-        int[,] table = new int[original.Count + 1, revised.Count + 1];
-        for (int i = original.Count - 1; i >= 0; i--)
-        {
-            for (int j = revised.Count - 1; j >= 0; j--)
-            {
-                table[i, j] = NormalizeSentence(original[i].Text) == NormalizeSentence(revised[j].Text)
-                    ? table[i + 1, j + 1] + 1
-                    : Math.Max(table[i + 1, j], table[i, j + 1]);
-            }
-        }
-
-        return table;
-    }
-
-    private static List<(int originalIndex, int revisedIndex)> BacktrackMatches(List<SentenceItem> original, List<SentenceItem> revised, int[,] table)
-    {
-        var matches = new List<(int originalIndex, int revisedIndex)>();
-        int i = 0;
-        int j = 0;
-        while (i < original.Count && j < revised.Count)
-        {
-            if (NormalizeSentence(original[i].Text) == NormalizeSentence(revised[j].Text))
-            {
-                matches.Add((i, j));
-                i++;
-                j++;
-            }
-            else if (table[i + 1, j] >= table[i, j + 1])
-            {
-                i++;
-            }
-            else
-            {
-                j++;
-            }
-        }
-
-        return matches;
-    }
-
-    private static void AddUnmatchedRows(
-        List<SentenceItem> original,
-        int originalStart,
-        int originalEnd,
-        List<SentenceItem> revised,
-        int revisedStart,
-        int revisedEnd,
-        List<ComparisonRow> rows)
-    {
-        var usedRevised = new HashSet<int>();
-        for (int i = originalStart; i < originalEnd; i++)
-        {
-            int bestIndex = -1;
-            double bestScore = 0;
-            for (int j = revisedStart; j < revisedEnd; j++)
-            {
-                if (usedRevised.Contains(j))
-                    continue;
-
-                double score = WordOverlap(original[i].Text, revised[j].Text);
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestIndex = j;
-                }
-            }
-
-            if (bestIndex >= 0 && bestScore > 0.6)
-            {
-                usedRevised.Add(bestIndex);
-                rows.Add(new ComparisonRow(original[i], revised[bestIndex], "similar"));
-            }
-            else
-            {
-                rows.Add(new ComparisonRow(original[i], null, "changed"));
-            }
-        }
-
-        for (int j = revisedStart; j < revisedEnd; j++)
-        {
-            if (!usedRevised.Contains(j))
-                rows.Add(new ComparisonRow(null, revised[j], "changed"));
-        }
-    }
-
     private List<SentenceItem> BuildOriginalSentenceItems()
     {
         var sentences = new List<SentenceItem>();
@@ -354,54 +254,33 @@ public class TranscriptTrimPage : ContentPage
         return sentences;
     }
 
-    private static List<SentenceItem> SplitSentenceItems(string text)
-    {
-        return Regex.Split(text.Trim(), @"(?<=[.!?])\s+")
-            .Select(s => s.Trim())
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => new SentenceItem(s, null, null))
-            .ToList();
-    }
-
     private static bool IsSentenceEndingWord(string word) =>
         Regex.IsMatch(word.Trim(), @"[.!?][""')\]]*$");
-
-    private static double WordOverlap(string left, string right)
-    {
-        var leftWords = GetComparableWords(left);
-        var rightWords = GetComparableWords(right);
-        if (leftWords.Count == 0 || rightWords.Count == 0)
-            return 0;
-
-        int overlap = leftWords.Intersect(rightWords).Count();
-        return overlap / (double)Math.Max(leftWords.Count, rightWords.Count);
-    }
-
-    private static HashSet<string> GetComparableWords(string sentence) =>
-        Regex.Matches(sentence.ToLowerInvariant(), @"\b[\w']+\b")
-            .Select(m => m.Value)
-            .ToHashSet();
-
-    private static string NormalizeSentence(string sentence) =>
-        string.Join(" ", Regex.Matches(sentence.ToLowerInvariant(), @"\b[\w']+\b").Select(m => m.Value));
 
     private static int CountWords(string text) =>
         Regex.Matches(text, @"\b[\w']+\b").Count;
 
+    private static HashSet<int> ParseKeepNumbers(string text)
+    {
+        var match = Regex.Match(text, @"keep\s*=\s*(.+)", RegexOptions.IgnoreCase);
+        string numberText = match.Success ? match.Groups[1].Value : text;
+        return Regex.Matches(numberText, @"\d+")
+            .Select(m => int.Parse(m.Value, CultureInfo.InvariantCulture))
+            .Where(n => n > 0)
+            .ToHashSet();
+    }
+
     private static string BuildOriginalDisplay(InteractiveComparisonRow row)
     {
-        if (row.Original == null)
-            return "[--:--] [added]";
-
-        return $"[{FormatTimestamp(row.Original.Timestamp)}] {row.Original.Text}";
+        return $"{row.Number}. [{FormatTimestamp(row.Original.Timestamp)}] {row.Original.Text}";
     }
 
     private static string BuildRevisedDisplay(InteractiveComparisonRow row)
     {
-        if (row.Revised == null)
-            return "[--:--] [cut]";
+        if (!row.IsEnabled)
+            return "[cut]";
 
-        return $"[--:--] {row.Revised.Text}";
+        return row.Original.Text;
     }
 
     private static string FormatTimestamp(TimeSpan? timestamp)
@@ -429,26 +308,16 @@ public class TranscriptTrimPage : ContentPage
         return Regex.Replace(new string(chars), "_+", "_").Trim('_');
     }
 
-    private static Color GetRowBackground(string kind) =>
-        kind switch
-        {
-            "similar" => Color.FromArgb("#FFE0B2"),
-            "changed" => Color.FromArgb("#FFCDD2"),
-            _ => Colors.White
-        };
-
     private static Color GetInteractiveRowBackground(InteractiveComparisonRow row) =>
         row.IsEnabled
             ? Color.FromArgb("#E8F5E9")
-            : row.Original == null
-                ? Color.FromArgb("#ECEFF1")
-                : Color.FromArgb("#FFEBEE");
+            : Color.FromArgb("#ECEFF1");
 
     private static List<(double start, double end)> BuildKeepSegmentsFromRows(List<InteractiveComparisonRow> rows)
     {
         var enabled = rows
-            .Where(r => r.IsEnabled && r.Original?.Timestamp != null)
-            .Select(r => r.Original!)
+            .Where(r => r.IsEnabled && r.Original.Timestamp != null)
+            .Select(r => r.Original)
             .OrderBy(s => s.Timestamp)
             .ToList();
 
@@ -456,14 +325,16 @@ public class TranscriptTrimPage : ContentPage
         if (enabled.Count == 0)
             return segments;
 
-        double currentStart = enabled[0].Timestamp!.Value.TotalSeconds;
-        double currentEnd = (enabled[0].EndTimestamp ?? enabled[0].Timestamp.Value.Add(TimeSpan.FromSeconds(3))).TotalSeconds;
+        TimeSpan firstStart = enabled[0].Timestamp ?? TimeSpan.Zero;
+        double currentStart = firstStart.TotalSeconds;
+        double currentEnd = GetSentenceEnd(enabled[0]).TotalSeconds;
 
         for (int i = 1; i < enabled.Count; i++)
         {
             var sentence = enabled[i];
-            double start = sentence.Timestamp!.Value.TotalSeconds;
-            double end = (sentence.EndTimestamp ?? sentence.Timestamp.Value.Add(TimeSpan.FromSeconds(3))).TotalSeconds;
+            TimeSpan sentenceStart = sentence.Timestamp ?? TimeSpan.Zero;
+            double start = sentenceStart.TotalSeconds;
+            double end = GetSentenceEnd(sentence).TotalSeconds;
             double gap = Math.Max(0, start - currentEnd);
 
             if (gap > 1.5)
@@ -477,6 +348,12 @@ public class TranscriptTrimPage : ContentPage
 
         segments.Add((currentStart, currentEnd));
         return segments;
+    }
+
+    private static TimeSpan GetSentenceEnd(SentenceItem sentence)
+    {
+        TimeSpan start = sentence.Timestamp ?? TimeSpan.Zero;
+        return sentence.EndTimestamp ?? start.Add(TimeSpan.FromSeconds(3));
     }
 
     private async Task CompileVideoAsync(List<InteractiveComparisonRow> rows, Label progressLabel)
@@ -619,6 +496,7 @@ public class TranscriptTrimPage : ContentPage
             : TextDecorations.Strikethrough;
         row.OriginalLabel.TextDecorations = textDecorations;
         row.RevisedLabel.TextDecorations = textDecorations;
+        row.RevisedLabel.Text = BuildRevisedDisplay(row);
         row.OriginalLabel.TextColor = row.IsEnabled
             ? Color.FromArgb("#1F2933")
             : Color.FromArgb("#607D8B");
@@ -642,32 +520,6 @@ public class TranscriptTrimPage : ContentPage
         Grid.SetRow(label, 0);
         Grid.SetColumn(label, column);
         grid.Children.Add(label);
-    }
-
-    private static void AddComparisonCell(Grid grid, string text, string kind, int column, int row)
-    {
-        var label = new Label
-        {
-            Text = text,
-            FontSize = 14,
-            TextColor = Color.FromArgb("#1F2933"),
-            Padding = new Thickness(10),
-            LineBreakMode = LineBreakMode.WordWrap
-        };
-
-        var frame = new Frame
-        {
-            BackgroundColor = GetRowBackground(kind),
-            BorderColor = Colors.Transparent,
-            CornerRadius = 0,
-            HasShadow = false,
-            Padding = 0,
-            Content = label
-        };
-
-        Grid.SetRow(frame, row);
-        Grid.SetColumn(frame, column);
-        grid.Children.Add(frame);
     }
 
     private static View CreateLegendItem(string text, Color color) =>
@@ -750,6 +602,15 @@ public class TranscriptTrimPage : ContentPage
             PlaceholderColor = Color.FromArgb("#777")
         };
 
+    private Entry CreateTextEntry(string placeholder) =>
+        new()
+        {
+            Placeholder = placeholder,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#777")
+        };
+
     private Editor CreateEditor(string placeholder, double height) =>
         new()
         {
@@ -788,21 +649,17 @@ public class TranscriptTrimPage : ContentPage
 
     private sealed record SentenceItem(string Text, TimeSpan? Timestamp, TimeSpan? EndTimestamp);
 
-    private sealed record ComparisonRow(SentenceItem? Original, SentenceItem? Revised, string Kind);
-
     private sealed class InteractiveComparisonRow
     {
-        public InteractiveComparisonRow(ComparisonRow row)
+        public InteractiveComparisonRow(SentenceItem original, int number, bool isEnabled)
         {
-            Original = row.Original;
-            Revised = row.Revised;
-            Kind = row.Kind;
-            IsEnabled = Original != null && Revised != null;
+            Original = original;
+            Number = number;
+            IsEnabled = isEnabled;
         }
 
-        public SentenceItem? Original { get; }
-        public SentenceItem? Revised { get; }
-        public string Kind { get; }
+        public SentenceItem Original { get; }
+        public int Number { get; }
         public bool IsEnabled { get; set; }
         public Frame IndicatorFrame { get; set; } = null!;
         public Frame OriginalFrame { get; set; } = null!;
