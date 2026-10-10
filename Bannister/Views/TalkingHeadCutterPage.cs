@@ -15,6 +15,12 @@ public class TalkingHeadCutterPage : ContentPage
     private string? _outputFolder;
 
     private readonly Label _selectedFileLabel;
+    private readonly Frame _truncateSilenceCard;
+    private readonly Entry _silenceThresholdEntry;
+    private readonly Entry _minSilenceDurationEntry;
+    private readonly Entry _truncateToEntry;
+    private readonly Label _truncateProgressLabel;
+    private readonly ProgressBar _truncateProgressBar;
     private readonly Editor _transcriptEditor;
     private readonly Label _transcriptStatusLabel;
     private readonly Button _copyAnalysisPromptButton;
@@ -36,6 +42,16 @@ public class TalkingHeadCutterPage : ContentPage
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
         _selectedFileLabel = CreateMutedLabel("No video selected");
+        _silenceThresholdEntry = CreateNumericEntry("-35");
+        _minSilenceDurationEntry = CreateNumericEntry("0.3");
+        _truncateToEntry = CreateNumericEntry("0.2");
+        _truncateProgressLabel = CreateMutedLabel("");
+        _truncateProgressBar = new ProgressBar
+        {
+            Progress = 0,
+            IsVisible = false,
+            ProgressColor = Color.FromArgb("#00695C")
+        };
         _transcriptEditor = CreateEditor("Paste timestamped words here...", 180);
         _transcriptStatusLabel = CreateMutedLabel("No transcript imported");
         _copyAnalysisPromptButton = CreateButton("Copy Shorts Analysis Prompt", Color.FromArgb("#1565C0"));
@@ -53,6 +69,16 @@ public class TalkingHeadCutterPage : ContentPage
         _etaLabel = CreateMutedLabel("");
         _etaLabel.IsVisible = false;
         _cutAllButton = CreateButton("\u2702\ufe0f Cut All Shorts", Color.FromArgb("#00695C"));
+        _truncateSilenceCard = BuildStageCard("1b", "Truncate Silence (optional)", new View[]
+        {
+            CreateLabeledEntry("Silence threshold (dB)", _silenceThresholdEntry),
+            CreateLabeledEntry("Min silence duration (s)", _minSilenceDurationEntry),
+            CreateLabeledEntry("Truncate to (s)", _truncateToEntry),
+            CreateActionButton("\u2702\ufe0f Truncate Silence", OnTruncateSilenceClicked),
+            _truncateProgressLabel,
+            _truncateProgressBar
+        });
+        _truncateSilenceCard.IsVisible = false;
 
         BuildUI();
     }
@@ -78,6 +104,8 @@ public class TalkingHeadCutterPage : ContentPage
             CreateActionButton("Choose Video File", OnChooseVideoClicked),
             _selectedFileLabel
         }));
+
+        stack.Children.Add(_truncateSilenceCard);
 
         stack.Children.Add(BuildStageCard("2", "Get Transcript", new View[]
         {
@@ -176,7 +204,9 @@ public class TalkingHeadCutterPage : ContentPage
         var content = new VerticalStackLayout { Spacing = 10 };
         content.Children.Add(new Label
         {
-            Text = $"Stage {number} - {title}",
+            Text = number == "1b"
+                ? $"Stage {number} \u2014 {title}"
+                : $"Stage {number} - {title}",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#263238")
@@ -224,6 +254,31 @@ public class TalkingHeadCutterPage : ContentPage
             TextColor = Color.FromArgb("#222")
         };
 
+    private Entry CreateNumericEntry(string defaultValue) =>
+        new()
+        {
+            Text = defaultValue,
+            Keyboard = Keyboard.Numeric,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222")
+        };
+
+    private View CreateLabeledEntry(string label, Entry entry) =>
+        new VerticalStackLayout
+        {
+            Spacing = 4,
+            Children =
+            {
+                new Label
+                {
+                    Text = label,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#455A64")
+                },
+                entry
+            }
+        };
+
     private Label CreateMutedLabel(string text) =>
         new()
         {
@@ -253,10 +308,72 @@ public class TalkingHeadCutterPage : ContentPage
 
             _selectedVideoPath = result.FullPath;
             _selectedFileLabel.Text = Path.GetFileName(result.FullPath);
+            _truncateSilenceCard.IsVisible = true;
         }
         catch (Exception ex)
         {
             await DisplayAlert("Video Picker Error", ex.Message, "OK");
+        }
+    }
+
+    private async void OnTruncateSilenceClicked(object? sender, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_selectedVideoPath) || !File.Exists(_selectedVideoPath))
+        {
+            await DisplayAlert("Pick Video", "Choose a video file first.", "OK");
+            return;
+        }
+
+        if (!TryParseDouble(_silenceThresholdEntry.Text, out double thresholdDb)
+            || !TryParseDouble(_minSilenceDurationEntry.Text, out double minDurationSec)
+            || !TryParseDouble(_truncateToEntry.Text, out double truncateToSec))
+        {
+            await DisplayAlert("Invalid Values", "Enter numeric silence settings.", "OK");
+            return;
+        }
+
+        try
+        {
+            _truncateProgressLabel.Text = "Truncating silence...";
+            _truncateProgressBar.Progress = 0;
+            _truncateProgressBar.IsVisible = true;
+
+            string ffmpegPath = await _ffmpeg.EnsureFFmpegAsync();
+            string folder = Path.GetDirectoryName(_selectedVideoPath) ?? "";
+            string fileName = Path.GetFileNameWithoutExtension(_selectedVideoPath);
+            string outputPath = Path.Combine(folder, $"{fileName}_truncated.mp4");
+
+            var truncateProgress = new Progress<double>(percent =>
+            {
+                _truncateProgressBar.Progress = Math.Clamp(percent, 0, 1);
+                _truncateProgressLabel.Text = $"Truncating silence... {percent * 100:0}%";
+            });
+
+            var result = await _ffmpeg.TruncateSilenceAsync(
+                ffmpegPath,
+                _selectedVideoPath,
+                outputPath,
+                thresholdDb,
+                minDurationSec,
+                truncateToSec,
+                truncateProgress);
+
+            if (!result.success)
+            {
+                _truncateProgressLabel.Text = "Truncate failed.";
+                await DisplayAlert("FFmpeg Error", result.error, "OK");
+                return;
+            }
+
+            _selectedVideoPath = outputPath;
+            _selectedFileLabel.Text = Path.GetFileName(outputPath);
+            _truncateProgressBar.Progress = 1;
+            _truncateProgressLabel.Text = $"\u2713 Done \u2014 using truncated version: {Path.GetFileName(outputPath)}";
+        }
+        catch (Exception ex)
+        {
+            _truncateProgressLabel.Text = "Truncate failed.";
+            await DisplayAlert("Truncate Error", ex.Message, "OK");
         }
     }
 
@@ -686,6 +803,10 @@ public class TalkingHeadCutterPage : ContentPage
 
     private static string FormatMegabytes(long bytes) =>
         (bytes / 1024d / 1024d).ToString("0", CultureInfo.InvariantCulture);
+
+    private static bool TryParseDouble(string? value, out double result) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+        || double.TryParse(value, NumberStyles.Float, CultureInfo.CurrentCulture, out result);
 
     private static string Slugify(string value)
     {

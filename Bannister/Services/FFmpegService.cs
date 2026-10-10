@@ -150,6 +150,89 @@ public class FFmpegService
 #endif
     }
 
+    public async Task<(bool success, string error)> TruncateSilenceAsync(
+        string ffmpegPath,
+        string inputPath,
+        string outputPath,
+        double thresholdDb,
+        double minDurationSec,
+        double truncateToSec,
+        IProgress<double>? progress = null)
+    {
+#if WINDOWS
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = ffmpegPath,
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            RedirectStandardOutput = false,
+            CreateNoWindow = true
+        };
+        string filter = string.Create(
+            CultureInfo.InvariantCulture,
+            $"silenceremove=stop_periods=-1:stop_duration={minDurationSec}:stop_threshold={thresholdDb}dB:stop_silence={truncateToSec}");
+        startInfo.ArgumentList.Add("-y");
+        startInfo.ArgumentList.Add("-i");
+        startInfo.ArgumentList.Add(inputPath);
+        startInfo.ArgumentList.Add("-af");
+        startInfo.ArgumentList.Add(filter);
+        startInfo.ArgumentList.Add(outputPath);
+
+        using var process = new Process { StartInfo = startInfo };
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.RedirectStandardOutput = false;
+        process.EnableRaisingEvents = true;
+
+        var errorLines = new StringBuilder();
+        TimeSpan totalDuration = TimeSpan.Zero;
+
+        process.ErrorDataReceived += (s, e) =>
+        {
+            if (e.Data == null)
+                return;
+
+            errorLines.AppendLine(e.Data);
+
+            var durationMatch = Regex.Match(e.Data, @"Duration:\s*(\d+):(\d+):(\d+\.\d+)");
+            if (durationMatch.Success)
+            {
+                int h = int.Parse(durationMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+                int m = int.Parse(durationMatch.Groups[2].Value, CultureInfo.InvariantCulture);
+                double sec = double.Parse(durationMatch.Groups[3].Value, CultureInfo.InvariantCulture);
+                totalDuration = new TimeSpan(h, m, 0) + TimeSpan.FromSeconds(sec);
+            }
+
+            if (progress != null && e.Data.Contains("time="))
+            {
+                var timeMatch = Regex.Match(e.Data, @"time=(\d+):(\d+):(\d+\.\d+)");
+                if (timeMatch.Success)
+                {
+                    int h = int.Parse(timeMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+                    int m = int.Parse(timeMatch.Groups[2].Value, CultureInfo.InvariantCulture);
+                    double sec = double.Parse(timeMatch.Groups[3].Value, CultureInfo.InvariantCulture);
+                    var current = new TimeSpan(h, m, 0) + TimeSpan.FromSeconds(sec);
+                    double pct = totalDuration.TotalSeconds > 0
+                        ? Math.Min(1.0, current.TotalSeconds / totalDuration.TotalSeconds)
+                        : 0;
+                    progress.Report(pct);
+                }
+            }
+        };
+
+        process.Start();
+        process.BeginErrorReadLine();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode == 0)
+            return (true, "");
+
+        return (false, errorLines.ToString().Trim());
+#else
+        await Task.CompletedTask;
+        return (false, "FFmpeg silence truncation is only available on Windows.");
+#endif
+    }
+
     private static bool TryParseTime(string value, out TimeSpan time)
     {
         time = TimeSpan.Zero;
