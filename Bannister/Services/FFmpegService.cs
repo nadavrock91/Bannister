@@ -267,6 +267,110 @@ public class FFmpegService
 #endif
     }
 
+    public async Task<(bool success, string error)> CutSegmentsAsync(
+        string ffmpegPath,
+        string inputPath,
+        string outputPath,
+        List<(double start, double end)> keepSegments,
+        IProgress<double>? progress = null)
+    {
+#if WINDOWS
+        keepSegments = keepSegments
+            .Where(s => s.end > s.start)
+            .OrderBy(s => s.start)
+            .ToList();
+
+        if (keepSegments.Count == 0)
+            return (false, "No enabled transcript segments were available to compile.");
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = ffmpegPath,
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            RedirectStandardOutput = false,
+            CreateNoWindow = true
+        };
+
+        var filterBuilder = new StringBuilder();
+        var concatInputs = new StringBuilder();
+        for (int i = 0; i < keepSegments.Count; i++)
+        {
+            var segment = keepSegments[i];
+            filterBuilder.Append(string.Create(
+                CultureInfo.InvariantCulture,
+                $"[0:v]trim=start={segment.start:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS[v{i}];"));
+            filterBuilder.Append(string.Create(
+                CultureInfo.InvariantCulture,
+                $"[0:a]atrim=start={segment.start:0.###}:end={segment.end:0.###},asetpts=PTS-STARTPTS[a{i}];"));
+            concatInputs.Append($"[v{i}][a{i}]");
+        }
+        filterBuilder.Append(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{concatInputs}concat=n={keepSegments.Count}:v=1:a=1[outv][outa]"));
+
+        startInfo.ArgumentList.Add("-y");
+        startInfo.ArgumentList.Add("-i");
+        startInfo.ArgumentList.Add(inputPath);
+        startInfo.ArgumentList.Add("-filter_complex");
+        startInfo.ArgumentList.Add(filterBuilder.ToString());
+        startInfo.ArgumentList.Add("-map");
+        startInfo.ArgumentList.Add("[outv]");
+        startInfo.ArgumentList.Add("-map");
+        startInfo.ArgumentList.Add("[outa]");
+        startInfo.ArgumentList.Add("-c:v");
+        startInfo.ArgumentList.Add("libx264");
+        startInfo.ArgumentList.Add("-c:a");
+        startInfo.ArgumentList.Add("aac");
+        startInfo.ArgumentList.Add("-movflags");
+        startInfo.ArgumentList.Add("+faststart");
+        startInfo.ArgumentList.Add(outputPath);
+
+        using var process = new Process { StartInfo = startInfo };
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.RedirectStandardOutput = false;
+        process.EnableRaisingEvents = true;
+
+        var errorLines = new StringBuilder();
+        TimeSpan totalDuration = TimeSpan.FromSeconds(keepSegments.Sum(s => Math.Max(0, s.end - s.start)));
+
+        process.ErrorDataReceived += (s, e) =>
+        {
+            if (e.Data == null)
+                return;
+
+            errorLines.AppendLine(e.Data);
+            if (progress != null && e.Data.Contains("time="))
+            {
+                var timeMatch = Regex.Match(e.Data, @"time=(\d+):(\d+):(\d+\.\d+)");
+                if (timeMatch.Success)
+                {
+                    int h = int.Parse(timeMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+                    int m = int.Parse(timeMatch.Groups[2].Value, CultureInfo.InvariantCulture);
+                    double sec = double.Parse(timeMatch.Groups[3].Value, CultureInfo.InvariantCulture);
+                    var current = new TimeSpan(h, m, 0) + TimeSpan.FromSeconds(sec);
+                    double pct = totalDuration.TotalSeconds > 0
+                        ? Math.Min(1.0, current.TotalSeconds / totalDuration.TotalSeconds)
+                        : 0;
+                    progress.Report(pct);
+                }
+            }
+        };
+
+        process.Start();
+        process.BeginErrorReadLine();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode == 0)
+            return (true, "");
+
+        return (false, errorLines.ToString().Trim());
+#else
+        await Task.CompletedTask;
+        return (false, "FFmpeg segment compilation is only available on Windows.");
+#endif
+    }
+
     public async Task<(bool success, string error, TimeSpan estimatedDuration, List<(double start, double end)> silences)> AnalyseSilenceAsync(
         string ffmpegPath,
         string inputPath,

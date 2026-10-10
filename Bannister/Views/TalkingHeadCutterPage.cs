@@ -954,7 +954,7 @@ public class TalkingHeadCutterPage : ContentPage
         if (_transcriptWords.Count == 0)
             return;
 
-        await Navigation.PushAsync(new TranscriptTrimPage(_transcriptWords));
+        await Navigation.PushAsync(new TranscriptTrimPage(_transcriptWords, _selectedVideoPath, _ffmpeg));
     }
 
     private async void OnCopyAnalysisPromptClicked(object? sender, EventArgs e)

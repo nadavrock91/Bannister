@@ -1,3 +1,5 @@
+using Bannister.Services;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
@@ -6,16 +8,23 @@ public class TranscriptTrimPage : ContentPage
 {
     private readonly List<TalkingHeadCutterPage.TranscriptWord> _transcriptWords;
     private readonly string _originalText;
+    private readonly string? _videoPath;
+    private readonly FFmpegService _ffmpeg;
 
     private readonly Entry _targetMinutesEntry;
     private readonly Editor _trimmedEditor;
     private readonly Label _trimmedWordCountLabel;
     private readonly Button _compareButton;
 
-    public TranscriptTrimPage(IEnumerable<TalkingHeadCutterPage.TranscriptWord> transcriptWords)
+    public TranscriptTrimPage(
+        IEnumerable<TalkingHeadCutterPage.TranscriptWord> transcriptWords,
+        string? videoPath,
+        FFmpegService ffmpeg)
     {
         _transcriptWords = transcriptWords.ToList();
         _originalText = string.Join(" ", _transcriptWords.Select(w => w.Word));
+        _videoPath = videoPath;
+        _ffmpeg = ffmpeg;
 
         Title = "Trim & Compare";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -107,7 +116,9 @@ public class TranscriptTrimPage : ContentPage
     {
         var original = BuildOriginalSentenceItems();
         var revised = SplitSentenceItems(revisedText);
-        var rows = AlignSentences(original, revised);
+        var rows = AlignSentences(original, revised)
+            .Select(row => new InteractiveComparisonRow(row))
+            .ToList();
 
         var grid = new Grid
         {
@@ -116,23 +127,53 @@ public class TranscriptTrimPage : ContentPage
             BackgroundColor = Color.FromArgb("#CFD8DC"),
             ColumnDefinitions =
             {
+                new ColumnDefinition { Width = 34 },
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star }
             }
         };
 
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        AddHeaderCell(grid, "Original", 0);
-        AddHeaderCell(grid, "Revised", 1);
+        AddHeaderCell(grid, "", 0);
+        AddHeaderCell(grid, "Original", 1);
+        AddHeaderCell(grid, "Revised", 2);
+
+        var statsLabel = CreateMutedLabel("");
+        var progressLabel = CreateMutedLabel("");
+        var compileButton = CreateButton("Compile Video", Color.FromArgb("#00695C"));
 
         int gridRow = 1;
+        Action refreshState = () =>
+        {
+            foreach (var row in rows)
+                ApplyRowState(row);
+
+            var enabledSentences = rows
+                .Where(r => r.IsEnabled && r.Original?.Timestamp != null)
+                .ToList();
+            int totalSentences = rows.Count(r => r.Original?.Timestamp != null);
+            var segments = BuildKeepSegmentsFromRows(rows);
+            var estimatedDuration = TimeSpan.FromSeconds(segments.Sum(s => Math.Max(0, s.end - s.start)));
+            statsLabel.Text = $"{enabledSentences.Count} of {totalSentences} sentences enabled | Estimated duration: {FormatDuration(estimatedDuration)}";
+            compileButton.IsEnabled = segments.Count > 0
+                && !string.IsNullOrWhiteSpace(_videoPath)
+                && File.Exists(_videoPath);
+        };
+
         foreach (var row in rows)
         {
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            AddComparisonCell(grid, BuildOriginalDisplay(row), row.Kind, 0, gridRow);
-            AddComparisonCell(grid, BuildRevisedDisplay(row), row.Kind, 1, gridRow);
+            AddInteractiveComparisonRow(grid, row, gridRow, refreshState);
             gridRow++;
         }
+
+        compileButton.Clicked += async (_, _) =>
+        {
+            await CompileVideoAsync(rows, progressLabel);
+            refreshState();
+        };
+
+        refreshState();
 
         return new ContentPage
         {
@@ -158,12 +199,14 @@ public class TranscriptTrimPage : ContentPage
                             Spacing = 12,
                             Children =
                             {
-                                CreateLegendItem("Identical", Colors.White),
-                                CreateLegendItem("Similar", Color.FromArgb("#FFE0B2")),
-                                CreateLegendItem("Cut / Added", Color.FromArgb("#FFCDD2"))
+                                CreateLegendItem("Enabled", Color.FromArgb("#E8F5E9")),
+                                CreateLegendItem("Disabled", Color.FromArgb("#ECEFF1"))
                             }
                         },
-                        grid
+                        statsLabel,
+                        grid,
+                        compileButton,
+                        progressLabel
                     }
                 }
             }
@@ -291,14 +334,22 @@ public class TranscriptTrimPage : ContentPage
             words.Add(word.Word);
             if (IsSentenceEndingWord(word.Word))
             {
-                sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start));
+                sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start, null));
                 words.Clear();
                 start = null;
             }
         }
 
         if (words.Count > 0)
-            sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start));
+            sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start, null));
+
+        for (int i = 0; i < sentences.Count; i++)
+        {
+            var end = i + 1 < sentences.Count && sentences[i + 1].Timestamp != null
+                ? sentences[i + 1].Timestamp
+                : sentences[i].Timestamp?.Add(TimeSpan.FromSeconds(3));
+            sentences[i] = sentences[i] with { EndTimestamp = end };
+        }
 
         return sentences;
     }
@@ -308,7 +359,7 @@ public class TranscriptTrimPage : ContentPage
         return Regex.Split(text.Trim(), @"(?<=[.!?])\s+")
             .Select(s => s.Trim())
             .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => new SentenceItem(s, null))
+            .Select(s => new SentenceItem(s, null, null))
             .ToList();
     }
 
@@ -337,7 +388,7 @@ public class TranscriptTrimPage : ContentPage
     private static int CountWords(string text) =>
         Regex.Matches(text, @"\b[\w']+\b").Count;
 
-    private static string BuildOriginalDisplay(ComparisonRow row)
+    private static string BuildOriginalDisplay(InteractiveComparisonRow row)
     {
         if (row.Original == null)
             return "[--:--] [added]";
@@ -345,7 +396,7 @@ public class TranscriptTrimPage : ContentPage
         return $"[{FormatTimestamp(row.Original.Timestamp)}] {row.Original.Text}";
     }
 
-    private static string BuildRevisedDisplay(ComparisonRow row)
+    private static string BuildRevisedDisplay(InteractiveComparisonRow row)
     {
         if (row.Revised == null)
             return "[--:--] [cut]";
@@ -362,6 +413,22 @@ public class TranscriptTrimPage : ContentPage
         return $"{totalMinutes:00}:{timestamp.Value.Seconds:00}";
     }
 
+    private static string FormatDuration(TimeSpan time)
+    {
+        if (time.TotalHours >= 1)
+            return $"{(int)time.TotalHours:00}:{time.Minutes:00}:{time.Seconds:00}";
+        return $"{(int)time.TotalMinutes:00}:{time.Seconds:00}";
+    }
+
+    private static string Slugify(string value)
+    {
+        var chars = value
+            .ToLowerInvariant()
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '_')
+            .ToArray();
+        return Regex.Replace(new string(chars), "_+", "_").Trim('_');
+    }
+
     private static Color GetRowBackground(string kind) =>
         kind switch
         {
@@ -369,6 +436,196 @@ public class TranscriptTrimPage : ContentPage
             "changed" => Color.FromArgb("#FFCDD2"),
             _ => Colors.White
         };
+
+    private static Color GetInteractiveRowBackground(InteractiveComparisonRow row) =>
+        row.IsEnabled
+            ? Color.FromArgb("#E8F5E9")
+            : row.Original == null
+                ? Color.FromArgb("#ECEFF1")
+                : Color.FromArgb("#FFEBEE");
+
+    private static List<(double start, double end)> BuildKeepSegmentsFromRows(List<InteractiveComparisonRow> rows)
+    {
+        var enabled = rows
+            .Where(r => r.IsEnabled && r.Original?.Timestamp != null)
+            .Select(r => r.Original!)
+            .OrderBy(s => s.Timestamp)
+            .ToList();
+
+        var segments = new List<(double start, double end)>();
+        if (enabled.Count == 0)
+            return segments;
+
+        double currentStart = enabled[0].Timestamp!.Value.TotalSeconds;
+        double currentEnd = (enabled[0].EndTimestamp ?? enabled[0].Timestamp.Value.Add(TimeSpan.FromSeconds(3))).TotalSeconds;
+
+        for (int i = 1; i < enabled.Count; i++)
+        {
+            var sentence = enabled[i];
+            double start = sentence.Timestamp!.Value.TotalSeconds;
+            double end = (sentence.EndTimestamp ?? sentence.Timestamp.Value.Add(TimeSpan.FromSeconds(3))).TotalSeconds;
+            double gap = Math.Max(0, start - currentEnd);
+
+            if (gap > 1.5)
+            {
+                segments.Add((currentStart, currentEnd));
+                currentStart = start;
+            }
+
+            currentEnd = Math.Max(currentEnd, end);
+        }
+
+        segments.Add((currentStart, currentEnd));
+        return segments;
+    }
+
+    private async Task CompileVideoAsync(List<InteractiveComparisonRow> rows, Label progressLabel)
+    {
+        if (string.IsNullOrWhiteSpace(_videoPath) || !File.Exists(_videoPath))
+        {
+            await DisplayAlert("Video Missing", "Load a project with a selected video first.", "OK");
+            return;
+        }
+
+        var segments = BuildKeepSegmentsFromRows(rows);
+        if (segments.Count == 0)
+        {
+            await DisplayAlert("No Sentences", "Enable at least one timestamped sentence first.", "OK");
+            return;
+        }
+
+        string? outputFolder = await WebsiteFolderHelper.PickParentFolderPathAsync(this);
+        if (string.IsNullOrWhiteSpace(outputFolder))
+            return;
+
+        try
+        {
+            progressLabel.Text = "Preparing FFmpeg...";
+            string ffmpegPath = await _ffmpeg.EnsureFFmpegAsync();
+            string originalName = Path.GetFileNameWithoutExtension(_videoPath);
+            string outputPath = Path.Combine(outputFolder, $"{Slugify(originalName)}_trimmed_comparison.mp4");
+
+            var progress = new Progress<double>(pct =>
+            {
+                progressLabel.Text = $"Compiling video... {pct * 100:0}%";
+            });
+
+            var result = await _ffmpeg.CutSegmentsAsync(
+                ffmpegPath,
+                _videoPath,
+                outputPath,
+                segments,
+                progress);
+
+            if (result.success)
+            {
+                progressLabel.Text = $"\u2713 Saved to {outputPath}";
+                await DisplayAlert("Saved", $"Saved to:\n{outputPath}", "OK");
+                return;
+            }
+
+            var errorLines = result.error.Split('\n');
+            var lastLines = string.Join("\n", errorLines.TakeLast(5));
+            progressLabel.Text = "Compile failed.";
+            await DisplayAlert("FFmpeg Error", lastLines, "OK");
+        }
+        catch (Exception ex)
+        {
+            progressLabel.Text = "Compile failed.";
+            await DisplayAlert("Compile Error", ex.Message, "OK");
+        }
+    }
+
+    private static void AddInteractiveComparisonRow(
+        Grid grid,
+        InteractiveComparisonRow row,
+        int gridRow,
+        Action refreshState)
+    {
+        row.IndicatorLabel = new Label
+        {
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center
+        };
+        row.OriginalLabel = CreateComparisonTextLabel(BuildOriginalDisplay(row));
+        row.RevisedLabel = CreateComparisonTextLabel(BuildRevisedDisplay(row));
+
+        row.IndicatorFrame = CreateComparisonFrame(row.IndicatorLabel);
+        row.OriginalFrame = CreateComparisonFrame(row.OriginalLabel);
+        row.RevisedFrame = CreateComparisonFrame(row.RevisedLabel);
+
+        AddTap(row.IndicatorFrame, row, refreshState);
+        AddTap(row.OriginalFrame, row, refreshState);
+        AddTap(row.RevisedFrame, row, refreshState);
+
+        Grid.SetRow(row.IndicatorFrame, gridRow);
+        Grid.SetColumn(row.IndicatorFrame, 0);
+        Grid.SetRow(row.OriginalFrame, gridRow);
+        Grid.SetColumn(row.OriginalFrame, 1);
+        Grid.SetRow(row.RevisedFrame, gridRow);
+        Grid.SetColumn(row.RevisedFrame, 2);
+        grid.Children.Add(row.IndicatorFrame);
+        grid.Children.Add(row.OriginalFrame);
+        grid.Children.Add(row.RevisedFrame);
+    }
+
+    private static Label CreateComparisonTextLabel(string text) =>
+        new()
+        {
+            Text = text,
+            FontSize = 14,
+            TextColor = Color.FromArgb("#1F2933"),
+            Padding = new Thickness(10),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+
+    private static Frame CreateComparisonFrame(View content) =>
+        new()
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Colors.Transparent,
+            CornerRadius = 0,
+            HasShadow = false,
+            Padding = 0,
+            Content = content
+        };
+
+    private static void AddTap(Frame frame, InteractiveComparisonRow row, Action refreshState)
+    {
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, _) =>
+        {
+            row.IsEnabled = !row.IsEnabled;
+            refreshState();
+        };
+        frame.GestureRecognizers.Add(tap);
+    }
+
+    private static void ApplyRowState(InteractiveComparisonRow row)
+    {
+        var background = GetInteractiveRowBackground(row);
+        row.IndicatorFrame.BackgroundColor = background;
+        row.OriginalFrame.BackgroundColor = background;
+        row.RevisedFrame.BackgroundColor = background;
+        row.IndicatorLabel.Text = row.IsEnabled ? "\u2713" : "\u2717";
+        row.IndicatorLabel.TextColor = row.IsEnabled
+            ? Color.FromArgb("#1B5E20")
+            : Color.FromArgb("#B71C1C");
+
+        var textDecorations = row.IsEnabled
+            ? TextDecorations.None
+            : TextDecorations.Strikethrough;
+        row.OriginalLabel.TextDecorations = textDecorations;
+        row.RevisedLabel.TextDecorations = textDecorations;
+        row.OriginalLabel.TextColor = row.IsEnabled
+            ? Color.FromArgb("#1F2933")
+            : Color.FromArgb("#607D8B");
+        row.RevisedLabel.TextColor = row.IsEnabled
+            ? Color.FromArgb("#1F2933")
+            : Color.FromArgb("#607D8B");
+    }
 
     private static void AddHeaderCell(Grid grid, string text, int column)
     {
@@ -529,7 +786,29 @@ public class TranscriptTrimPage : ContentPage
             TextColor = Color.FromArgb("#607D8B")
         };
 
-    private sealed record SentenceItem(string Text, TimeSpan? Timestamp);
+    private sealed record SentenceItem(string Text, TimeSpan? Timestamp, TimeSpan? EndTimestamp);
 
     private sealed record ComparisonRow(SentenceItem? Original, SentenceItem? Revised, string Kind);
+
+    private sealed class InteractiveComparisonRow
+    {
+        public InteractiveComparisonRow(ComparisonRow row)
+        {
+            Original = row.Original;
+            Revised = row.Revised;
+            Kind = row.Kind;
+            IsEnabled = Original != null && Revised != null;
+        }
+
+        public SentenceItem? Original { get; }
+        public SentenceItem? Revised { get; }
+        public string Kind { get; }
+        public bool IsEnabled { get; set; }
+        public Frame IndicatorFrame { get; set; } = null!;
+        public Frame OriginalFrame { get; set; } = null!;
+        public Frame RevisedFrame { get; set; } = null!;
+        public Label IndicatorLabel { get; set; } = null!;
+        public Label OriginalLabel { get; set; } = null!;
+        public Label RevisedLabel { get; set; } = null!;
+    }
 }
