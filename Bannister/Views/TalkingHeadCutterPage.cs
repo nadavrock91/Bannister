@@ -289,7 +289,7 @@ public class TalkingHeadCutterPage : ContentPage
     {
         _transcriptWords.Clear();
         var regex = new Regex(@"^\[(\d{2}):(\d{2})\.(\d{3})\]\s+(.+)$");
-        foreach (var rawLine in (_transcriptEditor.Text ?? "").Split('\n'))
+        foreach (var rawLine in (_transcriptEditor.Text ?? "").Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
         {
             var line = rawLine.Trim();
             if (string.IsNullOrWhiteSpace(line))
@@ -299,12 +299,11 @@ public class TalkingHeadCutterPage : ContentPage
             if (!match.Success)
                 continue;
 
-            var timestamp = new TimeSpan(
-                0,
-                0,
-                int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture),
-                int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture),
-                int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture));
+            var totalMs =
+                int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) * 60000
+                + int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture) * 1000
+                + int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture);
+            var timestamp = TimeSpan.FromMilliseconds(totalMs);
             _transcriptWords.Add(new TranscriptWord(timestamp, match.Groups[4].Value.Trim()));
         }
 
