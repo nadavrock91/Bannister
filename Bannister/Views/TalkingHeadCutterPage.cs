@@ -37,6 +37,7 @@ public class TalkingHeadCutterPage : ContentPage
     private readonly ProgressBar _truncateProgressBar;
     private readonly Editor _transcriptEditor;
     private readonly Label _transcriptStatusLabel;
+    private readonly Button _trimCompareButton;
     private readonly Button _copyAnalysisPromptButton;
     private readonly Editor _shortsEditor;
     private readonly VerticalStackLayout _cutsList;
@@ -88,6 +89,8 @@ public class TalkingHeadCutterPage : ContentPage
         };
         _transcriptEditor = CreateEditor("Paste timestamped words here...", 180);
         _transcriptStatusLabel = CreateMutedLabel("No transcript imported");
+        _trimCompareButton = CreateButton("\u2702\ufe0f Trim & Compare", Color.FromArgb("#6A1B9A"));
+        _trimCompareButton.IsEnabled = false;
         _copyAnalysisPromptButton = CreateButton("Copy Shorts Analysis Prompt", Color.FromArgb("#1565C0"));
         _copyAnalysisPromptButton.IsEnabled = false;
         _shortsEditor = CreateEditor("Paste suggested shorts here...", 160);
@@ -166,9 +169,11 @@ public class TalkingHeadCutterPage : ContentPage
             CreateActionButton("Wrap Transcript for Import", OnWrapTranscriptClicked),
             _transcriptEditor,
             CreateActionButton("Import Transcript", OnImportTranscriptClicked),
+            _trimCompareButton,
             _transcriptStatusLabel
         }));
 
+        _trimCompareButton.Clicked += OnTrimCompareClicked;
         _copyAnalysisPromptButton.Clicked += OnCopyAnalysisPromptClicked;
         stack.Children.Add(BuildStageCard("3", "Find Best Shorts", new View[]
         {
@@ -560,10 +565,14 @@ public class TalkingHeadCutterPage : ContentPage
         {
             _transcriptStatusLabel.Text = "No transcript imported";
             _copyAnalysisPromptButton.IsEnabled = false;
+            _trimCompareButton.IsEnabled = false;
             return;
         }
 
-        UpdateTranscriptStatus();
+        var duration = _transcriptWords[^1].Timestamp;
+        _transcriptStatusLabel.Text = $"{_transcriptWords.Count} words imported. Duration: {FormatTime(duration)}";
+        _copyAnalysisPromptButton.IsEnabled = true;
+        _trimCompareButton.IsEnabled = true;
     }
 
     private static ProposedCut ToProposedCut(ShortsCutterCut cut) =>
@@ -932,13 +941,20 @@ public class TalkingHeadCutterPage : ContentPage
         {
             _transcriptStatusLabel.Text = "No timestamped words found";
             _copyAnalysisPromptButton.IsEnabled = false;
+            _trimCompareButton.IsEnabled = false;
             await DisplayAlert("Import Transcript", "No lines matched [MM:SS.mmm] word.", "OK");
             return;
         }
 
-        var duration = _transcriptWords[^1].Timestamp;
-        _transcriptStatusLabel.Text = $"{_transcriptWords.Count} words imported. Duration: {FormatTime(duration)}";
-        _copyAnalysisPromptButton.IsEnabled = true;
+        UpdateTranscriptStatus();
+    }
+
+    private async void OnTrimCompareClicked(object? sender, EventArgs e)
+    {
+        if (_transcriptWords.Count == 0)
+            return;
+
+        await Navigation.PushAsync(new TranscriptTrimPage(_transcriptWords));
     }
 
     private async void OnCopyAnalysisPromptClicked(object? sender, EventArgs e)
@@ -1400,7 +1416,7 @@ public class TalkingHeadCutterPage : ContentPage
         return builder.ToString().Trim('_');
     }
 
-    private sealed record TranscriptWord(TimeSpan Timestamp, string Word);
+    public sealed record TranscriptWord(TimeSpan Timestamp, string Word);
 
     private sealed class ProposedCut
     {
