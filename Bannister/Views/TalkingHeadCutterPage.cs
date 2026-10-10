@@ -953,6 +953,12 @@ public class TalkingHeadCutterPage : ContentPage
         if (_transcriptWords.Count == 0)
             return;
 
+        if (string.IsNullOrWhiteSpace(_selectedVideoPath) || !File.Exists(_selectedVideoPath))
+        {
+            await DisplayAlert("No Video Selected", "Please select a video file in Stage 1 before using Trim & Compare.", "OK");
+            return;
+        }
+
         await Navigation.PushAsync(new TranscriptTrimPage(_transcriptWords, _selectedVideoPath, _ffmpeg, path =>
         {
             _selectedVideoPath = path;
