@@ -483,6 +483,11 @@ public class TalkingHeadCutterPage : ContentPage
 
         _currentProject = project;
         _selectedVideoPath = string.IsNullOrWhiteSpace(project.VideoPath) ? null : project.VideoPath;
+        if (string.IsNullOrWhiteSpace(project.VideoPath) && !string.IsNullOrWhiteSpace(_selectedVideoPath))
+        {
+            _currentProject.VideoPath = _selectedVideoPath;
+            await _shortsProjects.SaveProjectAsync(_currentProject);
+        }
         _selectedFileLabel.Text = string.IsNullOrWhiteSpace(_selectedVideoPath)
             ? "No video selected"
             : Path.GetFileName(_selectedVideoPath);
