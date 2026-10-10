@@ -141,7 +141,11 @@ public class SmartTrimPage : ContentPage
             .ToList();
 
         var suggestionButtons = new List<(CutSuggestion suggestion, Button button)>();
-        var suggestionsStack = new VerticalStackLayout { Spacing = 8 };
+        var suggestionsStack = new VerticalStackLayout
+        {
+            Spacing = 8,
+            HorizontalOptions = LayoutOptions.End
+        };
         var grid = new Grid
         {
             RowSpacing = 1,
@@ -167,6 +171,12 @@ public class SmartTrimPage : ContentPage
         Action refreshState = () =>
         {
             foreach (var row in rows)
+            {
+                row.DisabledBySuggestion = !row.IsEnabled
+                    && _suggestions.Any(s => s.IsApplied && s.Indices.Contains(row.Number));
+            }
+
+            foreach (var row in rows)
                 ApplyRowState(row);
 
             foreach (var item in suggestionButtons)
@@ -188,23 +198,65 @@ public class SmartTrimPage : ContentPage
 
         foreach (var suggestion in _suggestions)
         {
-            var button = CreateButton(
-                $"Cut {suggestion.Indices.Count} sentences - save ~{suggestion.SaveSeconds}s | {suggestion.Reason}",
-                Color.FromArgb("#2E7D32"));
+            var button = CreateButton(FormatSuggestionButtonText(suggestion), Color.FromArgb("#2E7D32"));
+            button.HorizontalOptions = LayoutOptions.End;
+            button.Padding = new Thickness(10, 6);
             button.Clicked += (_, _) =>
             {
-                foreach (int index in suggestion.Indices)
+                if (!suggestion.IsApplied)
                 {
-                    var row = rows.FirstOrDefault(r => r.Number == index);
-                    if (row != null)
-                        row.IsEnabled = false;
+                    foreach (int index in suggestion.Indices)
+                    {
+                        var row = rows.FirstOrDefault(r => r.Number == index);
+                        if (row != null)
+                        {
+                            row.IsEnabled = false;
+                            row.DisabledBySuggestion = true;
+                        }
+                    }
+
+                    suggestion.IsApplied = true;
+                }
+                else
+                {
+                    suggestion.IsApplied = false;
+                    foreach (int index in suggestion.Indices)
+                    {
+                        var row = rows.FirstOrDefault(r => r.Number == index);
+                        if (row == null)
+                            continue;
+
+                        bool cutByOtherSuggestion = _suggestions
+                            .Any(s => s.IsApplied && s.Indices.Contains(row.Number));
+                        if (!cutByOtherSuggestion && row.DisabledBySuggestion)
+                        {
+                            row.IsEnabled = true;
+                            row.DisabledBySuggestion = false;
+                        }
+                    }
                 }
 
-                suggestion.IsApplied = true;
                 refreshState();
             };
             suggestionButtons.Add((suggestion, button));
-            suggestionsStack.Children.Add(button);
+            suggestionsStack.Children.Add(new VerticalStackLayout
+            {
+                Spacing = 2,
+                HorizontalOptions = LayoutOptions.End,
+                Children =
+                {
+                    button,
+                    new Label
+                    {
+                        Text = suggestion.Reason,
+                        FontSize = 11,
+                        TextColor = Color.FromArgb("#607D8B"),
+                        HorizontalTextAlignment = TextAlignment.End,
+                        HorizontalOptions = LayoutOptions.End,
+                        LineBreakMode = LineBreakMode.WordWrap
+                    }
+                }
+            });
         }
 
         int gridRow = 1;
@@ -361,6 +413,9 @@ public class SmartTrimPage : ContentPage
     private static string BuildRevisedDisplay(SmartTrimRow row) =>
         row.IsEnabled ? row.Original.Text : "[cut]";
 
+    private static string FormatSuggestionButtonText(CutSuggestion suggestion) =>
+        $"{string.Join(",", suggestion.Indices)} ~{suggestion.SaveSeconds}s";
+
     private static string FormatTimestamp(TimeSpan? timestamp)
     {
         if (timestamp == null)
@@ -386,8 +441,14 @@ public class SmartTrimPage : ContentPage
         return Regex.Replace(new string(chars), "_+", "_").Trim('_');
     }
 
-    private static Color GetRowBackground(SmartTrimRow row) =>
-        row.IsEnabled ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#ECEFF1");
+    private static Color GetRowBackground(SmartTrimRow row)
+    {
+        if (row.IsEnabled)
+            return Color.FromArgb("#E8F5E9");
+        if (row.DisabledBySuggestion)
+            return Color.FromArgb("#FFCDD2");
+        return Color.FromArgb("#ECEFF1");
+    }
 
     private static List<(double start, double end)> BuildKeepSegmentsFromRows(List<SmartTrimRow> rows)
     {
@@ -608,6 +669,7 @@ public class SmartTrimPage : ContentPage
         tap.Tapped += (_, _) =>
         {
             row.IsEnabled = !row.IsEnabled;
+            row.DisabledBySuggestion = false;
             refreshState();
         };
         frame.GestureRecognizers.Add(tap);
@@ -808,6 +870,7 @@ public class SmartTrimPage : ContentPage
         public SentenceItem Original { get; }
         public int Number { get; }
         public bool IsEnabled { get; set; }
+        public bool DisabledBySuggestion { get; set; }
         public int Rating { get; }
         public Frame IndicatorFrame { get; set; } = null!;
         public Frame OriginalFrame { get; set; } = null!;
