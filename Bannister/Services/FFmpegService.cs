@@ -1,10 +1,15 @@
 using System.Diagnostics;
+using System.IO.Compression;
 
 namespace Bannister.Services;
 
 public class FFmpegService
 {
     private const string FFmpegFileName = "ffmpeg.exe";
+    private const string DownloadUrl =
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
+    private const string ZipEntryName =
+        "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe";
 
     public async Task<string> EnsureFFmpegAsync()
     {
@@ -14,13 +19,38 @@ public class FFmpegService
             return targetPath;
 
         Directory.CreateDirectory(FileSystem.AppDataDirectory);
-        await using var source = await FileSystem.OpenAppPackageFileAsync(FFmpegFileName);
-        await using var target = File.Create(targetPath);
-        await source.CopyToAsync(target);
+        Directory.CreateDirectory(FileSystem.CacheDirectory);
+
+        string zipPath = Path.Combine(FileSystem.CacheDirectory, "ffmpeg-btbn.zip");
+        if (File.Exists(zipPath))
+            File.Delete(zipPath);
+
+        using (var http = new HttpClient())
+        await using (var zipStream = await http.GetStreamAsync(DownloadUrl))
+        await using (var fileStream = File.Create(zipPath))
+        {
+            await zipStream.CopyToAsync(fileStream);
+        }
+
+        using (var archive = ZipFile.OpenRead(zipPath))
+        {
+            var entry = archive.GetEntry(ZipEntryName)
+                ?? throw new FileNotFoundException("ffmpeg.exe was not found in the downloaded FFmpeg archive.");
+
+            string tempExtractPath = Path.Combine(FileSystem.CacheDirectory, FFmpegFileName);
+            if (File.Exists(tempExtractPath))
+                File.Delete(tempExtractPath);
+
+            entry.ExtractToFile(tempExtractPath, true);
+            File.Copy(tempExtractPath, targetPath, true);
+            File.Delete(tempExtractPath);
+        }
+
+        File.Delete(zipPath);
         return targetPath;
 #else
         await Task.CompletedTask;
-        throw new PlatformNotSupportedException("Bundled FFmpeg is only available on Windows.");
+        throw new PlatformNotSupportedException("FFmpeg cutting is only available on Windows.");
 #endif
     }
 
@@ -64,7 +94,7 @@ public class FFmpegService
         return (false, message.Trim());
 #else
         await Task.CompletedTask;
-        return (false, "Bundled FFmpeg cutting is only available on Windows.");
+        return (false, "FFmpeg cutting is only available on Windows.");
 #endif
     }
 }

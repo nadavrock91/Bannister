@@ -430,12 +430,17 @@ public class TalkingHeadCutterPage : ContentPage
         _cutAllButton.IsEnabled = false;
         try
         {
+            _progressLabel.IsVisible = true;
+            _progressLabel.Text = "Downloading FFmpeg (~160MB, one time only)...";
             string ffmpegPath = await _ffmpeg.EnsureFFmpegAsync();
+            _progressLabel.Text = "";
+            _progressLabel.IsVisible = false;
             string originalName = Path.GetFileNameWithoutExtension(_selectedVideoPath);
 
             for (int i = 0; i < _cuts.Count; i++)
             {
                 var cut = _cuts[i];
+                _progressLabel.IsVisible = true;
                 _progressLabel.Text = $"Cutting {i + 1} of {_cuts.Count}: {cut.Title}";
                 string outputPath = Path.Combine(
                     _outputFolder,
