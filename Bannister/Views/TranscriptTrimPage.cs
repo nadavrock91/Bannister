@@ -92,7 +92,9 @@ public class TranscriptTrimPage : ContentPage
             $"Here is a spoken transcript split into numbered sentences. I want to trim it to approximately {targetMinutes} minutes. Return ONLY a comma-separated list of sentence numbers to KEEP \u2014 the ones that form the best version. Keep the strongest hook, core ideas, and natural conclusion. Cut filler, repetition, and weaker tangents.\n\n" +
             "Sentences:\n" +
             string.Join("\n", sentences.Select((sentence, index) => $"{index + 1}. {sentence.Text}")) +
-            "\n\nReturn format: keep = 1,3,5,7,8,9,...";
+            "\n\nReturn format:\n" +
+            "keep = 1,3,5,7...\n" +
+            "ratings = 1:8,2:3,3:7,4:5... (sentence number : rating 1-10 for ALL sentences)";
 
         await Clipboard.Default.SetTextAsync(prompt);
         await DisplayAlert("Copied", "Trim prompt copied.", "OK");
@@ -100,31 +102,36 @@ public class TranscriptTrimPage : ContentPage
 
     private async void OnBuildComparisonClicked(object? sender, EventArgs e)
     {
-        var keepNumbers = ParseKeepNumbers(_keepListEntry.Text ?? "");
-        if (keepNumbers.Count == 0)
+        var selection = ParseTrimResponse(_keepListEntry.Text ?? "");
+        if (selection.KeepNumbers.Count == 0)
         {
             await DisplayAlert("No Sentences", "Paste a comma-separated keep list first.", "OK");
             return;
         }
 
-        var page = BuildComparisonPage(keepNumbers);
+        var page = BuildComparisonPage(selection);
         await Navigation.PushAsync(page);
     }
 
     private void UpdateKeepListState()
     {
-        var keepNumbers = ParseKeepNumbers(_keepListEntry.Text ?? "");
-        _keepListStatusLabel.Text = keepNumbers.Count == 0
+        var selection = ParseTrimResponse(_keepListEntry.Text ?? "");
+        _keepListStatusLabel.Text = selection.KeepNumbers.Count == 0
             ? "Paste the sentence numbers to keep."
-            : $"{keepNumbers.Count} sentence number(s) selected";
-        _compareButton.IsEnabled = keepNumbers.Count > 0;
+            : $"{selection.KeepNumbers.Count} sentence number(s) selected | {selection.Ratings.Count} rating(s)";
+        _compareButton.IsEnabled = selection.KeepNumbers.Count > 0;
     }
 
-    private ContentPage BuildComparisonPage(HashSet<int> keepNumbers)
+    private ContentPage BuildComparisonPage(TrimSelection selection)
     {
         var original = BuildOriginalSentenceItems();
         var rows = original
-            .Select((sentence, index) => new InteractiveComparisonRow(sentence, index + 1, keepNumbers.Contains(index + 1)))
+            .Select((sentence, index) =>
+            {
+                int number = index + 1;
+                selection.Ratings.TryGetValue(number, out int rating);
+                return new InteractiveComparisonRow(sentence, number, selection.KeepNumbers.Contains(number), rating);
+            })
             .ToList();
 
         var grid = new Grid
@@ -145,7 +152,7 @@ public class TranscriptTrimPage : ContentPage
         AddHeaderCell(grid, "Original", 1);
         AddHeaderCell(grid, "Revised", 2);
 
-        var statsLabel = CreateMutedLabel("");
+        var statsLabel = CreateStatsLabel();
         var progressLabel = CreateMutedLabel("");
         var compileButton = CreateButton("Compile Video", Color.FromArgb("#00695C"));
 
@@ -182,41 +189,65 @@ public class TranscriptTrimPage : ContentPage
 
         refreshState();
 
+        var statsFrame = new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#CFD8DC"),
+            CornerRadius = 0,
+            HasShadow = false,
+            Padding = new Thickness(16, 10),
+            Content = statsLabel
+        };
+
+        var comparisonScroll = new ScrollView
+        {
+            Content = new VerticalStackLayout
+            {
+                Padding = 16,
+                Spacing = 12,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Transcript Comparison",
+                        FontSize = 22,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#263238")
+                    },
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 12,
+                        Children =
+                        {
+                            CreateLegendItem("Enabled", Color.FromArgb("#E8F5E9")),
+                            CreateLegendItem("Disabled", Color.FromArgb("#ECEFF1"))
+                        }
+                    },
+                    grid,
+                    compileButton,
+                    progressLabel
+                }
+            }
+        };
+
+        var contentGrid = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Star }
+            }
+        };
+        Grid.SetRow(statsFrame, 0);
+        Grid.SetRow(comparisonScroll, 1);
+        contentGrid.Children.Add(statsFrame);
+        contentGrid.Children.Add(comparisonScroll);
+
         return new ContentPage
         {
             Title = "Transcript Comparison",
             BackgroundColor = Color.FromArgb("#F5F5F5"),
-            Content = new ScrollView
-            {
-                Content = new VerticalStackLayout
-                {
-                    Padding = 16,
-                    Spacing = 12,
-                    Children =
-                    {
-                        new Label
-                        {
-                            Text = "Transcript Comparison",
-                            FontSize = 22,
-                            FontAttributes = FontAttributes.Bold,
-                            TextColor = Color.FromArgb("#263238")
-                        },
-                        new HorizontalStackLayout
-                        {
-                            Spacing = 12,
-                            Children =
-                            {
-                                CreateLegendItem("Enabled", Color.FromArgb("#E8F5E9")),
-                                CreateLegendItem("Disabled", Color.FromArgb("#ECEFF1"))
-                            }
-                        },
-                        statsLabel,
-                        grid,
-                        compileButton,
-                        progressLabel
-                    }
-                }
-            }
+            Content = contentGrid
         };
     }
 
@@ -260,19 +291,36 @@ public class TranscriptTrimPage : ContentPage
     private static int CountWords(string text) =>
         Regex.Matches(text, @"\b[\w']+\b").Count;
 
-    private static HashSet<int> ParseKeepNumbers(string text)
+    private static TrimSelection ParseTrimResponse(string text)
     {
-        var match = Regex.Match(text, @"keep\s*=\s*(.+)", RegexOptions.IgnoreCase);
-        string numberText = match.Success ? match.Groups[1].Value : text;
-        return Regex.Matches(numberText, @"\d+")
+        var keepMatch = Regex.Match(
+            text,
+            @"keep\s*=\s*(.*?)(?:\r?\n|ratings\s*=|$)",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        string keepText = keepMatch.Success ? keepMatch.Groups[1].Value : text;
+        var keepNumbers = Regex.Matches(keepText, @"\d+")
             .Select(m => int.Parse(m.Value, CultureInfo.InvariantCulture))
             .Where(n => n > 0)
             .ToHashSet();
+
+        var ratings = new Dictionary<int, int>();
+        var ratingsMatch = Regex.Match(text, @"ratings\s*=\s*(.*)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        if (ratingsMatch.Success)
+        {
+            foreach (Match ratingMatch in Regex.Matches(ratingsMatch.Groups[1].Value, @"(\d+)\s*:\s*(10|[1-9])"))
+            {
+                int sentenceNumber = int.Parse(ratingMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+                int rating = int.Parse(ratingMatch.Groups[2].Value, CultureInfo.InvariantCulture);
+                ratings[sentenceNumber] = rating;
+            }
+        }
+
+        return new TrimSelection(keepNumbers, ratings);
     }
 
     private static string BuildOriginalDisplay(InteractiveComparisonRow row)
     {
-        return $"{row.Number}. [{FormatTimestamp(row.Original.Timestamp)}] {row.Original.Text}";
+        return $"[{FormatTimestamp(row.Original.Timestamp)}] {row.Original.Text}";
     }
 
     private static string BuildRevisedDisplay(InteractiveComparisonRow row)
@@ -426,11 +474,47 @@ public class TranscriptTrimPage : ContentPage
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center
         };
+        row.NumberLabel = new Label
+        {
+            Text = row.Number.ToString(CultureInfo.InvariantCulture),
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#263238"),
+            VerticalTextAlignment = TextAlignment.Center
+        };
+        row.RatingLabel = new Label
+        {
+            Text = row.Rating > 0 ? $"\u2605{row.Rating}" : "\u2605-",
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            Padding = new Thickness(7, 2),
+            VerticalTextAlignment = TextAlignment.Center,
+            HorizontalTextAlignment = TextAlignment.Center
+        };
         row.OriginalLabel = CreateComparisonTextLabel(BuildOriginalDisplay(row));
         row.RevisedLabel = CreateComparisonTextLabel(BuildRevisedDisplay(row));
 
         row.IndicatorFrame = CreateComparisonFrame(row.IndicatorLabel);
-        row.OriginalFrame = CreateComparisonFrame(row.OriginalLabel);
+        row.RatingFrame = CreateRatingFrame(row.RatingLabel, row.Rating);
+        row.OriginalFrame = CreateComparisonFrame(new VerticalStackLayout
+        {
+            Padding = new Thickness(10),
+            Spacing = 6,
+            Children =
+            {
+                new HorizontalStackLayout
+                {
+                    Spacing = 8,
+                    Children =
+                    {
+                        row.NumberLabel,
+                        row.RatingFrame
+                    }
+                },
+                row.OriginalLabel
+            }
+        });
         row.RevisedFrame = CreateComparisonFrame(row.RevisedLabel);
 
         AddTap(row.IndicatorFrame, row, refreshState);
@@ -469,6 +553,18 @@ public class TranscriptTrimPage : ContentPage
             Content = content
         };
 
+    private static Frame CreateRatingFrame(View content, int rating) =>
+        new()
+        {
+            BackgroundColor = GetRatingColor(rating),
+            BorderColor = Colors.Transparent,
+            CornerRadius = 8,
+            HasShadow = false,
+            Padding = 0,
+            Content = content,
+            VerticalOptions = LayoutOptions.Center
+        };
+
     private static void AddTap(Frame frame, InteractiveComparisonRow row, Action refreshState)
     {
         var tap = new TapGestureRecognizer();
@@ -497,12 +593,26 @@ public class TranscriptTrimPage : ContentPage
         row.OriginalLabel.TextDecorations = textDecorations;
         row.RevisedLabel.TextDecorations = textDecorations;
         row.RevisedLabel.Text = BuildRevisedDisplay(row);
+        row.NumberLabel.TextColor = row.IsEnabled
+            ? Color.FromArgb("#263238")
+            : Color.FromArgb("#607D8B");
         row.OriginalLabel.TextColor = row.IsEnabled
             ? Color.FromArgb("#1F2933")
             : Color.FromArgb("#607D8B");
         row.RevisedLabel.TextColor = row.IsEnabled
             ? Color.FromArgb("#1F2933")
             : Color.FromArgb("#607D8B");
+    }
+
+    private static Color GetRatingColor(int rating)
+    {
+        if (rating >= 7)
+            return Color.FromArgb("#2E7D32");
+        if (rating >= 4)
+            return Color.FromArgb("#EF6C00");
+        if (rating >= 1)
+            return Color.FromArgb("#C62828");
+        return Color.FromArgb("#78909C");
     }
 
     private static void AddHeaderCell(Grid grid, string text, int column)
@@ -647,24 +757,39 @@ public class TranscriptTrimPage : ContentPage
             TextColor = Color.FromArgb("#607D8B")
         };
 
+    private static Label CreateStatsLabel() =>
+        new()
+        {
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#263238")
+        };
+
     private sealed record SentenceItem(string Text, TimeSpan? Timestamp, TimeSpan? EndTimestamp);
+
+    private sealed record TrimSelection(HashSet<int> KeepNumbers, Dictionary<int, int> Ratings);
 
     private sealed class InteractiveComparisonRow
     {
-        public InteractiveComparisonRow(SentenceItem original, int number, bool isEnabled)
+        public InteractiveComparisonRow(SentenceItem original, int number, bool isEnabled, int rating)
         {
             Original = original;
             Number = number;
             IsEnabled = isEnabled;
+            Rating = rating;
         }
 
         public SentenceItem Original { get; }
         public int Number { get; }
         public bool IsEnabled { get; set; }
+        public int Rating { get; }
         public Frame IndicatorFrame { get; set; } = null!;
         public Frame OriginalFrame { get; set; } = null!;
         public Frame RevisedFrame { get; set; } = null!;
+        public Frame RatingFrame { get; set; } = null!;
         public Label IndicatorLabel { get; set; } = null!;
+        public Label NumberLabel { get; set; } = null!;
+        public Label RatingLabel { get; set; } = null!;
         public Label OriginalLabel { get; set; } = null!;
         public Label RevisedLabel { get; set; } = null!;
     }
