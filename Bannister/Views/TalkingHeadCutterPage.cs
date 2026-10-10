@@ -953,7 +953,15 @@ public class TalkingHeadCutterPage : ContentPage
         if (_transcriptWords.Count == 0)
             return;
 
-        await Navigation.PushAsync(new TranscriptTrimPage(_transcriptWords, _selectedVideoPath, _ffmpeg));
+        await Navigation.PushAsync(new TranscriptTrimPage(_transcriptWords, _selectedVideoPath, _ffmpeg, path =>
+        {
+            _selectedVideoPath = path;
+            if (_currentProject != null)
+            {
+                _currentProject.VideoPath = path;
+                _ = _shortsProjects.SaveProjectAsync(_currentProject);
+            }
+        }));
     }
 
     private async void OnCopyAnalysisPromptClicked(object? sender, EventArgs e)

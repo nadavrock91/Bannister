@@ -8,8 +8,9 @@ public class TranscriptTrimPage : ContentPage
 {
     private readonly List<TalkingHeadCutterPage.TranscriptWord> _transcriptWords;
     private readonly string _originalText;
-    private readonly string? _videoPath;
+    private string? _videoPath;
     private readonly FFmpegService _ffmpeg;
+    private readonly Action<string>? _onVideoPathChanged;
 
     private readonly Entry _targetMinutesEntry;
     private readonly Editor _keepListEntry;
@@ -19,12 +20,14 @@ public class TranscriptTrimPage : ContentPage
     public TranscriptTrimPage(
         IEnumerable<TalkingHeadCutterPage.TranscriptWord> transcriptWords,
         string? videoPath,
-        FFmpegService ffmpeg)
+        FFmpegService ffmpeg,
+        Action<string>? onVideoPathChanged = null)
     {
         _transcriptWords = transcriptWords.ToList();
         _originalText = string.Join(" ", _transcriptWords.Select(w => w.Word));
         _videoPath = videoPath;
         _ffmpeg = ffmpeg;
+        _onVideoPathChanged = onVideoPathChanged;
 
         Title = "Trim & Compare";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -169,6 +172,7 @@ public class TranscriptTrimPage : ContentPage
             var segments = BuildKeepSegmentsFromRows(rows);
             var estimatedDuration = TimeSpan.FromSeconds(segments.Sum(s => Math.Max(0, s.end - s.start)));
             statsLabel.Text = $"{enabledSentences.Count} of {totalSentences} sentences enabled | Estimated duration: {FormatDuration(estimatedDuration)}";
+            System.Diagnostics.Debug.WriteLine($"[REFRESH_STATE] segments={segments.Count}, videoPath={_videoPath}, fileExists={File.Exists(_videoPath ?? "")}");
             compileButton.IsEnabled = segments.Count > 0
                 && !string.IsNullOrWhiteSpace(_videoPath)
                 && File.Exists(_videoPath);
@@ -181,13 +185,14 @@ public class TranscriptTrimPage : ContentPage
             gridRow++;
         }
 
+        refreshState();
+
         compileButton.Clicked += async (_, _) =>
         {
+            System.Diagnostics.Debug.WriteLine($"[COMPILE_BTN] clicked, IsEnabled={compileButton.IsEnabled}, videoPath={_videoPath}");
             await CompileVideoAsync(rows, progressLabel);
             refreshState();
         };
-
-        refreshState();
 
         var statsFrame = new Frame
         {
@@ -406,13 +411,29 @@ public class TranscriptTrimPage : ContentPage
 
     private async Task CompileVideoAsync(List<InteractiveComparisonRow> rows, Label progressLabel)
     {
+        System.Diagnostics.Debug.WriteLine($"[COMPILE] videoPath={_videoPath}, exists={File.Exists(_videoPath ?? "")}");
         if (string.IsNullOrWhiteSpace(_videoPath) || !File.Exists(_videoPath))
         {
-            await DisplayAlert("Video Missing", "Load a project with a selected video first.", "OK");
-            return;
+            bool pick = await DisplayAlert("No Video Selected", "No video is selected for this project. Would you like to pick one now?", "Pick Video", "Cancel");
+            if (!pick) return;
+
+            var fileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+            {
+                { DevicePlatform.WinUI, new[] { ".mp4", ".mov", ".avi", ".mkv" } }
+            });
+            var fileResult = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Choose video file",
+                FileTypes = fileTypes
+            });
+            if (fileResult == null) return;
+            _videoPath = fileResult.FullPath;
+            if (_onVideoPathChanged != null)
+                _onVideoPathChanged(_videoPath);
         }
 
         var segments = BuildKeepSegmentsFromRows(rows);
+        System.Diagnostics.Debug.WriteLine($"[COMPILE] segments count={segments.Count}");
         if (segments.Count == 0)
         {
             await DisplayAlert("No Sentences", "Enable at least one timestamped sentence first.", "OK");
@@ -420,6 +441,7 @@ public class TranscriptTrimPage : ContentPage
         }
 
         string? outputFolder = await WebsiteFolderHelper.PickParentFolderPathAsync(this);
+        System.Diagnostics.Debug.WriteLine($"[COMPILE] outputFolder={outputFolder}");
         if (string.IsNullOrWhiteSpace(outputFolder))
             return;
 
@@ -427,6 +449,7 @@ public class TranscriptTrimPage : ContentPage
         {
             progressLabel.Text = "Preparing FFmpeg...";
             string ffmpegPath = await _ffmpeg.EnsureFFmpegAsync();
+            System.Diagnostics.Debug.WriteLine($"[COMPILE] ffmpegPath={ffmpegPath}");
             string originalName = Path.GetFileNameWithoutExtension(_videoPath);
             string outputPath = Path.Combine(outputFolder, $"{Slugify(originalName)}_trimmed_comparison.mp4");
 
@@ -435,12 +458,14 @@ public class TranscriptTrimPage : ContentPage
                 progressLabel.Text = $"Compiling video... {pct * 100:0}%";
             });
 
+            System.Diagnostics.Debug.WriteLine($"[COMPILE] calling CutSegmentsAsync");
             var result = await _ffmpeg.CutSegmentsAsync(
                 ffmpegPath,
                 _videoPath,
                 outputPath,
                 segments,
                 progress);
+            System.Diagnostics.Debug.WriteLine($"[COMPILE] result.success={result.success}");
 
             if (result.success)
             {
