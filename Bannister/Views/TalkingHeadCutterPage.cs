@@ -23,6 +23,8 @@ public class TalkingHeadCutterPage : ContentPage
     private readonly Label _outputFolderLabel;
     private readonly Label _progressLabel;
     private readonly Button _cutAllButton;
+    private Grid _wrapTranscriptOverlay = null!;
+    private Editor _rawTranscriptEditor = null!;
 
     public TalkingHeadCutterPage(FFmpegService ffmpeg)
     {
@@ -70,6 +72,7 @@ public class TalkingHeadCutterPage : ContentPage
         stack.Children.Add(BuildStageCard("2", "Get Transcript", new View[]
         {
             CreateActionButton("Copy Transcription Prompt", OnCopyTranscriptionPromptClicked),
+            CreateActionButton("Wrap Transcript for Import", OnWrapTranscriptClicked),
             _transcriptEditor,
             CreateActionButton("Import Transcript", OnImportTranscriptClicked),
             _transcriptStatusLabel
@@ -93,7 +96,67 @@ public class TalkingHeadCutterPage : ContentPage
             _progressLabel
         }));
 
-        Content = new ScrollView { Content = stack };
+        var root = new Grid();
+        root.Children.Add(new ScrollView { Content = stack });
+        _wrapTranscriptOverlay = CreateWrapTranscriptOverlay();
+        root.Children.Add(_wrapTranscriptOverlay);
+
+        Content = root;
+    }
+
+    private Grid CreateWrapTranscriptOverlay()
+    {
+        _rawTranscriptEditor = CreateEditor("Paste raw transcript here...", 260);
+
+        var copyButton = CreateButton("Copy Reformat Prompt", Color.FromArgb("#1565C0"));
+        copyButton.Clicked += OnCopyReformatPromptClicked;
+
+        var cancelButton = CreateButton("Cancel", Color.FromArgb("#607D8B"));
+        cancelButton.Clicked += (_, _) => _wrapTranscriptOverlay.IsVisible = false;
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#CFD8DC"),
+            CornerRadius = 10,
+            HasShadow = true,
+            Padding = 16,
+            WidthRequest = 520,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Center,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Wrap Transcript for Import",
+                        FontSize = 18,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#263238")
+                    },
+                    new Label
+                    {
+                        Text = "Paste the raw transcript, then copy a prompt that asks an LLM to reformat it for import.",
+                        FontSize = 13,
+                        TextColor = Color.FromArgb("#666"),
+                        LineBreakMode = LineBreakMode.WordWrap
+                    },
+                    _rawTranscriptEditor,
+                    copyButton,
+                    cancelButton
+                }
+            }
+        };
+
+        return new Grid
+        {
+            IsVisible = false,
+            BackgroundColor = Color.FromRgba(0, 0, 0, 0.55),
+            Padding = 16,
+            Children = { card }
+        };
     }
 
     private Frame BuildStageCard(string number, string title, IEnumerable<View> children)
@@ -197,6 +260,29 @@ public class TalkingHeadCutterPage : ContentPage
 
         await Clipboard.Default.SetTextAsync(prompt);
         await DisplayAlert("Copied", "Transcription prompt copied.", "OK");
+    }
+
+    private void OnWrapTranscriptClicked(object? sender, EventArgs e)
+    {
+        _wrapTranscriptOverlay.IsVisible = true;
+    }
+
+    private async void OnCopyReformatPromptClicked(object? sender, EventArgs e)
+    {
+        string rawTranscript = _rawTranscriptEditor.Text?.Trim() ?? "";
+        string prompt =
+            "Convert the following transcript to this exact format, one word per line with its timestamp:\n" +
+            "[MM:SS.mmm] word\n\n" +
+            "Rules:\n" +
+            "- One word per line\n" +
+            "- Timestamp is when that word starts speaking\n" +
+            "- Format: [MM:SS.mmm] where MM=minutes, SS=seconds, mmm=milliseconds\n" +
+            "- No other text, no numbering, no blank lines\n\n" +
+            "Transcript to convert:\n" +
+            rawTranscript;
+
+        await Clipboard.Default.SetTextAsync(prompt);
+        await DisplayAlert("Copied", "Reformat prompt copied.", "OK");
     }
 
     private async void OnImportTranscriptClicked(object? sender, EventArgs e)
