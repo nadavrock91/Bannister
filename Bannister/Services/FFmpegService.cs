@@ -11,7 +11,8 @@ public class FFmpegService
     private const string ZipEntryName =
         "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe";
 
-    public async Task<string> EnsureFFmpegAsync()
+    public async Task<string> EnsureFFmpegAsync(
+        IProgress<(long bytesReceived, long totalBytes)>? progress = null)
     {
 #if WINDOWS
         string targetPath = Path.Combine(FileSystem.AppDataDirectory, FFmpegFileName);
@@ -26,10 +27,21 @@ public class FFmpegService
             File.Delete(zipPath);
 
         using (var http = new HttpClient())
-        await using (var zipStream = await http.GetStreamAsync(DownloadUrl))
-        await using (var fileStream = File.Create(zipPath))
+        using (var response = await http.GetAsync(DownloadUrl, HttpCompletionOption.ResponseHeadersRead))
         {
-            await zipStream.CopyToAsync(fileStream);
+            response.EnsureSuccessStatusCode();
+            long totalBytes = response.Content.Headers.ContentLength ?? 0;
+            await using var zipStream = await response.Content.ReadAsStreamAsync();
+            await using var fileStream = File.Create(zipPath);
+            var buffer = new byte[81920];
+            long bytesReceived = 0;
+            int bytesRead;
+            while ((bytesRead = await zipStream.ReadAsync(buffer)) > 0)
+            {
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                bytesReceived += bytesRead;
+                progress?.Report((bytesReceived, totalBytes));
+            }
         }
 
         using (var archive = ZipFile.OpenRead(zipPath))

@@ -22,6 +22,8 @@ public class TalkingHeadCutterPage : ContentPage
     private readonly VerticalStackLayout _cutsList;
     private readonly Label _outputFolderLabel;
     private readonly Label _progressLabel;
+    private readonly ProgressBar _cutProgressBar;
+    private readonly Label _etaLabel;
     private readonly Button _cutAllButton;
     private Grid _wrapTranscriptOverlay = null!;
     private Editor _rawTranscriptEditor = null!;
@@ -42,6 +44,14 @@ public class TalkingHeadCutterPage : ContentPage
         _cutsList = new VerticalStackLayout { Spacing = 10 };
         _outputFolderLabel = CreateMutedLabel("No output folder selected");
         _progressLabel = CreateMutedLabel("");
+        _cutProgressBar = new ProgressBar
+        {
+            Progress = 0,
+            IsVisible = false,
+            ProgressColor = Color.FromArgb("#00695C")
+        };
+        _etaLabel = CreateMutedLabel("");
+        _etaLabel.IsVisible = false;
         _cutAllButton = CreateButton("\u2702\ufe0f Cut All Shorts", Color.FromArgb("#00695C"));
 
         BuildUI();
@@ -93,7 +103,9 @@ public class TalkingHeadCutterPage : ContentPage
             CreateActionButton("Choose Output Folder", OnChooseOutputFolderClicked),
             _outputFolderLabel,
             _cutAllButton,
-            _progressLabel
+            _progressLabel,
+            _cutProgressBar,
+            _etaLabel
         }));
 
         var root = new Grid();
@@ -516,17 +528,44 @@ public class TalkingHeadCutterPage : ContentPage
         try
         {
             _progressLabel.IsVisible = true;
-            _progressLabel.Text = "Downloading FFmpeg (~160MB, one time only)...";
-            string ffmpegPath = await _ffmpeg.EnsureFFmpegAsync();
+            _cutProgressBar.IsVisible = true;
+            _etaLabel.IsVisible = false;
+            _cutProgressBar.Progress = 0;
+
+            var downloadProgress = new Progress<(long bytesReceived, long totalBytes)>(progress =>
+            {
+                long displayTotal = progress.totalBytes > 0
+                    ? progress.totalBytes
+                    : 161L * 1024L * 1024L;
+                double percent = displayTotal > 0
+                    ? Math.Clamp((double)progress.bytesReceived / displayTotal, 0, 1)
+                    : 0;
+                _cutProgressBar.Progress = percent;
+                _progressLabel.Text =
+                    $"Downloading FFmpeg... {percent * 100:0}% ({FormatMegabytes(progress.bytesReceived)} MB / {FormatMegabytes(displayTotal)} MB)";
+            });
+
+            string ffmpegPath = await _ffmpeg.EnsureFFmpegAsync(downloadProgress);
             _progressLabel.Text = "";
             _progressLabel.IsVisible = false;
+            _cutProgressBar.Progress = 0;
+            _cutProgressBar.IsVisible = false;
             string originalName = Path.GetFileNameWithoutExtension(_selectedVideoPath);
+            var cutStartedAt = DateTime.UtcNow;
 
             for (int i = 0; i < _cuts.Count; i++)
             {
                 var cut = _cuts[i];
+                double completedProgress = (double)i / _cuts.Count;
                 _progressLabel.IsVisible = true;
-                _progressLabel.Text = $"Cutting {i + 1} of {_cuts.Count}: {cut.Title}";
+                _cutProgressBar.IsVisible = true;
+                _etaLabel.IsVisible = true;
+                _cutProgressBar.Progress = completedProgress;
+                _progressLabel.Text =
+                    $"Cutting {i + 1} of {_cuts.Count}: {cut.Title} \u2014 {completedProgress * 100:0}% complete";
+                _etaLabel.Text = i == 0
+                    ? "Estimated time remaining: calculating..."
+                    : $"Estimated time remaining: {FormatDuration(TimeSpan.FromTicks((DateTime.UtcNow - cutStartedAt).Ticks / i * (_cuts.Count - i)))}";
                 string outputPath = Path.Combine(
                     _outputFolder,
                     $"{Slugify(originalName)}_{i + 1}_{Slugify(cut.Title)}.mp4");
@@ -544,15 +583,34 @@ public class TalkingHeadCutterPage : ContentPage
                     _progressLabel.Text = "Cutting stopped.";
                     return;
                 }
+
+                double updatedProgress = (double)(i + 1) / _cuts.Count;
+                _cutProgressBar.Progress = updatedProgress;
+                _progressLabel.Text =
+                    $"Cutting {i + 1} of {_cuts.Count}: {cut.Title} \u2014 {updatedProgress * 100:0}% complete";
+                int remaining = _cuts.Count - (i + 1);
+                if (remaining > 0)
+                {
+                    var averageTicks = (DateTime.UtcNow - cutStartedAt).Ticks / (i + 1);
+                    _etaLabel.Text =
+                        $"Estimated time remaining: {FormatDuration(TimeSpan.FromTicks(averageTicks * remaining))}";
+                }
+                else
+                {
+                    _etaLabel.Text = "Estimated time remaining: 00:00";
+                }
             }
 
             _progressLabel.Text = $"\u2713 Done: {_outputFolder}";
+            _cutProgressBar.Progress = 1;
+            _etaLabel.IsVisible = false;
             await DisplayAlert("Done", $"Shorts saved to:\n{_outputFolder}", "OK");
         }
         catch (Exception ex)
         {
             await DisplayAlert("Cutting Error", ex.Message, "OK");
             _progressLabel.Text = "Cutting failed.";
+            _etaLabel.IsVisible = false;
         }
         finally
         {
@@ -596,6 +654,16 @@ public class TalkingHeadCutterPage : ContentPage
         int totalMinutes = (int)time.TotalMinutes;
         return $"{totalMinutes:00}:{time.Seconds:00}";
     }
+
+    private static string FormatDuration(TimeSpan time)
+    {
+        if (time.TotalHours >= 1)
+            return $"{(int)time.TotalHours:00}:{time.Minutes:00}:{time.Seconds:00}";
+        return $"{(int)time.TotalMinutes:00}:{time.Seconds:00}";
+    }
+
+    private static string FormatMegabytes(long bytes) =>
+        (bytes / 1024d / 1024d).ToString("0", CultureInfo.InvariantCulture);
 
     private static string Slugify(string value)
     {
