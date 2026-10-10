@@ -1,5 +1,8 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Compression;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Bannister.Services;
 
@@ -66,12 +69,15 @@ public class FFmpegService
 #endif
     }
 
-    public async Task<(bool Success, string ErrorMessage)> RunCutAsync(
+    public async Task<(bool success, string error)> RunCutAsync(
         string ffmpegPath,
         string inputPath,
         string startTime,
         string endTime,
-        string outputPath)
+        string outputPath,
+        IProgress<double>? progress = null,
+        TimeSpan clipStart = default,
+        TimeSpan clipEnd = default)
     {
 #if WINDOWS
         var startInfo = new ProcessStartInfo
@@ -79,7 +85,7 @@ public class FFmpegService
             FileName = ffmpegPath,
             UseShellExecute = false,
             RedirectStandardError = true,
-            RedirectStandardOutput = true,
+            RedirectStandardOutput = false,
             CreateNoWindow = true
         };
         startInfo.ArgumentList.Add("-y");
@@ -94,19 +100,71 @@ public class FFmpegService
         startInfo.ArgumentList.Add(outputPath);
 
         using var process = new Process { StartInfo = startInfo };
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.RedirectStandardOutput = false;
+        process.EnableRaisingEvents = true;
+
+        var errorLines = new StringBuilder();
+        if (clipStart == default && TryParseTime(startTime, out var parsedStart))
+            clipStart = parsedStart;
+        if (clipEnd == default && TryParseTime(endTime, out var parsedEnd))
+            clipEnd = parsedEnd;
+        TimeSpan totalDuration = clipEnd > clipStart
+            ? clipEnd - clipStart
+            : TimeSpan.Zero;
+
+        process.ErrorDataReceived += (s, e) =>
+        {
+            if (e.Data == null)
+                return;
+
+            errorLines.AppendLine(e.Data);
+            if (progress != null && e.Data.Contains("time="))
+            {
+                var timeMatch = Regex.Match(e.Data, @"time=(\d+):(\d+):(\d+\.\d+)");
+                if (timeMatch.Success)
+                {
+                    int h = int.Parse(timeMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+                    int m = int.Parse(timeMatch.Groups[2].Value, CultureInfo.InvariantCulture);
+                    double sec = double.Parse(timeMatch.Groups[3].Value, CultureInfo.InvariantCulture);
+                    var current = new TimeSpan(h, m, 0) + TimeSpan.FromSeconds(sec);
+                    double pct = totalDuration.TotalSeconds > 0
+                        ? Math.Min(1.0, current.TotalSeconds / totalDuration.TotalSeconds)
+                        : 0;
+                    progress.Report(pct);
+                }
+            }
+        };
+
         process.Start();
-        string stdout = await process.StandardOutput.ReadToEndAsync();
-        string stderr = await process.StandardError.ReadToEndAsync();
+        process.BeginErrorReadLine();
         await process.WaitForExitAsync();
 
         if (process.ExitCode == 0)
             return (true, "");
 
-        string message = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
-        return (false, message.Trim());
+        return (false, errorLines.ToString().Trim());
 #else
         await Task.CompletedTask;
         return (false, "FFmpeg cutting is only available on Windows.");
 #endif
+    }
+
+    private static bool TryParseTime(string value, out TimeSpan time)
+    {
+        time = TimeSpan.Zero;
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        var parts = value.Trim().Split(':');
+        if (parts.Length == 2
+            && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int minutes)
+            && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int seconds))
+        {
+            time = new TimeSpan(0, 0, minutes, seconds);
+            return true;
+        }
+
+        return TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out time);
     }
 }

@@ -570,16 +570,38 @@ public class TalkingHeadCutterPage : ContentPage
                     _outputFolder,
                     $"{Slugify(originalName)}_{i + 1}_{Slugify(cut.Title)}.mp4");
 
+                TryParseTime(cut.StartTime, out var clipStart);
+                TryParseTime(cut.EndTime, out var clipEnd);
+                var clipProgress = new Progress<double>(clipPercent =>
+                {
+                    double overallProgress = Math.Clamp((i + clipPercent) / _cuts.Count, 0, 1);
+                    _cutProgressBar.Progress = overallProgress;
+                    _progressLabel.Text =
+                        $"Cutting {i + 1} of {_cuts.Count}: {cut.Title} \u2014 {overallProgress * 100:0}% complete";
+                    if (i > 0 || clipPercent > 0)
+                    {
+                        double completedClips = i + clipPercent;
+                        var elapsed = DateTime.UtcNow - cutStartedAt;
+                        var remainingClips = _cuts.Count - completedClips;
+                        var estimatedRemaining = TimeSpan.FromSeconds(elapsed.TotalSeconds / completedClips * remainingClips);
+                        _etaLabel.Text =
+                            $"Estimated time remaining: {FormatDuration(estimatedRemaining)}";
+                    }
+                });
+
                 var result = await _ffmpeg.RunCutAsync(
                     ffmpegPath,
                     _selectedVideoPath,
                     cut.StartTime,
                     cut.EndTime,
-                    outputPath);
+                    outputPath,
+                    clipProgress,
+                    clipStart,
+                    clipEnd);
 
-                if (!result.Success)
+                if (!result.success)
                 {
-                    await DisplayAlert("FFmpeg Error", result.ErrorMessage, "OK");
+                    await DisplayAlert("FFmpeg Error", result.error, "OK");
                     _progressLabel.Text = "Cutting stopped.";
                     return;
                 }
