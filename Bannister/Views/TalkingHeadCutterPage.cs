@@ -236,7 +236,7 @@ public class TalkingHeadCutterPage : ContentPage
 
     private Grid CreateWrapTranscriptOverlay()
     {
-        _rawTranscriptEditor = CreateEditor("Paste raw transcript here...", 260);
+        _rawTranscriptEditor = CreateEditor("Paste ElevenLabs JSON here...", 260);
 
         var copyButton = CreateButton("Copy Reformat Prompt", Color.FromArgb("#1565C0"));
         copyButton.Clicked += OnCopyReformatPromptClicked;
@@ -268,7 +268,7 @@ public class TalkingHeadCutterPage : ContentPage
                     },
                     new Label
                     {
-                        Text = "Paste the raw transcript, then copy a prompt that asks an LLM to reformat it for import.",
+                        Text = "Paste ElevenLabs JSON transcript here. The prompt will ask an LLM to convert it to the [MM:SS.mmm] word format for import.",
                         FontSize = 13,
                         TextColor = Color.FromArgb("#666"),
                         LineBreakMode = LineBreakMode.WordWrap
@@ -901,14 +901,13 @@ public class TalkingHeadCutterPage : ContentPage
     {
         string rawTranscript = _rawTranscriptEditor.Text?.Trim() ?? "";
         string prompt =
-            "Convert the following transcript to this exact format, one word per line with its timestamp:\n" +
-            "[MM:SS.mmm] word\n\n" +
+            "Convert the following ElevenLabs JSON transcript to this exact format, one word per line with its timestamp: [MM:SS.mmm] word\n\n" +
             "Rules:\n" +
             "- One word per line\n" +
             "- Timestamp is when that word starts speaking\n" +
             "- Format: [MM:SS.mmm] where MM=minutes, SS=seconds, mmm=milliseconds\n" +
             "- No other text, no numbering, no blank lines\n\n" +
-            "Transcript to convert:\n" +
+            "JSON to convert:\n" +
             rawTranscript;
 
         await Clipboard.Default.SetTextAsync(prompt);

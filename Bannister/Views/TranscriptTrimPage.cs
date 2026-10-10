@@ -12,7 +12,7 @@ public class TranscriptTrimPage : ContentPage
     private readonly FFmpegService _ffmpeg;
 
     private readonly Entry _targetMinutesEntry;
-    private readonly Entry _keepListEntry;
+    private readonly Editor _keepListEntry;
     private readonly Label _keepListStatusLabel;
     private readonly Button _compareButton;
 
@@ -30,7 +30,7 @@ public class TranscriptTrimPage : ContentPage
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
         _targetMinutesEntry = CreateEntry("3");
-        _keepListEntry = CreateTextEntry("Paste keep = 1,3,5...");
+        _keepListEntry = CreateEditor("Paste keep = 1,3,5...\nratings = 1:8,2:7...", 120);
         _keepListEntry.TextChanged += (_, _) => UpdateKeepListState();
         _keepListStatusLabel = CreateMutedLabel("Paste the sentence numbers to keep.");
         _compareButton = CreateButton("Build Comparison", Color.FromArgb("#00695C"));
@@ -63,7 +63,7 @@ public class TranscriptTrimPage : ContentPage
                 {
                     CreateLabeledEntry("Target duration (minutes)", _targetMinutesEntry),
                     CreateActionButton("Copy Trim Prompt", OnCopyTrimPromptClicked),
-                    CreateLabeledEntry("LLM response", _keepListEntry),
+                    CreateLabeledEditor("Paste the LLM response here (both lines):\nkeep = 1,2,3...\nratings = 1:8,2:7...", _keepListEntry),
                     _keepListStatusLabel
                 }),
                 BuildCard("Original Transcript", new View[]
@@ -699,6 +699,23 @@ public class TranscriptTrimPage : ContentPage
                     TextColor = Color.FromArgb("#546E7A")
                 },
                 entry
+            }
+        };
+
+    private View CreateLabeledEditor(string label, Editor editor) =>
+        new VerticalStackLayout
+        {
+            Spacing = 4,
+            Children =
+            {
+                new Label
+                {
+                    Text = label,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#546E7A"),
+                    LineBreakMode = LineBreakMode.WordWrap
+                },
+                editor
             }
         };
 
