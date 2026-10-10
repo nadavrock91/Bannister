@@ -170,6 +170,19 @@ public class FFmpegService
         if (keepSegments.Count == 0)
             return (false, "No speech segments were found after silence analysis.");
 
+        Directory.CreateDirectory(FileSystem.CacheDirectory);
+        string segmentsFile = Path.Combine(FileSystem.CacheDirectory, "segments.txt");
+        var concatBuilder = new StringBuilder();
+        concatBuilder.AppendLine("ffconcat version 1.0");
+        string escapedInputPath = EscapeConcatFilePath(inputPath);
+        foreach (var segment in keepSegments)
+        {
+            concatBuilder.AppendLine($"file '{escapedInputPath}'");
+            concatBuilder.AppendLine(string.Create(CultureInfo.InvariantCulture, $"inpoint {segment.start:0.###}"));
+            concatBuilder.AppendLine(string.Create(CultureInfo.InvariantCulture, $"outpoint {segment.end:0.###}"));
+        }
+        await File.WriteAllTextAsync(segmentsFile, concatBuilder.ToString());
+
         var startInfo = new ProcessStartInfo
         {
             FileName = ffmpegPath,
@@ -178,21 +191,16 @@ public class FFmpegService
             RedirectStandardOutput = false,
             CreateNoWindow = true
         };
-        string selectExpression = string.Join(
-            "+",
-            keepSegments.Select(s => string.Create(
-                CultureInfo.InvariantCulture,
-                $"between(t,{s.start:0.###},{s.end:0.###})")));
-        string videoFilter = $"select='{selectExpression}',setpts=N/FRAME_RATE/TB";
-        string audioFilter = $"aselect='{selectExpression}',asetpts=N/SR/TB";
 
         startInfo.ArgumentList.Add("-y");
+        startInfo.ArgumentList.Add("-f");
+        startInfo.ArgumentList.Add("concat");
+        startInfo.ArgumentList.Add("-safe");
+        startInfo.ArgumentList.Add("0");
         startInfo.ArgumentList.Add("-i");
-        startInfo.ArgumentList.Add(inputPath);
-        startInfo.ArgumentList.Add("-vf");
-        startInfo.ArgumentList.Add(videoFilter);
-        startInfo.ArgumentList.Add("-af");
-        startInfo.ArgumentList.Add(audioFilter);
+        startInfo.ArgumentList.Add(segmentsFile);
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add("copy");
         startInfo.ArgumentList.Add(outputPath);
 
         using var process = new Process { StartInfo = startInfo };
@@ -236,14 +244,22 @@ public class FFmpegService
             }
         };
 
-        process.Start();
-        process.BeginErrorReadLine();
-        await process.WaitForExitAsync();
+        try
+        {
+            process.Start();
+            process.BeginErrorReadLine();
+            await process.WaitForExitAsync();
 
-        if (process.ExitCode == 0)
-            return (true, "");
+            if (process.ExitCode == 0)
+                return (true, "");
 
-        return (false, errorLines.ToString().Trim());
+            return (false, errorLines.ToString().Trim());
+        }
+        finally
+        {
+            if (File.Exists(segmentsFile))
+                File.Delete(segmentsFile);
+        }
 #else
         await Task.CompletedTask;
         return (false, "FFmpeg silence truncation is only available on Windows.");
@@ -389,6 +405,10 @@ public class FFmpegService
 
         return merged;
     }
+
+    private static string EscapeConcatFilePath(string path) =>
+        path.Replace("\\", "/", StringComparison.Ordinal)
+            .Replace("'", "\\'", StringComparison.Ordinal);
 
     private static bool TryParseTime(string value, out TimeSpan time)
     {

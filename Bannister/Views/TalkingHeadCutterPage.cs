@@ -362,7 +362,9 @@ public class TalkingHeadCutterPage : ContentPage
             if (!result.success)
             {
                 _truncateProgressLabel.Text = "Truncate failed.";
-                await DisplayAlert("FFmpeg Error", result.error, "OK");
+                var errorLines = result.error.Split('\n');
+                var lastLines = string.Join("\n", errorLines.TakeLast(5));
+                await DisplayAlert("FFmpeg Error", lastLines, "OK");
                 return;
             }
 
@@ -409,7 +411,9 @@ public class TalkingHeadCutterPage : ContentPage
             if (!result.success)
             {
                 _truncateProgressLabel.Text = "Analysis failed.";
-                await DisplayAlert("FFmpeg Error", result.error, "OK");
+                var errorLines = result.error.Split('\n');
+                var lastLines = string.Join("\n", errorLines.TakeLast(5));
+                await DisplayAlert("FFmpeg Error", lastLines, "OK");
                 return;
             }
 
@@ -769,7 +773,9 @@ public class TalkingHeadCutterPage : ContentPage
 
                 if (!result.success)
                 {
-                    await DisplayAlert("FFmpeg Error", result.error, "OK");
+                    var errorLines = result.error.Split('\n');
+                    var lastLines = string.Join("\n", errorLines.TakeLast(5));
+                    await DisplayAlert("FFmpeg Error", lastLines, "OK");
                     _progressLabel.Text = "Cutting stopped.";
                     return;
                 }
