@@ -1,5 +1,3 @@
-using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
@@ -94,13 +92,8 @@ public class TranscriptTrimPage : ContentPage
         if (string.IsNullOrWhiteSpace(revisedText))
             return;
 
-        string html = BuildComparisonHtml(_originalText, revisedText);
-        string tempPath = Path.Combine(FileSystem.CacheDirectory, "comparison.html");
-        File.WriteAllText(tempPath, html, Encoding.UTF8);
-        await Launcher.OpenAsync(new OpenFileRequest
-        {
-            File = new ReadOnlyFile(tempPath)
-        });
+        var page = BuildComparisonPage(revisedText);
+        await Navigation.PushAsync(page);
     }
 
     private void UpdateTrimmedState()
@@ -110,133 +103,74 @@ public class TranscriptTrimPage : ContentPage
         _compareButton.IsEnabled = !string.IsNullOrWhiteSpace(text);
     }
 
-    private string BuildComparisonHtml(string originalText, string revisedText)
+    private ContentPage BuildComparisonPage(string revisedText)
     {
-        var original = SplitSentences(originalText);
-        var revised = SplitSentences(revisedText);
+        var original = BuildOriginalSentenceItems();
+        var revised = SplitSentenceItems(revisedText);
         var rows = AlignSentences(original, revised);
 
-        var builder = new StringBuilder();
-        builder.AppendLine("<!doctype html>");
-        builder.AppendLine("<html lang=\"en\">");
-        builder.AppendLine("<head>");
-        builder.AppendLine("<meta charset=\"utf-8\">");
-        builder.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-        builder.AppendLine("<title>Transcript Comparison</title>");
-        builder.AppendLine("<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">");
-        builder.AppendLine("<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>");
-        builder.AppendLine("<link href=\"https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap\" rel=\"stylesheet\">");
-        builder.AppendLine("<style>");
-        builder.AppendLine("""
-            :root {
-                --bg: #111318;
-                --panel: #1b1f27;
-                --line: #343b49;
-                --text: #f2efe9;
-                --muted: #b9b1a7;
-                --same: #f7f1e7;
-                --similar: #f0a24a;
-                --changed: #c8403b;
-            }
-            * { box-sizing: border-box; }
-            body {
-                margin: 0;
-                background: var(--bg);
-                color: var(--text);
-                font-family: 'Source Serif 4', Georgia, serif;
-                line-height: 1.5;
-            }
-            header {
-                position: sticky;
-                top: 0;
-                z-index: 3;
-                background: rgba(17, 19, 24, .96);
-                border-bottom: 1px solid var(--line);
-                padding: 18px 22px;
-            }
-            h1 { margin: 0 0 12px; font-size: 28px; }
-            .legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 15px; }
-            .swatch { display: inline-flex; align-items: center; gap: 7px; }
-            .box { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
-            .box.same { background: var(--same); }
-            .box.similar { background: var(--similar); }
-            .box.changed { background: var(--changed); }
-            main { padding: 18px 22px 32px; }
-            .grid {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-                border: 1px solid var(--line);
-                border-radius: 8px;
-                overflow: clip;
-                background: var(--panel);
-            }
-            .head {
-                position: sticky;
-                top: 92px;
-                z-index: 2;
-                background: #252b36;
-                color: var(--text);
-                font-weight: 700;
-                padding: 12px 16px;
-                border-bottom: 1px solid var(--line);
-            }
-            .left { border-right: 1px solid var(--line); }
-            .cell {
-                min-height: 62px;
-                padding: 12px 16px;
-                border-bottom: 1px solid var(--line);
-                white-space: pre-wrap;
-            }
-            .same { color: var(--same); }
-            .similar { color: var(--similar); }
-            .changed { color: var(--changed); }
-            .placeholder { opacity: .72; font-style: italic; }
-            .section {
-                grid-column: 1 / -1;
-                padding: 9px 16px;
-                background: #101216;
-                color: var(--muted);
-                border-bottom: 1px solid var(--line);
-                font-size: 13px;
-                text-transform: uppercase;
-                letter-spacing: .08em;
-            }
-            @media (max-width: 760px) {
-                .grid { grid-template-columns: 1fr; }
-                .left { border-right: 0; }
-                .head { position: static; }
-            }
-            """);
-        builder.AppendLine("</style>");
-        builder.AppendLine("</head>");
-        builder.AppendLine("<body>");
-        builder.AppendLine("<header>");
-        builder.AppendLine("<h1>Transcript Comparison</h1>");
-        builder.AppendLine("<div class=\"legend\">");
-        builder.AppendLine("<span class=\"swatch\"><span class=\"box same\"></span>White: identical</span>");
-        builder.AppendLine("<span class=\"swatch\"><span class=\"box similar\"></span>Orange: same content, different wording</span>");
-        builder.AppendLine("<span class=\"swatch\"><span class=\"box changed\"></span>Red: cut or added</span>");
-        builder.AppendLine("</div>");
-        builder.AppendLine("</header>");
-        builder.AppendLine("<main><div class=\"grid\">");
-        builder.AppendLine("<div class=\"head left\">Original</div><div class=\"head\">Revised</div>");
-
-        for (int i = 0; i < rows.Count; i++)
+        var grid = new Grid
         {
-            if (i > 0 && i % 10 == 0)
-                builder.AppendLine($"<div class=\"section\">Section {i / 10 + 1}</div>");
+            RowSpacing = 1,
+            ColumnSpacing = 1,
+            BackgroundColor = Color.FromArgb("#CFD8DC"),
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            }
+        };
 
-            var row = rows[i];
-            builder.AppendLine($"<div class=\"cell left {row.Kind}\">{EncodeCell(row.Original)}</div>");
-            builder.AppendLine($"<div class=\"cell {row.Kind}\">{EncodeCell(row.Revised)}</div>");
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        AddHeaderCell(grid, "Original", 0);
+        AddHeaderCell(grid, "Revised", 1);
+
+        int gridRow = 1;
+        foreach (var row in rows)
+        {
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            AddComparisonCell(grid, BuildOriginalDisplay(row), row.Kind, 0, gridRow);
+            AddComparisonCell(grid, BuildRevisedDisplay(row), row.Kind, 1, gridRow);
+            gridRow++;
         }
 
-        builder.AppendLine("</div></main>");
-        builder.AppendLine("</body></html>");
-        return builder.ToString();
+        return new ContentPage
+        {
+            Title = "Transcript Comparison",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            Content = new ScrollView
+            {
+                Content = new VerticalStackLayout
+                {
+                    Padding = 16,
+                    Spacing = 12,
+                    Children =
+                    {
+                        new Label
+                        {
+                            Text = "Transcript Comparison",
+                            FontSize = 22,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = Color.FromArgb("#263238")
+                        },
+                        new HorizontalStackLayout
+                        {
+                            Spacing = 12,
+                            Children =
+                            {
+                                CreateLegendItem("Identical", Colors.White),
+                                CreateLegendItem("Similar", Color.FromArgb("#FFE0B2")),
+                                CreateLegendItem("Cut / Added", Color.FromArgb("#FFCDD2"))
+                            }
+                        },
+                        grid
+                    }
+                }
+            }
+        };
     }
 
-    private static List<ComparisonRow> AlignSentences(List<string> original, List<string> revised)
+    private static List<ComparisonRow> AlignSentences(List<SentenceItem> original, List<SentenceItem> revised)
     {
         int[,] lcs = BuildLcsTable(original, revised);
         var matches = BacktrackMatches(original, revised, lcs);
@@ -256,14 +190,14 @@ public class TranscriptTrimPage : ContentPage
         return rows;
     }
 
-    private static int[,] BuildLcsTable(List<string> original, List<string> revised)
+    private static int[,] BuildLcsTable(List<SentenceItem> original, List<SentenceItem> revised)
     {
         int[,] table = new int[original.Count + 1, revised.Count + 1];
         for (int i = original.Count - 1; i >= 0; i--)
         {
             for (int j = revised.Count - 1; j >= 0; j--)
             {
-                table[i, j] = NormalizeSentence(original[i]) == NormalizeSentence(revised[j])
+                table[i, j] = NormalizeSentence(original[i].Text) == NormalizeSentence(revised[j].Text)
                     ? table[i + 1, j + 1] + 1
                     : Math.Max(table[i + 1, j], table[i, j + 1]);
             }
@@ -272,14 +206,14 @@ public class TranscriptTrimPage : ContentPage
         return table;
     }
 
-    private static List<(int originalIndex, int revisedIndex)> BacktrackMatches(List<string> original, List<string> revised, int[,] table)
+    private static List<(int originalIndex, int revisedIndex)> BacktrackMatches(List<SentenceItem> original, List<SentenceItem> revised, int[,] table)
     {
         var matches = new List<(int originalIndex, int revisedIndex)>();
         int i = 0;
         int j = 0;
         while (i < original.Count && j < revised.Count)
         {
-            if (NormalizeSentence(original[i]) == NormalizeSentence(revised[j]))
+            if (NormalizeSentence(original[i].Text) == NormalizeSentence(revised[j].Text))
             {
                 matches.Add((i, j));
                 i++;
@@ -299,10 +233,10 @@ public class TranscriptTrimPage : ContentPage
     }
 
     private static void AddUnmatchedRows(
-        List<string> original,
+        List<SentenceItem> original,
         int originalStart,
         int originalEnd,
-        List<string> revised,
+        List<SentenceItem> revised,
         int revisedStart,
         int revisedEnd,
         List<ComparisonRow> rows)
@@ -317,7 +251,7 @@ public class TranscriptTrimPage : ContentPage
                 if (usedRevised.Contains(j))
                     continue;
 
-                double score = WordOverlap(original[i], revised[j]);
+                double score = WordOverlap(original[i].Text, revised[j].Text);
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -332,24 +266,54 @@ public class TranscriptTrimPage : ContentPage
             }
             else
             {
-                rows.Add(new ComparisonRow(original[i], "[cut]", "changed"));
+                rows.Add(new ComparisonRow(original[i], null, "changed"));
             }
         }
 
         for (int j = revisedStart; j < revisedEnd; j++)
         {
             if (!usedRevised.Contains(j))
-                rows.Add(new ComparisonRow("[added]", revised[j], "changed"));
+                rows.Add(new ComparisonRow(null, revised[j], "changed"));
         }
     }
 
-    private static List<string> SplitSentences(string text)
+    private List<SentenceItem> BuildOriginalSentenceItems()
+    {
+        var sentences = new List<SentenceItem>();
+        var words = new List<string>();
+        TimeSpan? start = null;
+
+        foreach (var word in _transcriptWords)
+        {
+            if (start == null)
+                start = word.Timestamp;
+
+            words.Add(word.Word);
+            if (IsSentenceEndingWord(word.Word))
+            {
+                sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start));
+                words.Clear();
+                start = null;
+            }
+        }
+
+        if (words.Count > 0)
+            sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start));
+
+        return sentences;
+    }
+
+    private static List<SentenceItem> SplitSentenceItems(string text)
     {
         return Regex.Split(text.Trim(), @"(?<=[.!?])\s+")
             .Select(s => s.Trim())
             .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => new SentenceItem(s, null))
             .ToList();
     }
+
+    private static bool IsSentenceEndingWord(string word) =>
+        Regex.IsMatch(word.Trim(), @"[.!?][""')\]]*$");
 
     private static double WordOverlap(string left, string right)
     {
@@ -373,13 +337,104 @@ public class TranscriptTrimPage : ContentPage
     private static int CountWords(string text) =>
         Regex.Matches(text, @"\b[\w']+\b").Count;
 
-    private static string EncodeCell(string text)
+    private static string BuildOriginalDisplay(ComparisonRow row)
     {
-        string encoded = WebUtility.HtmlEncode(text);
-        if (text is "[cut]" or "[added]")
-            return $"<span class=\"placeholder\">{encoded}</span>";
-        return encoded;
+        if (row.Original == null)
+            return "[--:--] [added]";
+
+        return $"[{FormatTimestamp(row.Original.Timestamp)}] {row.Original.Text}";
     }
+
+    private static string BuildRevisedDisplay(ComparisonRow row)
+    {
+        if (row.Revised == null)
+            return "[--:--] [cut]";
+
+        return $"[--:--] {row.Revised.Text}";
+    }
+
+    private static string FormatTimestamp(TimeSpan? timestamp)
+    {
+        if (timestamp == null)
+            return "--:--";
+
+        int totalMinutes = (int)timestamp.Value.TotalMinutes;
+        return $"{totalMinutes:00}:{timestamp.Value.Seconds:00}";
+    }
+
+    private static Color GetRowBackground(string kind) =>
+        kind switch
+        {
+            "similar" => Color.FromArgb("#FFE0B2"),
+            "changed" => Color.FromArgb("#FFCDD2"),
+            _ => Colors.White
+        };
+
+    private static void AddHeaderCell(Grid grid, string text, int column)
+    {
+        var label = new Label
+        {
+            Text = text,
+            FontAttributes = FontAttributes.Bold,
+            FontSize = 16,
+            TextColor = Colors.White,
+            Padding = new Thickness(12, 10),
+            BackgroundColor = Color.FromArgb("#263238")
+        };
+
+        Grid.SetRow(label, 0);
+        Grid.SetColumn(label, column);
+        grid.Children.Add(label);
+    }
+
+    private static void AddComparisonCell(Grid grid, string text, string kind, int column, int row)
+    {
+        var label = new Label
+        {
+            Text = text,
+            FontSize = 14,
+            TextColor = Color.FromArgb("#1F2933"),
+            Padding = new Thickness(10),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+
+        var frame = new Frame
+        {
+            BackgroundColor = GetRowBackground(kind),
+            BorderColor = Colors.Transparent,
+            CornerRadius = 0,
+            HasShadow = false,
+            Padding = 0,
+            Content = label
+        };
+
+        Grid.SetRow(frame, row);
+        Grid.SetColumn(frame, column);
+        grid.Children.Add(frame);
+    }
+
+    private static View CreateLegendItem(string text, Color color) =>
+        new HorizontalStackLayout
+        {
+            Spacing = 6,
+            Children =
+            {
+                new BoxView
+                {
+                    Color = color,
+                    WidthRequest = 14,
+                    HeightRequest = 14,
+                    VerticalOptions = LayoutOptions.Center
+                },
+                new Label
+                {
+                    Text = text,
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#455A64"),
+                    VerticalOptions = LayoutOptions.Center
+                }
+            }
+        };
 
     private Frame BuildCard(string title, IEnumerable<View> children)
     {
@@ -474,5 +529,7 @@ public class TranscriptTrimPage : ContentPage
             TextColor = Color.FromArgb("#607D8B")
         };
 
-    private sealed record ComparisonRow(string Original, string Revised, string Kind);
+    private sealed record SentenceItem(string Text, TimeSpan? Timestamp);
+
+    private sealed record ComparisonRow(SentenceItem? Original, SentenceItem? Revised, string Kind);
 }
