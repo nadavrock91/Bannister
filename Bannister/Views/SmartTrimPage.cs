@@ -141,10 +141,17 @@ public class SmartTrimPage : ContentPage
             .ToList();
 
         var suggestionButtons = new List<(CutSuggestion suggestion, Button button)>();
-        var suggestionsStack = new VerticalStackLayout
+        var suggestionsGrid = new Grid
         {
-            Spacing = 8,
-            HorizontalOptions = LayoutOptions.End
+            RowSpacing = 6,
+            ColumnSpacing = 1,
+            BackgroundColor = Color.FromArgb("#CFD8DC"),
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = 34 },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            }
         };
         var grid = new Grid
         {
@@ -179,10 +186,7 @@ public class SmartTrimPage : ContentPage
             foreach (var row in rows)
                 ApplyRowState(row);
 
-            foreach (var item in suggestionButtons)
-                item.button.BackgroundColor = item.suggestion.IsApplied
-                    ? Color.FromArgb("#78909C")
-                    : Color.FromArgb("#2E7D32");
+            SyncSuggestionButtonStates(rows, suggestionButtons);
 
             var enabledSentences = rows
                 .Where(r => r.IsEnabled && r.Original.Timestamp != null)
@@ -196,14 +200,57 @@ public class SmartTrimPage : ContentPage
                 && File.Exists(_videoPath);
         };
 
+        int suggestionRow = 0;
         foreach (var suggestion in _suggestions)
         {
-            var button = CreateButton(FormatSuggestionButtonText(suggestion), Color.FromArgb("#2E7D32"));
-            button.HorizontalOptions = LayoutOptions.End;
-            button.Padding = new Thickness(10, 6);
+            suggestionsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var sentenceLabel = new Label
+            {
+                Text = FormatSuggestionSentenceNumbers(suggestion),
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#263238"),
+                Padding = new Thickness(6, 8),
+                VerticalTextAlignment = TextAlignment.Center,
+                HorizontalTextAlignment = TextAlignment.Center,
+                BackgroundColor = Colors.White,
+                LineBreakMode = LineBreakMode.WordWrap
+            };
+
+            var emptyCell = new BoxView
+            {
+                Color = Colors.White
+            };
+
+            var infoButton = new Button
+            {
+                Text = "\u24d8",
+                WidthRequest = 28,
+                HeightRequest = 28,
+                CornerRadius = 14,
+                FontSize = 12,
+                Padding = 0,
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#263238")
+            };
+            infoButton.Clicked += async (_, _) =>
+            {
+                await DisplayAlert("Cut Reason", suggestion.Reason, "OK");
+            };
+
+            var button = CreateButton(FormatSuggestionSaveText(suggestion), Color.FromArgb("#2E7D32"));
+            button.WidthRequest = 78;
+            button.HeightRequest = 34;
+            button.Padding = new Thickness(8, 4);
             button.Clicked += (_, _) =>
             {
-                if (!suggestion.IsApplied)
+                bool allDisabled = suggestion.Indices
+                    .Select(index => rows.FirstOrDefault(r => r.Number == index))
+                    .Where(row => row != null)
+                    .All(row => row!.IsEnabled == false);
+
+                if (!allDisabled)
                 {
                     foreach (int index in suggestion.Indices)
                     {
@@ -239,24 +286,30 @@ public class SmartTrimPage : ContentPage
                 refreshState();
             };
             suggestionButtons.Add((suggestion, button));
-            suggestionsStack.Children.Add(new VerticalStackLayout
+
+            var actions = new HorizontalStackLayout
             {
-                Spacing = 2,
+                Spacing = 6,
                 HorizontalOptions = LayoutOptions.End,
+                Padding = new Thickness(8, 4),
+                BackgroundColor = Colors.White,
                 Children =
                 {
-                    button,
-                    new Label
-                    {
-                        Text = suggestion.Reason,
-                        FontSize = 11,
-                        TextColor = Color.FromArgb("#607D8B"),
-                        HorizontalTextAlignment = TextAlignment.End,
-                        HorizontalOptions = LayoutOptions.End,
-                        LineBreakMode = LineBreakMode.WordWrap
-                    }
+                    infoButton,
+                    button
                 }
-            });
+            };
+
+            Grid.SetRow(sentenceLabel, suggestionRow);
+            Grid.SetColumn(sentenceLabel, 0);
+            Grid.SetRow(emptyCell, suggestionRow);
+            Grid.SetColumn(emptyCell, 1);
+            Grid.SetRow(actions, suggestionRow);
+            Grid.SetColumn(actions, 2);
+            suggestionsGrid.Children.Add(sentenceLabel);
+            suggestionsGrid.Children.Add(emptyCell);
+            suggestionsGrid.Children.Add(actions);
+            suggestionRow++;
         }
 
         int gridRow = 1;
@@ -300,7 +353,7 @@ public class SmartTrimPage : ContentPage
                         FontAttributes = FontAttributes.Bold,
                         TextColor = Color.FromArgb("#263238")
                     },
-                    suggestionsStack,
+                    suggestionsGrid,
                     new HorizontalStackLayout
                     {
                         Spacing = 12,
@@ -413,8 +466,28 @@ public class SmartTrimPage : ContentPage
     private static string BuildRevisedDisplay(SmartTrimRow row) =>
         row.IsEnabled ? row.Original.Text : "[cut]";
 
-    private static string FormatSuggestionButtonText(CutSuggestion suggestion) =>
-        $"{string.Join(",", suggestion.Indices)} ~{suggestion.SaveSeconds}s";
+    private static string FormatSuggestionSentenceNumbers(CutSuggestion suggestion) =>
+        string.Join(", ", suggestion.Indices);
+
+    private static string FormatSuggestionSaveText(CutSuggestion suggestion) =>
+        $"~{suggestion.SaveSeconds}s";
+
+    private static void SyncSuggestionButtonStates(
+        List<SmartTrimRow> rows,
+        List<(CutSuggestion suggestion, Button button)> suggestionButtons)
+    {
+        foreach (var item in suggestionButtons)
+        {
+            bool allDisabled = item.suggestion.Indices
+                .Select(index => rows.FirstOrDefault(r => r.Number == index))
+                .Where(row => row != null)
+                .All(row => row!.IsEnabled == false);
+
+            item.button.BackgroundColor = allDisabled
+                ? Color.FromArgb("#78909C")
+                : Color.FromArgb("#2E7D32");
+        }
+    }
 
     private static string FormatTimestamp(TimeSpan? timestamp)
     {

@@ -514,6 +514,9 @@ public class TalkingHeadCutterPage : ContentPage
 
     private async void OnSaveProjectClicked(object? sender, EventArgs e)
     {
+        if (_currentProject != null)
+            _currentProject.VideoPath = _selectedVideoPath ?? "";
+
         await SaveProjectAsync(showAlert: true);
     }
 
