@@ -699,9 +699,15 @@ public class TalkingHeadCutterPage : ContentPage
             "shortStart[1] = \"MM:SS\";\n" +
             "shortEnd[1] = \"MM:SS\";\n" +
             "shortTitle[1] = \"brief description\";\n" +
+            "shortHook[1] = 8;\n" +
+            "shortContent[1] = 7;\n" +
+            "shortTranscript[1] = \"full text of the short verbatim from the transcript\";\n" +
             "shortStart[2] = \"MM:SS\";\n" +
             "shortEnd[2] = \"MM:SS\";\n" +
             "shortTitle[2] = \"brief description\";\n" +
+            "shortHook[2] = 8;\n" +
+            "shortContent[2] = 7;\n" +
+            "shortTranscript[2] = \"full text of the short verbatim from the transcript\";\n" +
             "(continue for all suggested shorts)";
 
         await Clipboard.Default.SetTextAsync(prompt);
@@ -727,23 +733,46 @@ public class TalkingHeadCutterPage : ContentPage
         var starts = new Dictionary<int, string>();
         var ends = new Dictionary<int, string>();
         var titles = new Dictionary<int, string>();
-        var regex = new Regex(@"short(Start|End|Title)\[(\d+)\]\s*=\s*""(.*?)"";", RegexOptions.IgnoreCase);
+        var hooks = new Dictionary<int, int>();
+        var contents = new Dictionary<int, int>();
+        var transcripts = new Dictionary<int, string>();
+        var regex = new Regex(@"short(Start|End|Title|Transcript)\[(\d+)\]\s*=\s*""(.*?)"";|short(Hook|Content)\[(\d+)\]\s*=\s*(\d+)\s*;", RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
         foreach (Match match in regex.Matches(_shortsEditor.Text ?? ""))
         {
-            int index = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
-            string value = match.Groups[3].Value.Trim();
-            switch (match.Groups[1].Value.ToLowerInvariant())
+            if (match.Groups[1].Success)
             {
-                case "start":
-                    starts[index] = value;
-                    break;
-                case "end":
-                    ends[index] = value;
-                    break;
-                case "title":
-                    titles[index] = value;
-                    break;
+                int index = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+                string value = match.Groups[3].Value.Trim();
+                switch (match.Groups[1].Value.ToLowerInvariant())
+                {
+                    case "start":
+                        starts[index] = value;
+                        break;
+                    case "end":
+                        ends[index] = value;
+                        break;
+                    case "title":
+                        titles[index] = value;
+                        break;
+                    case "transcript":
+                        transcripts[index] = value;
+                        break;
+                }
+            }
+            else
+            {
+                int index = int.Parse(match.Groups[5].Value, CultureInfo.InvariantCulture);
+                int value = int.Parse(match.Groups[6].Value, CultureInfo.InvariantCulture);
+                switch (match.Groups[4].Value.ToLowerInvariant())
+                {
+                    case "hook":
+                        hooks[index] = value;
+                        break;
+                    case "content":
+                        contents[index] = value;
+                        break;
+                }
             }
         }
 
@@ -759,7 +788,10 @@ public class TalkingHeadCutterPage : ContentPage
                     ? title
                     : $"Short {index}",
                 StartTime = starts[index],
-                EndTime = end
+                EndTime = end,
+                HookRating = hooks.TryGetValue(index, out var hook) ? hook : 0,
+                ContentRating = contents.TryGetValue(index, out var content) ? content : 0,
+                TranscriptText = transcripts.TryGetValue(index, out var transcript) ? transcript : ""
             });
         }
 
@@ -787,6 +819,35 @@ public class TalkingHeadCutterPage : ContentPage
                 TextColor = Color.FromArgb("#263238")
             };
             var details = CreateMutedLabel($"{cut.StartTime} - {cut.EndTime} ({GetDurationText(cut)})");
+            var ratings = new HorizontalStackLayout { Spacing = 10 };
+            ratings.Children.Add(new Label
+            {
+                Text = $"Hook: {cut.HookRating}/10",
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#F57C00")
+            });
+            ratings.Children.Add(new Label
+            {
+                Text = $"\u2b50 Content: {cut.ContentRating}/10",
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#1565C0")
+            });
+
+            var transcriptLabel = new Label
+            {
+                Text = cut.TranscriptText,
+                FontSize = 12,
+                TextColor = Color.FromArgb("#455A64"),
+                LineBreakMode = LineBreakMode.WordWrap,
+                IsVisible = false
+            };
+            var transcriptToggle = CreateSmallButton("Show transcript", () =>
+            {
+                transcriptLabel.IsVisible = !transcriptLabel.IsVisible;
+                return Task.CompletedTask;
+            });
             var buttons = new HorizontalStackLayout { Spacing = 8 };
             buttons.Children.Add(CreateSmallButton("Edit Start", async () => await EditCutTimeAsync(index, true)));
             buttons.Children.Add(CreateSmallButton("Edit End", async () => await EditCutTimeAsync(index, false)));
@@ -807,7 +868,7 @@ public class TalkingHeadCutterPage : ContentPage
                 Content = new VerticalStackLayout
                 {
                     Spacing = 6,
-                    Children = { title, details, buttons }
+                    Children = { title, details, ratings, transcriptToggle, transcriptLabel, buttons }
                 }
             });
         }
@@ -1071,5 +1132,8 @@ public class TalkingHeadCutterPage : ContentPage
         public string Title { get; set; } = "";
         public string StartTime { get; set; } = "";
         public string EndTime { get; set; } = "";
+        public int HookRating { get; set; }
+        public int ContentRating { get; set; }
+        public string TranscriptText { get; set; } = "";
     }
 }
