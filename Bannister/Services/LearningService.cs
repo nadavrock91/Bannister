@@ -18,6 +18,7 @@ public class LearningService
     private async Task EnsureLearningVideoMigrationsAsync(ISQLiteAsyncConnection conn)
     {
         try { await conn.ExecuteAsync("ALTER TABLE LearningVideo ADD COLUMN DurationSeconds INTEGER DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE LearningVideo ADD COLUMN TimesWatched INTEGER DEFAULT 0"); } catch { }
     }
 
     #region Books
@@ -251,6 +252,22 @@ public class LearningService
     /// Mark a video as completed
     /// </summary>
     public async Task CompleteVideoAsync(int videoId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        var video = await conn.GetAsync<LearningVideo>(videoId);
+        if (video != null)
+        {
+            video.Status = "Completed";
+            video.CompletedAt = DateTime.Now;
+            video.TimesWatched++;
+            await conn.UpdateAsync(video);
+        }
+    }
+
+    /// <summary>
+    /// Mark a video as completed without incrementing watch stats.
+    /// </summary>
+    public async Task MarkWatchedSilentAsync(int videoId)
     {
         var conn = await _db.GetConnectionAsync();
         var video = await conn.GetAsync<LearningVideo>(videoId);

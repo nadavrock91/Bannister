@@ -1576,6 +1576,30 @@ public class LearningPage : ContentPage
         };
         infoStack.Children.Add(titleLabel);
 
+        int daysSinceAdded = Math.Max(0, (int)(DateTime.Today - video.CreatedAt.Date).TotalDays);
+        infoStack.Children.Add(new Label
+        {
+            Text = $"Added: {video.CreatedAt:MMM d, yyyy} ({daysSinceAdded} days ago)",
+            FontSize = 10,
+            TextColor = Color.FromArgb("#777")
+        });
+        infoStack.Children.Add(new Label
+        {
+            Text = $"Watched: {video.TimesWatched} time(s)",
+            FontSize = 10,
+            TextColor = Color.FromArgb("#777")
+        });
+
+        if (video.Status == "Completed" && video.CompletedAt.HasValue)
+        {
+            infoStack.Children.Add(new Label
+            {
+                Text = $"Last watched: {video.CompletedAt.Value:MMM d, yyyy}",
+                FontSize = 10,
+                TextColor = Color.FromArgb("#777")
+            });
+        }
+
         // Channel name with monthly watch count
         if (!string.IsNullOrEmpty(video.Creator))
         {
@@ -1912,6 +1936,7 @@ public class LearningPage : ContentPage
         
         if (video.Status != "Completed")
             options.Add("✅ Mark as Watched");
+        options.Add("✓ Mark Watched (no stats)");
         if (video.Status != "ReadSummary")
             options.Add("📖 Mark as Read Summary");
         if (video.Status != "PendingWatched" && video.Status != "Completed" && video.Status != "ReadSummary")
@@ -1933,6 +1958,13 @@ public class LearningPage : ContentPage
         var result = await DisplayActionSheet($"🎬 {video.Title}", "Cancel", null, options.ToArray());
 
         if (result == null || result == "Cancel") return;
+        if (result == "✓ Mark Watched (no stats)")
+        {
+            await _learning.MarkWatchedSilentAsync(video.Id);
+            await RefreshVideosAsync();
+            return;
+        }
+
         if (result == "Change Creator")
         {
             await ChangeVideoCreatorAsync(video);

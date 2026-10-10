@@ -55,6 +55,11 @@ public class LearningVideo
     /// Status: NotStarted, InProgress, PendingWatched, TopPicks, ReadSummary, Completed
     /// </summary>
     public string Status { get; set; } = "NotStarted";
+
+    /// <summary>
+    /// Number of times this video has been marked watched.
+    /// </summary>
+    public int TimesWatched { get; set; } = 0;
     
     /// <summary>
     /// Date when marked as completed
