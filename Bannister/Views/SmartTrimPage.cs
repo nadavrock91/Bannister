@@ -18,6 +18,7 @@ public class SmartTrimPage : ContentPage
     private readonly Label _importStatusLabel;
     private readonly VerticalStackLayout _suggestionsStack;
     private readonly List<CutSuggestion> _suggestions = new();
+    private readonly List<int> _lastAppliedIndices = new();
 
     public SmartTrimPage(
         IEnumerable<TalkingHeadCutterPage.TranscriptWord> transcriptWords,
@@ -108,6 +109,7 @@ public class SmartTrimPage : ContentPage
     private void OnImportSuggestionsClicked(object? sender, EventArgs e)
     {
         _suggestions.Clear();
+        _lastAppliedIndices.Clear();
         _suggestions.AddRange(ParseSuggestions(_suggestionsEditor.Text ?? ""));
         RefreshSuggestionsList();
     }
@@ -179,6 +181,7 @@ public class SmartTrimPage : ContentPage
             {
                 row.DisabledBySuggestion = !row.IsEnabled
                     && _suggestions.Any(s => s.IsApplied && s.Indices.Contains(row.Number));
+                row.IsLastApplied = _lastAppliedIndices.Contains(row.Number);
             }
 
             foreach (var row in rows)
@@ -229,6 +232,8 @@ public class SmartTrimPage : ContentPage
 
                 if (!allDisabled)
                 {
+                    _lastAppliedIndices.Clear();
+
                     foreach (int index in suggestion.Indices)
                     {
                         var row = rows.FirstOrDefault(r => r.Number == index);
@@ -236,6 +241,7 @@ public class SmartTrimPage : ContentPage
                         {
                             row.IsEnabled = false;
                             row.DisabledBySuggestion = true;
+                            _lastAppliedIndices.Add(index);
                         }
                     }
 
@@ -244,6 +250,9 @@ public class SmartTrimPage : ContentPage
                 else
                 {
                     suggestion.IsApplied = false;
+                    foreach (int index in suggestion.Indices)
+                        _lastAppliedIndices.Remove(index);
+
                     foreach (int index in suggestion.Indices)
                     {
                         var row = rows.FirstOrDefault(r => r.Number == index);
@@ -282,7 +291,7 @@ public class SmartTrimPage : ContentPage
         foreach (var row in rows)
         {
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            AddInteractiveRow(grid, row, gridRow, refreshState);
+            AddInteractiveRow(grid, row, gridRow, refreshState, index => _lastAppliedIndices.Remove(index));
             gridRow++;
         }
 
@@ -483,8 +492,10 @@ public class SmartTrimPage : ContentPage
     {
         if (row.IsEnabled)
             return Color.FromArgb("#E8F5E9");
+        if (row.IsLastApplied)
+            return Color.FromArgb("#FF5252");
         if (row.DisabledBySuggestion)
-            return Color.FromArgb("#FFCDD2");
+            return Color.FromArgb("#F8BBD0");
         return Color.FromArgb("#ECEFF1");
     }
 
@@ -601,7 +612,7 @@ public class SmartTrimPage : ContentPage
         }
     }
 
-    private static void AddInteractiveRow(Grid grid, SmartTrimRow row, int gridRow, Action refreshState)
+    private static void AddInteractiveRow(Grid grid, SmartTrimRow row, int gridRow, Action refreshState, Action<int> clearLastApplied)
     {
         row.IndicatorLabel = new Label
         {
@@ -653,9 +664,9 @@ public class SmartTrimPage : ContentPage
         });
         row.RevisedFrame = CreateComparisonFrame(row.RevisedLabel);
 
-        AddTap(row.IndicatorFrame, row, refreshState);
-        AddTap(row.OriginalFrame, row, refreshState);
-        AddTap(row.RevisedFrame, row, refreshState);
+        AddTap(row.IndicatorFrame, row, refreshState, clearLastApplied);
+        AddTap(row.OriginalFrame, row, refreshState, clearLastApplied);
+        AddTap(row.RevisedFrame, row, refreshState, clearLastApplied);
 
         Grid.SetRow(row.IndicatorFrame, gridRow);
         Grid.SetColumn(row.IndicatorFrame, 0);
@@ -701,11 +712,12 @@ public class SmartTrimPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
 
-    private static void AddTap(Frame frame, SmartTrimRow row, Action refreshState)
+    private static void AddTap(Frame frame, SmartTrimRow row, Action refreshState, Action<int> clearLastApplied)
     {
         var tap = new TapGestureRecognizer();
         tap.Tapped += (_, _) =>
         {
+            clearLastApplied(row.Number);
             row.IsEnabled = !row.IsEnabled;
             row.DisabledBySuggestion = false;
             refreshState();
@@ -909,6 +921,7 @@ public class SmartTrimPage : ContentPage
         public int Number { get; }
         public bool IsEnabled { get; set; }
         public bool DisabledBySuggestion { get; set; }
+        public bool IsLastApplied { get; set; }
         public int Rating { get; }
         public Frame IndicatorFrame { get; set; } = null!;
         public Frame OriginalFrame { get; set; } = null!;

@@ -766,6 +766,12 @@ public class TalkingHeadCutterPage : ContentPage
             _selectedVideoPath = result.FullPath;
             _selectedFileLabel.Text = Path.GetFileName(result.FullPath);
             _truncateSilenceCard.IsVisible = true;
+
+            if (_currentProject != null)
+            {
+                _currentProject.VideoPath = _selectedVideoPath;
+                await _shortsProjects.SaveProjectAsync(_currentProject);
+            }
         }
         catch (Exception ex)
         {
