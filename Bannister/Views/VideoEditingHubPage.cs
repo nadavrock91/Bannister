@@ -7,12 +7,14 @@ public class VideoEditingHubPage : ContentPage
     private readonly AuthService _auth;
     private readonly FFmpegService _ffmpeg;
     private readonly TruncatePresetService _truncatePresets;
+    private readonly ShortsCutterProjectService _shortsProjects;
 
-    public VideoEditingHubPage(AuthService auth, FFmpegService ffmpeg, TruncatePresetService truncatePresets)
+    public VideoEditingHubPage(AuthService auth, FFmpegService ffmpeg, TruncatePresetService truncatePresets, ShortsCutterProjectService shortsProjects)
     {
         _auth = auth;
         _ffmpeg = ffmpeg;
         _truncatePresets = truncatePresets;
+        _shortsProjects = shortsProjects;
 
         Title = "Video Editing";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -48,7 +50,7 @@ public class VideoEditingHubPage : ContentPage
             "\u2702\ufe0f Talking Head Shorts Cutter",
             "Pick a talking head video, import timestamped transcript analysis, review suggested shorts, and batch cut clips.",
             Color.FromArgb("#00695C"),
-            async () => await Navigation.PushAsync(new TalkingHeadCutterPage(_auth, _ffmpeg, _truncatePresets))));
+            async () => await Navigation.PushAsync(new TalkingHeadCutterPage(_auth, _ffmpeg, _truncatePresets, _shortsProjects))));
 
         Content = new ScrollView { Content = stack };
     }

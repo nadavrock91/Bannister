@@ -76,6 +76,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<PromptTechniqueService>();
         builder.Services.AddSingleton<FFmpegService>();
         builder.Services.AddSingleton<TruncatePresetService>();
+        builder.Services.AddSingleton<ShortsCutterProjectService>();
         builder.Services.AddSingleton<AppSettingsService>();
         builder.Services.AddSingleton<AssetLibraryService>();
         builder.Services.AddSingleton<AssetThumbnailService>();

@@ -2,6 +2,7 @@ using Bannister.Models;
 using Bannister.Services;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
@@ -11,15 +12,21 @@ public class TalkingHeadCutterPage : ContentPage
     private readonly AuthService _auth;
     private readonly FFmpegService _ffmpeg;
     private readonly TruncatePresetService _truncatePresets;
+    private readonly ShortsCutterProjectService _shortsProjects;
     private readonly List<TranscriptWord> _transcriptWords = new();
     private readonly List<ProposedCut> _cuts = new();
     private readonly List<TruncatePreset> _truncatePresetItems = new();
+    private readonly List<ShortsCutterProject> _projectItems = new();
 
     private string? _selectedVideoPath;
     private string? _outputFolder;
+    private ShortsCutterProject? _currentProject;
     private bool _truncatePresetsLoaded;
     private bool _loadingTruncatePresets;
+    private bool _loadingProjects;
 
+    private readonly Picker _projectPicker;
+    private readonly Label _currentProjectLabel;
     private readonly Label _selectedFileLabel;
     private readonly Frame _truncateSilenceCard;
     private readonly Picker _truncatePresetPicker;
@@ -41,15 +48,25 @@ public class TalkingHeadCutterPage : ContentPage
     private Grid _wrapTranscriptOverlay = null!;
     private Editor _rawTranscriptEditor = null!;
 
-    public TalkingHeadCutterPage(AuthService auth, FFmpegService ffmpeg, TruncatePresetService truncatePresets)
+    public TalkingHeadCutterPage(AuthService auth, FFmpegService ffmpeg, TruncatePresetService truncatePresets, ShortsCutterProjectService shortsProjects)
     {
         _auth = auth;
         _ffmpeg = ffmpeg;
         _truncatePresets = truncatePresets;
+        _shortsProjects = shortsProjects;
 
         Title = "Talking Head Shorts Cutter";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
+        _projectPicker = new Picker
+        {
+            Title = "Select project",
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            TitleColor = Color.FromArgb("#666")
+        };
+        _projectPicker.SelectedIndexChanged += OnProjectSelected;
+        _currentProjectLabel = CreateMutedLabel("No project selected");
         _selectedFileLabel = CreateMutedLabel("No video selected");
         _truncatePresetPicker = new Picker
         {
@@ -113,6 +130,7 @@ public class TalkingHeadCutterPage : ContentPage
             return;
 
         _truncatePresetsLoaded = true;
+        await LoadProjectsAsync();
         await LoadTruncatePresetsAsync(selectDefault: true);
     }
 
@@ -131,6 +149,8 @@ public class TalkingHeadCutterPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#00695C")
         });
+
+        stack.Children.Add(BuildProjectBar());
 
         stack.Children.Add(BuildStageCard("1", "Pick Video", new View[]
         {
@@ -175,6 +195,38 @@ public class TalkingHeadCutterPage : ContentPage
         root.Children.Add(_wrapTranscriptOverlay);
 
         Content = root;
+    }
+
+    private Frame BuildProjectBar()
+    {
+        var saveButton = CreateButton("Save Project", Color.FromArgb("#00695C"));
+        saveButton.Clicked += OnSaveProjectClicked;
+
+        return new Frame
+        {
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#CFD8DC"),
+            CornerRadius = 10,
+            HasShadow = false,
+            Padding = 12,
+            Content = new VerticalStackLayout
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Project",
+                        FontSize = 16,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#263238")
+                    },
+                    _projectPicker,
+                    saveButton,
+                    _currentProjectLabel
+                }
+            }
+        };
     }
 
     private Grid CreateWrapTranscriptOverlay()
@@ -335,6 +387,209 @@ public class TalkingHeadCutterPage : ContentPage
             FontSize = 13,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
+        };
+
+    private async Task LoadProjectsAsync(int? selectProjectId = null)
+    {
+        _loadingProjects = true;
+        try
+        {
+            _projectItems.Clear();
+            _projectPicker.Items.Clear();
+            _projectPicker.Items.Add("New Project");
+
+            var projects = await _shortsProjects.GetProjectsAsync(_auth.CurrentUsername);
+            _projectItems.AddRange(projects);
+            foreach (var project in projects)
+                _projectPicker.Items.Add(project.Name);
+
+            if (selectProjectId.HasValue)
+            {
+                int index = _projectItems.FindIndex(p => p.Id == selectProjectId.Value);
+                _projectPicker.SelectedIndex = index >= 0 ? index + 1 : -1;
+            }
+            else if (_currentProject != null)
+            {
+                int index = _projectItems.FindIndex(p => p.Id == _currentProject.Id);
+                _projectPicker.SelectedIndex = index >= 0 ? index + 1 : -1;
+            }
+        }
+        catch (Exception ex)
+        {
+            _currentProjectLabel.Text = $"Could not load projects: {ex.Message}";
+        }
+        finally
+        {
+            _loadingProjects = false;
+        }
+    }
+
+    private async void OnProjectSelected(object? sender, EventArgs e)
+    {
+        if (_loadingProjects)
+            return;
+
+        if (_projectPicker.SelectedIndex == 0)
+        {
+            await CreateNewProjectAsync();
+            return;
+        }
+
+        int index = _projectPicker.SelectedIndex - 1;
+        if (index >= 0 && index < _projectItems.Count)
+            await LoadProjectAsync(_projectItems[index].Id);
+    }
+
+    private async Task CreateNewProjectAsync()
+    {
+        string? name = await DisplayPromptAsync("New Project", "Project name:");
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            await LoadProjectsAsync(_currentProject?.Id);
+            return;
+        }
+
+        var project = new ShortsCutterProject
+        {
+            Username = _auth.CurrentUsername,
+            Name = name.Trim(),
+            VideoPath = _selectedVideoPath ?? "",
+            TranscriptJson = JsonSerializer.Serialize(_transcriptWords),
+            CreatedDate = DateTime.UtcNow
+        };
+
+        await _shortsProjects.SaveProjectAsync(project);
+        _currentProject = project;
+        await SaveCutsToProjectAsync();
+        await LoadProjectsAsync(project.Id);
+        UpdateCurrentProjectLabel();
+    }
+
+    private async Task LoadProjectAsync(int projectId)
+    {
+        var project = await _shortsProjects.GetProjectAsync(projectId);
+        if (project == null)
+            return;
+
+        _currentProject = project;
+        _selectedVideoPath = string.IsNullOrWhiteSpace(project.VideoPath) ? null : project.VideoPath;
+        _selectedFileLabel.Text = string.IsNullOrWhiteSpace(_selectedVideoPath)
+            ? "No video selected"
+            : Path.GetFileName(_selectedVideoPath);
+        _truncateSilenceCard.IsVisible = !string.IsNullOrWhiteSpace(_selectedVideoPath);
+
+        _transcriptWords.Clear();
+        if (!string.IsNullOrWhiteSpace(project.TranscriptJson))
+        {
+            try
+            {
+                var words = JsonSerializer.Deserialize<List<TranscriptWord>>(project.TranscriptJson) ?? new();
+                _transcriptWords.AddRange(words);
+            }
+            catch
+            {
+                _transcriptWords.Clear();
+            }
+        }
+
+        _transcriptEditor.Text = BuildTranscriptEditorText();
+        UpdateTranscriptStatus();
+
+        _cuts.Clear();
+        var dbCuts = await _shortsProjects.GetCutsAsync(project.Id);
+        _cuts.AddRange(dbCuts.Select(ToProposedCut));
+        RefreshCutsList();
+        UpdateCurrentProjectLabel();
+    }
+
+    private async void OnSaveProjectClicked(object? sender, EventArgs e)
+    {
+        await SaveProjectAsync(showAlert: true);
+    }
+
+    private async Task SaveProjectAsync(bool showAlert = false)
+    {
+        if (_currentProject == null)
+        {
+            await CreateNewProjectAsync();
+            return;
+        }
+
+        _currentProject.VideoPath = _selectedVideoPath ?? "";
+        _currentProject.TranscriptJson = JsonSerializer.Serialize(_transcriptWords);
+        await _shortsProjects.SaveProjectAsync(_currentProject);
+        await SaveCutsToProjectAsync();
+        await LoadProjectsAsync(_currentProject.Id);
+        UpdateCurrentProjectLabel();
+
+        if (showAlert)
+            await DisplayAlert("Saved", "Project saved.", "OK");
+    }
+
+    private async Task SaveCutsToProjectAsync()
+    {
+        if (_currentProject == null)
+            return;
+
+        for (int i = 0; i < _cuts.Count; i++)
+        {
+            var cut = ToDbCut(_cuts[i], _currentProject.Id, i);
+            await _shortsProjects.SaveCutAsync(cut);
+            _cuts[i].Id = cut.Id;
+        }
+    }
+
+    private void UpdateCurrentProjectLabel()
+    {
+        _currentProjectLabel.Text = _currentProject == null
+            ? "No project selected"
+            : $"Current project: {_currentProject.Name}";
+    }
+
+    private string BuildTranscriptEditorText()
+    {
+        var builder = new StringBuilder();
+        foreach (var word in _transcriptWords)
+            builder.AppendLine($"[{FormatTimeWithMilliseconds(word.Timestamp)}] {word.Word}");
+        return builder.ToString().TrimEnd();
+    }
+
+    private void UpdateTranscriptStatus()
+    {
+        if (_transcriptWords.Count == 0)
+        {
+            _transcriptStatusLabel.Text = "No transcript imported";
+            _copyAnalysisPromptButton.IsEnabled = false;
+            return;
+        }
+
+        UpdateTranscriptStatus();
+    }
+
+    private static ProposedCut ToProposedCut(ShortsCutterCut cut) =>
+        new()
+        {
+            Id = cut.Id,
+            Title = cut.Title,
+            StartTime = cut.StartTime,
+            EndTime = cut.EndTime,
+            HookRating = cut.HookRating,
+            ContentRating = cut.ContentRating,
+            TranscriptText = cut.TranscriptText
+        };
+
+    private static ShortsCutterCut ToDbCut(ProposedCut cut, int projectId, int sortOrder) =>
+        new()
+        {
+            Id = cut.Id,
+            ProjectId = projectId,
+            Title = cut.Title,
+            StartTime = cut.StartTime,
+            EndTime = cut.EndTime,
+            HookRating = cut.HookRating,
+            ContentRating = cut.ContentRating,
+            TranscriptText = cut.TranscriptText,
+            SortOrder = sortOrder
         };
 
     private async Task LoadTruncatePresetsAsync(bool selectDefault = false, int? selectPresetId = null)
@@ -776,13 +1031,13 @@ public class TalkingHeadCutterPage : ContentPage
             }
         }
 
-        _cuts.Clear();
+        var importedCuts = new List<ProposedCut>();
         foreach (var index in starts.Keys.OrderBy(x => x))
         {
             if (!ends.TryGetValue(index, out var end))
                 continue;
 
-            _cuts.Add(new ProposedCut
+            importedCuts.Add(new ProposedCut
             {
                 Title = titles.TryGetValue(index, out var title) && !string.IsNullOrWhiteSpace(title)
                     ? title
@@ -795,8 +1050,19 @@ public class TalkingHeadCutterPage : ContentPage
             });
         }
 
+        if (_currentProject != null)
+            _cuts.AddRange(importedCuts);
+        else
+        {
+            _cuts.Clear();
+            _cuts.AddRange(importedCuts);
+        }
+
+        if (_currentProject != null)
+            await SaveProjectAsync();
+
         RefreshCutsList();
-        await DisplayAlert("Import Shorts", $"{_cuts.Count} proposed cuts imported.", "OK");
+        await DisplayAlert("Import Shorts", $"{importedCuts.Count} proposed cuts imported.", "OK");
     }
 
     private void RefreshCutsList()
@@ -851,11 +1117,14 @@ public class TalkingHeadCutterPage : ContentPage
             var buttons = new HorizontalStackLayout { Spacing = 8 };
             buttons.Children.Add(CreateSmallButton("Edit Start", async () => await EditCutTimeAsync(index, true)));
             buttons.Children.Add(CreateSmallButton("Edit End", async () => await EditCutTimeAsync(index, false)));
-            buttons.Children.Add(CreateSmallButton("Remove", () =>
+            buttons.Children.Add(CreateSmallButton("Remove", async () =>
             {
+                if (_currentProject != null && cut.Id > 0)
+                    await _shortsProjects.DeleteCutAsync(cut.Id);
                 _cuts.RemoveAt(index);
+                if (_currentProject != null)
+                    await SaveProjectAsync();
                 RefreshCutsList();
-                return Task.CompletedTask;
             }));
 
             _cutsList.Children.Add(new Frame
@@ -1094,6 +1363,12 @@ public class TalkingHeadCutterPage : ContentPage
         return $"{totalMinutes:00}:{time.Seconds:00}";
     }
 
+    private static string FormatTimeWithMilliseconds(TimeSpan time)
+    {
+        int totalMinutes = (int)time.TotalMinutes;
+        return $"{totalMinutes:00}:{time.Seconds:00}.{time.Milliseconds:000}";
+    }
+
     private static string FormatDuration(TimeSpan time)
     {
         if (time.TotalHours >= 1)
@@ -1129,6 +1404,7 @@ public class TalkingHeadCutterPage : ContentPage
 
     private sealed class ProposedCut
     {
+        public int Id { get; set; }
         public string Title { get; set; } = "";
         public string StartTime { get; set; } = "";
         public string EndTime { get; set; } = "";
