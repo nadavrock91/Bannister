@@ -79,6 +79,7 @@ public class HomePage : ContentPage
     private readonly ResetEnforcerService _resetEnforcerService;
     private readonly VideoGenExperimentService _videoGenExperimentService;
     private readonly PromptTechniqueService _promptTechniqueService;
+    private readonly FFmpegService _ffmpegService;
     private readonly AppSettingsService _appSettings;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
@@ -136,6 +137,7 @@ public class HomePage : ContentPage
     private Button _btnLifePaths = null!;
     private Button _btnToBeTested;
     private Button _btnVideoGeneration;
+    private Button _btnVideoEditing;
     private Button _btnWebsiteBuilder;
     private Button _btnZeroCounts;
     private Button _quickAccessBtn = null!;
@@ -174,11 +176,13 @@ public class HomePage : ContentPage
         PrivacyModeService privacyMode,
         VideoGenExperimentService videoGenExperimentService,
         PromptTechniqueService promptTechniqueService,
+        FFmpegService ffmpegService,
         AppSettingsService appSettings)
     {
         _auth = auth;
         _videoGenExperimentService = videoGenExperimentService;
         _promptTechniqueService = promptTechniqueService;
+        _ffmpegService = ffmpegService;
         _appSettings = appSettings;
         _games = games;
         _dragons = dragons;
@@ -504,6 +508,10 @@ public class HomePage : ContentPage
         _btnVideoGeneration = CreateButton(" Video Generation", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C2185B"));
         _btnVideoGeneration.Clicked += OnVideoGenerationClicked;
         navButtons.Add(("Video Generation", _btnVideoGeneration));
+
+        _btnVideoEditing = CreateButton("Video Editing", Color.FromArgb("#E0F2F1"), Color.FromArgb("#00695C"));
+        _btnVideoEditing.Clicked += OnVideoEditingClicked;
+        navButtons.Add(("Video Editing", _btnVideoEditing));
 
         _btnAudioLibrary = CreateButton("🔊 Audio Library", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
         _btnAudioLibrary.Clicked += OnAudioLibraryClicked;
@@ -963,6 +971,7 @@ public class HomePage : ContentPage
             "SubActivities" => OnSubActivitiesClicked,
             "Tasks" => OnTasksClicked,
             "To Be Tested" => OnToBeTestedClicked,
+            "Video Editing" => OnVideoEditingClicked,
             "Video Generation" => OnVideoGenerationClicked,
             "Website Builder" => OnWebsiteBuilderClicked,
             "Zero Counts" => OnZeroCountsClicked,
@@ -2879,6 +2888,11 @@ public class HomePage : ContentPage
     private async void OnVideoGenerationClicked(object? sender, EventArgs e)
     {
         await Navigation.PushAsync(new VideoGenerationHubPage(_auth, _promptTechniqueService));
+    }
+
+    private async void OnVideoEditingClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new VideoEditingHubPage(_ffmpegService));
     }
 
     private async void OnCalendarClicked(object? sender, EventArgs e)

@@ -74,6 +74,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ClipsExperimentService>();
         builder.Services.AddSingleton<VideoGenExperimentService>();
         builder.Services.AddSingleton<PromptTechniqueService>();
+        builder.Services.AddSingleton<FFmpegService>();
         builder.Services.AddSingleton<AppSettingsService>();
         builder.Services.AddSingleton<AssetLibraryService>();
         builder.Services.AddSingleton<AssetThumbnailService>();
@@ -182,6 +183,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ImageGenerationHubPage>();
         builder.Services.AddTransient<ChatGptImageGenerationPage>();
         builder.Services.AddTransient<VideoGenerationHubPage>();
+        builder.Services.AddTransient<VideoEditingHubPage>();
+        builder.Services.AddTransient<TalkingHeadCutterPage>();
         builder.Services.AddTransient<PromptTechniqueLabPage>();
         builder.Services.AddTransient<SlideshowPage>();
         builder.Services.AddTransient<WebsiteBuilderPage>();
