@@ -170,6 +170,19 @@ public class FFmpegService
         if (keepSegments.Count == 0)
             return (false, "No speech segments were found after silence analysis.");
 
+        Directory.CreateDirectory(FileSystem.CacheDirectory);
+        string segmentsFile = Path.Combine(FileSystem.CacheDirectory, "segments.txt");
+        string escapedInputPath = inputPath.Replace("\\", "/", StringComparison.Ordinal).Replace("'", "'\\''", StringComparison.Ordinal);
+        var segmentsBuilder = new StringBuilder();
+        segmentsBuilder.AppendLine("ffconcat version 1.0");
+        foreach (var segment in keepSegments)
+        {
+            segmentsBuilder.AppendLine(CultureInfo.InvariantCulture, $"file '{escapedInputPath}'");
+            segmentsBuilder.AppendLine(CultureInfo.InvariantCulture, $"inpoint {segment.start:0.###}");
+            segmentsBuilder.AppendLine(CultureInfo.InvariantCulture, $"outpoint {segment.end:0.###}");
+        }
+        await File.WriteAllTextAsync(segmentsFile, segmentsBuilder.ToString());
+
         var startInfo = new ProcessStartInfo
         {
             FileName = ffmpegPath,
@@ -178,32 +191,14 @@ public class FFmpegService
             RedirectStandardOutput = false,
             CreateNoWindow = true
         };
-        var filterBuilder = new StringBuilder();
-        var concatInputs = new StringBuilder();
-        for (int i = 0; i < keepSegments.Count; i++)
-        {
-            var segment = keepSegments[i];
-            filterBuilder.Append(string.Create(
-                CultureInfo.InvariantCulture,
-                $"[0:v]trim=start={segment.start:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS,fps=fps=30[v{i}];"));
-            filterBuilder.Append(string.Create(
-                CultureInfo.InvariantCulture,
-                $"[0:a]atrim=start={segment.start:0.###}:end={segment.end:0.###},asetpts=PTS-STARTPTS,aresample=async=1[a{i}];"));
-            concatInputs.Append($"[v{i}][a{i}]");
-        }
-        filterBuilder.Append(string.Create(
-            CultureInfo.InvariantCulture,
-            $"{concatInputs}concat=n={keepSegments.Count}:v=1:a=1[outv][outa]"));
 
         startInfo.ArgumentList.Add("-y");
+        startInfo.ArgumentList.Add("-f");
+        startInfo.ArgumentList.Add("concat");
+        startInfo.ArgumentList.Add("-safe");
+        startInfo.ArgumentList.Add("0");
         startInfo.ArgumentList.Add("-i");
-        startInfo.ArgumentList.Add(inputPath);
-        startInfo.ArgumentList.Add("-filter_complex");
-        startInfo.ArgumentList.Add(filterBuilder.ToString());
-        startInfo.ArgumentList.Add("-map");
-        startInfo.ArgumentList.Add("[outv]");
-        startInfo.ArgumentList.Add("-map");
-        startInfo.ArgumentList.Add("[outa]");
+        startInfo.ArgumentList.Add(segmentsFile);
         startInfo.ArgumentList.Add("-c:v");
         startInfo.ArgumentList.Add("libx264");
         startInfo.ArgumentList.Add("-c:a");
@@ -212,6 +207,10 @@ public class FFmpegService
         startInfo.ArgumentList.Add("44100");
         startInfo.ArgumentList.Add("-ac");
         startInfo.ArgumentList.Add("2");
+        startInfo.ArgumentList.Add("-vf");
+        startInfo.ArgumentList.Add("fps=30");
+        startInfo.ArgumentList.Add("-af");
+        startInfo.ArgumentList.Add("aresample=async=1");
         startInfo.ArgumentList.Add("-movflags");
         startInfo.ArgumentList.Add("+faststart");
         startInfo.ArgumentList.Add(outputPath);
@@ -257,9 +256,17 @@ public class FFmpegService
             }
         };
 
-        process.Start();
-        process.BeginErrorReadLine();
-        await process.WaitForExitAsync();
+        try
+        {
+            process.Start();
+            process.BeginErrorReadLine();
+            await process.WaitForExitAsync();
+        }
+        finally
+        {
+            if (File.Exists(segmentsFile))
+                File.Delete(segmentsFile);
+        }
 
         if (process.ExitCode == 0)
             return (true, "");
