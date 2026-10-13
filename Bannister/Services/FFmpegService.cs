@@ -185,10 +185,10 @@ public class FFmpegService
             var segment = keepSegments[i];
             filterBuilder.Append(string.Create(
                 CultureInfo.InvariantCulture,
-                $"[0:v]trim=start={segment.start:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS[v{i}];"));
+                $"[0:v]trim=start={segment.start:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS,fps=fps=30[v{i}];"));
             filterBuilder.Append(string.Create(
                 CultureInfo.InvariantCulture,
-                $"[0:a]atrim=start={segment.start:0.###}:end={segment.end:0.###},asetpts=PTS-STARTPTS[a{i}];"));
+                $"[0:a]atrim=start={segment.start:0.###}:end={segment.end:0.###},asetpts=PTS-STARTPTS,aresample=async=1[a{i}];"));
             concatInputs.Append($"[v{i}][a{i}]");
         }
         filterBuilder.Append(string.Create(
@@ -208,6 +208,10 @@ public class FFmpegService
         startInfo.ArgumentList.Add("libx264");
         startInfo.ArgumentList.Add("-c:a");
         startInfo.ArgumentList.Add("aac");
+        startInfo.ArgumentList.Add("-ar");
+        startInfo.ArgumentList.Add("44100");
+        startInfo.ArgumentList.Add("-ac");
+        startInfo.ArgumentList.Add("2");
         startInfo.ArgumentList.Add("-movflags");
         startInfo.ArgumentList.Add("+faststart");
         startInfo.ArgumentList.Add(outputPath);
@@ -299,10 +303,10 @@ public class FFmpegService
             var segment = keepSegments[i];
             filterBuilder.Append(string.Create(
                 CultureInfo.InvariantCulture,
-                $"[0:v]trim=start={segment.start:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS[v{i}];"));
+                $"[0:v]trim=start={segment.start:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS,fps=fps=30[v{i}];"));
             filterBuilder.Append(string.Create(
                 CultureInfo.InvariantCulture,
-                $"[0:a]atrim=start={segment.start:0.###}:end={segment.end:0.###},asetpts=PTS-STARTPTS[a{i}];"));
+                $"[0:a]atrim=start={segment.start:0.###}:end={segment.end:0.###},asetpts=PTS-STARTPTS,aresample=async=1[a{i}];"));
             concatInputs.Append($"[v{i}][a{i}]");
         }
         filterBuilder.Append(string.Create(
@@ -322,6 +326,10 @@ public class FFmpegService
         startInfo.ArgumentList.Add("libx264");
         startInfo.ArgumentList.Add("-c:a");
         startInfo.ArgumentList.Add("aac");
+        startInfo.ArgumentList.Add("-ar");
+        startInfo.ArgumentList.Add("44100");
+        startInfo.ArgumentList.Add("-ac");
+        startInfo.ArgumentList.Add("2");
         startInfo.ArgumentList.Add("-movflags");
         startInfo.ArgumentList.Add("+faststart");
         startInfo.ArgumentList.Add(outputPath);
