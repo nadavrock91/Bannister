@@ -1,0 +1,131 @@
+2026-10-15 06:02:37: -- Analysis Started by On Schedule Min=30 Hour=5 
+2026-10-15 06:02:37: L: Reading State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-10-15 06:02:41: R: Reading State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-10-15 06:27:01: Getting new AccessToken from RefreshToken
+2026-10-15 06:45:34: Changes: 31, Conflicts: 0, CopyTime: 0, FixState: 0, Errors: 0, All: 40316
+2026-10-15 06:45:34: Left to Right: Copy File: 31 
+2026-10-15 06:45:34: == Sync Started by On Schedule Min=30 Hour=5 
+2026-10-15 06:45:34: ConnectCloned connected to file:///C:/rock/bannister
+2026-10-15 06:45:34: ConnectCloned connected to file:///C:/rock/bannister
+2026-10-15 06:45:34: ConnectCloned connected to file:///C:/rock/bannister
+2026-10-15 06:45:35: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-10-15 06:45:35: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-10-15 06:45:35: GsConnectAndSetRoot1 connected to goodrive://www.googleapis.com/:personal:/bannister
+2026-10-15 06:45:44: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/AppxManifest.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/AppxManifest.xml' (2,821)
+2026-10-15 06:45:44: C:/rock/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe: Source file has changed between Analyze and Sync from '[file] size=72,682 accu-time=2026-10-15 05:39:09 attr=Archive,WArchive cktype=0' to 'size=72,682 time=2026-10-15 06:12:15', noted in source file state
+2026-10-15 06:45:44: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/vs.appxrecipe' (72,682)
+2026-10-15 06:45:44: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.AssemblyReference.cache' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.AssemblyReference.cache' (70,473)
+2026-10-15 06:45:48: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.BuildWithSkipAnalyzers' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/Bannister.csproj.BuildWithSkipAnalyzers' (0)
+2026-10-15 06:45:48: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/embed/embed.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/embed/embed.resfiles.intermediate' (27)
+2026-10-15 06:45:48: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/excluded.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/excluded.layout.resfiles.intermediate' (0)
+2026-10-15 06:45:51: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/priconfig.xml.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/priconfig.xml.intermediate' (3,154)
+2026-10-15 06:45:52: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/pri.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/pri.resfiles.intermediate' (386)
+2026-10-15 06:45:52: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/filtered.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/filtered.layout.resfiles.intermediate' (2,329)
+2026-10-15 06:45:55: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/resources.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/resources.resfiles.intermediate' (0)
+2026-10-15 06:45:56: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/unfiltered.layout.resfiles.intermediate' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/unfiltered.layout.resfiles.intermediate' (2,329)
+2026-10-15 06:45:57: Copy Over 'C:/rock/bannister/Bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' (813)
+2026-10-15 06:46:00: Copy Over 'C:/rock/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/CodeChunks.db-shm' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/CodeChunks.db-shm' (32,768)
+2026-10-15 06:46:00: Copy Over 'C:/rock/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/SemanticSymbols.db-shm' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/CopilotIndices/18.8.1106.51376/SemanticSymbols.db-shm' (32,768)
+2026-10-15 06:46:00: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppxManifest.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppxManifest.xml' (2,821)
+2026-10-15 06:46:04: Copy Over 'C:/rock/bannister/Bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.build.appxrecipe' -> 'goodrive://www.googleapis.com/:personal:/bannister/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Bannister.build.appxrecipe' (60,573)
+2026-10-15 06:46:04: Copy Over 'C:/rock/bannister/.vs/Bannister/DesignTimeBuild/.dtbcache.v2' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/DesignTimeBuild/.dtbcache.v2' (281,429)
+2026-10-15 06:46:04: C:/rock/bannister/.vs/Bannister/v18/.suo: Source file has changed between Analyze and Sync from '[file] size=99,840 accu-time=2026-10-15 05:39:13 attr=Hidden,Archive,WArchive,WHidden cktype=0' to 'size=99,840 time=2026-10-15 06:12:16', noted in source file state
+2026-10-15 06:46:04: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/.suo' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/.suo' (99,840)
+2026-10-15 06:46:09: C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json: Source file has changed between Analyze and Sync from '[file] size=20,677 accu-time=2026-10-14 23:31:58 attr=Archive,WArchive cktype=0' to 'size=20,569 time=2026-10-15 06:08:29', noted in source file state
+2026-10-15 06:46:09: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.backup.json' (20,677)
+2026-10-15 06:46:10: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-android/BannisterTools.AssemblyInfo.cs' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-android/BannisterTools.AssemblyInfo.cs' (1,215)
+2026-10-15 06:46:10: C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json: Source file has changed between Analyze and Sync from '[file] size=20,569 accu-time=2026-10-15 05:39:05 attr=Archive,WArchive cktype=0' to 'size=20,569 time=2026-10-15 06:12:15', noted in source file state
+2026-10-15 06:46:10: Copy Over 'C:/rock/bannister/.vs/Bannister/v18/DocumentLayout.json' -> 'goodrive://www.googleapis.com/:personal:/bannister/.vs/Bannister/v18/DocumentLayout.json' (20,569)
+2026-10-15 06:46:13: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/BannisterTools.AssemblyInfo.cs' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/BannisterTools.AssemblyInfo.cs' (1,231)
+2026-10-15 06:46:13: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/mauifont.stamp' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/mauifont.stamp' (0)
+2026-10-15 06:46:13: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/BannisterTools.AssemblyInfoInputs.cache' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/BannisterTools.AssemblyInfoInputs.cache' (66)
+2026-10-15 06:46:16: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/mauiimage.stamp' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/mauiimage.stamp' (0)
+2026-10-15 06:46:16: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/mauisplash.stamp' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/mauisplash.stamp' (0)
+2026-10-15 06:46:16: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-windows10.0.19041.0/XamlSaveStateFile.xml' (833)
+2026-10-15 06:46:19: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-android/BannisterTools.AssemblyInfoInputs.cache' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-android/BannisterTools.AssemblyInfoInputs.cache' (66)
+2026-10-15 06:46:19: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-android/mauifont.stamp' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-android/mauifont.stamp' (0)
+2026-10-15 06:46:19: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-android/mauiimage.stamp' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-android/mauiimage.stamp' (0)
+2026-10-15 06:46:22: Copy Over 'C:/rock/bannister/BannisterTools/obj/x64/Debug/net8.0-android/mauisplash.stamp' -> 'goodrive://www.googleapis.com/:personal:/bannister/BannisterTools/obj/x64/Debug/net8.0-android/mauisplash.stamp' (0)
+2026-10-15 06:46:22: Save State File C:/rock/bannister/_gsdata_/_file_state_v4._gs
+2026-10-15 06:46:25: Save State File goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_file_state_v4._gs
+2026-10-15 06:46:26: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/4ddcd14b-2360-4d4d-9ab1-3455fc88025d.vsidx
+2026-10-15 06:46:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/57658b45-820e-4516-ae99-b0d7715a03ae.vsidx
+2026-10-15 06:46:27: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/8b57c94c-6817-426c-b9bd-14104a288547.vsidx
+2026-10-15 06:46:28: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/990f0115-401b-4669-b182-9628076fab3a.vsidx
+2026-10-15 06:46:29: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/.vs/Bannister/FileContentIndex/ecdb5a4d-aaf9-40ab-b1e0-6c1007583fe5.vsidx
+2026-10-15 06:46:29: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appicon.ico
+2026-10-15 06:46:30: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLargeTile.scale-100.png
+2026-10-15 06:46:30: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLargeTile.scale-125.png
+2026-10-15 06:46:31: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLargeTile.scale-150.png
+2026-10-15 06:46:32: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLargeTile.scale-200.png
+2026-10-15 06:46:32: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLargeTile.scale-400.png
+2026-10-15 06:46:33: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-lightunplated_targetsize-16.png
+2026-10-15 06:46:33: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-lightunplated_targetsize-24.png
+2026-10-15 06:46:34: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-lightunplated_targetsize-256.png
+2026-10-15 06:46:34: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-lightunplated_targetsize-32.png
+2026-10-15 06:46:35: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-lightunplated_targetsize-48.png
+2026-10-15 06:46:35: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-unplated_targetsize-16.png
+2026-10-15 06:46:36: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-unplated_targetsize-24.png
+2026-10-15 06:46:36: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-unplated_targetsize-256.png
+2026-10-15 06:46:37: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-unplated_targetsize-32.png
+2026-10-15 06:46:38: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.altform-unplated_targetsize-48.png
+2026-10-15 06:46:38: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.scale-100.png
+2026-10-15 06:46:39: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.scale-125.png
+2026-10-15 06:46:39: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.scale-150.png
+2026-10-15 06:46:40: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.scale-200.png
+2026-10-15 06:46:40: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.scale-400.png
+2026-10-15 06:46:41: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.targetsize-16.png
+2026-10-15 06:46:41: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.targetsize-24.png
+2026-10-15 06:46:42: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.targetsize-256.png
+2026-10-15 06:46:42: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.targetsize-32.png
+2026-10-15 06:46:43: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconLogo.targetsize-48.png
+2026-10-15 06:46:43: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconMediumTile.scale-100.png
+2026-10-15 06:46:44: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconMediumTile.scale-125.png
+2026-10-15 06:46:45: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconMediumTile.scale-150.png
+2026-10-15 06:46:45: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconMediumTile.scale-200.png
+2026-10-15 06:46:46: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconMediumTile.scale-400.png
+2026-10-15 06:46:46: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconSmallTile.scale-100.png
+2026-10-15 06:46:47: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconSmallTile.scale-125.png
+2026-10-15 06:46:47: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconSmallTile.scale-150.png
+2026-10-15 06:46:48: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconSmallTile.scale-200.png
+2026-10-15 06:46:48: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconSmallTile.scale-400.png
+2026-10-15 06:46:49: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconStoreLogo.scale-100.png
+2026-10-15 06:46:50: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconStoreLogo.scale-125.png
+2026-10-15 06:46:50: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconStoreLogo.scale-150.png
+2026-10-15 06:46:51: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconStoreLogo.scale-200.png
+2026-10-15 06:46:51: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconStoreLogo.scale-400.png
+2026-10-15 06:46:51: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconWideTile.scale-100.png
+2026-10-15 06:46:52: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconWideTile.scale-125.png
+2026-10-15 06:46:53: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconWideTile.scale-150.png
+2026-10-15 06:46:53: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconWideTile.scale-200.png
+2026-10-15 06:46:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/appiconWideTile.scale-400.png
+2026-10-15 06:46:54: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/diet_dragon_default.scale-100.png
+2026-10-15 06:46:55: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_1.scale-100.png
+2026-10-15 06:46:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_10.scale-100.jpg
+2026-10-15 06:46:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_11.scale-100.jpg
+2026-10-15 06:46:56: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_12.scale-100.png
+2026-10-15 06:46:57: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_13.scale-100.jpg
+2026-10-15 06:46:57: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_14.scale-100.jpg
+2026-10-15 06:46:58: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_15.scale-100.jpg
+2026-10-15 06:46:59: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_16.scale-100.png
+2026-10-15 06:46:59: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_2.scale-100.png
+2026-10-15 06:47:00: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_3.scale-100.png
+2026-10-15 06:47:00: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_4.scale-100.png
+2026-10-15 06:47:01: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_5.scale-100.png
+2026-10-15 06:47:02: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_6.scale-100.png
+2026-10-15 06:47:02: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_7.scale-100.png
+2026-10-15 06:47:03: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_8.scale-100.png
+2026-10-15 06:47:03: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_9.scale-100.jpg
+2026-10-15 06:47:04: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/dragon_slayer_1.scale-100.png
+2026-10-15 06:47:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/scold_default.scale-100.png
+2026-10-15 06:47:05: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/splashSplashScreen.scale-100.png
+2026-10-15 06:47:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/splashSplashScreen.scale-125.png
+2026-10-15 06:47:06: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/splashSplashScreen.scale-150.png
+2026-10-15 06:47:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/splashSplashScreen.scale-200.png
+2026-10-15 06:47:07: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/AppX/splashSplashScreen.scale-400.png
+2026-10-15 06:47:08: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Platforms/Windows/App.xbf
+2026-10-15 06:47:09: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/obj/Bannister.csproj.nuget.g.targets
+2026-10-15 06:47:10: Deleted Recycled: goodrive://www.googleapis.com/:personal:/bannister/_gsdata_/_saved_/bannister/Services/SyncService.cs
+2026-10-15 06:51:00: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Platforms/Windows
+2026-10-15 06:51:00: GsDeleteEmptyFoldersFS: /_gsdata_/_saved_/bannister/bin/x64/Debug/net8.0-windows10.0.19041.0/Platforms
+2026-10-15 07:08:41: == Sync Complete. Time: 00:23:07, Speed: 15.33 KB/s, OK: 31, Errors: 0

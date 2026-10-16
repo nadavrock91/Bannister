@@ -286,6 +286,8 @@ public class FFmpegService
         IProgress<double>? progress = null)
     {
 #if WINDOWS
+        TimeSpan videoDuration = await GetVideoDurationAsync(ffmpegPath, inputPath);
+
         keepSegments = keepSegments
             .Where(s => s.end > s.start)
             .OrderBy(s => s.start)
@@ -293,6 +295,14 @@ public class FFmpegService
 
         if (keepSegments.Count == 0)
             return (false, "No enabled transcript segments were available to compile.");
+
+        if (videoDuration > TimeSpan.Zero)
+        {
+            int lastSegmentIndex = keepSegments.Count - 1;
+            keepSegments[lastSegmentIndex] = (
+                keepSegments[lastSegmentIndex].start,
+                videoDuration.TotalSeconds);
+        }
 
         var startInfo = new ProcessStartInfo
         {
@@ -383,6 +393,41 @@ public class FFmpegService
 #else
         await Task.CompletedTask;
         return (false, "FFmpeg segment compilation is only available on Windows.");
+#endif
+    }
+
+    public async Task<TimeSpan> GetVideoDurationAsync(string ffmpegPath, string inputPath)
+    {
+#if WINDOWS
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = ffmpegPath,
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            RedirectStandardOutput = false,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add("-i");
+        startInfo.ArgumentList.Add(inputPath);
+
+        using var process = new Process { StartInfo = startInfo };
+        process.Start();
+        string standardError = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        Match durationMatch = Regex.Match(
+            standardError,
+            @"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)");
+        if (!durationMatch.Success)
+            return TimeSpan.Zero;
+
+        int hours = int.Parse(durationMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+        int minutes = int.Parse(durationMatch.Groups[2].Value, CultureInfo.InvariantCulture);
+        double seconds = double.Parse(durationMatch.Groups[3].Value, CultureInfo.InvariantCulture);
+        return new TimeSpan(hours, minutes, 0) + TimeSpan.FromSeconds(seconds);
+#else
+        await Task.CompletedTask;
+        return TimeSpan.Zero;
 #endif
     }
 

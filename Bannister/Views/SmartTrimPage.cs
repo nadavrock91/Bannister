@@ -395,7 +395,9 @@ public class SmartTrimPage : ContentPage
         {
             var end = i + 1 < sentences.Count && sentences[i + 1].Timestamp != null
                 ? sentences[i + 1].Timestamp
-                : sentences[i].Timestamp?.Add(TimeSpan.FromSeconds(3));
+                : i + 1 < sentences.Count
+                    ? sentences[i].Timestamp?.Add(TimeSpan.FromSeconds(3))
+                    : null;
             sentences[i] = sentences[i] with { EndTimestamp = end };
         }
 
@@ -499,7 +501,9 @@ public class SmartTrimPage : ContentPage
         return Color.FromArgb("#ECEFF1");
     }
 
-    private static List<(double start, double end)> BuildKeepSegmentsFromRows(List<SmartTrimRow> rows)
+    private static List<(double start, double end)> BuildKeepSegmentsFromRows(
+        List<SmartTrimRow> rows,
+        TimeSpan? videoDuration = null)
     {
         var enabled = rows
             .Where(r => r.IsEnabled && r.Original.Timestamp != null)
@@ -513,14 +517,14 @@ public class SmartTrimPage : ContentPage
 
         TimeSpan firstStart = enabled[0].Timestamp ?? TimeSpan.Zero;
         double currentStart = firstStart.TotalSeconds;
-        double currentEnd = GetSentenceEnd(enabled[0]).TotalSeconds;
+        double currentEnd = GetSentenceEnd(enabled[0], videoDuration).TotalSeconds;
 
         for (int i = 1; i < enabled.Count; i++)
         {
             var sentence = enabled[i];
             TimeSpan sentenceStart = sentence.Timestamp ?? TimeSpan.Zero;
             double start = sentenceStart.TotalSeconds;
-            double end = GetSentenceEnd(sentence).TotalSeconds;
+            double end = GetSentenceEnd(sentence, videoDuration).TotalSeconds;
             double gap = Math.Max(0, start - currentEnd);
 
             if (gap > 1.5)
@@ -536,10 +540,12 @@ public class SmartTrimPage : ContentPage
         return segments;
     }
 
-    private static TimeSpan GetSentenceEnd(SentenceItem sentence)
+    private static TimeSpan GetSentenceEnd(SentenceItem sentence, TimeSpan? videoDuration = null)
     {
         TimeSpan start = sentence.Timestamp ?? TimeSpan.Zero;
-        return sentence.EndTimestamp ?? start.Add(TimeSpan.FromSeconds(3));
+        TimeSpan duration = videoDuration.GetValueOrDefault();
+        return sentence.EndTimestamp
+            ?? (duration > TimeSpan.Zero ? duration : start.Add(TimeSpan.FromSeconds(3)));
     }
 
     private async Task CompileVideoAsync(List<SmartTrimRow> rows, Label progressLabel)
@@ -563,13 +569,6 @@ public class SmartTrimPage : ContentPage
             _onVideoPathChanged?.Invoke(_videoPath);
         }
 
-        var segments = BuildKeepSegmentsFromRows(rows);
-        if (segments.Count == 0)
-        {
-            await DisplayAlert("No Sentences", "Enable at least one timestamped sentence first.", "OK");
-            return;
-        }
-
         string? outputFolder = await WebsiteFolderHelper.PickParentFolderPathAsync(this);
         if (string.IsNullOrWhiteSpace(outputFolder))
             return;
@@ -578,6 +577,14 @@ public class SmartTrimPage : ContentPage
         {
             progressLabel.Text = "Preparing FFmpeg...";
             string ffmpegPath = await _ffmpeg.EnsureFFmpegAsync();
+            TimeSpan videoDuration = await _ffmpeg.GetVideoDurationAsync(ffmpegPath, _videoPath);
+            var segments = BuildKeepSegmentsFromRows(rows, videoDuration);
+            if (segments.Count == 0)
+            {
+                await DisplayAlert("No Sentences", "Enable at least one timestamped sentence first.", "OK");
+                return;
+            }
+
             string originalName = Path.GetFileNameWithoutExtension(_videoPath);
             string outputPath = Path.Combine(outputFolder, $"{Slugify(originalName)}_smart_trim.mp4");
 
