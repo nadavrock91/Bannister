@@ -1064,6 +1064,11 @@ public class TalkingHeadCutterPage : ContentPage
         }
 
         UpdateTranscriptStatus();
+        if (_currentProject != null)
+        {
+            _currentProject.TranscriptJson = System.Text.Json.JsonSerializer.Serialize(_transcriptWords);
+            await _shortsProjects.SaveProjectAsync(_currentProject);
+        }
     }
 
     private async void OnTrimCompareClicked(object? sender, EventArgs e)
