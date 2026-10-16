@@ -207,9 +207,12 @@ public class TranscriptTrimPage : ContentPage
                     .Where(r => r.Original.Timestamp != null)
                     .Max(r => r.Original.Timestamp!.Value.TotalSeconds);
                 var durationCap = lastTimestamp + 60;
-                var estimatedDuration = TimeSpan.FromSeconds(
+                var totalDuration = TimeSpan.FromSeconds(
                     segments.Sum(s => Math.Max(0, Math.Min(s.end, durationCap) - s.start)));
-                statsLabel.Text = $"{enabledWithTimestamps.Count} of {totalSentences} sentences enabled | Estimated duration: {FormatDuration(estimatedDuration)}";
+                var spokenDuration = TimeSpan.FromSeconds(enabledWithTimestamps.Sum(r =>
+                    Math.Max(0, (r.Original.LastWordTimestamp!.Value - r.Original.Timestamp!.Value).TotalSeconds)));
+                var silenceDuration = totalDuration - spokenDuration;
+                statsLabel.Text = $"{enabledWithTimestamps.Count} of {totalSentences} sentences enabled | Total: {FormatDuration(totalDuration)} (spoken: {FormatDuration(spokenDuration)}, silence: {FormatDuration(silenceDuration)})";
             }
             System.Diagnostics.Debug.WriteLine($"[REFRESH_STATE] segments={segments.Count}, videoPath={_videoPath}, fileExists={File.Exists(_videoPath ?? "")}");
             compileButton.IsEnabled = segments.Count > 0
@@ -313,23 +316,26 @@ public class TranscriptTrimPage : ContentPage
         var sentences = new List<SentenceItem>();
         var words = new List<string>();
         TimeSpan? start = null;
+        TimeSpan? lastWordTimestamp = null;
 
         foreach (var word in _transcriptWords)
         {
             if (start == null)
                 start = word.Timestamp;
 
+            lastWordTimestamp = word.Timestamp;
             words.Add(word.Word);
             if (IsSentenceEndingWord(word.Word))
             {
-                sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start, null));
+                sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start, lastWordTimestamp, null));
                 words.Clear();
                 start = null;
+                lastWordTimestamp = null;
             }
         }
 
         if (words.Count > 0)
-            sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start, null));
+            sentences.Add(new SentenceItem(string.Join(" ", words).Trim(), start, lastWordTimestamp, null));
 
         for (int i = 0; i < sentences.Count; i++)
         {
@@ -868,7 +874,7 @@ public class TranscriptTrimPage : ContentPage
             TextColor = Color.FromArgb("#263238")
         };
 
-    private sealed record SentenceItem(string Text, TimeSpan? Timestamp, TimeSpan? EndTimestamp);
+    private sealed record SentenceItem(string Text, TimeSpan? Timestamp, TimeSpan? LastWordTimestamp, TimeSpan? EndTimestamp);
 
     private sealed record TrimSelection(HashSet<int> KeepNumbers, Dictionary<int, int> Ratings);
 
