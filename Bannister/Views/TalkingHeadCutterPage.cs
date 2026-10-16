@@ -1082,6 +1082,11 @@ public class TalkingHeadCutterPage : ContentPage
             return;
         }
 
+        string keepData = _currentProject == null
+            ? ""
+            : string.Join(Environment.NewLine, new[] { _currentProject.KeepList, _currentProject.RatingsJson }
+                .Where(value => !string.IsNullOrWhiteSpace(value)));
+
         await Navigation.PushAsync(new TranscriptTrimPage(_transcriptWords, _selectedVideoPath, _ffmpeg, path =>
         {
             _selectedVideoPath = path;
@@ -1090,7 +1095,15 @@ public class TalkingHeadCutterPage : ContentPage
                 _currentProject.VideoPath = path;
                 _ = _shortsProjects.SaveProjectAsync(_currentProject);
             }
-        }));
+        }, async (keepLine, ratingsLine) =>
+        {
+            if (_currentProject != null)
+            {
+                _currentProject.KeepList = keepLine;
+                _currentProject.RatingsJson = ratingsLine;
+                await _shortsProjects.SaveProjectAsync(_currentProject);
+            }
+        }, keepData));
     }
 
     private async void OnSmartTrimClicked(object? sender, EventArgs e)

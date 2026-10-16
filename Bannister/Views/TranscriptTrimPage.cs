@@ -11,6 +11,7 @@ public class TranscriptTrimPage : ContentPage
     private string? _videoPath;
     private readonly FFmpegService _ffmpeg;
     private readonly Action<string>? _onVideoPathChanged;
+    private readonly Action<string, string>? _onKeepDataChanged;
 
     private readonly Entry _targetMinutesEntry;
     private readonly Editor _keepListEntry;
@@ -22,13 +23,16 @@ public class TranscriptTrimPage : ContentPage
         IEnumerable<TalkingHeadCutterPage.TranscriptWord> transcriptWords,
         string? videoPath,
         FFmpegService ffmpeg,
-        Action<string>? onVideoPathChanged = null)
+        Action<string>? onVideoPathChanged = null,
+        Action<string, string>? onKeepDataChanged = null,
+        string? initialKeepData = null)
     {
         _transcriptWords = transcriptWords.ToList();
         _originalText = string.Join(" ", _transcriptWords.Select(w => w.Word));
         _videoPath = videoPath;
         _ffmpeg = ffmpeg;
         _onVideoPathChanged = onVideoPathChanged;
+        _onKeepDataChanged = onKeepDataChanged;
 
         Title = "Trim & Compare";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -45,6 +49,8 @@ public class TranscriptTrimPage : ContentPage
         _smartTrimButton.Clicked += OnSmartTrimClicked;
 
         BuildUI();
+        if (!string.IsNullOrWhiteSpace(initialKeepData))
+            _keepListEntry.Text = initialKeepData;
     }
 
     private void BuildUI()
@@ -110,7 +116,8 @@ public class TranscriptTrimPage : ContentPage
 
     private async void OnBuildComparisonClicked(object? sender, EventArgs e)
     {
-        var selection = ParseTrimResponse(_keepListEntry.Text ?? "");
+        string responseText = _keepListEntry.Text ?? "";
+        var selection = ParseTrimResponse(responseText);
         if (selection.KeepNumbers.Count == 0)
         {
             await DisplayAlert("No Sentences", "Paste a comma-separated keep list first.", "OK");
@@ -119,6 +126,10 @@ public class TranscriptTrimPage : ContentPage
 
         var page = BuildComparisonPage(selection);
         await Navigation.PushAsync(page);
+
+        string keepLine = Regex.Match(responseText, @"(?im)^\s*keep\s*=.*$").Value.Trim();
+        string ratingsLine = Regex.Match(responseText, @"(?im)^\s*ratings\s*=.*$").Value.Trim();
+        _onKeepDataChanged?.Invoke(keepLine, ratingsLine);
     }
 
     private async void OnSmartTrimClicked(object? sender, EventArgs e)

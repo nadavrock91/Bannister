@@ -17,6 +17,10 @@ public class ShortsCutterProject
 
     public string TranscriptJson { get; set; } = "";
 
+    public string KeepList { get; set; } = "";
+
+    public string RatingsJson { get; set; } = "";
+
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;
