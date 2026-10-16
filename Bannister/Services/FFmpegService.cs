@@ -308,12 +308,13 @@ public class FFmpegService
         for (int i = 0; i < keepSegments.Count; i++)
         {
             var segment = keepSegments[i];
+            double adjStart = i == 0 ? segment.start : segment.start + 0.05;
             filterBuilder.Append(string.Create(
                 CultureInfo.InvariantCulture,
-                $"[0:v]trim=start={segment.start:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS[v{i}];"));
+                $"[0:v]trim=start={adjStart:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS[v{i}];"));
             filterBuilder.Append(string.Create(
                 CultureInfo.InvariantCulture,
-                $"[0:a]atrim=start={segment.start:0.###}:end={segment.end:0.###},asetpts=PTS-STARTPTS,aresample=async=1[a{i}];"));
+                $"[0:a]atrim=start={adjStart:0.###}:end={segment.end:0.###},asetpts=PTS-STARTPTS,aresample=async=1[a{i}];"));
             concatInputs.Append($"[v{i}][a{i}]");
         }
         filterBuilder.Append(string.Create(
