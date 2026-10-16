@@ -286,8 +286,6 @@ public class FFmpegService
         IProgress<double>? progress = null)
     {
 #if WINDOWS
-        TimeSpan videoDuration = await GetVideoDurationAsync(ffmpegPath, inputPath);
-
         keepSegments = keepSegments
             .Where(s => s.end > s.start)
             .OrderBy(s => s.start)
@@ -295,19 +293,6 @@ public class FFmpegService
 
         if (keepSegments.Count == 0)
             return (false, "No enabled transcript segments were available to compile.");
-
-        if (videoDuration > TimeSpan.Zero)
-        {
-            int lastSegmentIndex = keepSegments.Count - 1;
-            double lastEnd = keepSegments[lastSegmentIndex].end;
-            double remaining = videoDuration.TotalSeconds - lastEnd;
-            if (remaining > 0 && remaining <= 30)
-            {
-                keepSegments[lastSegmentIndex] = (
-                    keepSegments[lastSegmentIndex].start,
-                    videoDuration.TotalSeconds);
-            }
-        }
 
         var startInfo = new ProcessStartInfo
         {
