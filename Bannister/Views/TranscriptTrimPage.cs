@@ -384,6 +384,10 @@ public class TranscriptTrimPage : ContentPage
 
     private static List<(double start, double end)> BuildKeepSegmentsFromRows(List<InteractiveComparisonRow> rows)
     {
+        var sentences = rows
+            .Select(r => r.Original)
+            .OrderBy(s => s.Timestamp)
+            .ToList();
         var enabled = rows
             .Where(r => r.IsEnabled && r.Original.Timestamp != null)
             .Select(r => r.Original)
@@ -414,6 +418,11 @@ public class TranscriptTrimPage : ContentPage
 
             currentEnd = Math.Max(currentEnd, end);
         }
+
+        int lastEnabledIndex = sentences.IndexOf(enabled[^1]);
+        currentEnd = lastEnabledIndex == sentences.Count - 1
+            ? 99999.0
+            : sentences[lastEnabledIndex + 1].Timestamp?.TotalSeconds ?? currentEnd;
 
         segments.Add((currentStart, currentEnd));
         return segments;
