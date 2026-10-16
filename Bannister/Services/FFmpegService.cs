@@ -351,7 +351,7 @@ public class FFmpegService
         process.EnableRaisingEvents = true;
 
         var errorLines = new StringBuilder();
-        TimeSpan totalDuration = TimeSpan.FromSeconds(keepSegments.Sum(s => Math.Max(0, s.end - s.start)));
+        TimeSpan totalDuration = TimeSpan.FromSeconds(keepSegments.Sum(s => Math.Max(0, Math.Min(s.end, 7200) - s.start)));
 
         process.ErrorDataReceived += (s, e) =>
         {
