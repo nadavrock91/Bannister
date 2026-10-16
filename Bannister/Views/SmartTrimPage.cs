@@ -204,7 +204,17 @@ public class SmartTrimPage : ContentPage
                 var lastSentence = enabledWithTimestamps.MaxBy(r => r.Original.Timestamp!.Value.TotalSeconds);
                 var lastEnd = lastSentence!.Original.Timestamp!.Value.TotalSeconds + 10;
                 var estimatedDuration = TimeSpan.FromSeconds(Math.Max(0, lastEnd - firstStart));
-                statsLabel.Text = $"{enabledWithTimestamps.Count} of {totalSentences} sentences enabled | Estimated duration: {FormatDuration(estimatedDuration)}";
+                var spokenDuration = TimeSpan.FromSeconds(enabledWithTimestamps.Sum(row =>
+                {
+                    int index = rows.IndexOf(row);
+                    double start = row.Original.Timestamp!.Value.TotalSeconds;
+                    double end = index + 1 < rows.Count && rows[index + 1].Original.Timestamp != null
+                        ? rows[index + 1].Original.Timestamp!.Value.TotalSeconds
+                        : start + 10;
+                    return Math.Min(30, Math.Max(0, end - start));
+                }));
+                var silenceDuration = estimatedDuration - spokenDuration;
+                statsLabel.Text = $"{enabledWithTimestamps.Count} of {totalSentences} sentences enabled | Total: {FormatDuration(estimatedDuration)} (spoken: {FormatDuration(spokenDuration)}, silence: {FormatDuration(silenceDuration)})";
             }
             compileButton.IsEnabled = segments.Count > 0
                 && !string.IsNullOrWhiteSpace(_videoPath)
