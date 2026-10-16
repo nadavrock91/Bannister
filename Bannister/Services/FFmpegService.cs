@@ -299,9 +299,14 @@ public class FFmpegService
         if (videoDuration > TimeSpan.Zero)
         {
             int lastSegmentIndex = keepSegments.Count - 1;
-            keepSegments[lastSegmentIndex] = (
-                keepSegments[lastSegmentIndex].start,
-                videoDuration.TotalSeconds);
+            double lastEnd = keepSegments[lastSegmentIndex].end;
+            double remaining = videoDuration.TotalSeconds - lastEnd;
+            if (remaining > 0 && remaining <= 30)
+            {
+                keepSegments[lastSegmentIndex] = (
+                    keepSegments[lastSegmentIndex].start,
+                    videoDuration.TotalSeconds);
+            }
         }
 
         var startInfo = new ProcessStartInfo
