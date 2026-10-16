@@ -310,7 +310,7 @@ public class FFmpegService
             var segment = keepSegments[i];
             filterBuilder.Append(string.Create(
                 CultureInfo.InvariantCulture,
-                $"[0:v]trim=start={segment.start:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS,fps=fps=30[v{i}];"));
+                $"[0:v]trim=start={segment.start:0.###}:end={segment.end:0.###},setpts=PTS-STARTPTS[v{i}];"));
             filterBuilder.Append(string.Create(
                 CultureInfo.InvariantCulture,
                 $"[0:a]atrim=start={segment.start:0.###}:end={segment.end:0.###},asetpts=PTS-STARTPTS,aresample=async=1[a{i}];"));
@@ -339,6 +339,10 @@ public class FFmpegService
         startInfo.ArgumentList.Add("2");
         startInfo.ArgumentList.Add("-movflags");
         startInfo.ArgumentList.Add("+faststart");
+        startInfo.ArgumentList.Add("-crf");
+        startInfo.ArgumentList.Add("18");
+        startInfo.ArgumentList.Add("-preset");
+        startInfo.ArgumentList.Add("fast");
         startInfo.ArgumentList.Add(outputPath);
 
         using var process = new Process { StartInfo = startInfo };
