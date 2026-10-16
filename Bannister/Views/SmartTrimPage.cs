@@ -200,21 +200,13 @@ public class SmartTrimPage : ContentPage
             }
             else
             {
-                var firstStart = enabledWithTimestamps.Min(r => r.Original.Timestamp!.Value.TotalSeconds);
-                var lastSentence = enabledWithTimestamps.MaxBy(r => r.Original.Timestamp!.Value.TotalSeconds);
-                var lastEnd = lastSentence!.Original.Timestamp!.Value.TotalSeconds + 10;
-                var estimatedDuration = TimeSpan.FromSeconds(Math.Max(0, lastEnd - firstStart));
-                var spokenDuration = TimeSpan.FromSeconds(enabledWithTimestamps.Sum(row =>
-                {
-                    int index = rows.IndexOf(row);
-                    double start = row.Original.Timestamp!.Value.TotalSeconds;
-                    double end = index + 1 < rows.Count && rows[index + 1].Original.Timestamp != null
-                        ? rows[index + 1].Original.Timestamp!.Value.TotalSeconds
-                        : start + 10;
-                    return Math.Min(30, Math.Max(0, end - start));
-                }));
-                var silenceDuration = estimatedDuration - spokenDuration;
-                statsLabel.Text = $"{enabledWithTimestamps.Count} of {totalSentences} sentences enabled | Total: {FormatDuration(estimatedDuration)} (spoken: {FormatDuration(spokenDuration)}, silence: {FormatDuration(silenceDuration)})";
+                var lastTimestamp = rows
+                    .Where(r => r.Original.Timestamp != null)
+                    .Max(r => r.Original.Timestamp!.Value.TotalSeconds);
+                var durationCap = lastTimestamp + 60;
+                var estimatedDuration = TimeSpan.FromSeconds(
+                    segments.Sum(s => Math.Max(0, Math.Min(s.end, durationCap) - s.start)));
+                statsLabel.Text = $"{enabledWithTimestamps.Count} of {totalSentences} sentences enabled | Estimated duration: {FormatDuration(estimatedDuration)}";
             }
             compileButton.IsEnabled = segments.Count > 0
                 && !string.IsNullOrWhiteSpace(_videoPath)
