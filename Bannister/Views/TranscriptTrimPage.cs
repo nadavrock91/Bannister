@@ -197,7 +197,12 @@ public class TranscriptTrimPage : ContentPage
                 .ToList();
             int totalSentences = rows.Count(r => r.Original.Timestamp != null);
             var segments = BuildKeepSegmentsFromRows(rows);
-            var estimatedDuration = TimeSpan.FromSeconds(segments.Sum(s => Math.Max(0, Math.Min(s.end, 7200) - s.start)));
+            var lastTimestamp = rows
+                .Where(r => r.Original.Timestamp != null)
+                .Max(r => r.Original.Timestamp!.Value.TotalSeconds);
+            var durationCap = lastTimestamp + 60;
+            var estimatedDuration = TimeSpan.FromSeconds(
+                segments.Sum(s => Math.Max(0, Math.Min(s.end, durationCap) - s.start)));
             statsLabel.Text = $"{enabledSentences.Count} of {totalSentences} sentences enabled | Estimated duration: {FormatDuration(estimatedDuration)}";
             System.Diagnostics.Debug.WriteLine($"[REFRESH_STATE] segments={segments.Count}, videoPath={_videoPath}, fileExists={File.Exists(_videoPath ?? "")}");
             compileButton.IsEnabled = segments.Count > 0
