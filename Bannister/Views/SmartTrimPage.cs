@@ -189,18 +189,23 @@ public class SmartTrimPage : ContentPage
 
             SyncSuggestionButtonStates(rows, suggestionButtons);
 
-            var enabledSentences = rows
+            var enabledWithTimestamps = rows
                 .Where(r => r.IsEnabled && r.Original.Timestamp != null)
                 .ToList();
             int totalSentences = rows.Count(r => r.Original.Timestamp != null);
             var segments = BuildKeepSegmentsFromRows(rows);
-            var lastTimestamp = rows
-                .Where(r => r.Original.Timestamp != null)
-                .Max(r => r.Original.Timestamp!.Value.TotalSeconds);
-            var durationCap = lastTimestamp + 60;
-            var estimatedDuration = TimeSpan.FromSeconds(
-                segments.Sum(s => Math.Max(0, Math.Min(s.end, durationCap) - s.start)));
-            statsLabel.Text = $"{enabledSentences.Count} of {totalSentences} sentences enabled | Estimated duration: {FormatDuration(estimatedDuration)}";
+            if (enabledWithTimestamps.Count == 0)
+            {
+                statsLabel.Text = "0 sentences enabled";
+            }
+            else
+            {
+                var firstStart = enabledWithTimestamps.Min(r => r.Original.Timestamp!.Value.TotalSeconds);
+                var lastSentence = enabledWithTimestamps.MaxBy(r => r.Original.Timestamp!.Value.TotalSeconds);
+                var lastEnd = lastSentence!.Original.Timestamp!.Value.TotalSeconds + 10;
+                var estimatedDuration = TimeSpan.FromSeconds(Math.Max(0, lastEnd - firstStart));
+                statsLabel.Text = $"{enabledWithTimestamps.Count} of {totalSentences} sentences enabled | Estimated duration: {FormatDuration(estimatedDuration)}";
+            }
             compileButton.IsEnabled = segments.Count > 0
                 && !string.IsNullOrWhiteSpace(_videoPath)
                 && File.Exists(_videoPath);
@@ -315,7 +320,20 @@ public class SmartTrimPage : ContentPage
             CornerRadius = 0,
             HasShadow = false,
             Padding = new Thickness(16, 10),
-            Content = statsLabel
+            Content = new VerticalStackLayout
+            {
+                Spacing = 4,
+                Children =
+                {
+                    statsLabel,
+                    new Label
+                    {
+                        Text = "⚠️ Recommended workflow: compile first, then truncate silence on the result.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#F57C00")
+                    }
+                }
+            }
         };
 
         var comparisonScroll = new ScrollView
