@@ -89,14 +89,28 @@ public class FFmpegService
             CreateNoWindow = true
         };
         startInfo.ArgumentList.Add("-y");
-        startInfo.ArgumentList.Add("-i");
-        startInfo.ArgumentList.Add(inputPath);
         startInfo.ArgumentList.Add("-ss");
         startInfo.ArgumentList.Add(startTime);
         startInfo.ArgumentList.Add("-to");
         startInfo.ArgumentList.Add(endTime);
-        startInfo.ArgumentList.Add("-c");
-        startInfo.ArgumentList.Add("copy");
+        startInfo.ArgumentList.Add("-i");
+        startInfo.ArgumentList.Add(inputPath);
+        startInfo.ArgumentList.Add("-c:v");
+        startInfo.ArgumentList.Add("libx264");
+        startInfo.ArgumentList.Add("-crf");
+        startInfo.ArgumentList.Add("18");
+        startInfo.ArgumentList.Add("-preset");
+        startInfo.ArgumentList.Add("fast");
+        startInfo.ArgumentList.Add("-c:a");
+        startInfo.ArgumentList.Add("aac");
+        startInfo.ArgumentList.Add("-ar");
+        startInfo.ArgumentList.Add("44100");
+        startInfo.ArgumentList.Add("-ac");
+        startInfo.ArgumentList.Add("2");
+        startInfo.ArgumentList.Add("-af");
+        startInfo.ArgumentList.Add("aresample=async=1");
+        startInfo.ArgumentList.Add("-movflags");
+        startInfo.ArgumentList.Add("+faststart");
         startInfo.ArgumentList.Add(outputPath);
 
         using var process = new Process { StartInfo = startInfo };

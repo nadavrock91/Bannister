@@ -47,6 +47,7 @@ public class TalkingHeadCutterPage : ContentPage
     private readonly ProgressBar _cutProgressBar;
     private readonly Label _etaLabel;
     private readonly Button _cutAllButton;
+    private readonly Button _exportSelectedButton;
     private Grid _wrapTranscriptOverlay = null!;
     private Grid _ffmpegSetupOverlay = null!;
     private ProgressBar _ffmpegSetupProgressBar = null!;
@@ -112,6 +113,8 @@ public class TalkingHeadCutterPage : ContentPage
         _etaLabel = CreateMutedLabel("");
         _etaLabel.IsVisible = false;
         _cutAllButton = CreateButton("\u2702\ufe0f Cut All Shorts", Color.FromArgb("#00695C"));
+        _exportSelectedButton = CreateButton("Export Selected", Color.FromArgb("#1565C0"));
+        _exportSelectedButton.IsEnabled = false;
         _truncateSilenceCard = BuildStageCard("1b", "Truncate Silence (optional)", new View[]
         {
             CreateLabeledPicker("Preset", _truncatePresetPicker),
@@ -192,11 +195,13 @@ public class TalkingHeadCutterPage : ContentPage
         }));
 
         _cutAllButton.Clicked += OnCutAllClicked;
+        _exportSelectedButton.Clicked += OnExportSelectedClicked;
         stack.Children.Add(BuildStageCard("4", "Review & Cut", new View[]
         {
             _cutsList,
             CreateActionButton("Choose Output Folder", OnChooseOutputFolderClicked),
             _outputFolderLabel,
+            _exportSelectedButton,
             _cutAllButton,
             _progressLabel,
             _cutProgressBar,
@@ -1258,6 +1263,7 @@ public class TalkingHeadCutterPage : ContentPage
         if (_cuts.Count == 0)
         {
             _cutsList.Children.Add(CreateMutedLabel("No proposed cuts imported"));
+            _exportSelectedButton.IsEnabled = false;
             return;
         }
 
@@ -1272,6 +1278,32 @@ public class TalkingHeadCutterPage : ContentPage
                 TextColor = Color.FromArgb("#263238")
             };
             var details = CreateMutedLabel($"{cut.StartTime} - {cut.EndTime} ({GetDurationText(cut)})");
+            var exportCheckBox = new CheckBox
+            {
+                IsChecked = cut.IsSelectedForExport,
+                Color = Color.FromArgb("#1565C0")
+            };
+            exportCheckBox.CheckedChanged += (_, args) =>
+            {
+                cut.IsSelectedForExport = args.Value;
+                _exportSelectedButton.IsEnabled = _cuts.Any(item => item.IsSelectedForExport);
+            };
+            var exportSelection = new HorizontalStackLayout
+            {
+                Spacing = 6,
+                VerticalOptions = LayoutOptions.Center,
+                Children =
+                {
+                    exportCheckBox,
+                    new Label
+                    {
+                        Text = "Export this short",
+                        FontSize = 13,
+                        TextColor = Color.FromArgb("#263238"),
+                        VerticalTextAlignment = TextAlignment.Center
+                    }
+                }
+            };
             var ratings = new HorizontalStackLayout { Spacing = 10 };
             ratings.Children.Add(new Label
             {
@@ -1324,10 +1356,12 @@ public class TalkingHeadCutterPage : ContentPage
                 Content = new VerticalStackLayout
                 {
                     Spacing = 6,
-                    Children = { title, details, ratings, transcriptToggle, transcriptLabel, buttons }
+                    Children = { title, details, exportSelection, ratings, transcriptToggle, transcriptLabel, buttons }
                 }
             });
         }
+
+        _exportSelectedButton.IsEnabled = _cuts.Any(cut => cut.IsSelectedForExport);
     }
 
     private Button CreateSmallButton(string text, Func<Task> onClick)
@@ -1377,6 +1411,23 @@ public class TalkingHeadCutterPage : ContentPage
 
     private async void OnCutAllClicked(object? sender, EventArgs e)
     {
+        await ExportCutsAsync(_cuts, _cutAllButton);
+    }
+
+    private async void OnExportSelectedClicked(object? sender, EventArgs e)
+    {
+        var selectedCuts = _cuts.Where(cut => cut.IsSelectedForExport).ToList();
+        if (selectedCuts.Count == 0)
+        {
+            await DisplayAlert("No Shorts Selected", "Select at least one short to export.", "OK");
+            return;
+        }
+
+        await ExportCutsAsync(selectedCuts, _exportSelectedButton);
+    }
+
+    private async Task ExportCutsAsync(IReadOnlyList<ProposedCut> cuts, Button actionButton)
+    {
         if (string.IsNullOrWhiteSpace(_selectedVideoPath) || !File.Exists(_selectedVideoPath))
         {
             await DisplayAlert("Pick Video", "Choose a video file first.", "OK");
@@ -1389,13 +1440,13 @@ public class TalkingHeadCutterPage : ContentPage
             return;
         }
 
-        if (_cuts.Count == 0)
+        if (cuts.Count == 0)
         {
             await DisplayAlert("No Shorts", "Import at least one proposed cut first.", "OK");
             return;
         }
 
-        _cutAllButton.IsEnabled = false;
+        actionButton.IsEnabled = false;
         try
         {
             _progressLabel.IsVisible = true;
@@ -1424,19 +1475,19 @@ public class TalkingHeadCutterPage : ContentPage
             string originalName = Path.GetFileNameWithoutExtension(_selectedVideoPath);
             var cutStartedAt = DateTime.UtcNow;
 
-            for (int i = 0; i < _cuts.Count; i++)
+            for (int i = 0; i < cuts.Count; i++)
             {
-                var cut = _cuts[i];
-                double completedProgress = (double)i / _cuts.Count;
+                var cut = cuts[i];
+                double completedProgress = (double)i / cuts.Count;
                 _progressLabel.IsVisible = true;
                 _cutProgressBar.IsVisible = true;
                 _etaLabel.IsVisible = true;
                 _cutProgressBar.Progress = completedProgress;
                 _progressLabel.Text =
-                    $"Cutting {i + 1} of {_cuts.Count}: {cut.Title} \u2014 {completedProgress * 100:0}% complete";
+                    $"Cutting {i + 1} of {cuts.Count}: {cut.Title} \u2014 {completedProgress * 100:0}% complete";
                 _etaLabel.Text = i == 0
                     ? "Estimated time remaining: calculating..."
-                    : $"Estimated time remaining: {FormatDuration(TimeSpan.FromTicks((DateTime.UtcNow - cutStartedAt).Ticks / i * (_cuts.Count - i)))}";
+                    : $"Estimated time remaining: {FormatDuration(TimeSpan.FromTicks((DateTime.UtcNow - cutStartedAt).Ticks / i * (cuts.Count - i)))}";
                 string outputPath = Path.Combine(
                     _outputFolder,
                     $"{Slugify(originalName)}_{i + 1}_{Slugify(cut.Title)}.mp4");
@@ -1445,15 +1496,15 @@ public class TalkingHeadCutterPage : ContentPage
                 TryParseTime(cut.EndTime, out var clipEnd);
                 var clipProgress = new Progress<double>(clipPercent =>
                 {
-                    double overallProgress = Math.Clamp((i + clipPercent) / _cuts.Count, 0, 1);
+                    double overallProgress = Math.Clamp((i + clipPercent) / cuts.Count, 0, 1);
                     _cutProgressBar.Progress = overallProgress;
                     _progressLabel.Text =
-                        $"Cutting {i + 1} of {_cuts.Count}: {cut.Title} \u2014 {overallProgress * 100:0}% complete";
+                        $"Cutting {i + 1} of {cuts.Count}: {cut.Title} \u2014 {overallProgress * 100:0}% complete";
                     if (i > 0 || clipPercent > 0)
                     {
                         double completedClips = i + clipPercent;
                         var elapsed = DateTime.UtcNow - cutStartedAt;
-                        var remainingClips = _cuts.Count - completedClips;
+                        var remainingClips = cuts.Count - completedClips;
                         var estimatedRemaining = TimeSpan.FromSeconds(elapsed.TotalSeconds / completedClips * remainingClips);
                         _etaLabel.Text =
                             $"Estimated time remaining: {FormatDuration(estimatedRemaining)}";
@@ -1479,11 +1530,11 @@ public class TalkingHeadCutterPage : ContentPage
                     return;
                 }
 
-                double updatedProgress = (double)(i + 1) / _cuts.Count;
+                double updatedProgress = (double)(i + 1) / cuts.Count;
                 _cutProgressBar.Progress = updatedProgress;
                 _progressLabel.Text =
-                    $"Cutting {i + 1} of {_cuts.Count}: {cut.Title} \u2014 {updatedProgress * 100:0}% complete";
-                int remaining = _cuts.Count - (i + 1);
+                    $"Cutting {i + 1} of {cuts.Count}: {cut.Title} \u2014 {updatedProgress * 100:0}% complete";
+                int remaining = cuts.Count - (i + 1);
                 if (remaining > 0)
                 {
                     var averageTicks = (DateTime.UtcNow - cutStartedAt).Ticks / (i + 1);
@@ -1509,7 +1560,7 @@ public class TalkingHeadCutterPage : ContentPage
         }
         finally
         {
-            _cutAllButton.IsEnabled = true;
+            actionButton.IsEnabled = true;
         }
     }
 
@@ -1598,5 +1649,6 @@ public class TalkingHeadCutterPage : ContentPage
         public int HookRating { get; set; }
         public int ContentRating { get; set; }
         public string TranscriptText { get; set; } = "";
+        public bool IsSelectedForExport { get; set; }
     }
 }
