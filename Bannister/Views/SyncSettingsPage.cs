@@ -22,7 +22,6 @@ public class SyncSettingsPage : ContentPage
     private readonly ExpService _expService;
     private readonly StreakService _streakService;
     private readonly IdeasService _ideas;
-    private readonly OperationQueueService _operationQueue;
 
     private RadioButton _rbMaster;
     private RadioButton _rbSecondary;
@@ -58,8 +57,7 @@ public class SyncSettingsPage : ContentPage
         SharedActivityService sharedActivityService,
         ExpService expService,
         StreakService streakService,
-        IdeasService ideas,
-        OperationQueueService operationQueue)
+        IdeasService ideas)
     {
         _deviceMode = deviceMode;
         _sync = sync;
@@ -74,7 +72,6 @@ public class SyncSettingsPage : ContentPage
         _expService = expService;
         _streakService = streakService;
         _ideas = ideas;
-        _operationQueue = operationQueue;
 
         Title = "Sync & Devices";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -384,7 +381,6 @@ public class SyncSettingsPage : ContentPage
             await Navigation.PushAsync(new QueueAuditPage(
                 _auth,
                 _ideas,
-                _operationQueue,
                 _sync,
                 _db));
         stack.Children.Add(queueAuditButton);

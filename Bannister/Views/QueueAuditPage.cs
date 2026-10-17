@@ -9,7 +9,6 @@ public class QueueAuditPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly IdeasService _ideas;
-    private readonly OperationQueueService _operationQueue;
     private readonly SyncService _sync;
     private readonly DatabaseService _db;
 
@@ -26,13 +25,11 @@ public class QueueAuditPage : ContentPage
     public QueueAuditPage(
         AuthService auth,
         IdeasService ideas,
-        OperationQueueService operationQueue,
         SyncService sync,
         DatabaseService db)
     {
         _auth = auth;
         _ideas = ideas;
-        _operationQueue = operationQueue;
         _sync = sync;
         _db = db;
 
@@ -122,6 +119,13 @@ public class QueueAuditPage : ContentPage
                         FontAttributes = FontAttributes.Bold,
                         TextColor = Color.FromArgb("#333333")
                     },
+                    new Label
+                    {
+                        Text = "This audit covers pending server operations only. Already-applied operations are removed from the server queue and are not available through the sync API.",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666666"),
+                        LineBreakMode = LineBreakMode.WordWrap
+                    },
                     buttonGrid,
                     _busyIndicator,
                     _statusLabel,
@@ -155,7 +159,7 @@ public class QueueAuditPage : ContentPage
         {
             var activeIdeasTask = _ideas.GetIdeasAsync(_auth.CurrentUsername);
             var archivedIdeasTask = _ideas.GetArchivedIdeasAsync(_auth.CurrentUsername);
-            var queueTask = _operationQueue.GetAllAsync();
+            var queueTask = _sync.DownloadQueueAsync();
             await Task.WhenAll(activeIdeasTask, archivedIdeasTask, queueTask);
 
             var allIdeas = activeIdeasTask.Result
