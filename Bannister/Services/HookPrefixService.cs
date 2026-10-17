@@ -5,11 +5,13 @@ namespace Bannister.Services;
 public class HookPrefixService
 {
     private readonly DatabaseService _db;
+    private readonly OperationQueueService _queue;
     private bool _initialized;
 
-    public HookPrefixService(DatabaseService db)
+    public HookPrefixService(DatabaseService db, OperationQueueService queue)
     {
         _db = db;
+        _queue = queue;
     }
 
     public async Task InitAsync()
@@ -143,11 +145,23 @@ public class HookPrefixService
         int extraordinary)
     {
         await InitAsync();
-        if (_db.IsReadOnly) return;
-
         var conn = await _db.GetConnectionAsync();
         var session = await conn.FindAsync<HookPrefixSession>(sessionId);
         if (session == null) return;
+
+        if (_db.IsReadOnly)
+        {
+            await _queue.EnqueueAsync("update_hook_session_stats", new
+            {
+                operation_type = "update_hook_session_stats",
+                client_uuid = Guid.NewGuid().ToString("D"),
+                prefix_text = session.PrefixText,
+                total_cropped = cropped,
+                total_extraordinary = extraordinary,
+                session_created_date = session.CreatedDate.ToUniversalTime().ToString("O")
+            });
+            return;
+        }
 
         var oldCropped = session.TotalCropped ?? 0;
         var oldExtraordinary = session.TotalExtraordinary ?? 0;
@@ -195,6 +209,30 @@ public class HookPrefixService
                 extraordinaryDelta,
                 true);
         }
+    }
+
+    public async Task ApplyQueuedSessionStatsAsync(
+        string username,
+        string prefixText,
+        DateTime sessionCreatedDate,
+        int cropped,
+        int extraordinary)
+    {
+        await InitAsync();
+        username = NormalizeUsername(username);
+        prefixText = prefixText?.Trim() ?? "";
+
+        var conn = await _db.GetConnectionAsync();
+        var sessions = await conn.Table<HookPrefixSession>()
+            .Where(x => x.Username == username && x.PrefixText == prefixText)
+            .ToListAsync();
+        var targetCreatedDate = sessionCreatedDate.ToUniversalTime();
+        var session = sessions.FirstOrDefault(x =>
+            x.CreatedDate.ToUniversalTime() == targetCreatedDate);
+        if (session == null)
+            throw new InvalidOperationException("Matching hook prefix session was not found.");
+
+        await UpdateSessionCropResultAsync(session.Id, cropped, extraordinary);
     }
 
     public async Task<List<HookPrefix>> GetPrefixStatsAsync(string username)

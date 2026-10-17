@@ -5,11 +5,13 @@ namespace Bannister.Services;
 public class CropPresetService
 {
     private readonly DatabaseService _db;
+    private readonly OperationQueueService _queue;
     private bool _initialized;
 
-    public CropPresetService(DatabaseService db)
+    public CropPresetService(DatabaseService db, OperationQueueService queue)
     {
         _db = db;
+        _queue = queue;
     }
 
     public bool IsReadOnly => _db.IsReadOnly;
@@ -65,13 +67,28 @@ public class CropPresetService
         string username, string name, int w, int h)
     {
         await EnsureInitializedAsync();
+        var normalizedName = name.Trim();
+        if (_db.IsReadOnly)
+        {
+            await _queue.EnqueueAsync("save_crop_preset", new
+            {
+                operation_type = "save_crop_preset",
+                client_uuid = Guid.NewGuid().ToString("D"),
+                name = normalizedName,
+                w,
+                h,
+                created_at = DateTime.UtcNow.ToString("O")
+            });
+            return;
+        }
+
         var conn = await _db.GetConnectionAsync();
         // Find existing preset with same name for this user
         var existing = (await conn.Table<CropPresetItem>()
             .Where(p => p.Username == username)
             .ToListAsync())
             .FirstOrDefault(p => p.Name.Equals(
-                name.Trim(), StringComparison.OrdinalIgnoreCase));
+                normalizedName, StringComparison.OrdinalIgnoreCase));
 
         if (existing != null)
         {
@@ -81,7 +98,7 @@ public class CropPresetService
         }
         else
         {
-            await AddPresetAsync(username, name, w, h);
+            await AddPresetAsync(username, normalizedName, w, h);
         }
     }
 }

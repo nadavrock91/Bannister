@@ -5,11 +5,13 @@ namespace Bannister.Services;
 public class PromptTechniqueService
 {
     private readonly DatabaseService _db;
+    private readonly OperationQueueService _queue;
     private bool _initialized;
 
-    public PromptTechniqueService(DatabaseService db)
+    public PromptTechniqueService(DatabaseService db, OperationQueueService queue)
     {
         _db = db;
+        _queue = queue;
     }
 
     public async Task InitAsync()
@@ -43,8 +45,7 @@ public class PromptTechniqueService
     public async Task SaveTechniqueAsync(PromptTechnique technique)
     {
         await InitAsync();
-        if (_db.IsReadOnly) return;
-
+        var isNew = technique.Id == 0;
         technique.Username = NormalizeUsername(technique.Username);
         technique.Title = technique.Title?.Trim() ?? "";
         technique.Description = technique.Description?.Trim() ?? "";
@@ -55,8 +56,26 @@ public class PromptTechniqueService
         if (technique.CreatedDate == default)
             technique.CreatedDate = DateTime.UtcNow;
 
+        if (_db.IsReadOnly)
+        {
+            if (isNew)
+            {
+                await _queue.EnqueueAsync("save_technique", new
+                {
+                    operation_type = "save_technique",
+                    client_uuid = Guid.NewGuid().ToString("D"),
+                    title = technique.Title,
+                    description = technique.Description,
+                    prompt_suffix = technique.PromptSuffix,
+                    status = technique.Status,
+                    created_date = technique.CreatedDate.ToUniversalTime().ToString("O")
+                });
+            }
+            return;
+        }
+
         var conn = await _db.GetConnectionAsync();
-        if (technique.Id == 0)
+        if (isNew)
             await conn.InsertAsync(technique);
         else
             await conn.UpdateAsync(technique);
@@ -95,8 +114,7 @@ public class PromptTechniqueService
     public async Task SaveResultAsync(TechniqueResult result)
     {
         await InitAsync();
-        if (_db.IsReadOnly) return;
-
+        var isNew = result.Id == 0;
         result.Username = NormalizeUsername(result.Username);
         result.Notes = result.Notes?.Trim() ?? "";
         result.FailureModesPresent = result.FailureModesPresent?.Trim() ?? "";
@@ -104,7 +122,29 @@ public class PromptTechniqueService
             result.CreatedDate = DateTime.UtcNow;
 
         var conn = await _db.GetConnectionAsync();
-        if (result.Id == 0)
+        if (_db.IsReadOnly)
+        {
+            if (isNew)
+            {
+                var technique = await conn.FindAsync<PromptTechnique>(result.TechniqueId);
+                if (technique != null)
+                {
+                    await _queue.EnqueueAsync("log_technique_result", new
+                    {
+                        operation_type = "log_technique_result",
+                        client_uuid = Guid.NewGuid().ToString("D"),
+                        technique_title = technique.Title,
+                        quality_rating = result.QualityRating,
+                        failure_modes_present = result.FailureModesPresent,
+                        notes = result.Notes,
+                        created_date = result.CreatedDate.ToUniversalTime().ToString("O")
+                    });
+                }
+            }
+            return;
+        }
+
+        if (isNew)
             await conn.InsertAsync(result);
         else
             await conn.UpdateAsync(result);

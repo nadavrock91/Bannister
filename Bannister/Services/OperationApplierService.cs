@@ -26,13 +26,26 @@ public class OperationApplierService
     private readonly PendingActivityIdeaService _pendingIdeas;
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
+    private readonly PromptTechniqueService _promptTechniques;
+    private readonly CropPresetService _cropPresets;
+    private readonly HookPrefixService _hookPrefixes;
 
-    public OperationApplierService(IdeasService ideas, PendingActivityIdeaService pendingIdeas, DatabaseService db, AuthService auth)
+    public OperationApplierService(
+        IdeasService ideas,
+        PendingActivityIdeaService pendingIdeas,
+        DatabaseService db,
+        AuthService auth,
+        PromptTechniqueService promptTechniques,
+        CropPresetService cropPresets,
+        HookPrefixService hookPrefixes)
     {
         _ideas = ideas;
         _pendingIdeas = pendingIdeas;
         _db = db;
         _auth = auth;
+        _promptTechniques = promptTechniques;
+        _cropPresets = cropPresets;
+        _hookPrefixes = hookPrefixes;
     }
 
     public async Task<bool> IsAlreadyAppliedAsync(string uuid)
@@ -81,6 +94,26 @@ public class OperationApplierService
 
                 case "pending_activity_idea_added":
                     await ApplyPendingActivityIdeaAsync(op);
+                    await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
+                    return new ApplyResult { Success = true, Uuid = op.Uuid };
+
+                case "save_technique":
+                    await ApplySaveTechniqueAsync(op);
+                    await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
+                    return new ApplyResult { Success = true, Uuid = op.Uuid };
+
+                case "log_technique_result":
+                    await ApplyLogTechniqueResultAsync(op);
+                    await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
+                    return new ApplyResult { Success = true, Uuid = op.Uuid };
+
+                case "save_crop_preset":
+                    await ApplySaveCropPresetAsync(op);
+                    await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
+                    return new ApplyResult { Success = true, Uuid = op.Uuid };
+
+                case "update_hook_session_stats":
+                    await ApplyUpdateHookSessionStatsAsync(op);
                     await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
                     return new ApplyResult { Success = true, Uuid = op.Uuid };
 
@@ -195,6 +228,93 @@ public class OperationApplierService
             activityCategory = "Misc";
 
         await _pendingIdeas.AddAsync(username, game, activityName, activityCategory);
+    }
+
+    private async Task ApplySaveTechniqueAsync(QueuedOperation op)
+    {
+        using var doc = JsonDocument.Parse(DecryptQueuedPayload(op));
+        var root = doc.RootElement;
+        var username = ReadString(root, "username") ?? _auth.CurrentUsername;
+        var title = ReadString(root, "title");
+        if (string.IsNullOrWhiteSpace(title))
+            throw new InvalidOperationException("Queued technique is missing a title.");
+
+        var existing = (await _promptTechniques.GetTechniquesAsync(username))
+            .FirstOrDefault(x => string.Equals(x.Title, title, StringComparison.OrdinalIgnoreCase));
+        if (existing != null)
+            return;
+
+        await _promptTechniques.SaveTechniqueAsync(new PromptTechnique
+        {
+            Username = username,
+            Title = title,
+            Description = ReadString(root, "description") ?? "",
+            PromptSuffix = ReadString(root, "prompt_suffix") ?? "",
+            Status = ReadString(root, "status") ?? "Testing",
+            CreatedDate = ReadDateTime(root, "created_date") ?? op.CreatedAt
+        });
+    }
+
+    private async Task ApplyLogTechniqueResultAsync(QueuedOperation op)
+    {
+        using var doc = JsonDocument.Parse(DecryptQueuedPayload(op));
+        var root = doc.RootElement;
+        var username = ReadString(root, "username") ?? _auth.CurrentUsername;
+        var techniqueTitle = ReadString(root, "technique_title");
+        if (string.IsNullOrWhiteSpace(techniqueTitle))
+            throw new InvalidOperationException("Queued technique result is missing a technique title.");
+
+        var technique = (await _promptTechniques.GetTechniquesAsync(username))
+            .FirstOrDefault(x => string.Equals(x.Title, techniqueTitle, StringComparison.OrdinalIgnoreCase));
+        if (technique == null)
+            throw new InvalidOperationException($"Technique '{techniqueTitle}' was not found.");
+
+        await _promptTechniques.SaveResultAsync(new TechniqueResult
+        {
+            Username = username,
+            TechniqueId = technique.Id,
+            QualityRating = ReadInt(root, "quality_rating", 5),
+            FailureModesPresent = ReadString(root, "failure_modes_present") ?? "",
+            Notes = ReadString(root, "notes") ?? "",
+            CreatedDate = ReadDateTime(root, "created_date") ?? op.CreatedAt
+        });
+    }
+
+    private async Task ApplySaveCropPresetAsync(QueuedOperation op)
+    {
+        using var doc = JsonDocument.Parse(DecryptQueuedPayload(op));
+        var root = doc.RootElement;
+        var username = ReadString(root, "username") ?? _auth.CurrentUsername;
+        var name = ReadString(root, "name");
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException("Queued crop preset is missing a name.");
+
+        await _cropPresets.UpsertPresetAsync(
+            username,
+            name,
+            ReadInt(root, "w", 100),
+            ReadInt(root, "h", 100));
+    }
+
+    private async Task ApplyUpdateHookSessionStatsAsync(QueuedOperation op)
+    {
+        using var doc = JsonDocument.Parse(DecryptQueuedPayload(op));
+        var root = doc.RootElement;
+        var username = ReadString(root, "username") ?? _auth.CurrentUsername;
+        var prefixText = ReadString(root, "prefix_text");
+        if (string.IsNullOrWhiteSpace(prefixText))
+            throw new InvalidOperationException("Queued hook session update is missing prefix text.");
+
+        var sessionCreatedDate = ReadDateTime(root, "session_created_date");
+        if (!sessionCreatedDate.HasValue)
+            throw new InvalidOperationException("Queued hook session update is missing its creation date.");
+
+        await _hookPrefixes.ApplyQueuedSessionStatsAsync(
+            username,
+            prefixText,
+            sessionCreatedDate.Value,
+            ReadInt(root, "total_cropped", 0),
+            ReadInt(root, "total_extraordinary", 0));
     }
 
     private string DecryptQueuedPayload(QueuedOperation op)
