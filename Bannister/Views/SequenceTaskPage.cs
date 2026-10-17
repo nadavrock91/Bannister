@@ -12,6 +12,7 @@ public class SequenceTaskPage : ContentPage
         "Return your verdict and reasoning.";
     private readonly SequenceTaskService _service;
     private readonly AuthService _auth;
+    private readonly PrivacyModeService _privacyMode;
     private readonly TaskService _tasks;
     private readonly IdeasService? _ideasService;
     private readonly VerticalStackLayout _content;
@@ -27,6 +28,9 @@ public class SequenceTaskPage : ContentPage
         TaskService tasks, IdeasService? ideasService)
     {
         _service = service; _auth = auth; _tasks = tasks; _ideasService = ideasService;
+        _privacyMode = Application.Current?.Handler?.MauiContext?.Services
+            .GetService<PrivacyModeService>()
+            ?? throw new InvalidOperationException("PrivacyModeService not available");
         Title = "Sequence Tasks"; BackgroundColor = Color.FromArgb("#F5F5F5");
         _content = new VerticalStackLayout { Padding = new Thickness(16, 16, 16, 32), Spacing = 12 };
         Content = new ScrollView { Content = _content };
@@ -34,6 +38,10 @@ public class SequenceTaskPage : ContentPage
 
     protected override async void OnAppearing()
     { base.OnAppearing(); await RefreshAsync(); }
+
+    private bool IsPublicMode() =>
+        _privacyMode.GetDisplayMode(_auth.CurrentUsername)
+            == ActivityDisplayMode.PublicOnly;
 
     private async Task RefreshAsync()
     {
@@ -330,8 +338,12 @@ public class SequenceTaskPage : ContentPage
         foreach (var task in incompleteTasks)
         {
             var capturedTask = task;
+            var publicMode = IsPublicMode();
+            var buttonLabel = (publicMode && capturedTask.IsPrivate)
+                ? (string.IsNullOrWhiteSpace(capturedTask.Impact) ? "(private)" : capturedTask.Impact)
+                : capturedTask.Title;
             var taskButton = MakeButton(
-                capturedTask.Title, "#F5F5F5", "#222222");
+                buttonLabel, "#F5F5F5", "#222222");
             taskButton.HorizontalOptions = LayoutOptions.Fill;
             taskButton.LineBreakMode = LineBreakMode.WordWrap;
             taskButton.MinimumHeightRequest = 44;
@@ -459,9 +471,20 @@ public class SequenceTaskPage : ContentPage
             body.Children.Add(selectRow);
         }
         var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, Padding = new Thickness(8, 6) };
-        row.Add(new Label { Text = task.IsCompleted ? $"✓ {task.Title}" : task.Title, FontSize = 14, TextColor = task.IsCompleted ? Color.FromArgb("#8A8A8A") : Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+        var publicMode = IsPublicMode();
+        var displayText = (publicMode && task.IsPrivate)
+            ? (string.IsNullOrWhiteSpace(task.Impact) ? "(private)" : task.Impact)
+            : task.Title;
+        row.Add(new Label { Text = task.IsCompleted ? $"✓ {displayText}" : displayText, FontSize = 14, TextColor = task.IsCompleted ? Color.FromArgb("#8A8A8A") : Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center }, 0, 0);
         var copy = MakeButton("Copy", "#E3F2FD", "#1565C0");
-        copy.Clicked += async (_, _) => await Clipboard.SetTextAsync(task.Title);
+        copy.Clicked += async (_, _) =>
+        {
+            var publicMode = IsPublicMode();
+            var copyText = (publicMode && task.IsPrivate)
+                ? (string.IsNullOrWhiteSpace(task.Impact) ? "(private)" : task.Impact)
+                : task.Title;
+            await Clipboard.SetTextAsync(copyText);
+        };
         row.Add(copy, 1, 0);
         if (!task.IsCompleted && pendingTest)
         {
