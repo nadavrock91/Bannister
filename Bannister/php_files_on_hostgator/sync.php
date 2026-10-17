@@ -11,7 +11,9 @@
  *   POST ?action=register     - Register a new user
  *   POST ?action=queue_upload - Upload pending operations from a secondary device
  *   GET  ?action=queue_download - Download merged pending operations (for master)
- *   POST ?action=queue_clear  - Mark applied operation UUIDs as cleared
+ *   POST ?action=queue_clear  - Move applied operation UUIDs to the archive
+ *   GET  ?action=queue_archive_download - Download merged archived operations
+ *   POST ?action=queue_archive_clear - Delete all archived operations
  */
 
 if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
@@ -116,6 +118,11 @@ function queue_path(string $root, string $user, string $deviceId): string
     return user_dir($root, $user) . '/operation_queue_' . $deviceId . '.json';
 }
 
+function queue_archive_path(string $root, string $user, string $deviceId): string
+{
+    return user_dir($root, $user) . '/operation_archive_' . $deviceId . '.json';
+}
+
 function write_json_atomic(string $path, array $data): void
 {
     $tmp = $path . '.tmp';
@@ -209,6 +216,30 @@ if ($method === 'GET' && $action === 'queue_download') {
     ok(['operations' => $allOps]);
 }
 
+if ($method === 'GET' && $action === 'queue_archive_download') {
+    $dir = user_dir($STORAGE_ROOT, $user);
+    $files = glob("$dir/operation_archive_*.json") ?: [];
+    $allOps = [];
+    foreach ($files as $file) {
+        $data = read_json($file);
+        if ($data === null) continue;
+        if (!isset($data['operations']) || !is_array($data['operations'])) continue;
+        $basename = basename($file);
+        $deviceId = preg_replace('/^operation_archive_(.+)\.json$/', '$1', $basename);
+        foreach ($data['operations'] as $op) {
+            if (!is_array($op)) continue;
+            $op['device_id'] = $deviceId;
+            $allOps[] = $op;
+        }
+    }
+    usort($allOps, function ($a, $b) {
+        $aTime = $a['created_at'] ?? '';
+        $bTime = $b['created_at'] ?? '';
+        return strcmp($aTime, $bTime);
+    });
+    ok(['operations' => $allOps]);
+}
+
 if ($method === 'POST' && $action === 'queue_clear') {
     $raw = file_get_contents('php://input');
     if ($raw === false || $raw === '') fail(400, 'Empty request body');
@@ -224,15 +255,41 @@ if ($method === 'POST' && $action === 'queue_clear') {
         $data = read_json($file);
         if ($data === null) continue;
         if (!isset($data['operations']) || !is_array($data['operations'])) continue;
+        $basename = basename($file);
+        $deviceId = preg_replace('/^operation_queue_(.+)\.json$/', '$1', $basename);
         $remaining = [];
+        $newlyArchived = [];
         foreach ($data['operations'] as $op) {
             $uuid = isset($op['uuid']) ? (string)$op['uuid'] : '';
             if ($uuid !== '' && isset($appliedSet[$uuid])) {
+                $op['applied_at'] = gmdate('c');
+                $newlyArchived[] = $op;
                 $removedCount++;
                 continue;
             }
             $remaining[] = $op;
         }
+
+        if (count($newlyArchived) > 0) {
+            $archivePath = queue_archive_path($STORAGE_ROOT, $user, $deviceId);
+            $archiveData = read_json($archivePath);
+            if ($archiveData === null ||
+                !isset($archiveData['operations']) ||
+                !is_array($archiveData['operations'])) {
+                $archiveData = [
+                    'device_id' => $deviceId,
+                    'operations' => [],
+                ];
+            }
+            $archiveData['device_id'] = $deviceId;
+            $archiveData['updated_at'] = time();
+            $archiveData['operations'] = array_merge(
+                $archiveData['operations'],
+                $newlyArchived
+            );
+            write_json_atomic($archivePath, $archiveData);
+        }
+
         if (count($remaining) === 0) {
             @unlink($file);
         } else {
@@ -241,6 +298,20 @@ if ($method === 'POST' && $action === 'queue_clear') {
         }
     }
     ok(['success' => true, 'removed_count' => $removedCount]);
+}
+
+if ($method === 'POST' && $action === 'queue_archive_clear') {
+    $dir = user_dir($STORAGE_ROOT, $user);
+    $files = glob("$dir/operation_archive_*.json") ?: [];
+    $clearedCount = 0;
+    foreach ($files as $file) {
+        $data = read_json($file);
+        if ($data !== null && isset($data['operations']) && is_array($data['operations'])) {
+            $clearedCount += count($data['operations']);
+        }
+        @unlink($file);
+    }
+    ok(['success' => true, 'cleared_count' => $clearedCount]);
 }
 
 $path = db_path($STORAGE_ROOT, $user);

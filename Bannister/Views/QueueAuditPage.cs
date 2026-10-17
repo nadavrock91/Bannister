@@ -13,13 +13,15 @@ public class QueueAuditPage : ContentPage
     private readonly DatabaseService _db;
 
     private readonly Label _databaseCountLabel;
-    private readonly Label _queueCountLabel;
+    private readonly Label _pendingCountLabel;
+    private readonly Label _archiveCountLabel;
     private readonly Label _matchedCountLabel;
     private readonly Label _unmatchedCountLabel;
     private readonly Label _statusLabel;
     private readonly VerticalStackLayout _unmatchedSections;
     private readonly Button _refreshButton;
     private readonly Button _uploadPendingButton;
+    private readonly Button _clearArchiveButton;
     private readonly ActivityIndicator _busyIndicator;
 
     public QueueAuditPage(
@@ -37,7 +39,8 @@ public class QueueAuditPage : ContentPage
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
         _databaseCountLabel = CreateSummaryLabel("Database: 0 ideas", "#333333");
-        _queueCountLabel = CreateSummaryLabel("Queue: 0 idea operations logged", "#333333");
+        _pendingCountLabel = CreateSummaryLabel("Pending on server: 0", "#EF6C00");
+        _archiveCountLabel = CreateSummaryLabel("Archived (applied): 0", "#2E7D32");
         _matchedCountLabel = CreateSummaryLabel("✅ Matched: 0", "#2E7D32");
         _unmatchedCountLabel = CreateSummaryLabel("⚠️ Not in database: 0", "#EF6C00");
         _statusLabel = new Label
@@ -66,6 +69,15 @@ public class QueueAuditPage : ContentPage
         };
         _uploadPendingButton.Clicked += OnUploadPendingClicked;
 
+        _clearArchiveButton = new Button
+        {
+            Text = "Clear Archive",
+            BackgroundColor = Color.FromArgb("#C62828"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        _clearArchiveButton.Clicked += OnClearArchiveClicked;
+
         _busyIndicator = new ActivityIndicator
         {
             Color = Color.FromArgb("#5B63EE"),
@@ -78,12 +90,14 @@ public class QueueAuditPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star }
             },
             ColumnSpacing = 10
         };
         buttonGrid.Add(_refreshButton, 0, 0);
         buttonGrid.Add(_uploadPendingButton, 1, 0);
+        buttonGrid.Add(_clearArchiveButton, 2, 0);
 
         var summaryFrame = new Frame
         {
@@ -97,7 +111,8 @@ public class QueueAuditPage : ContentPage
                 Children =
                 {
                     _databaseCountLabel,
-                    _queueCountLabel,
+                    _pendingCountLabel,
+                    _archiveCountLabel,
                     _matchedCountLabel,
                     _unmatchedCountLabel
                 }
@@ -118,13 +133,6 @@ public class QueueAuditPage : ContentPage
                         FontSize = 28,
                         FontAttributes = FontAttributes.Bold,
                         TextColor = Color.FromArgb("#333333")
-                    },
-                    new Label
-                    {
-                        Text = "This audit covers pending server operations only. Already-applied operations are removed from the server queue and are not available through the sync API.",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#666666"),
-                        LineBreakMode = LineBreakMode.WordWrap
                     },
                     buttonGrid,
                     _busyIndicator,
@@ -159,16 +167,23 @@ public class QueueAuditPage : ContentPage
         {
             var activeIdeasTask = _ideas.GetIdeasAsync(_auth.CurrentUsername);
             var archivedIdeasTask = _ideas.GetArchivedIdeasAsync(_auth.CurrentUsername);
-            var queueTask = _sync.DownloadQueueAsync();
-            await Task.WhenAll(activeIdeasTask, archivedIdeasTask, queueTask);
+            var pendingQueueTask = _sync.DownloadQueueAsync();
+            var queueArchiveTask = _sync.DownloadQueueArchiveAsync();
+            await Task.WhenAll(activeIdeasTask, archivedIdeasTask, pendingQueueTask, queueArchiveTask);
 
             var allIdeas = activeIdeasTask.Result
                 .Concat(archivedIdeasTask.Result)
                 .GroupBy(idea => idea.Id)
                 .Select(group => group.First())
                 .ToList();
-            var ideaOperations = queueTask.Result
+            var pendingIdeaOperations = pendingQueueTask.Result
                 .Where(operation => operation.OperationType == "idea_logged")
+                .ToList();
+            var archivedIdeaOperations = queueArchiveTask.Result
+                .Where(operation => operation.OperationType == "idea_logged")
+                .ToList();
+            var ideaOperations = pendingIdeaOperations
+                .Concat(archivedIdeaOperations)
                 .ToList();
 
             var databaseKeys = allIdeas
@@ -183,7 +198,8 @@ public class QueueAuditPage : ContentPage
             int matchedCount = decodedOperations.Count - unmatched.Count;
 
             _databaseCountLabel.Text = $"Database: {allIdeas.Count} ideas";
-            _queueCountLabel.Text = $"Queue: {ideaOperations.Count} idea operations logged";
+            _pendingCountLabel.Text = $"Pending on server: {pendingIdeaOperations.Count}";
+            _archiveCountLabel.Text = $"Archived (applied): {archivedIdeaOperations.Count}";
             _matchedCountLabel.Text = $"✅ Matched: {matchedCount}";
             _unmatchedCountLabel.Text = $"⚠️ Not in database: {unmatched.Count}";
             _statusLabel.Text = "";
@@ -341,12 +357,49 @@ public class QueueAuditPage : ContentPage
         }
     }
 
+    private async void OnClearArchiveClicked(object? sender, EventArgs e)
+    {
+        bool confirmed = await DisplayAlert(
+            "Clear Queue Archive?",
+            "This permanently deletes all archived queue operations from the server.",
+            "Clear Archive",
+            "Cancel");
+        if (!confirmed)
+            return;
+
+        SetBusy(true);
+        _statusLabel.Text = "Clearing queue archive...";
+        _statusLabel.TextColor = Color.FromArgb("#5B63EE");
+
+        try
+        {
+            var result = await _sync.ClearQueueArchiveAsync();
+            _statusLabel.Text = result.Message;
+            _statusLabel.TextColor = result.Success
+                ? Color.FromArgb("#2E7D32")
+                : Color.FromArgb("#C62828");
+
+            if (result.Success)
+                await LoadAuditAsync();
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.Text = $"Queue archive clear failed: {ex.Message}";
+            _statusLabel.TextColor = Color.FromArgb("#C62828");
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
     private void SetBusy(bool isBusy)
     {
         _busyIndicator.IsVisible = isBusy;
         _busyIndicator.IsRunning = isBusy;
         _refreshButton.IsEnabled = !isBusy;
         _uploadPendingButton.IsEnabled = !isBusy;
+        _clearArchiveButton.IsEnabled = !isBusy;
     }
 
     private static Label CreateSummaryLabel(string text, string color) => new()

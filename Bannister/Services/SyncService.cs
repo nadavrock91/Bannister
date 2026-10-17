@@ -388,6 +388,102 @@ public class SyncService
         return result;
     }
 
+    public async Task<List<QueuedOperation>> DownloadQueueArchiveAsync()
+    {
+        var (url, headers) = await BuildRequestAsync(action: "queue_archive_download");
+        if (url == null) return new List<QueuedOperation>();
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        foreach (var h in headers) request.Headers.Add(h.Key, h.Value);
+
+        using var response = await _http.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Queue archive download failed ({(int)response.StatusCode}): {ExtractServerError(body, Trim(body, 200))}");
+
+        using var doc = JsonDocument.Parse(body);
+        if (!doc.RootElement.TryGetProperty("operations", out var operations) ||
+            operations.ValueKind != JsonValueKind.Array)
+            return new List<QueuedOperation>();
+
+        var result = new List<QueuedOperation>();
+        foreach (var item in operations.EnumerateArray())
+        {
+            var payloadJson = item.TryGetProperty("payload", out var payload)
+                ? payload.ValueKind == JsonValueKind.String
+                    ? payload.GetString() ?? ""
+                    : payload.GetRawText()
+                : "";
+
+            DateTime createdAt = DateTime.UtcNow;
+            if (item.TryGetProperty("created_at", out var created) &&
+                DateTime.TryParse(created.GetString(), null, System.Globalization.DateTimeStyles.AdjustToUniversal, out var parsed))
+            {
+                createdAt = parsed.ToUniversalTime();
+            }
+
+            DateTime? appliedAt = null;
+            if (item.TryGetProperty("applied_at", out var applied) &&
+                DateTime.TryParse(applied.GetString(), null, System.Globalization.DateTimeStyles.AdjustToUniversal, out var parsedApplied))
+            {
+                appliedAt = parsedApplied.ToUniversalTime();
+            }
+
+            result.Add(new QueuedOperation
+            {
+                Uuid = item.TryGetProperty("uuid", out var uuid) ? uuid.GetString() ?? "" : "",
+                OperationType = item.TryGetProperty("operation_type", out var type) ? type.GetString() ?? "" : "",
+                PayloadJson = payloadJson,
+                CreatedAt = createdAt,
+                AppliedAt = appliedAt,
+                SourceDeviceId = item.TryGetProperty("device_id", out var deviceId) ? deviceId.GetString() : null,
+                Status = 2
+            });
+        }
+
+        return result;
+    }
+
+    public async Task<SyncResult> ClearQueueArchiveAsync()
+    {
+        var (url, headers) = await BuildRequestAsync(action: "queue_archive_clear");
+        if (url == null) return Fail("Sync server is not configured.");
+
+        try
+        {
+            using var content = new StringContent("{}", Encoding.UTF8, "application/json");
+            using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            foreach (var h in headers) request.Headers.Add(h.Key, h.Value);
+
+            using var response = await _http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+                return Fail($"Queue archive clear failed ({(int)response.StatusCode}): {ExtractServerError(body, Trim(body, 200))}");
+
+            int clearedCount = 0;
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("cleared_count", out var count))
+                    clearedCount = count.GetInt32();
+            }
+            catch
+            {
+                // Keep the default count when the server omits it.
+            }
+
+            return new SyncResult
+            {
+                Success = true,
+                Message = $"Cleared {clearedCount} archived {(clearedCount == 1 ? "operation" : "operations")}."
+            };
+        }
+        catch (Exception ex)
+        {
+            return Fail($"Queue archive clear error: {ex.Message}");
+        }
+    }
+
     public async Task<SyncResult> ClearAppliedFromServerAsync(List<string> uuids)
     {
         var (url, headers) = await BuildRequestAsync(action: "queue_clear");
