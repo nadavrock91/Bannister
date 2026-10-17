@@ -400,7 +400,7 @@ public class GameCatchUpPage : ContentPage
                 await _exp.ApplyExpAsync(
                     _auth.CurrentUsername,
                     gameId,
-                    $"{activity.Name} (Catch-Up Streak Bonus)",
+                    $"{(activity.IsImageOnly ? "" : activity.Name)} (Catch-Up Streak Bonus)",
                     streakBonus,
                     activity.Id,
                     localNoon);

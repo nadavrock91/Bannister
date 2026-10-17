@@ -994,6 +994,7 @@ public partial class ActivityGamePage
         }
         else if (result == "Run SQL (Dev)")
         {
+            await Task.Delay(300);
             await RunDevSqlAsync();
         }
         else if (result == "Reset Load Prompts")
@@ -1021,7 +1022,7 @@ public partial class ActivityGamePage
     private async Task RunDevSqlAsync()
     {
         var inputPage = new SqlInputPage();
-        await Navigation.PushAsync(inputPage);
+        await Navigation.PushModalAsync(inputPage);
         
         string? sql = await inputPage.WaitForResultAsync();
 

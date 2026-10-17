@@ -113,7 +113,7 @@ public class SqlInputPage : ContentPage
     private async void Close(string? result)
     {
         _tcs.TrySetResult(result);
-        await Navigation.PopAsync(animated: false);
+        await Navigation.PopModalAsync(animated: false);
     }
 
     protected override void OnDisappearing()
