@@ -305,39 +305,145 @@ public class ListsPage : ContentPage
             return;
         }
 
-        string? text = await DisplayPromptAsync("New Item", "Item text:", "Add", "Cancel", placeholder: "Item...");
-        if (string.IsNullOrWhiteSpace(text))
+        var inputPage = new MultiLineItemInputPage();
+        await Navigation.PushModalAsync(new NavigationPage(inputPage));
+        string? result = await inputPage.WaitForResultAsync();
+        if (string.IsNullOrWhiteSpace(result))
             return;
 
-        string? notes = await DisplayPromptAsync("Notes", "Optional notes:", "Save", "Skip", initialValue: "");
-        string? priorityStr = await DisplayActionSheet("Priority", "Skip (None)", null, " High", " Medium", " Low");
-        int priority = priorityStr switch
-        {
-            " High" => 1,
-            " Medium" => 2,
-            " Low" => 3,
-            _ => 0
-        };
-        await _lists.AddItemAsync(_selectedList.Id, text.Trim(), notes ?? "", priority);
+        var lines = result.Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => !string.IsNullOrEmpty(line))
+            .ToList();
+        if (lines.Count == 0)
+            return;
 
-        // Offer to also log to Idea Logger
-        bool logIdea = await DisplayAlert(
-            "Log as Idea?",
-            "Would you also like to log " +
-            $"\"{text.Trim()}\" to the Idea Logger?",
-            "Yes, Log It",
-            "No Thanks");
-
-        if (logIdea)
+        if (lines.Count == 1)
         {
-            await _ideaLogger.LogIdeaAsync(
-                this,
-                _auth.CurrentUsername,
-                text.Trim(),
-                notes ?? "");
+            string line = lines[0];
+            string? notes = await DisplayPromptAsync("Notes", "Optional notes:", "Save", "Skip", initialValue: "");
+            string? priorityStr = await DisplayActionSheet("Priority", "Skip (None)", null, " High", " Medium", " Low");
+            int priority = priorityStr switch
+            {
+                " High" => 1,
+                " Medium" => 2,
+                " Low" => 3,
+                _ => 0
+            };
+            await _lists.AddItemAsync(_selectedList.Id, line, notes ?? "", priority);
+
+            // Offer to also log to Idea Logger
+            bool logIdea = await DisplayAlert(
+                "Log as Idea?",
+                "Would you also like to log " +
+                $"\"{line}\" to the Idea Logger?",
+                "Yes, Log It",
+                "No Thanks");
+
+            if (logIdea)
+            {
+                await _ideaLogger.LogIdeaAsync(
+                    this,
+                    _auth.CurrentUsername,
+                    line,
+                    notes ?? "");
+            }
+        }
+        else
+        {
+            foreach (string line in lines)
+                await _lists.AddItemAsync(_selectedList.Id, line, "", 0);
         }
 
         await LoadItemsAsync();
+    }
+
+    private sealed class MultiLineItemInputPage : ContentPage
+    {
+        private readonly TaskCompletionSource<string?> _resultSource = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly Editor _editor;
+        private bool _isClosing;
+
+        public MultiLineItemInputPage()
+        {
+            Title = "Add Items";
+            BackgroundColor = Color.FromArgb("#F5F5F5");
+
+            _editor = new Editor
+            {
+                Placeholder = "One item per line...",
+                HeightRequest = 220,
+                AutoSize = EditorAutoSizeOption.Disabled,
+                BackgroundColor = Colors.White,
+                VerticalOptions = LayoutOptions.Start
+            };
+
+            var addButton = new Button
+            {
+                Text = "Add",
+                BackgroundColor = Color.FromArgb("#1565C0"),
+                TextColor = Colors.White,
+                CornerRadius = 6
+            };
+            addButton.Clicked += async (_, _) => await CloseAsync(_editor.Text);
+
+            var cancelButton = new Button
+            {
+                Text = "Cancel",
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#37474F"),
+                CornerRadius = 6
+            };
+            cancelButton.Clicked += async (_, _) => await CloseAsync(null);
+
+            Content = new VerticalStackLayout
+            {
+                Padding = new Thickness(20),
+                Spacing = 12,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Enter one item per line.",
+                        FontSize = 16,
+                        TextColor = Color.FromArgb("#333333")
+                    },
+                    _editor,
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 10,
+                        HorizontalOptions = LayoutOptions.End,
+                        Children = { cancelButton, addButton }
+                    }
+                }
+            };
+        }
+
+        public Task<string?> WaitForResultAsync() => _resultSource.Task;
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            _editor.Focus();
+        }
+
+        protected override void OnDisappearing()
+        {
+            if (!_isClosing)
+                _resultSource.TrySetResult(null);
+            base.OnDisappearing();
+        }
+
+        private async Task CloseAsync(string? result)
+        {
+            if (_isClosing)
+                return;
+
+            _isClosing = true;
+            await Navigation.PopModalAsync();
+            _resultSource.TrySetResult(result);
+        }
     }
 
     private async Task DeleteSelectedItemAsync()
