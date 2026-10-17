@@ -35,7 +35,10 @@ public static class TaskCreationHelper
                     .ToList();
         }
 
-        var tcs = new TaskCompletionSource<(string? text, string? category)?>();
+        var tcs = new TaskCompletionSource<(
+            string? text,
+            string? category,
+            string? impact)?>();
         var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
 
         var editor = new Editor
@@ -47,6 +50,15 @@ public static class TaskCreationHelper
             PlaceholderColor = Color.FromArgb("#888"),
             Placeholder = "Describe the task...",
             FontSize = 13
+        };
+
+        var impactEntry = new Entry
+        {
+            Placeholder = "Impact (public summary)",
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#888")
         };
 
         string selectedCategory = fixedCategory ?? "";
@@ -194,7 +206,10 @@ public static class TaskCreationHelper
             page.Content = rootGrid;
         }
 
-        void CloseOverlay((string? text, string? category)? result)
+        void CloseOverlay((
+            string? text,
+            string? category,
+            string? impact)? result)
         {
             rootGrid.Children.Remove(overlay);
             tcs.TrySetResult(result);
@@ -227,7 +242,10 @@ public static class TaskCreationHelper
                 }
             }
 
-            CloseOverlay((editor.Text, selectedCategory));
+            CloseOverlay((
+                editor.Text,
+                selectedCategory,
+                impactEntry.Text));
         };
         cancelBtn.Clicked += (_, _) => CloseOverlay(null);
 
@@ -253,6 +271,13 @@ public static class TaskCreationHelper
                         TextColor = Color.FromArgb("#7B1FA2")
                     },
                     editor,
+                    new Label
+                    {
+                        Text = "Impact (public summary)",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#666")
+                    },
+                    impactEntry,
                     categorySection,
                     new HorizontalStackLayout
                     {
@@ -278,6 +303,7 @@ public static class TaskCreationHelper
         if (result == null || string.IsNullOrWhiteSpace(result.Value.text)) return null;
         string title = result.Value.text.Trim();
         string category = result.Value.category ?? "General";
+        string impact = result.Value.impact?.Trim() ?? "";
 
         string? priorityInput = await page.DisplayPromptAsync(
             "Priority",
@@ -291,7 +317,12 @@ public static class TaskCreationHelper
             || priority < 0)
             priority = 0;
 
-        var newTask = await tasks.CreateTaskAsync(auth.CurrentUsername, title, category, priority);
+        var newTask = await tasks.CreateTaskAsync(
+            auth.CurrentUsername,
+            title,
+            category,
+            priority,
+            impact: impact);
         if (markAsTopCandidate)
         {
             newTask.IsTopCandidate = true;

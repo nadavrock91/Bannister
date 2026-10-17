@@ -15,6 +15,7 @@ public class TasksPage : ContentPage
     private readonly SequenceTaskService _sequenceTaskService;
     private readonly IdeasService? _ideasService;
     private readonly DatabaseService? _db;
+    private readonly PrivacyModeService _privacyMode;
     
     // UI
     private Label _headerLabel;
@@ -62,7 +63,14 @@ public class TasksPage : ContentPage
     private bool _sortAscending = false;
     private DataGridView? _mainDataGrid;
 
-    public TasksPage(AuthService auth, TaskService tasks, WeeklyChallengeService challengeService, SequenceTaskService sequenceTaskService, IdeasService? ideasService = null, DatabaseService? db = null)
+    public TasksPage(
+        AuthService auth,
+        TaskService tasks,
+        WeeklyChallengeService challengeService,
+        SequenceTaskService sequenceTaskService,
+        IdeasService? ideasService = null,
+        DatabaseService? db = null,
+        PrivacyModeService? privacyMode = null)
     {
         _auth = auth;
         _tasks = tasks;
@@ -70,6 +78,11 @@ public class TasksPage : ContentPage
         _sequenceTaskService = sequenceTaskService;
         _ideasService = ideasService;
         _db = db;
+        _privacyMode = privacyMode
+            ?? Application.Current?.Handler?.MauiContext?.Services
+                .GetService<PrivacyModeService>()
+            ?? throw new InvalidOperationException(
+                "PrivacyModeService not available");
         
         Title = "Tasks";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -764,14 +777,19 @@ public class TasksPage : ContentPage
             return;
         }
 
-        var columns = new List<string> { "Id", "Status", "Title", "Category", "Priority", "DueDate", "Notes", "CreatedAt", "CompletedAt" };
+        var displayMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        bool isPublicMode = displayMode == ActivityDisplayMode.PublicOnly;
+        var columns = isPublicMode
+            ? new List<string> { "Id", "Status", "Impact", "Category", "Priority", "DueDate", "CreatedAt", "CompletedAt" }
+            : new List<string> { "Id", "Status", "Title", "Category", "Priority", "DueDate", "Impact", "Notes", "CreatedAt", "CompletedAt" };
         var headers = columns.ToList();
         var displayRows = new List<List<string>>();
         var fullRows = new List<List<string>>();
 
         foreach (var task in tasks)
         {
-            var row = BuildTaskGridRow(task);
+            var row = BuildTaskGridRow(task, isPublicMode);
             fullRows.Add(row);
             displayRows.Add(row.Select(v => v.Length > 50 ? v.Substring(0, 47) + "..." : v).ToList());
         }
@@ -884,8 +902,25 @@ public class TasksPage : ContentPage
         return frame;
     }
 
-    private static List<string> BuildTaskGridRow(TaskItem task)
+    private static List<string> BuildTaskGridRow(
+        TaskItem task,
+        bool isPublicMode)
     {
+        if (isPublicMode)
+        {
+            return new List<string>
+            {
+                task.Id.ToString(),
+                GetTaskStatusText(task),
+                task.Impact,
+                task.Category,
+                task.Priority.ToString(),
+                task.DueDate?.ToString("yyyy-MM-dd") ?? "",
+                task.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
+                task.CompletedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? ""
+            };
+        }
+
         return new List<string>
         {
             task.Id.ToString(),
@@ -894,6 +929,7 @@ public class TasksPage : ContentPage
             task.Category,
             task.Priority.ToString(),
             task.DueDate?.ToString("yyyy-MM-dd") ?? "",
+            task.Impact,
             task.Notes ?? "",
             task.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
             task.CompletedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? ""
@@ -952,6 +988,9 @@ public class TasksPage : ContentPage
             case "Notes":
                 task.Notes = newValue == "NULL" ? "" : newValue;
                 break;
+            case "Impact":
+                task.Impact = newValue == "NULL" ? "" : newValue;
+                break;
             case "Status":
                 if (newValue.Equals("Done", StringComparison.OrdinalIgnoreCase) ||
                     newValue.Equals("Completed", StringComparison.OrdinalIgnoreCase) ||
@@ -996,8 +1035,11 @@ public class TasksPage : ContentPage
         _selectedTask = task;
         _detailPanel.IsVisible = true;
 
-        _detailTitle.Text = task.Title;
-        _detailNotes.Text = task.Notes ?? "";
+        var displayMode = _privacyMode.GetDisplayMode(
+            _auth.CurrentUsername);
+        bool isPublicMode = displayMode == ActivityDisplayMode.PublicOnly;
+        _detailTitle.Text = isPublicMode ? task.Impact : task.Title;
+        _detailNotes.Text = isPublicMode ? "" : task.Notes ?? "";
 
         var meta = $"📁 {task.Category}";
         meta += $" • Priority: {task.Priority}";

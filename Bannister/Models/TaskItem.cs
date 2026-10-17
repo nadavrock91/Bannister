@@ -16,6 +16,10 @@ public class TaskItem
     public string Category { get; set; } = "General";
     
     public string Notes { get; set; } = "";
+
+    public string Impact { get; set; } = "";
+
+    public bool IsPrivate { get; set; } = false;
     
     public bool IsCompleted { get; set; } = false;
 

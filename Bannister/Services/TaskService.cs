@@ -22,6 +22,8 @@ public class TaskService
             await conn.CreateTableAsync<TaskItem>();
             try { await conn.ExecuteAsync("ALTER TABLE tasks ADD COLUMN RoutineId INTEGER"); } catch { }
             try { await conn.ExecuteAsync("ALTER TABLE tasks ADD COLUMN IsTopCandidate INTEGER DEFAULT 0"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE tasks ADD COLUMN Impact TEXT NOT NULL DEFAULT ''"); } catch { }
+            try { await conn.ExecuteAsync("ALTER TABLE tasks ADD COLUMN IsPrivate INTEGER NOT NULL DEFAULT 0"); } catch { }
         }
         _initialized = true;
     }
@@ -74,7 +76,15 @@ public class TaskService
             .ToList();
     }
 
-    public async Task<TaskItem> CreateTaskAsync(string username, string title, string category = "General", int priority = 0, DateTime? dueDate = null, string notes = "")
+    public async Task<TaskItem> CreateTaskAsync(
+        string username,
+        string title,
+        string category = "General",
+        int priority = 0,
+        DateTime? dueDate = null,
+        string notes = "",
+        string impact = "",
+        bool isPrivate = false)
     {
         await EnsureInitializedAsync();
         var task = new TaskItem
@@ -85,6 +95,8 @@ public class TaskService
             Priority = priority,
             DueDate = dueDate,
             Notes = notes,
+            Impact = impact,
+            IsPrivate = isPrivate,
             CreatedAt = DateTime.UtcNow
         };
 
