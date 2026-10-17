@@ -21,6 +21,8 @@ public class SyncSettingsPage : ContentPage
     private readonly SharedActivityService _sharedActivityService;
     private readonly ExpService _expService;
     private readonly StreakService _streakService;
+    private readonly IdeasService _ideas;
+    private readonly OperationQueueService _operationQueue;
 
     private RadioButton _rbMaster;
     private RadioButton _rbSecondary;
@@ -55,7 +57,9 @@ public class SyncSettingsPage : ContentPage
         PendingActivityIdeaService pendingIdeas,
         SharedActivityService sharedActivityService,
         ExpService expService,
-        StreakService streakService)
+        StreakService streakService,
+        IdeasService ideas,
+        OperationQueueService operationQueue)
     {
         _deviceMode = deviceMode;
         _sync = sync;
@@ -69,6 +73,8 @@ public class SyncSettingsPage : ContentPage
         _sharedActivityService = sharedActivityService;
         _expService = expService;
         _streakService = streakService;
+        _ideas = ideas;
+        _operationQueue = operationQueue;
 
         Title = "Sync & Devices";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -365,6 +371,23 @@ public class SyncSettingsPage : ContentPage
         };
         _btnApplyQueuedOps.Clicked += OnApplyQueuedOperationsClicked;
         stack.Children.Add(_btnApplyQueuedOps);
+
+        var queueAuditButton = new Button
+        {
+            Text = "Queue Audit",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            CornerRadius = 8,
+            HeightRequest = 44
+        };
+        queueAuditButton.Clicked += async (_, _) =>
+            await Navigation.PushAsync(new QueueAuditPage(
+                _auth,
+                _ideas,
+                _operationQueue,
+                _sync,
+                _db));
+        stack.Children.Add(queueAuditButton);
 
         var sharedBtn = new Button
         {

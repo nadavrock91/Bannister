@@ -73,6 +73,14 @@ public class OperationQueueService
             .ToListAsync();
     }
 
+    public async Task<List<QueuedOperation>> GetAllAsync()
+    {
+        await InitAsync();
+        return await _conn!.Table<QueuedOperation>()
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task<int> GetPendingCountAsync()
     {
         await InitAsync();
