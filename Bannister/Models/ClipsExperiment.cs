@@ -17,6 +17,7 @@ public class ClipsPost
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }
     public int ExperimentId { get; set; }
+    public int? ExperimentItemId { get; set; }
     public string Title { get; set; } = "";
     public string Concept { get; set; } = "";
     public DateTime PostedDate { get; set; } = DateTime.Today;

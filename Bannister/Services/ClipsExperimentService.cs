@@ -15,6 +15,7 @@ public class ClipsExperimentService
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<ClipsExperiment>();
         await conn.CreateTableAsync<ClipsPost>();
+        try { await conn.ExecuteAsync("ALTER TABLE ClipsPost ADD COLUMN ExperimentItemId INTEGER"); } catch { }
         await conn.CreateTableAsync<ClipsDataPoint>();
         await conn.CreateTableAsync<ClipsExperimentItem>();
         try { await conn.ExecuteAsync("ALTER TABLE ClipsExperimentItem ADD COLUMN StartDate TEXT"); } catch { }
@@ -69,6 +70,16 @@ public class ClipsExperimentService
             await conn.InsertAsync(post);
         else
             await conn.UpdateAsync(post);
+    }
+
+    public async Task<List<ClipsPost>> GetPostsByExperimentAsync(int experimentItemId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<ClipsPost>()
+            .Where(post => post.ExperimentItemId == experimentItemId)
+            .OrderByDescending(post => post.PostedDate)
+            .ToListAsync();
     }
 
     public async Task DeletePostAsync(int id)
@@ -166,6 +177,16 @@ public class ClipsExperimentService
         var experimentItem = await conn.FindAsync<ClipsExperimentItem>(id);
         if (experimentItem == null) return;
         experimentItem.IsRun = true;
+        await conn.UpdateAsync(experimentItem);
+    }
+
+    public async Task UnmarkExperimentItemRunAsync(int id)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var experimentItem = await conn.FindAsync<ClipsExperimentItem>(id);
+        if (experimentItem == null) return;
+        experimentItem.IsRun = false;
         await conn.UpdateAsync(experimentItem);
     }
 

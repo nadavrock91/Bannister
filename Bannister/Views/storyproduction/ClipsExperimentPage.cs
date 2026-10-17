@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using System.Globalization;
 using System.Text;
 
 namespace Bannister.Views;
@@ -303,6 +304,30 @@ public class ClipsExperimentPage : ContentPage
                 FontAttributes = FontAttributes.Italic
             });
         }
+        var assignExperiment = MakeButton("Assign Experiment", "#E3F2FD", Color.FromArgb("#1565C0"));
+        assignExperiment.FontSize = 10;
+        assignExperiment.HeightRequest = 32;
+        assignExperiment.HorizontalOptions = LayoutOptions.Start;
+        assignExperiment.Clicked += async (_, _) =>
+        {
+            if (experimentItems.Count == 0)
+            {
+                await DisplayAlert("Assign Experiment", "No experiment items are available.", "OK");
+                return;
+            }
+
+            var choices = experimentItems
+                .Select(item => $"{item.Title} — {FormatDateRange(item)}")
+                .ToArray();
+            var selection = await DisplayActionSheet("Assign Experiment", "Cancel", null, choices);
+            if (string.IsNullOrWhiteSpace(selection) || selection == "Cancel") return;
+            var selectedIndex = Array.IndexOf(choices, selection);
+            if (selectedIndex < 0) return;
+            post.ExperimentItemId = experimentItems[selectedIndex].Id;
+            await _service.SavePostAsync(post);
+            await RefreshAsync();
+        };
+        stack.Children.Add(assignExperiment);
         var retentionParts = new List<string>();
         if (post.Retention10s.HasValue)
             retentionParts.Add($"10s: {post.Retention10s.Value:F0}%");
@@ -596,6 +621,9 @@ public class ClipsExperimentPage : ContentPage
             var buttons = new HorizontalStackLayout { Spacing = 8 };
             if (canMarkRun)
             {
+                var setActive = MakeButton("Set as Active", "#E3F2FD", Color.FromArgb("#1565C0"));
+                setActive.Clicked += async (_, _) => await SetExperimentActiveAsync(item);
+                buttons.Children.Add(setActive);
                 var markRun = MakeButton("Mark as Run", "#2E7D32", Colors.White);
                 markRun.Clicked += async (_, _) =>
                 {
@@ -603,6 +631,16 @@ public class ClipsExperimentPage : ContentPage
                     await RefreshAsync();
                 };
                 buttons.Children.Add(markRun);
+            }
+            else
+            {
+                var moveToNotRun = MakeButton("Move to Not Run", "#FFF3E0", Color.FromArgb("#E65100"));
+                moveToNotRun.Clicked += async (_, _) =>
+                {
+                    await _service.UnmarkExperimentItemRunAsync(item.Id);
+                    await RefreshAsync();
+                };
+                buttons.Children.Add(moveToNotRun);
             }
             var delete = MakeButton("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
             delete.Clicked += async (_, _) =>
@@ -615,6 +653,38 @@ public class ClipsExperimentPage : ContentPage
             stack.Children.Add(buttons);
             _content.Children.Add(MakeCard(stack));
         }
+    }
+
+    private async Task SetExperimentActiveAsync(ClipsExperimentItem item)
+    {
+        var startText = await DisplayPromptAsync(
+            "Set Start Date",
+            "Enter the start date (MM/dd/yyyy).",
+            initialValue: (item.StartDate ?? DateTime.Today).ToString("MM/dd/yyyy"));
+        if (startText == null) return;
+
+        var endText = await DisplayPromptAsync(
+            "Set End Date",
+            "Enter the end date (MM/dd/yyyy).",
+            initialValue: (item.EndDate ?? DateTime.Today.AddDays(6)).ToString("MM/dd/yyyy"));
+        if (endText == null) return;
+
+        if (!DateTime.TryParseExact(startText.Trim(), "MM/dd/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) ||
+            !DateTime.TryParseExact(endText.Trim(), "MM/dd/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
+        {
+            await DisplayAlert("Invalid Dates", "Enter both dates in MM/dd/yyyy format.", "OK");
+            return;
+        }
+        if (endDate < startDate)
+        {
+            await DisplayAlert("Invalid Dates", "End date must be on or after the start date.", "OK");
+            return;
+        }
+
+        item.StartDate = startDate.Date;
+        item.EndDate = endDate.Date;
+        await _service.SaveExperimentItemAsync(item);
+        await RefreshAsync();
     }
 
     private static string BuildExperimentIdeasPrompt(
@@ -710,12 +780,8 @@ public class ClipsExperimentPage : ContentPage
         ClipsPost post,
         IEnumerable<ClipsExperimentItem> experimentItems)
     {
-        var postedDate = post.PostedDate.Date;
-        return experimentItems.FirstOrDefault(item =>
-            item.StartDate.HasValue &&
-            item.EndDate.HasValue &&
-            item.StartDate.Value.Date <= postedDate &&
-            item.EndDate.Value.Date >= postedDate);
+        if (!post.ExperimentItemId.HasValue) return null;
+        return experimentItems.FirstOrDefault(item => item.Id == post.ExperimentItemId.Value);
     }
 
     private static string FormatDateRange(ClipsExperimentItem item)
