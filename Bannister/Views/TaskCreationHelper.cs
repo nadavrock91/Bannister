@@ -38,7 +38,8 @@ public static class TaskCreationHelper
         var tcs = new TaskCompletionSource<(
             string? text,
             string? category,
-            string? impact)?>();
+            string? impact,
+            bool isPrivate)?>();
         var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
 
         var editor = new Editor
@@ -59,6 +60,23 @@ public static class TaskCreationHelper
             BackgroundColor = Color.FromArgb("#FAFAFA"),
             TextColor = Color.FromArgb("#222"),
             PlaceholderColor = Color.FromArgb("#888")
+        };
+
+        var isPrivateCheck = new CheckBox { IsChecked = false };
+        var isPrivateRow = new HorizontalStackLayout
+        {
+            Spacing = 6,
+            Children =
+            {
+                isPrivateCheck,
+                new Label
+                {
+                    Text = "Private (hide title in public mode)",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#666"),
+                    VerticalOptions = LayoutOptions.Center
+                }
+            }
         };
 
         string selectedCategory = fixedCategory ?? "";
@@ -209,7 +227,8 @@ public static class TaskCreationHelper
         void CloseOverlay((
             string? text,
             string? category,
-            string? impact)? result)
+            string? impact,
+            bool isPrivate)? result)
         {
             rootGrid.Children.Remove(overlay);
             tcs.TrySetResult(result);
@@ -245,7 +264,8 @@ public static class TaskCreationHelper
             CloseOverlay((
                 editor.Text,
                 selectedCategory,
-                impactEntry.Text));
+                impactEntry.Text,
+                isPrivateCheck.IsChecked));
         };
         cancelBtn.Clicked += (_, _) => CloseOverlay(null);
 
@@ -278,6 +298,7 @@ public static class TaskCreationHelper
                         TextColor = Color.FromArgb("#666")
                     },
                     impactEntry,
+                    isPrivateRow,
                     categorySection,
                     new HorizontalStackLayout
                     {
@@ -304,6 +325,7 @@ public static class TaskCreationHelper
         string title = result.Value.text.Trim();
         string category = result.Value.category ?? "General";
         string impact = result.Value.impact?.Trim() ?? "";
+        bool isPrivate = result.Value.isPrivate;
 
         string? priorityInput = await page.DisplayPromptAsync(
             "Priority",
@@ -322,7 +344,8 @@ public static class TaskCreationHelper
             title,
             category,
             priority,
-            impact: impact);
+            impact: impact,
+            isPrivate: isPrivate);
         if (markAsTopCandidate)
         {
             newTask.IsTopCandidate = true;

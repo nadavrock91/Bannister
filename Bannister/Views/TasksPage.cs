@@ -274,11 +274,29 @@ public class TasksPage : ContentPage
         var btnComplete = MiniBtn("✅", "#4CAF50"); btnComplete.Clicked += OnCompleteClicked;
         var btnPriority = MiniBtn("⚡", "#FF9800"); btnPriority.Clicked += OnPriorityClicked;
         var btnMove = MiniBtn("📂", "#9C27B0"); btnMove.Clicked += OnMoveClicked;
+        var privateBtn = new Button
+        {
+            Text = " Toggle Private",
+            BackgroundColor = Color.FromArgb("#EDE7F6"),
+            TextColor = Color.FromArgb("#512DA8"),
+            CornerRadius = 6,
+            FontSize = 12,
+            Padding = new Thickness(10, 6)
+        };
+        privateBtn.Clicked += async (_, _) =>
+        {
+            if (_selectedTask == null) return;
+            _selectedTask.IsPrivate = !_selectedTask.IsPrivate;
+            await _tasks.UpdateTaskAsync(_selectedTask);
+            ShowDetail(_selectedTask);
+            await RefreshTasksAsync();
+        };
         var btnDelete = MiniBtn("🗑️", "#F44336"); btnDelete.Clicked += OnDeleteClicked;
         actions.Children.Add(btnEdit);
         actions.Children.Add(btnComplete);
         actions.Children.Add(btnPriority);
         actions.Children.Add(btnMove);
+        actions.Children.Add(privateBtn);
         actions.Children.Add(btnDelete);
         detailStack.Children.Add(actions);
 
@@ -1010,6 +1028,10 @@ public class TasksPage : ContentPage
                     return false;
                 }
                 break;
+            case "IsPrivate":
+                task.IsPrivate = newValue.Equals("true", StringComparison.OrdinalIgnoreCase)
+                    || newValue == "1";
+                break;
             case "CreatedAt":
             case "CompletedAt":
                 return false;
@@ -1042,6 +1064,7 @@ public class TasksPage : ContentPage
         _detailNotes.Text = isPublicMode ? "" : task.Notes ?? "";
 
         var meta = $"📁 {task.Category}";
+        if (task.IsPrivate) meta += " •  Private";
         meta += $" • Priority: {task.Priority}";
         if (task.DueDate.HasValue) meta += $" • Due: {task.DueDate.Value:MMM d}";
         if (task.IsCompleted) meta += " • ✅ Done";
