@@ -143,6 +143,7 @@ public class HomePage : ContentPage
     private Button _btnWebsiteBuilder;
     private Button _btnZeroCounts;
     private Button _quickAccessBtn = null!;
+    private Button _secondaryQueueActionsBtn = null!;
     private VerticalStackLayout _buttonSectionsStack;
     private List<HomeNavButton> _allHomeNavButtons = new();
     private List<HomeNavButton> _homeNavButtons = new();
@@ -276,6 +277,7 @@ public class HomePage : ContentPage
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
             ColumnSpacing = 8
@@ -328,6 +330,24 @@ public class HomePage : ContentPage
         Grid.SetColumn(_quickAccessBtn, 2);
         headerGrid.Children.Add(_quickAccessBtn);
 
+        _secondaryQueueActionsBtn = new Button
+        {
+            Text = "⋮",
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            BackgroundColor = Color.FromArgb("#FFB300"),
+            TextColor = Colors.White,
+            CornerRadius = 22,
+            WidthRequest = 44,
+            HeightRequest = 44,
+            Padding = new Thickness(0),
+            VerticalOptions = LayoutOptions.Center,
+            IsVisible = false
+        };
+        _secondaryQueueActionsBtn.Clicked += OnSecondaryQueueActionsClicked;
+        Grid.SetColumn(_secondaryQueueActionsBtn, 3);
+        headerGrid.Children.Add(_secondaryQueueActionsBtn);
+
         var btnHomeMenu = new Button
         {
             Text = "⋮",
@@ -342,7 +362,7 @@ public class HomePage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         btnHomeMenu.Clicked += OnHomeMenuClicked;
-        Grid.SetColumn(btnHomeMenu, 3);
+        Grid.SetColumn(btnHomeMenu, 4);
         headerGrid.Children.Add(btnHomeMenu);
 
         mainStack.Children.Add(headerGrid);
@@ -716,6 +736,9 @@ public class HomePage : ContentPage
 
         if (_lockOwnerModeButton != null)
             _lockOwnerModeButton.IsVisible = _isOwnerModeUnlocked;
+
+        if (_secondaryQueueActionsBtn != null)
+            _secondaryQueueActionsBtn.IsVisible = _isOwnerModeUnlocked;
 
         RefreshButtonsLayout();
     }
@@ -3103,6 +3126,292 @@ public class HomePage : ContentPage
             case "Logout":
                 await LogoutAsync();
                 break;
+        }
+    }
+
+    private async void OnSecondaryQueueActionsClicked(object? sender, EventArgs e)
+    {
+        if (!await _ownerMode.IsUnlockedAsync())
+        {
+            await RefreshOwnerModeUiAsync();
+            return;
+        }
+
+        var action = await SecondaryQueueActionsPage.ShowAsync(Navigation);
+        switch (action)
+        {
+            case SecondaryQueueAction.LogIdea:
+                await _ideaLogger.LogIdeaToQueueAsync(this, _auth.CurrentUsername, _operationQueue);
+                break;
+
+            case SecondaryQueueAction.AddPendingActivityIdea:
+                await ShowQueuePendingActivityIdeaAsync();
+                break;
+        }
+    }
+
+    private async Task ShowQueuePendingActivityIdeaAsync()
+    {
+        var games = await _games.GetGamesAsync(_auth.CurrentUsername);
+        if (games.Count == 0)
+        {
+            await DisplayAlert("No Games", "Create an active game before adding a pending activity idea.", "OK");
+            return;
+        }
+
+        var input = await QueuePendingActivityIdeaPage.ShowAsync(
+            Navigation,
+            games.Select(game => game.DisplayName).ToList());
+        if (input == null)
+            return;
+
+        await _operationQueue.EnqueueAsync("pending_activity_idea_added", new
+        {
+            username = _auth.CurrentUsername.Trim(),
+            game = input.GameName.Trim(),
+            activity_name = input.ActivityName.Trim(),
+            activity_category = input.Category.Trim(),
+            created_at = DateTime.UtcNow
+        });
+
+        await DisplayAlert("Activity Idea Queued", $"{input.ActivityName} was added to the secondary queue.", "OK");
+    }
+
+    private enum SecondaryQueueAction
+    {
+        None,
+        LogIdea,
+        AddPendingActivityIdea
+    }
+
+    private sealed class SecondaryQueueActionsPage : ContentPage
+    {
+        private readonly TaskCompletionSource<SecondaryQueueAction> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private SecondaryQueueActionsPage()
+        {
+            Title = "Secondary Queue Actions";
+            BackgroundColor = Color.FromArgb("#80000000");
+
+            var logIdeaButton = CreateActionButton("💡 Log Idea");
+            logIdeaButton.Clicked += async (_, _) => await CompleteAsync(SecondaryQueueAction.LogIdea);
+
+            var pendingActivityButton = CreateActionButton("➕ Add Pending Activity Idea");
+            pendingActivityButton.Clicked += async (_, _) => await CompleteAsync(SecondaryQueueAction.AddPendingActivityIdea);
+
+            var cancelButton = new Button
+            {
+                Text = "Cancel",
+                BackgroundColor = Color.FromArgb("#E0E0E0"),
+                TextColor = Color.FromArgb("#333333"),
+                CornerRadius = 8
+            };
+            cancelButton.Clicked += async (_, _) => await CompleteAsync(SecondaryQueueAction.None);
+
+            Content = new Grid
+            {
+                Padding = 24,
+                Children =
+                {
+                    new Frame
+                    {
+                        BackgroundColor = Colors.White,
+                        CornerRadius = 16,
+                        Padding = 24,
+                        HasShadow = true,
+                        HorizontalOptions = LayoutOptions.Center,
+                        VerticalOptions = LayoutOptions.Center,
+                        MaximumWidthRequest = 480,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 14,
+                            Children =
+                            {
+                                new Label
+                                {
+                                    Text = "Secondary Queue Actions",
+                                    FontSize = 22,
+                                    FontAttributes = FontAttributes.Bold,
+                                    TextColor = Color.FromArgb("#222222"),
+                                    HorizontalTextAlignment = TextAlignment.Center
+                                },
+                                new Label
+                                {
+                                    Text = "Queue an operation for the master device without changing this device's mode.",
+                                    FontSize = 13,
+                                    TextColor = Color.FromArgb("#666666"),
+                                    HorizontalTextAlignment = TextAlignment.Center
+                                },
+                                logIdeaButton,
+                                pendingActivityButton,
+                                cancelButton
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        private static Button CreateActionButton(string text) => new()
+        {
+            Text = text,
+            BackgroundColor = Color.FromArgb("#FFB300"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 50
+        };
+
+        private async Task CompleteAsync(SecondaryQueueAction action)
+        {
+            await Navigation.PopModalAsync();
+            _completion.TrySetResult(action);
+        }
+
+        protected override bool OnBackButtonPressed()
+        {
+            _completion.TrySetResult(SecondaryQueueAction.None);
+            return base.OnBackButtonPressed();
+        }
+
+        public static async Task<SecondaryQueueAction> ShowAsync(INavigation navigation)
+        {
+            var page = new SecondaryQueueActionsPage();
+            await navigation.PushModalAsync(page);
+            return await page._completion.Task;
+        }
+    }
+
+    private sealed record QueuePendingActivityIdeaInput(
+        string GameName,
+        string ActivityName,
+        string Category);
+
+    private sealed class QueuePendingActivityIdeaPage : ContentPage
+    {
+        private readonly TaskCompletionSource<QueuePendingActivityIdeaInput?> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly Picker _gamePicker;
+        private readonly Entry _activityNameEntry;
+        private readonly Entry _categoryEntry;
+
+        private QueuePendingActivityIdeaPage(List<string> gameNames)
+        {
+            Title = "Add Pending Activity Idea";
+            BackgroundColor = Color.FromArgb("#80000000");
+
+            _gamePicker = new Picker
+            {
+                Title = "Select game",
+                ItemsSource = gameNames,
+                BackgroundColor = Colors.White,
+                TextColor = Color.FromArgb("#222222")
+            };
+            if (gameNames.Count > 0)
+                _gamePicker.SelectedIndex = 0;
+
+            _activityNameEntry = new Entry
+            {
+                Placeholder = "Activity name",
+                BackgroundColor = Colors.White,
+                TextColor = Color.FromArgb("#222222")
+            };
+            _categoryEntry = new Entry
+            {
+                Placeholder = "Category",
+                BackgroundColor = Colors.White,
+                TextColor = Color.FromArgb("#222222")
+            };
+
+            var saveButton = new Button
+            {
+                Text = "Save to Queue",
+                BackgroundColor = Color.FromArgb("#FFB300"),
+                TextColor = Colors.White,
+                CornerRadius = 8
+            };
+            saveButton.Clicked += OnSaveClicked;
+
+            var cancelButton = new Button
+            {
+                Text = "Cancel",
+                BackgroundColor = Color.FromArgb("#E0E0E0"),
+                TextColor = Color.FromArgb("#333333"),
+                CornerRadius = 8
+            };
+            cancelButton.Clicked += async (_, _) => await CompleteAsync(null);
+
+            Content = new Grid
+            {
+                Padding = 24,
+                Children =
+                {
+                    new Frame
+                    {
+                        BackgroundColor = Colors.White,
+                        CornerRadius = 16,
+                        Padding = 24,
+                        HasShadow = true,
+                        HorizontalOptions = LayoutOptions.Center,
+                        VerticalOptions = LayoutOptions.Center,
+                        MaximumWidthRequest = 520,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 12,
+                            Children =
+                            {
+                                new Label
+                                {
+                                    Text = "Add Pending Activity Idea",
+                                    FontSize = 22,
+                                    FontAttributes = FontAttributes.Bold,
+                                    TextColor = Color.FromArgb("#222222")
+                                },
+                                _gamePicker,
+                                _activityNameEntry,
+                                _categoryEntry,
+                                saveButton,
+                                cancelButton
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        private async void OnSaveClicked(object? sender, EventArgs e)
+        {
+            if (_gamePicker.SelectedItem is not string gameName ||
+                string.IsNullOrWhiteSpace(_activityNameEntry.Text) ||
+                string.IsNullOrWhiteSpace(_categoryEntry.Text))
+            {
+                await DisplayAlert("Missing Information", "Select a game and enter an activity name and category.", "OK");
+                return;
+            }
+
+            await CompleteAsync(new QueuePendingActivityIdeaInput(
+                gameName,
+                _activityNameEntry.Text,
+                _categoryEntry.Text));
+        }
+
+        private async Task CompleteAsync(QueuePendingActivityIdeaInput? result)
+        {
+            await Navigation.PopModalAsync();
+            _completion.TrySetResult(result);
+        }
+
+        protected override bool OnBackButtonPressed()
+        {
+            _completion.TrySetResult(null);
+            return base.OnBackButtonPressed();
+        }
+
+        public static async Task<QueuePendingActivityIdeaInput?> ShowAsync(
+            INavigation navigation,
+            List<string> gameNames)
+        {
+            var page = new QueuePendingActivityIdeaPage(gameNames);
+            await navigation.PushModalAsync(page);
+            return await page._completion.Task;
         }
     }
 

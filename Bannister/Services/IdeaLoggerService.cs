@@ -225,6 +225,50 @@ public class IdeaLoggerService
         return idea;
     }
 
+    public async Task<bool> LogIdeaToQueueAsync(
+        Page page,
+        string username,
+        OperationQueueService queue,
+        string? prefillText = null,
+        string? suggestedCategory = null)
+    {
+        await EnsureLoadedAsync(username);
+        var existingCategories = await _ideas.GetCategoriesAsync(username);
+        var result = await ShowIdeaPopupAsync(page, username, existingCategories, prefillText, suggestedCategory);
+
+        if (result == null || string.IsNullOrWhiteSpace(result.Value.title) || string.IsNullOrWhiteSpace(result.Value.fullIdea))
+            return false;
+
+        string category = result.Value.category.Trim();
+        string? subcategory = string.IsNullOrWhiteSpace(result.Value.subcategory)
+            ? null
+            : result.Value.subcategory.Trim();
+        string title = result.Value.title.Trim();
+        string fullIdea = result.Value.fullIdea.Trim();
+        int rating = Math.Clamp(result.Value.rating, 0, 100);
+        _lastUsedCategory = category;
+
+        await queue.EnqueueAsync("idea_logged", new
+        {
+            username,
+            title,
+            category,
+            full_idea = fullIdea,
+            subcategory,
+            rating,
+            notes = (string?)null,
+            is_starred = false,
+            status = 0,
+            created_at = DateTime.UtcNow
+        });
+
+        await page.DisplayAlert(
+            "Idea Queued",
+            $"{(title.Length > 60 ? title[..57] + "..." : title)}\n\nCategory: {category}",
+            "OK");
+        return true;
+    }
+
     public async Task<IdeaItem?> QuickLogAsync(Page page, string username, string text, string category, int rating = 50)
     {
         bool confirm = await page.DisplayAlert(
