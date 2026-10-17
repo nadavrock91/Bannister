@@ -705,6 +705,26 @@ public class ClipsExperimentPage : ContentPage
                 FontSize = 12,
                 TextColor = Color.FromArgb("#666")
             });
+            var activeButtons = new HorizontalStackLayout { Spacing = 8 };
+            var moveToNotRun = MakeButton("Move to Not Yet Run", "#FFF3E0", Color.FromArgb("#E65100"));
+            moveToNotRun.Clicked += async (_, _) =>
+            {
+                await _service.UnmarkExperimentItemRunAsync(activeItem.Id);
+                activeItem.IsRun = false;
+                activeItem.StartDate = null;
+                activeItem.EndDate = null;
+                await _service.SaveExperimentItemAsync(activeItem);
+                await RefreshAsync();
+            };
+            activeButtons.Children.Add(moveToNotRun);
+            var moveToCompleted = MakeButton("Move to Completed", "#2E7D32", Colors.White);
+            moveToCompleted.Clicked += async (_, _) =>
+            {
+                await _service.MarkExperimentItemRunAsync(activeItem.Id);
+                await RefreshAsync();
+            };
+            activeButtons.Children.Add(moveToCompleted);
+            activeStack.Children.Add(activeButtons);
         }
         _content.Children.Add(MakeCard(activeStack));
 
@@ -834,7 +854,7 @@ public class ClipsExperimentPage : ContentPage
             if (canMarkRun)
             {
                 var setActive = MakeButton("Set as Active", "#E3F2FD", Color.FromArgb("#1565C0"));
-                setActive.Clicked += async (_, _) => await SetExperimentActiveAsync(item);
+                setActive.Clicked += async (_, _) => await EditExperimentDatesAsync(item);
                 buttons.Children.Add(setActive);
                 var markRun = MakeButton("Mark as Run", "#2E7D32", Colors.White);
                 markRun.Clicked += async (_, _) =>
@@ -853,6 +873,9 @@ public class ClipsExperimentPage : ContentPage
                     await RefreshAsync();
                 };
                 buttons.Children.Add(moveToNotRun);
+                var editDates = MakeButton("Edit Dates", "#E3F2FD", Color.FromArgb("#1565C0"));
+                editDates.Clicked += async (_, _) => await EditExperimentDatesAsync(item);
+                buttons.Children.Add(editDates);
             }
             var delete = MakeButton("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
             delete.Clicked += async (_, _) =>
@@ -867,7 +890,7 @@ public class ClipsExperimentPage : ContentPage
         }
     }
 
-    private async Task SetExperimentActiveAsync(ClipsExperimentItem item)
+    private async Task EditExperimentDatesAsync(ClipsExperimentItem item)
     {
         var startText = await DisplayPromptAsync(
             "Set Start Date",
