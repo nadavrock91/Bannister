@@ -20,6 +20,7 @@ public class ClipsExperimentPage : ContentPage
     private DatePicker _datePicker = null!;
     private int? _expandedPostId;
     private readonly HashSet<string> _expandedPostGroups = new();
+    private readonly HashSet<string> _expandedExperimentSections = new();
     private readonly HashSet<int> _selectedPostIds = new();
     private Button? _assignSelectedPostsButton;
     private bool _postSelectionMode;
@@ -859,14 +860,24 @@ public class ClipsExperimentPage : ContentPage
 
     private void BuildExperimentItemsSection(string heading, List<ClipsExperimentItem> items, bool canMarkRun)
     {
-        _content.Children.Add(new Label
+        var isExpanded = _expandedExperimentSections.Contains(heading);
+        var sectionToggle = MakeButton(
+            $"{(isExpanded ? "▼" : "▶")} {heading} ({items.Count})",
+            "#ECEFF1",
+            Color.FromArgb("#333"));
+        sectionToggle.HorizontalOptions = LayoutOptions.Fill;
+        sectionToggle.Margin = new Thickness(0, 12, 0, 0);
+        sectionToggle.Clicked += (_, _) =>
         {
-            Text = $"{heading} ({items.Count})",
-            FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
-            Margin = new Thickness(0, 12, 0, 0)
-        });
+            if (isExpanded)
+                _expandedExperimentSections.Remove(heading);
+            else
+                _expandedExperimentSections.Add(heading);
+            _ = RefreshAsync();
+        };
+        _content.Children.Add(sectionToggle);
+        if (!isExpanded) return;
+
         if (items.Count == 0)
         {
             _content.Children.Add(new Label { Text = "None.", FontSize = 13, TextColor = Color.FromArgb("#999") });
