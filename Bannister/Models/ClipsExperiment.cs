@@ -25,3 +25,27 @@ public class ClipsPost
     public double? Retention30s { get; set; }
     public string Notes { get; set; } = "";
 }
+
+public class ClipsDataPoint
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+    public string Username { get; set; } = "";
+    [Indexed]
+    public int ExperimentId { get; set; }
+    public string Text { get; set; } = "";
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+}
+
+public class ClipsExperimentItem
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+    public string Username { get; set; } = "";
+    [Indexed]
+    public int ExperimentId { get; set; }
+    public string Title { get; set; } = "";
+    public string Description { get; set; } = "";
+    public bool IsRun { get; set; }
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+}

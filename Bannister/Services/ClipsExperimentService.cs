@@ -15,6 +15,8 @@ public class ClipsExperimentService
         var conn = await _db.GetConnectionAsync();
         await conn.CreateTableAsync<ClipsExperiment>();
         await conn.CreateTableAsync<ClipsPost>();
+        await conn.CreateTableAsync<ClipsDataPoint>();
+        await conn.CreateTableAsync<ClipsExperimentItem>();
         _initialized = true;
     }
 
@@ -74,6 +76,84 @@ public class ClipsExperimentService
         var post = await conn.FindAsync<ClipsPost>(id);
         if (post != null)
             await conn.DeleteAsync(post);
+    }
+
+    public async Task<List<ClipsDataPoint>> GetDataPointsAsync(string username, int experimentId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<ClipsDataPoint>()
+            .Where(item => item.Username == username && item.ExperimentId == experimentId)
+            .OrderByDescending(item => item.CreatedDate)
+            .ToListAsync();
+    }
+
+    public async Task SaveDataPointAsync(ClipsDataPoint dataPoint)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        if (dataPoint.Id == 0)
+            await conn.InsertAsync(dataPoint);
+        else
+            await conn.UpdateAsync(dataPoint);
+    }
+
+    public async Task DeleteDataPointAsync(int id)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var dataPoint = await conn.FindAsync<ClipsDataPoint>(id);
+        if (dataPoint != null)
+            await conn.DeleteAsync(dataPoint);
+    }
+
+    public async Task<List<ClipsExperimentItem>> GetExperimentItemsAsync(string username, int experimentId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<ClipsExperimentItem>()
+            .Where(item => item.Username == username && item.ExperimentId == experimentId)
+            .OrderByDescending(item => item.CreatedDate)
+            .ToListAsync();
+    }
+
+    public async Task<List<ClipsExperimentItem>> GetUnrunExperimentItemsAsync(string username, int experimentId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<ClipsExperimentItem>()
+            .Where(item => item.Username == username && item.ExperimentId == experimentId && !item.IsRun)
+            .OrderByDescending(item => item.CreatedDate)
+            .ToListAsync();
+    }
+
+    public async Task SaveExperimentItemAsync(ClipsExperimentItem experimentItem)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        if (experimentItem.Id == 0)
+            await conn.InsertAsync(experimentItem);
+        else
+            await conn.UpdateAsync(experimentItem);
+    }
+
+    public async Task DeleteExperimentItemAsync(int id)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var experimentItem = await conn.FindAsync<ClipsExperimentItem>(id);
+        if (experimentItem != null)
+            await conn.DeleteAsync(experimentItem);
+    }
+
+    public async Task MarkExperimentItemRunAsync(int id)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var experimentItem = await conn.FindAsync<ClipsExperimentItem>(id);
+        if (experimentItem == null) return;
+        experimentItem.IsRun = true;
+        await conn.UpdateAsync(experimentItem);
     }
 
     public async Task<Dictionary<string, (double avg10, double avg20, double avg30, int count)>>

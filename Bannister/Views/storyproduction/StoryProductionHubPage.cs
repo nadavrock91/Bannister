@@ -286,7 +286,7 @@ public class StoryProductionHubPage : ContentPage
             return;
         }
 
-        await Navigation.PushAsync(new ClipsExperimentPage(service));
+        await Navigation.PushAsync(new ClipsExperimentPage(service, _auth));
     }
 
     private async Task OnVideoGenExperimentClicked()

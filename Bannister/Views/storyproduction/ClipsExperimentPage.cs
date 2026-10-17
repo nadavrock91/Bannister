@@ -1,23 +1,28 @@
 using Bannister.Models;
 using Bannister.Services;
+using System.Text;
 
 namespace Bannister.Views;
 
 public class ClipsExperimentPage : ContentPage
 {
     private readonly ClipsExperimentService _service;
+    private readonly AuthService _auth;
     private VerticalStackLayout _content = null!;
+    private HorizontalStackLayout _tabs = null!;
     private Entry _nameEntry = null!;
     private Entry _totalPostsEntry = null!;
     private Entry _titleEntry = null!;
     private Entry _conceptEntry = null!;
     private DatePicker _datePicker = null!;
     private int? _expandedPostId;
+    private string _activeTab = "Posts";
     private bool _busy;
 
-    public ClipsExperimentPage(ClipsExperimentService service)
+    public ClipsExperimentPage(ClipsExperimentService service, AuthService auth)
     {
         _service = service;
+        _auth = auth;
         Title = "AI Clips Experiment";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -31,26 +36,61 @@ public class ClipsExperimentPage : ContentPage
 
     private void BuildUI()
     {
-        _content = new VerticalStackLayout
+        var root = new Grid
         {
             Padding = 20,
-            Spacing = 12
+            RowSpacing = 12,
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star)
+            }
         };
-        _content.Children.Add(new Label
+        root.Add(new Label
         {
             Text = "🎬 AI Clips Experiment",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#1565C0")
-        });
-        _content.Children.Add(new Label
+        }, 0, 0);
+        root.Add(new Label
         {
             Text = "Test short-video hook concepts and compare viewer retention.",
             FontSize = 13,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        Content = new ScrollView { Content = _content };
+        }, 0, 1);
+        _tabs = new HorizontalStackLayout { Spacing = 6 };
+        BuildTabs();
+        root.Add(_tabs, 0, 2);
+        _content = new VerticalStackLayout { Spacing = 12 };
+        root.Add(new ScrollView
+        {
+            Content = _content
+        }, 0, 3);
+        Content = root;
+    }
+
+    private void BuildTabs()
+    {
+        _tabs.Children.Clear();
+        foreach (var tab in new[] { "Posts", "Data Points", "Experiments" })
+        {
+            var selectedTab = tab;
+            var button = MakeButton(
+                tab,
+                tab == _activeTab ? "#1565C0" : "#E0E0E0",
+                tab == _activeTab ? Colors.White : Color.FromArgb("#555"));
+            button.Clicked += async (_, _) =>
+            {
+                _activeTab = selectedTab;
+                BuildTabs();
+                await RefreshAsync();
+            };
+            _tabs.Children.Add(button);
+        }
     }
 
     private async Task RefreshAsync()
@@ -59,13 +99,6 @@ public class ClipsExperimentPage : ContentPage
         await _service.InitAsync();
         var experiment = await _service.GetActiveExperimentAsync();
         _content.Children.Clear();
-        _content.Children.Add(new Label
-        {
-            Text = "🎬 AI Clips Experiment",
-            FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
 
         if (experiment == null)
         {
@@ -75,9 +108,20 @@ public class ClipsExperimentPage : ContentPage
 
         var posts = await _service.GetPostsAsync(experiment.Id);
         BuildHeader(experiment, posts);
-        BuildNewPostSection(experiment);
-        BuildPostsSection(experiment, posts);
-        await BuildAveragesSectionAsync(experiment, posts);
+        if (_activeTab == "Data Points")
+        {
+            await BuildDataPointsTabAsync(experiment);
+        }
+        else if (_activeTab == "Experiments")
+        {
+            await BuildExperimentsTabAsync(experiment, posts);
+        }
+        else
+        {
+            BuildNewPostSection(experiment);
+            BuildPostsSection(experiment, posts);
+            await BuildAveragesSectionAsync(experiment, posts);
+        }
     }
 
     private void BuildCreateExperimentSection()
@@ -302,6 +346,286 @@ public class ClipsExperimentPage : ContentPage
         stack.Children.Add(save);
     }
 
+    private async Task BuildDataPointsTabAsync(ClipsExperiment experiment)
+    {
+        _content.Children.Add(new Label
+        {
+            Text = "Add Data Point",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            Margin = new Thickness(0, 12, 0, 0)
+        });
+        var observationEditor = MakeEditor("Write an observation about clip performance...");
+        _content.Children.Add(observationEditor);
+        var save = MakeButton("Save Data Point", "#2E7D32", Colors.White);
+        save.Clicked += async (_, _) =>
+        {
+            if (_busy || string.IsNullOrWhiteSpace(observationEditor.Text)) return;
+            _busy = true;
+            try
+            {
+                await _service.SaveDataPointAsync(new ClipsDataPoint
+                {
+                    Username = _auth.CurrentUsername,
+                    ExperimentId = experiment.Id,
+                    Text = observationEditor.Text.Trim(),
+                    CreatedDate = DateTime.UtcNow
+                });
+            }
+            finally { _busy = false; }
+            await RefreshAsync();
+        };
+        _content.Children.Add(save);
+
+        var dataPoints = await _service.GetDataPointsAsync(_auth.CurrentUsername, experiment.Id);
+        _content.Children.Add(new Label
+        {
+            Text = $"Data Points ({dataPoints.Count})",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            Margin = new Thickness(0, 12, 0, 0)
+        });
+        if (dataPoints.Count == 0)
+        {
+            _content.Children.Add(new Label { Text = "No data points recorded yet.", FontSize = 13, TextColor = Color.FromArgb("#999") });
+            return;
+        }
+
+        foreach (var dataPoint in dataPoints)
+        {
+            var stack = new VerticalStackLayout { Spacing = 6 };
+            stack.Children.Add(new Label
+            {
+                Text = dataPoint.Text,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#333"),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+            stack.Children.Add(new Label
+            {
+                Text = dataPoint.CreatedDate.ToLocalTime().ToString("dd MMM yyyy HH:mm"),
+                FontSize = 11,
+                TextColor = Color.FromArgb("#888")
+            });
+            var delete = MakeButton("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
+            delete.HorizontalOptions = LayoutOptions.Start;
+            delete.Clicked += async (_, _) =>
+            {
+                if (!await DisplayAlert("Delete Data Point", "Delete this observation?", "Delete", "Cancel")) return;
+                await _service.DeleteDataPointAsync(dataPoint.Id);
+                await RefreshAsync();
+            };
+            stack.Children.Add(delete);
+            _content.Children.Add(MakeCard(stack));
+        }
+    }
+
+    private async Task BuildExperimentsTabAsync(ClipsExperiment experiment, List<ClipsPost> posts)
+    {
+        _content.Children.Add(new Label
+        {
+            Text = "Add Experiment",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            Margin = new Thickness(0, 12, 0, 0)
+        });
+        var titleEntry = MakeEntry("Experiment title");
+        var descriptionEditor = MakeEditor("What should be tested, and why?");
+        _content.Children.Add(titleEntry);
+        _content.Children.Add(descriptionEditor);
+        var save = MakeButton("Save Experiment", "#2E7D32", Colors.White);
+        save.Clicked += async (_, _) =>
+        {
+            if (_busy || string.IsNullOrWhiteSpace(titleEntry.Text)) return;
+            _busy = true;
+            try
+            {
+                await _service.SaveExperimentItemAsync(new ClipsExperimentItem
+                {
+                    Username = _auth.CurrentUsername,
+                    ExperimentId = experiment.Id,
+                    Title = titleEntry.Text.Trim(),
+                    Description = descriptionEditor.Text?.Trim() ?? "",
+                    CreatedDate = DateTime.UtcNow
+                });
+            }
+            finally { _busy = false; }
+            await RefreshAsync();
+        };
+        _content.Children.Add(save);
+
+        var dataPoints = await _service.GetDataPointsAsync(_auth.CurrentUsername, experiment.Id);
+        var allItems = await _service.GetExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
+        var unrunItems = await _service.GetUnrunExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
+        var promptButtons = new VerticalStackLayout { Spacing = 8 };
+        var ideas = MakeButton("Get LLM Experiment Ideas", "#6A1B9A", Colors.White);
+        ideas.Clicked += async (_, _) =>
+        {
+            await Clipboard.SetTextAsync(BuildExperimentIdeasPrompt(posts, dataPoints, allItems));
+            await DisplayAlert("Copied", "The experiment ideas prompt was copied to the clipboard.", "OK");
+        };
+        var ranking = MakeButton("Export for LLM Priority Ranking", "#1565C0", Colors.White);
+        ranking.Clicked += async (_, _) =>
+        {
+            await Clipboard.SetTextAsync(BuildPriorityRankingPrompt(posts, dataPoints, unrunItems));
+            await DisplayAlert("Copied", "The priority ranking prompt was copied to the clipboard.", "OK");
+        };
+        promptButtons.Children.Add(ideas);
+        promptButtons.Children.Add(ranking);
+        _content.Children.Add(promptButtons);
+
+        BuildExperimentItemsSection("Not Yet Run", unrunItems, true);
+        BuildExperimentItemsSection("Completed", allItems.Where(item => item.IsRun).ToList(), false);
+    }
+
+    private void BuildExperimentItemsSection(string heading, List<ClipsExperimentItem> items, bool canMarkRun)
+    {
+        _content.Children.Add(new Label
+        {
+            Text = $"{heading} ({items.Count})",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            Margin = new Thickness(0, 12, 0, 0)
+        });
+        if (items.Count == 0)
+        {
+            _content.Children.Add(new Label { Text = "None.", FontSize = 13, TextColor = Color.FromArgb("#999") });
+            return;
+        }
+
+        foreach (var item in items)
+        {
+            var stack = new VerticalStackLayout { Spacing = 6 };
+            stack.Children.Add(new Label
+            {
+                Text = item.Title,
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#222")
+            });
+            stack.Children.Add(new Label
+            {
+                Text = item.Description,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#555"),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+            stack.Children.Add(new Label
+            {
+                Text = item.CreatedDate.ToLocalTime().ToString("dd MMM yyyy"),
+                FontSize = 11,
+                TextColor = Color.FromArgb("#888")
+            });
+            var buttons = new HorizontalStackLayout { Spacing = 8 };
+            if (canMarkRun)
+            {
+                var markRun = MakeButton("Mark as Run", "#2E7D32", Colors.White);
+                markRun.Clicked += async (_, _) =>
+                {
+                    await _service.MarkExperimentItemRunAsync(item.Id);
+                    await RefreshAsync();
+                };
+                buttons.Children.Add(markRun);
+            }
+            var delete = MakeButton("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
+            delete.Clicked += async (_, _) =>
+            {
+                if (!await DisplayAlert("Delete Experiment", $"Delete '{item.Title}'?", "Delete", "Cancel")) return;
+                await _service.DeleteExperimentItemAsync(item.Id);
+                await RefreshAsync();
+            };
+            buttons.Children.Add(delete);
+            stack.Children.Add(buttons);
+            _content.Children.Add(MakeCard(stack));
+        }
+    }
+
+    private static string BuildExperimentIdeasPrompt(
+        List<ClipsPost> posts,
+        List<ClipsDataPoint> dataPoints,
+        List<ClipsExperimentItem> experimentItems)
+    {
+        var prompt = new StringBuilder();
+        prompt.AppendLine("Here is my AI clip experiment data. Based on this, suggest 10 new experiments I haven't tried yet, ordered by expected impact.");
+        prompt.AppendLine();
+        prompt.AppendLine("Posts with retention scores:");
+        AppendPosts(prompt, posts);
+        prompt.AppendLine();
+        prompt.AppendLine("Data points (observations):");
+        AppendDataPoints(prompt, dataPoints);
+        prompt.AppendLine();
+        prompt.AppendLine("Experiments already run or planned:");
+        if (experimentItems.Count == 0)
+            prompt.AppendLine("None.");
+        else
+            foreach (var item in experimentItems)
+                prompt.AppendLine($"- {item.Title}: {item.Description} ({(item.IsRun ? "run" : "planned")})");
+        prompt.AppendLine();
+        prompt.AppendLine("Return each suggestion as:");
+        prompt.AppendLine("Title: [short name]");
+        prompt.Append("Description: [what to test and why it might work based on the data]");
+        return prompt.ToString();
+    }
+
+    private static string BuildPriorityRankingPrompt(
+        List<ClipsPost> posts,
+        List<ClipsDataPoint> dataPoints,
+        List<ClipsExperimentItem> unrunItems)
+    {
+        var prompt = new StringBuilder();
+        prompt.AppendLine("Here is my AI clip experiment data. Rank the following unrun experiments by priority based on my performance data.");
+        prompt.AppendLine();
+        prompt.AppendLine("Posts with retention scores:");
+        AppendPosts(prompt, posts);
+        prompt.AppendLine();
+        prompt.AppendLine("Data points:");
+        AppendDataPoints(prompt, dataPoints);
+        prompt.AppendLine();
+        prompt.AppendLine("Unrun experiments to rank:");
+        if (unrunItems.Count == 0)
+            prompt.AppendLine("None.");
+        else
+            for (var index = 0; index < unrunItems.Count; index++)
+                prompt.AppendLine($"{index + 1}. {unrunItems[index].Title}: {unrunItems[index].Description}");
+        prompt.AppendLine();
+        prompt.Append("Return the experiments ranked 1 to N with a one-sentence reason for each ranking.");
+        return prompt.ToString();
+    }
+
+    private static void AppendPosts(StringBuilder prompt, List<ClipsPost> posts)
+    {
+        if (posts.Count == 0)
+        {
+            prompt.AppendLine("None.");
+            return;
+        }
+
+        foreach (var post in posts)
+        {
+            prompt.AppendLine(
+                $"- {post.Title} | Hook: {post.Concept} | Retention: 10s {FormatScore(post.Retention10s)}, 20s {FormatScore(post.Retention20s)}, 30s {FormatScore(post.Retention30s)}");
+        }
+    }
+
+    private static void AppendDataPoints(StringBuilder prompt, List<ClipsDataPoint> dataPoints)
+    {
+        if (dataPoints.Count == 0)
+        {
+            prompt.AppendLine("None.");
+            return;
+        }
+
+        foreach (var dataPoint in dataPoints)
+            prompt.AppendLine($"- {dataPoint.CreatedDate.ToLocalTime():yyyy-MM-dd}: {dataPoint.Text}");
+    }
+
+    private static string FormatScore(double? score)
+        => score.HasValue ? $"{score.Value:0.#}%" : "not recorded";
+
     private async Task BuildAveragesSectionAsync(ClipsExperiment experiment, List<ClipsPost> posts)
     {
         var averages = await _service.GetConceptAveragesAsync(experiment.Id);
@@ -368,6 +692,27 @@ public class ClipsExperimentPage : ContentPage
 
     private static string FormatAverage(double value, double best)
         => value == best && best > 0 ? $"{value:F1}% ★" : $"{value:F1}%";
+
+    private static Editor MakeEditor(string placeholder)
+        => new()
+        {
+            Placeholder = placeholder,
+            FontSize = 13,
+            BackgroundColor = Colors.White,
+            MinimumHeightRequest = 90,
+            AutoSize = EditorAutoSizeOption.TextChanges
+        };
+
+    private static Frame MakeCard(View content)
+        => new()
+        {
+            Content = content,
+            Padding = 12,
+            CornerRadius = 8,
+            BackgroundColor = Colors.White,
+            BorderColor = Color.FromArgb("#E0E0E0"),
+            HasShadow = false
+        };
 
     private static Entry MakeEntry(string placeholder, bool numeric = false, double? value = null)
         => new()
