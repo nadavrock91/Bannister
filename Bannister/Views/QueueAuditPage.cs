@@ -290,9 +290,9 @@ public class QueueAuditPage : ContentPage
         }
     }
 
-    private static View CreateOperationCard(DecodedIdeaOperation item)
+    private View CreateOperationCard(DecodedIdeaOperation item)
     {
-        return new Frame
+        var frame = new Frame
         {
             Padding = 14,
             CornerRadius = 8,
@@ -327,7 +327,56 @@ public class QueueAuditPage : ContentPage
                 }
             }
         };
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (_, _) => await ShowOperationDetailsAsync(item.Operation);
+        frame.GestureRecognizers.Add(tap);
+        return frame;
     }
+
+    private async Task ShowOperationDetailsAsync(QueuedOperation operation)
+    {
+        string payload;
+        try
+        {
+            var password = _db.GetDbPassword();
+            if (string.IsNullOrEmpty(password))
+                throw new InvalidOperationException("No login password is available.");
+
+            var plaintext = QueuePayloadCrypto.DecryptPayload(operation.PayloadJson, password);
+            using var document = JsonDocument.Parse(plaintext);
+            payload = FormatPayload(document.RootElement);
+        }
+        catch (Exception ex)
+        {
+            payload = $"Unable to decrypt payload: {ex.Message}";
+        }
+
+        await DisplayAlert(
+            operation.OperationType,
+            $"Operation type: {operation.OperationType}\n" +
+            $"UUID: {operation.Uuid}\n" +
+            $"Created at: {operation.CreatedAt.ToLocalTime():MMM d, yyyy h:mm:ss tt}\n\n" +
+            $"Payload:\n{payload}",
+            "OK");
+    }
+
+    private static string FormatPayload(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+            return root.GetRawText();
+
+        return string.Join("\n", root.EnumerateObject().Select(property =>
+            $"{property.Name}: {FormatPayloadValue(property.Value)}"));
+    }
+
+    private static string FormatPayloadValue(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.String => value.GetString() ?? "",
+        JsonValueKind.Null => "null",
+        JsonValueKind.Undefined => "undefined",
+        _ => value.GetRawText()
+    };
 
     private async void OnUploadPendingClicked(object? sender, EventArgs e)
     {

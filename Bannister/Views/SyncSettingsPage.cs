@@ -22,6 +22,7 @@ public class SyncSettingsPage : ContentPage
     private readonly ExpService _expService;
     private readonly StreakService _streakService;
     private readonly IdeasService _ideas;
+    private readonly OperationQueueService _operationQueue;
 
     private RadioButton _rbMaster;
     private RadioButton _rbSecondary;
@@ -57,7 +58,8 @@ public class SyncSettingsPage : ContentPage
         SharedActivityService sharedActivityService,
         ExpService expService,
         StreakService streakService,
-        IdeasService ideas)
+        IdeasService ideas,
+        OperationQueueService operationQueue)
     {
         _deviceMode = deviceMode;
         _sync = sync;
@@ -72,6 +74,7 @@ public class SyncSettingsPage : ContentPage
         _expService = expService;
         _streakService = streakService;
         _ideas = ideas;
+        _operationQueue = operationQueue;
 
         Title = "Sync & Devices";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -854,7 +857,8 @@ public class SyncSettingsPage : ContentPage
             _auth,
             _activities,
             _games,
-            _pendingIdeas));
+            _pendingIdeas,
+            _operationQueue));
     }
 
     private async void OnResetQueueReminderClicked(object? sender, EventArgs e)

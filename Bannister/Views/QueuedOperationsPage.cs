@@ -7,6 +7,7 @@ namespace Bannister.Views;
 public class QueuedOperationsPage : ContentPage
 {
     private readonly SyncService _sync;
+    private readonly OperationQueueService _queue;
     private readonly OperationApplierService _applier;
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
@@ -19,10 +20,13 @@ public class QueuedOperationsPage : ContentPage
     private readonly Button _applyAllButton;
     private readonly Button _refreshButton;
     private readonly ActivityIndicator _busyIndicator;
+    private readonly Button _serverQueueTabButton;
+    private readonly Button _localQueueTabButton;
 
     private List<QueuedOperation> _operations = new();
     private HashSet<string> _alreadyApplied = new();
     private bool _isBusy;
+    private bool _showLocalQueue;
 
     public QueuedOperationsPage(
         SyncService sync,
@@ -31,9 +35,11 @@ public class QueuedOperationsPage : ContentPage
         AuthService auth,
         ActivityService activities,
         GameService games,
-        PendingActivityIdeaService pendingIdeas)
+        PendingActivityIdeaService pendingIdeas,
+        OperationQueueService queue)
     {
         _sync = sync;
+        _queue = queue;
         _applier = applier;
         _db = db;
         _auth = auth;
@@ -69,6 +75,12 @@ public class QueuedOperationsPage : ContentPage
             WidthRequest = 24,
             HeightRequest = 24
         };
+
+        _serverQueueTabButton = CreateTabButton("Server Queue", true);
+        _serverQueueTabButton.Clicked += async (_, _) => await SwitchQueueAsync(false);
+
+        _localQueueTabButton = CreateTabButton("Local Queue", false);
+        _localQueueTabButton.Clicked += async (_, _) => await SwitchQueueAsync(true);
 
         _collection = new CollectionView
         {
@@ -121,6 +133,20 @@ public class QueuedOperationsPage : ContentPage
                     Spacing = 8,
                     Children =
                     {
+                        new Grid
+                        {
+                            ColumnDefinitions =
+                            {
+                                new ColumnDefinition { Width = GridLength.Star },
+                                new ColumnDefinition { Width = GridLength.Star }
+                            },
+                            ColumnSpacing = 8,
+                            Children =
+                            {
+                                _serverQueueTabButton.AssignGridColumn(0),
+                                _localQueueTabButton.AssignGridColumn(1)
+                            }
+                        },
                         _summaryLabel,
                         new HorizontalStackLayout
                         {
@@ -166,15 +192,14 @@ public class QueuedOperationsPage : ContentPage
 
         var badge = new Label
         {
-            Text = "Applied",
             FontSize = 12,
             TextColor = Colors.White,
             BackgroundColor = Color.FromArgb("#777"),
             Padding = new Thickness(8, 3),
             HorizontalOptions = LayoutOptions.End,
-            IsVisible = false
+            IsVisible = true
         };
-        badge.SetBinding(IsVisibleProperty, nameof(OperationRow.IsApplied));
+        badge.SetBinding(Label.TextProperty, nameof(OperationRow.StatusText));
 
         var title = new Label
         {
@@ -222,21 +247,39 @@ public class QueuedOperationsPage : ContentPage
         };
         frame.SetBinding(OpacityProperty, nameof(OperationRow.Opacity));
 
+        var tap = new TapGestureRecognizer();
+        tap.SetBinding(TapGestureRecognizer.CommandParameterProperty, ".");
+        tap.Tapped += async (_, args) =>
+        {
+            if (args.Parameter is OperationRow row)
+                await ShowOperationDetailsAsync(row.Operation, row.StatusText);
+        };
+        frame.GestureRecognizers.Add(tap);
+
         return frame;
     }
 
     private async Task LoadAsync()
     {
-        SetBusy(true, "Downloading queued operations...");
+        SetBusy(true, _showLocalQueue
+            ? "Loading local queued operations..."
+            : "Downloading queued operations...");
         try
         {
-            _operations = await _sync.DownloadQueueAsync();
             _alreadyApplied = new HashSet<string>();
 
-            foreach (var op in _operations)
+            if (_showLocalQueue)
             {
-                if (await _applier.IsAlreadyAppliedAsync(op.Uuid))
-                    _alreadyApplied.Add(op.Uuid);
+                _operations = await _queue.GetAllAsync();
+            }
+            else
+            {
+                _operations = await _sync.DownloadQueueAsync();
+                foreach (var op in _operations)
+                {
+                    if (await _applier.IsAlreadyAppliedAsync(op.Uuid))
+                        _alreadyApplied.Add(op.Uuid);
+                }
             }
 
             RefreshView();
@@ -249,7 +292,10 @@ public class QueuedOperationsPage : ContentPage
             RefreshView();
             _statusLabel.Text = ex.Message;
             _statusLabel.TextColor = Color.FromArgb("#C62828");
-            await DisplayAlert("Queue Download Failed", ex.Message, "OK");
+            await DisplayAlert(
+                _showLocalQueue ? "Local Queue Load Failed" : "Queue Download Failed",
+                ex.Message,
+                "OK");
         }
         finally
         {
@@ -367,6 +413,15 @@ public class QueuedOperationsPage : ContentPage
 
     private void RefreshView()
     {
+        if (_showLocalQueue)
+        {
+            int pendingCount = _operations.Count(operation => operation.Status == 0);
+            _summaryLabel.Text = $"{_operations.Count} local {_operations.Count.Plural("operation", "operations")} ({pendingCount} pending)";
+            _collection.ItemsSource = _operations.Select(ToRow).ToList();
+            UpdateButtons();
+            return;
+        }
+
         var deviceCount = _operations
             .Select(o => o.SourceDeviceId)
             .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -429,14 +484,108 @@ public class QueuedOperationsPage : ContentPage
 
         return new OperationRow
         {
+            Operation = op,
             Uuid = op.Uuid,
             OperationType = op.OperationType,
             Summary = string.IsNullOrWhiteSpace(category) ? title : $"{title} ({category})",
             Metadata = $"{op.CreatedAt.ToLocalTime():MMM d, yyyy HH:mm} • device {device}",
             IsApplied = _alreadyApplied.Contains(op.Uuid),
+            StatusText = _showLocalQueue
+                ? GetStatusText(op.Status)
+                : _alreadyApplied.Contains(op.Uuid) ? "Applied" : "Pending",
             Opacity = _alreadyApplied.Contains(op.Uuid) ? 0.55 : 1.0
         };
     }
+
+    private async Task SwitchQueueAsync(bool showLocalQueue)
+    {
+        if (_showLocalQueue == showLocalQueue)
+            return;
+
+        _showLocalQueue = showLocalQueue;
+        UpdateTabStyles();
+        await LoadAsync();
+    }
+
+    private void UpdateTabStyles()
+    {
+        SetTabStyle(_serverQueueTabButton, !_showLocalQueue);
+        SetTabStyle(_localQueueTabButton, _showLocalQueue);
+    }
+
+    private static Button CreateTabButton(string text, bool selected)
+    {
+        var button = new Button
+        {
+            Text = text,
+            CornerRadius = 8,
+            HeightRequest = 42
+        };
+        SetTabStyle(button, selected);
+        return button;
+    }
+
+    private static void SetTabStyle(Button button, bool selected)
+    {
+        button.BackgroundColor = selected
+            ? Color.FromArgb("#5B63EE")
+            : Color.FromArgb("#E8EAF6");
+        button.TextColor = selected ? Colors.White : Color.FromArgb("#3949AB");
+    }
+
+    private async Task ShowOperationDetailsAsync(QueuedOperation operation, string status)
+    {
+        string payload;
+        try
+        {
+            var password = _db.GetDbPassword();
+            if (string.IsNullOrEmpty(password))
+                throw new InvalidOperationException("No login password is available.");
+
+            var plaintext = QueuePayloadCrypto.DecryptPayload(operation.PayloadJson, password);
+            using var document = JsonDocument.Parse(plaintext);
+            payload = FormatPayload(document.RootElement);
+        }
+        catch (Exception ex)
+        {
+            payload = $"Unable to decrypt payload: {ex.Message}";
+        }
+
+        await DisplayAlert(
+            operation.OperationType,
+            $"UUID: {operation.Uuid}\n" +
+            $"Created at: {operation.CreatedAt.ToLocalTime():MMM d, yyyy h:mm:ss tt}\n" +
+            $"Source device ID: {operation.SourceDeviceId ?? "(local device)"}\n" +
+            $"Status: {status}\n\n" +
+            $"Payload:\n{payload}",
+            "OK");
+    }
+
+    private static string FormatPayload(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+            return root.GetRawText();
+
+        return string.Join("\n", root.EnumerateObject().Select(property =>
+            $"{property.Name}: {FormatPayloadValue(property.Value)}"));
+    }
+
+    private static string FormatPayloadValue(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.String => value.GetString() ?? "",
+        JsonValueKind.Null => "null",
+        JsonValueKind.Undefined => "undefined",
+        _ => value.GetRawText()
+    };
+
+    private static string GetStatusText(int status) => status switch
+    {
+        0 => "Pending",
+        1 => "Synced",
+        2 => "Applied",
+        3 => "Failed",
+        _ => $"Unknown ({status})"
+    };
 
     private void SetBusy(bool isBusy, string statusText = "")
     {
@@ -455,8 +604,11 @@ public class QueuedOperationsPage : ContentPage
 
     private void UpdateButtons()
     {
-        _applyAllButton.IsEnabled = !_isBusy && _operations.Count > 0;
+        _applyAllButton.IsVisible = !_showLocalQueue;
+        _applyAllButton.IsEnabled = !_isBusy && !_showLocalQueue && _operations.Count > 0;
         _refreshButton.IsEnabled = !_isBusy;
+        _serverQueueTabButton.IsEnabled = !_isBusy;
+        _localQueueTabButton.IsEnabled = !_isBusy;
     }
 
     private static string? ReadString(JsonElement root, string propertyName)
@@ -468,11 +620,13 @@ public class QueuedOperationsPage : ContentPage
 
     private class OperationRow
     {
+        public QueuedOperation Operation { get; set; } = new();
         public string Uuid { get; set; } = "";
         public string OperationType { get; set; } = "";
         public string Summary { get; set; } = "";
         public string Metadata { get; set; } = "";
         public bool IsApplied { get; set; }
+        public string StatusText { get; set; } = "Pending";
         public double Opacity { get; set; } = 1.0;
     }
 

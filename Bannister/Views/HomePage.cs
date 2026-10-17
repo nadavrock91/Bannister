@@ -144,6 +144,7 @@ public class HomePage : ContentPage
     private Button _btnZeroCounts;
     private Button _quickAccessBtn = null!;
     private Button _secondaryQueueActionsBtn = null!;
+    private readonly ToolbarItem _secondaryQueueToolbarItem;
     private VerticalStackLayout _buttonSectionsStack;
     private List<HomeNavButton> _allHomeNavButtons = new();
     private List<HomeNavButton> _homeNavButtons = new();
@@ -249,6 +250,14 @@ public class HomePage : ContentPage
         _statTracker = statTracker;
         _resetEnforcerService = resetEnforcerService;
         _ownerMode.StateChanged += OnOwnerModeStateChanged;
+
+        _secondaryQueueToolbarItem = new ToolbarItem
+        {
+            Text = "⋮",
+            Order = ToolbarItemOrder.Secondary,
+            Priority = 0
+        };
+        _secondaryQueueToolbarItem.Clicked += OnSecondaryQueueToolbarClicked;
 
         Title = "Bannister";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -740,6 +749,12 @@ public class HomePage : ContentPage
         if (_secondaryQueueActionsBtn != null)
             _secondaryQueueActionsBtn.IsVisible = _isOwnerModeUnlocked && _deviceMode.IsReadOnly;
 
+        bool showSecondaryToolbar = _deviceMode.IsReadOnly;
+        if (showSecondaryToolbar && !ToolbarItems.Contains(_secondaryQueueToolbarItem))
+            ToolbarItems.Add(_secondaryQueueToolbarItem);
+        else if (!showSecondaryToolbar && ToolbarItems.Contains(_secondaryQueueToolbarItem))
+            ToolbarItems.Remove(_secondaryQueueToolbarItem);
+
         RefreshButtonsLayout();
     }
 
@@ -1013,6 +1028,7 @@ public class HomePage : ContentPage
         base.OnAppearing();
         System.Diagnostics.Debug.WriteLine($"[HomePage] OnAppearing fired, sequence-running={_homePromptSequenceRunning}, run-id-before={_homePromptRunId}, is-visible-before={_isHomeVisible}");
         _isHomeVisible = true;
+        await RefreshOwnerModeUiAsync();
 
         var currentMode = _privacyMode.GetDisplayMode(
             _auth.CurrentUsername);
@@ -1247,7 +1263,8 @@ public class HomePage : ContentPage
                         _auth,
                         _activities,
                         _games,
-                        _pendingIdeas));
+                        _pendingIdeas,
+                        _operationQueue));
                     break;
                 case "Don't remind me until...":
                     var selectedDate = await QueueSnoozeDatePage.ShowAsync(Navigation);
@@ -3147,6 +3164,34 @@ public class HomePage : ContentPage
             case SecondaryQueueAction.AddPendingActivityIdea:
                 await ShowQueuePendingActivityIdeaAsync();
                 break;
+        }
+    }
+
+    private async void OnSecondaryQueueToolbarClicked(object? sender, EventArgs e)
+    {
+        if (!_deviceMode.IsReadOnly)
+        {
+            await RefreshOwnerModeUiAsync();
+            return;
+        }
+
+        var action = await DisplayActionSheet(
+            "Secondary Queue",
+            "Cancel",
+            null,
+            "Sync Queued Operations");
+
+        if (action == "Sync Queued Operations")
+        {
+            await Navigation.PushAsync(new QueuedOperationsPage(
+                _sync,
+                _applier,
+                _db,
+                _auth,
+                _activities,
+                _games,
+                _pendingIdeas,
+                _operationQueue));
         }
     }
 
