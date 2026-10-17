@@ -9,6 +9,7 @@ public class ClipsExperimentPage : ContentPage
 {
     private readonly ClipsExperimentService _service;
     private readonly AuthService _auth;
+    private Grid _root = null!;
     private VerticalStackLayout _content = null!;
     private HorizontalStackLayout _tabs = null!;
     private Entry _nameEntry = null!;
@@ -17,6 +18,7 @@ public class ClipsExperimentPage : ContentPage
     private Entry _conceptEntry = null!;
     private DatePicker _datePicker = null!;
     private int? _expandedPostId;
+    private readonly HashSet<string> _expandedPostGroups = new();
     private readonly HashSet<int> _selectedPostIds = new();
     private Button? _assignSelectedPostsButton;
     private bool _postSelectionMode;
@@ -40,7 +42,7 @@ public class ClipsExperimentPage : ContentPage
 
     private void BuildUI()
     {
-        var root = new Grid
+        _root = new Grid
         {
             Padding = 20,
             RowSpacing = 12,
@@ -52,14 +54,14 @@ public class ClipsExperimentPage : ContentPage
                 new RowDefinition(GridLength.Star)
             }
         };
-        root.Add(new Label
+        _root.Add(new Label
         {
             Text = "🎬 AI Clips Experiment",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#1565C0")
         }, 0, 0);
-        root.Add(new Label
+        _root.Add(new Label
         {
             Text = "Test short-video hook concepts and compare viewer retention.",
             FontSize = 13,
@@ -68,13 +70,13 @@ public class ClipsExperimentPage : ContentPage
         }, 0, 1);
         _tabs = new HorizontalStackLayout { Spacing = 6 };
         BuildTabs();
-        root.Add(_tabs, 0, 2);
+        _root.Add(_tabs, 0, 2);
         _content = new VerticalStackLayout { Spacing = 12 };
-        root.Add(new ScrollView
+        _root.Add(new ScrollView
         {
             Content = _content
         }, 0, 3);
-        Content = root;
+        Content = _root;
     }
 
     private void BuildTabs()
@@ -307,6 +309,48 @@ public class ClipsExperimentPage : ContentPage
             _assignSelectedPostsButton = null;
         }
 
+        var knownExperimentIds = experimentItems.Select(item => item.Id).ToHashSet();
+        foreach (var experimentItem in experimentItems)
+        {
+            var assignedPosts = posts
+                .Where(post => post.ExperimentItemId == experimentItem.Id)
+                .OrderByDescending(post => post.PostedDate)
+                .ToList();
+            if (assignedPosts.Count > 0)
+                AddPostGroup($"experiment:{experimentItem.Id}", experimentItem.Title, assignedPosts, experimentItems);
+        }
+
+        var unassignedPosts = posts
+            .Where(post => !post.ExperimentItemId.HasValue || !knownExperimentIds.Contains(post.ExperimentItemId.Value))
+            .OrderByDescending(post => post.PostedDate)
+            .ToList();
+        if (unassignedPosts.Count > 0)
+            AddPostGroup("unassigned", "Unassigned", unassignedPosts, experimentItems);
+    }
+
+    private void AddPostGroup(
+        string groupKey,
+        string title,
+        List<ClipsPost> posts,
+        List<ClipsExperimentItem> experimentItems)
+    {
+        var isExpanded = _expandedPostGroups.Contains(groupKey);
+        var header = MakeButton(
+            $"{(isExpanded ? "▼" : "▶")} {title} ({posts.Count})",
+            "#ECEFF1",
+            Color.FromArgb("#333"));
+        header.HorizontalOptions = LayoutOptions.Fill;
+        header.Clicked += (_, _) =>
+        {
+            if (isExpanded)
+                _expandedPostGroups.Remove(groupKey);
+            else
+                _expandedPostGroups.Add(groupKey);
+            _ = RefreshAsync();
+        };
+        _content.Children.Add(header);
+
+        if (!isExpanded) return;
         foreach (var post in posts)
             _content.Children.Add(BuildPostCard(post, experimentItems));
     }
@@ -437,11 +481,82 @@ public class ClipsExperimentPage : ContentPage
             return null;
         }
 
-        var choices = experimentItems.Select(item => item.Title).ToArray();
-        var selection = await DisplayActionSheet("Assign Experiment", "Cancel", null, choices);
-        if (string.IsNullOrWhiteSpace(selection) || selection == "Cancel") return null;
-        var selectedIndex = Array.IndexOf(choices, selection);
-        return selectedIndex >= 0 ? experimentItems[selectedIndex] : null;
+        var completion = new TaskCompletionSource<ClipsExperimentItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            Margin = new Thickness(-20),
+            ZIndex = 100
+        };
+        Grid.SetRow(overlay, 0);
+        Grid.SetRowSpan(overlay, 4);
+
+        void Complete(ClipsExperimentItem? selectedItem)
+        {
+            _root.Children.Remove(overlay);
+            completion.TrySetResult(selectedItem);
+        }
+
+        var items = new VerticalStackLayout
+        {
+            Padding = new Thickness(12, 8),
+            Spacing = 8
+        };
+        foreach (var experimentItem in experimentItems)
+        {
+            var item = experimentItem;
+            var button = new Button
+            {
+                Text = item.Title,
+                FontSize = 14,
+                TextColor = Color.FromArgb("#222"),
+                BackgroundColor = Color.FromArgb("#F5F5F5"),
+                CornerRadius = 7,
+                Padding = new Thickness(12, 10),
+                HorizontalOptions = LayoutOptions.Fill,
+                LineBreakMode = LineBreakMode.WordWrap
+            };
+            button.Clicked += (_, _) => Complete(item);
+            items.Children.Add(button);
+        }
+
+        var cancel = MakeButton("Cancel", "#EEEEEE", Color.FromArgb("#555"));
+        cancel.Clicked += (_, _) => Complete(null);
+        var cardContent = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Assign Experiment",
+                    FontSize = 18,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#222")
+                },
+                new ScrollView
+                {
+                    MaximumHeightRequest = 420,
+                    Content = items
+                },
+                cancel
+            }
+        };
+        overlay.Children.Add(new Frame
+        {
+            Content = cardContent,
+            Padding = 18,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            MaximumWidthRequest = 520,
+            MaximumHeightRequest = 600,
+            Margin = new Thickness(20),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            HasShadow = true
+        });
+        _root.Children.Add(overlay);
+        return await completion.Task;
     }
 
     private void UpdateAssignSelectedPostsButton()
