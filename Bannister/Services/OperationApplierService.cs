@@ -112,6 +112,11 @@ public class OperationApplierService
                     await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
                     return new ApplyResult { Success = true, Uuid = op.Uuid };
 
+                case "start_hook_session":
+                    await ApplyStartHookSessionAsync(op);
+                    await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
+                    return new ApplyResult { Success = true, Uuid = op.Uuid };
+
                 case "update_hook_session_stats":
                     await ApplyUpdateHookSessionStatsAsync(op);
                     await RecordAppliedAsync(op.Uuid, op.OperationType, sourceDeviceId ?? op.SourceDeviceId);
@@ -313,8 +318,30 @@ public class OperationApplierService
             username,
             prefixText,
             sessionCreatedDate.Value,
-            ReadInt(root, "total_cropped", 0),
-            ReadInt(root, "total_extraordinary", 0));
+            ReadInt(root, "cropped_delta", 0),
+            ReadInt(root, "extraordinary_delta", 0));
+    }
+
+    private async Task ApplyStartHookSessionAsync(QueuedOperation op)
+    {
+        using var doc = JsonDocument.Parse(DecryptQueuedPayload(op));
+        var root = doc.RootElement;
+        var username = ReadString(root, "username") ?? _auth.CurrentUsername;
+        var prefixText = ReadString(root, "prefix_text");
+        if (string.IsNullOrWhiteSpace(prefixText))
+            throw new InvalidOperationException("Queued hook session start is missing prefix text.");
+
+        var createdDate = ReadDateTime(root, "created_date");
+        if (!createdDate.HasValue)
+            throw new InvalidOperationException("Queued hook session start is missing its creation date.");
+
+        await _hookPrefixes.ApplyQueuedStartSessionAsync(
+            username,
+            prefixText,
+            ReadNullableInt(root, "prefix_id_1"),
+            ReadNullableInt(root, "prefix_id_2"),
+            ReadString(root, "mode") ?? "",
+            createdDate.Value);
     }
 
     private string DecryptQueuedPayload(QueuedOperation op)
@@ -351,6 +378,19 @@ public class OperationApplierService
         return value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number)
             ? number
             : fallback;
+    }
+
+    private static int? ReadNullableInt(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value) ||
+            value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        return value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number)
+            ? number
+            : null;
     }
 
     private static bool ReadBool(JsonElement root, string propertyName, bool fallback)

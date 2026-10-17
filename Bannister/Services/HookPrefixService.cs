@@ -118,13 +118,30 @@ public class HookPrefixService
     public async Task SaveSessionAsync(HookPrefixSession session)
     {
         await InitAsync();
-        if (_db.IsReadOnly) return;
-
         session.Username = NormalizeUsername(session.Username);
         session.PrefixText = session.PrefixText?.Trim() ?? "";
         session.Mode = session.Mode?.Trim() ?? "";
         if (session.CreatedDate == default)
             session.CreatedDate = DateTime.UtcNow;
+
+        if (_db.IsReadOnly)
+        {
+            if (session.Id == 0)
+            {
+                await _queue.EnqueueAsync("start_hook_session", new
+                {
+                    operation_type = "start_hook_session",
+                    client_uuid = Guid.NewGuid().ToString("D"),
+                    prefix_text = session.PrefixText,
+                    prefix_id_1 = session.PrefixId1,
+                    prefix_id_2 = session.PrefixId2,
+                    mode = session.Mode,
+                    created_date = session.CreatedDate.ToUniversalTime().ToString("O")
+                });
+            }
+
+            return;
+        }
 
         var conn = await _db.GetConnectionAsync();
         if (session.Id == 0)
@@ -151,13 +168,15 @@ public class HookPrefixService
 
         if (_db.IsReadOnly)
         {
+            var queuedCroppedDelta = cropped - (session.TotalCropped ?? 0);
+            var queuedExtraordinaryDelta = extraordinary - (session.TotalExtraordinary ?? 0);
             await _queue.EnqueueAsync("update_hook_session_stats", new
             {
                 operation_type = "update_hook_session_stats",
                 client_uuid = Guid.NewGuid().ToString("D"),
                 prefix_text = session.PrefixText,
-                total_cropped = cropped,
-                total_extraordinary = extraordinary,
+                cropped_delta = queuedCroppedDelta,
+                extraordinary_delta = queuedExtraordinaryDelta,
                 session_created_date = session.CreatedDate.ToUniversalTime().ToString("O")
             });
             return;
@@ -215,8 +234,8 @@ public class HookPrefixService
         string username,
         string prefixText,
         DateTime sessionCreatedDate,
-        int cropped,
-        int extraordinary)
+        int croppedDelta,
+        int extraordinaryDelta)
     {
         await InitAsync();
         username = NormalizeUsername(username);
@@ -232,7 +251,93 @@ public class HookPrefixService
         if (session == null)
             throw new InvalidOperationException("Matching hook prefix session was not found.");
 
-        await UpdateSessionCropResultAsync(session.Id, cropped, extraordinary);
+        session.TotalCropped = (session.TotalCropped ?? 0) + croppedDelta;
+        session.TotalExtraordinary =
+            (session.TotalExtraordinary ?? 0) + extraordinaryDelta;
+        await conn.UpdateAsync(session);
+
+        var appliedManualPrefixStats = false;
+        if (!session.PrefixId1.HasValue &&
+            !string.IsNullOrWhiteSpace(session.PrefixText))
+        {
+            var prefix = await ResolvePrefixFromTextAsync(conn, session);
+            if (prefix != null)
+            {
+                session.PrefixId1 = prefix.Id;
+                await conn.UpdateAsync(session);
+                await ApplyStatsDeltaAsync(
+                    conn,
+                    prefix.Id,
+                    croppedDelta,
+                    extraordinaryDelta,
+                    false);
+                appliedManualPrefixStats = true;
+            }
+        }
+
+        if (session.PrefixId1.HasValue && !appliedManualPrefixStats)
+        {
+            await ApplyStatsDeltaAsync(
+                conn,
+                session.PrefixId1.Value,
+                croppedDelta,
+                extraordinaryDelta,
+                session.Mode == "combined");
+        }
+
+        if (session.PrefixId2.HasValue &&
+            session.PrefixId2.Value != session.PrefixId1)
+        {
+            await ApplyStatsDeltaAsync(
+                conn,
+                session.PrefixId2.Value,
+                croppedDelta,
+                extraordinaryDelta,
+                true);
+        }
+    }
+
+    public async Task ApplyQueuedStartSessionAsync(
+        string username,
+        string prefixText,
+        int? prefixId1,
+        int? prefixId2,
+        string mode,
+        DateTime createdDate)
+    {
+        await InitAsync();
+        username = NormalizeUsername(username);
+        prefixText = prefixText?.Trim() ?? "";
+        mode = mode?.Trim() ?? "";
+
+        var conn = await _db.GetConnectionAsync();
+        var sessions = await conn.Table<HookPrefixSession>()
+            .Where(x => x.Username == username && x.PrefixText == prefixText)
+            .ToListAsync();
+        var targetCreatedDate = createdDate.ToUniversalTime();
+        var existing = sessions.FirstOrDefault(x =>
+            x.CreatedDate.ToUniversalTime() == targetCreatedDate);
+        if (existing != null)
+            return;
+
+        _ = prefixId1;
+        _ = prefixId2;
+
+        var session = new HookPrefixSession
+        {
+            Username = username,
+            PrefixText = prefixText,
+            Mode = mode,
+            CreatedDate = targetCreatedDate
+        };
+
+        if (!string.IsNullOrWhiteSpace(prefixText))
+        {
+            var prefix = await ResolvePrefixFromTextAsync(conn, session);
+            session.PrefixId1 = prefix?.Id;
+        }
+
+        await conn.InsertAsync(session);
     }
 
     public async Task<List<HookPrefix>> GetPrefixStatsAsync(string username)
