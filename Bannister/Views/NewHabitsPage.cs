@@ -1694,7 +1694,8 @@ public class NewHabitsPage : ContentPage
             prefillLevel: negativeLevel,
             prefillImage: negativeImage,
             prefillCategory: negativeCategory,
-            isNegative: true);
+            isNegative: true,
+            prefillIsImageOnly: true);
 
         return activity;
     }

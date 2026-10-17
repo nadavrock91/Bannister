@@ -36,6 +36,7 @@ public class ActivityCreationPage : ContentPage
     private TaskCompletionSource<Activity?>? _modalTcs;
     private bool _isModalMode = false;
     private bool _isImageOnly = false;
+    private bool _prefillIsImageOnly = false;
 
     // UI Controls
     private Entry txtName;
@@ -56,6 +57,7 @@ public class ActivityCreationPage : ContentPage
     private TimePicker timeEnd;
     private Button btnPickImage;
     private Image imgPreview;
+    private CheckBox imageOnlyCheck;
     private CheckBox chkStreakTracked;
     private Entry txtStreakTargetDays;
     private CheckBox chkIsPossible;
@@ -201,7 +203,8 @@ public class ActivityCreationPage : ContentPage
         bool prefillStreakTracked = false,
         int? prefillStreakTargetDays = null,
         string? prefillRewardType = null,
-        string? prefillPercent = null)
+        string? prefillPercent = null,
+        bool prefillIsImageOnly = false)
     {
         var privacyMode = Application.Current?.Handler?.MauiContext?
             .Services.GetService<PrivacyModeService>()
@@ -224,6 +227,7 @@ public class ActivityCreationPage : ContentPage
         page._prefillStreakTargetDays = prefillStreakTargetDays;
         page._prefillRewardType = prefillRewardType;
         page._prefillPercent = prefillPercent;
+        page._prefillIsImageOnly = prefillIsImageOnly;
         
         await navigation.PushModalAsync(new NavigationPage(page));
         return await page._modalTcs.Task;
@@ -318,6 +322,12 @@ public class ActivityCreationPage : ContentPage
                 }
                 if (!string.IsNullOrWhiteSpace(_prefillPercent))
                     txtPercentOfLevel.Text = _prefillPercent;
+
+                if (_prefillIsImageOnly)
+                {
+                    _isImageOnly = true;
+                    imageOnlyCheck.IsChecked = true;
+                }
                 
                 _prefillApplied = true;
             }
@@ -495,7 +505,7 @@ public class ActivityCreationPage : ContentPage
             Spacing = 10,
             Margin = new Thickness(0, 4, 0, 0)
         };
-        var imageOnlyCheck = new CheckBox
+        imageOnlyCheck = new CheckBox
         {
             IsChecked = false,
             Color = Color.FromArgb("#1565C0")
