@@ -17,6 +17,9 @@ public class ClipsExperimentPage : ContentPage
     private Entry _conceptEntry = null!;
     private DatePicker _datePicker = null!;
     private int? _expandedPostId;
+    private readonly HashSet<int> _selectedPostIds = new();
+    private Button? _assignSelectedPostsButton;
+    private bool _postSelectionMode;
     private string _activeTab = "Posts";
     private bool _busy;
 
@@ -252,6 +255,58 @@ public class ClipsExperimentPage : ContentPage
             _content.Children.Add(new Label { Text = "No posts recorded yet.", FontSize = 13, TextColor = Color.FromArgb("#999") });
             return;
         }
+
+        var toggleSelection = MakeButton(
+            _postSelectionMode ? "Exit Selection" : "Select Posts",
+            _postSelectionMode ? "#EEEEEE" : "#E3F2FD",
+            _postSelectionMode ? Color.FromArgb("#555") : Color.FromArgb("#1565C0"));
+        toggleSelection.HorizontalOptions = LayoutOptions.Start;
+        toggleSelection.Clicked += async (_, _) =>
+        {
+            _postSelectionMode = !_postSelectionMode;
+            _selectedPostIds.Clear();
+            await RefreshAsync();
+        };
+        _content.Children.Add(toggleSelection);
+
+        if (_postSelectionMode)
+        {
+            var selectAll = MakeButton("Select All", "#EEEEEE", Color.FromArgb("#555"));
+            selectAll.HorizontalOptions = LayoutOptions.Start;
+            selectAll.Clicked += async (_, _) =>
+            {
+                foreach (var post in posts)
+                    _selectedPostIds.Add(post.Id);
+                await RefreshAsync();
+            };
+            _content.Children.Add(selectAll);
+
+            _assignSelectedPostsButton = MakeButton("Assign 0 Posts to Experiment", "#1565C0", Colors.White);
+            _assignSelectedPostsButton.IsEnabled = false;
+            _assignSelectedPostsButton.Clicked += async (_, _) =>
+            {
+                var selectedExperiment = await ChooseExperimentAsync(experimentItems);
+                if (selectedExperiment == null) return;
+
+                var selectedPosts = posts.Where(post => _selectedPostIds.Contains(post.Id)).ToList();
+                foreach (var selectedPost in selectedPosts)
+                {
+                    selectedPost.ExperimentItemId = selectedExperiment.Id;
+                    await _service.SavePostAsync(selectedPost);
+                }
+
+                _selectedPostIds.Clear();
+                _postSelectionMode = false;
+                await RefreshAsync();
+            };
+            _content.Children.Add(_assignSelectedPostsButton);
+            UpdateAssignSelectedPostsButton();
+        }
+        else
+        {
+            _assignSelectedPostsButton = null;
+        }
+
         foreach (var post in posts)
             _content.Children.Add(BuildPostCard(post, experimentItems));
     }
@@ -310,24 +365,14 @@ public class ClipsExperimentPage : ContentPage
         assignExperiment.HorizontalOptions = LayoutOptions.Start;
         assignExperiment.Clicked += async (_, _) =>
         {
-            if (experimentItems.Count == 0)
-            {
-                await DisplayAlert("Assign Experiment", "No experiment items are available.", "OK");
-                return;
-            }
-
-            var choices = experimentItems
-                .Select(item => $"{item.Title} — {FormatDateRange(item)}")
-                .ToArray();
-            var selection = await DisplayActionSheet("Assign Experiment", "Cancel", null, choices);
-            if (string.IsNullOrWhiteSpace(selection) || selection == "Cancel") return;
-            var selectedIndex = Array.IndexOf(choices, selection);
-            if (selectedIndex < 0) return;
-            post.ExperimentItemId = experimentItems[selectedIndex].Id;
+            var selectedExperiment = await ChooseExperimentAsync(experimentItems);
+            if (selectedExperiment == null) return;
+            post.ExperimentItemId = selectedExperiment.Id;
             await _service.SavePostAsync(post);
             await RefreshAsync();
         };
-        stack.Children.Add(assignExperiment);
+        if (!_postSelectionMode)
+            stack.Children.Add(assignExperiment);
         var retentionParts = new List<string>();
         if (post.Retention10s.HasValue)
             retentionParts.Add($"10s: {post.Retention10s.Value:F0}%");
@@ -344,15 +389,67 @@ public class ClipsExperimentPage : ContentPage
             });
         if (_expandedPostId == post.Id)
             AddPostEditor(stack, post);
+        View cardContent = stack;
+        if (_postSelectionMode)
+        {
+            var checkBox = new CheckBox
+            {
+                IsChecked = _selectedPostIds.Contains(post.Id),
+                VerticalOptions = LayoutOptions.Start
+            };
+            checkBox.CheckedChanged += (_, args) =>
+            {
+                if (args.Value)
+                    _selectedPostIds.Add(post.Id);
+                else
+                    _selectedPostIds.Remove(post.Id);
+                UpdateAssignSelectedPostsButton();
+            };
+            var selectionGrid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Star)
+                },
+                ColumnSpacing = 8
+            };
+            selectionGrid.Add(checkBox, 0, 0);
+            selectionGrid.Add(stack, 1, 0);
+            cardContent = selectionGrid;
+        }
         return new Frame
         {
-            Content = stack,
+            Content = cardContent,
             Padding = 12,
             CornerRadius = 8,
             BackgroundColor = complete ? Color.FromArgb("#FAFAFA") : Colors.White,
             BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false
         };
+    }
+
+    private async Task<ClipsExperimentItem?> ChooseExperimentAsync(List<ClipsExperimentItem> experimentItems)
+    {
+        if (experimentItems.Count == 0)
+        {
+            await DisplayAlert("Assign Experiment", "No experiment items are available.", "OK");
+            return null;
+        }
+
+        var choices = experimentItems.Select(item => item.Title).ToArray();
+        var selection = await DisplayActionSheet("Assign Experiment", "Cancel", null, choices);
+        if (string.IsNullOrWhiteSpace(selection) || selection == "Cancel") return null;
+        var selectedIndex = Array.IndexOf(choices, selection);
+        return selectedIndex >= 0 ? experimentItems[selectedIndex] : null;
+    }
+
+    private void UpdateAssignSelectedPostsButton()
+    {
+        if (_assignSelectedPostsButton == null) return;
+        var count = _selectedPostIds.Count;
+        _assignSelectedPostsButton.Text = $"Assign {count} Posts to Experiment";
+        _assignSelectedPostsButton.IsEnabled = count > 0;
     }
 
     private void AddPostEditor(VerticalStackLayout stack, ClipsPost post)
