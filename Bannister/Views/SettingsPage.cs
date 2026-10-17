@@ -20,6 +20,7 @@ public class SettingsPage : ContentPage
     private readonly GameService _gameService;
     private readonly ResetTimeService _resetTime;
     private readonly AppSettingsService _appSettings;
+    private readonly OwnerModeService _ownerMode;
     private Switch _calendarBeforeGamesSwitch;
     private Label _calendarBeforeGamesStatus;
     private Switch _websiteBuilderInterruptSwitch;
@@ -41,7 +42,8 @@ public class SettingsPage : ContentPage
         ActivityService? activityService = null,
         GameService? gameService = null,
         ResetTimeService? resetTime = null,
-        AppSettingsService? appSettings = null)
+        AppSettingsService? appSettings = null,
+        OwnerModeService? ownerMode = null)
     {
         _auth = auth;
         _db = db;
@@ -83,6 +85,12 @@ public class SettingsPage : ContentPage
                     typeof(AppSettingsService))
             ?? throw new InvalidOperationException(
                 "AppSettingsService is not registered.");
+        _ownerMode = ownerMode
+            ?? (OwnerModeService?)Application.Current?.Handler?
+                .MauiContext?.Services.GetService(
+                    typeof(OwnerModeService))
+            ?? throw new InvalidOperationException(
+                "OwnerModeService is not registered.");
 
         Title = "Settings";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -726,6 +734,14 @@ public class SettingsPage : ContentPage
 
     private async void OnSyncSettingsClicked(object? sender, EventArgs e)
     {
+        if (!await _ownerMode.IsUnlockedAsync())
+        {
+            await DisplayAlert(
+                "Owner Mode Locked",
+                "Sync & Devices is only available when Owner Mode is unlocked.",
+                "OK");
+            return;
+        }
         await Shell.Current.GoToAsync("syncsettings");
     }
 

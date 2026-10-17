@@ -3927,7 +3927,8 @@ public class HomePage : ContentPage
         var page = new SettingsPage(
             _auth, _db, _backup, _buttonVisibility,
             resetTime: _resetTime,
-            appSettings: _appSettings);
+            appSettings: _appSettings,
+            ownerMode: _ownerMode);
         await Navigation.PushAsync(page);
     }
 
