@@ -17,6 +17,8 @@ public class ClipsExperimentService
         await conn.CreateTableAsync<ClipsPost>();
         await conn.CreateTableAsync<ClipsDataPoint>();
         await conn.CreateTableAsync<ClipsExperimentItem>();
+        try { await conn.ExecuteAsync("ALTER TABLE ClipsExperimentItem ADD COLUMN StartDate TEXT"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE ClipsExperimentItem ADD COLUMN EndDate TEXT"); } catch { }
         _initialized = true;
     }
 
@@ -113,8 +115,19 @@ public class ClipsExperimentService
         var conn = await _db.GetConnectionAsync();
         return await conn.Table<ClipsExperimentItem>()
             .Where(item => item.Username == username && item.ExperimentId == experimentId)
-            .OrderByDescending(item => item.CreatedDate)
+            .OrderByDescending(item => item.StartDate)
             .ToListAsync();
+    }
+
+    public async Task<ClipsExperimentItem?> GetActiveExperimentItemAsync(string username, int experimentId)
+    {
+        var items = await GetExperimentItemsAsync(username, experimentId);
+        var today = DateTime.Today;
+        return items.FirstOrDefault(item =>
+            item.StartDate.HasValue &&
+            item.EndDate.HasValue &&
+            item.StartDate.Value.Date <= today &&
+            item.EndDate.Value.Date >= today);
     }
 
     public async Task<List<ClipsExperimentItem>> GetUnrunExperimentItemsAsync(string username, int experimentId)
