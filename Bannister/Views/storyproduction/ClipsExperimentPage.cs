@@ -2,6 +2,7 @@ using Bannister.Models;
 using Bannister.Services;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
@@ -791,14 +792,45 @@ public class ClipsExperimentPage : ContentPage
             await Clipboard.SetTextAsync(BuildExperimentIdeasPrompt(posts, dataPoints, allItems));
             await DisplayAlert("Copied", "The experiment ideas prompt was copied to the clipboard.", "OK");
         };
+        var importIdeas = MakeButton("Import Experiment Ideas", "#F3E5F5", Color.FromArgb("#6A1B9A"));
+        importIdeas.Clicked += async (_, _) =>
+        {
+            var response = await ShowLlmPasteOverlayAsync("Import Experiment Ideas");
+            if (response == null) return;
+            var parsedIdeas = ParseExperimentIdeas(response);
+            if (parsedIdeas.Count == 0)
+            {
+                await DisplayAlert("No Ideas Found", "No parseable newExperiment entries were found.", "OK");
+                return;
+            }
+            await ShowExperimentIdeaApprovalsAsync(experiment, parsedIdeas, allItems);
+            await RefreshAsync();
+        };
         var ranking = MakeButton("Export for LLM Priority Ranking", "#1565C0", Colors.White);
         ranking.Clicked += async (_, _) =>
         {
             await Clipboard.SetTextAsync(BuildPriorityRankingPrompt(posts, dataPoints, allItems, unrunItems));
             await DisplayAlert("Copied", "The priority ranking prompt was copied to the clipboard.", "OK");
         };
+        var importRanking = MakeButton("Import Priority Ranking", "#E3F2FD", Color.FromArgb("#1565C0"));
+        importRanking.Clicked += async (_, _) =>
+        {
+            var response = await ShowLlmPasteOverlayAsync("Import Priority Ranking");
+            if (response == null) return;
+            var parsedRanking = ParsePriorityRanking(response);
+            if (parsedRanking.Count == 0)
+            {
+                await DisplayAlert("No Ranking Found", "No parseable priority entries were found.", "OK");
+                return;
+            }
+            if (!await ShowPriorityApprovalAsync(parsedRanking)) return;
+            await ApplyPriorityRankingAsync(parsedRanking, unrunItems);
+            await RefreshAsync();
+        };
         promptButtons.Children.Add(ideas);
+        promptButtons.Children.Add(importIdeas);
         promptButtons.Children.Add(ranking);
+        promptButtons.Children.Add(importRanking);
         _content.Children.Add(promptButtons);
 
         BuildExperimentItemsSection("Not Yet Run", unrunItems, true);
@@ -922,6 +954,273 @@ public class ClipsExperimentPage : ContentPage
         await RefreshAsync();
     }
 
+    private async Task<string?> ShowLlmPasteOverlayAsync(string title)
+    {
+        var completion = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var overlay = CreateDimmedOverlay();
+        var editor = new Editor
+        {
+            Placeholder = "Paste the LLM response here...",
+            AutoSize = EditorAutoSizeOption.TextChanges,
+            MinimumHeightRequest = 260,
+            FontSize = 13,
+            BackgroundColor = Color.FromArgb("#FAFAFA")
+        };
+        void Complete(string? result)
+        {
+            _root.Children.Remove(overlay);
+            completion.TrySetResult(result);
+        }
+
+        var import = MakeButton("Import", "#1565C0", Colors.White);
+        import.Clicked += (_, _) =>
+        {
+            if (!string.IsNullOrWhiteSpace(editor.Text))
+                Complete(editor.Text);
+        };
+        var cancel = MakeButton("Cancel", "#EEEEEE", Color.FromArgb("#555"));
+        cancel.Clicked += (_, _) => Complete(null);
+        var buttons = new HorizontalStackLayout { Spacing = 8, Children = { import, cancel } };
+        var content = new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
+                editor,
+                buttons
+            }
+        };
+        overlay.Children.Add(CreateOverlayCard(content, 680, 620));
+        _root.Children.Add(overlay);
+        return await completion.Task;
+    }
+
+    private async Task ShowExperimentIdeaApprovalsAsync(
+        ClipsExperiment experiment,
+        List<ParsedExperimentIdea> ideas,
+        List<ClipsExperimentItem> existingItems)
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var overlay = CreateDimmedOverlay();
+        var cards = new VerticalStackLayout { Padding = new Thickness(4), Spacing = 10 };
+        var remaining = ideas.Count;
+        var nextSortOrder = existingItems.Count == 0 ? 0 : existingItems.Max(item => item.SortOrder) + 1;
+
+        foreach (var idea in ideas)
+        {
+            var approvalCard = new Frame
+            {
+                Padding = 12,
+                CornerRadius = 8,
+                BackgroundColor = Color.FromArgb("#FAFAFA"),
+                BorderColor = Color.FromArgb("#E0E0E0"),
+                HasShadow = false
+            };
+            var add = MakeButton("Add", "#2E7D32", Colors.White);
+            var skip = MakeButton("Skip", "#EEEEEE", Color.FromArgb("#555"));
+            var handled = false;
+            async Task ResolveAsync(bool shouldAdd)
+            {
+                if (handled) return;
+                handled = true;
+                add.IsEnabled = false;
+                skip.IsEnabled = false;
+                if (shouldAdd)
+                {
+                    await _service.SaveExperimentItemAsync(new ClipsExperimentItem
+                    {
+                        Username = _auth.CurrentUsername,
+                        ExperimentId = experiment.Id,
+                        Title = idea.Title,
+                        Description = idea.Description,
+                        SortOrder = nextSortOrder++,
+                        CreatedDate = DateTime.UtcNow
+                    });
+                }
+                cards.Children.Remove(approvalCard);
+                remaining--;
+                if (remaining == 0)
+                {
+                    _root.Children.Remove(overlay);
+                    completion.TrySetResult();
+                }
+            }
+            add.Clicked += async (_, _) => await ResolveAsync(true);
+            skip.Clicked += async (_, _) => await ResolveAsync(false);
+            approvalCard.Content = new VerticalStackLayout
+            {
+                Spacing = 7,
+                Children =
+                {
+                    new Label { Text = idea.Title, FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222"), LineBreakMode = LineBreakMode.WordWrap },
+                    new Label { Text = idea.Description, FontSize = 13, TextColor = Color.FromArgb("#555"), LineBreakMode = LineBreakMode.WordWrap },
+                    new HorizontalStackLayout { Spacing = 8, Children = { add, skip } }
+                }
+            };
+            cards.Children.Add(approvalCard);
+        }
+
+        var content = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                new Label { Text = "Approve Experiment Ideas", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
+                new ScrollView { MaximumHeightRequest = 560, Content = cards }
+            }
+        };
+        overlay.Children.Add(CreateOverlayCard(content, 720, 680));
+        _root.Children.Add(overlay);
+        await completion.Task;
+    }
+
+    private async Task<bool> ShowPriorityApprovalAsync(List<ParsedPriorityItem> ranking)
+    {
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var overlay = CreateDimmedOverlay();
+        var list = new VerticalStackLayout { Padding = new Thickness(4), Spacing = 10 };
+        for (var index = 0; index < ranking.Count; index++)
+        {
+            var item = ranking[index];
+            list.Children.Add(MakeCard(new VerticalStackLayout
+            {
+                Spacing = 4,
+                Children =
+                {
+                    new Label { Text = $"{index + 1}. {item.Title}", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222"), LineBreakMode = LineBreakMode.WordWrap },
+                    new Label { Text = item.Reason, FontSize = 12, TextColor = Color.FromArgb("#555"), LineBreakMode = LineBreakMode.WordWrap }
+                }
+            }));
+        }
+
+        void Complete(bool approved)
+        {
+            _root.Children.Remove(overlay);
+            completion.TrySetResult(approved);
+        }
+        var approve = MakeButton("Approve New Order", "#2E7D32", Colors.White);
+        approve.Clicked += (_, _) => Complete(true);
+        var cancel = MakeButton("Cancel", "#EEEEEE", Color.FromArgb("#555"));
+        cancel.Clicked += (_, _) => Complete(false);
+        var content = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                new Label { Text = "Proposed Priority Order", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
+                new ScrollView { MaximumHeightRequest = 500, Content = list },
+                new HorizontalStackLayout { Spacing = 8, Children = { approve, cancel } }
+            }
+        };
+        overlay.Children.Add(CreateOverlayCard(content, 720, 680));
+        _root.Children.Add(overlay);
+        return await completion.Task;
+    }
+
+    private async Task ApplyPriorityRankingAsync(
+        List<ParsedPriorityItem> ranking,
+        List<ClipsExperimentItem> unrunItems)
+    {
+        var rankByTitle = ranking
+            .Select((item, index) => new { item.Title, Rank = index + 1 })
+            .GroupBy(item => item.Title, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Rank, StringComparer.OrdinalIgnoreCase);
+        var nextUnrankedPosition = ranking.Count + 1;
+        foreach (var item in unrunItems)
+        {
+            item.SortOrder = rankByTitle.TryGetValue(item.Title, out var rank)
+                ? rank
+                : nextUnrankedPosition++;
+            await _service.SaveExperimentItemAsync(item);
+        }
+    }
+
+    private static List<ParsedExperimentIdea> ParseExperimentIdeas(string response)
+    {
+        var normalized = response.Replace("\"\"", "\"");
+        var parsed = new Dictionary<int, ParsedExperimentIdea>();
+        foreach (Match match in Regex.Matches(
+                     normalized,
+                     "newExperiment\\[(\\d+)\\]\\.(title|description)\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;",
+                     RegexOptions.IgnoreCase))
+        {
+            var index = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            if (!parsed.TryGetValue(index, out var idea))
+            {
+                idea = new ParsedExperimentIdea { Index = index };
+                parsed[index] = idea;
+            }
+            var value = DecodeLlmValue(match.Groups[3].Value);
+            if (match.Groups[2].Value.Equals("title", StringComparison.OrdinalIgnoreCase))
+                idea.Title = value;
+            else
+                idea.Description = value;
+        }
+        return parsed.Values
+            .Where(idea => !string.IsNullOrWhiteSpace(idea.Title) && !string.IsNullOrWhiteSpace(idea.Description))
+            .OrderBy(idea => idea.Index)
+            .ToList();
+    }
+
+    private static List<ParsedPriorityItem> ParsePriorityRanking(string response)
+    {
+        var normalized = response.Replace("\"\"", "\"");
+        var parsed = new Dictionary<int, ParsedPriorityItem>();
+        foreach (Match match in Regex.Matches(
+                     normalized,
+                     "priority\\[(\\d+)\\]\\.(title|reason)\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;",
+                     RegexOptions.IgnoreCase))
+        {
+            var index = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            if (!parsed.TryGetValue(index, out var item))
+            {
+                item = new ParsedPriorityItem { Index = index };
+                parsed[index] = item;
+            }
+            var value = DecodeLlmValue(match.Groups[3].Value);
+            if (match.Groups[2].Value.Equals("title", StringComparison.OrdinalIgnoreCase))
+                item.Title = value;
+            else
+                item.Reason = value;
+        }
+        return parsed.Values
+            .Where(item => !string.IsNullOrWhiteSpace(item.Title) && !string.IsNullOrWhiteSpace(item.Reason))
+            .OrderBy(item => item.Index)
+            .ToList();
+    }
+
+    private static string DecodeLlmValue(string value)
+        => value.Replace("\\\"", "\"").Replace("\\\\", "\\").Trim();
+
+    private Grid CreateDimmedOverlay()
+    {
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            Margin = new Thickness(-20),
+            ZIndex = 100
+        };
+        Grid.SetRow(overlay, 0);
+        Grid.SetRowSpan(overlay, 4);
+        return overlay;
+    }
+
+    private static Frame CreateOverlayCard(View content, double maximumWidth, double maximumHeight)
+        => new()
+        {
+            Content = content,
+            Padding = 18,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            MaximumWidthRequest = maximumWidth,
+            MaximumHeightRequest = maximumHeight,
+            Margin = new Thickness(20),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            HasShadow = true
+        };
+
     private static string BuildExperimentIdeasPrompt(
         List<ClipsPost> posts,
         List<ClipsDataPoint> dataPoints,
@@ -945,7 +1244,14 @@ public class ClipsExperimentPage : ContentPage
         prompt.AppendLine();
         prompt.AppendLine("Return each suggestion as:");
         prompt.AppendLine("Title: [short name]");
-        prompt.Append("Description: [what to test and why it might work based on the data]");
+        prompt.AppendLine("Description: [what to test and why it might work based on the data]");
+        prompt.AppendLine();
+        prompt.AppendLine("Return your suggestions in this exact C# parseable format:");
+        prompt.AppendLine("newExperiment[1].title = \"Title here\";");
+        prompt.AppendLine("newExperiment[1].description = \"Description here\";");
+        prompt.AppendLine("newExperiment[2].title = \"Title here\";");
+        prompt.AppendLine("newExperiment[2].description = \"Description here\";");
+        prompt.Append("(continue for all suggestions)");
         return prompt.ToString();
     }
 
@@ -971,7 +1277,14 @@ public class ClipsExperimentPage : ContentPage
             for (var index = 0; index < unrunItems.Count; index++)
                 prompt.AppendLine($"{index + 1}. {unrunItems[index].Title}: {unrunItems[index].Description}");
         prompt.AppendLine();
-        prompt.Append("Return the experiments ranked 1 to N with a one-sentence reason for each ranking.");
+        prompt.AppendLine("Return the experiments ranked 1 to N with a one-sentence reason for each ranking.");
+        prompt.AppendLine();
+        prompt.AppendLine("Return the re-ranked list in this exact C# parseable format:");
+        prompt.AppendLine("priority[1].title = \"Exact experiment title\";");
+        prompt.AppendLine("priority[1].reason = \"One sentence reason\";");
+        prompt.AppendLine("priority[2].title = \"Exact experiment title\";");
+        prompt.AppendLine("priority[2].reason = \"One sentence reason\";");
+        prompt.Append("(continue for all unrun experiments in priority order)");
         return prompt.ToString();
     }
 
@@ -1171,4 +1484,18 @@ public class ClipsExperimentPage : ContentPage
         => post.Retention10s.HasValue &&
            post.Retention20s.HasValue &&
            post.Retention30s.HasValue;
+
+    private sealed class ParsedExperimentIdea
+    {
+        public int Index { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+    }
+
+    private sealed class ParsedPriorityItem
+    {
+        public int Index { get; set; }
+        public string Title { get; set; } = "";
+        public string Reason { get; set; } = "";
+    }
 }
