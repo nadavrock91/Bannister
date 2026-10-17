@@ -335,7 +335,7 @@ public class HomePage : ContentPage
             Text = "⋮",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            BackgroundColor = Color.FromArgb("#FFB300"),
+            BackgroundColor = Color.FromArgb("#29B6F6"),
             TextColor = Colors.White,
             CornerRadius = 22,
             WidthRequest = 44,
@@ -738,7 +738,7 @@ public class HomePage : ContentPage
             _lockOwnerModeButton.IsVisible = _isOwnerModeUnlocked;
 
         if (_secondaryQueueActionsBtn != null)
-            _secondaryQueueActionsBtn.IsVisible = _isOwnerModeUnlocked;
+            _secondaryQueueActionsBtn.IsVisible = _isOwnerModeUnlocked && _deviceMode.IsReadOnly;
 
         RefreshButtonsLayout();
     }
