@@ -314,15 +314,18 @@ public partial class ActivityGamePage
             int streakBonus = ActivityService.CalculateStreakBonus(activity.DisplayDayStreak);
             if (streakBonus > 0)
             {
+                var autoRewardBonusName = activity.IsImageOnly ? "" : activity.Name;
                 await _exp.ApplyExpAsync(
                     _auth.CurrentUsername,
                     gameId,
-                    $"{activity.Name} (Auto Award Streak Bonus)",
+                    $"{autoRewardBonusName} (Auto Award Streak Bonus)",
                     streakBonus,
                     activity.Id,
                     loggedAt);
                 totalExp += streakBonus;
-                bonusDetails.Add($"🔥 {activity.Name} streak bonus ({activity.DisplayDayStreak} days): +{streakBonus}");
+                bonusDetails.Add(
+                    $"🔥 {autoRewardBonusName} streak bonus " +
+                    $"({activity.DisplayDayStreak} days): +{streakBonus}");
             }
         }
 
