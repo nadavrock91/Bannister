@@ -311,48 +311,33 @@ public class ListsPage : ContentPage
         if (string.IsNullOrWhiteSpace(result))
             return;
 
-        var lines = result.Split('\n')
-            .Select(line => line.Trim())
-            .Where(line => !string.IsNullOrEmpty(line))
-            .ToList();
-        if (lines.Count == 0)
-            return;
-
-        if (lines.Count == 1)
+        string text = result.Trim();
+        string? notes = await DisplayPromptAsync("Notes", "Optional notes:", "Save", "Skip", initialValue: "");
+        string? priorityStr = await DisplayActionSheet("Priority", "Skip (None)", null, " High", " Medium", " Low");
+        int priority = priorityStr switch
         {
-            string line = lines[0];
-            string? notes = await DisplayPromptAsync("Notes", "Optional notes:", "Save", "Skip", initialValue: "");
-            string? priorityStr = await DisplayActionSheet("Priority", "Skip (None)", null, " High", " Medium", " Low");
-            int priority = priorityStr switch
-            {
-                " High" => 1,
-                " Medium" => 2,
-                " Low" => 3,
-                _ => 0
-            };
-            await _lists.AddItemAsync(_selectedList.Id, line, notes ?? "", priority);
+            " High" => 1,
+            " Medium" => 2,
+            " Low" => 3,
+            _ => 0
+        };
+        await _lists.AddItemAsync(_selectedList.Id, text, notes ?? "", priority);
 
-            // Offer to also log to Idea Logger
-            bool logIdea = await DisplayAlert(
-                "Log as Idea?",
-                "Would you also like to log " +
-                $"\"{line}\" to the Idea Logger?",
-                "Yes, Log It",
-                "No Thanks");
+        // Offer to also log to Idea Logger
+        bool logIdea = await DisplayAlert(
+            "Log as Idea?",
+            "Would you also like to log " +
+            $"\"{text}\" to the Idea Logger?",
+            "Yes, Log It",
+            "No Thanks");
 
-            if (logIdea)
-            {
-                await _ideaLogger.LogIdeaAsync(
-                    this,
-                    _auth.CurrentUsername,
-                    line,
-                    notes ?? "");
-            }
-        }
-        else
+        if (logIdea)
         {
-            foreach (string line in lines)
-                await _lists.AddItemAsync(_selectedList.Id, line, "", 0);
+            await _ideaLogger.LogIdeaAsync(
+                this,
+                _auth.CurrentUsername,
+                text,
+                notes ?? "");
         }
 
         await LoadItemsAsync();
