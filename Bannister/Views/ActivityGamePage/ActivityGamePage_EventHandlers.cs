@@ -1021,7 +1021,7 @@ public partial class ActivityGamePage
     private async Task RunDevSqlAsync()
     {
         var inputPage = new SqlInputPage();
-        await Navigation.PushModalAsync(inputPage);
+        await Navigation.PushAsync(inputPage);
         
         string? sql = await inputPage.WaitForResultAsync();
 
