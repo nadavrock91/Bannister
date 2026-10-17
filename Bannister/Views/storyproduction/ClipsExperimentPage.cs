@@ -833,6 +833,26 @@ public class ClipsExperimentPage : ContentPage
         promptButtons.Children.Add(importRanking);
         _content.Children.Add(promptButtons);
 
+        var editPriority = MakeButton("✏️ Edit Priority Order", "#FFF8E1", Color.FromArgb("#F57F17"));
+        editPriority.Clicked += async (_, _) =>
+        {
+            if (unrunItems.Count == 0)
+            {
+                await DisplayAlert("Edit Priority Order", "There are no Not Yet Run experiments to reorder.", "OK");
+                return;
+            }
+            var currentRanking = unrunItems.Select((item, index) => new ParsedPriorityItem
+            {
+                Index = index + 1,
+                Title = item.Title,
+                Reason = string.IsNullOrWhiteSpace(item.Description) ? "No description." : item.Description
+            }).ToList();
+            if (!await ShowPriorityApprovalAsync(currentRanking)) return;
+            await ApplyPriorityRankingAsync(currentRanking, unrunItems);
+            await RefreshAsync();
+        };
+        _content.Children.Add(editPriority);
+
         BuildExperimentItemsSection("Not Yet Run", unrunItems, true);
         BuildExperimentItemsSection("Completed", allItems.Where(item => item.IsRun).ToList(), false);
     }
@@ -1080,19 +1100,59 @@ public class ClipsExperimentPage : ContentPage
         var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var overlay = CreateDimmedOverlay();
         var list = new VerticalStackLayout { Padding = new Thickness(4), Spacing = 10 };
-        for (var index = 0; index < ranking.Count; index++)
+        void RenderRanking()
         {
-            var item = ranking[index];
-            list.Children.Add(MakeCard(new VerticalStackLayout
+            list.Children.Clear();
+            for (var index = 0; index < ranking.Count; index++)
             {
-                Spacing = 4,
-                Children =
+                var currentIndex = index;
+                var item = ranking[index];
+                var details = new VerticalStackLayout
                 {
-                    new Label { Text = $"{index + 1}. {item.Title}", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222"), LineBreakMode = LineBreakMode.WordWrap },
-                    new Label { Text = item.Reason, FontSize = 12, TextColor = Color.FromArgb("#555"), LineBreakMode = LineBreakMode.WordWrap }
-                }
-            }));
+                    Spacing = 4,
+                    Children =
+                    {
+                        new Label { Text = $"{index + 1}. {item.Title}", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222"), LineBreakMode = LineBreakMode.WordWrap },
+                        new Label { Text = item.Reason, FontSize = 12, TextColor = Color.FromArgb("#555"), LineBreakMode = LineBreakMode.WordWrap }
+                    }
+                };
+                var up = MakeButton("↑", "#EEEEEE", Color.FromArgb("#333"));
+                up.WidthRequest = 42;
+                up.IsEnabled = index > 0;
+                up.Clicked += (_, _) =>
+                {
+                    if (currentIndex <= 0) return;
+                    (ranking[currentIndex - 1], ranking[currentIndex]) =
+                        (ranking[currentIndex], ranking[currentIndex - 1]);
+                    RenderRanking();
+                };
+                var down = MakeButton("↓", "#EEEEEE", Color.FromArgb("#333"));
+                down.WidthRequest = 42;
+                down.IsEnabled = index < ranking.Count - 1;
+                down.Clicked += (_, _) =>
+                {
+                    if (currentIndex >= ranking.Count - 1) return;
+                    (ranking[currentIndex + 1], ranking[currentIndex]) =
+                        (ranking[currentIndex], ranking[currentIndex + 1]);
+                    RenderRanking();
+                };
+                var row = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition(GridLength.Star),
+                        new ColumnDefinition(GridLength.Auto),
+                        new ColumnDefinition(GridLength.Auto)
+                    },
+                    ColumnSpacing = 6
+                };
+                row.Add(details, 0, 0);
+                row.Add(up, 1, 0);
+                row.Add(down, 2, 0);
+                list.Children.Add(MakeCard(row));
+            }
         }
+        RenderRanking();
 
         void Complete(bool approved)
         {
