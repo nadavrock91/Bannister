@@ -1035,8 +1035,20 @@ public partial class ActivityGamePage
 
             if (trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
             {
-                var queryResult = await conn.ExecuteScalarAsync<string>(trimmed);
-                await DisplayAlert("Result", queryResult?.ToString() ?? "(null)", "OK");
+                var rows = await conn.QueryAsync<Dictionary<string, object>>(trimmed);
+                if (rows == null || rows.Count == 0)
+                {
+                    await DisplayAlert("Result", "(no rows)", "OK");
+                }
+                else
+                {
+                    var sb = new System.Text.StringBuilder();
+                    foreach (var row in rows)
+                    {
+                        sb.AppendLine(string.Join(" | ", row.Select(kv => $"{kv.Key}={kv.Value}")));
+                    }
+                    await DisplayAlert("Result", sb.ToString().Trim(), "OK");
+                }
             }
             else
             {
