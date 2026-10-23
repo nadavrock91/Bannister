@@ -24,7 +24,8 @@ public class StreakBrokenPage : ContentPage
     
     // UI elements
     private Label _progressLabel;
-    private Label _activityNameLabel;
+    private Label _activityNameLabel = new();
+    private VerticalStackLayout _activityVisualContainer = new();
     private Label _streakInfoLabel;
     private Label _missedDateLabel;
     private Label _penaltyLabel;
@@ -139,15 +140,8 @@ public class StreakBrokenPage : ContentPage
             TextColor = Color.FromArgb("#999")
         });
 
-        _activityNameLabel = new Label
-        {
-            Text = "Activity Name",
-            FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
-            LineBreakMode = LineBreakMode.WordWrap
-        };
-        activityStack.Children.Add(_activityNameLabel);
+        _activityVisualContainer = new VerticalStackLayout { Spacing = 4 };
+        activityStack.Children.Add(_activityVisualContainer);
 
         _streakInfoLabel = new Label
         {
@@ -310,7 +304,8 @@ public class StreakBrokenPage : ContentPage
         var (activity, brokenStreak, penalty) = _brokenStreaks[_currentIndex];
 
         _progressLabel.Text = $"{_currentIndex + 1} of {_brokenStreaks.Count}";
-        _activityNameLabel.Text = activity.Name;
+        _activityVisualContainer.Children.Clear();
+        _activityVisualContainer.Children.Add(BuildActivityVisual(activity));
         _streakInfoLabel.Text = $"🔥 {brokenStreak} day streak was broken";
         
         // The missed day is yesterday
@@ -358,6 +353,56 @@ public class StreakBrokenPage : ContentPage
         _dayDidntCountButton.Opacity = enabled ? 1.0 : 0.6;
         _dayDidntCountWeeklyButton.Opacity = enabled ? 1.0 : 0.6;
         _forgotButton.Opacity = enabled ? 1.0 : 0.6;
+    }
+
+    private static View BuildActivityVisual(Activity activity)
+    {
+        if (activity.IsImageOnly && !string.IsNullOrWhiteSpace(activity.ImagePath))
+        {
+            var stack = new VerticalStackLayout { Spacing = 4 };
+            var img = new Image
+            {
+                Source = ImageSource.FromFile(activity.ImagePath),
+                WidthRequest = 60,
+                HeightRequest = 60,
+                Aspect = Aspect.AspectFill
+            };
+            stack.Children.Add(img);
+
+            var nameLabel = new Label
+            {
+                Text = activity.Name,
+                FontSize = 11,
+                TextColor = Color.FromArgb("#888"),
+                IsVisible = false,
+                LineBreakMode = LineBreakMode.WordWrap
+            };
+            var expandLabel = new Label
+            {
+                Text = "▼ show name",
+                FontSize = 10,
+                TextColor = Color.FromArgb("#1976D2")
+            };
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += (_, _) =>
+            {
+                nameLabel.IsVisible = !nameLabel.IsVisible;
+                expandLabel.Text = nameLabel.IsVisible ? "▲ hide" : "▼ show name";
+            };
+            expandLabel.GestureRecognizers.Add(tap);
+            stack.Children.Add(expandLabel);
+            stack.Children.Add(nameLabel);
+            return stack;
+        }
+
+        return new Label
+        {
+            Text = activity.Name,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
     }
 
     private async void OnAcceptPenaltyClicked(object sender, EventArgs e)

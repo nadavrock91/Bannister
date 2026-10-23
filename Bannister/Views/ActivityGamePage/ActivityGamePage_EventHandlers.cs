@@ -274,7 +274,7 @@ public partial class ActivityGamePage
             int threshold = activity.AutoSuggestThreshold <= 0 ? 30 : activity.AutoSuggestThreshold;
             string? action = await AutoAwardSuggestionPromptPage.ShowAsync(
                 Navigation,
-                activity.Name,
+                activity,
                 activity.DisplayDayStreak,
                 threshold);
 
@@ -1228,23 +1228,23 @@ public partial class ActivityGamePage
 internal class AutoAwardSuggestionPromptPage : ContentPage
 {
     private readonly TaskCompletionSource<string?> _completion = new();
-    private readonly string _activityName;
+    private readonly Activity _activity;
     private readonly int _streak;
     private readonly int _threshold;
     private bool _isClosing;
 
-    private AutoAwardSuggestionPromptPage(string activityName, int streak, int threshold)
+    private AutoAwardSuggestionPromptPage(Activity activity, int streak, int threshold)
     {
-        _activityName = activityName;
+        _activity = activity;
         _streak = streak;
         _threshold = threshold;
         BackgroundColor = Color.FromArgb("#80000000");
         BuildUI();
     }
 
-    public static async Task<string?> ShowAsync(INavigation navigation, string activityName, int streak, int threshold)
+    public static async Task<string?> ShowAsync(INavigation navigation, Activity activity, int streak, int threshold)
     {
-        var page = new AutoAwardSuggestionPromptPage(activityName, streak, threshold);
+        var page = new AutoAwardSuggestionPromptPage(activity, streak, threshold);
         await navigation.PushModalAsync(page);
         return await page._completion.Task;
     }
@@ -1302,14 +1302,7 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             Padding = new Thickness(22, 18)
         };
 
-        contentStack.Children.Add(new Label
-        {
-            Text = _activityName,
-            FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222222"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
+        contentStack.Children.Add(BuildActivityVisual(_activity));
 
         contentStack.Children.Add(new Label
         {
@@ -1349,6 +1342,56 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
         var root = new Grid();
         root.Children.Add(card);
         Content = root;
+    }
+
+    private static View BuildActivityVisual(Activity activity)
+    {
+        if (activity.IsImageOnly && !string.IsNullOrWhiteSpace(activity.ImagePath))
+        {
+            var stack = new VerticalStackLayout { Spacing = 4 };
+            var img = new Image
+            {
+                Source = ImageSource.FromFile(activity.ImagePath),
+                WidthRequest = 60,
+                HeightRequest = 60,
+                Aspect = Aspect.AspectFill
+            };
+            stack.Children.Add(img);
+
+            var nameLabel = new Label
+            {
+                Text = activity.Name,
+                FontSize = 11,
+                TextColor = Color.FromArgb("#888"),
+                IsVisible = false,
+                LineBreakMode = LineBreakMode.WordWrap
+            };
+            var expandLabel = new Label
+            {
+                Text = "▼ show name",
+                FontSize = 10,
+                TextColor = Color.FromArgb("#1976D2")
+            };
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += (_, _) =>
+            {
+                nameLabel.IsVisible = !nameLabel.IsVisible;
+                expandLabel.Text = nameLabel.IsVisible ? "▲ hide" : "▼ show name";
+            };
+            expandLabel.GestureRecognizers.Add(tap);
+            stack.Children.Add(expandLabel);
+            stack.Children.Add(nameLabel);
+            return stack;
+        }
+
+        return new Label
+        {
+            Text = activity.Name,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#222222"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
     }
 
     private Button BuildButton(string text, Color background, Color textColor, string? result)

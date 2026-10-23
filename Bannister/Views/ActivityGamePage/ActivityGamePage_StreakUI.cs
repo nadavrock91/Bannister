@@ -499,9 +499,13 @@ public partial class ActivityGamePage
         if (gapDays > 1 && activity.ShowStreakAsDaysSinceStarted != true)
         {
             // Gap detected — ask user if streak broke
+            string activityLabel = (activity.IsImageOnly && !string.IsNullOrWhiteSpace(activity.ImagePath))
+                ? "(image activity)"
+                : $"'{activity.Name}'";
+
             streakBroke = await DisplayAlert(
                 "Streak Gap Detected",
-                $"It's been {gapDays} days since your last use of '{activity.Name}'.\n\n" +
+                $"It's been {gapDays} days since your last use of {activityLabel}.\n\n" +
                 $"Current streak: {attempt.DaysAchieved} days.\n\n" +
                 "Did the streak break?",
                 "Yes, It Broke",

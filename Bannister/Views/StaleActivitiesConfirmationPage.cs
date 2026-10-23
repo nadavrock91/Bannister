@@ -217,13 +217,7 @@ public class StaleActivitiesConfirmationPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
 
-        infoStack.Children.Add(new Label
-        {
-            Text = activity.Name,
-            FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+        infoStack.Children.Add(BuildActivityVisual(activity));
 
         // Show start date info
         string dateText = activity.StartDate.HasValue 
@@ -273,6 +267,56 @@ public class StaleActivitiesConfirmationPage : ContentPage
         tapGesture.Tapped += (_, _) => SetActivitySelected(activity.Id, !_selectedActivityIds.Contains(activity.Id));
         frame.GestureRecognizers.Add(tapGesture);
         return frame;
+    }
+
+    private static View BuildActivityVisual(Activity activity)
+    {
+        if (activity.IsImageOnly && !string.IsNullOrWhiteSpace(activity.ImagePath))
+        {
+            var stack = new VerticalStackLayout { Spacing = 4 };
+            var img = new Image
+            {
+                Source = ImageSource.FromFile(activity.ImagePath),
+                WidthRequest = 60,
+                HeightRequest = 60,
+                Aspect = Aspect.AspectFill
+            };
+            stack.Children.Add(img);
+
+            var nameLabel = new Label
+            {
+                Text = activity.Name,
+                FontSize = 11,
+                TextColor = Color.FromArgb("#888"),
+                IsVisible = false,
+                LineBreakMode = LineBreakMode.WordWrap
+            };
+            var expandLabel = new Label
+            {
+                Text = "▼ show name",
+                FontSize = 10,
+                TextColor = Color.FromArgb("#1976D2")
+            };
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += (_, _) =>
+            {
+                nameLabel.IsVisible = !nameLabel.IsVisible;
+                expandLabel.Text = nameLabel.IsVisible ? "▲ hide" : "▼ show name";
+            };
+            expandLabel.GestureRecognizers.Add(tap);
+            stack.Children.Add(expandLabel);
+            stack.Children.Add(nameLabel);
+            return stack;
+        }
+
+        return new Label
+        {
+            Text = activity.Name,
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
     }
 
     private void SetAllSwitches(bool value)
