@@ -1519,7 +1519,7 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             var stack = new VerticalStackLayout { Spacing = 4 };
             var img = new Image
             {
-                Source = ImageSource.FromFile(activity.ImagePath),
+                Source = ImageSource.FromFile(ResolveImagePath(activity.ImagePath)),
                 WidthRequest = 60,
                 HeightRequest = 60,
                 Aspect = Aspect.AspectFill
@@ -1560,6 +1560,15 @@ internal class AutoAwardSuggestionPromptPage : ContentPage
             TextColor = Color.FromArgb("#222222"),
             LineBreakMode = LineBreakMode.WordWrap
         };
+    }
+
+    private static string? ResolveImagePath(string? storedPath)
+    {
+        if (string.IsNullOrWhiteSpace(storedPath)) return null;
+        if (Path.IsPathRooted(storedPath) && File.Exists(storedPath)) return storedPath;
+        var filename = Path.IsPathRooted(storedPath) ? Path.GetFileName(storedPath) : storedPath;
+        var fullPath = Path.Combine(FileSystem.AppDataDirectory, "ActivityImages", filename);
+        return File.Exists(fullPath) ? fullPath : null;
     }
 
     private Button BuildButton(string text, Color background, Color textColor, string? result)
