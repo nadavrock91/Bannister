@@ -1034,6 +1034,8 @@ public partial class ActivityGamePage
 
         if (string.IsNullOrWhiteSpace(sql)) return;
 
+        await Task.Delay(300);
+
         try
         {
             var conn = await _db.GetConnectionAsync();
