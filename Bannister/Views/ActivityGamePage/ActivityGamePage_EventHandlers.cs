@@ -1013,8 +1013,8 @@ public partial class ActivityGamePage
                 _game.GameId);
 
             await conn.ExecuteAsync(
-                "DELETE FROM daily_checks WHERE Key LIKE ?",
-                $"%_{_auth.CurrentUsername}_{_game.GameId}");
+                "DELETE FROM daily_checks WHERE Key LIKE ? ESCAPE '\\'",
+                $"%\\_{_auth.CurrentUsername}\\_{_game.GameId}");
 
             _isInitialLoad = true;
 
@@ -1081,7 +1081,8 @@ public partial class ActivityGamePage
                     SQLite.SQLite3.Finalize(stmt);
                 }
 
-                await DisplayAlert("Result", sb.ToString().Trim(), "OK");
+                string resultText = sb.ToString().Trim();
+                await SqlResultPage.ShowAsync(Navigation, resultText);
             }
             else
             {
@@ -1267,6 +1268,126 @@ public partial class ActivityGamePage
         
         string sign = amount > 0 ? "+" : "";
         await DisplayAlert("EXP Adjusted", $"{sign}{amount} EXP applied.\n\nReason: {description}", "OK");
+    }
+}
+
+internal class SqlResultPage : ContentPage
+{
+    private readonly TaskCompletionSource<bool> _completion = new();
+    private bool _isClosing;
+
+    private SqlResultPage(string resultText)
+    {
+        BackgroundColor = Color.FromArgb("#80000000");
+
+        var card = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = 20,
+            HasShadow = true,
+            WidthRequest = 600,
+            MaximumHeightRequest = 700,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(20)
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 12 };
+        stack.Children.Add(new Label
+        {
+            Text = "SQL Result",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333")
+        });
+
+        var resultLabel = new Label
+        {
+            Text = resultText,
+            FontSize = 13,
+            FontFamily = "Consolas",
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+        stack.Children.Add(new ScrollView
+        {
+            Content = resultLabel,
+            HeightRequest = 450
+        });
+
+        var buttonGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 12
+        };
+
+        var copyButton = new Button
+        {
+            Text = "Copy",
+            BackgroundColor = Color.FromArgb("#5B63EE"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontAttributes = FontAttributes.Bold
+        };
+        copyButton.Clicked += async (_, _) =>
+        {
+            await Clipboard.SetTextAsync(resultText);
+            copyButton.Text = "Copied";
+        };
+        buttonGrid.Add(copyButton, 0, 0);
+
+        var okButton = new Button
+        {
+            Text = "OK",
+            BackgroundColor = Color.FromArgb("#E0E0E0"),
+            TextColor = Color.FromArgb("#333"),
+            CornerRadius = 8,
+            HeightRequest = 44
+        };
+        okButton.Clicked += async (_, _) => await CloseAsync();
+        buttonGrid.Add(okButton, 1, 0);
+
+        stack.Children.Add(buttonGrid);
+        card.Content = stack;
+
+        var root = new Grid();
+        root.Children.Add(card);
+        Content = root;
+    }
+
+    public static async Task ShowAsync(INavigation navigation, string resultText)
+    {
+        var page = new SqlResultPage(resultText);
+        await navigation.PushModalAsync(page);
+        await page._completion.Task;
+    }
+
+    private async Task CloseAsync()
+    {
+        if (_isClosing)
+            return;
+
+        _isClosing = true;
+        await Navigation.PopModalAsync(animated: false);
+        _completion.TrySetResult(true);
+    }
+
+    protected override void OnDisappearing()
+    {
+        _completion.TrySetResult(true);
+        base.OnDisappearing();
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        _ = CloseAsync();
+        return true;
     }
 }
 
