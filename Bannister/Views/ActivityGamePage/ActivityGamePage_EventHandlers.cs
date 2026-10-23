@@ -1035,20 +1035,47 @@ public partial class ActivityGamePage
 
             if (trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
             {
-                var rows = await conn.QueryAsync<Dictionary<string, object>>(trimmed);
-                if (rows == null || rows.Count == 0)
+                var sb = new System.Text.StringBuilder();
+                var rawConn = conn.GetConnection();
+                var stmt = SQLite.SQLite3.Prepare2(rawConn.Handle, trimmed);
+                try
                 {
-                    await DisplayAlert("Result", "(no rows)", "OK");
-                }
-                else
-                {
-                    var sb = new System.Text.StringBuilder();
-                    foreach (var row in rows)
+                    int colCount = SQLite.SQLite3.ColumnCount(stmt);
+                    var headers = new List<string>();
+                    for (int i = 0; i < colCount; i++)
+                        headers.Add(SQLite.SQLite3.ColumnName16(stmt, i));
+
+                    int rowCount = 0;
+                    while (SQLite.SQLite3.Step(stmt) == SQLite.SQLite3.Result.Row)
                     {
-                        sb.AppendLine(string.Join(" | ", row.Select(kv => $"{kv.Key}={kv.Value}")));
+                        rowCount++;
+                        var parts = new List<string>();
+                        for (int i = 0; i < colCount; i++)
+                        {
+                            var colType = SQLite.SQLite3.ColumnType(stmt, i);
+                            string val = colType switch
+                            {
+                                SQLite.SQLite3.ColType.Integer =>
+                                    SQLite.SQLite3.ColumnInt64(stmt, i).ToString(),
+                                SQLite.SQLite3.ColType.Float =>
+                                    SQLite.SQLite3.ColumnDouble(stmt, i).ToString(),
+                                SQLite.SQLite3.ColType.Null => "NULL",
+                                _ => SQLite.SQLite3.ColumnString(stmt, i)
+                            };
+                            parts.Add($"{headers[i]}={val}");
+                        }
+                        sb.AppendLine(string.Join(" | ", parts));
                     }
-                    await DisplayAlert("Result", sb.ToString().Trim(), "OK");
+
+                    if (rowCount == 0)
+                        sb.AppendLine("(no rows)");
                 }
+                finally
+                {
+                    SQLite.SQLite3.Finalize(stmt);
+                }
+
+                await DisplayAlert("Result", sb.ToString().Trim(), "OK");
             }
             else
             {
