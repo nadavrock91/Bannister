@@ -1012,9 +1012,15 @@ public partial class ActivityGamePage
                 _auth.CurrentUsername,
                 _game.GameId);
 
+            await conn.ExecuteAsync(
+                "DELETE FROM daily_checks WHERE Key LIKE ?",
+                $"%_{_auth.CurrentUsername}_{_game.GameId}");
+
+            _isInitialLoad = true;
+
             await DisplayAlert(
                 "Reset Load Prompts",
-                "Done. Load prompts will re-trigger on next entry.",
+                "Done. Load prompts will re-trigger immediately on next navigation.",
                 "OK");
         }
     }
