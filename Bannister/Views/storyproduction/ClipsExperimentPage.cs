@@ -492,32 +492,50 @@ public class ClipsExperimentPage : ContentPage
                 true,
                 existing?.TotalViews.HasValue == true ? existing.TotalViews.Value : null);
 
-            var savePlatformData = MakeButton("Save", "#1565C0", Colors.White);
-            savePlatformData.FontSize = 10;
-            savePlatformData.HeightRequest = 28;
-            var platformId = platform.Id;
+            var pid = platform.Id;
             var existingId = existing?.Id ?? 0;
-            savePlatformData.Clicked += async (_, _) =>
+            CancellationTokenSource? autoSaveDebounce = null;
+
+            async Task AutoSaveAsync()
             {
+                autoSaveDebounce?.Cancel();
+                autoSaveDebounce?.Dispose();
+                autoSaveDebounce = new CancellationTokenSource();
+                var cancellationToken = autoSaveDebounce.Token;
+                try
+                {
+                    await Task.Delay(300, cancellationToken);
+                }
+                catch (TaskCanceledException)
+                {
+                    return;
+                }
+
                 if (_busy) return;
                 _busy = true;
                 try
                 {
-                    await _service.SavePostPlatformDataAsync(new ClipsPostPlatformData
+                    var data = new ClipsPostPlatformData
                     {
                         Id = existingId,
                         PostId = post.Id,
-                        PlatformId = platformId,
+                        PlatformId = pid,
                         Retention10s = ParseScore(r10.Text),
                         Retention20s = ParseScore(r20.Text),
                         Retention30s = ParseScore(r30.Text),
-                        TotalViews = int.TryParse(views.Text, out var parsedViews) ? parsedViews : null,
+                        TotalViews = int.TryParse(views.Text, out var v) ? v : null,
                         UpdatedDate = DateTime.UtcNow
-                    });
+                    };
+                    await _service.SavePostPlatformDataAsync(data);
+                    existingId = data.Id;
                 }
                 finally { _busy = false; }
-                await RefreshAsync();
-            };
+            }
+
+            r10.TextChanged += async (_, _) => await AutoSaveAsync();
+            r20.TextChanged += async (_, _) => await AutoSaveAsync();
+            r30.TextChanged += async (_, _) => await AutoSaveAsync();
+            views.TextChanged += async (_, _) => await AutoSaveAsync();
 
             var platformLabel = new Label
             {
@@ -530,7 +548,7 @@ public class ClipsExperimentPage : ContentPage
             var fieldsRow = new HorizontalStackLayout
             {
                 Spacing = 6,
-                Children = { r10, r20, r30, views, savePlatformData }
+                Children = { r10, r20, r30, views }
             };
             stack.Children.Add(platformLabel);
             stack.Children.Add(fieldsRow);
