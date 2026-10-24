@@ -1237,6 +1237,14 @@ public class TasksPage : ContentPage
         var freeCommitments = commitments.Where(c => !c.IsFocusTask).ToList();
         var (focusTarget, freeTarget) = WeeklyChallengeService.CalculateTaskSplit(challenge.CurrentAllowance, challenge.FreeTaskRatio);
         int completedFocus = focusCommitments.Count(c => c.IsCompleted);
+        int completedFree = freeCommitments.Count(c => c.IsCompleted);
+        int designatedFocus = focusCommitments.Count;
+        int designatedFree = freeCommitments.Count;
+
+        _challengeSummaryLabel.Text = freeTarget > 0
+            ? $"Focus {completedFocus}/{focusTarget} done ({designatedFocus} designated) • Free {completedFree}/{freeTarget} done ({designatedFree} designated) • Allowance {challenge.CurrentAllowance}/wk"
+            : $"Focus {completedFocus}/{focusTarget} done ({designatedFocus} designated) • Allowance {challenge.CurrentAllowance}/wk • Streak {challenge.SuccessStreak}";
+
         _challengeProgressLabel.Text = $"Focus: {completedFocus}/{focusTarget}";
 
         var availableTaskLookup = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
