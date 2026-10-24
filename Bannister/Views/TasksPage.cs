@@ -1459,204 +1459,30 @@ public class TasksPage : ContentPage
         return row;
     }
 
-    private async Task RefreshAllowanceChartAsync(
-        int completedFocus,
-        int focusTarget,
-        int designatedFocus,
-        int completedFree,
-        int freeTarget,
-        int designatedFree)
+    private async Task RefreshAllowanceChartAsync(int completedFocus, int focusTarget, int designatedFocus, int completedFree, int freeTarget, int designatedFree)
     {
         _allowanceChartContainer.Children.Clear();
-
-        var snapshots = await _challengeService.GetWeekSnapshotsAsync(_auth.CurrentUsername, 12);
-        var active = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
-
-        if (snapshots.Count == 0 && active == null)
-        {
-            _allowanceChartContainer.IsVisible = true;
-            _allowanceChartContainer.Children.Add(new Label
-            {
-                Text = "Focus Allowance History",
-                FontSize = 14,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#7B1FA2")
-            });
-            _allowanceChartContainer.Children.Add(new Label
-            {
-                Text = "No challenge history yet. Complete your first week to see the chart.",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#999"),
-                FontAttributes = FontAttributes.Italic
-            });
-            return;
-        }
-
         _allowanceChartContainer.IsVisible = true;
 
-        // Header
+        var active = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
+        if (active == null) return;
+
+        string freeLine = freeTarget > 0
+            ? $"Free tasks allowed: {freeTarget}  •  Designated: {designatedFree}  •  Completed: {completedFree}/{designatedFree}"
+            : "Free tasks allowed: 0 (unlocks at allowance 3)";
+
         _allowanceChartContainer.Children.Add(new Label
         {
-            Text = "Focus Allowance History",
+            Text =
+                $"Total tasks allowed per week: {active.CurrentAllowance}\n" +
+                $"Weeks completed in a row: {active.SuccessStreak}\n" +
+                $"Focus tasks allowed: {focusTarget}  •  Designated: {designatedFocus}  •  Completed: {completedFocus}/{designatedFocus}\n" +
+                freeLine,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#7B1FA2")
+            TextColor = Color.FromArgb("#333"),
+            LineBreakMode = LineBreakMode.WordWrap
         });
-
-        // Chart area
-        var chartFrame = new Frame
-        {
-            Padding = 12,
-            CornerRadius = 10,
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            BorderColor = Colors.Transparent,
-            HasShadow = false
-        };
-
-        var chartGrid = new Grid
-        {
-            ColumnSpacing = 4,
-            RowSpacing = 2,
-            RowDefinitions =
-            {
-                new RowDefinition { Height = GridLength.Auto },
-                new RowDefinition { Height = GridLength.Auto }
-            }
-        };
-
-        // Reverse so oldest is on the left
-        snapshots.Reverse();
-
-        int maxAllowance = snapshots.Count > 0
-            ? snapshots.Max(s => s.Allowance)
-            : 0;
-        if (active != null)
-            maxAllowance = Math.Max(maxAllowance, active.CurrentAllowance);
-        if (maxAllowance < 1) maxAllowance = 1;
-        double barMaxHeight = 80;
-
-        for (int i = 0; i < snapshots.Count; i++)
-        {
-            chartGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
-
-            var snapshot = snapshots[i];
-            double barHeight = Math.Max(8, (snapshot.Allowance / (double)maxAllowance) * barMaxHeight);
-
-            Color barColor = snapshot.WasSuccessful
-                ? Color.FromArgb("#7B1FA2")
-                : Color.FromArgb("#CE93D8");
-
-            var barStack = new VerticalStackLayout
-            {
-                VerticalOptions = LayoutOptions.End,
-                HorizontalOptions = LayoutOptions.Center
-            };
-
-            // Value label above bar
-            barStack.Children.Add(new Label
-            {
-                Text = snapshot.Allowance.ToString(),
-                FontSize = 9,
-                TextColor = Color.FromArgb("#666"),
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-            // Bar
-            var bar = new BoxView
-            {
-                HeightRequest = barHeight,
-                WidthRequest = 20,
-                CornerRadius = 4,
-                Color = barColor,
-                HorizontalOptions = LayoutOptions.Center
-            };
-            barStack.Children.Add(bar);
-
-            Grid.SetColumn(barStack, i);
-            Grid.SetRow(barStack, 0);
-            chartGrid.Children.Add(barStack);
-
-            // Challenge start label below
-            var weekLabel = new Label
-            {
-                Text = snapshot.WeekStart.ToString("M/d"),
-                FontSize = 8,
-                TextColor = Color.FromArgb("#999"),
-                HorizontalTextAlignment = TextAlignment.Center
-            };
-            Grid.SetColumn(weekLabel, i);
-            Grid.SetRow(weekLabel, 1);
-            chartGrid.Children.Add(weekLabel);
-        }
-
-        // Add current active week bar
-        if (active != null)
-        {
-            int column = snapshots.Count;
-            chartGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
-            double barHeight = Math.Max(8, (active.CurrentAllowance / (double)maxAllowance) * barMaxHeight);
-
-            var barStack = new VerticalStackLayout
-            {
-                VerticalOptions = LayoutOptions.End,
-                HorizontalOptions = LayoutOptions.Center
-            };
-
-            barStack.Children.Add(new Label
-            {
-                Text = active.CurrentAllowance.ToString(),
-                FontSize = 9,
-                TextColor = Color.FromArgb("#666"),
-                HorizontalTextAlignment = TextAlignment.Center
-            });
-
-            barStack.Children.Add(new BoxView
-            {
-                HeightRequest = barHeight,
-                WidthRequest = 20,
-                CornerRadius = 4,
-                Color = Color.FromArgb("#4CAF50"),
-                HorizontalOptions = LayoutOptions.Center
-            });
-
-            Grid.SetColumn(barStack, column);
-            Grid.SetRow(barStack, 0);
-            chartGrid.Children.Add(barStack);
-
-            var nowLabel = new Label
-            {
-                Text = "Now",
-                FontSize = 8,
-                TextColor = Color.FromArgb("#999"),
-                HorizontalTextAlignment = TextAlignment.Center
-            };
-            Grid.SetColumn(nowLabel, column);
-            Grid.SetRow(nowLabel, 1);
-            chartGrid.Children.Add(nowLabel);
-        }
-
-        chartFrame.Content = chartGrid;
-        _allowanceChartContainer.Children.Add(chartFrame);
-
-        // Summary lines
-        if (active != null)
-        {
-            _allowanceChartContainer.Children.Add(new Label
-            {
-                Text = freeTarget > 0
-                    ? $" Focus: {completedFocus}/{focusTarget} done ({designatedFocus} designated)    Free: {completedFree}/{freeTarget} done ({designatedFree} designated)"
-                    : $" Focus: {completedFocus}/{focusTarget} done ({designatedFocus} designated)",
-                FontSize = 13,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333")
-            });
-            _allowanceChartContainer.Children.Add(new Label
-            {
-                Text = $"Allowance: {active.CurrentAllowance}/wk  •  Streak: {active.SuccessStreak} weeks",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#666")
-            });
-        }
     }
 
     private async void OnStartChallengeClicked(object? sender, EventArgs e)
