@@ -6,11 +6,16 @@ public class MoneyManagementHubPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly MoneyManagementService _moneyManagement;
+    private readonly AiServiceService _aiServiceService;
 
-    public MoneyManagementHubPage(AuthService auth, MoneyManagementService moneyManagement)
+    public MoneyManagementHubPage(
+        AuthService auth,
+        MoneyManagementService moneyManagement,
+        AiServiceService aiServiceService)
     {
         _auth = auth;
         _moneyManagement = moneyManagement;
+        _aiServiceService = aiServiceService;
 
         Title = "Money Management";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -55,6 +60,13 @@ public class MoneyManagementHubPage : ContentPage
             Color.FromArgb("#E3F2FD"),
             Color.FromArgb("#0D47A1"),
             OnAssetsClicked));
+
+        stack.Children.Add(CreateHubCard(
+            "AI Services",
+            "Trial-gate recurring AI subscriptions before they become permanent costs.",
+            Color.FromArgb("#F3E5F5"),
+            Color.FromArgb("#6A1B9A"),
+            OnAiServicesClicked));
 
         scroll.Content = stack;
         Content = scroll;
@@ -126,5 +138,10 @@ public class MoneyManagementHubPage : ContentPage
     private async void OnAssetsClicked(object? sender, EventArgs e)
     {
         await Navigation.PushAsync(new AssetsPage(_auth, _moneyManagement));
+    }
+
+    private async void OnAiServicesClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new AiServicesPage(_auth, _aiServiceService));
     }
 }

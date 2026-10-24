@@ -467,6 +467,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<StreakTargetCompletion>();
             await _db!.CreateTableAsync<StreakTargetStatLog>();
             await _db!.CreateTableAsync<MonthlyExpense>();
+            await _db!.CreateTableAsync<AiService>();
             await _db!.CreateTableAsync<LearningSpeaker>();
             await _db!.CreateTableAsync<UserList>();
             await _db!.CreateTableAsync<UserListItem>();

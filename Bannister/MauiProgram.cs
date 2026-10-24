@@ -98,6 +98,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ActivityGroupingService>();
         builder.Services.AddSingleton<DailyLoginPromptService>();
         builder.Services.AddSingleton<MoneyManagementService>();
+        builder.Services.AddSingleton<AiServiceService>();
         builder.Services.AddSingleton<DesignationService>();
         builder.Services.AddSingleton<CommandsCasinoService>();
         builder.Services.AddSingleton<RoutineService>();
