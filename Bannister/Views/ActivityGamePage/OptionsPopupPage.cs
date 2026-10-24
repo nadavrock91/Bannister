@@ -37,7 +37,7 @@ public class OptionsPopupPage : ContentPage
             Padding = 0,
             HasShadow = true,
             WidthRequest = 340,
-            MaximumHeightRequest = 500,
+            MaximumHeightRequest = 620,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
         };
