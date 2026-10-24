@@ -49,6 +49,7 @@ public class HomePage : ContentPage
     private readonly SubActivityService _subActivityService;
     private readonly AudioLibraryService _audioLibService;
     private readonly DailyLoginPromptService _dailyLoginPrompts;
+    private readonly DailyCheckService _dailyChecks;
     private readonly MoneyManagementService _moneyManagement;
     private readonly DesignationService _designationService;
     private readonly ListsService _listsService;
@@ -166,7 +167,7 @@ public class HomePage : ContentPage
          StoryProductionService storyProduction, MusicProductionService musicProduction, TaskService taskService, WeeklyChallengeService challengeService, SequenceTaskService sequenceTaskService,
         IdeasService ideas, IdeaLoggerService ideaLogger, ConversationService conversationService,
         SubActivityService subActivityService, AudioLibraryService audioLibService,
-        DailyLoginPromptService dailyLoginPrompts, MoneyManagementService moneyManagement, ListsService listsService,
+        DailyLoginPromptService dailyLoginPrompts, DailyCheckService dailyChecks, MoneyManagementService moneyManagement, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, PromptLibraryService promptLibraryService, DesignationService designationService,
          CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
@@ -220,6 +221,7 @@ public class HomePage : ContentPage
         _subActivityService = subActivityService;
         _audioLibService = audioLibService;
         _dailyLoginPrompts = dailyLoginPrompts;
+        _dailyChecks = dailyChecks;
         _moneyManagement = moneyManagement;
         _designationService = designationService;
         _listsService = listsService;
@@ -1841,7 +1843,7 @@ public class HomePage : ContentPage
     {
         string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         string shownKey = $"daily_login_prompts_shown_{_auth.CurrentUsername}";
-        if (await ReadSecureStorageAsync(shownKey) == today)
+        if (await _dailyChecks.GetAsync(shownKey) == today)
             return false;
 
         var prompts = await _dailyLoginPrompts.GetPromptsAsync(_auth.CurrentUsername, activeOnly: true);
@@ -1872,7 +1874,7 @@ public class HomePage : ContentPage
             return false;
 
         string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        if (await ReadSecureStorageAsync($"allowance_daily_prompt_{_auth.CurrentUsername}") == today)
+        if (await _dailyChecks.GetAsync($"allowance_daily_prompt_{_auth.CurrentUsername}") == today)
             return false;
 
         var allowances = await _allowanceService.GetDailyPromptAllowancesAsync(_auth.CurrentUsername);
@@ -1970,17 +1972,17 @@ public class HomePage : ContentPage
             return false;
 
         string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        return await ReadSecureStorageAsync($"weekly_commitment_prompt_{_auth.CurrentUsername}") != today;
+        return await _dailyChecks.GetAsync($"weekly_commitment_prompt_{_auth.CurrentUsername}") != today;
     }
 
     private Task SkipDailyLoginPromptsTodayAsync() =>
-        WriteSecureStorageAsync($"daily_login_prompts_shown_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        _dailyChecks.SetAsync($"daily_login_prompts_shown_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
 
     private Task SkipSubActivityDailyPromptTodayAsync() =>
         WriteSecureStorageAsync($"subactivity_daily_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
 
     private Task SkipAllowanceDailyPromptTodayAsync() =>
-        WriteSecureStorageAsync($"allowance_daily_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        _dailyChecks.SetAsync($"allowance_daily_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
 
     private Task SkipDeadlineCheckInTodayAsync() =>
         WriteSecureStorageAsync($"deadlines_checkin_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
@@ -1992,7 +1994,7 @@ public class HomePage : ContentPage
         WriteSecureStorageAsync($"daily_habit_allowance_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
 
     private Task SkipWeeklyCommitmentsPromptTodayAsync() =>
-        WriteSecureStorageAsync($"weekly_commitment_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        _dailyChecks.SetAsync($"weekly_commitment_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
 
     private Task SkipWeeklyHabitAllowancePromptThisMonthAsync() =>
         WriteSecureStorageAsync($"weekly_habit_allowance_prompt_{_auth.CurrentUsername}", DateTime.Today.ToString("yyyy-MM", CultureInfo.InvariantCulture));
@@ -2027,16 +2029,8 @@ public class HomePage : ContentPage
         string today = DateTime.Today.ToString("yyyy-MM-dd");
         string shownKey = $"daily_login_prompts_shown_{_auth.CurrentUsername}";
         System.Diagnostics.Debug.WriteLine($"[DailyLogin] Today={today}, shownKey={shownKey}");
-        string? lastShown = null;
-        try
-        {
-            lastShown = await SecureStorage.GetAsync(shownKey);
-            System.Diagnostics.Debug.WriteLine($"[DailyLogin] SecureStorage read succeeded, stored marker={(lastShown ?? "null")}");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[DailyLogin] SecureStorage read failed: {ex.GetType().Name}: {ex.Message}");
-        }
+        string lastShown = await _dailyChecks.GetAsync(shownKey);
+        System.Diagnostics.Debug.WriteLine($"[DailyLogin] DailyCheck read succeeded, stored marker={(string.IsNullOrEmpty(lastShown) ? "null" : lastShown)}");
 
         if (lastShown == today)
         {
@@ -2051,16 +2045,9 @@ public class HomePage : ContentPage
             bool active = IsHomePromptRunActive(promptRunId);
             System.Diagnostics.Debug.WriteLine($"[DailyLogin] No prompts. Active-run before marker write={active}, promptRunId={promptRunId}, current-run-id={_homePromptRunId}, is-visible={_isHomeVisible}");
             if (!active) return;
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"[DailyLogin] Writing marker for no-prompt case: {shownKey}={today}");
-                await SecureStorage.SetAsync(shownKey, today);
-                System.Diagnostics.Debug.WriteLine("[DailyLogin] SecureStorage marker write succeeded for no-prompt case.");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[DailyLogin] SecureStorage marker write failed for no-prompt case: {ex.GetType().Name}: {ex.Message}");
-            }
+            System.Diagnostics.Debug.WriteLine($"[DailyLogin] Writing marker for no-prompt case: {shownKey}={today}");
+            await _dailyChecks.SetAsync(shownKey, today);
+            System.Diagnostics.Debug.WriteLine("[DailyLogin] DailyCheck marker write succeeded for no-prompt case.");
             return;
         }
 
@@ -2076,15 +2063,8 @@ public class HomePage : ContentPage
         }
 
         System.Diagnostics.Debug.WriteLine($"[DailyLogin] All prompts returned. Writing marker: {shownKey}={today}");
-        try
-        {
-            await SecureStorage.SetAsync(shownKey, today);
-            System.Diagnostics.Debug.WriteLine("[DailyLogin] SecureStorage marker write succeeded after prompts.");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[DailyLogin] SecureStorage marker write failed after prompts: {ex.GetType().Name}: {ex.Message}");
-        }
+        await _dailyChecks.SetAsync(shownKey, today);
+        System.Diagnostics.Debug.WriteLine("[DailyLogin] DailyCheck marker write succeeded after prompts.");
     }
 
     private async Task CheckSubActivityDailyPromptAsync(int promptRunId)
@@ -2098,8 +2078,7 @@ public class HomePage : ContentPage
 
             string today = DateTime.Today.ToString("yyyy-MM-dd");
             string lastPromptKey = $"subactivity_daily_prompt_{_auth.CurrentUsername}";
-            string? lastPrompt = null;
-            try { lastPrompt = await SecureStorage.GetAsync(lastPromptKey); } catch { }
+            string lastPrompt = await _dailyChecks.GetAsync(lastPromptKey);
 
             if (lastPrompt == today) return;
 
@@ -2170,7 +2149,7 @@ public class HomePage : ContentPage
                     completed ? DeadlineService.StateArchived : DeadlineService.StateFailed);
             }
 
-            try { await SecureStorage.SetAsync(lastPromptKey, today); } catch { }
+            await _dailyChecks.SetAsync(lastPromptKey, today);
         }
         catch (Exception ex)
         {
@@ -2193,8 +2172,7 @@ public class HomePage : ContentPage
 
             string today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             string lastPromptKey = $"allowance_daily_prompt_{_auth.CurrentUsername}";
-            string? lastPrompt = null;
-            try { lastPrompt = await SecureStorage.GetAsync(lastPromptKey); } catch { }
+            string lastPrompt = await _dailyChecks.GetAsync(lastPromptKey);
 
             if (lastPrompt == today) return;
 
@@ -2227,7 +2205,7 @@ public class HomePage : ContentPage
                     await DisplayAlert("Allowance Demoted", $"Cap lowered to {refreshedAllowance.Total}.", "OK");
             }
 
-            try { await SecureStorage.SetAsync(lastPromptKey, today); } catch { }
+            await _dailyChecks.SetAsync(lastPromptKey, today);
         }
         catch (Exception ex)
         {
@@ -2409,8 +2387,7 @@ public class HomePage : ContentPage
 
             // Only prompt once per day
             string lastPromptKey = $"weekly_commitment_prompt_{_auth.CurrentUsername}";
-            string? lastPrompt = null;
-            try { lastPrompt = await SecureStorage.GetAsync(lastPromptKey); } catch { }
+            string lastPrompt = await _dailyChecks.GetAsync(lastPromptKey);
             
             string today = DateTime.Today.ToString("yyyy-MM-dd");
             if (lastPrompt == today) return; // Already prompted today
@@ -2428,7 +2405,7 @@ public class HomePage : ContentPage
             if (!IsHomePromptRunActive(promptRunId)) return;
 
             // Mark as prompted today
-            try { await SecureStorage.SetAsync(lastPromptKey, today); } catch { }
+            await _dailyChecks.SetAsync(lastPromptKey, today);
 
             if (goToTasks)
             {
