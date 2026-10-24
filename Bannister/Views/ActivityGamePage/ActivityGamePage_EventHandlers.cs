@@ -1012,9 +1012,15 @@ public partial class ActivityGamePage
                 _auth.CurrentUsername,
                 _game.GameId);
 
-            await conn.ExecuteAsync(
-                "DELETE FROM daily_checks WHERE Key LIKE ? ESCAPE '\\'",
-                $"%\\_{_auth.CurrentUsername}\\_{_game.GameId}");
+            var gameId = _game.GameId;
+            var username = _auth.CurrentUsername;
+            var checkTypes = new[] { "StaleActivitiesCheck", "ExpiredActivitiesCheck", "BrokenStreakCheck", "HabitTargetCheck", "AutoAwardCheck" };
+            foreach (var checkType in checkTypes)
+            {
+                await conn.ExecuteAsync(
+                    "DELETE FROM daily_checks WHERE Key = ?",
+                    $"{checkType}_{username}_{gameId}");
+            }
 
             _isInitialLoad = true;
 
