@@ -48,6 +48,18 @@ public class RecurringExpenditureService
             .ToListAsync();
     }
 
+    public async Task UpdateTestAsync(RecurringExpenditureTest test)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(test);
+    }
+
+    public async Task DeleteTestAsync(int id)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.DeleteAsync<RecurringExpenditureTest>(id);
+    }
+
     public async Task DeleteAsync(int id)
     {
         var conn = await _db.GetConnectionAsync();

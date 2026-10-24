@@ -268,7 +268,7 @@ public class RecurringExpenditurePage : ContentPage
         stack.Children.Add(new Label
         {
             Text = $"{FormatMoney(item.MonthlyCost)}/mo  ·  {test.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}",
-            FontSize = 12,
+            FontSize = 15,
             TextColor = Color.FromArgb("#777")
         });
 
@@ -276,7 +276,7 @@ public class RecurringExpenditurePage : ContentPage
             stack.Children.Add(new Label
             {
                 Text = $"Target: {item.JustificationTarget}",
-                FontSize = 13,
+                FontSize = 16,
                 TextColor = Color.FromArgb("#555"),
                 LineBreakMode = LineBreakMode.WordWrap
             });
@@ -285,11 +285,49 @@ public class RecurringExpenditurePage : ContentPage
             stack.Children.Add(new Label
             {
                 Text = $"Result: {test.ActualResult}",
-                FontSize = 13,
+                FontSize = 16,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = color,
                 LineBreakMode = LineBreakMode.WordWrap
             });
+
+        var editBtn = BuildOutlineButton("Edit Result", "#555555");
+        editBtn.Clicked += async (_, _) =>
+        {
+            string? newResult = await DisplayPromptAsync(
+                "Edit Result",
+                "Actual result:",
+                "Save",
+                "Cancel",
+                initialValue: test.ActualResult);
+            if (newResult == null) return;
+            test.ActualResult = newResult.Trim();
+            await _recurringExpenditures.UpdateTestAsync(test);
+            await RefreshAsync();
+        };
+
+        var deleteBtn = BuildOutlineButton("Delete", "#C62828");
+        deleteBtn.Clicked += async (_, _) =>
+        {
+            bool confirmed = await DisplayAlert("Delete verdict?", $"Remove this {test.Note} entry?", "Delete", "Cancel");
+            if (!confirmed) return;
+            await _recurringExpenditures.DeleteTestAsync(test.Id);
+            await RefreshAsync();
+        };
+
+        var btnRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 8,
+            Margin = new Thickness(0, 6, 0, 0)
+        };
+        btnRow.Add(editBtn, 0, 0);
+        btnRow.Add(deleteBtn, 1, 0);
+        stack.Children.Add(btnRow);
 
         return new Frame
         {
