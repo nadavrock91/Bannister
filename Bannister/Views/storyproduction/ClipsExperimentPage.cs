@@ -424,8 +424,9 @@ public class ClipsExperimentPage : ContentPage
                     dateRow.Add(new Label
                     {
                         Text = string.Join("  ·  ", statParts),
-                        FontSize = 11,
-                        TextColor = Color.FromArgb("#666"),
+                        FontSize = 12,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#333"),
                         VerticalOptions = LayoutOptions.Center
                     }, 1, 0);
                 }
@@ -981,10 +982,112 @@ public class ClipsExperimentPage : ContentPage
             await ApplyPriorityRankingAsync(parsedRanking, unrunItems);
             await RefreshAsync();
         };
+
+        var describeExperiment = MakeButton("Describe This Experiment", "#E8F5E9", Color.FromArgb("#2E7D32"));
+        describeExperiment.Clicked += async (_, _) =>
+        {
+            var describePrompt = new StringBuilder();
+            describePrompt.AppendLine($"Experiment name: {experiment.Name}");
+            describePrompt.AppendLine();
+            describePrompt.AppendLine("I am running a short-video clip experiment. Please ask me questions one at a time to understand what this experiment is testing, what my hypothesis is, and what success looks like. Once you understand it fully, write a concise 2-3 sentence description I can save as the experiment description.");
+            await Clipboard.SetTextAsync(describePrompt.ToString());
+            await DisplayAlert("Copied", "Describe prompt copied to clipboard.", "OK");
+        };
+
+        var generateDataPoints = MakeButton("Generate Data Points from Stats", "#F3E5F5", Color.FromArgb("#6A1B9A"));
+        generateDataPoints.Clicked += async (_, _) =>
+        {
+            var allPlatformData = await _service.GetPlatformDataForExperimentAsync(experiment.Id);
+            var platforms = await _service.GetPlatformsAsync(experiment.Id);
+            var platformMap = platforms.ToDictionary(platform => platform.Id, platform => platform.Name);
+            var dataByPost = allPlatformData.GroupBy(data => data.PostId)
+                .ToDictionary(group => group.Key, group => group.ToList());
+
+            var builder = new StringBuilder();
+            builder.AppendLine("Here is my short-video clip experiment data. Based on the retention and views statistics, generate 5–10 insightful data point observations I can add to my experiment log.");
+            builder.AppendLine();
+            builder.AppendLine($"Experiment: {experiment.Name}");
+            builder.AppendLine();
+            builder.AppendLine("Posts and platform stats:");
+            foreach (var post in posts)
+            {
+                builder.AppendLine($"- \"{post.Title}\" | Hook: {post.Concept} | Date: {post.PostedDate:dd MMM yyyy}");
+                if (dataByPost.TryGetValue(post.Id, out var platformDataItems))
+                {
+                    foreach (var platformData in platformDataItems)
+                    {
+                        if (!platformMap.TryGetValue(platformData.PlatformId, out var platformName)) continue;
+                        var parts = new List<string>();
+                        if (platformData.Retention10s.HasValue) parts.Add($"10s:{platformData.Retention10s.Value:F0}%");
+                        if (platformData.Retention20s.HasValue) parts.Add($"20s:{platformData.Retention20s.Value:F0}%");
+                        if (platformData.Retention30s.HasValue) parts.Add($"30s:{platformData.Retention30s.Value:F0}%");
+                        if (platformData.TotalViews.HasValue) parts.Add($"Views:{platformData.TotalViews.Value}");
+                        if (parts.Count > 0)
+                            builder.AppendLine($"    {platformName}: {string.Join(" · ", parts)}");
+                    }
+                }
+            }
+            builder.AppendLine();
+            builder.AppendLine("Existing data points (do not repeat these):");
+            foreach (var dataPoint in dataPoints)
+                builder.AppendLine($"- [{dataPoint.CreatedDate.ToLocalTime():yyyy-MM-dd}] {dataPoint.Text}");
+            builder.AppendLine();
+            builder.AppendLine("Return new observations only, each as a single sentence. Return them in this exact format:");
+            builder.AppendLine("dataPoint[1] = \"Observation here\";");
+            builder.AppendLine("dataPoint[2] = \"Observation here\";");
+            builder.AppendLine("(continue for all observations)");
+
+            await Clipboard.SetTextAsync(builder.ToString());
+            await DisplayAlert("Copied", "Data points from stats prompt copied to clipboard.", "OK");
+        };
+
+        var exportAllStats = MakeButton("Export All Stats & Data Points", "#ECEFF1", Color.FromArgb("#333"));
+        exportAllStats.Clicked += async (_, _) =>
+        {
+            var allPlatformData = await _service.GetPlatformDataForExperimentAsync(experiment.Id);
+            var platforms = await _service.GetPlatformsAsync(experiment.Id);
+            var platformMap = platforms.ToDictionary(platform => platform.Id, platform => platform.Name);
+            var dataByPost = allPlatformData.GroupBy(data => data.PostId)
+                .ToDictionary(group => group.Key, group => group.ToList());
+
+            var export = new StringBuilder();
+            export.AppendLine($"=== {experiment.Name} ===");
+            export.AppendLine();
+            export.AppendLine("POSTS & STATS:");
+            foreach (var post in posts)
+            {
+                export.AppendLine($"- \"{post.Title}\" | Hook: {post.Concept} | {post.PostedDate:dd MMM yyyy}");
+                if (dataByPost.TryGetValue(post.Id, out var platformDataItems))
+                {
+                    foreach (var platformData in platformDataItems)
+                    {
+                        if (!platformMap.TryGetValue(platformData.PlatformId, out var platformName)) continue;
+                        var parts = new List<string>();
+                        if (platformData.Retention10s.HasValue) parts.Add($"10s:{platformData.Retention10s.Value:F0}%");
+                        if (platformData.Retention20s.HasValue) parts.Add($"20s:{platformData.Retention20s.Value:F0}%");
+                        if (platformData.Retention30s.HasValue) parts.Add($"30s:{platformData.Retention30s.Value:F0}%");
+                        if (platformData.TotalViews.HasValue) parts.Add($"Views:{platformData.TotalViews.Value}");
+                        if (parts.Count > 0)
+                            export.AppendLine($"    {platformName}: {string.Join(" · ", parts)}");
+                    }
+                }
+            }
+            export.AppendLine();
+            export.AppendLine("DATA POINTS:");
+            foreach (var dataPoint in dataPoints)
+                export.AppendLine($"- [{dataPoint.CreatedDate.ToLocalTime():yyyy-MM-dd}] {dataPoint.Text}");
+
+            await Clipboard.SetTextAsync(export.ToString());
+            await DisplayAlert("Copied", "All stats and data points copied to clipboard.", "OK");
+        };
+
         promptButtons.Children.Add(ideas);
         promptButtons.Children.Add(importIdeas);
         promptButtons.Children.Add(ranking);
         promptButtons.Children.Add(importRanking);
+        promptButtons.Children.Add(describeExperiment);
+        promptButtons.Children.Add(generateDataPoints);
+        promptButtons.Children.Add(exportAllStats);
         _content.Children.Add(promptButtons);
 
         var editPriority = MakeButton("✏️ Edit Priority Order", "#FFF8E1", Color.FromArgb("#F57F17"));
