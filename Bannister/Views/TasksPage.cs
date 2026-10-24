@@ -468,10 +468,22 @@ public class TasksPage : ContentPage
             return;
         }
 
-        _summaryFocusLabel.Text = $" Focus\n{challenge.FocusCategory}";
-        _summaryFreeLabel.Text = "";
-        _summaryAllowanceLabel.Text =
-            $"Allowance: {challenge.CurrentAllowance}/wk  •  Streak: {challenge.SuccessStreak} weeks";
+        var commitments = await _challengeService.GetCurrentWeekCommitmentsAsync(challenge.Id);
+        var focusCommitments = commitments.Where(c => c.IsFocusTask).ToList();
+        var freeCommitments = commitments.Where(c => !c.IsFocusTask).ToList();
+        var (focusTarget, freeTarget) = WeeklyChallengeService.CalculateTaskSplit(
+            challenge.CurrentAllowance, challenge.FreeTaskRatio);
+
+        int completedFocus = focusCommitments.Count(c => c.IsCompleted);
+        int completedFree = freeCommitments.Count(c => c.IsCompleted);
+        int designatedFocus = focusCommitments.Count;
+        int designatedFree = freeCommitments.Count;
+
+        _summaryFocusLabel.Text = $" Focus\n{completedFocus}/{focusTarget} done\n({designatedFocus} designated)";
+        _summaryFreeLabel.Text = freeTarget > 0
+            ? $" Free\n{completedFree}/{freeTarget} done\n({designatedFree} designated)"
+            : $" Free\nunlocks at\nallowance 3";
+        _summaryAllowanceLabel.Text = $"Allowance: {challenge.CurrentAllowance}/wk  •  Streak: {challenge.SuccessStreak} weeks";
     }
 
     private void BuildChallengeWidget(VerticalStackLayout mainStack)
