@@ -1484,9 +1484,10 @@ public class TasksPage : ContentPage
     {
         _allowanceChartContainer.Children.Clear();
 
-        var history = await _challengeService.GetChallengeHistoryAsync(_auth.CurrentUsername, 12);
+        var snapshots = await _challengeService.GetWeekSnapshotsAsync(_auth.CurrentUsername, 12);
+        var active = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
 
-        if (history.Count == 0)
+        if (snapshots.Count == 0 && active == null)
         {
             _allowanceChartContainer.IsVisible = true;
             _allowanceChartContainer.Children.Add(new Label
@@ -1539,26 +1540,26 @@ public class TasksPage : ContentPage
         };
 
         // Reverse so oldest is on the left
-        history.Reverse();
+        snapshots.Reverse();
 
-        int maxAllowance = history.Max(c => c.CurrentAllowance);
+        int maxAllowance = snapshots.Count > 0
+            ? snapshots.Max(s => s.Allowance)
+            : 0;
+        if (active != null)
+            maxAllowance = Math.Max(maxAllowance, active.CurrentAllowance);
         if (maxAllowance < 1) maxAllowance = 1;
         double barMaxHeight = 80;
 
-        for (int i = 0; i < history.Count; i++)
+        for (int i = 0; i < snapshots.Count; i++)
         {
             chartGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
 
-            var challenge = history[i];
-            double barHeight = Math.Max(8, (challenge.CurrentAllowance / (double)maxAllowance) * barMaxHeight);
+            var snapshot = snapshots[i];
+            double barHeight = Math.Max(8, (snapshot.Allowance / (double)maxAllowance) * barMaxHeight);
 
-            // Determine bar color based on success
-            bool isSuccess = challenge.SuccessStreak > 0 || challenge.CompletedFocusTaskCount >= challenge.TargetTaskCount;
-            Color barColor = isSuccess
+            Color barColor = snapshot.WasSuccessful
                 ? Color.FromArgb("#7B1FA2")
                 : Color.FromArgb("#CE93D8");
-
-            bool isCurrent = challenge.IsActive;
 
             var barStack = new VerticalStackLayout
             {
@@ -1569,7 +1570,7 @@ public class TasksPage : ContentPage
             // Value label above bar
             barStack.Children.Add(new Label
             {
-                Text = challenge.CurrentAllowance.ToString(),
+                Text = snapshot.Allowance.ToString(),
                 FontSize = 9,
                 TextColor = Color.FromArgb("#666"),
                 HorizontalTextAlignment = TextAlignment.Center
@@ -1581,7 +1582,7 @@ public class TasksPage : ContentPage
                 HeightRequest = barHeight,
                 WidthRequest = 20,
                 CornerRadius = 4,
-                Color = isCurrent ? Color.FromArgb("#4CAF50") : barColor,
+                Color = barColor,
                 HorizontalOptions = LayoutOptions.Center
             };
             barStack.Children.Add(bar);
@@ -1593,7 +1594,7 @@ public class TasksPage : ContentPage
             // Challenge start label below
             var weekLabel = new Label
             {
-                Text = challenge.StartedAt.ToString("M/d"),
+                Text = snapshot.WeekStart.ToString("M/d"),
                 FontSize = 8,
                 TextColor = Color.FromArgb("#999"),
                 HorizontalTextAlignment = TextAlignment.Center
@@ -1603,16 +1604,61 @@ public class TasksPage : ContentPage
             chartGrid.Children.Add(weekLabel);
         }
 
+        // Add current active week bar
+        if (active != null)
+        {
+            int column = snapshots.Count;
+            chartGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+            double barHeight = Math.Max(8, (active.CurrentAllowance / (double)maxAllowance) * barMaxHeight);
+
+            var barStack = new VerticalStackLayout
+            {
+                VerticalOptions = LayoutOptions.End,
+                HorizontalOptions = LayoutOptions.Center
+            };
+
+            barStack.Children.Add(new Label
+            {
+                Text = active.CurrentAllowance.ToString(),
+                FontSize = 9,
+                TextColor = Color.FromArgb("#666"),
+                HorizontalTextAlignment = TextAlignment.Center
+            });
+
+            barStack.Children.Add(new BoxView
+            {
+                HeightRequest = barHeight,
+                WidthRequest = 20,
+                CornerRadius = 4,
+                Color = Color.FromArgb("#4CAF50"),
+                HorizontalOptions = LayoutOptions.Center
+            });
+
+            Grid.SetColumn(barStack, column);
+            Grid.SetRow(barStack, 0);
+            chartGrid.Children.Add(barStack);
+
+            var nowLabel = new Label
+            {
+                Text = "Now",
+                FontSize = 8,
+                TextColor = Color.FromArgb("#999"),
+                HorizontalTextAlignment = TextAlignment.Center
+            };
+            Grid.SetColumn(nowLabel, column);
+            Grid.SetRow(nowLabel, 1);
+            chartGrid.Children.Add(nowLabel);
+        }
+
         chartFrame.Content = chartGrid;
         _allowanceChartContainer.Children.Add(chartFrame);
 
         // Summary line
-        var current = history.LastOrDefault();
-        if (current != null)
+        if (active != null)
         {
             _allowanceChartContainer.Children.Add(new Label
             {
-                Text = $"Allowance: {current.CurrentAllowance} tasks/week  •  Weeks completed in a row: {current.SuccessStreak}",
+                Text = $"Allowance: {active.CurrentAllowance} tasks/week  •  Weeks completed in a row: {active.SuccessStreak}",
                 FontSize = 13,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#444")

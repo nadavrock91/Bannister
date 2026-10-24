@@ -36,6 +36,7 @@ public class WeeklyChallengeService
         var conn = await _db.GetConnectionAsync();
         if (!_db.IsReadOnly) await conn.CreateTableAsync<WeeklyChallenge>();
         if (!_db.IsReadOnly) await conn.CreateTableAsync<WeeklyCommitment>();
+        if (!_db.IsReadOnly) await conn.CreateTableAsync<ChallengeWeekSnapshot>();
         if (!_db.IsReadOnly)
         {
             try { await conn.ExecuteAsync("ALTER TABLE weekly_challenges ADD COLUMN FreeTaskRatio INTEGER DEFAULT 3"); } catch { }
@@ -303,6 +304,10 @@ public class WeeklyChallengeService
             .Where(c => c.ChallengeId == challenge.Id && c.WeekStart == lastWeekStart)
             .ToListAsync();
 
+        bool weekSuccessful = false;
+        int completedFocus = 0;
+        int completedFree = 0;
+
         // Check if last week had commitments
         if (lastWeekCommitments.Count == 0)
         {
@@ -313,11 +318,11 @@ public class WeeklyChallengeService
         else
         {
             var (focusTarget, freeTarget) = CalculateTaskSplit(challenge.CurrentAllowance, challenge.FreeTaskRatio);
-            int completedFocus = lastWeekCommitments.Count(c => c.IsFocusTask && c.IsCompleted);
-            int completedFree = lastWeekCommitments.Count(c => !c.IsFocusTask && c.IsCompleted);
+            completedFocus = lastWeekCommitments.Count(c => c.IsFocusTask && c.IsCompleted);
+            completedFree = lastWeekCommitments.Count(c => !c.IsFocusTask && c.IsCompleted);
             bool focusDone = completedFocus >= focusTarget;
             bool freeDone = completedFree >= freeTarget;
-            bool weekSuccessful = focusDone && freeDone;
+            weekSuccessful = focusDone && freeDone;
 
             if (weekSuccessful)
             {
@@ -342,6 +347,25 @@ public class WeeklyChallengeService
         challenge.RequiredFreeTasks = nextFreeTarget;
         challenge.CompletedFreeTaskCount = 0;
         challenge.LastProcessedWeekStart = previousWeekStart;
+
+        // Snapshot this week for history
+        var (snapFocusTarget, snapFreeTarget) = CalculateTaskSplit(
+            challenge.CurrentAllowance, challenge.FreeTaskRatio);
+        var snapshot = new ChallengeWeekSnapshot
+        {
+            Username = challenge.Username,
+            ChallengeId = challenge.Id,
+            WeekStart = previousWeekStart,
+            Allowance = challenge.CurrentAllowance,
+            SuccessStreak = challenge.SuccessStreak,
+            WasSuccessful = weekSuccessful,
+            CompletedFocus = completedFocus,
+            FocusTarget = snapFocusTarget,
+            CompletedFree = completedFree,
+            FreeTarget = snapFreeTarget,
+            SnapshotAt = DateTime.UtcNow
+        };
+        await conn.InsertAsync(snapshot);
 
         await conn.UpdateAsync(challenge);
     }
@@ -483,6 +507,17 @@ public class WeeklyChallengeService
         return await conn.Table<WeeklyChallenge>()
             .Where(c => c.Username == username)
             .OrderByDescending(c => c.StartedAt)
+            .Take(limit)
+            .ToListAsync();
+    }
+
+    public async Task<List<ChallengeWeekSnapshot>> GetWeekSnapshotsAsync(string username, int limit = 12)
+    {
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<ChallengeWeekSnapshot>()
+            .Where(s => s.Username == username)
+            .OrderByDescending(s => s.WeekStart)
             .Take(limit)
             .ToListAsync();
     }
