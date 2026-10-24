@@ -1030,6 +1030,12 @@ public partial class ActivityGamePage
                 "Done. Load prompts will re-trigger immediately on next navigation.",
                 "OK");
         }
+        else if (result == "Force Load Prompts")
+        {
+            _isInitialLoad = true;
+            await LoadGameAsync();
+            return; // skip the wasInitialLoad restore
+        }
 
         _isInitialLoad = wasInitialLoad;
     }
