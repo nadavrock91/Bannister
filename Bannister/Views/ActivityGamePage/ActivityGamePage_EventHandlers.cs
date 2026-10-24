@@ -1109,9 +1109,15 @@ public partial class ActivityGamePage
             }
             else if (prompt == "Catch-Up (Missed Days)")
             {
+                // Temporarily set LastVisitedAt to 3 days ago so GameCatchUpPage
+                // has a valid catch-up date range and doesn't immediately exit
+                var fakePastDate = DateTime.Now.AddDays(-3);
+                await _games.UpdateLastVisitedAtAsync(_auth.CurrentUsername, _game.GameId, fakePastDate);
+                _game.LastVisitedAt = fakePastDate;
+
                 await Task.Delay(300);
                 string encodedGameId = Uri.EscapeDataString(_game.GameId);
-                await Shell.Current.GoToAsync($"gamecatchup?gameId={encodedGameId}");
+                await Shell.Current.GoToAsync($"//home/gamecatchup?gameId={encodedGameId}");
             }
         }
 
