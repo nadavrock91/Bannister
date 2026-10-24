@@ -1109,6 +1109,7 @@ public partial class ActivityGamePage
             }
             else if (prompt == "Catch-Up (Missed Days)")
             {
+                await Task.Delay(300);
                 string encodedGameId = Uri.EscapeDataString(_game.GameId);
                 await Shell.Current.GoToAsync($"gamecatchup?gameId={encodedGameId}");
             }
