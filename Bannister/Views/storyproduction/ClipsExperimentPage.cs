@@ -884,14 +884,42 @@ public class ClipsExperimentPage : ContentPage
         }
         _content.Children.Add(MakeCard(activeStack));
 
-        _content.Children.Add(new Label
+        var addExperimentHeader = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        addExperimentHeader.Add(new Label
         {
             Text = "Add Experiment",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#333"),
-            Margin = new Thickness(0, 12, 0, 0)
-        });
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+        var describeActiveExperiment = MakeButton(
+            "Describe This Experiment",
+            "#E8F5E9",
+            Color.FromArgb("#2E7D32"));
+        describeActiveExperiment.IsEnabled = activeItem != null;
+        describeActiveExperiment.Clicked += async (_, _) =>
+        {
+            if (activeItem == null) return;
+            var describePrompt = new StringBuilder();
+            describePrompt.AppendLine($"Experiment title: {activeItem.Title}");
+            describePrompt.AppendLine($"Current description: {activeItem.Description}");
+            describePrompt.AppendLine();
+            describePrompt.AppendLine("I am running a short-video clip experiment. Please interview me by asking questions one at a time to understand what this experiment is testing, what my hypothesis is, and what success looks like. Once you understand it fully, write a concise 2-3 sentence description I can save as the experiment description.");
+            await Clipboard.SetTextAsync(describePrompt.ToString());
+            await DisplayAlert("Copied", "Describe prompt copied to clipboard.", "OK");
+        };
+        addExperimentHeader.Add(describeActiveExperiment, 1, 0);
+        _content.Children.Add(addExperimentHeader);
         var titleEntry = MakeEntry("Experiment title");
         var descriptionEditor = MakeEditor("What should be tested, and why?");
         var startDatePicker = new DatePicker
