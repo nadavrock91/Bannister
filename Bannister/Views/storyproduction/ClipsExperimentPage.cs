@@ -18,7 +18,7 @@ public class ClipsExperimentPage : ContentPage
     private Entry _titleEntry = null!;
     private Entry _conceptEntry = null!;
     private DatePicker _datePicker = null!;
-    private int? _expandedPostId;
+    private int? _expandedPostPlatformsId;
     private readonly HashSet<string> _expandedPostGroups = new();
     private readonly HashSet<string> _expandedExperimentSections = new();
     private readonly HashSet<int> _selectedPostIds = new();
@@ -127,8 +127,12 @@ public class ClipsExperimentPage : ContentPage
         else
         {
             var experimentItems = await _service.GetExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
+            var allPlatforms = await _service.GetAllPlatformsForExperimentAsync(experiment.Id);
+            var platformsByPost = allPlatforms
+                .GroupBy(platform => platform.PostId)
+                .ToDictionary(group => group.Key, group => group.ToList());
             BuildNewPostSection(experiment);
-            BuildPostsSection(experiment, posts, experimentItems);
+            BuildPostsSection(experiment, posts, experimentItems, platformsByPost);
             await BuildAveragesSectionAsync(experiment, posts);
         }
     }
@@ -244,7 +248,8 @@ public class ClipsExperimentPage : ContentPage
     private void BuildPostsSection(
         ClipsExperiment experiment,
         List<ClipsPost> posts,
-        List<ClipsExperimentItem> experimentItems)
+        List<ClipsExperimentItem> experimentItems,
+        Dictionary<int, List<ClipsPostPlatform>> platformsByPost)
     {
         _content.Children.Add(new Label
         {
@@ -319,7 +324,7 @@ public class ClipsExperimentPage : ContentPage
                 .OrderByDescending(post => post.PostedDate)
                 .ToList();
             if (assignedPosts.Count > 0)
-                AddPostGroup($"experiment:{experimentItem.Id}", experimentItem.Title, assignedPosts, experimentItems);
+                AddPostGroup($"experiment:{experimentItem.Id}", experimentItem.Title, assignedPosts, experimentItems, platformsByPost);
         }
 
         var unassignedPosts = posts
@@ -327,14 +332,15 @@ public class ClipsExperimentPage : ContentPage
             .OrderByDescending(post => post.PostedDate)
             .ToList();
         if (unassignedPosts.Count > 0)
-            AddPostGroup("unassigned", "Unassigned", unassignedPosts, experimentItems);
+            AddPostGroup("unassigned", "Unassigned", unassignedPosts, experimentItems, platformsByPost);
     }
 
     private void AddPostGroup(
         string groupKey,
         string title,
         List<ClipsPost> posts,
-        List<ClipsExperimentItem> experimentItems)
+        List<ClipsExperimentItem> experimentItems,
+        Dictionary<int, List<ClipsPostPlatform>> platformsByPost)
     {
         var isExpanded = _expandedPostGroups.Contains(groupKey);
         var header = MakeButton(
@@ -354,10 +360,13 @@ public class ClipsExperimentPage : ContentPage
 
         if (!isExpanded) return;
         foreach (var post in posts)
-            _content.Children.Add(BuildPostCard(post, experimentItems));
+            _content.Children.Add(BuildPostCard(post, experimentItems, platformsByPost));
     }
 
-    private View BuildPostCard(ClipsPost post, List<ClipsExperimentItem> experimentItems)
+    private View BuildPostCard(
+        ClipsPost post,
+        List<ClipsExperimentItem> experimentItems,
+        Dictionary<int, List<ClipsPostPlatform>> platformsByPost)
     {
         bool complete = IsComplete(post);
         var stack = new VerticalStackLayout { Spacing = 4 };
@@ -386,13 +395,6 @@ public class ClipsExperimentPage : ContentPage
             TextColor = complete ? Color.FromArgb("#2E7D32") : Color.FromArgb("#888"),
             VerticalOptions = LayoutOptions.Center
         }, 1, 0);
-        var tap = new TapGestureRecognizer();
-        tap.Tapped += (_, _) =>
-        {
-            _expandedPostId = _expandedPostId == post.Id ? null : post.Id;
-            _ = RefreshAsync();
-        };
-        header.GestureRecognizers.Add(tap);
         stack.Children.Add(header);
         var matchingExperiment = FindExperimentForPost(post, experimentItems);
         if (matchingExperiment != null)
@@ -419,22 +421,114 @@ public class ClipsExperimentPage : ContentPage
         };
         if (!_postSelectionMode)
             stack.Children.Add(assignExperiment);
-        var retentionParts = new List<string>();
-        if (post.Retention10s.HasValue)
-            retentionParts.Add($"10s: {post.Retention10s.Value:F0}%");
-        if (post.Retention20s.HasValue)
-            retentionParts.Add($"20s: {post.Retention20s.Value:F0}%");
-        if (post.Retention30s.HasValue)
-            retentionParts.Add($"30s: {post.Retention30s.Value:F0}%");
-        if (retentionParts.Count > 0)
+
+        var postPlatforms = platformsByPost.TryGetValue(post.Id, out var loadedPlatforms)
+            ? loadedPlatforms
+            : new List<ClipsPostPlatform>();
+
+        foreach (var platform in postPlatforms)
+        {
+            var parts = new List<string>();
+            if (platform.Retention10s.HasValue) parts.Add($"10s:{platform.Retention10s.Value:F0}%");
+            if (platform.Retention20s.HasValue) parts.Add($"20s:{platform.Retention20s.Value:F0}%");
+            if (platform.Retention30s.HasValue) parts.Add($"30s:{platform.Retention30s.Value:F0}%");
+            if (platform.TotalViews.HasValue) parts.Add($"Views:{platform.TotalViews.Value}");
             stack.Children.Add(new Label
             {
-                Text = string.Join(" · ", retentionParts),
+                Text = $"{platform.PlatformName}: {(parts.Count > 0 ? string.Join(" · ", parts) : "no data")}",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#666")
+                TextColor = Color.FromArgb("#555")
             });
-        if (_expandedPostId == post.Id)
-            AddPostEditor(stack, post);
+        }
+
+        var retentionToggle = MakeButton(
+            _expandedPostPlatformsId == post.Id ? "Close" : "Add Retention & Views",
+            "#E8F5E9",
+            Color.FromArgb("#2E7D32"));
+        retentionToggle.FontSize = 10;
+        retentionToggle.HeightRequest = 30;
+        retentionToggle.HorizontalOptions = LayoutOptions.Start;
+        retentionToggle.Clicked += (_, _) =>
+        {
+            _expandedPostPlatformsId = _expandedPostPlatformsId == post.Id ? null : post.Id;
+            _ = RefreshAsync();
+        };
+        stack.Children.Add(retentionToggle);
+
+        var deletePost = MakeButton("Delete Post", "#FFEBEE", Color.FromArgb("#C62828"));
+        deletePost.FontSize = 10;
+        deletePost.HeightRequest = 30;
+        deletePost.HorizontalOptions = LayoutOptions.Start;
+        deletePost.Clicked += async (_, _) =>
+        {
+            if (!await DisplayAlert("Delete Post", $"Delete '{post.Title}'?", "Delete", "Cancel")) return;
+            await _service.DeletePostAsync(post.Id);
+            await RefreshAsync();
+        };
+        stack.Children.Add(deletePost);
+
+        if (_expandedPostPlatformsId == post.Id)
+        {
+            foreach (var platform in postPlatforms)
+            {
+                var currentPlatform = platform;
+                var deletePlatform = MakeButton(
+                    $"Delete {currentPlatform.PlatformName}",
+                    "#FFEBEE",
+                    Color.FromArgb("#C62828"));
+                deletePlatform.FontSize = 10;
+                deletePlatform.HeightRequest = 28;
+                deletePlatform.HorizontalOptions = LayoutOptions.Start;
+                deletePlatform.Clicked += async (_, _) =>
+                {
+                    if (!await DisplayAlert(
+                            "Delete",
+                            $"Delete {currentPlatform.PlatformName} data for this post?",
+                            "Delete",
+                            "Cancel")) return;
+                    await _service.DeletePostPlatformAsync(currentPlatform.Id);
+                    await RefreshAsync();
+                };
+                stack.Children.Add(deletePlatform);
+            }
+
+            var platformNameEntry = MakeEntry("Platform name (e.g. YouTube)");
+            platformNameEntry.Text = "YouTube";
+            var r10 = MakeEntry("10s retention %", true);
+            var r20 = MakeEntry("20s retention %", true);
+            var r30 = MakeEntry("30s retention %", true);
+            var views = MakeEntry("Total views", true);
+            var addPlatform = MakeButton("Add Platform Data", "#1565C0", Colors.White);
+            addPlatform.Clicked += async (_, _) =>
+            {
+                if (_busy || string.IsNullOrWhiteSpace(platformNameEntry.Text)) return;
+                _busy = true;
+                try
+                {
+                    await _service.SavePostPlatformAsync(new ClipsPostPlatform
+                    {
+                        PostId = post.Id,
+                        PlatformName = platformNameEntry.Text.Trim(),
+                        Retention10s = ParseScore(r10.Text),
+                        Retention20s = ParseScore(r20.Text),
+                        Retention30s = ParseScore(r30.Text),
+                        TotalViews = int.TryParse(views.Text, out var parsedViews) ? parsedViews : null,
+                        CreatedDate = DateTime.UtcNow
+                    });
+                    _expandedPostPlatformsId = null;
+                }
+                finally { _busy = false; }
+                await RefreshAsync();
+            };
+
+            stack.Children.Add(platformNameEntry);
+            stack.Children.Add(r10);
+            stack.Children.Add(r20);
+            stack.Children.Add(r30);
+            stack.Children.Add(views);
+            stack.Children.Add(addPlatform);
+        }
+
         View cardContent = stack;
         if (_postSelectionMode)
         {
@@ -567,37 +661,6 @@ public class ClipsExperimentPage : ContentPage
         var count = _selectedPostIds.Count;
         _assignSelectedPostsButton.Text = $"Assign {count} Posts to Experiment";
         _assignSelectedPostsButton.IsEnabled = count > 0;
-    }
-
-    private void AddPostEditor(VerticalStackLayout stack, ClipsPost post)
-    {
-        var r10 = MakeEntry("10s retention (0-100)", true, post.Retention10s);
-        var r20 = MakeEntry("20s retention (0-100)", true, post.Retention20s);
-        var r30 = MakeEntry("30s retention (0-100)", true, post.Retention30s);
-        var notes = MakeEntry("Notes");
-        notes.Text = post.Notes;
-        stack.Children.Add(r10);
-        stack.Children.Add(r20);
-        stack.Children.Add(r30);
-        stack.Children.Add(notes);
-        var save = MakeButton("Save Retention", "#1565C0", Colors.White);
-        save.Clicked += async (_, _) =>
-        {
-            if (_busy) return;
-            _busy = true;
-            try
-            {
-                post.Retention10s = ParseScore(r10.Text);
-                post.Retention20s = ParseScore(r20.Text);
-                post.Retention30s = ParseScore(r30.Text);
-                post.Notes = notes.Text?.Trim() ?? "";
-                await _service.SavePostAsync(post);
-                _expandedPostId = null;
-            }
-            finally { _busy = false; }
-            await RefreshAsync();
-        };
-        stack.Children.Add(save);
     }
 
     private async Task BuildDataPointsTabAsync(ClipsExperiment experiment)
@@ -1389,8 +1452,7 @@ public class ClipsExperimentPage : ContentPage
             foreach (var item in group)
             {
                 var post = item.Post;
-                prompt.AppendLine(
-                    $"- {post.Title} | Hook: {post.Concept} | Retention: 10s {FormatScore(post.Retention10s)}, 20s {FormatScore(post.Retention20s)}, 30s {FormatScore(post.Retention30s)}");
+                prompt.AppendLine($"- {post.Title} | Hook: {post.Concept}");
             }
         }
     }
@@ -1431,12 +1493,9 @@ public class ClipsExperimentPage : ContentPage
             prompt.AppendLine($"- {dataPoint.CreatedDate.ToLocalTime():yyyy-MM-dd}: {dataPoint.Text}");
     }
 
-    private static string FormatScore(double? score)
-        => score.HasValue ? $"{score.Value:0.#}%" : "not recorded";
-
     private async Task BuildAveragesSectionAsync(ClipsExperiment experiment, List<ClipsPost> posts)
     {
-        var averages = await _service.GetConceptAveragesAsync(experiment.Id);
+        var averages = await _service.GetConceptAveragesByPlatformAsync(experiment.Id);
         _content.Children.Add(new Label
         {
             Text = "Concept Averages",
@@ -1450,39 +1509,70 @@ public class ClipsExperimentPage : ContentPage
             _content.Children.Add(new Label { Text = "Averages appear after posts are added.", FontSize = 13, TextColor = Color.FromArgb("#999") });
             return;
         }
-        double best10 = averages.Values.Max(v => v.avg10);
-        double best20 = averages.Values.Max(v => v.avg20);
-        double best30 = averages.Values.Max(v => v.avg30);
-        var grid = new Grid
+
+        var allPlatforms = averages.Values
+            .SelectMany(byPlatform => byPlatform.Keys)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(platform => platform)
+            .ToList();
+
+        foreach (var platformName in allPlatforms)
         {
-            ColumnDefinitions =
+            _content.Children.Add(new Label
             {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Auto),
-                new ColumnDefinition(GridLength.Auto),
-                new ColumnDefinition(GridLength.Auto),
-                new ColumnDefinition(GridLength.Auto)
-            },
-            RowSpacing = 5,
-            ColumnSpacing = 8
-        };
-        AddCell(grid, "Concept", 0, 0, true);
-        AddCell(grid, "10s", 1, 0, true);
-        AddCell(grid, "20s", 2, 0, true);
-        AddCell(grid, "30s", 3, 0, true);
-        AddCell(grid, "Posts", 4, 0, true);
-        int row = 1;
-        foreach (var item in averages.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            var v = item.Value;
-            AddCell(grid, item.Key, 0, row, false);
-            AddCell(grid, FormatAverage(v.avg10, best10), 1, row, v.avg10 == best10);
-            AddCell(grid, FormatAverage(v.avg20, best20), 2, row, v.avg20 == best20);
-            AddCell(grid, FormatAverage(v.avg30, best30), 3, row, v.avg30 == best30);
-            AddCell(grid, v.count.ToString(), 4, row, false);
-            row++;
+                Text = platformName,
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#1565C0"),
+                Margin = new Thickness(0, 8, 0, 0)
+            });
+
+            var platformStats = averages
+                .Where(item => item.Value.ContainsKey(platformName))
+                .ToDictionary(item => item.Key, item => item.Value[platformName]);
+
+            if (platformStats.Count == 0) continue;
+
+            double best10 = platformStats.Values.Max(value => value.avg10);
+            double best20 = platformStats.Values.Max(value => value.avg20);
+            double best30 = platformStats.Values.Max(value => value.avg30);
+            int bestViews = platformStats.Values.Max(value => value.totalViews);
+
+            var grid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                RowSpacing = 5,
+                ColumnSpacing = 8
+            };
+            AddCell(grid, "Concept", 0, 0, true);
+            AddCell(grid, "10s", 1, 0, true);
+            AddCell(grid, "20s", 2, 0, true);
+            AddCell(grid, "30s", 3, 0, true);
+            AddCell(grid, "Views", 4, 0, true);
+            AddCell(grid, "Posts", 5, 0, true);
+
+            int row = 1;
+            foreach (var item in platformStats.OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                var value = item.Value;
+                AddCell(grid, item.Key, 0, row, false);
+                AddCell(grid, FormatAverage(value.avg10, best10), 1, row, value.avg10 == best10 && best10 > 0);
+                AddCell(grid, FormatAverage(value.avg20, best20), 2, row, value.avg20 == best20 && best20 > 0);
+                AddCell(grid, FormatAverage(value.avg30, best30), 3, row, value.avg30 == best30 && best30 > 0);
+                AddCell(grid, value.totalViews > 0 ? value.totalViews.ToString() : "-", 4, row, value.totalViews == bestViews && bestViews > 0);
+                AddCell(grid, value.count.ToString(), 5, row, false);
+                row++;
+            }
+            _content.Children.Add(new Frame { Content = grid, Padding = 10, BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false });
         }
-        _content.Children.Add(new Frame { Content = grid, Padding = 10, BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false });
     }
 
     private static void AddCell(Grid grid, string text, int column, int row, bool highlight)
@@ -1551,10 +1641,7 @@ public class ClipsExperimentPage : ContentPage
         return Math.Clamp(value, 0, 100);
     }
 
-    private static bool IsComplete(ClipsPost post)
-        => post.Retention10s.HasValue &&
-           post.Retention20s.HasValue &&
-           post.Retention30s.HasValue;
+    private static bool IsComplete(ClipsPost post) => false;
 
     private sealed class ParsedExperimentIdea
     {

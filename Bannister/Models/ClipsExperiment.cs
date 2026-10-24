@@ -21,10 +21,6 @@ public class ClipsPost
     public string Title { get; set; } = "";
     public string Concept { get; set; } = "";
     public DateTime PostedDate { get; set; } = DateTime.Today;
-    public double? Retention10s { get; set; }
-    public double? Retention20s { get; set; }
-    public double? Retention30s { get; set; }
-    public string Notes { get; set; } = "";
 }
 
 public class ClipsDataPoint
@@ -51,5 +47,19 @@ public class ClipsExperimentItem
     public DateTime? EndDate { get; set; }
     public int SortOrder { get; set; }
     public bool IsRun { get; set; }
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+}
+
+public class ClipsPostPlatform
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+    [Indexed]
+    public int PostId { get; set; }
+    public string PlatformName { get; set; } = "YouTube";
+    public double? Retention10s { get; set; }
+    public double? Retention20s { get; set; }
+    public double? Retention30s { get; set; }
+    public int? TotalViews { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 }

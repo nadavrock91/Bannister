@@ -18,6 +18,7 @@ public class ClipsExperimentService
         try { await conn.ExecuteAsync("ALTER TABLE ClipsPost ADD COLUMN ExperimentItemId INTEGER"); } catch { }
         await conn.CreateTableAsync<ClipsDataPoint>();
         await conn.CreateTableAsync<ClipsExperimentItem>();
+        await conn.CreateTableAsync<ClipsPostPlatform>();
         try { await conn.ExecuteAsync("ALTER TABLE ClipsExperimentItem ADD COLUMN StartDate TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE ClipsExperimentItem ADD COLUMN EndDate TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE ClipsExperimentItem ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0"); } catch { }
@@ -193,17 +194,84 @@ public class ClipsExperimentService
         await conn.UpdateAsync(experimentItem);
     }
 
-    public async Task<Dictionary<string, (double avg10, double avg20, double avg30, int count)>>
-        GetConceptAveragesAsync(int experimentId)
+    public async Task<List<ClipsPostPlatform>> GetPlatformsForPostAsync(int postId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<ClipsPostPlatform>()
+            .Where(p => p.PostId == postId)
+            .OrderBy(p => p.PlatformName)
+            .ToListAsync();
+    }
+
+    public async Task<List<ClipsPostPlatform>> GetAllPlatformsForExperimentAsync(int experimentId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var posts = await GetPostsAsync(experimentId);
+        var postIds = posts.Select(p => p.Id).ToHashSet();
+        var all = await conn.Table<ClipsPostPlatform>().ToListAsync();
+        return all.Where(p => postIds.Contains(p.PostId)).ToList();
+    }
+
+    public async Task SavePostPlatformAsync(ClipsPostPlatform platform)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        if (platform.Id == 0)
+            await conn.InsertAsync(platform);
+        else
+            await conn.UpdateAsync(platform);
+    }
+
+    public async Task DeletePostPlatformAsync(int id)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var platform = await conn.FindAsync<ClipsPostPlatform>(id);
+        if (platform != null)
+            await conn.DeleteAsync(platform);
+    }
+
+    public async Task<Dictionary<string, Dictionary<string, (double avg10, double avg20, double avg30, int totalViews, int count)>>>
+        GetConceptAveragesByPlatformAsync(int experimentId)
     {
         var posts = await GetPostsAsync(experimentId);
-        return posts.GroupBy(p => p.Concept.Trim(), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(
-                g => g.First().Concept.Trim(),
-                g => (
-                    g.Where(p => p.Retention10s.HasValue).Select(p => p.Retention10s!.Value).DefaultIfEmpty().Average(),
-                    g.Where(p => p.Retention20s.HasValue).Select(p => p.Retention20s!.Value).DefaultIfEmpty().Average(),
-                    g.Where(p => p.Retention30s.HasValue).Select(p => p.Retention30s!.Value).DefaultIfEmpty().Average(),
-                    g.Count()));
+        var platforms = await GetAllPlatformsForExperimentAsync(experimentId);
+        var platformsByPost = platforms.GroupBy(p => p.PostId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var raw = new Dictionary<string, Dictionary<string, List<ClipsPostPlatform>>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var post in posts)
+        {
+            var concept = post.Concept.Trim();
+            if (!raw.ContainsKey(concept))
+                raw[concept] = new Dictionary<string, List<ClipsPostPlatform>>(StringComparer.OrdinalIgnoreCase);
+            if (!platformsByPost.TryGetValue(post.Id, out var postPlatforms)) continue;
+            foreach (var platform in postPlatforms)
+            {
+                var name = string.IsNullOrWhiteSpace(platform.PlatformName) ? "YouTube" : platform.PlatformName.Trim();
+                if (!raw[concept].ContainsKey(name))
+                    raw[concept][name] = new List<ClipsPostPlatform>();
+                raw[concept][name].Add(platform);
+            }
+        }
+
+        var averages = new Dictionary<string, Dictionary<string, (double avg10, double avg20, double avg30, int totalViews, int count)>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (concept, byPlatform) in raw)
+        {
+            averages[concept] = new Dictionary<string, (double, double, double, int, int)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (platformName, entries) in byPlatform)
+            {
+                averages[concept][platformName] = (
+                    entries.Where(p => p.Retention10s.HasValue).Select(p => p.Retention10s!.Value).DefaultIfEmpty().Average(),
+                    entries.Where(p => p.Retention20s.HasValue).Select(p => p.Retention20s!.Value).DefaultIfEmpty().Average(),
+                    entries.Where(p => p.Retention30s.HasValue).Select(p => p.Retention30s!.Value).DefaultIfEmpty().Average(),
+                    entries.Where(p => p.TotalViews.HasValue).Sum(p => p.TotalViews!.Value),
+                    entries.Count);
+            }
+        }
+
+        return averages;
     }
 }
