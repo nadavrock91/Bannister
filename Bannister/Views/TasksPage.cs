@@ -422,9 +422,11 @@ public class TasksPage : ContentPage
 
         _challengeSummaryLabel = new Label
         {
-            FontSize = 12,
-            TextColor = Color.FromArgb("#888"),
-            HorizontalTextAlignment = TextAlignment.Center
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#444"),
+            HorizontalTextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 4, 0, 0)
         };
         challengeNavStack.Children.Add(_challengeSummaryLabel);
         mainStack.Children.Add(challengeNavStack);
@@ -1610,9 +1612,10 @@ public class TasksPage : ContentPage
         {
             _allowanceChartContainer.Children.Add(new Label
             {
-                Text = $"Current: {current.CurrentAllowance}/wk \u2022 Streak: {current.SuccessStreak} weeks",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#888")
+                Text = $"Allowance: {current.CurrentAllowance} tasks/week  •  Weeks completed in a row: {current.SuccessStreak}",
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#444")
             });
         }
     }
