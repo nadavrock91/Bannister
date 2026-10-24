@@ -29,7 +29,10 @@ public class TasksPage : ContentPage
     private Label _detailMeta;
     private Button _showCompletedBtn;
     
-    private Label _challengeSummaryLabel;
+    private Grid _challengeSummaryGrid = null!;
+    private Label _summaryFocusLabel = null!;
+    private Label _summaryFreeLabel = null!;
+    private Label _summaryAllowanceLabel = null!;
     private Frame _challengeFrame;
     private Label _challengeFocusLabel;
     private Label _challengeProgressLabel;
@@ -420,15 +423,37 @@ public class TasksPage : ContentPage
         };
         challengeNavStack.Children.Add(sequenceBtn);
 
-        _challengeSummaryLabel = new Label
+        _summaryFocusLabel = new Label { FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#7B1FA2"), HorizontalTextAlignment = TextAlignment.Center };
+        _summaryFreeLabel = new Label { FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), HorizontalTextAlignment = TextAlignment.Center };
+        _summaryAllowanceLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#555"), HorizontalTextAlignment = TextAlignment.Center };
+
+        _challengeSummaryGrid = new Grid
         {
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#444"),
-            HorizontalTextAlignment = TextAlignment.Center,
-            Margin = new Thickness(0, 4, 0, 0)
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
+            },
+            Margin = new Thickness(0, 6, 0, 0),
+            ColumnSpacing = 8,
+            RowSpacing = 2
         };
-        challengeNavStack.Children.Add(_challengeSummaryLabel);
+        Grid.SetColumn(_summaryFocusLabel, 0);
+        Grid.SetRow(_summaryFocusLabel, 0);
+        Grid.SetColumn(_summaryFreeLabel, 1);
+        Grid.SetRow(_summaryFreeLabel, 0);
+        Grid.SetColumn(_summaryAllowanceLabel, 0);
+        Grid.SetRow(_summaryAllowanceLabel, 1);
+        Grid.SetColumnSpan(_summaryAllowanceLabel, 2);
+        _challengeSummaryGrid.Children.Add(_summaryFocusLabel);
+        _challengeSummaryGrid.Children.Add(_summaryFreeLabel);
+        _challengeSummaryGrid.Children.Add(_summaryAllowanceLabel);
+        challengeNavStack.Children.Add(_challengeSummaryGrid);
         mainStack.Children.Add(challengeNavStack);
     }
 
@@ -437,12 +462,16 @@ public class TasksPage : ContentPage
         var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
         if (challenge == null)
         {
-            _challengeSummaryLabel.Text = "No active challenge";
+            _summaryFocusLabel.Text = "No active challenge";
+            _summaryFreeLabel.Text = "";
+            _summaryAllowanceLabel.Text = "";
             return;
         }
 
-        _challengeSummaryLabel.Text =
-            $"Focus: {challenge.FocusCategory} \u2022 Allowance: {challenge.CurrentAllowance}/wk \u2022 Streak: {challenge.SuccessStreak}";
+        _summaryFocusLabel.Text = $" Focus\n{challenge.FocusCategory}";
+        _summaryFreeLabel.Text = "";
+        _summaryAllowanceLabel.Text =
+            $"Allowance: {challenge.CurrentAllowance}/wk  •  Streak: {challenge.SuccessStreak} weeks";
     }
 
     private void BuildChallengeWidget(VerticalStackLayout mainStack)
@@ -1243,9 +1272,11 @@ public class TasksPage : ContentPage
         int designatedFocus = focusCommitments.Count;
         int designatedFree = freeCommitments.Count;
 
-        _challengeSummaryLabel.Text = freeTarget > 0
-            ? $"Focus {completedFocus}/{focusTarget} done ({designatedFocus} designated) • Free {completedFree}/{freeTarget} done ({designatedFree} designated) • Allowance {challenge.CurrentAllowance}/wk"
-            : $"Focus {completedFocus}/{focusTarget} done ({designatedFocus} designated) • Allowance {challenge.CurrentAllowance}/wk • Streak {challenge.SuccessStreak}";
+        _summaryFocusLabel.Text = $" Focus\n{completedFocus}/{focusTarget} done\n({designatedFocus} designated)";
+        _summaryFreeLabel.Text = freeTarget > 0
+            ? $" Free\n{completedFree}/{freeTarget} done\n({designatedFree} designated)"
+            : $" Free\nunlocks at\nallowance 3";
+        _summaryAllowanceLabel.Text = $"Allowance: {challenge.CurrentAllowance}/wk  •  Streak: {challenge.SuccessStreak} weeks";
 
         _challengeProgressLabel.Text = $"Focus: {completedFocus}/{focusTarget}";
 
