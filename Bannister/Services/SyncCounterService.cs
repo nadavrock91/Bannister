@@ -73,6 +73,31 @@ public class SyncCounterService
         return counter.Counter;
     }
 
+    public async Task<int> DecrementAsync(string username)
+    {
+        username = NormalizeUsername(username);
+        if (string.IsNullOrEmpty(username)) return 0;
+
+        await InitAsync();
+        if (_db.IsReadOnly)
+        {
+            ReadOnlyModeNotifier.ShowBlockedWriteMessage();
+            return await GetCounterAsync(username);
+        }
+
+        var conn = await _db.GetConnectionAsync();
+        var counter = await conn.Table<SyncCounter>()
+            .Where(x => x.Username == username)
+            .FirstOrDefaultAsync();
+
+        if (counter == null) return 0;
+
+        counter.Counter = Math.Max(0, counter.Counter - 1);
+        counter.LastIncrementedAt = DateTime.UtcNow;
+        await conn.UpdateAsync(counter);
+        return counter.Counter;
+    }
+
     private static string NormalizeUsername(string username) =>
         (username ?? "").Trim().ToLowerInvariant();
 

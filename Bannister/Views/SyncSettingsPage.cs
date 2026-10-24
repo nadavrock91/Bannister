@@ -734,13 +734,22 @@ public class SyncSettingsPage : ContentPage
         {
         _lblStatus.Text = "Uploading…";
         _lblStatus.TextColor = Color.FromArgb("#5B63EE");
+        // Increment before upload so the new counter value is included in the uploaded DB
+        var counter = await _syncCounter.IncrementAsync(await GetSyncUsernameAsync());
+        _lblSyncCounter.Text = $"Sync #{counter}";
         var result = await _sync.UploadAsync();
         _lblStatus.Text = result.Message;
         _lblStatus.TextColor = result.Success ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
         if (result.Success)
         {
-            var counter = await _syncCounter.IncrementAsync(await GetSyncUsernameAsync());
-            _lblSyncCounter.Text = $"Sync #{counter}";
+            // Counter was already incremented before upload — just refresh display
+            await RefreshSyncCounterLabelAsync();
+        }
+        else
+        {
+            // Roll back the counter increment since upload failed
+            await _syncCounter.DecrementAsync(await GetSyncUsernameAsync());
+            await RefreshSyncCounterLabelAsync();
         }
         UpdateLastSyncLabel();
         }
@@ -786,7 +795,8 @@ public class SyncSettingsPage : ContentPage
 
             if (result.Success)
             {
-                await RefreshSyncCounterLabelAsync();
+                var counter = await _syncCounter.IncrementAsync(await GetSyncUsernameAsync());
+                _lblSyncCounter.Text = $"Sync #{counter}";
                 await DisplayAlert("Downloaded",
                     "Database installed. You may need to restart the app or navigate away and back " +
                     "for all pages to reflect the new data.",
