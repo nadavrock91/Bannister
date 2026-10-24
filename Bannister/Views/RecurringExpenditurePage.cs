@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using Bannister.Helpers;
 using System.Globalization;
 
 namespace Bannister.Views;
@@ -77,28 +78,15 @@ public class RecurringExpenditurePage : ContentPage
         };
         currencyButton.Clicked += async (_, _) =>
         {
-            string? selected = await DisplayActionSheet(
-                "Currency",
-                "Cancel",
-                null,
-                "USD ($)",
-                "EUR (€)",
-                "GBP (£)",
-                "ILS (₪)",
-                "JPY (¥)");
-
-            if (string.IsNullOrWhiteSpace(selected) || selected == "Cancel")
-                return;
-
-            (_currencyCode, _currencySymbol) = selected switch
-            {
-                "EUR (€)" => ("EUR", "€"),
-                "GBP (£)" => ("GBP", "£"),
-                "ILS (₪)" => ("ILS", "₪"),
-                "JPY (¥)" => ("JPY", "¥"),
-                _ => ("USD", "$")
-            };
-            currencyButton.Text = $"{_currencySymbol} {_currencyCode}";
+            var selectedLabel = await DisplayActionSheet(
+                "Currency", "Cancel", null,
+                CurrencyOption.All.Select(c => c.Label).ToArray());
+            if (string.IsNullOrWhiteSpace(selectedLabel) || selectedLabel == "Cancel") return;
+            var selected = CurrencyOption.All.FirstOrDefault(c => c.Label == selectedLabel);
+            if (selected == null) return;
+            _currencySymbol = selected.Symbol;
+            _currencyCode = selected.Code;
+            currencyButton.Text = $"{selected.Symbol} {selected.Code}";
             await RefreshAsync();
         };
 
@@ -465,26 +453,27 @@ public class RecurringExpenditurePage : ContentPage
             return;
         }
 
-        string? reason = await DisplayPromptAsync(
-            "Reason",
-            "Why are you trying it?",
-            "Next",
-            "Cancel");
-        if (reason == null)
-            return;
+        string? startDateText = await DisplayPromptAsync(
+            "Trial Start Date",
+            "Start date (yyyy-MM-dd):",
+            "Next", "Cancel",
+            initialValue: DateTime.Now.ToString("yyyy-MM-dd"));
+        if (startDateText == null) return;
+        DateTime trialStart = DateTime.TryParse(startDateText, out DateTime parsedStart)
+            ? parsedStart.ToUniversalTime()
+            : DateTime.UtcNow;
 
-        string? trialDaysText = await DisplayPromptAsync(
-            "Trial Length",
-            "Trial length in days:",
-            "Add",
-            "Cancel",
-            keyboard: Keyboard.Numeric,
-            initialValue: "30");
-        if (!int.TryParse(trialDaysText, out int trialDays) || trialDays < 1)
-        {
-            await DisplayAlert("Invalid trial length", "Enter a trial length of at least one day.", "OK");
-            return;
-        }
+        string? endDateText = await DisplayPromptAsync(
+            "Trial End Date",
+            "End date (yyyy-MM-dd):",
+            "Add", "Cancel",
+            initialValue: DateTime.Now.AddDays(30).ToString("yyyy-MM-dd"));
+        if (endDateText == null) return;
+        DateTime trialEnd = DateTime.TryParse(endDateText, out DateTime parsedEnd)
+            ? parsedEnd.ToUniversalTime()
+            : DateTime.UtcNow.AddDays(30);
+
+        int trialDays = Math.Max(1, (trialEnd - trialStart).Days);
 
         string? justificationTarget = await DisplayPromptAsync(
             "Justification Target",
@@ -494,16 +483,6 @@ public class RecurringExpenditurePage : ContentPage
         if (justificationTarget == null)
             return;
 
-        string? startDateText = await DisplayPromptAsync(
-            "Trial Start Date",
-            "Start date (yyyy-MM-dd):",
-            "Add",
-            "Cancel",
-            initialValue: DateTime.Now.ToString("yyyy-MM-dd"));
-        DateTime trialStart = DateTime.TryParse(startDateText, out DateTime parsedStart)
-            ? parsedStart.ToUniversalTime()
-            : DateTime.UtcNow;
-
         var now = DateTime.UtcNow;
         await _recurringExpenditures.AddAsync(new RecurringExpenditure
         {
@@ -511,11 +490,10 @@ public class RecurringExpenditurePage : ContentPage
             Name = name.Trim(),
             MonthlyCost = monthlyCost,
             Status = "Pending",
-            Reason = reason.Trim(),
             JustificationTarget = justificationTarget.Trim(),
             CurrencyCode = _currencyCode,
             TrialStartDate = trialStart,
-            TrialEndDate = trialStart.AddDays(trialDays),
+            TrialEndDate = trialEnd,
             TrialDays = trialDays,
             CreatedAt = now,
             UpdatedAt = now
