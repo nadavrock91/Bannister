@@ -174,6 +174,7 @@ public class TasksPage : ContentPage
         mainStack.Children.Add(headerRow);
 
         BuildChallengeNavigation(mainStack);
+        BuildChallengeWidget(mainStack);
 
         // Content area
         var contentGrid = new Grid
