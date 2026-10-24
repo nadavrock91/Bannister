@@ -961,6 +961,7 @@ public partial class ActivityGamePage
 
     private async void OnOptionsClicked(object? sender, EventArgs e)
     {
+        bool wasInitialLoad = _isInitialLoad;
         var popup = new OptionsPopupPage();
         await Navigation.PushModalAsync(popup);
         
@@ -1029,11 +1030,12 @@ public partial class ActivityGamePage
                 "Done. Load prompts will re-trigger immediately on next navigation.",
                 "OK");
         }
+
+        _isInitialLoad = wasInitialLoad;
     }
 
     private async Task RunDevSqlAsync()
     {
-        bool wasInitialLoad = _isInitialLoad;
         var inputPage = new SqlInputPage();
         await Navigation.PushModalAsync(inputPage);
         
@@ -1092,13 +1094,11 @@ public partial class ActivityGamePage
 
                 string resultText = sb.ToString().Trim();
                 await SqlResultPage.ShowAsync(Navigation, resultText);
-                _isInitialLoad = wasInitialLoad;
             }
             else
             {
                 int rows = await conn.ExecuteAsync(trimmed);
                 await DisplayAlert("Success", $"Affected {rows} row(s).", "OK");
-                _isInitialLoad = wasInitialLoad;
                 await RefreshActivitiesAsync();
             }
         }
