@@ -439,14 +439,6 @@ public class TasksPage : ContentPage
         _startChallengeBtn.Clicked += OnStartChallengeClicked;
         challengeRow.Children.Add(_startChallengeBtn);
 
-        _allowanceChartContainer = new VerticalStackLayout
-        {
-            Spacing = 4,
-            Margin = new Thickness(0, 0, 0, 8),
-            IsVisible = false
-        };
-        challengeRow.Children.Add(_allowanceChartContainer);
-
         // Challenge frame (compact)
         _challengeFrame = new Frame
         {
@@ -646,7 +638,6 @@ public class TasksPage : ContentPage
         challengeStack.Children.Add(_consultLlmBtn);
 
         _challengeFrame.Content = challengeStack;
-        challengeRow.Children.Add(_challengeFrame);
 
         mainStack.Children.Add(challengeRow);
     }
@@ -1467,6 +1458,96 @@ public class TasksPage : ContentPage
         var active = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
         if (active == null) return;
 
+        // ---- Chart: allowance over time (snapshots + current week) ----
+        var snapshots = await _challengeService.GetWeekSnapshotsAsync(_auth.CurrentUsername, 12);
+        snapshots.Reverse(); // oldest on the left
+
+        _allowanceChartContainer.Children.Add(new Label
+        {
+            Text = "Focus Allowance History",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#7B1FA2")
+        });
+
+        var chartFrame = new Frame
+        {
+            Padding = 12,
+            CornerRadius = 10,
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            BorderColor = Colors.Transparent,
+            HasShadow = false
+        };
+
+        var chartGrid = new Grid
+        {
+            ColumnSpacing = 4,
+            RowSpacing = 2,
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto }
+            }
+        };
+
+        int maxAllowance = Math.Max(active.CurrentAllowance, snapshots.Count > 0 ? snapshots.Max(s => s.Allowance) : 1);
+        if (maxAllowance < 1) maxAllowance = 1;
+        double barMaxHeight = 80;
+
+        void AddBar(int column, int allowance, Color color, string label)
+        {
+            chartGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+            double barHeight = Math.Max(8, (allowance / (double)maxAllowance) * barMaxHeight);
+
+            var barStack = new VerticalStackLayout
+            {
+                VerticalOptions = LayoutOptions.End,
+                HorizontalOptions = LayoutOptions.Center
+            };
+            barStack.Children.Add(new Label
+            {
+                Text = allowance.ToString(),
+                FontSize = 9,
+                TextColor = Color.FromArgb("#666"),
+                HorizontalTextAlignment = TextAlignment.Center
+            });
+            barStack.Children.Add(new BoxView
+            {
+                HeightRequest = barHeight,
+                WidthRequest = 20,
+                CornerRadius = 4,
+                Color = color,
+                HorizontalOptions = LayoutOptions.Center
+            });
+            Grid.SetColumn(barStack, column);
+            Grid.SetRow(barStack, 0);
+            chartGrid.Children.Add(barStack);
+
+            var weekLabel = new Label
+            {
+                Text = label,
+                FontSize = 8,
+                TextColor = Color.FromArgb("#999"),
+                HorizontalTextAlignment = TextAlignment.Center
+            };
+            Grid.SetColumn(weekLabel, column);
+            Grid.SetRow(weekLabel, 1);
+            chartGrid.Children.Add(weekLabel);
+        }
+
+        for (int i = 0; i < snapshots.Count; i++)
+        {
+            var s = snapshots[i];
+            AddBar(i, s.Allowance,
+                s.WasSuccessful ? Color.FromArgb("#7B1FA2") : Color.FromArgb("#CE93D8"),
+                s.WeekStart.ToString("M/d"));
+        }
+        AddBar(snapshots.Count, active.CurrentAllowance, Color.FromArgb("#4CAF50"), "Now");
+
+        chartFrame.Content = chartGrid;
+        _allowanceChartContainer.Children.Add(chartFrame);
+
+        // ---- Text summary ----
         string freeLine = freeTarget > 0
             ? $"Free tasks allowed: {freeTarget}  •  Designated: {designatedFree}  •  Completed: {completedFree}/{designatedFree}"
             : "Free tasks allowed: 0 (unlocks at allowance 3)";
