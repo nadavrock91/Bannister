@@ -1030,11 +1030,69 @@ public partial class ActivityGamePage
                 "Done. Load prompts will re-trigger immediately on next navigation.",
                 "OK");
         }
-        else if (result == "Force Load Prompts")
+        else if (result == "Test Load Prompts")
         {
-            _isInitialLoad = true;
-            await LoadGameAsync();
-            return; // skip the wasInitialLoad restore
+            await Task.Delay(300);
+            var testPage = new TestLoadPromptsPage();
+            await Navigation.PushModalAsync(testPage);
+            string? prompt = await testPage.WaitForResultAsync();
+
+            if (string.IsNullOrEmpty(prompt)) return;
+
+            var placeholder = new Activity
+            {
+                Id = -1,
+                Name = "[Test Placeholder]",
+                IsActive = true,
+                Category = "Test"
+            };
+
+            if (prompt == "Broken Streak")
+            {
+                var list = new List<(Activity activity, int brokenStreak, int penalty)>
+                {
+                    (placeholder, 5, 10)
+                };
+                var page = new StreakBrokenPage(_auth, _activities, _exp, _streaks, _game.GameId, list);
+                await Navigation.PushModalAsync(page);
+                await page.GetResultAsync();
+            }
+            else if (prompt == "Stale Activities")
+            {
+                var list = new List<Activity> { placeholder };
+                var page = new StaleActivitiesConfirmationPage(list, _activities);
+                await Navigation.PushModalAsync(page);
+                await page.GetMovedCountAsync();
+            }
+            else if (prompt == "Expired Activities")
+            {
+                await DisplayAlert(
+                    "Expired Activities",
+                    "1 activity(ies) passed their end date and were moved to the 'Expired' category.\n\nUse the 'Expired' filter to view them.",
+                    "OK");
+            }
+            else if (prompt == "Habit Target (Expired Mode)")
+            {
+                var list = new List<Activity> { placeholder };
+                var page = new HabitTargetDecisionPage(_activities, list, isExpiredMode: true);
+                await Navigation.PushModalAsync(page);
+            }
+            else if (prompt == "Auto Award")
+            {
+                var list = new List<Activity> { placeholder };
+                var (currentLevel, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, _game.GameId);
+                var dayCounts = new Dictionary<int, int> { { -1, 1 } };
+                var page = new AutoAwardConfirmationPage(
+                    list,
+                    _exp,
+                    _activities,
+                    _auth.CurrentUsername,
+                    _game.GameId,
+                    currentLevel,
+                    dayCounts);
+                await Navigation.PushModalAsync(page);
+                await page.WaitForCompletionAsync();
+            }
         }
 
         _isInitialLoad = wasInitialLoad;

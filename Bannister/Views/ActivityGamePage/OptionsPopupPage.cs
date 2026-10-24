@@ -77,7 +77,7 @@ public class OptionsPopupPage : ContentPage
             ("💡", "Set All as Possible (All on Page)", Color.FromArgb("#9C27B0")),
             ("📤", "Export Data", Color.FromArgb("#2196F3")),
             ("🔄", "Reset Load Prompts", Color.FromArgb("#F44336")),
-            ("⚡", "Force Load Prompts", Color.FromArgb("#FF9800")),
+            ("⚡", "Test Load Prompts", Color.FromArgb("#FF9800")),
         };
 
         foreach (var (icon, label, color) in options)
