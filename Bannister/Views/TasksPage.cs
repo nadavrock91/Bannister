@@ -29,10 +29,6 @@ public class TasksPage : ContentPage
     private Label _detailMeta;
     private Button _showCompletedBtn;
     
-    private Grid _challengeSummaryGrid = null!;
-    private Label _summaryFocusLabel = null!;
-    private Label _summaryFreeLabel = null!;
-    private Label _summaryAllowanceLabel = null!;
     private Frame _challengeFrame;
     private Label _challengeFocusLabel;
     private Label _challengeProgressLabel;
@@ -102,8 +98,7 @@ public class TasksPage : ContentPage
         _isLoading = true;
         await LoadCategoriesAsync();
         _isLoading = false;
-        await RefreshChallengeSummaryAsync();
-        await RefreshAllowanceChartAsync();
+        await RefreshChallengeWidgetAsync();
         await RefreshTasksAsync();
     }
 
@@ -423,67 +418,7 @@ public class TasksPage : ContentPage
         };
         challengeNavStack.Children.Add(sequenceBtn);
 
-        _summaryFocusLabel = new Label { FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#7B1FA2"), HorizontalTextAlignment = TextAlignment.Center };
-        _summaryFreeLabel = new Label { FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), HorizontalTextAlignment = TextAlignment.Center };
-        _summaryAllowanceLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#555"), HorizontalTextAlignment = TextAlignment.Center };
-
-        _challengeSummaryGrid = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            },
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Auto)
-            },
-            Margin = new Thickness(0, 6, 0, 0),
-            ColumnSpacing = 8,
-            RowSpacing = 2
-        };
-        Grid.SetColumn(_summaryFocusLabel, 0);
-        Grid.SetRow(_summaryFocusLabel, 0);
-        Grid.SetColumn(_summaryFreeLabel, 1);
-        Grid.SetRow(_summaryFreeLabel, 0);
-        Grid.SetColumn(_summaryAllowanceLabel, 0);
-        Grid.SetRow(_summaryAllowanceLabel, 1);
-        Grid.SetColumnSpan(_summaryAllowanceLabel, 2);
-        _challengeSummaryGrid.Children.Add(_summaryFocusLabel);
-        _challengeSummaryGrid.Children.Add(_summaryFreeLabel);
-        _challengeSummaryGrid.Children.Add(_summaryAllowanceLabel);
-        challengeNavStack.Children.Add(_challengeSummaryGrid);
         mainStack.Children.Add(challengeNavStack);
-    }
-
-    private async Task RefreshChallengeSummaryAsync()
-    {
-        var challenge = await _challengeService.GetActiveChallengeAsync(_auth.CurrentUsername);
-        if (challenge == null)
-        {
-            _summaryFocusLabel.Text = "No active challenge";
-            _summaryFreeLabel.Text = "";
-            _summaryAllowanceLabel.Text = "";
-            return;
-        }
-
-        var commitments = await _challengeService.GetCurrentWeekCommitmentsAsync(challenge.Id);
-        var focusCommitments = commitments.Where(c => c.IsFocusTask).ToList();
-        var freeCommitments = commitments.Where(c => !c.IsFocusTask).ToList();
-        var (focusTarget, freeTarget) = WeeklyChallengeService.CalculateTaskSplit(
-            challenge.CurrentAllowance, challenge.FreeTaskRatio);
-
-        int completedFocus = focusCommitments.Count(c => c.IsCompleted);
-        int completedFree = freeCommitments.Count(c => c.IsCompleted);
-        int designatedFocus = focusCommitments.Count;
-        int designatedFree = freeCommitments.Count;
-
-        _summaryFocusLabel.Text = $" Focus\n{completedFocus}/{focusTarget} done\n({designatedFocus} designated)";
-        _summaryFreeLabel.Text = freeTarget > 0
-            ? $" Free\n{completedFree}/{freeTarget} done\n({designatedFree} designated)"
-            : $" Free\nunlocks at\nallowance 3";
-        _summaryAllowanceLabel.Text = $"Allowance: {challenge.CurrentAllowance}/wk  •  Streak: {challenge.SuccessStreak} weeks";
     }
 
     private void BuildChallengeWidget(VerticalStackLayout mainStack)
@@ -1084,7 +1019,7 @@ public class TasksPage : ContentPage
 
         await _tasks.UpdateTaskAsync(task);
         ShowDetail(task);
-        await RefreshChallengeSummaryAsync();
+        await RefreshChallengeWidgetAsync();
         return true;
     }
 
@@ -1183,7 +1118,7 @@ public class TasksPage : ContentPage
 
         ShowDetail(_selectedTask);
         await RefreshTasksAsync();
-        await RefreshChallengeSummaryAsync();
+        await RefreshChallengeWidgetAsync();
     }
 
     private async void OnPriorityClicked(object? sender, EventArgs e)
@@ -1265,8 +1200,6 @@ public class TasksPage : ContentPage
             return;
         }
 
-        await RefreshAllowanceChartAsync();
-
         _challengeFrame.IsVisible = true;
         _startChallengeBtn.IsVisible = false;
 
@@ -1284,11 +1217,13 @@ public class TasksPage : ContentPage
         int designatedFocus = focusCommitments.Count;
         int designatedFree = freeCommitments.Count;
 
-        _summaryFocusLabel.Text = $" Focus\n{completedFocus}/{focusTarget} done\n({designatedFocus} designated)";
-        _summaryFreeLabel.Text = freeTarget > 0
-            ? $" Free\n{completedFree}/{freeTarget} done\n({designatedFree} designated)"
-            : $" Free\nunlocks at\nallowance 3";
-        _summaryAllowanceLabel.Text = $"Allowance: {challenge.CurrentAllowance}/wk  •  Streak: {challenge.SuccessStreak} weeks";
+        await RefreshAllowanceChartAsync(
+            completedFocus,
+            focusTarget,
+            designatedFocus,
+            completedFree,
+            freeTarget,
+            designatedFree);
 
         _challengeProgressLabel.Text = $"Focus: {completedFocus}/{focusTarget}";
 
@@ -1523,7 +1458,13 @@ public class TasksPage : ContentPage
         return row;
     }
 
-    private async Task RefreshAllowanceChartAsync()
+    private async Task RefreshAllowanceChartAsync(
+        int completedFocus,
+        int focusTarget,
+        int designatedFocus,
+        int completedFree,
+        int freeTarget,
+        int designatedFree)
     {
         _allowanceChartContainer.Children.Clear();
 
@@ -1696,15 +1637,23 @@ public class TasksPage : ContentPage
         chartFrame.Content = chartGrid;
         _allowanceChartContainer.Children.Add(chartFrame);
 
-        // Summary line
+        // Summary lines
         if (active != null)
         {
             _allowanceChartContainer.Children.Add(new Label
             {
-                Text = $"Allowance: {active.CurrentAllowance} tasks/week  •  Weeks completed in a row: {active.SuccessStreak}",
+                Text = freeTarget > 0
+                    ? $" Focus: {completedFocus}/{focusTarget} done ({designatedFocus} designated)    Free: {completedFree}/{freeTarget} done ({designatedFree} designated)"
+                    : $" Focus: {completedFocus}/{focusTarget} done ({designatedFocus} designated)",
                 FontSize = 13,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#444")
+                TextColor = Color.FromArgb("#333")
+            });
+            _allowanceChartContainer.Children.Add(new Label
+            {
+                Text = $"Allowance: {active.CurrentAllowance}/wk  •  Streak: {active.SuccessStreak} weeks",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#666")
             });
         }
     }
