@@ -157,8 +157,31 @@ public class RecurringExpenditurePage : ContentPage
                 _pendingContainer.Children.Add(BuildPendingCard(item, tests));
             }
         }
-        PopulateSection(_approvedContainer, approved, BuildApprovedCard, "No approved services yet.");
-        PopulateSection(_cutContainer, cut, BuildCutCard, "No cut services yet.");
+        if (approved.Count == 0)
+        {
+            AddEmptyMessage(_approvedContainer, "No approved services yet.");
+        }
+        else
+        {
+            foreach (var item in approved)
+            {
+                var tests = await _recurringExpenditures.GetTestsAsync(item.Id);
+                _approvedContainer.Children.Add(BuildApprovedCard(item, tests));
+            }
+        }
+
+        if (cut.Count == 0)
+        {
+            AddEmptyMessage(_cutContainer, "No cut services yet.");
+        }
+        else
+        {
+            foreach (var item in cut)
+            {
+                var tests = await _recurringExpenditures.GetTestsAsync(item.Id);
+                _cutContainer.Children.Add(BuildCutCard(item, tests));
+            }
+        }
     }
 
     private static void AddEmptyMessage(VerticalStackLayout container, string message)
@@ -170,22 +193,6 @@ public class RecurringExpenditurePage : ContentPage
             FontAttributes = FontAttributes.Italic,
             TextColor = Color.FromArgb("#999")
         });
-    }
-
-    private static void PopulateSection(
-        VerticalStackLayout container,
-        IReadOnlyCollection<RecurringExpenditure> items,
-        Func<RecurringExpenditure, View> buildCard,
-        string emptyMessage)
-    {
-        if (items.Count == 0)
-        {
-            AddEmptyMessage(container, emptyMessage);
-            return;
-        }
-
-        foreach (var item in items)
-            container.Children.Add(buildCard(item));
     }
 
     private View BuildPendingCard(RecurringExpenditure item, IReadOnlyCollection<RecurringExpenditureTest> tests)
@@ -220,22 +227,29 @@ public class RecurringExpenditurePage : ContentPage
             TextColor = Color.FromArgb("#777")
         });
 
-        var testsStack = new VerticalStackLayout { Spacing = 3 };
-        foreach (var test in tests)
+        if (tests.Count > 0)
         {
-            testsStack.Children.Add(new Label
+            var historyStack = new VerticalStackLayout { Spacing = 2, Margin = new Thickness(0, 6, 0, 0) };
+            historyStack.Children.Add(new Label
             {
-                Text = $"{test.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm} — {test.Note}",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#555"),
-                LineBreakMode = LineBreakMode.WordWrap
+                Text = "History",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#999"),
+                FontAttributes = FontAttributes.Bold
             });
+            foreach (var test in tests)
+            {
+                var color = test.Note == "Approved" ? "#2E7D32" : test.Note == "Cut" ? "#C62828" : "#555";
+                historyStack.Children.Add(new Label
+                {
+                    Text = $"{test.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}  {test.Note}",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb(color),
+                    LineBreakMode = LineBreakMode.WordWrap
+                });
+            }
+            stack.Children.Add(historyStack);
         }
-        stack.Children.Add(testsStack);
-
-        var logTestButton = BuildOutlineButton("+ Log Test", "#6A1B9A");
-        logTestButton.Clicked += async (_, _) => await LogTestAsync(item);
-        stack.Children.Add(logTestButton);
 
         var approveButton = new Button
         {
@@ -275,19 +289,33 @@ public class RecurringExpenditurePage : ContentPage
         return BuildCard(stack, Colors.White);
     }
 
-    private View BuildApprovedCard(RecurringExpenditure item)
+    private View BuildApprovedCard(RecurringExpenditure item, IReadOnlyCollection<RecurringExpenditureTest> tests)
     {
         var stack = new VerticalStackLayout { Spacing = 6 };
         stack.Children.Add(BuildNameAndCostRow(item, Color.FromArgb("#2E7D32")));
-        stack.Children.Add(new Label
+        if (tests.Count > 0)
         {
-            Text = string.IsNullOrWhiteSpace(item.OutcomeNote)
-                ? "No outcome note."
-                : item.OutcomeNote,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#555"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
+            var historyStack = new VerticalStackLayout { Spacing = 2, Margin = new Thickness(0, 6, 0, 0) };
+            historyStack.Children.Add(new Label
+            {
+                Text = "History",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#999"),
+                FontAttributes = FontAttributes.Bold
+            });
+            foreach (var test in tests)
+            {
+                var color = test.Note == "Approved" ? "#2E7D32" : test.Note == "Cut" ? "#C62828" : "#555";
+                historyStack.Children.Add(new Label
+                {
+                    Text = $"{test.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}  {test.Note}",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb(color),
+                    LineBreakMode = LineBreakMode.WordWrap
+                });
+            }
+            stack.Children.Add(historyStack);
+        }
         stack.Children.Add(new Label
         {
             Text = $"Approved: {item.UpdatedAt.ToLocalTime():yyyy-MM-dd}",
@@ -300,19 +328,33 @@ public class RecurringExpenditurePage : ContentPage
         return BuildCard(stack, Color.FromArgb("#E8F5E9"));
     }
 
-    private View BuildCutCard(RecurringExpenditure item)
+    private View BuildCutCard(RecurringExpenditure item, IReadOnlyCollection<RecurringExpenditureTest> tests)
     {
         var stack = new VerticalStackLayout { Spacing = 6 };
         stack.Children.Add(BuildNameAndCostRow(item, Color.FromArgb("#777")));
-        stack.Children.Add(new Label
+        if (tests.Count > 0)
         {
-            Text = string.IsNullOrWhiteSpace(item.OutcomeNote)
-                ? "No outcome note."
-                : item.OutcomeNote,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#888"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
+            var historyStack = new VerticalStackLayout { Spacing = 2, Margin = new Thickness(0, 6, 0, 0) };
+            historyStack.Children.Add(new Label
+            {
+                Text = "History",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#999"),
+                FontAttributes = FontAttributes.Bold
+            });
+            foreach (var test in tests)
+            {
+                var color = test.Note == "Approved" ? "#2E7D32" : test.Note == "Cut" ? "#C62828" : "#555";
+                historyStack.Children.Add(new Label
+                {
+                    Text = $"{test.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}  {test.Note}",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb(color),
+                    LineBreakMode = LineBreakMode.WordWrap
+                });
+            }
+            stack.Children.Add(historyStack);
+        }
         var deleteButton = BuildOutlineButton("Delete", "#C62828");
         deleteButton.Clicked += async (_, _) => await DeleteAsync(item);
         stack.Children.Add(deleteButton);
@@ -379,25 +421,6 @@ public class RecurringExpenditurePage : ContentPage
         };
     }
 
-    private async Task LogTestAsync(RecurringExpenditure item)
-    {
-        string? note = await DisplayPromptAsync(
-            "Log Test",
-            "What did you test, and what happened?",
-            "Save",
-            "Cancel");
-        if (string.IsNullOrWhiteSpace(note))
-            return;
-
-        await _recurringExpenditures.AddTestAsync(new RecurringExpenditureTest
-        {
-            ExpenditureId = item.Id,
-            Note = note.Trim(),
-            CreatedAt = DateTime.UtcNow
-        });
-        await RefreshAsync();
-    }
-
     private async Task DeleteAsync(RecurringExpenditure item)
     {
         bool confirmed = await DisplayAlert(
@@ -414,19 +437,24 @@ public class RecurringExpenditurePage : ContentPage
 
     private async Task ResolveTrialAsync(RecurringExpenditure item, string status)
     {
-        string? note = await DisplayPromptAsync(
-            status == "Approved" ? "Approve Expenditure" : "Cut Expenditure",
-            "Outcome note:",
+        bool confirmed = await DisplayAlert(
+            status == "Approved" ? "Approve?" : "Cut?",
+            $"{(status == "Approved" ? "Approve" : "Cut")} \"{item.Name}\"?",
             status == "Approved" ? "Approve" : "Cut",
-            "Cancel",
-            initialValue: item.OutcomeNote);
-
-        if (note == null)
-            return;
+            "Cancel");
+        if (!confirmed) return;
 
         item.Status = status;
-        item.OutcomeNote = note.Trim();
+        item.OutcomeNote = "";
         await _recurringExpenditures.UpdateAsync(item);
+
+        await _recurringExpenditures.AddTestAsync(new RecurringExpenditureTest
+        {
+            ExpenditureId = item.Id,
+            Note = status, // "Approved" or "Cut"
+            CreatedAt = DateTime.UtcNow
+        });
+
         await RefreshAsync();
     }
 
