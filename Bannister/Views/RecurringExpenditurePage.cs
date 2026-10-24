@@ -272,6 +272,25 @@ public class RecurringExpenditurePage : ContentPage
             TextColor = Color.FromArgb("#777")
         });
 
+        if (!string.IsNullOrWhiteSpace(item.JustificationTarget))
+            stack.Children.Add(new Label
+            {
+                Text = $"Target: {item.JustificationTarget}",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#555"),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+
+        if (!string.IsNullOrWhiteSpace(test.ActualResult))
+            stack.Children.Add(new Label
+            {
+                Text = $"Result: {test.ActualResult}",
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = color,
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+
         return new Frame
         {
             Content = stack,
@@ -366,6 +385,13 @@ public class RecurringExpenditurePage : ContentPage
             "Cancel");
         if (!confirmed) return;
 
+        string? actualResult = await DisplayPromptAsync(
+            "Actual Result",
+            "What actually happened?",
+            "Save",
+            "Cancel");
+        if (actualResult == null) return;
+
         item.Status = status;
         item.OutcomeNote = "";
         await _recurringExpenditures.UpdateAsync(item);
@@ -373,7 +399,8 @@ public class RecurringExpenditurePage : ContentPage
         await _recurringExpenditures.AddTestAsync(new RecurringExpenditureTest
         {
             ExpenditureId = item.Id,
-            Note = status, // "Approved" or "Cut"
+            Note = status,
+            ActualResult = actualResult.Trim(),
             CreatedAt = DateTime.UtcNow
         });
 
