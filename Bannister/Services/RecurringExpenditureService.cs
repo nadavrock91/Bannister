@@ -33,6 +33,21 @@ public class RecurringExpenditureService
         await conn.UpdateAsync(item);
     }
 
+    public async Task AddTestAsync(RecurringExpenditureTest test)
+    {
+        var conn = await _db.GetConnectionAsync();
+        await conn.InsertAsync(test);
+    }
+
+    public async Task<List<RecurringExpenditureTest>> GetTestsAsync(int expenditureId)
+    {
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<RecurringExpenditureTest>()
+            .Where(test => test.ExpenditureId == expenditureId)
+            .OrderBy(test => test.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task DeleteAsync(int id)
     {
         var conn = await _db.GetConnectionAsync();

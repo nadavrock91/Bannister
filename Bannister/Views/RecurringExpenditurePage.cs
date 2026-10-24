@@ -13,6 +13,8 @@ public class RecurringExpenditurePage : ContentPage
     private readonly VerticalStackLayout _pendingContainer;
     private readonly VerticalStackLayout _approvedContainer;
     private readonly VerticalStackLayout _cutContainer;
+    private string _currencySymbol = "$";
+    private string _currencyCode = "USD";
 
     public RecurringExpenditurePage(AuthService auth, RecurringExpenditureService recurringExpenditures)
     {
@@ -64,17 +66,55 @@ public class RecurringExpenditurePage : ContentPage
         };
         addButton.Clicked += async (_, _) => await AddToTrialAsync();
 
+        var currencyButton = new Button
+        {
+            Text = "$ USD",
+            BackgroundColor = Color.FromArgb("#6A1B9A"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(10, 8),
+            VerticalOptions = LayoutOptions.Center
+        };
+        currencyButton.Clicked += async (_, _) =>
+        {
+            string? selected = await DisplayActionSheet(
+                "Currency",
+                "Cancel",
+                null,
+                "USD ($)",
+                "EUR (€)",
+                "GBP (£)",
+                "ILS (₪)",
+                "JPY (¥)");
+
+            if (string.IsNullOrWhiteSpace(selected) || selected == "Cancel")
+                return;
+
+            (_currencyCode, _currencySymbol) = selected switch
+            {
+                "EUR (€)" => ("EUR", "€"),
+                "GBP (£)" => ("GBP", "£"),
+                "ILS (₪)" => ("ILS", "₪"),
+                "JPY (¥)" => ("JPY", "¥"),
+                _ => ("USD", "$")
+            };
+            currencyButton.Text = $"{_currencySymbol} {_currencyCode}";
+            await RefreshAsync();
+        };
+
         var header = new Grid
         {
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
             ColumnSpacing = 12
         };
         header.Add(headerText, 0, 0);
-        header.Add(addButton, 1, 0);
+        header.Add(currencyButton, 1, 0);
+        header.Add(addButton, 2, 0);
 
         var content = new VerticalStackLayout
         {
@@ -117,9 +157,31 @@ public class RecurringExpenditurePage : ContentPage
 
         _approvedTotalLabel.Text = $"Approved: {FormatMoney(approved.Sum(item => item.MonthlyCost))}/mo";
 
-        PopulateSection(_pendingContainer, pending, BuildPendingCard, "No services currently on trial.");
+        if (pending.Count == 0)
+        {
+            AddEmptyMessage(_pendingContainer, "No services currently on trial.");
+        }
+        else
+        {
+            foreach (var item in pending)
+            {
+                var tests = await _recurringExpenditures.GetTestsAsync(item.Id);
+                _pendingContainer.Children.Add(BuildPendingCard(item, tests));
+            }
+        }
         PopulateSection(_approvedContainer, approved, BuildApprovedCard, "No approved services yet.");
         PopulateSection(_cutContainer, cut, BuildCutCard, "No cut services yet.");
+    }
+
+    private static void AddEmptyMessage(VerticalStackLayout container, string message)
+    {
+        container.Children.Add(new Label
+        {
+            Text = message,
+            FontSize = 13,
+            FontAttributes = FontAttributes.Italic,
+            TextColor = Color.FromArgb("#999")
+        });
     }
 
     private static void PopulateSection(
@@ -130,13 +192,7 @@ public class RecurringExpenditurePage : ContentPage
     {
         if (items.Count == 0)
         {
-            container.Children.Add(new Label
-            {
-                Text = emptyMessage,
-                FontSize = 13,
-                FontAttributes = FontAttributes.Italic,
-                TextColor = Color.FromArgb("#999")
-            });
+            AddEmptyMessage(container, emptyMessage);
             return;
         }
 
@@ -144,7 +200,7 @@ public class RecurringExpenditurePage : ContentPage
             container.Children.Add(buildCard(item));
     }
 
-    private View BuildPendingCard(RecurringExpenditure item)
+    private View BuildPendingCard(RecurringExpenditure item, IReadOnlyCollection<RecurringExpenditureTest> tests)
     {
         int daysInTrial = Math.Max(0, (DateTime.UtcNow - item.TrialStartDate).Days);
         var stack = new VerticalStackLayout { Spacing = 7 };
@@ -158,10 +214,40 @@ public class RecurringExpenditurePage : ContentPage
         });
         stack.Children.Add(new Label
         {
-            Text = $"Days in trial: {daysInTrial} days of {item.TrialDays}",
+            Text = $"Justification target: {item.JustificationTarget}",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#6A1B9A"),
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        stack.Children.Add(new Label
+        {
+            Text = $"Trial: {item.TrialStartDate.ToLocalTime():yyyy-MM-dd} → {item.TrialEndDate.ToLocalTime():yyyy-MM-dd}",
             FontSize = 12,
             TextColor = Color.FromArgb("#777")
         });
+        stack.Children.Add(new Label
+        {
+            Text = $"Days in trial: {daysInTrial} of {item.TrialDays}",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#777")
+        });
+
+        var testsStack = new VerticalStackLayout { Spacing = 3 };
+        foreach (var test in tests)
+        {
+            testsStack.Children.Add(new Label
+            {
+                Text = $"{test.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm} — {test.Note}",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#555"),
+                LineBreakMode = LineBreakMode.WordWrap
+            });
+        }
+        stack.Children.Add(testsStack);
+
+        var logTestButton = BuildOutlineButton("+ Log Test", "#6A1B9A");
+        logTestButton.Clicked += async (_, _) => await LogTestAsync(item);
+        stack.Children.Add(logTestButton);
 
         var approveButton = new Button
         {
@@ -194,6 +280,10 @@ public class RecurringExpenditurePage : ContentPage
         actions.Add(cutButton, 1, 0);
         stack.Children.Add(actions);
 
+        var deleteButton = BuildOutlineButton("Delete", "#C62828");
+        deleteButton.Clicked += async (_, _) => await DeleteAsync(item);
+        stack.Children.Add(deleteButton);
+
         return BuildCard(stack, Colors.White);
     }
 
@@ -216,6 +306,9 @@ public class RecurringExpenditurePage : ContentPage
             FontSize = 12,
             TextColor = Color.FromArgb("#777")
         });
+        var deleteButton = BuildOutlineButton("Delete", "#C62828");
+        deleteButton.Clicked += async (_, _) => await DeleteAsync(item);
+        stack.Children.Add(deleteButton);
         return BuildCard(stack, Color.FromArgb("#E8F5E9"));
     }
 
@@ -232,10 +325,13 @@ public class RecurringExpenditurePage : ContentPage
             TextColor = Color.FromArgb("#888"),
             LineBreakMode = LineBreakMode.WordWrap
         });
+        var deleteButton = BuildOutlineButton("Delete", "#C62828");
+        deleteButton.Clicked += async (_, _) => await DeleteAsync(item);
+        stack.Children.Add(deleteButton);
         return BuildCard(stack, Color.FromArgb("#EEEEEE"));
     }
 
-    private static View BuildNameAndCostRow(RecurringExpenditure item, Color textColor)
+    private View BuildNameAndCostRow(RecurringExpenditure item, Color textColor)
     {
         var row = new Grid
         {
@@ -278,10 +374,60 @@ public class RecurringExpenditurePage : ContentPage
         };
     }
 
+    private static Button BuildOutlineButton(string text, string color)
+    {
+        var accent = Color.FromArgb(color);
+        return new Button
+        {
+            Text = text,
+            FontSize = 12,
+            BackgroundColor = Colors.White,
+            BorderColor = accent,
+            BorderWidth = 1,
+            TextColor = accent,
+            CornerRadius = 7,
+            HeightRequest = 36,
+            Padding = new Thickness(10, 4)
+        };
+    }
+
+    private async Task LogTestAsync(RecurringExpenditure item)
+    {
+        string? note = await DisplayPromptAsync(
+            "Log Test",
+            "What did you test, and what happened?",
+            "Save",
+            "Cancel");
+        if (string.IsNullOrWhiteSpace(note))
+            return;
+
+        await _recurringExpenditures.AddTestAsync(new RecurringExpenditureTest
+        {
+            ExpenditureId = item.Id,
+            Note = note.Trim(),
+            CreatedAt = DateTime.UtcNow
+        });
+        await RefreshAsync();
+    }
+
+    private async Task DeleteAsync(RecurringExpenditure item)
+    {
+        bool confirmed = await DisplayAlert(
+            "Delete expenditure?",
+            $"Delete \"{item.Name}\"?",
+            "Delete",
+            "Cancel");
+        if (!confirmed)
+            return;
+
+        await _recurringExpenditures.DeleteAsync(item.Id);
+        await RefreshAsync();
+    }
+
     private async Task ResolveTrialAsync(RecurringExpenditure item, string status)
     {
         string? note = await DisplayPromptAsync(
-            status == "Approved" ? "Approve AI Service" : "Cut AI Service",
+            status == "Approved" ? "Approve Expenditure" : "Cut Expenditure",
             "Outcome note:",
             status == "Approved" ? "Approve" : "Cut",
             "Cancel",
@@ -340,6 +486,24 @@ public class RecurringExpenditurePage : ContentPage
             return;
         }
 
+        string? justificationTarget = await DisplayPromptAsync(
+            "Justification Target",
+            "What result would justify keeping this permanently?",
+            "Add",
+            "Cancel");
+        if (justificationTarget == null)
+            return;
+
+        string? startDateText = await DisplayPromptAsync(
+            "Trial Start Date",
+            "Start date (yyyy-MM-dd):",
+            "Add",
+            "Cancel",
+            initialValue: DateTime.Now.ToString("yyyy-MM-dd"));
+        DateTime trialStart = DateTime.TryParse(startDateText, out DateTime parsedStart)
+            ? parsedStart.ToUniversalTime()
+            : DateTime.UtcNow;
+
         var now = DateTime.UtcNow;
         await _recurringExpenditures.AddAsync(new RecurringExpenditure
         {
@@ -348,7 +512,10 @@ public class RecurringExpenditurePage : ContentPage
             MonthlyCost = monthlyCost,
             Status = "Pending",
             Reason = reason.Trim(),
-            TrialStartDate = now,
+            JustificationTarget = justificationTarget.Trim(),
+            CurrencyCode = _currencyCode,
+            TrialStartDate = trialStart,
+            TrialEndDate = trialStart.AddDays(trialDays),
             TrialDays = trialDays,
             CreatedAt = now,
             UpdatedAt = now
@@ -370,6 +537,6 @@ public class RecurringExpenditurePage : ContentPage
             || decimal.TryParse(cleaned, NumberStyles.Currency, CultureInfo.CurrentCulture, out cost);
     }
 
-    private static string FormatMoney(decimal value) =>
-        "$" + value.ToString("N0", CultureInfo.InvariantCulture);
+    private string FormatMoney(decimal value) =>
+        _currencySymbol + value.ToString("N0", CultureInfo.InvariantCulture);
 }
