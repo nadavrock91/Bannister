@@ -983,19 +983,8 @@ public class ClipsExperimentPage : ContentPage
             await RefreshAsync();
         };
 
-        var describeExperiment = MakeButton("Describe This Experiment", "#E8F5E9", Color.FromArgb("#2E7D32"));
-        describeExperiment.Clicked += async (_, _) =>
-        {
-            var describePrompt = new StringBuilder();
-            describePrompt.AppendLine($"Experiment name: {experiment.Name}");
-            describePrompt.AppendLine();
-            describePrompt.AppendLine("I am running a short-video clip experiment. Please ask me questions one at a time to understand what this experiment is testing, what my hypothesis is, and what success looks like. Once you understand it fully, write a concise 2-3 sentence description I can save as the experiment description.");
-            await Clipboard.SetTextAsync(describePrompt.ToString());
-            await DisplayAlert("Copied", "Describe prompt copied to clipboard.", "OK");
-        };
-
-        var generateDataPoints = MakeButton("Generate Data Points from Stats", "#F3E5F5", Color.FromArgb("#6A1B9A"));
-        generateDataPoints.Clicked += async (_, _) =>
+        var exportDataPoints = MakeButton("Export Stats for Data Points", "#F3E5F5", Color.FromArgb("#6A1B9A"));
+        exportDataPoints.Clicked += async (_, _) =>
         {
             var allPlatformData = await _service.GetPlatformDataForExperimentAsync(experiment.Id);
             var platforms = await _service.GetPlatformsAsync(experiment.Id);
@@ -1039,6 +1028,45 @@ public class ClipsExperimentPage : ContentPage
 
             await Clipboard.SetTextAsync(builder.ToString());
             await DisplayAlert("Copied", "Data points from stats prompt copied to clipboard.", "OK");
+        };
+
+        var importDataPoints = MakeButton("Import Data Points from LLM", "#F3E5F5", Color.FromArgb("#6A1B9A"));
+        importDataPoints.Clicked += async (_, _) =>
+        {
+            var response = await ShowLlmPasteOverlayAsync("Import Data Points from LLM");
+            if (response == null) return;
+
+            var parsedDataPoints = ParseDataPoints(response);
+            if (parsedDataPoints.Count == 0)
+            {
+                await DisplayAlert("No Data Points Found", "No parseable dataPoint entries were found.", "OK");
+                return;
+            }
+
+            var existingIndices = Enumerable.Range(1, dataPoints.Count).ToHashSet();
+            var importedCount = 0;
+            foreach (var parsedDataPoint in parsedDataPoints)
+            {
+                if (existingIndices.Contains(parsedDataPoint.Index)) continue;
+
+                await _service.SaveDataPointAsync(new ClipsDataPoint
+                {
+                    Username = _auth.CurrentUsername,
+                    ExperimentId = experiment.Id,
+                    Text = parsedDataPoint.Text,
+                    CreatedDate = DateTime.UtcNow
+                });
+                existingIndices.Add(parsedDataPoint.Index);
+                importedCount++;
+            }
+
+            await DisplayAlert(
+                "Import Complete",
+                importedCount == 0
+                    ? "All parsed data point indices already exist."
+                    : $"Imported {importedCount} data point(s).",
+                "OK");
+            await RefreshAsync();
         };
 
         var exportAllStats = MakeButton("Export All Stats & Data Points", "#ECEFF1", Color.FromArgb("#333"));
@@ -1085,8 +1113,8 @@ public class ClipsExperimentPage : ContentPage
         promptButtons.Children.Add(importIdeas);
         promptButtons.Children.Add(ranking);
         promptButtons.Children.Add(importRanking);
-        promptButtons.Children.Add(describeExperiment);
-        promptButtons.Children.Add(generateDataPoints);
+        promptButtons.Children.Add(exportDataPoints);
+        promptButtons.Children.Add(importDataPoints);
         promptButtons.Children.Add(exportAllStats);
         _content.Children.Add(promptButtons);
 
@@ -1205,6 +1233,23 @@ public class ClipsExperimentPage : ContentPage
             };
             buttons.Children.Add(delete);
             stack.Children.Add(buttons);
+
+            var describeExperiment = MakeButton(
+                "Describe This Experiment",
+                "#E8F5E9",
+                Color.FromArgb("#2E7D32"));
+            describeExperiment.HorizontalOptions = LayoutOptions.Start;
+            describeExperiment.Clicked += async (_, _) =>
+            {
+                var describePrompt = new StringBuilder();
+                describePrompt.AppendLine($"Experiment title: {item.Title}");
+                describePrompt.AppendLine($"Current description: {item.Description}");
+                describePrompt.AppendLine();
+                describePrompt.AppendLine("I am running a short-video clip experiment. Please interview me by asking questions one at a time to understand what this experiment is testing, what my hypothesis is, and what success looks like. Once you understand it fully, write a concise 2-3 sentence description I can save as the experiment description.");
+                await Clipboard.SetTextAsync(describePrompt.ToString());
+                await DisplayAlert("Copied", "Describe prompt copied to clipboard.", "OK");
+            };
+            stack.Children.Add(describeExperiment);
             _content.Children.Add(MakeCard(stack));
         }
     }
@@ -1513,6 +1558,26 @@ public class ClipsExperimentPage : ContentPage
         }
         return parsed.Values
             .Where(item => !string.IsNullOrWhiteSpace(item.Title) && !string.IsNullOrWhiteSpace(item.Reason))
+            .OrderBy(item => item.Index)
+            .ToList();
+    }
+
+    private static List<ParsedDataPoint> ParseDataPoints(string response)
+    {
+        var normalized = response.Replace("\"\"", "\"");
+        var parsed = new Dictionary<int, ParsedDataPoint>();
+        foreach (Match match in Regex.Matches(
+                     normalized,
+                     "dataPoint\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;",
+                     RegexOptions.IgnoreCase))
+        {
+            var index = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            var text = DecodeLlmValue(match.Groups[2].Value);
+            if (index > 0 && !string.IsNullOrWhiteSpace(text))
+                parsed[index] = new ParsedDataPoint { Index = index, Text = text };
+        }
+
+        return parsed.Values
             .OrderBy(item => item.Index)
             .ToList();
     }
@@ -1848,5 +1913,11 @@ public class ClipsExperimentPage : ContentPage
         public int Index { get; set; }
         public string Title { get; set; } = "";
         public string Reason { get; set; } = "";
+    }
+
+    private sealed class ParsedDataPoint
+    {
+        public int Index { get; set; }
+        public string Text { get; set; } = "";
     }
 }
