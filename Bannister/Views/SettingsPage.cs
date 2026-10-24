@@ -34,6 +34,7 @@ public class SettingsPage : ContentPage
     private Label _diceModeStatus;
     private bool _loadingSettings;
     private Picker _dailyResetPicker = null!;
+    private Frame _syncDevicesSection = null!;
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup,
         HomeButtonVisibilityService buttonVisibility,
@@ -101,6 +102,7 @@ public class SettingsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _syncDevicesSection.IsVisible = await _ownerMode.IsUnlockedAsync();
         await LoadHomeSettingsAsync();
         if (_dailyResetPicker != null)
         {
@@ -339,7 +341,7 @@ public class SettingsPage : ContentPage
         mainStack.Children.Add(BuildDiceModeSection());
 
         // Sync & Devices section
-        var syncFrame = new Frame
+        _syncDevicesSection = new Frame
         {
             Padding = 20,
             CornerRadius = 12,
@@ -379,8 +381,8 @@ public class SettingsPage : ContentPage
         btnSyncSettings.Clicked += OnSyncSettingsClicked;
         syncStack.Children.Add(btnSyncSettings);
 
-        syncFrame.Content = syncStack;
-        mainStack.Children.Add(syncFrame);
+        _syncDevicesSection.Content = syncStack;
+        mainStack.Children.Add(_syncDevicesSection);
 
         // Security section
         var securityFrame = new Frame
