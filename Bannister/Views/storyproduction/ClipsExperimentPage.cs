@@ -888,7 +888,7 @@ public class ClipsExperimentPage : ContentPage
         {
             ColumnDefinitions =
             {
-                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
             ColumnSpacing = 8,
@@ -1071,12 +1071,9 @@ public class ClipsExperimentPage : ContentPage
                 return;
             }
 
-            var existingIndices = Enumerable.Range(1, dataPoints.Count).ToHashSet();
             var importedCount = 0;
             foreach (var parsedDataPoint in parsedDataPoints)
             {
-                if (existingIndices.Contains(parsedDataPoint.Index)) continue;
-
                 await _service.SaveDataPointAsync(new ClipsDataPoint
                 {
                     Username = _auth.CurrentUsername,
@@ -1084,7 +1081,6 @@ public class ClipsExperimentPage : ContentPage
                     Text = parsedDataPoint.Text,
                     CreatedDate = DateTime.UtcNow
                 });
-                existingIndices.Add(parsedDataPoint.Index);
                 importedCount++;
             }
 
