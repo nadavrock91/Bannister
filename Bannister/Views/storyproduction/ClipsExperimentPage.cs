@@ -317,14 +317,26 @@ public class ClipsExperimentPage : ContentPage
         }
 
         var knownExperimentIds = experimentItems.Select(item => item.Id).ToHashSet();
-        foreach (var experimentItem in experimentItems)
+        var orderedItems = experimentItems
+            .OrderByDescending(item => item.StartDate ?? DateTime.MinValue)
+            .ToList();
+        foreach (var experimentItem in orderedItems)
         {
             var assignedPosts = posts
                 .Where(post => post.ExperimentItemId == experimentItem.Id)
                 .OrderByDescending(post => post.PostedDate)
                 .ToList();
             if (assignedPosts.Count > 0)
+            {
+                _content.Children.Add(new Label
+                {
+                    Text = FormatDateRange(experimentItem),
+                    FontSize = 11,
+                    TextColor = Color.FromArgb("#888"),
+                    Margin = new Thickness(0, 10, 0, 0)
+                });
                 AddPostGroup($"experiment:{experimentItem.Id}", experimentItem.Title, assignedPosts, experimentItems, platformsByPost);
+            }
         }
 
         var unassignedPosts = posts
