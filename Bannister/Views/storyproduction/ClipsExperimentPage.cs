@@ -370,13 +370,66 @@ public class ClipsExperimentPage : ContentPage
                 .ToList();
             if (assignedPosts.Count > 0)
             {
-                _content.Children.Add(new Label
+                // Compute stats for this experiment's posts across all platforms
+                var groupPosts = posts
+                    .Where(post => post.ExperimentItemId == experimentItem.Id)
+                    .ToList();
+                var groupPostIds = groupPosts.Select(post => post.Id).ToHashSet();
+                var groupData = platformDataByPost
+                    .Where(item => groupPostIds.Contains(item.Key))
+                    .SelectMany(item => item.Value)
+                    .ToList();
+
+                var statParts = new List<string>();
+                foreach (var platform in _platforms)
+                {
+                    var platformData = groupData
+                        .Where(data => data.PlatformId == platform.Id)
+                        .ToList();
+                    if (platformData.Count == 0) continue;
+                    var avg10 = platformData
+                        .Where(data => data.Retention10s.HasValue)
+                        .Select(data => data.Retention10s!.Value)
+                        .DefaultIfEmpty(0)
+                        .Average();
+                    var totalViews = platformData
+                        .Where(data => data.TotalViews.HasValue)
+                        .Sum(data => data.TotalViews!.Value);
+                    var parts = new List<string>();
+                    if (avg10 > 0) parts.Add($"10s:{avg10:F0}%");
+                    if (totalViews > 0) parts.Add($"Views:{totalViews}");
+                    if (parts.Count > 0)
+                        statParts.Add($"{platform.Name} {string.Join(" ", parts)}");
+                }
+
+                var dateRow = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition(GridLength.Auto),
+                        new ColumnDefinition(GridLength.Star)
+                    },
+                    ColumnSpacing = 12,
+                    Margin = new Thickness(0, 10, 0, 0)
+                };
+                dateRow.Add(new Label
                 {
                     Text = FormatDateRange(experimentItem),
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#888"),
-                    Margin = new Thickness(0, 10, 0, 0)
-                });
+                    FontSize = 12,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#444")
+                }, 0, 0);
+                if (statParts.Count > 0)
+                {
+                    dateRow.Add(new Label
+                    {
+                        Text = string.Join("  ·  ", statParts),
+                        FontSize = 11,
+                        TextColor = Color.FromArgb("#666"),
+                        VerticalOptions = LayoutOptions.Center
+                    }, 1, 0);
+                }
+                _content.Children.Add(dateRow);
                 AddPostGroup($"experiment:{experimentItem.Id}", experimentItem.Title, assignedPosts, experimentItems, platformDataByPost);
             }
         }
