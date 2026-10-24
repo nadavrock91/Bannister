@@ -4,22 +4,22 @@ using System.Globalization;
 
 namespace Bannister.Views;
 
-public class AiServicesPage : ContentPage
+public class RecurringExpenditurePage : ContentPage
 {
     private readonly AuthService _auth;
-    private readonly AiServiceService _aiServices;
+    private readonly RecurringExpenditureService _recurringExpenditures;
 
     private readonly Label _approvedTotalLabel;
     private readonly VerticalStackLayout _pendingContainer;
     private readonly VerticalStackLayout _approvedContainer;
     private readonly VerticalStackLayout _cutContainer;
 
-    public AiServicesPage(AuthService auth, AiServiceService aiServices)
+    public RecurringExpenditurePage(AuthService auth, RecurringExpenditureService recurringExpenditures)
     {
         _auth = auth;
-        _aiServices = aiServices;
+        _recurringExpenditures = recurringExpenditures;
 
-        Title = "AI Services";
+        Title = "Data-Based Recurring Expenditures";
         BackgroundColor = Color.FromArgb("#F5F5F5");
 
         _approvedTotalLabel = new Label
@@ -46,7 +46,7 @@ public class AiServicesPage : ContentPage
         var headerText = new VerticalStackLayout { Spacing = 2 };
         headerText.Children.Add(new Label
         {
-            Text = "AI Services",
+            Text = "Data-Based Recurring Expenditures",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#6A1B9A")
@@ -105,7 +105,7 @@ public class AiServicesPage : ContentPage
 
     private async Task RefreshAsync()
     {
-        var items = await _aiServices.GetAllAsync(_auth.CurrentUsername);
+        var items = await _recurringExpenditures.GetAllAsync(_auth.CurrentUsername);
 
         _pendingContainer.Children.Clear();
         _approvedContainer.Children.Clear();
@@ -124,8 +124,8 @@ public class AiServicesPage : ContentPage
 
     private static void PopulateSection(
         VerticalStackLayout container,
-        IReadOnlyCollection<AiService> items,
-        Func<AiService, View> buildCard,
+        IReadOnlyCollection<RecurringExpenditure> items,
+        Func<RecurringExpenditure, View> buildCard,
         string emptyMessage)
     {
         if (items.Count == 0)
@@ -144,7 +144,7 @@ public class AiServicesPage : ContentPage
             container.Children.Add(buildCard(item));
     }
 
-    private View BuildPendingCard(AiService item)
+    private View BuildPendingCard(RecurringExpenditure item)
     {
         int daysInTrial = Math.Max(0, (DateTime.UtcNow - item.TrialStartDate).Days);
         var stack = new VerticalStackLayout { Spacing = 7 };
@@ -197,7 +197,7 @@ public class AiServicesPage : ContentPage
         return BuildCard(stack, Colors.White);
     }
 
-    private View BuildApprovedCard(AiService item)
+    private View BuildApprovedCard(RecurringExpenditure item)
     {
         var stack = new VerticalStackLayout { Spacing = 6 };
         stack.Children.Add(BuildNameAndCostRow(item, Color.FromArgb("#2E7D32")));
@@ -219,7 +219,7 @@ public class AiServicesPage : ContentPage
         return BuildCard(stack, Color.FromArgb("#E8F5E9"));
     }
 
-    private View BuildCutCard(AiService item)
+    private View BuildCutCard(RecurringExpenditure item)
     {
         var stack = new VerticalStackLayout { Spacing = 6 };
         stack.Children.Add(BuildNameAndCostRow(item, Color.FromArgb("#777")));
@@ -235,7 +235,7 @@ public class AiServicesPage : ContentPage
         return BuildCard(stack, Color.FromArgb("#EEEEEE"));
     }
 
-    private static View BuildNameAndCostRow(AiService item, Color textColor)
+    private static View BuildNameAndCostRow(RecurringExpenditure item, Color textColor)
     {
         var row = new Grid
         {
@@ -278,7 +278,7 @@ public class AiServicesPage : ContentPage
         };
     }
 
-    private async Task ResolveTrialAsync(AiService item, string status)
+    private async Task ResolveTrialAsync(RecurringExpenditure item, string status)
     {
         string? note = await DisplayPromptAsync(
             status == "Approved" ? "Approve AI Service" : "Cut AI Service",
@@ -292,7 +292,7 @@ public class AiServicesPage : ContentPage
 
         item.Status = status;
         item.OutcomeNote = note.Trim();
-        await _aiServices.UpdateAsync(item);
+        await _recurringExpenditures.UpdateAsync(item);
         await RefreshAsync();
     }
 
@@ -341,7 +341,7 @@ public class AiServicesPage : ContentPage
         }
 
         var now = DateTime.UtcNow;
-        await _aiServices.AddAsync(new AiService
+        await _recurringExpenditures.AddAsync(new RecurringExpenditure
         {
             Username = _auth.CurrentUsername,
             Name = name.Trim(),

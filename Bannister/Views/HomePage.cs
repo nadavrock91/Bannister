@@ -51,7 +51,7 @@ public class HomePage : ContentPage
     private readonly DailyLoginPromptService _dailyLoginPrompts;
     private readonly DailyCheckService _dailyChecks;
     private readonly MoneyManagementService _moneyManagement;
-    private readonly AiServiceService _aiServiceService;
+    private readonly RecurringExpenditureService _recurringExpenditureService;
     private readonly DesignationService _designationService;
     private readonly ListsService _listsService;
     private readonly CommandsCasinoService _commandsCasino;
@@ -168,7 +168,7 @@ public class HomePage : ContentPage
          StoryProductionService storyProduction, MusicProductionService musicProduction, TaskService taskService, WeeklyChallengeService challengeService, SequenceTaskService sequenceTaskService,
         IdeasService ideas, IdeaLoggerService ideaLogger, ConversationService conversationService,
         SubActivityService subActivityService, AudioLibraryService audioLibService,
-        DailyLoginPromptService dailyLoginPrompts, DailyCheckService dailyChecks, MoneyManagementService moneyManagement, AiServiceService aiServiceService, ListsService listsService,
+        DailyLoginPromptService dailyLoginPrompts, DailyCheckService dailyChecks, MoneyManagementService moneyManagement, RecurringExpenditureService recurringExpenditureService, ListsService listsService,
         OperationQueueService operationQueue, SyncService sync, OperationApplierService applier,
         PendingActivityIdeaService pendingIdeas, CustomPromptService customPrompts, PromptLibraryService promptLibraryService, DesignationService designationService,
          CommandsCasinoService commandsCasino, RoutineService routineService, DeadlineService deadlineService,
@@ -224,7 +224,7 @@ public class HomePage : ContentPage
         _dailyLoginPrompts = dailyLoginPrompts;
         _dailyChecks = dailyChecks;
         _moneyManagement = moneyManagement;
-        _aiServiceService = aiServiceService;
+        _recurringExpenditureService = recurringExpenditureService;
         _designationService = designationService;
         _listsService = listsService;
         _commandsCasino = commandsCasino;
@@ -3029,7 +3029,7 @@ public class HomePage : ContentPage
 
     private async void OnMoneyManagementClicked(object? sender, EventArgs e)
     {
-        var page = new MoneyManagementHubPage(_auth, _moneyManagement, _aiServiceService);
+        var page = new MoneyManagementHubPage(_auth, _moneyManagement, _recurringExpenditureService);
         await Navigation.PushAsync(page);
     }
 

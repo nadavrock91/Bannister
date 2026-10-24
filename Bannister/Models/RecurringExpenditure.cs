@@ -2,8 +2,8 @@ using SQLite;
 
 namespace Bannister.Models;
 
-[Table("ai_services")]
-public class AiService
+[Table("recurring_expenditures")]
+public class RecurringExpenditure
 {
     [PrimaryKey, AutoIncrement] public int Id { get; set; }
     public string Username { get; set; } = "";

@@ -6,16 +6,16 @@ public class MoneyManagementHubPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly MoneyManagementService _moneyManagement;
-    private readonly AiServiceService _aiServiceService;
+    private readonly RecurringExpenditureService _recurringExpenditureService;
 
     public MoneyManagementHubPage(
         AuthService auth,
         MoneyManagementService moneyManagement,
-        AiServiceService aiServiceService)
+        RecurringExpenditureService recurringExpenditureService)
     {
         _auth = auth;
         _moneyManagement = moneyManagement;
-        _aiServiceService = aiServiceService;
+        _recurringExpenditureService = recurringExpenditureService;
 
         Title = "Money Management";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -62,11 +62,11 @@ public class MoneyManagementHubPage : ContentPage
             OnAssetsClicked));
 
         stack.Children.Add(CreateHubCard(
-            "AI Services",
-            "Trial-gate recurring AI subscriptions before they become permanent costs.",
+            "Data-Based Recurring Expenditures",
+            "Trial-gate recurring costs — only keep what the data justifies.",
             Color.FromArgb("#F3E5F5"),
             Color.FromArgb("#6A1B9A"),
-            OnAiServicesClicked));
+            OnRecurringExpendituresClicked));
 
         scroll.Content = stack;
         Content = scroll;
@@ -140,8 +140,8 @@ public class MoneyManagementHubPage : ContentPage
         await Navigation.PushAsync(new AssetsPage(_auth, _moneyManagement));
     }
 
-    private async void OnAiServicesClicked(object? sender, EventArgs e)
+    private async void OnRecurringExpendituresClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new AiServicesPage(_auth, _aiServiceService));
+        await Navigation.PushAsync(new RecurringExpenditurePage(_auth, _recurringExpenditureService));
     }
 }
