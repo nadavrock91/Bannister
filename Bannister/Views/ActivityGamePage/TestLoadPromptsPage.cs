@@ -30,7 +30,9 @@ internal class TestLoadPromptsPage : ContentPage
             "Stale Activities",
             "Expired Activities",
             "Habit Target (Expired Mode)",
-            "Auto Award"
+            "Auto Award",
+            "Activity Suggestions",
+            "Catch-Up (Missed Days)"
         })
         {
             var button = new Button

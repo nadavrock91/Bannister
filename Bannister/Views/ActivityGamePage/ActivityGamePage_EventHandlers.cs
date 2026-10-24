@@ -1093,6 +1093,25 @@ public partial class ActivityGamePage
                 await Navigation.PushModalAsync(page);
                 await page.WaitForCompletionAsync();
             }
+            else if (prompt == "Activity Suggestions")
+            {
+                var fakeSuggestion = new ActivitySuggestion
+                {
+                    Id = "-1",
+                    Name = "[Test Suggestion]",
+                    Category = "Test"
+                };
+                var suggestionPage = new ActivitySuggestionPage(
+                    new List<ActivitySuggestion> { fakeSuggestion },
+                    _game.GameId);
+                await Navigation.PushAsync(suggestionPage);
+                await suggestionPage.GetSelectedAsync();
+            }
+            else if (prompt == "Catch-Up (Missed Days)")
+            {
+                string encodedGameId = Uri.EscapeDataString(_game.GameId);
+                await Shell.Current.GoToAsync($"gamecatchup?gameId={encodedGameId}");
+            }
         }
 
         _isInitialLoad = wasInitialLoad;
