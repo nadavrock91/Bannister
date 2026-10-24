@@ -18,7 +18,7 @@ public class ClipsExperimentPage : ContentPage
     private Entry _titleEntry = null!;
     private Entry _conceptEntry = null!;
     private DatePicker _datePicker = null!;
-    private int? _expandedPostPlatformsId;
+    private List<ClipsExperimentPlatform> _platforms = new();
     private readonly HashSet<string> _expandedPostGroups = new();
     private readonly HashSet<string> _expandedExperimentSections = new();
     private readonly HashSet<int> _selectedPostIds = new();
@@ -106,6 +106,7 @@ public class ClipsExperimentPage : ContentPage
         if (_busy) return;
         await _service.InitAsync();
         var experiment = await _service.GetActiveExperimentAsync();
+        _platforms = experiment != null ? await _service.GetPlatformsAsync(experiment.Id) : new();
         _content.Children.Clear();
 
         if (experiment == null)
@@ -127,12 +128,12 @@ public class ClipsExperimentPage : ContentPage
         else
         {
             var experimentItems = await _service.GetExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
-            var allPlatforms = await _service.GetAllPlatformsForExperimentAsync(experiment.Id);
-            var platformsByPost = allPlatforms
-                .GroupBy(platform => platform.PostId)
+            var allPlatformData = await _service.GetPlatformDataForExperimentAsync(experiment.Id);
+            var platformDataByPost = allPlatformData
+                .GroupBy(data => data.PostId)
                 .ToDictionary(group => group.Key, group => group.ToList());
             BuildNewPostSection(experiment);
-            BuildPostsSection(experiment, posts, experimentItems, platformsByPost);
+            BuildPostsSection(experiment, posts, experimentItems, platformDataByPost);
             await BuildAveragesSectionAsync(experiment, posts);
         }
     }
@@ -206,6 +207,47 @@ public class ClipsExperimentPage : ContentPage
             header.Add(archive, 1, 0);
         }
         _content.Children.Add(header);
+
+        var platformRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 4, 0, 0) };
+        foreach (var platform in _platforms)
+        {
+            var currentPlatform = platform;
+            var chip = MakeButton(currentPlatform.Name, "#E3F2FD", Color.FromArgb("#1565C0"));
+            chip.FontSize = 11;
+            chip.HeightRequest = 30;
+            chip.Clicked += async (_, _) =>
+            {
+                if (!await DisplayAlert(
+                        "Remove Platform",
+                        $"Remove '{currentPlatform.Name}' and all its data?",
+                        "Remove",
+                        "Cancel")) return;
+                await _service.DeletePlatformAsync(currentPlatform.Id);
+                await RefreshAsync();
+            };
+            platformRow.Children.Add(chip);
+        }
+        var addPlatformButton = MakeButton("+ Platform", "#F5F5F5", Color.FromArgb("#555"));
+        addPlatformButton.FontSize = 11;
+        addPlatformButton.HeightRequest = 30;
+        addPlatformButton.Clicked += async (_, _) =>
+        {
+            var name = await DisplayPromptAsync(
+                "Add Platform",
+                "Platform name (e.g. YouTube, TikTok):",
+                initialValue: "YouTube");
+            if (string.IsNullOrWhiteSpace(name)) return;
+            await _service.SavePlatformAsync(new ClipsExperimentPlatform
+            {
+                ExperimentId = experiment.Id,
+                Name = name.Trim(),
+                SortOrder = _platforms.Count,
+                CreatedDate = DateTime.UtcNow
+            });
+            await RefreshAsync();
+        };
+        platformRow.Children.Add(addPlatformButton);
+        _content.Children.Add(platformRow);
     }
 
     private void BuildNewPostSection(ClipsExperiment experiment)
@@ -249,7 +291,7 @@ public class ClipsExperimentPage : ContentPage
         ClipsExperiment experiment,
         List<ClipsPost> posts,
         List<ClipsExperimentItem> experimentItems,
-        Dictionary<int, List<ClipsPostPlatform>> platformsByPost)
+        Dictionary<int, List<ClipsPostPlatformData>> platformDataByPost)
     {
         _content.Children.Add(new Label
         {
@@ -335,7 +377,7 @@ public class ClipsExperimentPage : ContentPage
                     TextColor = Color.FromArgb("#888"),
                     Margin = new Thickness(0, 10, 0, 0)
                 });
-                AddPostGroup($"experiment:{experimentItem.Id}", experimentItem.Title, assignedPosts, experimentItems, platformsByPost);
+                AddPostGroup($"experiment:{experimentItem.Id}", experimentItem.Title, assignedPosts, experimentItems, platformDataByPost);
             }
         }
 
@@ -344,7 +386,7 @@ public class ClipsExperimentPage : ContentPage
             .OrderByDescending(post => post.PostedDate)
             .ToList();
         if (unassignedPosts.Count > 0)
-            AddPostGroup("unassigned", "Unassigned", unassignedPosts, experimentItems, platformsByPost);
+            AddPostGroup("unassigned", "Unassigned", unassignedPosts, experimentItems, platformDataByPost);
     }
 
     private void AddPostGroup(
@@ -352,7 +394,7 @@ public class ClipsExperimentPage : ContentPage
         string title,
         List<ClipsPost> posts,
         List<ClipsExperimentItem> experimentItems,
-        Dictionary<int, List<ClipsPostPlatform>> platformsByPost)
+        Dictionary<int, List<ClipsPostPlatformData>> platformDataByPost)
     {
         var isExpanded = _expandedPostGroups.Contains(groupKey);
         var header = MakeButton(
@@ -372,13 +414,13 @@ public class ClipsExperimentPage : ContentPage
 
         if (!isExpanded) return;
         foreach (var post in posts)
-            _content.Children.Add(BuildPostCard(post, experimentItems, platformsByPost));
+            _content.Children.Add(BuildPostCard(post, experimentItems, platformDataByPost));
     }
 
     private View BuildPostCard(
         ClipsPost post,
         List<ClipsExperimentItem> experimentItems,
-        Dictionary<int, List<ClipsPostPlatform>> platformsByPost)
+        Dictionary<int, List<ClipsPostPlatformData>> platformDataByPost)
     {
         bool complete = IsComplete(post);
         var stack = new VerticalStackLayout { Spacing = 4 };
@@ -434,38 +476,65 @@ public class ClipsExperimentPage : ContentPage
         if (!_postSelectionMode)
             stack.Children.Add(assignExperiment);
 
-        var postPlatforms = platformsByPost.TryGetValue(post.Id, out var loadedPlatforms)
-            ? loadedPlatforms
-            : new List<ClipsPostPlatform>();
+        var postData = platformDataByPost.TryGetValue(post.Id, out var loadedData)
+            ? loadedData
+            : new List<ClipsPostPlatformData>();
+        var dataByPlatformId = postData.ToDictionary(data => data.PlatformId);
 
-        foreach (var platform in postPlatforms)
+        foreach (var platform in _platforms)
         {
-            var parts = new List<string>();
-            if (platform.Retention10s.HasValue) parts.Add($"10s:{platform.Retention10s.Value:F0}%");
-            if (platform.Retention20s.HasValue) parts.Add($"20s:{platform.Retention20s.Value:F0}%");
-            if (platform.Retention30s.HasValue) parts.Add($"30s:{platform.Retention30s.Value:F0}%");
-            if (platform.TotalViews.HasValue) parts.Add($"Views:{platform.TotalViews.Value}");
-            stack.Children.Add(new Label
+            dataByPlatformId.TryGetValue(platform.Id, out var existing);
+            var r10 = MakeEntry("10s%", true, existing?.Retention10s);
+            var r20 = MakeEntry("20s%", true, existing?.Retention20s);
+            var r30 = MakeEntry("30s%", true, existing?.Retention30s);
+            var views = MakeEntry(
+                "Views",
+                true,
+                existing?.TotalViews.HasValue == true ? existing.TotalViews.Value : null);
+
+            var savePlatformData = MakeButton("Save", "#1565C0", Colors.White);
+            savePlatformData.FontSize = 10;
+            savePlatformData.HeightRequest = 28;
+            var platformId = platform.Id;
+            var existingId = existing?.Id ?? 0;
+            savePlatformData.Clicked += async (_, _) =>
             {
-                Text = $"{platform.PlatformName}: {(parts.Count > 0 ? string.Join(" · ", parts) : "no data")}",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#555")
-            });
-        }
+                if (_busy) return;
+                _busy = true;
+                try
+                {
+                    await _service.SavePostPlatformDataAsync(new ClipsPostPlatformData
+                    {
+                        Id = existingId,
+                        PostId = post.Id,
+                        PlatformId = platformId,
+                        Retention10s = ParseScore(r10.Text),
+                        Retention20s = ParseScore(r20.Text),
+                        Retention30s = ParseScore(r30.Text),
+                        TotalViews = int.TryParse(views.Text, out var parsedViews) ? parsedViews : null,
+                        UpdatedDate = DateTime.UtcNow
+                    });
+                }
+                finally { _busy = false; }
+                await RefreshAsync();
+            };
 
-        var retentionToggle = MakeButton(
-            _expandedPostPlatformsId == post.Id ? "Close" : "Add Retention & Views",
-            "#E8F5E9",
-            Color.FromArgb("#2E7D32"));
-        retentionToggle.FontSize = 10;
-        retentionToggle.HeightRequest = 30;
-        retentionToggle.HorizontalOptions = LayoutOptions.Start;
-        retentionToggle.Clicked += (_, _) =>
-        {
-            _expandedPostPlatformsId = _expandedPostPlatformsId == post.Id ? null : post.Id;
-            _ = RefreshAsync();
-        };
-        stack.Children.Add(retentionToggle);
+            var platformLabel = new Label
+            {
+                Text = platform.Name,
+                FontSize = 11,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#1565C0"),
+                Margin = new Thickness(0, 6, 0, 2)
+            };
+            var fieldsRow = new HorizontalStackLayout
+            {
+                Spacing = 6,
+                Children = { r10, r20, r30, views, savePlatformData }
+            };
+            stack.Children.Add(platformLabel);
+            stack.Children.Add(fieldsRow);
+        }
 
         var deletePost = MakeButton("Delete Post", "#FFEBEE", Color.FromArgb("#C62828"));
         deletePost.FontSize = 10;
@@ -478,68 +547,6 @@ public class ClipsExperimentPage : ContentPage
             await RefreshAsync();
         };
         stack.Children.Add(deletePost);
-
-        if (_expandedPostPlatformsId == post.Id)
-        {
-            foreach (var platform in postPlatforms)
-            {
-                var currentPlatform = platform;
-                var deletePlatform = MakeButton(
-                    $"Delete {currentPlatform.PlatformName}",
-                    "#FFEBEE",
-                    Color.FromArgb("#C62828"));
-                deletePlatform.FontSize = 10;
-                deletePlatform.HeightRequest = 28;
-                deletePlatform.HorizontalOptions = LayoutOptions.Start;
-                deletePlatform.Clicked += async (_, _) =>
-                {
-                    if (!await DisplayAlert(
-                            "Delete",
-                            $"Delete {currentPlatform.PlatformName} data for this post?",
-                            "Delete",
-                            "Cancel")) return;
-                    await _service.DeletePostPlatformAsync(currentPlatform.Id);
-                    await RefreshAsync();
-                };
-                stack.Children.Add(deletePlatform);
-            }
-
-            var platformNameEntry = MakeEntry("Platform name (e.g. YouTube)");
-            platformNameEntry.Text = "YouTube";
-            var r10 = MakeEntry("10s retention %", true);
-            var r20 = MakeEntry("20s retention %", true);
-            var r30 = MakeEntry("30s retention %", true);
-            var views = MakeEntry("Total views", true);
-            var addPlatform = MakeButton("Add Platform Data", "#1565C0", Colors.White);
-            addPlatform.Clicked += async (_, _) =>
-            {
-                if (_busy || string.IsNullOrWhiteSpace(platformNameEntry.Text)) return;
-                _busy = true;
-                try
-                {
-                    await _service.SavePostPlatformAsync(new ClipsPostPlatform
-                    {
-                        PostId = post.Id,
-                        PlatformName = platformNameEntry.Text.Trim(),
-                        Retention10s = ParseScore(r10.Text),
-                        Retention20s = ParseScore(r20.Text),
-                        Retention30s = ParseScore(r30.Text),
-                        TotalViews = int.TryParse(views.Text, out var parsedViews) ? parsedViews : null,
-                        CreatedDate = DateTime.UtcNow
-                    });
-                    _expandedPostPlatformsId = null;
-                }
-                finally { _busy = false; }
-                await RefreshAsync();
-            };
-
-            stack.Children.Add(platformNameEntry);
-            stack.Children.Add(r10);
-            stack.Children.Add(r20);
-            stack.Children.Add(r30);
-            stack.Children.Add(views);
-            stack.Children.Add(addPlatform);
-        }
 
         View cardContent = stack;
         if (_postSelectionMode)

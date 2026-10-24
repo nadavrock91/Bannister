@@ -50,16 +50,27 @@ public class ClipsExperimentItem
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 }
 
-public class ClipsPostPlatform
+public class ClipsExperimentPlatform
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+    [Indexed]
+    public int ExperimentId { get; set; }
+    public string Name { get; set; } = "";
+    public int SortOrder { get; set; }
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+}
+
+public class ClipsPostPlatformData
 {
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }
     [Indexed]
     public int PostId { get; set; }
-    public string PlatformName { get; set; } = "YouTube";
+    public int PlatformId { get; set; }
     public double? Retention10s { get; set; }
     public double? Retention20s { get; set; }
     public double? Retention30s { get; set; }
     public int? TotalViews { get; set; }
-    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;
 }
