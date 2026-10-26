@@ -78,7 +78,7 @@ public class HomeButtonVisibilityService
         catch
         {
             return new HashSet<string>(
-                DefaultEnabled, StringComparer.OrdinalIgnoreCase);
+                allButtonIds, StringComparer.OrdinalIgnoreCase);
         }
     }
 
@@ -172,7 +172,7 @@ public class HomeButtonVisibilityService
             {
                 Username = username,
                 ButtonId = id,
-                IsEnabled = DefaultEnabled.Contains(id),
+                IsEnabled = true,
                 UpdatedAt = DateTime.UtcNow
             });
         }

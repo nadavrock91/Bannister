@@ -1100,21 +1100,11 @@ public class HomePage : ContentPage
 
                 if (!await HasSeenIntroAsync())
                 {
-                    bool goToDiet = await DisplayAlert(
-                        "Welcome to Bannister",
-                        "This is your Home screen.\n" +
-                        "Later you'll choose between different EXP games like Diet, Exercise, and more.\n\n" +
-                        "A Diet game has been created for you.\n" +
-                        "Want to go in now?",
-                        "Go to Diet",
-                        "Skip");
-
-                    await MarkIntroSeenAsync();
-
-                    if (goToDiet)
-                    {
-                        await NavigateToGameWithCatchUpAsync("diet");
-                    }
+                    await ShowWelcomePageVisibilityOverlayAsync();
+                    await DisplayAlert(
+                        "Page Visibility",
+                        "You can change page visibility anytime in Settings → Page Visibility",
+                        "OK");
                 }
             }
 
@@ -2444,6 +2434,131 @@ public class HomePage : ContentPage
             await SecureStorage.SetAsync($"intro_seen_{_auth.CurrentUsername}", "true");
         }
         catch { }
+    }
+
+    private async Task ShowWelcomePageVisibilityOverlayAsync()
+    {
+        if (Content is not Grid root) return;
+
+        var completion = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            ZIndex = 100
+        };
+        var pageSwitches = new Dictionary<string, Switch>(
+            StringComparer.OrdinalIgnoreCase);
+        var pageRows = new VerticalStackLayout
+        {
+            Spacing = 6,
+            Padding = new Thickness(2)
+        };
+
+        foreach (var buttonId in AllButtonIds)
+        {
+            bool isSettings = buttonId.Equals(
+                "Settings", StringComparison.OrdinalIgnoreCase);
+            var row = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 12,
+                Padding = new Thickness(4, 2)
+            };
+            row.Add(new Label
+            {
+                Text = buttonId,
+                FontSize = 14,
+                TextColor = isSettings
+                    ? Color.FromArgb("#999")
+                    : Color.FromArgb("#222"),
+                VerticalOptions = LayoutOptions.Center
+            }, 0, 0);
+            var toggle = new Switch
+            {
+                IsToggled = true,
+                IsEnabled = !isSettings,
+                VerticalOptions = LayoutOptions.Center
+            };
+            pageSwitches[buttonId] = toggle;
+            row.Add(toggle, 1, 0);
+            pageRows.Children.Add(row);
+        }
+
+        var getStarted = new Button
+        {
+            Text = "Get Started",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 46
+        };
+        getStarted.Clicked += async (_, _) =>
+        {
+            getStarted.IsEnabled = false;
+            foreach (var (buttonId, toggle) in pageSwitches)
+            {
+                if (!toggle.IsToggled)
+                {
+                    await _buttonVisibility.SetButtonEnabledAsync(
+                        _auth.CurrentUsername, buttonId, false);
+                }
+            }
+
+            await MarkIntroSeenAsync();
+            _enabledButtonsCache = await _buttonVisibility
+                .GetEnabledButtonsAsync(_auth.CurrentUsername, AllButtonIds);
+            RefreshButtonsLayout();
+            root.Children.Remove(overlay);
+            completion.TrySetResult();
+        };
+
+        var cardContent = new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Welcome to Bannister",
+                    FontSize = 22,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#222")
+                },
+                new Label
+                {
+                    Text = "Choose which pages you want to see on the Home screen. You can change this later in Settings.",
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#666"),
+                    LineBreakMode = LineBreakMode.WordWrap
+                },
+                new ScrollView
+                {
+                    Content = pageRows,
+                    MaximumHeightRequest = 480
+                },
+                getStarted
+            }
+        };
+        overlay.Children.Add(new Frame
+        {
+            Content = cardContent,
+            Padding = 18,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            MaximumWidthRequest = 620,
+            MaximumHeightRequest = 720,
+            Margin = new Thickness(20),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            HasShadow = true
+        });
+        root.Children.Add(overlay);
+        await completion.Task;
     }
 
     private async Task CycleDisplayModeAsync()
