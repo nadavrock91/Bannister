@@ -516,6 +516,28 @@ public class SettingsPage : ContentPage
                     _buttonVisibility, _auth));
         mainStack.Children.Add(pageVisibilityBtn);
 
+        var resetIntroBtn = new Button
+        {
+            Text = "⟳ Reset Welcome Screen",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 40,
+            HorizontalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        resetIntroBtn.Clicked += async (_, _) =>
+        {
+            try
+            {
+                SecureStorage.Remove($"intro_seen_{_auth.CurrentUsername}");
+            }
+            catch { }
+            await DisplayAlert("Done", "Welcome screen will show on next app launch.", "OK");
+        };
+        mainStack.Children.Add(resetIntroBtn);
+
         scrollView.Content = mainStack;
         Content = scrollView;
     }
