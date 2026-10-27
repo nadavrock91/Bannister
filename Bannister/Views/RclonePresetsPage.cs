@@ -507,10 +507,12 @@ public class RclonePresetsPage : ContentPage
         {
             try
             {
-                // cd to rclone folder then run the command in the same cmd window
-                string cdPath = preset.RclonePath.Trim();
-                // Build cmd args: /K keeps window open after command runs
-                string cmdArgs = $"/K \"cd /d \\\"{cdPath}\\\" && {command}\"";
+                string rcloneFolder = preset.RclonePath.Trim().TrimEnd('\\');
+                // Replace "rclone" at the start of command with the full exe path
+                string fullCommand = command.StartsWith("rclone ")
+                    ? $"\"{rcloneFolder}\\rclone.exe\" " + command.Substring("rclone ".Length)
+                    : command;
+                string cmdArgs = $"/K \"{fullCommand}\"";
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "cmd.exe",
