@@ -260,12 +260,12 @@ public class RclonePresetsPage : ContentPage
         string? title = await DisplayPromptAsync("New Preset", "Preset title:");
         if (string.IsNullOrWhiteSpace(title)) return;
 
-        string? presetType = await DisplayActionSheet("Preset type", "Cancel", null, "Generic", "Backblaze");
+        string? presetType = await DisplayActionSheet("Preset type", "Cancel", null, "Generic", "Remote Wizard");
         if (presetType == null || presetType == "Cancel") return;
 
-        if (presetType == "Backblaze")
+        if (presetType == "Remote Wizard")
         {
-            await OnAddBackblazePresetAsync(title.Trim());
+            await OnAddRemoteWizardPresetAsync(title.Trim());
             return;
         }
 
@@ -312,7 +312,7 @@ public class RclonePresetsPage : ContentPage
         Render();
     }
 
-    private async Task OnAddBackblazePresetAsync(string title)
+    private async Task OnAddRemoteWizardPresetAsync(string title)
     {
         // Pick Backblaze location (must have RcloneRemote set)
         var bbLocations = _backupLocations
@@ -321,24 +321,24 @@ public class RclonePresetsPage : ContentPage
 
         if (bbLocations.Count == 0)
         {
-            await DisplayAlert("No Remotes", "No backup locations with an rclone remote are configured. Add one via Manage Locations.", "OK");
+            await DisplayAlert("No Remotes", "No backup locations with an rclone remote are configured. Add one via Manage Locations (set the Rclone remote name, e.g. gdrive, b3ai, onedrive).", "OK");
             return;
         }
 
-        string? remoteChoice = await DisplayActionSheet("Backblaze remote", "Cancel", null,
+        string? remoteChoice = await DisplayActionSheet("Remote", "Cancel", null,
             bbLocations.Select(l => $"{l.Name} ({l.RcloneRemote}:)").ToArray());
         if (remoteChoice == null || remoteChoice == "Cancel") return;
 
         var selectedLoc = bbLocations[bbLocations.Select(l => $"{l.Name} ({l.RcloneRemote}:)").ToList().IndexOf(remoteChoice)];
 
         // Direction: upload or download
-        string? direction = await DisplayActionSheet("Direction", "Cancel", null, "⬆️ Upload to Backblaze", "⬇️ Download from Backblaze");
+        string? direction = await DisplayActionSheet("Direction", "Cancel", null, "⬆️ Upload to Remote", "⬇️ Download from Remote");
         if (direction == null || direction == "Cancel") return;
-        bool isUpload = direction == "⬆️ Upload to Backblaze";
+        bool isUpload = direction == "⬆️ Upload to Remote";
 
         // Bucket/path on Backblaze — fixed or input
         string? bbPathChoice = await DisplayActionSheet(
-            $"Backblaze bucket/path ({selectedLoc.RcloneRemote}:...)",
+            $"Remote path ({selectedLoc.RcloneRemote}:...)",
             "Cancel", null, "Fixed value", "Ask at run time");
         if (bbPathChoice == null || bbPathChoice == "Cancel") return;
         bool bbPathIsInput = bbPathChoice == "Ask at run time";
@@ -346,8 +346,8 @@ public class RclonePresetsPage : ContentPage
         if (!bbPathIsInput)
         {
             string? entered = await DisplayPromptAsync(
-                "Backblaze path",
-                $"Bucket/path after '{selectedLoc.RcloneRemote}:' (e.g. all-ai-images/auto):",
+                "Remote path",
+                $"Folder path after '{selectedLoc.RcloneRemote}:' (e.g. MyDrive/folder or bucket/subfolder):",
                 initialValue: "");
             if (entered == null) return;
             bbPath = $"{selectedLoc.RcloneRemote}:{entered.Trim()}";
