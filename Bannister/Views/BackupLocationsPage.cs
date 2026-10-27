@@ -10,6 +10,7 @@ public class BackupLocationsPage : ContentPage
 
     private List<BackupLocation> _locations = new();
     private List<BackupFile> _files = new();
+    private List<BackupFileItem> _items = new();
     private VerticalStackLayout _mainStack = null!;
 
     public BackupLocationsPage(DatabaseService db, AuthService auth)
@@ -50,6 +51,10 @@ public class BackupLocationsPage : ContentPage
             .Where(f => f.Username == username)
             .OrderBy(f => f.Category)
             .ThenBy(f => f.Name)
+            .ToListAsync();
+        _items = await conn.Table<BackupFileItem>()
+            .Where(i => i.Username == username)
+            .OrderBy(i => i.Name)
             .ToListAsync();
     }
 
@@ -203,7 +208,11 @@ public class BackupLocationsPage : ContentPage
             ? new HashSet<string>()
             : file.LocationIds.Split(',').Select(s => s.Trim()).ToHashSet();
 
-        bool isInconsistent = _locations.Count > 0 && fileLocationIds.Count < _locations.Count;
+        var subItems = _items.Where(i => i.ParentFileId == file.Id).ToList();
+
+        // Alert if any sub-item's locationIds differ from parent's
+        bool hasSubMismatch = subItems.Any(i => i.LocationIds != file.LocationIds);
+        bool isInconsistent = (_locations.Count > 0 && fileLocationIds.Count < _locations.Count) || hasSubMismatch;
 
         var frame = new Frame
         {
@@ -217,12 +226,13 @@ public class BackupLocationsPage : ContentPage
 
         var cardStack = new VerticalStackLayout { Spacing = 6 };
 
-        // File name row with edit/delete
+        // File name row with edit/delete/add-sub
         var nameRow = new Grid
         {
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
@@ -240,6 +250,22 @@ public class BackupLocationsPage : ContentPage
         Grid.SetColumn(nameLabel, 0);
         nameRow.Children.Add(nameLabel);
 
+        var addSubBtn = new Button
+        {
+            Text = "+",
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            TextColor = Color.FromArgb("#2E7D32"),
+            FontSize = 12,
+            CornerRadius = 6,
+            WidthRequest = 34,
+            HeightRequest = 30,
+            Padding = 0,
+            VerticalOptions = LayoutOptions.Center
+        };
+        addSubBtn.Clicked += async (s, e) => await OnAddSubItemAsync(file);
+        Grid.SetColumn(addSubBtn, 1);
+        nameRow.Children.Add(addSubBtn);
+
         var editBtn = new Button
         {
             Text = "✏️",
@@ -253,7 +279,7 @@ public class BackupLocationsPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         editBtn.Clicked += async (s, e) => await OnEditFileAsync(file);
-        Grid.SetColumn(editBtn, 1);
+        Grid.SetColumn(editBtn, 2);
         nameRow.Children.Add(editBtn);
 
         var deleteBtn = new Button
@@ -269,60 +295,20 @@ public class BackupLocationsPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         deleteBtn.Clicked += async (s, e) => await OnDeleteFileAsync(file);
-        Grid.SetColumn(deleteBtn, 2);
+        Grid.SetColumn(deleteBtn, 3);
         nameRow.Children.Add(deleteBtn);
 
         cardStack.Children.Add(nameRow);
 
-        // Location checkboxes row
-        if (_locations.Count > 0)
-        {
-            var locRow = new HorizontalStackLayout { Spacing = 16 };
-            foreach (var loc in _locations)
-            {
-                var locId = loc.Id.ToString();
-                bool hasIt = fileLocationIds.Contains(locId);
-
-                var locStack = new VerticalStackLayout
-                {
-                    Spacing = 2,
-                    HorizontalOptions = LayoutOptions.Center
-                };
-
-                var chk = new CheckBox
-                {
-                    IsChecked = hasIt,
-                    Color = hasIt ? Color.FromArgb("#1565C0") : Color.FromArgb("#BDBDBD")
-                };
-
-                var capturedLoc = loc;
-                chk.CheckedChanged += async (s, e) =>
-                {
-                    var ids = string.IsNullOrWhiteSpace(file.LocationIds)
-                        ? new HashSet<string>()
-                        : file.LocationIds.Split(',').Select(x => x.Trim()).ToHashSet();
-                    if (e.Value) ids.Add(capturedLoc.Id.ToString());
-                    else ids.Remove(capturedLoc.Id.ToString());
-                    file.LocationIds = string.Join(",", ids.OrderBy(x => x));
-                    var conn = await _db.GetConnectionAsync();
-                    await conn.UpdateAsync(file);
-                    await LoadDataAsync();
-                    RenderPage();
-                };
-
-                locStack.Children.Add(chk);
-                locStack.Children.Add(new Label
-                {
-                    Text = string.IsNullOrWhiteSpace(loc.Abbreviation) ? loc.Name : loc.Abbreviation,
-                    FontSize = 13,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#263238"),
-                    HorizontalOptions = LayoutOptions.Center
-                });
-                locRow.Children.Add(locStack);
-            }
-            cardStack.Children.Add(locRow);
-        }
+        // Main item location checkboxes
+        cardStack.Children.Add(BuildLocationCheckboxRow(file.LocationIds,
+            async newIds => {
+                file.LocationIds = newIds;
+                var conn = await _db.GetConnectionAsync();
+                await conn.UpdateAsync(file);
+                await LoadDataAsync();
+                RenderPage();
+            }));
 
         if (!string.IsNullOrWhiteSpace(file.Notes))
             cardStack.Children.Add(new Label
@@ -333,8 +319,198 @@ public class BackupLocationsPage : ContentPage
                 FontAttributes = FontAttributes.Italic
             });
 
+        // Sub-items
+        foreach (var item in subItems)
+        {
+            cardStack.Children.Add(BuildSubItemCard(item, file.LocationIds));
+        }
+
         frame.Content = cardStack;
         return frame;
+    }
+
+    private View BuildLocationCheckboxRow(string currentLocationIds, Func<string, Task> onChanged)
+    {
+        var locationIds = string.IsNullOrWhiteSpace(currentLocationIds)
+            ? new HashSet<string>()
+            : currentLocationIds.Split(',').Select(s => s.Trim()).ToHashSet();
+
+        var locRow = new HorizontalStackLayout { Spacing = 16 };
+        foreach (var loc in _locations)
+        {
+            var locId = loc.Id.ToString();
+            bool hasIt = locationIds.Contains(locId);
+
+            var locStack = new VerticalStackLayout
+            {
+                Spacing = 2,
+                HorizontalOptions = LayoutOptions.Center
+            };
+
+            var chk = new CheckBox
+            {
+                IsChecked = hasIt,
+                Color = hasIt ? Color.FromArgb("#1565C0") : Color.FromArgb("#BDBDBD")
+            };
+
+            var capturedLoc = loc;
+            chk.CheckedChanged += async (s, e) =>
+            {
+                if (e.Value) locationIds.Add(capturedLoc.Id.ToString());
+                else locationIds.Remove(capturedLoc.Id.ToString());
+                await onChanged(string.Join(",", locationIds.OrderBy(x => x)));
+            };
+
+            locStack.Children.Add(chk);
+            locStack.Children.Add(new Label
+            {
+                Text = string.IsNullOrWhiteSpace(loc.Abbreviation) ? loc.Name : loc.Abbreviation,
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#263238"),
+                HorizontalOptions = LayoutOptions.Center
+            });
+            locRow.Children.Add(locStack);
+        }
+        return locRow;
+    }
+
+    private Frame BuildSubItemCard(BackupFileItem item, string parentLocationIds)
+    {
+        bool mismatch = item.LocationIds != parentLocationIds;
+
+        var frame = new Frame
+        {
+            Padding = new Thickness(10, 6),
+            CornerRadius = 6,
+            BackgroundColor = Color.FromArgb("#FAFAFA"),
+            BorderColor = mismatch ? Color.FromArgb("#FFB74D") : Color.FromArgb("#EEEEEE"),
+            HasShadow = false,
+            Margin = new Thickness(16, 2, 0, 2)
+        };
+
+        var stack = new VerticalStackLayout { Spacing = 4 };
+
+        var nameRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 6
+        };
+
+        var nameLabel = new Label
+        {
+            Text = (mismatch ? "⚠️ " : "↳ ") + item.Name,
+            FontSize = 13,
+            TextColor = Color.FromArgb("#263238"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        Grid.SetColumn(nameLabel, 0);
+        nameRow.Children.Add(nameLabel);
+
+        var editBtn = new Button
+        {
+            Text = "✏️",
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0"),
+            FontSize = 11,
+            CornerRadius = 6,
+            WidthRequest = 30,
+            HeightRequest = 26,
+            Padding = 0,
+            VerticalOptions = LayoutOptions.Center
+        };
+        editBtn.Clicked += async (s, e) => await OnEditSubItemAsync(item);
+        Grid.SetColumn(editBtn, 1);
+        nameRow.Children.Add(editBtn);
+
+        var deleteBtn = new Button
+        {
+            Text = "️",
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            FontSize = 11,
+            CornerRadius = 6,
+            WidthRequest = 30,
+            HeightRequest = 26,
+            Padding = 0,
+            VerticalOptions = LayoutOptions.Center
+        };
+        deleteBtn.Clicked += async (s, e) => await OnDeleteSubItemAsync(item);
+        Grid.SetColumn(deleteBtn, 2);
+        nameRow.Children.Add(deleteBtn);
+
+        stack.Children.Add(nameRow);
+
+        stack.Children.Add(BuildLocationCheckboxRow(item.LocationIds,
+            async newIds => {
+                item.LocationIds = newIds;
+                var conn = await _db.GetConnectionAsync();
+                await conn.UpdateAsync(item);
+                await LoadDataAsync();
+                RenderPage();
+            }));
+
+        if (!string.IsNullOrWhiteSpace(item.Notes))
+            stack.Children.Add(new Label
+            {
+                Text = item.Notes,
+                FontSize = 11,
+                TextColor = Color.FromArgb("#78909C"),
+                FontAttributes = FontAttributes.Italic
+            });
+
+        frame.Content = stack;
+        return frame;
+    }
+
+    private async Task OnAddSubItemAsync(BackupFile parent)
+    {
+        string? name = await DisplayPromptAsync("Add Sub-item", $"Sub-item name under '{parent.Name}':");
+        if (string.IsNullOrWhiteSpace(name)) return;
+        string? notes = await DisplayPromptAsync("Add Sub-item", "Notes (optional):");
+
+        var item = new BackupFileItem
+        {
+            Username = _auth.CurrentUsername,
+            ParentFileId = parent.Id,
+            Name = name.Trim(),
+            LocationIds = parent.LocationIds,
+            Notes = notes?.Trim() ?? ""
+        };
+        var conn = await _db.GetConnectionAsync();
+        await conn.InsertAsync(item);
+        await LoadDataAsync();
+        RenderPage();
+    }
+
+    private async Task OnEditSubItemAsync(BackupFileItem item)
+    {
+        string? name = await DisplayPromptAsync("Edit Sub-item", "Name:", initialValue: item.Name);
+        if (name == null) return;
+        string? notes = await DisplayPromptAsync("Edit Sub-item", "Notes:", initialValue: item.Notes);
+        if (notes == null) return;
+
+        item.Name = name.Trim();
+        item.Notes = notes.Trim();
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(item);
+        await LoadDataAsync();
+        RenderPage();
+    }
+
+    private async Task OnDeleteSubItemAsync(BackupFileItem item)
+    {
+        bool confirm = await DisplayAlert("Delete", $"Remove sub-item '{item.Name}'?", "Delete", "Cancel");
+        if (!confirm) return;
+        var conn = await _db.GetConnectionAsync();
+        await conn.DeleteAsync(item);
+        await LoadDataAsync();
+        RenderPage();
     }
 
     private async Task OnManageLocationsAsync()
@@ -378,6 +554,12 @@ public class BackupLocationsPage : ContentPage
                 var ids = file.LocationIds.Split(',').Where(x => x.Trim() != idStr).ToList();
                 file.LocationIds = string.Join(",", ids);
                 await conn.UpdateAsync(file);
+            }
+            foreach (var subItem in _items.Where(i => (i.LocationIds ?? "").Split(',').Contains(idStr)))
+            {
+                var ids = subItem.LocationIds.Split(',').Where(x => x.Trim() != idStr).ToList();
+                subItem.LocationIds = string.Join(",", ids);
+                await conn.UpdateAsync(subItem);
             }
             await LoadDataAsync();
             RenderPage();
@@ -435,6 +617,7 @@ public class BackupLocationsPage : ContentPage
         if (!confirm) return;
         var conn = await _db.GetConnectionAsync();
         await conn.DeleteAsync(file);
+        await conn.ExecuteAsync("DELETE FROM backup_file_items WHERE ParentFileId = ?", file.Id);
         await LoadDataAsync();
         RenderPage();
     }
