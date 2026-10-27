@@ -243,6 +243,13 @@ public class RclonePresetsPage : ContentPage
             FontSize = 12,
             TextColor = Color.FromArgb("#90A4AE")
         });
+        if (!string.IsNullOrWhiteSpace(preset.RclonePath))
+            stack.Children.Add(new Label
+            {
+                Text = $"Rclone: {preset.RclonePath}",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#90A4AE")
+            });
 
         frame.Content = stack;
         return frame;
@@ -282,6 +289,7 @@ public class RclonePresetsPage : ContentPage
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers value:", initialValue: "8", keyboard: Keyboard.Numeric);
         string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers value:", initialValue: "16", keyboard: Keyboard.Numeric);
+        string? rclonePath = await DisplayPromptAsync("Rclone Path", "Path to rclone executable folder (e.g. C:\\Program Files (x86)\\rclone\\rclone-v1.73.4-windows-amd64):", initialValue: "");
 
         int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = 8;
         int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = 16;
@@ -294,6 +302,7 @@ public class RclonePresetsPage : ContentPage
             Destination = destination.Trim(),
             Transfers = transfers,
             Checkers = checkers,
+            RclonePath = rclonePath?.Trim() ?? "",
             SourceIsInput = sourceIsInput,
             DestinationIsInput = destIsInput
         };
@@ -357,6 +366,7 @@ public class RclonePresetsPage : ContentPage
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers value:", initialValue: "8", keyboard: Keyboard.Numeric);
         string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers value:", initialValue: "16", keyboard: Keyboard.Numeric);
+        string? rclonePath = await DisplayPromptAsync("Rclone Path", "Path to rclone executable folder (e.g. C:\\Program Files (x86)\\rclone\\rclone-v1.73.4-windows-amd64):", initialValue: "");
 
         int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = 8;
         int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = 16;
@@ -370,6 +380,7 @@ public class RclonePresetsPage : ContentPage
             Destination = isUpload ? bbPath : localPath,
             Transfers = transfers,
             Checkers = checkers,
+            RclonePath = rclonePath?.Trim() ?? "",
             SourceIsInput = isUpload ? localIsInput : bbPathIsInput,
             DestinationIsInput = isUpload ? bbPathIsInput : localIsInput
         };
@@ -406,17 +417,6 @@ public class RclonePresetsPage : ContentPage
             VerticalOptions = LayoutOptions.Fill
         };
 
-        var card = new Frame
-        {
-            Padding = new Thickness(20),
-            CornerRadius = 10,
-            BackgroundColor = Colors.White,
-            HasShadow = true,
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center,
-            Margin = new Thickness(24)
-        };
-
         var commandLabel = new Label
         {
             Text = command,
@@ -434,8 +434,17 @@ public class RclonePresetsPage : ContentPage
             TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
-            FontSize = 13,
-            HorizontalOptions = LayoutOptions.Start
+            FontSize = 13
+        };
+
+        var launchBtn = new Button
+        {
+            Text = "⌨️ Launch CMD",
+            BackgroundColor = Color.FromArgb("#1B5E20"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13
         };
 
         var closeBtn = new Button
@@ -445,25 +454,27 @@ public class RclonePresetsPage : ContentPage
             TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 40,
-            FontSize = 13,
-            HorizontalOptions = LayoutOptions.End
+            FontSize = 13
         };
 
-        var btnRow = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star }
-            },
-            ColumnSpacing = 10,
-            Margin = new Thickness(0, 12, 0, 0)
-        };
-        Grid.SetColumn(copyBtn, 0);
-        Grid.SetColumn(closeBtn, 1);
+        // Only show Launch CMD if rclone path is set
+        bool hasPath = !string.IsNullOrWhiteSpace(preset.RclonePath);
+
+        var btnRow = new VerticalStackLayout { Spacing = 8, Margin = new Thickness(0, 12, 0, 0) };
         btnRow.Children.Add(copyBtn);
+        if (hasPath) btnRow.Children.Add(launchBtn);
         btnRow.Children.Add(closeBtn);
 
+        var card = new Frame
+        {
+            Padding = new Thickness(20),
+            CornerRadius = 10,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(24)
+        };
         card.Content = new VerticalStackLayout
         {
             Spacing = 8,
@@ -477,7 +488,6 @@ public class RclonePresetsPage : ContentPage
 
         overlay.Children.Add(card);
 
-        // Add overlay to page content
         var originalContent = Content;
         Content = null;
         var rootGrid = new Grid();
@@ -491,6 +501,28 @@ public class RclonePresetsPage : ContentPage
             copyBtn.Text = "✅ Copied!";
             await Task.Delay(1500);
             copyBtn.Text = " Copy";
+        };
+
+        launchBtn.Clicked += (s, e) =>
+        {
+            try
+            {
+                // cd to rclone folder then run the command in the same cmd window
+                string cdPath = preset.RclonePath.Trim();
+                // Build cmd args: /K keeps window open after command runs
+                string cmdArgs = $"/K \"cd /d \"{cdPath}\" && {command}\"";
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = cmdArgs,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MainThread.BeginInvokeOnMainThread(async () =>
+                    await DisplayAlert("Error", $"Could not launch cmd: {ex.Message}", "OK"));
+            }
         };
 
         closeBtn.Clicked += (s, e) =>
@@ -524,6 +556,7 @@ public class RclonePresetsPage : ContentPage
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers:", initialValue: preset.Transfers.ToString(), keyboard: Keyboard.Numeric);
         string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers:", initialValue: preset.Checkers.ToString(), keyboard: Keyboard.Numeric);
+        string? rclonePath = await DisplayPromptAsync("Rclone Path", "Path to rclone executable folder (e.g. C:\\Program Files (x86)\\rclone\\rclone-v1.73.4-windows-amd64):", initialValue: preset.RclonePath);
 
         int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = preset.Transfers;
         int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = preset.Checkers;
@@ -533,6 +566,7 @@ public class RclonePresetsPage : ContentPage
         preset.Destination = destination.Trim();
         preset.Transfers = transfers;
         preset.Checkers = checkers;
+        preset.RclonePath = rclonePath?.Trim() ?? preset.RclonePath;
         preset.SourceIsInput = sourceIsInput;
         preset.DestinationIsInput = destIsInput;
 
