@@ -361,7 +361,7 @@ public partial class ActivityGamePage
     /// Build a card for a streak attempt with big day counter.
     /// Includes 3-dot menu button that uses ShowUnifiedContextMenu (shared with normal activities).
     /// </summary>
-    private Frame BuildStreakAttemptCard(StreakAttemptViewModel attemptVM)
+    private Frame BuildStreakAttemptCard(StreakAttemptViewModel attemptVM, bool capReached = false)
     {
         var outerFrame = new Frame
         {
@@ -370,17 +370,17 @@ public partial class ActivityGamePage
             Padding = 0,
             CornerRadius = 12,
             HasShadow = true,
-            BackgroundColor = Colors.White,
-            BorderColor = attemptVM.IsActive ? Color.FromArgb("#FF9800") : Color.FromArgb("#E0E0E0")
+            BackgroundColor = capReached ? Color.FromArgb("#FFEBEE") : Colors.White,
+            BorderColor = capReached ? Color.FromArgb("#C62828") : (attemptVM.IsActive ? Color.FromArgb("#FF9800") : Color.FromArgb("#E0E0E0"))
         };
 
         var grid = new Grid();
 
         var backgroundBox = new BoxView
         {
-            Color = attemptVM.IsActive 
-                ? Color.FromArgb("#FFF8E1")
-                : Color.FromArgb("#F5F5F5")
+            Color = capReached
+                ? Color.FromArgb("#FFEBEE")
+                : (attemptVM.IsActive ? Color.FromArgb("#FFF8E1") : Color.FromArgb("#F5F5F5"))
         };
         grid.Children.Add(backgroundBox);
 
@@ -919,6 +919,8 @@ public partial class ActivityGamePage
         
         Grid? currentRow = null;
         int columnIndex = 0;
+        int totalDaysAchieved = attempts.Sum(a => a.DaysAchieved);
+        bool capReached = streakContainer.StreakTotalDaysCap > 0 && totalDaysAchieved >= streakContainer.StreakTotalDaysCap;
         
         foreach (var attemptVM in attemptVMs)
         {
@@ -938,7 +940,7 @@ public partial class ActivityGamePage
                 columnIndex = 0;
             }
             
-            var card = BuildStreakAttemptCard(attemptVM);
+            var card = BuildStreakAttemptCard(attemptVM, capReached);
             Grid.SetColumn(card, columnIndex);
             currentRow.Children.Add(card);
             
