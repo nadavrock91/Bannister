@@ -253,7 +253,16 @@ public class RclonePresetsPage : ContentPage
         string? title = await DisplayPromptAsync("New Preset", "Preset title:");
         if (string.IsNullOrWhiteSpace(title)) return;
 
-        // Source
+        string? presetType = await DisplayActionSheet("Preset type", "Cancel", null, "Generic", "Backblaze");
+        if (presetType == null || presetType == "Cancel") return;
+
+        if (presetType == "Backblaze")
+        {
+            await OnAddBackblazePresetAsync(title.Trim());
+            return;
+        }
+
+        // Generic flow
         string sourceInputChoice = await DisplayActionSheet("Source path", "Cancel", null, "Fixed value", "Ask at run time") ?? "Ask at run time";
         bool sourceIsInput = sourceInputChoice != "Fixed value";
         string source = "";
@@ -263,7 +272,6 @@ public class RclonePresetsPage : ContentPage
             source = picked ?? await DisplayPromptAsync("Source", "Fixed source path:", initialValue: @"C:\Users\") ?? "";
         }
 
-        // Destination
         string destInputChoice = await DisplayActionSheet("Destination", "Cancel", null, "Fixed value", "Ask at run time") ?? "Fixed value";
         bool destIsInput = destInputChoice != "Fixed value";
         string destination = "";
@@ -288,6 +296,82 @@ public class RclonePresetsPage : ContentPage
             Checkers = checkers,
             SourceIsInput = sourceIsInput,
             DestinationIsInput = destIsInput
+        };
+        var conn = await _db.GetConnectionAsync();
+        await conn.InsertAsync(preset);
+        await LoadAsync();
+        Render();
+    }
+
+    private async Task OnAddBackblazePresetAsync(string title)
+    {
+        // Pick Backblaze location (must have RcloneRemote set)
+        var bbLocations = _backupLocations
+            .Where(l => !string.IsNullOrWhiteSpace(l.RcloneRemote))
+            .ToList();
+
+        if (bbLocations.Count == 0)
+        {
+            await DisplayAlert("No Remotes", "No backup locations with an rclone remote are configured. Add one via Manage Locations.", "OK");
+            return;
+        }
+
+        string? remoteChoice = await DisplayActionSheet("Backblaze remote", "Cancel", null,
+            bbLocations.Select(l => $"{l.Name} ({l.RcloneRemote}:)").ToArray());
+        if (remoteChoice == null || remoteChoice == "Cancel") return;
+
+        var selectedLoc = bbLocations[bbLocations.Select(l => $"{l.Name} ({l.RcloneRemote}:)").ToList().IndexOf(remoteChoice)];
+
+        // Direction: upload or download
+        string? direction = await DisplayActionSheet("Direction", "Cancel", null, "⬆️ Upload to Backblaze", "⬇️ Download from Backblaze");
+        if (direction == null || direction == "Cancel") return;
+        bool isUpload = direction == "⬆️ Upload to Backblaze";
+
+        // Bucket/path on Backblaze — fixed or input
+        string? bbPathChoice = await DisplayActionSheet(
+            $"Backblaze bucket/path ({selectedLoc.RcloneRemote}:...)",
+            "Cancel", null, "Fixed value", "Ask at run time");
+        if (bbPathChoice == null || bbPathChoice == "Cancel") return;
+        bool bbPathIsInput = bbPathChoice == "Ask at run time";
+        string bbPath = "";
+        if (!bbPathIsInput)
+        {
+            string? entered = await DisplayPromptAsync(
+                "Backblaze path",
+                $"Bucket/path after '{selectedLoc.RcloneRemote}:' (e.g. all-ai-images/auto):",
+                initialValue: "");
+            if (entered == null) return;
+            bbPath = $"{selectedLoc.RcloneRemote}:{entered.Trim()}";
+        }
+
+        // Local folder — fixed or input
+        string? localChoice = await DisplayActionSheet("Local folder", "Cancel", null, "Fixed value", "Ask at run time");
+        if (localChoice == null || localChoice == "Cancel") return;
+        bool localIsInput = localChoice == "Ask at run time";
+        string localPath = "";
+        if (!localIsInput)
+        {
+            string? picked = await PickFolderAsync();
+            localPath = picked ?? await DisplayPromptAsync("Local folder", "Fixed local folder path:", initialValue: @"C:\Users\") ?? "";
+        }
+
+        string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers value:", initialValue: "8", keyboard: Keyboard.Numeric);
+        string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers value:", initialValue: "16", keyboard: Keyboard.Numeric);
+
+        int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = 8;
+        int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = 16;
+
+        // Upload: source=local, dest=BB. Download: source=BB, dest=local
+        var preset = new RclonePreset
+        {
+            Username = _auth.CurrentUsername,
+            Title = title,
+            Source = isUpload ? localPath : bbPath,
+            Destination = isUpload ? bbPath : localPath,
+            Transfers = transfers,
+            Checkers = checkers,
+            SourceIsInput = isUpload ? localIsInput : bbPathIsInput,
+            DestinationIsInput = isUpload ? bbPathIsInput : localIsInput
         };
         var conn = await _db.GetConnectionAsync();
         await conn.InsertAsync(preset);
