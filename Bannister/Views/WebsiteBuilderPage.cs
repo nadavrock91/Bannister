@@ -11,6 +11,9 @@ namespace Bannister.Views;
 
 public class WebsiteBuilderPage : ContentPage
 {
+    private const string DefaultPromptConstraints =
+        "Never writes a fix prompt before an inspection. If the root cause isn't confirmed from actual code or a live API response, the only valid output is a READ-ONLY diagnostic prompt. A fix prompt without a preceding diagnostic is a guess, and guesses ship wrong commits.";
+
     private enum WebsiteWorkflowState
     {
         Idle = 0,
@@ -1318,6 +1321,35 @@ Output ONLY the C# code block.
         };
         _editPromptConstraintsButton.Clicked += async (_, _) => await EditPromptConstraintsAsync();
 
+        var restoreDefaultConstraintsButton = new Button
+        {
+            Text = "Restore Default Constraints",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            CornerRadius = 8,
+            HeightRequest = 32,
+            FontSize = 12,
+            Padding = new Thickness(10, 0)
+        };
+        restoreDefaultConstraintsButton.Clicked += async (_, _) =>
+        {
+            var project = await GetCurrentProjectOrAlertAsync();
+            if (project == null) return;
+
+            bool confirmed = await DisplayAlert(
+                "Restore Default Constraints",
+                "This will append the default constraints to your existing ones. Continue?",
+                "Continue",
+                "Cancel");
+            if (!confirmed) return;
+
+            project.PromptConstraints = string.IsNullOrWhiteSpace(project.PromptConstraints)
+                ? DefaultPromptConstraints
+                : $"{project.PromptConstraints.TrimEnd()}\n{DefaultPromptConstraints}";
+            await _projectService.SaveAsync(project);
+            UpdatePromptConstraintsDisplay(project);
+        };
+
         // Deploy log panel — hidden by default, shown during deploy
         _deployLogEditor = new Editor
         {
@@ -1472,7 +1504,8 @@ Output ONLY the C# code block.
                 _editDeployCommandButton,
                 _deployLogFrame,
                 _promptConstraintsLabel,
-                _editPromptConstraintsButton
+                _editPromptConstraintsButton,
+                restoreDefaultConstraintsButton
             }
         };
 
@@ -2128,7 +2161,8 @@ Output ONLY the C# code block.
         {
             Username = _auth.CurrentUsername,
             Title = domain,
-            IdeaText = $"{ideaTitle}\n\n{ideaText}".Trim()
+            IdeaText = $"{ideaTitle}\n\n{ideaText}".Trim(),
+            PromptConstraints = DefaultPromptConstraints
         };
 
         await _projectService.SaveAsync(project);
