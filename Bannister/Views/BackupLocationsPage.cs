@@ -106,6 +106,19 @@ public class BackupLocationsPage : ContentPage
         addFileBtn.Clicked += async (s, e) => await OnAddFileAsync();
         actionRow.Children.Add(addFileBtn);
 
+        var rcloneBtn = new Button
+        {
+            Text = " Rclone",
+            BackgroundColor = Color.FromArgb("#F3E5F5"),
+            TextColor = Color.FromArgb("#6A1B9A"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            FontSize = 13,
+            Padding = new Thickness(12, 0)
+        };
+        rcloneBtn.Clicked += async (s, e) => await OnRcloneBuilderAsync();
+        actionRow.Children.Add(rcloneBtn);
+
         _mainStack.Children.Add(actionRow);
 
         if (_locations.Count == 0)
@@ -524,6 +537,25 @@ public class BackupLocationsPage : ContentPage
         await conn.InsertAsync(file);
         await LoadDataAsync();
         RenderPage();
+    }
+
+    private async Task OnRcloneBuilderAsync()
+    {
+        string? source = await DisplayPromptAsync("Rclone Builder", "Source path (local folder):", initialValue: @"C:\Users\");
+        if (source == null) return;
+
+        string? destination = await DisplayPromptAsync("Rclone Builder", "Destination (remote:bucket/path):", initialValue: "b3ai:");
+        if (destination == null) return;
+
+        string? transfersStr = await DisplayPromptAsync("Rclone Builder", "--transfers (parallel file transfers):", initialValue: "8", keyboard: Keyboard.Numeric);
+        if (transfersStr == null) return;
+
+        string? checkersStr = await DisplayPromptAsync("Rclone Builder", "--checkers (parallel checkers):", initialValue: "16", keyboard: Keyboard.Numeric);
+        if (checkersStr == null) return;
+
+        string command = $"rclone copy \"{source.Trim()}\" {destination.Trim()} --transfers={transfersStr.Trim()} --checkers={checkersStr.Trim()} --progress";
+
+        await DisplayAlert("Your Rclone Command", command, "OK");
     }
 
     private async Task OnEditFileAsync(BackupFile file)
