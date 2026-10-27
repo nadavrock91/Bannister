@@ -797,6 +797,20 @@ public partial class EditActivityPage : ContentPage
                 return;
             }
 
+            if (newStreakTracked)
+            {
+                if (!int.TryParse(txtStreakTotalDaysCap.Text, out int capVal) || capVal <= 0)
+                {
+                    await DisplayAlert("Validation Error", "Please enter an 'Enough is enough after' day count greater than 0.", "OK");
+                    return;
+                }
+                if (string.IsNullOrWhiteSpace(txtStreakCapReachedNote.Text))
+                {
+                    await DisplayAlert("Validation Error", "Please enter a 'What to do when reached' message.", "OK");
+                    return;
+                }
+            }
+
             // *** HANDLE STREAK CONTAINER CONVERSION ***
             bool convertingToStreak = newStreakTracked && !_wasStreakTracked;
             bool convertingFromStreak = !newStreakTracked && _wasStreakTracked && _wasStreakContainer;

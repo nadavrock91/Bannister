@@ -1461,6 +1461,20 @@ public class ActivityCreationPage : ContentPage
 
             if (isStreakContainer)
             {
+                if (!int.TryParse(txtStreakTotalDaysCap.Text, out int capVal) || capVal <= 0)
+                {
+                    await DisplayAlert("Validation Error", "Please enter an 'Enough is enough after' day count greater than 0.", "OK");
+                    return;
+                }
+                if (string.IsNullOrWhiteSpace(txtStreakCapReachedNote.Text))
+                {
+                    await DisplayAlert("Validation Error", "Please enter a 'What to do when reached' message.", "OK");
+                    return;
+                }
+            }
+
+            if (isStreakContainer)
+            {
                 bool confirm = await DisplayAlert(
                     "Create Streak Activity?",
                     $"This will:\n" +
