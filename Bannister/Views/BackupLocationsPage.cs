@@ -541,21 +541,7 @@ public class BackupLocationsPage : ContentPage
 
     private async Task OnRcloneBuilderAsync()
     {
-        string? source = await DisplayPromptAsync("Rclone Builder", "Source path (local folder):", initialValue: @"C:\Users\");
-        if (source == null) return;
-
-        string? destination = await DisplayPromptAsync("Rclone Builder", "Destination (remote:bucket/path):", initialValue: "b3ai:");
-        if (destination == null) return;
-
-        string? transfersStr = await DisplayPromptAsync("Rclone Builder", "--transfers (parallel file transfers):", initialValue: "8", keyboard: Keyboard.Numeric);
-        if (transfersStr == null) return;
-
-        string? checkersStr = await DisplayPromptAsync("Rclone Builder", "--checkers (parallel checkers):", initialValue: "16", keyboard: Keyboard.Numeric);
-        if (checkersStr == null) return;
-
-        string command = $"rclone copy \"{source.Trim()}\" {destination.Trim()} --transfers={transfersStr.Trim()} --checkers={checkersStr.Trim()} --progress";
-
-        await DisplayAlert("Your Rclone Command", command, "OK");
+        await Navigation.PushAsync(new RclonePresetsPage(_db, _auth));
     }
 
     private async Task OnEditFileAsync(BackupFile file)
