@@ -82,6 +82,10 @@ public partial class EditActivityPage : ContentPage
         chkStreakTracked.IsChecked = _activity.IsStreakTracked;
         txtStreakTargetDays.Text = (_activity.StreakTargetDays > 0 ? _activity.StreakTargetDays : 365).ToString();
         txtStreakTargetDays.IsEnabled = _activity.IsStreakTracked;
+        txtStreakTotalDaysCap.Text = _activity.StreakTotalDaysCap.ToString();
+        txtStreakCapReachedNote.Text = _activity.StreakCapReachedNote ?? "";
+        txtStreakTotalDaysCap.IsEnabled = _activity.IsStreakTracked;
+        txtStreakCapReachedNote.IsEnabled = _activity.IsStreakTracked;
         chkShowStreakAsDaysSinceStarted.IsChecked = _activity.ShowStreakAsDaysSinceStarted;
 
         // Set possible status
@@ -364,6 +368,8 @@ public partial class EditActivityPage : ContentPage
     private void OnStreakTrackedChanged(object sender, CheckedChangedEventArgs e)
     {
         txtStreakTargetDays.IsEnabled = e.Value;
+        txtStreakTotalDaysCap.IsEnabled = e.Value;
+        txtStreakCapReachedNote.IsEnabled = e.Value;
     }
 
     private async void OnCategoryPickerChanged(object? sender, EventArgs e)
@@ -866,6 +872,8 @@ public partial class EditActivityPage : ContentPage
             _activity.ShowTimesCompletedBadge = chkShowTimesCompleted.IsChecked;
             _activity.ShowStreakAsDaysSinceStarted = chkShowStreakAsDaysSinceStarted.IsChecked;
             _activity.StreakTargetDays = newStreakTracked ? streakTargetDays : 365;
+            _activity.StreakTotalDaysCap = int.TryParse(txtStreakTotalDaysCap.Text, out int cap) ? Math.Max(0, cap) : 0;
+            _activity.StreakCapReachedNote = txtStreakCapReachedNote.Text?.Trim() ?? "";
 
             // Only update habit target if not a streak container
             if (!_activity.IsStreakContainer)

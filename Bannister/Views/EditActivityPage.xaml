@@ -108,6 +108,25 @@
                     <Label Text="Show streak as days since started"
                            VerticalOptions="Center" />
                 </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="12">
+                    <Label Text="Enough is enough after:"
+                           VerticalOptions="Center" />
+                    <Entry x:Name="txtStreakTotalDaysCap"
+                           Text="365"
+                           Keyboard="Numeric"
+                           WidthRequest="100"
+                           IsEnabled="False" />
+                    <Label Text="total days (0 = off)"
+                           FontSize="12"
+                           TextColor="#666"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <Label Text="What to do when reached:"
+                       FontSize="12"
+                       TextColor="#666" />
+                <Entry x:Name="txtStreakCapReachedNote"
+                       Placeholder="e.g. Take a break, reassess goals…"
+                       IsEnabled="False" />
                 <Label Text="🔥 When enabled, this activity becomes its own category with attempt cards showing day counts"
                        FontSize="12"
                        TextColor="#FF9800"
