@@ -510,7 +510,7 @@ public class RclonePresetsPage : ContentPage
                 // cd to rclone folder then run the command in the same cmd window
                 string cdPath = preset.RclonePath.Trim();
                 // Build cmd args: /K keeps window open after command runs
-                string cmdArgs = $"/K \"cd /d \"{cdPath}\" && {command}\"";
+                string cmdArgs = $"/K \"cd /d \\\"{cdPath}\\\" && {command}\"";
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "cmd.exe",
