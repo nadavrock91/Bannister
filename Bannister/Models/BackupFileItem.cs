@@ -11,6 +11,8 @@ public class BackupFileItem
     [Indexed]
     public int ParentFileId { get; set; }
 
+    public int? ParentItemId { get; set; } = null;
+
     [Indexed]
     public string Username { get; set; } = "";
 

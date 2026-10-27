@@ -300,9 +300,9 @@ public class BackupLocationsPage : ContentPage
             });
 
         // Sub-items
-        foreach (var item in subItems)
+        foreach (var item in subItems.Where(i => i.ParentItemId == null))
         {
-            cardStack.Children.Add(BuildSubItemCard(item, file));
+            cardStack.Children.Add(BuildItemTree(item, file, 1));
         }
 
         frame.Content = cardStack;
@@ -355,9 +355,10 @@ public class BackupLocationsPage : ContentPage
         return locRow;
     }
 
-    private Frame BuildSubItemCard(BackupFileItem item, BackupFile parent)
+    private View BuildItemTree(BackupFileItem item, BackupFile rootFile, int depth)
     {
-        bool mismatch = item.LocationIds != parent.LocationIds;
+        bool mismatch = item.LocationIds != rootFile.LocationIds;
+        var allChildren = _items.Where(i => i.ParentItemId == item.Id).ToList();
 
         var frame = new Frame
         {
@@ -366,7 +367,7 @@ public class BackupLocationsPage : ContentPage
             BackgroundColor = Color.FromArgb("#FAFAFA"),
             BorderColor = mismatch ? Color.FromArgb("#FFB74D") : Color.FromArgb("#EEEEEE"),
             HasShadow = false,
-            Margin = new Thickness(16, 2, 0, 2)
+            Margin = new Thickness(depth * 16, 2, 0, 2)
         };
 
         var stack = new VerticalStackLayout { Spacing = 4 };
@@ -376,6 +377,7 @@ public class BackupLocationsPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto }
@@ -393,7 +395,23 @@ public class BackupLocationsPage : ContentPage
         Grid.SetColumn(nameLabel, 0);
         nameRow.Children.Add(nameLabel);
 
-        var subScanBtn = new Button
+        var addChildBtn = new Button
+        {
+            Text = "+",
+            BackgroundColor = Color.FromArgb("#E8F5E9"),
+            TextColor = Color.FromArgb("#2E7D32"),
+            FontSize = 11,
+            CornerRadius = 6,
+            WidthRequest = 30,
+            HeightRequest = 26,
+            Padding = 0,
+            VerticalOptions = LayoutOptions.Center
+        };
+        addChildBtn.Clicked += async (s, e) => await OnAddChildItemAsync(item, rootFile);
+        Grid.SetColumn(addChildBtn, 1);
+        nameRow.Children.Add(addChildBtn);
+
+        var scanBtn = new Button
         {
             Text = "",
             BackgroundColor = Color.FromArgb("#FFF3E0"),
@@ -405,9 +423,9 @@ public class BackupLocationsPage : ContentPage
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
         };
-        subScanBtn.Clicked += async (s, e) => await OnScanSubItemSubfoldersAsync(item, parent);
-        Grid.SetColumn(subScanBtn, 1);
-        nameRow.Children.Add(subScanBtn);
+        scanBtn.Clicked += async (s, e) => await OnScanItemSubfoldersAsync(item, rootFile);
+        Grid.SetColumn(scanBtn, 2);
+        nameRow.Children.Add(scanBtn);
 
         var editBtn = new Button
         {
@@ -422,7 +440,7 @@ public class BackupLocationsPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         editBtn.Clicked += async (s, e) => await OnEditSubItemAsync(item);
-        Grid.SetColumn(editBtn, 2);
+        Grid.SetColumn(editBtn, 3);
         nameRow.Children.Add(editBtn);
 
         var deleteBtn = new Button
@@ -438,7 +456,7 @@ public class BackupLocationsPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         deleteBtn.Clicked += async (s, e) => await OnDeleteSubItemAsync(item);
-        Grid.SetColumn(deleteBtn, 3);
+        Grid.SetColumn(deleteBtn, 4);
         nameRow.Children.Add(deleteBtn);
 
         stack.Children.Add(nameRow);
@@ -461,6 +479,10 @@ public class BackupLocationsPage : ContentPage
                 FontAttributes = FontAttributes.Italic
             });
 
+        // Render children recursively
+        foreach (var child in allChildren)
+            stack.Children.Add(BuildItemTree(child, rootFile, depth + 1));
+
         frame.Content = stack;
         return frame;
     }
@@ -469,18 +491,35 @@ public class BackupLocationsPage : ContentPage
     {
         string? name = await DisplayPromptAsync("Add Sub-item", $"Sub-item name under '{parent.Name}':");
         if (string.IsNullOrWhiteSpace(name)) return;
-        string? notes = await DisplayPromptAsync("Add Sub-item", "Notes (optional):");
-
         var item = new BackupFileItem
         {
             Username = _auth.CurrentUsername,
             ParentFileId = parent.Id,
+            ParentItemId = null,
             Name = name.Trim(),
             LocationIds = parent.LocationIds,
-            Notes = notes?.Trim() ?? ""
+            Notes = ""
         };
         var conn = await _db.GetConnectionAsync();
         await conn.InsertAsync(item);
+        await LoadDataAsync();
+        RenderPage();
+    }
+
+    private async Task OnAddChildItemAsync(BackupFileItem parentItem, BackupFile rootFile)
+    {
+        string? name = await DisplayPromptAsync("Add Sub-item", $"Name under '{parentItem.Name}':");
+        if (string.IsNullOrWhiteSpace(name)) return;
+        var conn = await _db.GetConnectionAsync();
+        await conn.InsertAsync(new BackupFileItem
+        {
+            Username = _auth.CurrentUsername,
+            ParentFileId = rootFile.Id,
+            ParentItemId = parentItem.Id,
+            Name = name.Trim(),
+            LocationIds = parentItem.LocationIds,
+            Notes = ""
+        });
         await LoadDataAsync();
         RenderPage();
     }
@@ -502,13 +541,13 @@ public class BackupLocationsPage : ContentPage
         if (depthChoice == null || depthChoice == "Cancel") return;
         bool allLevels = depthChoice == "All levels";
 
-        IEnumerable<string> subfolders;
+        List<string> folders;
         try
         {
-            if (allLevels)
-                subfolders = Directory.EnumerateDirectories(folderPath, "*", SearchOption.AllDirectories);
-            else
-                subfolders = Directory.EnumerateDirectories(folderPath, "*", SearchOption.TopDirectoryOnly);
+            folders = Directory.EnumerateDirectories(
+                folderPath,
+                "*",
+                allLevels ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).ToList();
         }
         catch (Exception ex)
         {
@@ -516,7 +555,6 @@ public class BackupLocationsPage : ContentPage
             return;
         }
 
-        var folders = subfolders.ToList();
         if (folders.Count == 0)
         {
             await DisplayAlert("No Subfolders", "No subfolders found in that path.", "OK");
@@ -530,22 +568,34 @@ public class BackupLocationsPage : ContentPage
         var existingItems = await conn.Table<BackupFileItem>()
             .Where(i => i.ParentFileId == file.Id)
             .ToListAsync();
-        var existingNames = existingItems.Select(i => i.Name).ToHashSet();
-
-        int added = 0;
-        foreach (var folder in folders)
+        int added;
+        if (allLevels)
         {
-            string name = System.IO.Path.GetFileName(folder);
-            if (existingNames.Contains(name)) continue;
-            await conn.InsertAsync(new BackupFileItem
+            added = await AddFoldersRecursiveAsync(
+                conn, folderPath, file.Id, null, file.LocationIds, existingItems);
+        }
+        else
+        {
+            var existingNames = existingItems
+                .Where(i => i.ParentItemId == null)
+                .Select(i => i.Name)
+                .ToHashSet();
+            added = 0;
+            foreach (var folder in folders)
             {
-                Username = _auth.CurrentUsername,
-                ParentFileId = file.Id,
-                Name = name,
-                LocationIds = file.LocationIds,
-                Notes = ""
-            });
-            added++;
+                string name = System.IO.Path.GetFileName(folder);
+                if (existingNames.Contains(name)) continue;
+                await conn.InsertAsync(new BackupFileItem
+                {
+                    Username = _auth.CurrentUsername,
+                    ParentFileId = file.Id,
+                    ParentItemId = null,
+                    Name = name,
+                    LocationIds = file.LocationIds,
+                    Notes = ""
+                });
+                added++;
+            }
         }
 
         await DisplayAlert("Done", $"Added {added} new sub-item(s).", "OK");
@@ -553,19 +603,28 @@ public class BackupLocationsPage : ContentPage
         RenderPage();
     }
 
-    private async Task OnScanSubItemSubfoldersAsync(BackupFileItem item, BackupFile parent)
+    private async Task OnScanItemSubfoldersAsync(BackupFileItem item, BackupFile rootFile)
     {
-        string parentPath = parent.Path?.Trim() ?? "";
-        if (string.IsNullOrWhiteSpace(parentPath))
+        // Build the item's full path by walking up the tree
+        string itemPath = item.Name;
+        var current = item;
+        while (current.ParentItemId != null)
         {
-            await DisplayAlert("No Path", $"Parent '{parent.Name}' has no folder path set. Edit it and set a path first.", "OK");
+            var parentItem = _items.FirstOrDefault(i => i.Id == current.ParentItemId);
+            if (parentItem == null) break;
+            itemPath = System.IO.Path.Combine(parentItem.Name, itemPath);
+            current = parentItem;
+        }
+        string fullPath = System.IO.Path.Combine(rootFile.Path?.Trim() ?? "", itemPath);
+
+        if (string.IsNullOrWhiteSpace(rootFile.Path))
+        {
+            await DisplayAlert("No Path", $"Root file '{rootFile.Name}' has no folder path set.", "OK");
             return;
         }
-
-        string subPath = System.IO.Path.Combine(parentPath, item.Name);
-        if (!Directory.Exists(subPath))
+        if (!Directory.Exists(fullPath))
         {
-            await DisplayAlert("Not Found", $"Folder not found: {subPath}", "OK");
+            await DisplayAlert("Not Found", $"Folder not found:\n{fullPath}", "OK");
             return;
         }
 
@@ -573,55 +632,119 @@ public class BackupLocationsPage : ContentPage
         if (depthChoice == null || depthChoice == "Cancel") return;
         bool allLevels = depthChoice == "All levels";
 
-        IEnumerable<string> subfolders;
+        List<string> folders;
         try
         {
-            if (allLevels)
-                subfolders = Directory.EnumerateDirectories(subPath, "*", SearchOption.AllDirectories);
-            else
-                subfolders = Directory.EnumerateDirectories(subPath, "*", SearchOption.TopDirectoryOnly);
+            folders = Directory.EnumerateDirectories(fullPath, "*",
+                allLevels ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).ToList();
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Could not scan folder: {ex.Message}", "OK");
+            await DisplayAlert("Error", $"Could not scan: {ex.Message}", "OK");
             return;
         }
 
-        var folders = subfolders.ToList();
         if (folders.Count == 0)
         {
-            await DisplayAlert("No Subfolders", $"No subfolders found in {subPath}.", "OK");
+            await DisplayAlert("No Subfolders", $"No subfolders found in:\n{fullPath}", "OK");
             return;
         }
 
-        bool confirm = await DisplayAlert("Add Subfolders", $"Add {folders.Count} subfolder(s) as sub-items under '{parent.Name}'?", "Add", "Cancel");
+        bool confirm = await DisplayAlert("Add Subfolders", $"Add {folders.Count} subfolder(s) under '{item.Name}'?", "Add", "Cancel");
         if (!confirm) return;
 
         var conn = await _db.GetConnectionAsync();
         var existingItems = await conn.Table<BackupFileItem>()
-            .Where(i => i.ParentFileId == parent.Id)
+            .Where(i => i.ParentFileId == rootFile.Id)
             .ToListAsync();
-        var existingNames = existingItems.Select(i => i.Name).ToHashSet();
 
-        int added = 0;
-        foreach (var folder in folders)
+        int added;
+        if (allLevels)
         {
-            string name = System.IO.Path.GetFileName(folder);
-            if (existingNames.Contains(name)) continue;
-            await conn.InsertAsync(new BackupFileItem
+            // Build recursively, preserving tree structure
+            added = await AddFoldersRecursiveAsync(
+                conn, fullPath, rootFile.Id, item.Id, item.LocationIds, existingItems);
+        }
+        else
+        {
+            var existingNames = existingItems
+                .Where(i => i.ParentItemId == item.Id)
+                .Select(i => i.Name).ToHashSet();
+            added = 0;
+            foreach (var folder in folders)
             {
-                Username = _auth.CurrentUsername,
-                ParentFileId = parent.Id,
-                Name = name,
-                LocationIds = parent.LocationIds,
-                Notes = ""
-            });
-            added++;
+                string name = System.IO.Path.GetFileName(folder);
+                if (existingNames.Contains(name)) continue;
+                await conn.InsertAsync(new BackupFileItem
+                {
+                    Username = _auth.CurrentUsername,
+                    ParentFileId = rootFile.Id,
+                    ParentItemId = item.Id,
+                    Name = name,
+                    LocationIds = item.LocationIds,
+                    Notes = ""
+                });
+                added++;
+            }
         }
 
         await DisplayAlert("Done", $"Added {added} new sub-item(s).", "OK");
         await LoadDataAsync();
         RenderPage();
+    }
+
+    private async Task<int> AddFoldersRecursiveAsync(
+        SQLite.ISQLiteAsyncConnection conn,
+        string basePath,
+        int rootFileId,
+        int? parentItemId,
+        string locationIds,
+        List<BackupFileItem> existingItems)
+    {
+        List<string> subfolders;
+        try
+        {
+            subfolders = Directory.EnumerateDirectories(
+                basePath, "*", SearchOption.TopDirectoryOnly).ToList();
+        }
+        catch
+        {
+            return 0;
+        }
+
+        int added = 0;
+        foreach (var folder in subfolders)
+        {
+            string name = System.IO.Path.GetFileName(folder);
+            var existing = existingItems.FirstOrDefault(
+                i => i.ParentItemId == parentItemId && i.Name == name);
+            int itemId;
+            if (existing != null)
+            {
+                itemId = existing.Id;
+            }
+            else
+            {
+                var newItem = new BackupFileItem
+                {
+                    Username = _auth.CurrentUsername,
+                    ParentFileId = rootFileId,
+                    ParentItemId = parentItemId,
+                    Name = name,
+                    LocationIds = locationIds,
+                    Notes = ""
+                };
+                await conn.InsertAsync(newItem);
+                existingItems.Add(newItem);
+                itemId = newItem.Id;
+                added++;
+            }
+
+            added += await AddFoldersRecursiveAsync(
+                conn, folder, rootFileId, itemId, locationIds, existingItems);
+        }
+
+        return added;
     }
 
     private async Task OnEditSubItemAsync(BackupFileItem item)
