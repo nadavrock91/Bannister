@@ -132,73 +132,10 @@ public class BackupLocationsPage : ContentPage
             return;
         }
 
-        // Group files by category
-        var categories = _files
-            .GroupBy(f => string.IsNullOrWhiteSpace(f.Category) ? "Uncategorised" : f.Category)
-            .OrderBy(g => g.Key)
-            .ToList();
-
-        foreach (var group in categories)
+        foreach (var file in _files)
         {
-            var filesInGroup = group.ToList();
-
-            // Compute inconsistency: majority location set vs each file
-            var locationSets = filesInGroup
-                .Select(f => f.LocationIds)
-                .GroupBy(ids => ids)
-                .OrderByDescending(g => g.Count())
-                .ToList();
-            string majoritySet = locationSets.First().Key;
-            int inconsistentCount = filesInGroup.Count(f => f.LocationIds != majoritySet);
-
-            // Category header
-            var catHeader = new Grid
-            {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Auto }
-                },
-                ColumnSpacing = 8,
-                Margin = new Thickness(0, 8, 0, 4)
-            };
-
-            string inconsistentText = inconsistentCount > 0
-                ? $"  ⚠️ {inconsistentCount} inconsistent"
-                : "  ✓ all consistent";
-            Color inconsistentColor = inconsistentCount > 0
-                ? Color.FromArgb("#E65100")
-                : Color.FromArgb("#2E7D32");
-
-            var catLabel = new Label
-            {
-                Text = $"▼ {group.Key} ({filesInGroup.Count} files)",
-                FontSize = 15,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#263238"),
-                VerticalOptions = LayoutOptions.Center
-            };
-            Grid.SetColumn(catLabel, 0);
-            catHeader.Children.Add(catLabel);
-
-            var inconsistentLabel = new Label
-            {
-                Text = inconsistentText,
-                FontSize = 12,
-                TextColor = inconsistentColor,
-                VerticalOptions = LayoutOptions.Center
-            };
-            Grid.SetColumn(inconsistentLabel, 1);
-            catHeader.Children.Add(inconsistentLabel);
-
-            _mainStack.Children.Add(catHeader);
-
-            // File cards
-            foreach (var file in filesInGroup)
-            {
-                var card = BuildFileCard(file);
-                _mainStack.Children.Add(card);
-            }
+            var card = BuildFileCard(file);
+            _mainStack.Children.Add(card);
         }
     }
 
@@ -576,15 +513,11 @@ public class BackupLocationsPage : ContentPage
         string? name = await DisplayPromptAsync("Add File", "File name (e.g. Brand Kit v3.psd):");
         if (string.IsNullOrWhiteSpace(name)) return;
 
-        string? category = await DisplayPromptAsync("Add File", "Category (e.g. Design, Music, Code):");
-        string? notes = await DisplayPromptAsync("Add File", "Notes (optional):");
-
         var file = new BackupFile
         {
             Username = _auth.CurrentUsername,
             Name = name.Trim(),
-            Category = category?.Trim() ?? "",
-            Notes = notes?.Trim() ?? "",
+            Category = "",
             LocationIds = ""
         };
         var conn = await _db.GetConnectionAsync();
