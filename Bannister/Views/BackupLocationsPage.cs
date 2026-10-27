@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using CommunityToolkit.Maui.Storage;
 
 namespace Bannister.Views;
 
@@ -37,6 +38,18 @@ public class BackupLocationsPage : ContentPage
             Spacing = 16
         };
         Content = new ScrollView { Content = _mainStack };
+    }
+
+    private async Task<string?> PickFolderAsync()
+    {
+        try
+        {
+            var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
+            if (result.IsSuccessful)
+                return result.Folder.Path;
+        }
+        catch { }
+        return null;
     }
 
     private async Task LoadDataAsync()
@@ -634,13 +647,15 @@ public class BackupLocationsPage : ContentPage
         }
         string? name = await DisplayPromptAsync("Add File", "File name (e.g. Brand Kit v3.psd):");
         if (string.IsNullOrWhiteSpace(name)) return;
-        string? path = await DisplayPromptAsync("Add File", "Folder path (optional, used for subfolder scan):", initialValue: "");
+        string? path = await PickFolderAsync();
+        if (path == null)
+            path = await DisplayPromptAsync("Add File", "Folder path (optional):", initialValue: "") ?? "";
 
         var file = new BackupFile
         {
             Username = _auth.CurrentUsername,
             Name = name.Trim(),
-            Path = path?.Trim() ?? "",
+            Path = path.Trim(),
             Category = "",
             LocationIds = ""
         };
@@ -659,8 +674,9 @@ public class BackupLocationsPage : ContentPage
     {
         string? name = await DisplayPromptAsync("Edit File", "File name:", initialValue: file.Name);
         if (name == null) return;
-        string? path = await DisplayPromptAsync("Edit File", "Folder path:", initialValue: file.Path ?? "");
-        if (path == null) return;
+        string? path = await PickFolderAsync();
+        if (path == null)
+            path = await DisplayPromptAsync("Edit File", "Folder path:", initialValue: file.Path ?? "") ?? file.Path ?? "";
         string? category = await DisplayPromptAsync("Edit File", "Category:", initialValue: file.Category);
         if (category == null) return;
         string? notes = await DisplayPromptAsync("Edit File", "Notes:", initialValue: file.Notes);
