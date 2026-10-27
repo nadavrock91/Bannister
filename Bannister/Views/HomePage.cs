@@ -1105,6 +1105,13 @@ public class HomePage : ContentPage
                         "Page Visibility",
                         "You can change page visibility anytime in Settings → Page Visibility",
                         "OK");
+                    bool goToDiet = await DisplayAlert(
+                        "Get Started",
+                        "A Diet game has been created for you. Want to go in now?",
+                        "Go to Diet",
+                        "Skip");
+                    if (goToDiet)
+                        await NavigateToGameWithCatchUpAsync("diet");
                 }
             }
 
