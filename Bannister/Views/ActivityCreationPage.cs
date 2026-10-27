@@ -60,6 +60,8 @@ public class ActivityCreationPage : ContentPage
     private CheckBox imageOnlyCheck;
     private CheckBox chkStreakTracked;
     private Entry txtStreakTargetDays;
+    private Entry txtStreakTotalDaysCap = null!;
+    private Entry txtStreakCapReachedNote = null!;
     private CheckBox chkIsPossible;
     private CheckBox chkIsToBeTested;
     private Entry txtManualPriority;
@@ -294,6 +296,8 @@ public class ActivityCreationPage : ContentPage
                 {
                     chkStreakTracked.IsChecked = true;
                     txtStreakTargetDays.IsEnabled = true;
+                    txtStreakTotalDaysCap.IsEnabled = true;
+                    txtStreakCapReachedNote.IsEnabled = true;
                     if (_prefillStreakTargetDays.HasValue)
                         txtStreakTargetDays.Text = _prefillStreakTargetDays.Value.ToString();
                 }
@@ -768,7 +772,12 @@ public class ActivityCreationPage : ContentPage
         
         var streakRow = new HorizontalStackLayout { Spacing = 12 };
         chkStreakTracked = new CheckBox();
-        chkStreakTracked.CheckedChanged += (s, e) => txtStreakTargetDays.IsEnabled = e.Value;
+        chkStreakTracked.CheckedChanged += (s, e) =>
+        {
+            txtStreakTargetDays.IsEnabled = e.Value;
+            txtStreakTotalDaysCap.IsEnabled = e.Value;
+            txtStreakCapReachedNote.IsEnabled = e.Value;
+        };
         streakRow.Children.Add(chkStreakTracked);
         streakRow.Children.Add(new Label
         {
@@ -799,6 +808,45 @@ public class ActivityCreationPage : ContentPage
             FontSize = 12
         });
         streakSection.Children.Add(streakTargetRow);
+
+        // "Enough is enough" cap row
+        var capRow = new HorizontalStackLayout { Spacing = 12 };
+        capRow.Children.Add(new Label
+        {
+            Text = "Enough is enough after:",
+            VerticalOptions = LayoutOptions.Center
+        });
+        txtStreakTotalDaysCap = new Entry
+        {
+            Text = "365",
+            Keyboard = Keyboard.Numeric,
+            WidthRequest = 100,
+            IsEnabled = false
+        };
+        capRow.Children.Add(txtStreakTotalDaysCap);
+        capRow.Children.Add(new Label
+        {
+            Text = "total days (0 = off)",
+            VerticalOptions = LayoutOptions.Center,
+            TextColor = Color.FromArgb("#666"),
+            FontSize = 12
+        });
+        streakSection.Children.Add(capRow);
+
+        // "What to do" note row
+        streakSection.Children.Add(new Label
+        {
+            Text = "What to do when reached:",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            Margin = new Thickness(0, 4, 0, 0)
+        });
+        txtStreakCapReachedNote = new Entry
+        {
+            Placeholder = "e.g. Take a break, reassess goals…",
+            IsEnabled = false
+        };
+        streakSection.Children.Add(txtStreakCapReachedNote);
         
         streakSection.Children.Add(new Label
         {
@@ -1449,6 +1497,8 @@ public class ActivityCreationPage : ContentPage
                 VisibilityMigrated = true,
                 IsStreakTracked = chkStreakTracked.IsChecked,
                 StreakTargetDays = isStreakContainer ? streakTargetDays : 365,
+                StreakTotalDaysCap = int.TryParse(txtStreakTotalDaysCap.Text, out int cap) ? Math.Max(0, cap) : 0,
+                StreakCapReachedNote = txtStreakCapReachedNote.Text?.Trim() ?? "",
                 IsStreakContainer = isStreakContainer,
                 IsPossible = chkIsPossible.IsChecked,
                 IsToBeTested = chkIsToBeTested.IsChecked,

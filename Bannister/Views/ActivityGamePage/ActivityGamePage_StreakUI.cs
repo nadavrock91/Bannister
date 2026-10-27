@@ -153,7 +153,7 @@ public partial class ActivityGamePage
         {
             var capNoteLabel = new Label
             {
-                Text = $" {streakActivity.StreakCapReachedNote}",
+                Text = $" Enough is enough — {streakActivity.StreakCapReachedNote}",
                 FontSize = 11,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Colors.White,
@@ -219,7 +219,6 @@ public partial class ActivityGamePage
             null,
             "🔄 Convert to Normal Activity",
             "📊 View Streak History",
-            "⏱ Set Cap & Note",
             "✏️ Edit Activity");
 
         if (string.IsNullOrEmpty(action) || action == "Cancel") return;
@@ -231,30 +230,6 @@ public partial class ActivityGamePage
         else if (action.Contains("View Streak History"))
         {
             await Shell.Current.GoToAsync($"streakHistory?activityId={streakActivity.Id}");
-        }
-        else if (action.Contains("Set Cap & Note"))
-        {
-            string capStr = await DisplayPromptAsync(
-                "Enough Is Enough",
-                "Total days across all attempts after which the banner turns red (0 = off):",
-                initialValue: streakActivity.StreakTotalDaysCap.ToString(),
-                keyboard: Keyboard.Numeric);
-
-            if (capStr == null) return;
-
-            if (!int.TryParse(capStr, out int newCap) || newCap < 0) newCap = 0;
-
-            string note = await DisplayPromptAsync(
-                "Cap Reached Note",
-                "What to do / message to show when cap is reached (leave blank to clear):",
-                initialValue: streakActivity.StreakCapReachedNote);
-
-            if (note == null) return;
-
-            streakActivity.StreakTotalDaysCap = newCap;
-            streakActivity.StreakCapReachedNote = note.Trim();
-            await _activities.UpdateActivityAsync(streakActivity);
-            await RefreshActivitiesAsync();
         }
         else if (action.Contains("Edit Activity"))
         {
