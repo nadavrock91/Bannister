@@ -135,6 +135,7 @@ public class HomePage : ContentPage
     private Button _btnSettings;
     private Button _btnAudioLibrary;
     private Button _btnMoneyManagement;
+    private Button _btnOrganization = null!;
     private Button _btnLists;
     private Button _displayModeBtn = null!;
     private Button _btnJournal = null!;
@@ -511,6 +512,10 @@ public class HomePage : ContentPage
         _btnMusicProduction = CreateButton("Music Production", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3949AB"));
         _btnMusicProduction.Clicked += OnMusicProductionClicked;
         navButtons.Add(("Music Production", _btnMusicProduction));
+
+        _btnOrganization = CreateButton("️ Organization", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _btnOrganization.Clicked += OnOrganizationClicked;
+        navButtons.Add(("Organization", _btnOrganization));
 
         _btnPrompts = CreateButton("✨ Prompts", Color.FromArgb("#F3E5F5"), Color.FromArgb("#7B1FA2"));
         _btnPrompts.Clicked += OnPromptsClicked;
@@ -1011,6 +1016,7 @@ public class HomePage : ContentPage
             "Life Paths" => OnLifePathsClicked,
             "Money Management" => OnMoneyManagementClicked,
             "Music Production" => OnMusicProductionClicked,
+            "Organization" => OnOrganizationClicked,
             "Prompts" => OnPromptsClicked,
             "Settings" => OnSettingsClicked,
             "Stats Tracker" => OnStatsTrackerClicked,
@@ -3062,6 +3068,11 @@ public class HomePage : ContentPage
     private async void OnDatabasesClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("databases");
+    }
+
+    private async void OnOrganizationClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new OrganizationPage(_db, _auth));
     }
 
     private async void OnAllowancesClicked(object? sender, EventArgs e)

@@ -13,6 +13,7 @@ public class HomeButtonVisibilityService
             "Calendar",
             "Dates Competition",
             "Games",
+            "Organization",
             "Settings",
             "Video Editing"
         };
