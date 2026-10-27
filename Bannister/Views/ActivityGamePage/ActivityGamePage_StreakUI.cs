@@ -139,8 +139,15 @@ public partial class ActivityGamePage
         }
 
         // "Enough is enough" cap reached note
-        int totalDaysAchieved = attempts.Sum(a => a.DaysAchieved);
-        bool capReached = streakActivity.StreakTotalDaysCap > 0 && totalDaysAchieved >= streakActivity.StreakTotalDaysCap;
+        var firstStartAt = attempts
+            .Where(a => a.StartedAt.HasValue)
+            .Select(a => a.StartedAt!.Value)
+            .OrderBy(d => d)
+            .FirstOrDefault();
+        int totalCalendarDaysSinceFirst = firstStartAt != default
+            ? (int)(DateTime.UtcNow.Date - firstStartAt.ToUniversalTime().Date).TotalDays
+            : 0;
+        bool capReached = streakActivity.StreakTotalDaysCap > 0 && totalCalendarDaysSinceFirst >= streakActivity.StreakTotalDaysCap;
 
         if (capReached && !string.IsNullOrWhiteSpace(streakActivity.StreakCapReachedNote))
         {
@@ -159,7 +166,7 @@ public partial class ActivityGamePage
         if (capReached)
         {
             headerFrame.BorderColor = Color.FromArgb("#C62828");
-            headerFrame.BackgroundColor = Color.FromArgb("#FFEBEE");
+            headerFrame.BackgroundColor = Color.FromArgb("#C62828");
         }
         
         Grid.SetColumn(infoStack, 1);
@@ -919,8 +926,15 @@ public partial class ActivityGamePage
         
         Grid? currentRow = null;
         int columnIndex = 0;
-        int totalDaysAchieved = attempts.Sum(a => a.DaysAchieved);
-        bool capReached = streakContainer.StreakTotalDaysCap > 0 && totalDaysAchieved >= streakContainer.StreakTotalDaysCap;
+        var firstStartAt = attempts
+            .Where(a => a.StartedAt.HasValue)
+            .Select(a => a.StartedAt!.Value)
+            .OrderBy(d => d)
+            .FirstOrDefault();
+        int totalCalendarDaysSinceFirst = firstStartAt != default
+            ? (int)(DateTime.UtcNow.Date - firstStartAt.ToUniversalTime().Date).TotalDays
+            : 0;
+        bool capReached = streakContainer.StreakTotalDaysCap > 0 && totalCalendarDaysSinceFirst >= streakContainer.StreakTotalDaysCap;
         
         foreach (var attemptVM in attemptVMs)
         {
