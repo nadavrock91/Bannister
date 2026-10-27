@@ -131,7 +131,8 @@ public partial class ActivityGamePage
             var totalTimeLabel = new Label
             {
                 Text = $"⏱ Running {totalCalendarDays}d total since first attempt",
-                FontSize = 10,
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#BF360C")
             };
             infoStack.Children.Add(totalTimeLabel);
