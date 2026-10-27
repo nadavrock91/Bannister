@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using CommunityToolkit.Maui.Storage;
 
 namespace Bannister.Views;
 
@@ -8,6 +9,7 @@ public class RclonePresetsPage : ContentPage
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
     private List<RclonePreset> _presets = new();
+    private List<BackupLocation> _backupLocations = new();
     private VerticalStackLayout _mainStack = null!;
 
     public RclonePresetsPage(DatabaseService db, AuthService auth)
@@ -32,6 +34,18 @@ public class RclonePresetsPage : ContentPage
         Content = new ScrollView { Content = _mainStack };
     }
 
+    private async Task<string?> PickFolderAsync()
+    {
+        try
+        {
+            var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
+            if (result.IsSuccessful)
+                return result.Folder.Path;
+        }
+        catch { }
+        return null;
+    }
+
     private async Task LoadAsync()
     {
         var conn = await _db.GetConnectionAsync();
@@ -39,6 +53,37 @@ public class RclonePresetsPage : ContentPage
             .Where(p => p.Username == _auth.CurrentUsername)
             .OrderBy(p => p.Title)
             .ToListAsync();
+        var allLocations = await conn.Table<BackupLocation>()
+            .Where(l => l.Username == _auth.CurrentUsername)
+            .OrderBy(l => l.Name)
+            .ToListAsync();
+        _backupLocations = allLocations;
+    }
+
+    private async Task<string?> PickDestinationAsync(string currentValue = "")
+    {
+        var locationsWithRemote = _backupLocations
+            .Where(l => !string.IsNullOrWhiteSpace(l.RcloneRemote))
+            .ToList();
+
+        var options = locationsWithRemote.Select(l => $"{l.Name} ({l.RcloneRemote}:)").ToList();
+        options.Add("✏️ Custom");
+
+        string? choice = await DisplayActionSheet("Destination", "Cancel", null, options.ToArray());
+        if (choice == null || choice == "Cancel") return null;
+
+        if (choice == "✏️ Custom")
+        {
+            return await DisplayPromptAsync("Destination", "Enter destination (remote:bucket/path):", initialValue: currentValue);
+        }
+
+        var selectedLoc = locationsWithRemote[options.IndexOf(choice)];
+        string? path = await DisplayPromptAsync(
+            $"{selectedLoc.Name} path",
+            $"Bucket/path after '{selectedLoc.RcloneRemote}:' (e.g. my-bucket/folder):",
+            initialValue: "");
+        if (path == null) return null;
+        return $"{selectedLoc.RcloneRemote}:{path.Trim()}";
     }
 
     private void Render()
@@ -214,7 +259,8 @@ public class RclonePresetsPage : ContentPage
         string source = "";
         if (!sourceIsInput)
         {
-            source = await DisplayPromptAsync("Source", "Fixed source path:", initialValue: @"C:\Users\") ?? "";
+            string? picked = await PickFolderAsync();
+            source = picked ?? await DisplayPromptAsync("Source", "Fixed source path:", initialValue: @"C:\Users\") ?? "";
         }
 
         // Destination
@@ -223,7 +269,7 @@ public class RclonePresetsPage : ContentPage
         string destination = "";
         if (!destIsInput)
         {
-            destination = await DisplayPromptAsync("Destination", "Fixed destination (remote:bucket/path):", initialValue: "b3ai:") ?? "";
+            destination = await PickDestinationAsync() ?? "";
         }
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers value:", initialValue: "8", keyboard: Keyboard.Numeric);
@@ -254,14 +300,15 @@ public class RclonePresetsPage : ContentPage
         string source = preset.Source;
         if (preset.SourceIsInput)
         {
-            source = await DisplayPromptAsync("Run Preset", "Source path:", initialValue: @"C:\Users\") ?? "";
+            string? picked = await PickFolderAsync();
+            source = picked ?? await DisplayPromptAsync("Run Preset", "Source path:", initialValue: @"C:\Users\") ?? "";
             if (string.IsNullOrWhiteSpace(source)) return;
         }
 
         string destination = preset.Destination;
         if (preset.DestinationIsInput)
         {
-            destination = await DisplayPromptAsync("Run Preset", "Destination (remote:bucket/path):", initialValue: "b3ai:") ?? "";
+            destination = await PickDestinationAsync() ?? "";
             if (string.IsNullOrWhiteSpace(destination)) return;
         }
 
@@ -279,7 +326,8 @@ public class RclonePresetsPage : ContentPage
         string source = preset.Source;
         if (!sourceIsInput)
         {
-            source = await DisplayPromptAsync("Source", "Fixed source path:", initialValue: preset.Source) ?? preset.Source;
+            string? picked = await PickFolderAsync();
+            source = picked ?? await DisplayPromptAsync("Source", "Fixed source path:", initialValue: preset.Source) ?? preset.Source;
         }
 
         string destInputChoice = await DisplayActionSheet("Destination", "Cancel", null, "Fixed value", "Ask at run time") ?? (preset.DestinationIsInput ? "Ask at run time" : "Fixed value");
@@ -287,7 +335,7 @@ public class RclonePresetsPage : ContentPage
         string destination = preset.Destination;
         if (!destIsInput)
         {
-            destination = await DisplayPromptAsync("Destination", "Fixed destination:", initialValue: preset.Destination) ?? preset.Destination;
+            destination = await PickDestinationAsync(preset.Destination) ?? preset.Destination;
         }
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers:", initialValue: preset.Transfers.ToString(), keyboard: Keyboard.Numeric);

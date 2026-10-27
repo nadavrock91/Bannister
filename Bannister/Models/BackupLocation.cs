@@ -13,5 +13,6 @@ public class BackupLocation
 
     public string Name { get; set; } = "";        // e.g. "Backblaze", "PC", "OneDrive"
     public string Abbreviation { get; set; } = ""; // e.g. "BB", "PC", "OD"
+    public string RcloneRemote { get; set; } = ""; // e.g. "b3ai", "onedrive"
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

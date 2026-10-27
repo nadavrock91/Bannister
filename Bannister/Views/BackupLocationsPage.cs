@@ -471,12 +471,14 @@ public class BackupLocationsPage : ContentPage
             string? name = await DisplayPromptAsync("Add Location", "Name (e.g. Backblaze, OneDrive, PC):");
             if (string.IsNullOrWhiteSpace(name)) return;
             string? abbr = await DisplayPromptAsync("Add Location", "Short abbreviation (e.g. BB, OD, PC):", initialValue: name.Length <= 4 ? name : name[..2].ToUpper());
+            string? remote = await DisplayPromptAsync("Add Location", "Rclone remote name (optional, e.g. b3ai, onedrive):");
             var conn = await _db.GetConnectionAsync();
             await conn.InsertAsync(new BackupLocation
             {
                 Username = _auth.CurrentUsername,
                 Name = name.Trim(),
-                Abbreviation = abbr?.Trim() ?? name.Trim()
+                Abbreviation = abbr?.Trim() ?? name.Trim(),
+                RcloneRemote = remote?.Trim() ?? ""
             });
             await LoadDataAsync();
             RenderPage();
