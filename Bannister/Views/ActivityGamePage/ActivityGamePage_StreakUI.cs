@@ -45,6 +45,16 @@ public partial class ActivityGamePage
             ColumnSpacing = 12
         };
 
+        var firstStartAt = attempts
+            .Where(a => a.StartedAt.HasValue)
+            .Select(a => a.StartedAt!.Value)
+            .OrderBy(d => d)
+            .FirstOrDefault();
+        int totalCalendarDaysSinceFirst = firstStartAt != default
+            ? (int)(DateTime.UtcNow.Date - firstStartAt.ToUniversalTime().Date).TotalDays
+            : 0;
+        bool capReached = streakActivity.StreakTotalDaysCap > 0 && totalCalendarDaysSinceFirst >= streakActivity.StreakTotalDaysCap;
+
         var iconLabel = new Label
         {
             Text = "🔥",
@@ -65,7 +75,7 @@ public partial class ActivityGamePage
             Text = streakActivity.Name.ToUpper(),
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#E65100")
+            TextColor = capReached ? Colors.White : Color.FromArgb("#E65100")
         };
         infoStack.Children.Add(titleLabel);
 
@@ -114,7 +124,7 @@ public partial class ActivityGamePage
         {
             Text = attemptInfo,
             FontSize = 11,
-            TextColor = Color.FromArgb("#BF360C")
+            TextColor = capReached ? Colors.White : Color.FromArgb("#BF360C")
         };
         infoStack.Children.Add(infoLabel);
 
@@ -133,22 +143,12 @@ public partial class ActivityGamePage
                 Text = $"⏱ Running {totalCalendarDays}d total since first attempt",
                 FontSize = 13,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#BF360C")
+                TextColor = capReached ? Colors.White : Color.FromArgb("#BF360C")
             };
             infoStack.Children.Add(totalTimeLabel);
         }
 
         // "Enough is enough" cap reached note
-        var firstStartAt = attempts
-            .Where(a => a.StartedAt.HasValue)
-            .Select(a => a.StartedAt!.Value)
-            .OrderBy(d => d)
-            .FirstOrDefault();
-        int totalCalendarDaysSinceFirst = firstStartAt != default
-            ? (int)(DateTime.UtcNow.Date - firstStartAt.ToUniversalTime().Date).TotalDays
-            : 0;
-        bool capReached = streakActivity.StreakTotalDaysCap > 0 && totalCalendarDaysSinceFirst >= streakActivity.StreakTotalDaysCap;
-
         if (capReached && !string.IsNullOrWhiteSpace(streakActivity.StreakCapReachedNote))
         {
             var capNoteLabel = new Label
