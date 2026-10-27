@@ -465,7 +465,7 @@ public class BackupLocationsPage : ContentPage
 
     private async Task OnManageLocationsAsync()
     {
-        var action = await DisplayActionSheet("Manage Locations", "Cancel", null, "➕ Add Location", "️ Delete a Location");
+        var action = await DisplayActionSheet("Manage Locations", "Cancel", null, "➕ Add Location", "✏️ Rename a Location", "️ Delete a Location");
         if (action == "➕ Add Location")
         {
             string? name = await DisplayPromptAsync("Add Location", "Name (e.g. Backblaze, OneDrive, PC):");
@@ -480,6 +480,28 @@ public class BackupLocationsPage : ContentPage
                 Abbreviation = abbr?.Trim() ?? name.Trim(),
                 RcloneRemote = remote?.Trim() ?? ""
             });
+            await LoadDataAsync();
+            RenderPage();
+        }
+        else if (action == "✏️ Rename a Location")
+        {
+            if (_locations.Count == 0)
+            {
+                await DisplayAlert("No Locations", "There are no locations to rename.", "OK");
+                return;
+            }
+            var options = _locations.Select(l => l.Name).ToArray();
+            string? chosen = await DisplayActionSheet("Rename which location?", "Cancel", null, options);
+            if (chosen == null || chosen == "Cancel") return;
+            var toRename = _locations.FirstOrDefault(l => l.Name == chosen);
+            if (toRename == null) return;
+            string? newName = await DisplayPromptAsync("Rename Location", "New name:", initialValue: toRename.Name);
+            if (string.IsNullOrWhiteSpace(newName)) return;
+            string? newAbbr = await DisplayPromptAsync("Rename Location", "New abbreviation:", initialValue: toRename.Abbreviation);
+            toRename.Name = newName.Trim();
+            toRename.Abbreviation = newAbbr?.Trim() ?? newName.Trim();
+            var conn = await _db.GetConnectionAsync();
+            await conn.UpdateAsync(toRename);
             await LoadDataAsync();
             RenderPage();
         }
