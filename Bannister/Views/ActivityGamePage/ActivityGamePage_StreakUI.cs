@@ -117,6 +117,49 @@ public partial class ActivityGamePage
             TextColor = Color.FromArgb("#BF360C")
         };
         infoStack.Children.Add(infoLabel);
+
+        // Total time since first attempt
+        var firstStartedAt = attempts
+            .Where(a => a.StartedAt.HasValue)
+            .Select(a => a.StartedAt!.Value)
+            .OrderBy(d => d)
+            .FirstOrDefault();
+
+        if (firstStartedAt != default)
+        {
+            int totalCalendarDays = (int)(DateTime.UtcNow.Date - firstStartedAt.ToUniversalTime().Date).TotalDays;
+            var totalTimeLabel = new Label
+            {
+                Text = $"⏱ Running {totalCalendarDays}d total since first attempt",
+                FontSize = 10,
+                TextColor = Color.FromArgb("#BF360C")
+            };
+            infoStack.Children.Add(totalTimeLabel);
+        }
+
+        // "Enough is enough" cap reached note
+        int totalDaysAchieved = attempts.Sum(a => a.DaysAchieved);
+        bool capReached = streakActivity.StreakTotalDaysCap > 0 && totalDaysAchieved >= streakActivity.StreakTotalDaysCap;
+
+        if (capReached && !string.IsNullOrWhiteSpace(streakActivity.StreakCapReachedNote))
+        {
+            var capNoteLabel = new Label
+            {
+                Text = $" {streakActivity.StreakCapReachedNote}",
+                FontSize = 11,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Colors.White,
+                BackgroundColor = Color.FromArgb("#C62828"),
+                Padding = new Thickness(6, 2)
+            };
+            infoStack.Children.Add(capNoteLabel);
+        }
+
+        if (capReached)
+        {
+            headerFrame.BorderColor = Color.FromArgb("#C62828");
+            headerFrame.BackgroundColor = Color.FromArgb("#FFEBEE");
+        }
         
         Grid.SetColumn(infoStack, 1);
         headerGrid.Children.Add(infoStack);
@@ -168,6 +211,7 @@ public partial class ActivityGamePage
             null,
             "🔄 Convert to Normal Activity",
             "📊 View Streak History",
+            "⏱ Set Cap & Note",
             "✏️ Edit Activity");
 
         if (string.IsNullOrEmpty(action) || action == "Cancel") return;
@@ -179,6 +223,30 @@ public partial class ActivityGamePage
         else if (action.Contains("View Streak History"))
         {
             await Shell.Current.GoToAsync($"streakHistory?activityId={streakActivity.Id}");
+        }
+        else if (action.Contains("Set Cap & Note"))
+        {
+            string capStr = await DisplayPromptAsync(
+                "Enough Is Enough",
+                "Total days across all attempts after which the banner turns red (0 = off):",
+                initialValue: streakActivity.StreakTotalDaysCap.ToString(),
+                keyboard: Keyboard.Numeric);
+
+            if (capStr == null) return;
+
+            if (!int.TryParse(capStr, out int newCap) || newCap < 0) newCap = 0;
+
+            string note = await DisplayPromptAsync(
+                "Cap Reached Note",
+                "What to do / message to show when cap is reached (leave blank to clear):",
+                initialValue: streakActivity.StreakCapReachedNote);
+
+            if (note == null) return;
+
+            streakActivity.StreakTotalDaysCap = newCap;
+            streakActivity.StreakCapReachedNote = note.Trim();
+            await _activities.UpdateActivityAsync(streakActivity);
+            await RefreshActivitiesAsync();
         }
         else if (action.Contains("Edit Activity"))
         {

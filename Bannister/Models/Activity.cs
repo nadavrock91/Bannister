@@ -71,6 +71,18 @@ public class Activity
     /// the user is prompted to choose the next target.
     /// </summary>
     public int StreakTargetDays { get; set; } = 365;
+
+    /// <summary>
+    /// "Enough is enough" cap — total days across ALL attempts combined.
+    /// When the sum reaches this, the active attempt card turns red.
+    /// 0 = not set (no cap).
+    /// </summary>
+    public int StreakTotalDaysCap { get; set; } = 0;
+
+    /// <summary>
+    /// What to do when StreakTotalDaysCap is reached. Shown as a banner on the streak container header.
+    /// </summary>
+    public string StreakCapReachedNote { get; set; } = "";
     
     /// <summary>
     /// If true, this activity is a "streak container" - it becomes a category and 
