@@ -12,6 +12,7 @@ public class BackupFile
     public string Username { get; set; } = "";
 
     public string Name { get; set; } = "";         // e.g. "Brand Kit v3.psd"
+    public string Path { get; set; } = "";
     public string Category { get; set; } = "";     // e.g. "Design"
     // Comma-separated list of BackupLocation.Id values where this file IS stored
     public string LocationIds { get; set; } = "";

@@ -184,6 +184,7 @@ public class BackupLocationsPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
             ColumnSpacing = 6
@@ -216,6 +217,22 @@ public class BackupLocationsPage : ContentPage
         Grid.SetColumn(addSubBtn, 1);
         nameRow.Children.Add(addSubBtn);
 
+        var scanBtn = new Button
+        {
+            Text = "",
+            BackgroundColor = Color.FromArgb("#FFF3E0"),
+            TextColor = Color.FromArgb("#E65100"),
+            FontSize = 12,
+            CornerRadius = 6,
+            WidthRequest = 34,
+            HeightRequest = 30,
+            Padding = 0,
+            VerticalOptions = LayoutOptions.Center
+        };
+        scanBtn.Clicked += async (s, e) => await OnScanSubfoldersAsync(file);
+        Grid.SetColumn(scanBtn, 2);
+        nameRow.Children.Add(scanBtn);
+
         var editBtn = new Button
         {
             Text = "✏️",
@@ -229,7 +246,7 @@ public class BackupLocationsPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         editBtn.Clicked += async (s, e) => await OnEditFileAsync(file);
-        Grid.SetColumn(editBtn, 2);
+        Grid.SetColumn(editBtn, 3);
         nameRow.Children.Add(editBtn);
 
         var deleteBtn = new Button
@@ -245,7 +262,7 @@ public class BackupLocationsPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         deleteBtn.Clicked += async (s, e) => await OnDeleteFileAsync(file);
-        Grid.SetColumn(deleteBtn, 3);
+        Grid.SetColumn(deleteBtn, 4);
         nameRow.Children.Add(deleteBtn);
 
         cardStack.Children.Add(nameRow);
@@ -438,6 +455,74 @@ public class BackupLocationsPage : ContentPage
         RenderPage();
     }
 
+    private async Task OnScanSubfoldersAsync(BackupFile file)
+    {
+        string folderPath = file.Path?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(folderPath))
+        {
+            string? picked = await DisplayPromptAsync("Scan Subfolders", "No path set for this file. Enter folder path to scan:");
+            if (string.IsNullOrWhiteSpace(picked)) return;
+            folderPath = picked.Trim();
+            file.Path = folderPath;
+            var conn2 = await _db.GetConnectionAsync();
+            await conn2.UpdateAsync(file);
+        }
+
+        string? depthChoice = await DisplayActionSheet("Scan depth", "Cancel", null, "1 level down", "All levels");
+        if (depthChoice == null || depthChoice == "Cancel") return;
+        bool allLevels = depthChoice == "All levels";
+
+        IEnumerable<string> subfolders;
+        try
+        {
+            if (allLevels)
+                subfolders = Directory.EnumerateDirectories(folderPath, "*", SearchOption.AllDirectories);
+            else
+                subfolders = Directory.EnumerateDirectories(folderPath, "*", SearchOption.TopDirectoryOnly);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Could not scan folder: {ex.Message}", "OK");
+            return;
+        }
+
+        var folders = subfolders.ToList();
+        if (folders.Count == 0)
+        {
+            await DisplayAlert("No Subfolders", "No subfolders found in that path.", "OK");
+            return;
+        }
+
+        bool confirm = await DisplayAlert("Add Subfolders", $"Add {folders.Count} subfolder(s) as sub-items under '{file.Name}'?", "Add", "Cancel");
+        if (!confirm) return;
+
+        var conn = await _db.GetConnectionAsync();
+        var existingItems = await conn.Table<BackupFileItem>()
+            .Where(i => i.ParentFileId == file.Id)
+            .ToListAsync();
+        var existingNames = existingItems.Select(i => i.Name).ToHashSet();
+
+        int added = 0;
+        foreach (var folder in folders)
+        {
+            string name = System.IO.Path.GetFileName(folder);
+            if (existingNames.Contains(name)) continue;
+            await conn.InsertAsync(new BackupFileItem
+            {
+                Username = _auth.CurrentUsername,
+                ParentFileId = file.Id,
+                Name = name,
+                LocationIds = file.LocationIds,
+                Notes = ""
+            });
+            added++;
+        }
+
+        await DisplayAlert("Done", $"Added {added} new sub-item(s).", "OK");
+        await LoadDataAsync();
+        RenderPage();
+    }
+
     private async Task OnEditSubItemAsync(BackupFileItem item)
     {
         string? name = await DisplayPromptAsync("Edit Sub-item", "Name:", initialValue: item.Name);
@@ -549,11 +634,13 @@ public class BackupLocationsPage : ContentPage
         }
         string? name = await DisplayPromptAsync("Add File", "File name (e.g. Brand Kit v3.psd):");
         if (string.IsNullOrWhiteSpace(name)) return;
+        string? path = await DisplayPromptAsync("Add File", "Folder path (optional, used for subfolder scan):", initialValue: "");
 
         var file = new BackupFile
         {
             Username = _auth.CurrentUsername,
             Name = name.Trim(),
+            Path = path?.Trim() ?? "",
             Category = "",
             LocationIds = ""
         };
@@ -572,12 +659,15 @@ public class BackupLocationsPage : ContentPage
     {
         string? name = await DisplayPromptAsync("Edit File", "File name:", initialValue: file.Name);
         if (name == null) return;
+        string? path = await DisplayPromptAsync("Edit File", "Folder path:", initialValue: file.Path ?? "");
+        if (path == null) return;
         string? category = await DisplayPromptAsync("Edit File", "Category:", initialValue: file.Category);
         if (category == null) return;
         string? notes = await DisplayPromptAsync("Edit File", "Notes:", initialValue: file.Notes);
         if (notes == null) return;
 
         file.Name = name.Trim();
+        file.Path = path.Trim();
         file.Category = category.Trim();
         file.Notes = notes.Trim();
         var conn = await _db.GetConnectionAsync();
