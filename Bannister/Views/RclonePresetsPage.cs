@@ -398,41 +398,44 @@ public class RclonePresetsPage : ContentPage
 
         string command = $"rclone copy \"{source.Trim()}\" {destination.Trim()} --transfers={preset.Transfers} --checkers={preset.Checkers} --progress";
 
-        // Show command in a page with a Copy button
-        var page = new ContentPage
+        // Show inline dialog overlay
+        var overlay = new Grid
         {
-            Title = "Rclone Command",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            Padding = new Thickness(20)
+            BackgroundColor = Color.FromArgb("#99000000"),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+
+        var card = new Frame
+        {
+            Padding = new Thickness(20),
+            CornerRadius = 10,
+            BackgroundColor = Colors.White,
+            HasShadow = true,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(24)
         };
 
         var commandLabel = new Label
         {
             Text = command,
-            FontFamily = "Courier New",
-            FontSize = 13,
+            FontSize = 12,
             TextColor = Color.FromArgb("#263238"),
             BackgroundColor = Color.FromArgb("#ECEFF1"),
-            Padding = new Thickness(12),
+            Padding = new Thickness(10),
             LineBreakMode = LineBreakMode.WordWrap
         };
 
         var copyBtn = new Button
         {
-            Text = " Copy to Clipboard",
+            Text = " Copy",
             BackgroundColor = Color.FromArgb("#1565C0"),
             TextColor = Colors.White,
             CornerRadius = 8,
-            HeightRequest = 44,
-            FontSize = 14,
-            Margin = new Thickness(0, 16, 0, 0)
-        };
-        copyBtn.Clicked += async (s, e) =>
-        {
-            await Clipboard.Default.SetTextAsync(command);
-            copyBtn.Text = "✅ Copied!";
-            await Task.Delay(1500);
-            copyBtn.Text = " Copy to Clipboard";
+            HeightRequest = 40,
+            FontSize = 13,
+            HorizontalOptions = LayoutOptions.Start
         };
 
         var closeBtn = new Button
@@ -441,28 +444,60 @@ public class RclonePresetsPage : ContentPage
             BackgroundColor = Color.FromArgb("#ECEFF1"),
             TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
-            HeightRequest = 44,
-            FontSize = 14,
-            Margin = new Thickness(0, 8, 0, 0)
+            HeightRequest = 40,
+            FontSize = 13,
+            HorizontalOptions = LayoutOptions.End
         };
-        closeBtn.Clicked += async (s, e) => await Navigation.PopAsync();
 
-        page.Content = new ScrollView
+        var btnRow = new Grid
         {
-            Content = new VerticalStackLayout
+            ColumnDefinitions =
             {
-                Spacing = 8,
-                Children =
-                {
-                    new Label { Text = "Rclone Command", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#263238") },
-                    commandLabel,
-                    copyBtn,
-                    closeBtn
-                }
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 10,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        Grid.SetColumn(copyBtn, 0);
+        Grid.SetColumn(closeBtn, 1);
+        btnRow.Children.Add(copyBtn);
+        btnRow.Children.Add(closeBtn);
+
+        card.Content = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                new Label { Text = "Rclone Command", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#263238") },
+                commandLabel,
+                btnRow
             }
         };
 
-        await Navigation.PushAsync(page);
+        overlay.Children.Add(card);
+
+        // Add overlay to page content
+        var originalContent = Content;
+        Content = null;
+        var rootGrid = new Grid();
+        rootGrid.Children.Add(originalContent);
+        rootGrid.Children.Add(overlay);
+        Content = rootGrid;
+
+        copyBtn.Clicked += async (s, e) =>
+        {
+            await Clipboard.Default.SetTextAsync(command);
+            copyBtn.Text = "✅ Copied!";
+            await Task.Delay(1500);
+            copyBtn.Text = " Copy";
+        };
+
+        closeBtn.Clicked += (s, e) =>
+        {
+            rootGrid.Children.Remove(originalContent);
+            Content = originalContent;
+        };
     }
 
     private async Task OnEditPresetAsync(RclonePreset preset)
