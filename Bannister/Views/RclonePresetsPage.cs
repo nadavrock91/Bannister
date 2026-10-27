@@ -397,7 +397,72 @@ public class RclonePresetsPage : ContentPage
         }
 
         string command = $"rclone copy \"{source.Trim()}\" {destination.Trim()} --transfers={preset.Transfers} --checkers={preset.Checkers} --progress";
-        await DisplayAlert("Rclone Command", command, "OK");
+
+        // Show command in a page with a Copy button
+        var page = new ContentPage
+        {
+            Title = "Rclone Command",
+            BackgroundColor = Color.FromArgb("#F5F5F5"),
+            Padding = new Thickness(20)
+        };
+
+        var commandLabel = new Label
+        {
+            Text = command,
+            FontFamily = "Courier New",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#263238"),
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            Padding = new Thickness(12),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+
+        var copyBtn = new Button
+        {
+            Text = " Copy to Clipboard",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 14,
+            Margin = new Thickness(0, 16, 0, 0)
+        };
+        copyBtn.Clicked += async (s, e) =>
+        {
+            await Clipboard.Default.SetTextAsync(command);
+            copyBtn.Text = "✅ Copied!";
+            await Task.Delay(1500);
+            copyBtn.Text = " Copy to Clipboard";
+        };
+
+        var closeBtn = new Button
+        {
+            Text = "Close",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            FontSize = 14,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+        closeBtn.Clicked += async (s, e) => await Navigation.PopAsync();
+
+        page.Content = new ScrollView
+        {
+            Content = new VerticalStackLayout
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new Label { Text = "Rclone Command", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#263238") },
+                    commandLabel,
+                    copyBtn,
+                    closeBtn
+                }
+            }
+        };
+
+        await Navigation.PushAsync(page);
     }
 
     private async Task OnEditPresetAsync(RclonePreset preset)
