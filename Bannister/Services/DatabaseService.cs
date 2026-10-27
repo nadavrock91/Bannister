@@ -498,6 +498,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<BackupFile>();
             await _db!.CreateTableAsync<BackupFileItem>();
             await _db!.CreateTableAsync<RclonePreset>();
+            await _db!.CreateTableAsync<UserSetting>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTotalDaysCap INTEGER NOT NULL DEFAULT 0"); } catch { }

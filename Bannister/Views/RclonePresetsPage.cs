@@ -46,6 +46,31 @@ public class RclonePresetsPage : ContentPage
         return null;
     }
 
+    private async Task<string?> GetOrPromptRclonePathAsync()
+    {
+        var conn = await _db.GetConnectionAsync();
+        var setting = await conn.Table<UserSetting>()
+            .Where(s => s.Username == _auth.CurrentUsername && s.Key == "rclone_path")
+            .FirstOrDefaultAsync();
+        if (setting != null && !string.IsNullOrWhiteSpace(setting.Value))
+            return setting.Value;
+
+        string? path = await DisplayPromptAsync(
+            "Rclone Path",
+            "Enter path to rclone executable folder (e.g. C:\\Program Files (x86)\\rclone\\rclone-v1.73.4-windows-amd64):\n\nThis will be saved and reused for all presets.");
+        if (string.IsNullOrWhiteSpace(path)) return null;
+        path = path.Trim();
+
+        if (setting == null)
+            await conn.InsertAsync(new UserSetting { Username = _auth.CurrentUsername, Key = "rclone_path", Value = path });
+        else
+        {
+            setting.Value = path;
+            await conn.UpdateAsync(setting);
+        }
+        return path;
+    }
+
     private async Task LoadAsync()
     {
         var conn = await _db.GetConnectionAsync();
@@ -243,14 +268,6 @@ public class RclonePresetsPage : ContentPage
             FontSize = 12,
             TextColor = Color.FromArgb("#90A4AE")
         });
-        if (!string.IsNullOrWhiteSpace(preset.RclonePath))
-            stack.Children.Add(new Label
-            {
-                Text = $"Rclone: {preset.RclonePath}",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#90A4AE")
-            });
-
         frame.Content = stack;
         return frame;
     }
@@ -289,7 +306,6 @@ public class RclonePresetsPage : ContentPage
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers value:", initialValue: "8", keyboard: Keyboard.Numeric);
         string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers value:", initialValue: "16", keyboard: Keyboard.Numeric);
-        string? rclonePath = await DisplayPromptAsync("Rclone Path", "Path to rclone executable folder (e.g. C:\\Program Files (x86)\\rclone\\rclone-v1.73.4-windows-amd64):", initialValue: "");
 
         int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = 8;
         int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = 16;
@@ -302,7 +318,6 @@ public class RclonePresetsPage : ContentPage
             Destination = destination.Trim(),
             Transfers = transfers,
             Checkers = checkers,
-            RclonePath = rclonePath?.Trim() ?? "",
             SourceIsInput = sourceIsInput,
             DestinationIsInput = destIsInput
         };
@@ -366,7 +381,6 @@ public class RclonePresetsPage : ContentPage
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers value:", initialValue: "8", keyboard: Keyboard.Numeric);
         string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers value:", initialValue: "16", keyboard: Keyboard.Numeric);
-        string? rclonePath = await DisplayPromptAsync("Rclone Path", "Path to rclone executable folder (e.g. C:\\Program Files (x86)\\rclone\\rclone-v1.73.4-windows-amd64):", initialValue: "");
 
         int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = 8;
         int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = 16;
@@ -380,7 +394,6 @@ public class RclonePresetsPage : ContentPage
             Destination = isUpload ? bbPath : localPath,
             Transfers = transfers,
             Checkers = checkers,
-            RclonePath = rclonePath?.Trim() ?? "",
             SourceIsInput = isUpload ? localIsInput : bbPathIsInput,
             DestinationIsInput = isUpload ? bbPathIsInput : localIsInput
         };
@@ -457,12 +470,9 @@ public class RclonePresetsPage : ContentPage
             FontSize = 13
         };
 
-        // Only show Launch CMD if rclone path is set
-        bool hasPath = !string.IsNullOrWhiteSpace(preset.RclonePath);
-
         var btnRow = new VerticalStackLayout { Spacing = 8, Margin = new Thickness(0, 12, 0, 0) };
         btnRow.Children.Add(copyBtn);
-        if (hasPath) btnRow.Children.Add(launchBtn);
+        btnRow.Children.Add(launchBtn);
         btnRow.Children.Add(closeBtn);
 
         var card = new Frame
@@ -503,11 +513,13 @@ public class RclonePresetsPage : ContentPage
             copyBtn.Text = " Copy";
         };
 
-        launchBtn.Clicked += (s, e) =>
+        launchBtn.Clicked += async (s, e) =>
         {
             try
             {
-                string rcloneFolder = preset.RclonePath.Trim().TrimEnd('\\');
+                string? rcloneFolderRaw = await GetOrPromptRclonePathAsync();
+                if (string.IsNullOrWhiteSpace(rcloneFolderRaw)) return;
+                string rcloneFolder = rcloneFolderRaw.TrimEnd('\\');
                 // Replace "rclone" at the start of command with the full exe path
                 string fullCommand = command.StartsWith("rclone ")
                     ? $"\"{rcloneFolder}\\rclone.exe\" " + command.Substring("rclone ".Length)
@@ -558,7 +570,6 @@ public class RclonePresetsPage : ContentPage
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers:", initialValue: preset.Transfers.ToString(), keyboard: Keyboard.Numeric);
         string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers:", initialValue: preset.Checkers.ToString(), keyboard: Keyboard.Numeric);
-        string? rclonePath = await DisplayPromptAsync("Rclone Path", "Path to rclone executable folder (e.g. C:\\Program Files (x86)\\rclone\\rclone-v1.73.4-windows-amd64):", initialValue: preset.RclonePath);
 
         int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = preset.Transfers;
         int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = preset.Checkers;
@@ -568,7 +579,6 @@ public class RclonePresetsPage : ContentPage
         preset.Destination = destination.Trim();
         preset.Transfers = transfers;
         preset.Checkers = checkers;
-        preset.RclonePath = rclonePath?.Trim() ?? preset.RclonePath;
         preset.SourceIsInput = sourceIsInput;
         preset.DestinationIsInput = destIsInput;
 
