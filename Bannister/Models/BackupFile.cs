@@ -17,5 +17,6 @@ public class BackupFile
     // Comma-separated list of BackupLocation.Id values where this file IS stored
     public string LocationIds { get; set; } = "";
     public string Notes { get; set; } = "";
+    public int Visibility { get; set; } = 2; // 0=private, 1=public, 2=both
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

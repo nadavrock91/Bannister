@@ -8,11 +8,15 @@ public class BackupLocationsPage : ContentPage
 {
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
+    private readonly PrivacyModeService _privacyMode =
+        Application.Current?.Handler?.MauiContext?.Services.GetService<PrivacyModeService>()
+        ?? new PrivacyModeService();
 
     private List<BackupLocation> _locations = new();
     private List<BackupFile> _files = new();
     private List<BackupFileItem> _items = new();
     private VerticalStackLayout _mainStack = null!;
+    private Button _modeBtn = null!;
 
     public BackupLocationsPage(DatabaseService db, AuthService auth)
     {
@@ -26,8 +30,7 @@ public class BackupLocationsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadDataAsync();
-        RenderPage();
+        await RefreshAsync();
     }
 
     private void BuildShell()
@@ -69,6 +72,13 @@ public class BackupLocationsPage : ContentPage
             .Where(i => i.Username == username)
             .OrderBy(i => i.Name)
             .ToListAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        await LoadDataAsync();
+        RenderPage();
+        UpdateModeVisuals();
     }
 
     private void RenderPage()
@@ -132,6 +142,28 @@ public class BackupLocationsPage : ContentPage
         rcloneBtn.Clicked += async (s, e) => await OnRcloneBuilderAsync();
         actionRow.Children.Add(rcloneBtn);
 
+        _modeBtn = new Button
+        {
+            Text = " All",
+            FontSize = 12,
+            BackgroundColor = Colors.Transparent,
+            BorderColor = Colors.White,
+            BorderWidth = 1,
+            CornerRadius = 8,
+            HeightRequest = 36,
+            WidthRequest = 90,
+            Padding = new Thickness(6, 0),
+            VerticalOptions = LayoutOptions.Center,
+            TextColor = Colors.White
+        };
+        _modeBtn.Clicked += async (_, _) =>
+        {
+            _privacyMode.CycleMode(_auth.CurrentUsername);
+            UpdateModeVisuals();
+            await RefreshAsync();
+        };
+        actionRow.Children.Add(_modeBtn);
+
         _mainStack.Children.Add(actionRow);
 
         if (_locations.Count == 0)
@@ -158,11 +190,30 @@ public class BackupLocationsPage : ContentPage
             return;
         }
 
-        foreach (var file in _files)
+        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+        var visibleFiles = _files.Where(f => displayMode switch
+        {
+            ActivityDisplayMode.PublicOnly => f.Visibility == 1 || f.Visibility == 2,
+            ActivityDisplayMode.PrivateOnly => f.Visibility == 0 || f.Visibility == 2,
+            _ => true
+        }).ToList();
+
+        foreach (var file in visibleFiles)
         {
             var card = BuildFileCard(file);
             _mainStack.Children.Add(card);
         }
+    }
+
+    private void UpdateModeVisuals()
+    {
+        var mode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+        _modeBtn.Text = mode switch
+        {
+            ActivityDisplayMode.PublicOnly => " Public",
+            ActivityDisplayMode.PrivateOnly => " Private",
+            _ => " All"
+        };
     }
 
     private Frame BuildFileCard(BackupFile file)
@@ -195,6 +246,7 @@ public class BackupLocationsPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
@@ -277,6 +329,33 @@ public class BackupLocationsPage : ContentPage
         deleteBtn.Clicked += async (s, e) => await OnDeleteFileAsync(file);
         Grid.SetColumn(deleteBtn, 4);
         nameRow.Children.Add(deleteBtn);
+
+        var visBtn = new Button
+        {
+            Text = file.Visibility switch { 0 => "🔒", 1 => "🌐", _ => "↔️" },
+            FontSize = 11,
+            WidthRequest = 36,
+            HeightRequest = 30,
+            Padding = new Thickness(0),
+            BackgroundColor = Color.FromArgb("#2D333B"),
+            TextColor = Colors.White,
+            CornerRadius = 4
+        };
+        visBtn.Clicked += async (_, _) =>
+        {
+            string? choice = await DisplayActionSheet(
+                "Visibility", "Cancel", null,
+                "🔒 Private (0)", "🌐 Public (1)", "↔️ Both (2)");
+            if (choice == null || choice == "Cancel") return;
+            file.Visibility = choice.StartsWith("🔒") ? 0
+                            : choice.StartsWith("🌐") ? 1
+                            : 2;
+            var db = await _db.GetConnectionAsync();
+            await db.UpdateAsync(file);
+            await RefreshAsync();
+        };
+        Grid.SetColumn(visBtn, 5);
+        nameRow.Children.Add(visBtn);
 
         cardStack.Children.Add(nameRow);
 
