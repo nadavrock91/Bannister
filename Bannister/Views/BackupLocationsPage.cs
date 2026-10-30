@@ -144,7 +144,7 @@ public class BackupLocationsPage : ContentPage
 
         _modeBtn = new Button
         {
-            Text = " All",
+            Text = "All",
             FontSize = 12,
             BackgroundColor = Colors.Transparent,
             BorderColor = Colors.White,
@@ -210,9 +210,9 @@ public class BackupLocationsPage : ContentPage
         var mode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         _modeBtn.Text = mode switch
         {
-            ActivityDisplayMode.PublicOnly => " Public",
-            ActivityDisplayMode.PrivateOnly => " Private",
-            _ => " All"
+            ActivityDisplayMode.PublicOnly => "Public",
+            ActivityDisplayMode.PrivateOnly => "Private",
+            _ => "All"
         };
     }
 
