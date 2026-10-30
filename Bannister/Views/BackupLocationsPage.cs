@@ -17,6 +17,8 @@ public class BackupLocationsPage : ContentPage
     private List<BackupFileItem> _items = new();
     private VerticalStackLayout _mainStack = null!;
     private Button _modeBtn = null!;
+    private readonly Dictionary<int, bool> _fileCollapsed = new();
+    private readonly Dictionary<int, bool> _itemCollapsed = new();
 
     public BackupLocationsPage(DatabaseService db, AuthService auth)
     {
@@ -257,7 +259,8 @@ public class BackupLocationsPage : ContentPage
 
         var nameLabel = new Label
         {
-            Text = "▼ " + (isInconsistent ? "⚠️ " : "") + file.Name,
+            Text = (_fileCollapsed.GetValueOrDefault(file.Id, true) ? "▶ " : "▼ ")
+                + (isInconsistent ? "⚠️ " : "") + file.Name,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#263238"),
@@ -360,16 +363,14 @@ public class BackupLocationsPage : ContentPage
         var childrenContainer = new VerticalStackLayout
         {
             Spacing = 6,
-            IsVisible = true
+            IsVisible = !_fileCollapsed.GetValueOrDefault(file.Id, true)
         };
-        bool[] collapsed = { false };
         var nameTap = new TapGestureRecognizer();
         nameTap.Tapped += (_, _) =>
         {
-            collapsed[0] = !collapsed[0];
-            childrenContainer.IsVisible = !collapsed[0];
-            nameLabel.Text = (collapsed[0] ? "▶ " : "▼ ")
-                + (isInconsistent ? "⚠️ " : "") + file.Name;
+            _fileCollapsed[file.Id] = !_fileCollapsed.GetValueOrDefault(file.Id, true);
+            childrenContainer.IsVisible = !_fileCollapsed[file.Id];
+            nameLabel.Text = (_fileCollapsed[file.Id] ? "▶ " : "▼ ") + (isInconsistent ? "⚠️ " : "") + file.Name;
         };
         nameRow.GestureRecognizers.Add(nameTap);
 
@@ -484,7 +485,8 @@ public class BackupLocationsPage : ContentPage
 
         var nameLabel = new Label
         {
-            Text = "▼ " + (mismatch ? "⚠️ " : "↳ ") + item.Name,
+            Text = (_itemCollapsed.GetValueOrDefault(item.Id, true) ? "▶ " : "▼ ")
+                + (mismatch ? "⚠️ " : "↳ ") + item.Name,
             FontSize = 13,
             TextColor = Color.FromArgb("#263238"),
             VerticalOptions = LayoutOptions.Center
@@ -559,16 +561,14 @@ public class BackupLocationsPage : ContentPage
         var childrenContainer = new VerticalStackLayout
         {
             Spacing = 4,
-            IsVisible = true
+            IsVisible = !_itemCollapsed.GetValueOrDefault(item.Id, true)
         };
-        bool[] collapsed = { false };
         var nameTap = new TapGestureRecognizer();
         nameTap.Tapped += (_, _) =>
         {
-            collapsed[0] = !collapsed[0];
-            childrenContainer.IsVisible = !collapsed[0];
-            nameLabel.Text = (collapsed[0] ? "▶ " : "▼ ")
-                + (mismatch ? "⚠️ " : "↳ ") + item.Name;
+            _itemCollapsed[item.Id] = !_itemCollapsed.GetValueOrDefault(item.Id, true);
+            childrenContainer.IsVisible = !_itemCollapsed[item.Id];
+            nameLabel.Text = (_itemCollapsed[item.Id] ? "▶ " : "▼ ") + (mismatch ? "⚠️ " : "↳ ") + item.Name;
         };
         nameRow.GestureRecognizers.Add(nameTap);
 
