@@ -257,7 +257,7 @@ public class BackupLocationsPage : ContentPage
 
         var nameLabel = new Label
         {
-            Text = (isInconsistent ? "⚠️ " : "") + file.Name,
+            Text = "▼ " + (isInconsistent ? "⚠️ " : "") + file.Name,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#263238"),
@@ -357,10 +357,26 @@ public class BackupLocationsPage : ContentPage
         Grid.SetColumn(visBtn, 5);
         nameRow.Children.Add(visBtn);
 
+        var childrenContainer = new VerticalStackLayout
+        {
+            Spacing = 6,
+            IsVisible = true
+        };
+        bool[] collapsed = { false };
+        var nameTap = new TapGestureRecognizer();
+        nameTap.Tapped += (_, _) =>
+        {
+            collapsed[0] = !collapsed[0];
+            childrenContainer.IsVisible = !collapsed[0];
+            nameLabel.Text = (collapsed[0] ? "▶ " : "▼ ")
+                + (isInconsistent ? "⚠️ " : "") + file.Name;
+        };
+        nameRow.GestureRecognizers.Add(nameTap);
+
         cardStack.Children.Add(nameRow);
 
         // Main item location checkboxes
-        cardStack.Children.Add(BuildLocationCheckboxRow(file.LocationIds,
+        childrenContainer.Children.Add(BuildLocationCheckboxRow(file.LocationIds,
             async newIds => {
                 file.LocationIds = newIds;
                 var conn = await _db.GetConnectionAsync();
@@ -370,7 +386,7 @@ public class BackupLocationsPage : ContentPage
             }));
 
         if (!string.IsNullOrWhiteSpace(file.Notes))
-            cardStack.Children.Add(new Label
+            childrenContainer.Children.Add(new Label
             {
                 Text = file.Notes,
                 FontSize = 11,
@@ -381,8 +397,10 @@ public class BackupLocationsPage : ContentPage
         // Sub-items
         foreach (var item in subItems.Where(i => i.ParentItemId == null))
         {
-            cardStack.Children.Add(BuildItemTree(item, file, 1));
+            childrenContainer.Children.Add(BuildItemTree(item, file, 1));
         }
+
+        cardStack.Children.Add(childrenContainer);
 
         frame.Content = cardStack;
         return frame;
@@ -466,7 +484,7 @@ public class BackupLocationsPage : ContentPage
 
         var nameLabel = new Label
         {
-            Text = (mismatch ? "⚠️ " : "↳ ") + item.Name,
+            Text = "▼ " + (mismatch ? "⚠️ " : "↳ ") + item.Name,
             FontSize = 13,
             TextColor = Color.FromArgb("#263238"),
             VerticalOptions = LayoutOptions.Center
@@ -538,9 +556,25 @@ public class BackupLocationsPage : ContentPage
         Grid.SetColumn(deleteBtn, 4);
         nameRow.Children.Add(deleteBtn);
 
+        var childrenContainer = new VerticalStackLayout
+        {
+            Spacing = 4,
+            IsVisible = true
+        };
+        bool[] collapsed = { false };
+        var nameTap = new TapGestureRecognizer();
+        nameTap.Tapped += (_, _) =>
+        {
+            collapsed[0] = !collapsed[0];
+            childrenContainer.IsVisible = !collapsed[0];
+            nameLabel.Text = (collapsed[0] ? "▶ " : "▼ ")
+                + (mismatch ? "⚠️ " : "↳ ") + item.Name;
+        };
+        nameRow.GestureRecognizers.Add(nameTap);
+
         stack.Children.Add(nameRow);
 
-        stack.Children.Add(BuildLocationCheckboxRow(item.LocationIds,
+        childrenContainer.Children.Add(BuildLocationCheckboxRow(item.LocationIds,
             async newIds => {
                 item.LocationIds = newIds;
                 var conn = await _db.GetConnectionAsync();
@@ -550,7 +584,7 @@ public class BackupLocationsPage : ContentPage
             }));
 
         if (!string.IsNullOrWhiteSpace(item.Notes))
-            stack.Children.Add(new Label
+            childrenContainer.Children.Add(new Label
             {
                 Text = item.Notes,
                 FontSize = 11,
@@ -560,7 +594,9 @@ public class BackupLocationsPage : ContentPage
 
         // Render children recursively
         foreach (var child in allChildren)
-            stack.Children.Add(BuildItemTree(child, rootFile, depth + 1));
+            childrenContainer.Children.Add(BuildItemTree(child, rootFile, depth + 1));
+
+        stack.Children.Add(childrenContainer);
 
         frame.Content = stack;
         return frame;
