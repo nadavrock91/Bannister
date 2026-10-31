@@ -382,6 +382,12 @@ public class BackupLocationsPage : ContentPage
                 file.LocationIds = newIds;
                 var conn = await _db.GetConnectionAsync();
                 await conn.UpdateAsync(file);
+                var children = _items.Where(i => i.ParentFileId == file.Id).ToList();
+                foreach (var child in children)
+                {
+                    child.LocationIds = newIds;
+                    await conn.UpdateAsync(child);
+                }
                 await LoadDataAsync();
                 RenderPage();
             }));
