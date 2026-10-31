@@ -19,6 +19,10 @@ public class GridCropperPage : ContentPage
     private int _bottomCols = 4;
     private int _bottomCellH = 100;
     private int _bottomCellW = 100;
+    private int[]? _colEdges;
+    private int[]? _rowEdges;
+    private int? _bottomTop;
+    private int[]? _bottomColEdges;
     private Slider _bottomWidthSlider = null!;
     private Label _bottomWidthValueLabel = null!;
     private Image _bottomPreviewImage = null!;
@@ -79,6 +83,31 @@ public class GridCropperPage : ContentPage
         BuildUI();
     }
 
+    private GridGeometry BuildGeometry()
+    {
+        var g = new GridGeometry
+        {
+            Cols = _cols, Rows = _rows, CellW = _cellW, CellH = _cellH,
+            SeparateBottom = _separateBottomRow, BottomCols = _bottomCols,
+            BottomCellW = _bottomCellW, BottomCellH = _bottomCellH
+        };
+        if (_colEdges != null) g.ColEdges = (int[])_colEdges.Clone();
+        if (_rowEdges != null) g.RowEdges = (int[])_rowEdges.Clone();
+        if (_bottomTop != null) g.BottomTop = _bottomTop.Value;
+        if (_bottomColEdges != null) g.BottomColEdges = (int[])_bottomColEdges.Clone();
+        if (_sourceBitmap != null)
+            g.EnsureEdges(_sourceBitmap.Width, _sourceBitmap.Height);
+        return g;
+    }
+
+    private void ResetEdges()
+    {
+        _colEdges = null;
+        _rowEdges = null;
+        _bottomTop = null;
+        _bottomColEdges = null;
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -136,6 +165,7 @@ public class GridCropperPage : ContentPage
 
         _colsPicker.SelectedIndexChanged += (_, _) =>
         {
+            ResetEdges();
             if (_colsPicker.SelectedItem is not string s) return;
             if (!int.TryParse(s, out int v)) return;
             _cols = v;
@@ -145,6 +175,7 @@ public class GridCropperPage : ContentPage
         };
         _rowsPicker.SelectedIndexChanged += (_, _) =>
         {
+            ResetEdges();
             if (_rowsPicker.SelectedItem is not string s) return;
             if (!int.TryParse(s, out int v)) return;
             _rows = v;
@@ -338,6 +369,7 @@ public class GridCropperPage : ContentPage
         };
         _presetPicker.SelectedIndexChanged += (_, _) =>
         {
+            ResetEdges();
             if (_presetPicker.SelectedIndex < 0 ||
                 _presetPicker.SelectedIndex >= _presets.Count) return;
             var p = _presets[_presetPicker.SelectedIndex];
@@ -420,6 +452,7 @@ public class GridCropperPage : ContentPage
         };
         _separateBottomBtn.Clicked += (_, _) =>
         {
+            ResetEdges();
             _separateBottomRow = !_separateBottomRow;
             _separateBottomBtn.Text = _separateBottomRow
                 ? "⊟ Separate bottom row: ON"
@@ -479,6 +512,7 @@ public class GridCropperPage : ContentPage
         _bottomColsPicker.SelectedIndex = 3;
         _bottomColsPicker.SelectedIndexChanged += (_, _) =>
         {
+            ResetEdges();
             if (_bottomColsPicker.SelectedItem is string s && int.TryParse(s, out int v))
             {
                 _bottomCols = v;
@@ -517,6 +551,7 @@ public class GridCropperPage : ContentPage
         _bottomHeightSlider = new Slider { Minimum = 1, Maximum = 5000, Value = 100 };
         _bottomHeightSlider.ValueChanged += (_, _) =>
         {
+            ResetEdges();
             _bottomCellH = (int)Math.Round(_bottomHeightSlider.Value);
             _bottomHeightValueLabel.Text = $"{_bottomCellH} px";
             if (_sourceBitmap != null) UpdatePreview();
@@ -570,6 +605,7 @@ public class GridCropperPage : ContentPage
         _bottomWidthSlider = new Slider { Minimum = 1, Maximum = 5000, Value = 100 };
         _bottomWidthSlider.ValueChanged += (_, _) =>
         {
+            ResetEdges();
             _bottomCellW = (int)Math.Round(_bottomWidthSlider.Value);
             _bottomWidthValueLabel.Text = $"{_bottomCellW} px";
             if (_sourceBitmap != null && _separateBottomRow) UpdatePreview();
@@ -714,12 +750,7 @@ public class GridCropperPage : ContentPage
                 _selected,
                 _imagePixelW,
                 _imagePixelH,
-                new GridGeometry
-                {
-                    Cols = _cols, Rows = _rows, CellW = _cellW, CellH = _cellH,
-                    SeparateBottom = _separateBottomRow, BottomCols = _bottomCols,
-                    BottomCellW = _bottomCellW, BottomCellH = _bottomCellH
-                },
+                BuildGeometry(),
                 updatedSelection =>
                 {
                     for (int r = 0; r < _selected.GetLength(0); r++)
@@ -736,21 +767,11 @@ public class GridCropperPage : ContentPage
                 },
                 geo =>
                 {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        _widthSlider.Value = Math.Clamp(geo.CellW,
-                            _widthSlider.Minimum, _widthSlider.Maximum);
-                        _heightSlider.Value = Math.Clamp(geo.CellH,
-                            _heightSlider.Minimum, _heightSlider.Maximum);
-                        if (_separateBottomRow)
-                        {
-                            _bottomWidthSlider.Value = Math.Clamp(geo.BottomCellW,
-                                _bottomWidthSlider.Minimum, _bottomWidthSlider.Maximum);
-                            _bottomHeightSlider.Value = Math.Clamp(geo.BottomCellH,
-                                _bottomHeightSlider.Minimum, _bottomHeightSlider.Maximum);
-                        }
-                        UpdatePreview();
-                    });
+                    _colEdges = geo.ColEdges;
+                    _rowEdges = geo.RowEdges;
+                    _bottomTop = geo.SeparateBottom ? geo.BottomTop : null;
+                    _bottomColEdges = geo.SeparateBottom ? geo.BottomColEdges : null;
+                    MainThread.BeginInvokeOnMainThread(UpdatePreview);
                 }));
         };
         _gridPreviewImage.GestureRecognizers.Add(gridTap);
@@ -858,8 +879,9 @@ public class GridCropperPage : ContentPage
 
     private void RebuildSelectionGrid()
     {
-        int mainRows = _separateBottomRow ? Math.Max(1, _rows - 1) : _rows;
-        int totalRows = _separateBottomRow ? mainRows + 1 : mainRows;
+        var g = BuildGeometry();
+        int mainRows = g.MainRows;
+        int totalRows = g.SeparateBottom ? mainRows + 1 : mainRows;
 
         _selected = new bool[totalRows, Math.Max(_cols, _bottomCols)];
         _selectionButtons = new Button[totalRows, Math.Max(_cols, _bottomCols)];
@@ -944,6 +966,7 @@ public class GridCropperPage : ContentPage
             _sourceBitmap?.Dispose();
             _sourceBitmap = SKBitmap.Decode(stream);
             if (_sourceBitmap == null) { await DisplayAlert("Error", "Could not decode the selected image.", "OK"); return; }
+            ResetEdges();
             using (var cleanImage = SKImage.FromBitmap(_sourceBitmap))
             using (var cleanData = cleanImage.Encode(SKEncodedImageFormat.Png, 100))
                 _cleanImageBytes = cleanData.ToArray();
@@ -965,6 +988,7 @@ public class GridCropperPage : ContentPage
 
     private void OnSliderChanged(object? sender, ValueChangedEventArgs e)
     {
+        ResetEdges();
         _cellW = (int)Math.Round(_widthSlider.Value);
         _cellH = (int)Math.Round(_heightSlider.Value);
         _widthValueLabel.Text = $"{_cellW} px";
@@ -978,114 +1002,98 @@ public class GridCropperPage : ContentPage
 
         int imgW = _sourceBitmap.Width;
         int imgH = _sourceBitmap.Height;
-        int safeW = Math.Max(1, Math.Min(_cellW, imgW));
-        int safeH = Math.Max(1, Math.Min(_cellH, imgH));
-        int mainRows = _separateBottomRow ? Math.Max(1, _rows - 1) : _rows;
+        var g = BuildGeometry();
 
-        // ── Crop preview: top-left cell ───────────────────────────────
+        // ── Crop preview: top-left cell ──────────────────────────────
         {
-            var srcRect = new SKRectI(0, 0, safeW, safeH);
-            using var cropped = new SKBitmap(safeW, safeH);
+            int left = Math.Clamp(g.ColEdges[0], 0, imgW);
+            int top = Math.Clamp(g.RowEdges[0], 0, imgH);
+            int right = Math.Clamp(g.ColEdges[1], left + 1, imgW);
+            int bottom = Math.Clamp(g.RowEdges[1], top + 1, imgH);
+            int cellW = right - left;
+            int cellH = bottom - top;
+            var srcRect = new SKRectI(left, top, right, bottom);
+            using var cropped = new SKBitmap(cellW, cellH);
             using var canvas = new SKCanvas(cropped);
-            canvas.DrawBitmap(_sourceBitmap, srcRect,
-                new SKRect(0, 0, safeW, safeH));
+            canvas.DrawBitmap(_sourceBitmap, srcRect, new SKRect(0, 0, cellW, cellH));
             using var image = SKImage.FromBitmap(cropped);
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);
             var bytes = data.ToArray();
-            _previewImage.Source = ImageSource.FromStream(
-                () => new MemoryStream(bytes));
+            _previewImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
             _previewImage.IsVisible = true;
             _cropPreviewHint.IsVisible = true;
-            _previewLabel.Text =
-                $"Top-left panel: {safeW} × {safeH} px";
+            _previewLabel.Text = $"Top-left panel: {cellW} × {cellH} px";
         }
 
-        // ── Grid preview: full image with grid lines and numbers ───────
+        // ── Grid preview ──────────────────────────────────────────────
         {
             _imagePixelW = imgW;
             _imagePixelH = imgH;
-
             using var gridBmp = new SKBitmap(imgW, imgH);
             using var gridCanvas = new SKCanvas(gridBmp);
             gridCanvas.DrawBitmap(_sourceBitmap, 0, 0);
-
-            // Draw grid lines
             using var linePaint = new SKPaint
             {
                 Color = new SKColor(255, 255, 255, 200),
-                StrokeWidth = 2,
-                IsAntialias = true,
-                Style = SKPaintStyle.Stroke
+                StrokeWidth = 2, IsAntialias = true, Style = SKPaintStyle.Stroke
             };
-            for (int col = 1; col < _cols; col++)
-                gridCanvas.DrawLine(col * safeW, 0, col * safeW, mainRows * safeH, linePaint);
-
-            for (int row = 1; row < mainRows; row++)
-                gridCanvas.DrawLine(0, row * safeH, imgW, row * safeH, linePaint);
-
-            if (_separateBottomRow)
+            using var yellowPaint = new SKPaint
             {
-                int botH = Math.Max(1, Math.Min(_bottomCellH, imgH));
-                int bottomY = imgH - botH;
-                int botW = Math.Max(1, Math.Min(_bottomCellW, imgW));
-                using var splitPaint = new SKPaint
-                {
-                    Color = new SKColor(255, 220, 50, 230),
-                    StrokeWidth = 3, IsAntialias = true,
-                    Style = SKPaintStyle.Stroke
-                };
-                // top edge of bottom strip
-                gridCanvas.DrawLine(0, bottomY, imgW, bottomY, splitPaint);
-                // bottom strip column lines
-                for (int col = 1; col <= _bottomCols; col++)
-                    gridCanvas.DrawLine(col * botW, bottomY, col * botW, imgH, splitPaint);
+                Color = new SKColor(255, 220, 50, 230),
+                StrokeWidth = 3, IsAntialias = true, Style = SKPaintStyle.Stroke
+            };
+            for (int c = 1; c <= g.Cols; c++)
+                gridCanvas.DrawLine(g.ColEdges[c], 0, g.ColEdges[c],
+                    g.RowEdges[g.MainRows], linePaint);
+            for (int r = 1; r <= g.MainRows; r++)
+                gridCanvas.DrawLine(0, g.RowEdges[r], g.ColEdges[g.Cols],
+                    g.RowEdges[r], linePaint);
+            if (g.SeparateBottom)
+            {
+                gridCanvas.DrawLine(0, g.BottomTop, imgW, g.BottomTop, yellowPaint);
+                for (int c = 1; c <= g.BottomCols; c++)
+                    gridCanvas.DrawLine(g.BottomColEdges[c], g.BottomTop,
+                        g.BottomColEdges[c], imgH, yellowPaint);
             }
 
-            // Draw panel numbers
             using var textPaint = new SKPaint
             {
                 Color = SKColors.White,
-                TextSize = Math.Max(20, safeW / 8f),
-                IsAntialias = true,
-                FakeBoldText = true
+                TextSize = Math.Max(20, (g.ColEdges[1] - g.ColEdges[0]) / 8f),
+                IsAntialias = true, FakeBoldText = true
             };
             using var shadowPaint = new SKPaint
             {
                 Color = new SKColor(0, 0, 0, 180),
-                TextSize = textPaint.TextSize,
-                IsAntialias = true,
-                FakeBoldText = true
+                TextSize = textPaint.TextSize, IsAntialias = true, FakeBoldText = true
             };
-            int panel = 1;
-            for (int row = 0; row < mainRows; row++)
+            for (int r = 0; r < g.MainRows; r++)
             {
-                for (int col = 0; col < _cols; col++)
+                for (int c = 0; c < g.Cols; c++)
                 {
-                    float tx = col * safeW + safeW * 0.08f;
-                    float ty = row * safeH + textPaint.TextSize + safeH * 0.05f;
-                    // Shadow
+                    int panel = r * g.Cols + c + 1;
+                    float tx = g.ColEdges[c] +
+                        (g.ColEdges[c + 1] - g.ColEdges[c]) * 0.08f;
+                    float ty = g.RowEdges[r] + textPaint.TextSize +
+                        (g.RowEdges[r + 1] - g.RowEdges[r]) * 0.05f;
                     gridCanvas.DrawText(panel.ToString(), tx + 2, ty + 2, shadowPaint);
-                    // Text
                     gridCanvas.DrawText(panel.ToString(), tx, ty, textPaint);
-                    panel++;
                 }
             }
-
-            if (_separateBottomRow)
+            if (g.SeparateBottom)
             {
-                int botH = Math.Max(1, Math.Min(_bottomCellH, imgH));
-                int bottomY = imgH - botH;
-                int botW = Math.Max(1, Math.Min(_bottomCellW, imgW));
-                int stripOffset = mainRows * _cols;
-                for (int col = 0; col < _bottomCols; col++)
+                int stripOffset = g.MainRows * g.Cols;
+                for (int c = 0; c < g.BottomCols; c++)
                 {
-                    float tx = col * botW + botW * 0.08f;
-                    float ty = bottomY + textPaint.TextSize + botH * 0.05f;
-                    gridCanvas.DrawText((stripOffset + col + 1).ToString(), tx + 2, ty + 2, shadowPaint);
-                    gridCanvas.DrawText((stripOffset + col + 1).ToString(), tx, ty, textPaint);
+                    int panel = stripOffset + c + 1;
+                    float tx = g.BottomColEdges[c] +
+                        (g.BottomColEdges[c + 1] - g.BottomColEdges[c]) * 0.08f;
+                    float ty = g.BottomTop + textPaint.TextSize +
+                        (imgH - g.BottomTop) * 0.05f;
+                    gridCanvas.DrawText(panel.ToString(), tx + 2, ty + 2, shadowPaint);
+                    gridCanvas.DrawText(panel.ToString(), tx, ty, textPaint);
                 }
             }
-
             using var gridImage = SKImage.FromBitmap(gridBmp);
             using var gridData = gridImage.Encode(SKEncodedImageFormat.Png, 90);
             var gridBytes = gridData.ToArray();
@@ -1094,21 +1102,21 @@ public class GridCropperPage : ContentPage
                 () => new MemoryStream(gridBytes));
             _gridPreviewImage.IsVisible = true;
             _gridPreviewHint.IsVisible = true;
-            string desc = _separateBottomRow
-                ? $"Full grid: {imgW}×{imgH} px — {_cols}×{mainRows} main + {_bottomCols} bottom strip"
-                : $"Full grid: {imgW}×{imgH} px — {_cols}×{_rows} cells";
-            _gridPreviewLabel.Text = desc;
+            _gridPreviewLabel.Text =
+                $"Full grid: {imgW}×{imgH} px — {_cols}×{g.MainRows} main" +
+                (g.SeparateBottom ? $" + {_bottomCols} bottom strip" : "");
             _gridPreviewLabel.IsVisible = true;
             _gridHeaderLabel.IsVisible = true;
         }
 
-        // ── Bottom strip cell preview ─────────────────────────────────
-        if (_separateBottomRow && _sourceBitmap != null)
+        if (g.SeparateBottom)
         {
-            int botH = Math.Max(1, Math.Min(_bottomCellH, _sourceBitmap.Height));
-            int bottomY = _sourceBitmap.Height - botH;
-            int botW = Math.Max(1, Math.Min(_bottomCellW, _sourceBitmap.Width));
-            var srcRect = new SKRectI(0, bottomY, botW, _sourceBitmap.Height);
+            int left = Math.Clamp(g.BottomColEdges[0], 0, imgW);
+            int right = Math.Clamp(g.BottomColEdges[1], left + 1, imgW);
+            int top = Math.Clamp(g.BottomTop, 0, imgH - 1);
+            int botW = right - left;
+            int botH = imgH - top;
+            var srcRect = new SKRectI(left, top, right, imgH);
             using var cropped = new SKBitmap(botW, botH);
             using var canvas = new SKCanvas(cropped);
             canvas.DrawBitmap(_sourceBitmap, srcRect, new SKRect(0, 0, botW, botH));
@@ -1117,7 +1125,8 @@ public class GridCropperPage : ContentPage
             var bytes = data.ToArray();
             _bottomPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
             _bottomPreviewImage.IsVisible = true;
-            _bottomPreviewLabel.Text = $"Bottom-left panel: {botW} × {botH} px (anchored to image bottom)";
+            _bottomPreviewColumn.IsVisible = true;
+            _bottomPreviewLabel.Text = $"Bottom-left panel: {botW} × {botH} px";
         }
         else if (_bottomPreviewImage != null)
         {
@@ -1137,8 +1146,9 @@ public class GridCropperPage : ContentPage
     {
         if (_sourceBitmap == null || _sourceFilePath == null) return;
 
-        int mainRows = _separateBottomRow ? Math.Max(1, _rows - 1) : _rows;
-        int totalRows = _separateBottomRow ? mainRows + 1 : mainRows;
+        var g = BuildGeometry();
+        int mainRows = g.MainRows;
+        int totalRows = g.SeparateBottom ? mainRows + 1 : mainRows;
         int selectedCount = 0;
         for (int r = 0; r < totalRows; r++)
             for (int c = 0; c < _selected.GetLength(1); c++)
@@ -1158,8 +1168,6 @@ public class GridCropperPage : ContentPage
             await _hookPrefixes.SaveSessionAsync(activeSession);
         }
 
-        int safeW = Math.Max(1, Math.Min(_cellW, _sourceBitmap.Width));
-        int safeH = Math.Max(1, Math.Min(_cellH, _sourceBitmap.Height));
         var sourceDir = System.IO.Path.GetDirectoryName(_sourceFilePath) ?? ".";
         var outputDir = System.IO.Path.Combine(sourceDir, "cropped_panels");
 
@@ -1173,23 +1181,22 @@ public class GridCropperPage : ContentPage
                 var result = new List<(string FileName, byte[] Bytes)>();
                 for (int row = 0; row < mainRows; row++)
                 {
-                    for (int col = 0; col < _cols; col++)
+                    for (int col = 0; col < g.Cols; col++)
                     {
                         if (!_selected[row, col]) continue;
 
-                        int panelNumber = row * _cols + col + 1;
-                        int x = col * safeW;
-                        int y = row * safeH;
-                        int cellW = safeW;
-                        int cellH = safeH;
-                        int actualW = Math.Min(cellW, _sourceBitmap.Width - x);
-                        int actualH = Math.Min(cellH, _sourceBitmap.Height - y);
+                        int panelNumber = row * g.Cols + col + 1;
+                        int x = Math.Clamp(g.ColEdges[col], 0, _sourceBitmap.Width);
+                        int y = Math.Clamp(g.RowEdges[row], 0, _sourceBitmap.Height);
+                        int right = Math.Clamp(g.ColEdges[col + 1], 0, _sourceBitmap.Width);
+                        int bottom = Math.Clamp(g.RowEdges[row + 1], 0, _sourceBitmap.Height);
+                        int actualW = right - x;
+                        int actualH = bottom - y;
                         if (actualW <= 0 || actualH <= 0) continue;
 
-                        var srcRect = new SKRectI(x, y, x + actualW, y + actualH);
-                        using var cropped = new SKBitmap(cellW, cellH);
+                        var srcRect = new SKRectI(x, y, right, bottom);
+                        using var cropped = new SKBitmap(actualW, actualH);
                         using var cropCanvas = new SKCanvas(cropped);
-                        cropCanvas.Clear(SKColors.Black);
                         cropCanvas.DrawBitmap(_sourceBitmap, srcRect,
                             new SKRect(0, 0, actualW, actualH));
 
@@ -1200,25 +1207,22 @@ public class GridCropperPage : ContentPage
                     }
                 }
 
-                if (_separateBottomRow)
+                if (g.SeparateBottom)
                 {
-                    int botH = Math.Max(1, Math.Min(_bottomCellH, _sourceBitmap.Height));
-                    int bottomY = _sourceBitmap.Height - botH;
-                    int botW = Math.Max(1, Math.Min(_bottomCellW, _sourceBitmap.Width));
-                    int stripOffset = mainRows * _cols;
-                    for (int col = 0; col < _bottomCols; col++)
+                    int stripOffset = mainRows * g.Cols;
+                    for (int col = 0; col < g.BottomCols; col++)
                     {
                         if (!_selected[mainRows, col]) continue;
                         int panelNumber = stripOffset + col + 1;
-                        int x = col * botW;
-                        int y = bottomY;
-                        int actualW = Math.Min(botW, _sourceBitmap.Width - x);
-                        int actualH = Math.Min(_sourceBitmap.Height - y, botH);
+                        int x = Math.Clamp(g.BottomColEdges[col], 0, _sourceBitmap.Width);
+                        int y = Math.Clamp(g.BottomTop, 0, _sourceBitmap.Height);
+                        int right = Math.Clamp(g.BottomColEdges[col + 1], 0, _sourceBitmap.Width);
+                        int actualW = right - x;
+                        int actualH = _sourceBitmap.Height - y;
                         if (actualW <= 0 || actualH <= 0) continue;
-                        var srcRect = new SKRectI(x, y, x + actualW, y + actualH);
-                        using var cropped = new SKBitmap(botW, botH);
+                        var srcRect = new SKRectI(x, y, right, _sourceBitmap.Height);
+                        using var cropped = new SKBitmap(actualW, actualH);
                         using var cropCanvas = new SKCanvas(cropped);
-                        cropCanvas.Clear(SKColors.Black);
                         cropCanvas.DrawBitmap(_sourceBitmap, srcRect, new SKRect(0, 0, actualW, actualH));
                         using var image = SKImage.FromBitmap(cropped);
                         using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);

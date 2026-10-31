@@ -12,8 +12,35 @@ public sealed class GridGeometry
     public int BottomCols;
     public int BottomCellW;
     public int BottomCellH;
+    public int[] ColEdges = Array.Empty<int>();
+    public int[] RowEdges = Array.Empty<int>();
+    public int BottomTop;
+    public int[] BottomColEdges = Array.Empty<int>();
     public int MainRows => SeparateBottom ? Math.Max(1, Rows - 1) : Rows;
-    public GridGeometry Clone() => (GridGeometry)MemberwiseClone();
+
+    public void EnsureEdges(int imgW, int imgH)
+    {
+        if (ColEdges.Length != Cols + 1)
+            ColEdges = Enumerable.Range(0, Cols + 1).Select(i => i * CellW).ToArray();
+        if (RowEdges.Length != MainRows + 1)
+            RowEdges = Enumerable.Range(0, MainRows + 1).Select(i => i * CellH).ToArray();
+        if (SeparateBottom)
+        {
+            if (BottomTop <= 0) BottomTop = Math.Max(0, imgH - BottomCellH);
+            if (BottomColEdges.Length != BottomCols + 1)
+                BottomColEdges = Enumerable.Range(0, BottomCols + 1)
+                    .Select(i => i * BottomCellW).ToArray();
+        }
+    }
+
+    public GridGeometry Clone()
+    {
+        var clone = (GridGeometry)MemberwiseClone();
+        clone.ColEdges = (int[])ColEdges.Clone();
+        clone.RowEdges = (int[])RowEdges.Clone();
+        clone.BottomColEdges = (int[])BottomColEdges.Clone();
+        return clone;
+    }
 }
 
 public class FullScreenImagePage : ContentPage
@@ -270,6 +297,7 @@ public class FullScreenImagePage : ContentPage
         NavigationPage.SetHasNavigationBar(this, false);
 
         var g = geometry.Clone();
+        g.EnsureEdges(imagePixelW, imagePixelH);
         int selectionRows = selected.GetLength(0);
         int selectionCols = selected.GetLength(1);
         var localSelected = new bool[selectionRows, selectionCols];
@@ -339,7 +367,7 @@ public class FullScreenImagePage : ContentPage
 
         var hint = new Label
         {
-            Text = "Tap panels to toggle · drag any grid line to resize (far lines = finer control)",
+            Text = "Tap panels to toggle · drag any line to move just that line",
             FontSize = 13,
             TextColor = Colors.White.WithAlpha(0.8f),
             HorizontalOptions = LayoutOptions.Center,
@@ -405,58 +433,57 @@ public class FullScreenImagePage : ContentPage
                 (y - fit.offsetY) / fit.renderedH * imagePixelH);
         }
 
-        void PositionHandles()
+        void PositionHandle(Handle handle)
         {
             var fit = GetFit(rootGrid.Width, rootGrid.Height);
             if (fit.renderedW <= 0 || fit.renderedH <= 0) return;
 
-            foreach (var handle in handles)
+            double x1, y1, x2, y2;
+            switch (handle.Kind)
             {
-                double x1, y1, x2, y2;
-                switch (handle.Kind)
-                {
-                    case HandleKind.MainV:
-                        x1 = x2 = handle.Index * g.CellW;
-                        y1 = 0;
-                        y2 = g.MainRows * g.CellH;
-                        handle.View.IsVisible = x1 >= 0 && x1 <= imagePixelW;
-                        break;
-                    case HandleKind.MainH:
-                        x1 = 0;
-                        x2 = g.Cols * g.CellW;
-                        y1 = y2 = handle.Index * g.CellH;
-                        handle.View.IsVisible = y1 >= 0 && y1 <= imagePixelH;
-                        break;
-                    case HandleKind.BottomH:
-                        x1 = 0;
-                        x2 = imagePixelW;
-                        y1 = y2 = imagePixelH - g.BottomCellH;
-                        handle.View.IsVisible = y1 >= 0 && y1 <= imagePixelH;
-                        break;
-                    default:
-                        x1 = x2 = handle.Index * g.BottomCellW;
-                        y1 = imagePixelH - g.BottomCellH;
-                        y2 = imagePixelH;
-                        handle.View.IsVisible = x1 >= 0 && x1 <= imagePixelW;
-                        break;
-                }
-
-                if (!handle.View.IsVisible) continue;
-                var start = ImageToView(x1, y1);
-                var end = ImageToView(x2, y2);
-                if (handle.Kind is HandleKind.MainV or HandleKind.BottomV)
-                {
-                    AbsoluteLayout.SetLayoutBounds(handle.View,
-                        new Rect(start.x - 2, Math.Min(start.y, end.y), 4,
-                            Math.Max(4, Math.Abs(end.y - start.y))));
-                }
-                else
-                {
-                    AbsoluteLayout.SetLayoutBounds(handle.View,
-                        new Rect(Math.Min(start.x, end.x), start.y - 2,
-                            Math.Max(4, Math.Abs(end.x - start.x)), 4));
-                }
+                case HandleKind.MainV:
+                    x1 = x2 = g.ColEdges[handle.Index];
+                    y1 = 0;
+                    y2 = g.RowEdges[g.MainRows];
+                    handle.View.IsVisible = x1 >= 0 && x1 <= imagePixelW;
+                    break;
+                case HandleKind.MainH:
+                    x1 = 0;
+                    x2 = g.ColEdges[g.Cols];
+                    y1 = y2 = g.RowEdges[handle.Index];
+                    handle.View.IsVisible = y1 >= 0 && y1 <= imagePixelH;
+                    break;
+                case HandleKind.BottomH:
+                    x1 = 0;
+                    x2 = imagePixelW;
+                    y1 = y2 = g.BottomTop;
+                    handle.View.IsVisible = y1 >= 0 && y1 <= imagePixelH;
+                    break;
+                default:
+                    x1 = x2 = g.BottomColEdges[handle.Index];
+                    y1 = g.BottomTop;
+                    y2 = imagePixelH;
+                    handle.View.IsVisible = x1 >= 0 && x1 <= imagePixelW;
+                    break;
             }
+
+            if (!handle.View.IsVisible) return;
+            var start = ImageToView(x1, y1);
+            var end = ImageToView(x2, y2);
+            if (handle.Kind is HandleKind.MainV or HandleKind.BottomV)
+                AbsoluteLayout.SetLayoutBounds(handle.View,
+                    new Rect(start.x - 2, Math.Min(start.y, end.y), 4,
+                        Math.Max(4, Math.Abs(end.y - start.y))));
+            else
+                AbsoluteLayout.SetLayoutBounds(handle.View,
+                    new Rect(Math.Min(start.x, end.x), start.y - 2,
+                        Math.Max(4, Math.Abs(end.x - start.x)), 4));
+        }
+
+        void PositionHandles()
+        {
+            foreach (var handle in handles)
+                PositionHandle(handle);
         }
 
         void Redraw()
@@ -466,8 +493,6 @@ public class FullScreenImagePage : ContentPage
             using var canvas = new SKCanvas(overlayBmp);
 
             int mainRows = g.MainRows;
-            int cellW = Math.Max(1, g.CellW);
-            int cellH = Math.Max(1, g.CellH);
             using var fillPaint = new SKPaint
             {
                 Color = new SKColor(30, 136, 229, 110),
@@ -497,7 +522,7 @@ public class FullScreenImagePage : ContentPage
             using var textPaint = new SKPaint
             {
                 Color = SKColors.White,
-                TextSize = Math.Max(20, cellW / 8f),
+                TextSize = Math.Max(20, (g.ColEdges[1] - g.ColEdges[0]) / 8f),
                 IsAntialias = true,
                 FakeBoldText = true
             };
@@ -513,38 +538,43 @@ public class FullScreenImagePage : ContentPage
             {
                 for (int c = 0; c < g.Cols; c++)
                 {
-                    int x = c * cellW;
-                    int y = r * cellH;
-                    var rect = new SKRect(x, y, x + cellW, y + cellH);
+                    int left = g.ColEdges[c];
+                    int top = g.RowEdges[r];
+                    int right = g.ColEdges[c + 1];
+                    int bottom = g.RowEdges[r + 1];
+                    var rect = new SKRect(left, top, right, bottom);
                     if (r < selectionRows && c < selectionCols && localSelected[r, c])
                     {
                         canvas.DrawRect(rect, fillPaint);
                         canvas.DrawRect(rect, borderPaint);
                     }
                     int panel = r * g.Cols + c + 1;
-                    float tx = x + cellW * 0.05f;
-                    float ty = y + textPaint.TextSize + cellH * 0.04f;
+                    float tx = left + (right - left) * 0.05f;
+                    float ty = top + textPaint.TextSize + (bottom - top) * 0.04f;
                     canvas.DrawText(panel.ToString(), tx + 2, ty + 2, shadowPaint);
                     canvas.DrawText(panel.ToString(), tx, ty, textPaint);
                 }
             }
-            for (int c = 1; c < g.Cols; c++)
-                canvas.DrawLine(c * cellW, 0, c * cellW, mainRows * cellH, linePaint);
-            for (int r = 1; r < mainRows; r++)
-                canvas.DrawLine(0, r * cellH, imagePixelW, r * cellH, linePaint);
+            for (int c = 1; c <= g.Cols; c++)
+                canvas.DrawLine(g.ColEdges[c], 0, g.ColEdges[c],
+                    g.RowEdges[mainRows], linePaint);
+            for (int r = 1; r <= mainRows; r++)
+                canvas.DrawLine(0, g.RowEdges[r], g.ColEdges[g.Cols],
+                    g.RowEdges[r], linePaint);
 
             if (g.SeparateBottom)
             {
-                int botH = Math.Clamp(g.BottomCellH, 1, imagePixelH);
-                int bottomY = imagePixelH - botH;
-                int botW = Math.Clamp(g.BottomCellW, 1, imagePixelW);
+                int bottomY = g.BottomTop;
+                int botH = imagePixelH - bottomY;
                 canvas.DrawLine(0, bottomY, imagePixelW, bottomY, yellowPaint);
                 for (int c = 1; c <= g.BottomCols; c++)
-                    canvas.DrawLine(c * botW, bottomY, c * botW, imagePixelH, yellowPaint);
+                    canvas.DrawLine(g.BottomColEdges[c], bottomY,
+                        g.BottomColEdges[c], imagePixelH, yellowPaint);
                 for (int c = 0; c < g.BottomCols; c++)
                 {
-                    int x = c * botW;
-                    var rect = new SKRect(x, bottomY, x + botW, imagePixelH);
+                    int left = g.BottomColEdges[c];
+                    int right = g.BottomColEdges[c + 1];
+                    var rect = new SKRect(left, bottomY, right, imagePixelH);
                     if (g.MainRows < selectionRows && c < selectionCols &&
                         localSelected[g.MainRows, c])
                     {
@@ -552,7 +582,7 @@ public class FullScreenImagePage : ContentPage
                         canvas.DrawRect(rect, borderPaint);
                     }
                     int panel = g.MainRows * g.Cols + c + 1;
-                    float tx = x + botW * 0.05f;
+                    float tx = left + (right - left) * 0.05f;
                     float ty = bottomY + textPaint.TextSize + botH * 0.04f;
                     canvas.DrawText(panel.ToString(), tx + 2, ty + 2, shadowPaint);
                     canvas.DrawText(panel.ToString(), tx, ty, textPaint);
@@ -622,30 +652,53 @@ public class FullScreenImagePage : ContentPage
             var pos = e.GetPosition(rootGrid);
             if (pos == null) return;
             var imagePos = ViewToImage(pos.Value.X, pos.Value.Y);
-            int x = Math.Clamp((int)Math.Round(imagePos.x), 1, Math.Max(1, imagePixelW - 1));
-            int y = Math.Clamp((int)Math.Round(imagePos.y), 1, Math.Max(1, imagePixelH - 1));
+            int x = Math.Clamp((int)Math.Round(imagePos.x), 0, imagePixelW);
+            int y = Math.Clamp((int)Math.Round(imagePos.y), 0, imagePixelH);
             dragLabel.IsVisible = true;
             switch (activeHandle.Kind)
             {
                 case HandleKind.MainV:
-                    g.CellW = Math.Max(1, (int)Math.Round((double)x / activeHandle.Index));
-                    dragLabel.Text = $"Cell width: {g.CellW} px";
+                {
+                    int min = g.ColEdges[activeHandle.Index - 1] + 2;
+                    int max = activeHandle.Index < g.Cols
+                        ? g.ColEdges[activeHandle.Index + 1] - 2
+                        : imagePixelW;
+                    int value = Math.Clamp(x, min, Math.Max(min, max));
+                    g.ColEdges[activeHandle.Index] = value;
+                    dragLabel.Text = $"x = {value} px (col {activeHandle.Index} width {value - g.ColEdges[activeHandle.Index - 1]})";
                     break;
+                }
                 case HandleKind.MainH:
-                    g.CellH = Math.Max(1, (int)Math.Round((double)y / activeHandle.Index));
-                    dragLabel.Text = $"Cell height: {g.CellH} px";
+                {
+                    int min = g.RowEdges[activeHandle.Index - 1] + 2;
+                    int max = activeHandle.Index < g.MainRows
+                        ? g.RowEdges[activeHandle.Index + 1] - 2
+                        : imagePixelH;
+                    int value = Math.Clamp(y, min, Math.Max(min, max));
+                    g.RowEdges[activeHandle.Index] = value;
+                    dragLabel.Text = $"y = {value} px (row {activeHandle.Index} height {value - g.RowEdges[activeHandle.Index - 1]})";
                     break;
+                }
                 case HandleKind.BottomH:
-                    g.BottomCellH = Math.Max(1, imagePixelH - y);
-                    dragLabel.Text = $"Strip height: {g.BottomCellH} px";
+                {
+                    int value = Math.Clamp(y, 1, Math.Max(1, imagePixelH - 2));
+                    g.BottomTop = value;
+                    dragLabel.Text = $"strip top = {value} px (height {imagePixelH - value})";
                     break;
+                }
                 case HandleKind.BottomV:
-                    g.BottomCellW = Math.Max(1,
-                        (int)Math.Round((double)x / activeHandle.Index));
-                    dragLabel.Text = $"Strip width: {g.BottomCellW} px";
+                {
+                    int min = g.BottomColEdges[activeHandle.Index - 1] + 2;
+                    int max = activeHandle.Index < g.BottomCols
+                        ? g.BottomColEdges[activeHandle.Index + 1] - 2
+                        : imagePixelW;
+                    int value = Math.Clamp(x, min, Math.Max(min, max));
+                    g.BottomColEdges[activeHandle.Index] = value;
+                    dragLabel.Text = $"x = {value} px (col {activeHandle.Index} width {value - g.BottomColEdges[activeHandle.Index - 1]})";
                     break;
+                }
             }
-            PositionHandles();
+            PositionHandle(activeHandle);
             AbsoluteLayout.SetLayoutBounds(dragLabel,
                 new Rect(Math.Clamp(pos.Value.X + 12, 0, Math.Max(0, rootGrid.Width - 160)),
                     Math.Clamp(pos.Value.Y + 12, 0, Math.Max(0, rootGrid.Height - 40)),
@@ -694,22 +747,36 @@ public class FullScreenImagePage : ContentPage
         int ix = Math.Clamp((int)(relX / renderedW * imagePixelW), 0, imagePixelW - 1);
         int iy = Math.Clamp((int)(relY / renderedH * imagePixelH), 0, imagePixelH - 1);
 
-        if (geometry.SeparateBottom &&
-            iy >= imagePixelH - Math.Clamp(geometry.BottomCellH, 1, imagePixelH))
+        if (geometry.SeparateBottom && iy >= geometry.BottomTop)
         {
-            int bottomCellW = Math.Max(1, geometry.BottomCellW);
-            int col = Math.Clamp(ix / bottomCellW, 0, Math.Max(0, geometry.BottomCols - 1));
-            if (geometry.MainRows < selected.GetLength(0) && col < selected.GetLength(1))
-                selected[geometry.MainRows, col] = !selected[geometry.MainRows, col];
+            for (int c = 0; c < geometry.BottomCols; c++)
+            {
+                if (geometry.BottomColEdges[c] <= ix && ix < geometry.BottomColEdges[c + 1])
+                {
+                    if (geometry.MainRows < selected.GetLength(0) && c < selected.GetLength(1))
+                        selected[geometry.MainRows, c] = !selected[geometry.MainRows, c];
+                    break;
+                }
+            }
             return;
         }
 
-        int cellW = Math.Max(1, geometry.CellW);
-        int cellH = Math.Max(1, geometry.CellH);
-        int mainCol = ix / cellW;
-        int mainRow = iy / cellH;
-        if (mainRow < geometry.MainRows && mainCol < geometry.Cols &&
-            mainRow < selected.GetLength(0) && mainCol < selected.GetLength(1))
+        int mainCol = -1;
+        int mainRow = -1;
+        for (int c = 0; c < geometry.Cols; c++)
+            if (geometry.ColEdges[c] <= ix && ix < geometry.ColEdges[c + 1])
+            {
+                mainCol = c;
+                break;
+            }
+        for (int r = 0; r < geometry.MainRows; r++)
+            if (geometry.RowEdges[r] <= iy && iy < geometry.RowEdges[r + 1])
+            {
+                mainRow = r;
+                break;
+            }
+        if (mainRow >= 0 && mainCol >= 0 && mainRow < selected.GetLength(0) &&
+            mainCol < selected.GetLength(1))
             selected[mainRow, mainCol] = !selected[mainRow, mainCol];
     }
 
