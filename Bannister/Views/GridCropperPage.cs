@@ -22,6 +22,7 @@ public class GridCropperPage : ContentPage
     private Label _bottomWidthValueLabel = null!;
     private Image _bottomPreviewImage = null!;
     private Label _bottomPreviewLabel = null!;
+    private VerticalStackLayout _bottomPreviewColumn = null!;
     private Button _pickButton = null!;
     private Label _imageInfoLabel = null!;
     private Slider _widthSlider = null!;
@@ -429,6 +430,7 @@ public class GridCropperPage : ContentPage
                 ? Colors.White
                 : Color.FromArgb("#37474F");
             _bottomStripPanel.IsVisible = _separateBottomRow;
+            _bottomPreviewColumn.IsVisible = _separateBottomRow;
             if (_separateBottomRow)
             {
                 _bottomCellW = _cellW;
@@ -591,25 +593,6 @@ public class GridCropperPage : ContentPage
         bWRow.Add(_bottomWidthValueLabel, 4, 0);
         _bottomStripPanel.Children.Add(bWRow);
 
-        // Bottom strip cell preview
-        _bottomPreviewLabel = new Label
-        {
-            Text = "Bottom-left panel preview:",
-            FontSize = 12,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#444")
-        };
-        _bottomStripPanel.Children.Add(_bottomPreviewLabel);
-
-        _bottomPreviewImage = new Image
-        {
-            HeightRequest = 200,
-            Aspect = Aspect.AspectFit,
-            HorizontalOptions = LayoutOptions.Fill,
-            IsVisible = false
-        };
-        _bottomStripPanel.Children.Add(_bottomPreviewImage);
-
         v.Children.Add(_bottomStripPanel);
 
         v.Children.Add(new Label { Text = "Sliders activate after an image is picked.", FontSize = 11, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
@@ -620,53 +603,38 @@ public class GridCropperPage : ContentPage
     {
         var v = new VerticalStackLayout { Spacing = 14 };
 
-        // ── SIDE-BY-SIDE PREVIEWS ─────────────────────────────────────
-        var previewGrid = new Grid
+        // ── CELL PREVIEWS (top-left cell | bottom-strip cell) ─────────
+        var cellRow = new Grid
         {
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(GridLength.Star)
             },
-            ColumnSpacing = 12,
-            HorizontalOptions = LayoutOptions.Fill,
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Auto)
-            },
-            RowSpacing = 2
+            ColumnSpacing = 16
         };
 
-        // Left column header
-        previewGrid.Add(new Label
+        var leftCol = new VerticalStackLayout { Spacing = 6 };
+        leftCol.Children.Add(new Label
         {
-            Text = "Cell preview:",
-            FontSize = 12,
+            Text = "Cell preview (top-left panel):",
+            FontSize = 13,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#444")
-        }, 0, 0);
-
-        // Right column header
-        _gridHeaderLabel = new Label
+        });
+        _previewLabel = new Label
         {
-            Text = "Grid preview:",
+            Text = "Pick an image and adjust sliders to see the crop preview.",
             FontSize = 12,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#444"),
-            IsVisible = false
+            TextColor = Color.FromArgb("#666")
         };
-        previewGrid.Add(_gridHeaderLabel, 1, 0);
-
-        // Left: cell preview image
+        leftCol.Children.Add(_previewLabel);
         _previewImage = new Image
         {
-            HeightRequest = 180,
+            HeightRequest = 300,
             Aspect = Aspect.AspectFit,
             IsVisible = false,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Fill
         };
         var cropTap = new TapGestureRecognizer();
         cropTap.Tapped += async (_, _) =>
@@ -675,16 +643,66 @@ public class GridCropperPage : ContentPage
             await Navigation.PushAsync(new FullScreenImagePage(_previewImage.Source));
         };
         _previewImage.GestureRecognizers.Add(cropTap);
-        previewGrid.Add(_previewImage, 0, 1);
-
-        // Right: grid preview image
-        _gridPreviewImage = new Image
+        leftCol.Children.Add(_previewImage);
+        _cropPreviewHint = new Label
         {
-            HeightRequest = 180,
+            Text = "Tap to fullscreen",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#999"),
+            FontAttributes = FontAttributes.Italic,
+            HorizontalOptions = LayoutOptions.Center,
+            IsVisible = false
+        };
+        leftCol.Children.Add(_cropPreviewHint);
+        cellRow.Add(leftCol, 0, 0);
+
+        _bottomPreviewColumn = new VerticalStackLayout { Spacing = 6, IsVisible = false };
+        _bottomPreviewLabel = new Label
+        {
+            Text = "Bottom-strip preview (bottom-left panel):",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#1565C0")
+        };
+        _bottomPreviewColumn.Children.Add(_bottomPreviewLabel);
+        _bottomPreviewImage = new Image
+        {
+            HeightRequest = 300,
             Aspect = Aspect.AspectFit,
             IsVisible = false,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        _bottomPreviewColumn.Children.Add(_bottomPreviewImage);
+        cellRow.Add(_bottomPreviewColumn, 1, 0);
+
+        v.Children.Add(cellRow);
+
+        // ── GRID PREVIEW (full width, as before) ──────────────────────
+        _gridHeaderLabel = new Label
+        {
+            Text = "Grid preview (full image with numbered cells):",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#444"),
+            IsVisible = false
+        };
+        v.Children.Add(_gridHeaderLabel);
+
+        _gridPreviewLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            IsVisible = false
+        };
+        v.Children.Add(_gridPreviewLabel);
+
+        _gridPreviewImage = new Image
+        {
+            HeightRequest = 400,
+            Aspect = Aspect.AspectFit,
+            IsVisible = false,
+            HorizontalOptions = LayoutOptions.Fill
         };
         var gridTap = new TapGestureRecognizer();
         gridTap.Tapped += async (_, _) =>
@@ -713,34 +731,16 @@ public class GridCropperPage : ContentPage
                 }));
         };
         _gridPreviewImage.GestureRecognizers.Add(gridTap);
-        previewGrid.Add(_gridPreviewImage, 1, 1);
-
-        // Bottom row: dim labels
-        _previewLabel = new Label
+        v.Children.Add(_gridPreviewImage);
+        _gridPreviewHint = new Label
         {
-            Text = "",
+            Text = "Tap to fullscreen",
             FontSize = 11,
-            TextColor = Color.FromArgb("#666"),
-            HorizontalTextAlignment = TextAlignment.Center
+            TextColor = Color.FromArgb("#999"),
+            FontAttributes = FontAttributes.Italic,
+            HorizontalOptions = LayoutOptions.Center,
+            IsVisible = false
         };
-        previewGrid.Add(_previewLabel, 0, 2);
-
-        _gridPreviewLabel = new Label
-        {
-            Text = "",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#666"),
-            IsVisible = false,
-            HorizontalTextAlignment = TextAlignment.Center
-        };
-        previewGrid.Add(_gridPreviewLabel, 1, 2);
-
-        v.Children.Add(previewGrid);
-
-        // Shared tap hints (hidden, kept for IsVisible logic compatibility)
-        _cropPreviewHint = new Label { IsVisible = false };
-        _gridPreviewHint = new Label { IsVisible = false };
-        v.Children.Add(_cropPreviewHint);
         v.Children.Add(_gridPreviewHint);
 
         // ── SELECTION GRID ────────────────────────────────────────────
@@ -1096,6 +1096,7 @@ public class GridCropperPage : ContentPage
         else if (_bottomPreviewImage != null)
         {
             _bottomPreviewImage.IsVisible = false;
+            if (_bottomPreviewColumn != null) _bottomPreviewColumn.IsVisible = false;
         }
 
         _selectionHeader.IsVisible = true;
