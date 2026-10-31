@@ -342,7 +342,7 @@ public class ChallengeTasksPage : ContentPage
     {
         _topCandidatesList.Children.Clear();
         var candidates = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
-            .Where(t => t.IsTopCandidate && !committedIds.Contains(t.Id) &&
+            .Where(t => t.IsTopCandidate && !t.IsCompleted && !committedIds.Contains(t.Id) &&
                 (_isFocusMode
                     ? string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase)
                     : !string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase)))
