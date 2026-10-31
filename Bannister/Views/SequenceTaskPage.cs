@@ -170,7 +170,7 @@ public class SequenceTaskPage : ContentPage
                     ColumnDefinitions =
                     {
                         new ColumnDefinition { Width = GridLength.Star },
-                        new ColumnDefinition { Width = GridLength.Auto }
+                        new ColumnDefinition { Width = new GridLength(80) }
                     },
                     Margin = new Thickness(0, 2)
                 };
@@ -190,7 +190,7 @@ public class SequenceTaskPage : ContentPage
 
                 var dateLabel = new Label
                 {
-                    Text = task.CreatedAt.ToLocalTime().ToString("MMM d"),
+                    Text = task.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy"),
                     FontSize = 10,
                     TextColor = Color.FromArgb("#999"),
                     VerticalOptions = LayoutOptions.Center,
