@@ -620,26 +620,48 @@ public class GridCropperPage : ContentPage
     {
         var v = new VerticalStackLayout { Spacing = 14 };
 
-        // ── CROP PREVIEW ─────────────────────────────────────────────
-        v.Children.Add(new Label
+        // ── SIDE-BY-SIDE PREVIEWS ─────────────────────────────────────
+        var previewGrid = new Grid
         {
-            Text = "Cell preview (top-left panel):",
-            FontSize = 13,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 8,
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Auto)
+            },
+            RowSpacing = 2
+        };
+
+        // Left column header
+        previewGrid.Add(new Label
+        {
+            Text = "Cell preview:",
+            FontSize = 12,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#444")
-        });
+        }, 0, 0);
 
-        _previewLabel = new Label
+        // Right column header
+        _gridHeaderLabel = new Label
         {
-            Text = "Pick an image and adjust sliders to see the crop preview.",
+            Text = "Grid preview:",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666")
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#444"),
+            IsVisible = false
         };
-        v.Children.Add(_previewLabel);
+        previewGrid.Add(_gridHeaderLabel, 1, 0);
 
+        // Left: cell preview image
         _previewImage = new Image
         {
-            HeightRequest = 300,
+            HeightRequest = 200,
             Aspect = Aspect.AspectFit,
             IsVisible = false,
             HorizontalOptions = LayoutOptions.Fill
@@ -651,44 +673,12 @@ public class GridCropperPage : ContentPage
             await Navigation.PushAsync(new FullScreenImagePage(_previewImage.Source));
         };
         _previewImage.GestureRecognizers.Add(cropTap);
-        v.Children.Add(_previewImage);
-        v.Children.Add(new Label
-        {
-            Text = "Tap to fullscreen",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#999"),
-            FontAttributes = FontAttributes.Italic,
-            HorizontalOptions = LayoutOptions.Center,
-            IsVisible = false
-        });
+        previewGrid.Add(_previewImage, 0, 1);
 
-        // Store tap hint ref so we can show/hide it
-        // Use the last-added child approach: store as field
-        _cropPreviewHint = (Label)v.Children[v.Children.Count - 1];
-
-        // ── GRID PREVIEW ──────────────────────────────────────────────
-        v.Children.Add(new Label
-        {
-            Text = "Grid preview (full image with numbered cells):",
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#444"),
-            IsVisible = false
-        });
-        _gridHeaderLabel = (Label)v.Children[v.Children.Count - 1];
-
-        _gridPreviewLabel = new Label
-        {
-            Text = "",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
-            IsVisible = false
-        };
-        v.Children.Add(_gridPreviewLabel);
-
+        // Right: grid preview image
         _gridPreviewImage = new Image
         {
-            HeightRequest = 400,
+            HeightRequest = 200,
             Aspect = Aspect.AspectFit,
             IsVisible = false,
             HorizontalOptions = LayoutOptions.Fill
@@ -706,35 +696,49 @@ public class GridCropperPage : ContentPage
                 _imagePixelH,
                 updatedSelection =>
                 {
-                    // Copy state immediately on callback thread
                     for (int r = 0; r < _selected.GetLength(0); r++)
                         for (int c = 0; c < _selected.GetLength(1); c++)
                             _selected[r, c] = updatedSelection[r, c];
-
-                    // Update UI on main thread after page is back in view
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         for (int r = 0; r < _selected.GetLength(0); r++)
                             for (int c = 0; c < _selected.GetLength(1); c++)
                                 if (_selectionButtons[r, c] != null)
-                                    ApplyButtonStyle(_selectionButtons[r, c],
-                                        _selected[r, c]);
+                                    ApplyButtonStyle(_selectionButtons[r, c], _selected[r, c]);
                         UpdateSelectionHint();
                     });
                 }));
         };
         _gridPreviewImage.GestureRecognizers.Add(gridTap);
-        v.Children.Add(_gridPreviewImage);
-        v.Children.Add(new Label
+        previewGrid.Add(_gridPreviewImage, 1, 1);
+
+        // Bottom row: dim labels
+        _previewLabel = new Label
         {
-            Text = "Tap to fullscreen",
+            Text = "",
             FontSize = 11,
-            TextColor = Color.FromArgb("#999"),
-            FontAttributes = FontAttributes.Italic,
-            HorizontalOptions = LayoutOptions.Center,
-            IsVisible = false
-        });
-        _gridPreviewHint = (Label)v.Children[v.Children.Count - 1];
+            TextColor = Color.FromArgb("#666"),
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+        previewGrid.Add(_previewLabel, 0, 2);
+
+        _gridPreviewLabel = new Label
+        {
+            Text = "",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#666"),
+            IsVisible = false,
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+        previewGrid.Add(_gridPreviewLabel, 1, 2);
+
+        v.Children.Add(previewGrid);
+
+        // Shared tap hints (hidden, kept for IsVisible logic compatibility)
+        _cropPreviewHint = new Label { IsVisible = false };
+        _gridPreviewHint = new Label { IsVisible = false };
+        v.Children.Add(_cropPreviewHint);
+        v.Children.Add(_gridPreviewHint);
 
         // ── SELECTION GRID ────────────────────────────────────────────
         _selectionHeader = new Label
