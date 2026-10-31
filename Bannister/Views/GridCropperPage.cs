@@ -11,6 +11,7 @@ public class GridCropperPage : ContentPage
     private int _imagePixelW;
     private int _imagePixelH;
     private byte[]? _gridImageBytes;
+    private byte[]? _cleanImageBytes;
     private int _cellW = 100;
     private int _cellH = 100;
     private int _rows = 5;
@@ -709,12 +710,16 @@ public class GridCropperPage : ContentPage
         {
             if (_gridPreviewImage.Source == null || !_gridPreviewImage.IsVisible) return;
             await Navigation.PushAsync(new FullScreenImagePage(
-                _gridImageBytes ?? Array.Empty<byte>(),
+                _cleanImageBytes ?? _gridImageBytes ?? Array.Empty<byte>(),
                 _selected,
-                _selected.GetLength(0),
-                _selected.GetLength(1),
                 _imagePixelW,
                 _imagePixelH,
+                new GridGeometry
+                {
+                    Cols = _cols, Rows = _rows, CellW = _cellW, CellH = _cellH,
+                    SeparateBottom = _separateBottomRow, BottomCols = _bottomCols,
+                    BottomCellW = _bottomCellW, BottomCellH = _bottomCellH
+                },
                 updatedSelection =>
                 {
                     for (int r = 0; r < _selected.GetLength(0); r++)
@@ -727,6 +732,24 @@ public class GridCropperPage : ContentPage
                                 if (_selectionButtons[r, c] != null)
                                     ApplyButtonStyle(_selectionButtons[r, c], _selected[r, c]);
                         UpdateSelectionHint();
+                    });
+                },
+                geo =>
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        _widthSlider.Value = Math.Clamp(geo.CellW,
+                            _widthSlider.Minimum, _widthSlider.Maximum);
+                        _heightSlider.Value = Math.Clamp(geo.CellH,
+                            _heightSlider.Minimum, _heightSlider.Maximum);
+                        if (_separateBottomRow)
+                        {
+                            _bottomWidthSlider.Value = Math.Clamp(geo.BottomCellW,
+                                _bottomWidthSlider.Minimum, _bottomWidthSlider.Maximum);
+                            _bottomHeightSlider.Value = Math.Clamp(geo.BottomCellH,
+                                _bottomHeightSlider.Minimum, _bottomHeightSlider.Maximum);
+                        }
+                        UpdatePreview();
                     });
                 }));
         };
@@ -921,6 +944,9 @@ public class GridCropperPage : ContentPage
             _sourceBitmap?.Dispose();
             _sourceBitmap = SKBitmap.Decode(stream);
             if (_sourceBitmap == null) { await DisplayAlert("Error", "Could not decode the selected image.", "OK"); return; }
+            using (var cleanImage = SKImage.FromBitmap(_sourceBitmap))
+            using (var cleanData = cleanImage.Encode(SKEncodedImageFormat.Png, 100))
+                _cleanImageBytes = cleanData.ToArray();
             int imgW = _sourceBitmap.Width;
             int imgH = _sourceBitmap.Height;
             _imageInfoLabel.Text = $"{System.IO.Path.GetFileName(_sourceFilePath)} — {imgW} × {imgH} px";

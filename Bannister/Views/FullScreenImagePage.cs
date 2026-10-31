@@ -2,8 +2,24 @@ using SkiaSharp;
 
 namespace Bannister.Views;
 
+public sealed class GridGeometry
+{
+    public int Cols;
+    public int Rows;
+    public int CellW;
+    public int CellH;
+    public bool SeparateBottom;
+    public int BottomCols;
+    public int BottomCellW;
+    public int BottomCellH;
+    public int MainRows => SeparateBottom ? Math.Max(1, Rows - 1) : Rows;
+    public GridGeometry Clone() => (GridGeometry)MemberwiseClone();
+}
+
 public class FullScreenImagePage : ContentPage
 {
+    private SKBitmap? _geometryBitmap;
+
     // Non-interactive mode — crop preview
     public FullScreenImagePage(ImageSource source)
     {
@@ -229,6 +245,402 @@ public class FullScreenImagePage : ContentPage
 #endif
 
         Content = rootGrid;
+    }
+
+    public FullScreenImagePage(
+        byte[] sourceImageBytes,
+        bool[,] selected,
+        int imagePixelW,
+        int imagePixelH,
+        GridGeometry geometry,
+        Action<bool[,]>? onSelectionChanged,
+        Action<GridGeometry>? onGeometryChanged)
+    {
+        Title = "";
+        BackgroundColor = Colors.Black;
+        NavigationPage.SetHasNavigationBar(this, false);
+
+        var g = geometry.Clone();
+        int selectionRows = selected.GetLength(0);
+        int selectionCols = selected.GetLength(1);
+        var localSelected = new bool[selectionRows, selectionCols];
+        for (int r = 0; r < selectionRows; r++)
+            for (int c = 0; c < selectionCols; c++)
+                localSelected[r, c] = selected[r, c];
+
+        _geometryBitmap = SKBitmap.Decode(sourceImageBytes);
+
+        var displayImage = new Image
+        {
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            InputTransparent = true
+        };
+
+        var overlay = new AbsoluteLayout
+        {
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            InputTransparent = true
+        };
+
+        var hW = new BoxView { Color = Color.FromArgb("#42A5F5"), CornerRadius = 2 };
+        var hH = new BoxView { Color = Color.FromArgb("#42A5F5"), CornerRadius = 2 };
+        var hBH = new BoxView { Color = Color.FromArgb("#FFD54F"), CornerRadius = 2 };
+        var hBW = new BoxView { Color = Color.FromArgb("#FFD54F"), CornerRadius = 2 };
+        var dragLabel = new Label
+        {
+            TextColor = Colors.White,
+            BackgroundColor = Colors.Black.WithAlpha(0.7f),
+            FontSize = 12,
+            Padding = new Thickness(8, 4),
+            IsVisible = false
+        };
+        overlay.Children.Add(hW);
+        overlay.Children.Add(hH);
+        overlay.Children.Add(hBH);
+        overlay.Children.Add(hBW);
+        overlay.Children.Add(dragLabel);
+
+        var hint = new Label
+        {
+            Text = "Tap panels to toggle · drag blue/yellow lines to resize cells",
+            FontSize = 13,
+            TextColor = Colors.White.WithAlpha(0.8f),
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.End,
+            Margin = new Thickness(0, 0, 0, 70)
+        };
+
+        var closeBtn = new Button
+        {
+            Text = "✓ Done",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 14,
+            HeightRequest = 44,
+            WidthRequest = 140,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.End,
+            Margin = new Thickness(0, 0, 0, 16)
+        };
+
+        var rootGrid = new Grid
+        {
+            BackgroundColor = Colors.Black,
+            Children = { displayImage, overlay, hint, closeBtn }
+        };
+
+        (double renderedW, double renderedH, double offsetX, double offsetY) GetFit(
+            double viewW, double viewH)
+        {
+            if (viewW <= 0 || viewH <= 0 || imagePixelW <= 0 || imagePixelH <= 0)
+                return (0, 0, 0, 0);
+            double imageAspect = (double)imagePixelW / imagePixelH;
+            double viewAspect = viewW / viewH;
+            if (imageAspect > viewAspect)
+            {
+                double renderedW = viewW;
+                double renderedH = viewW / imageAspect;
+                return (renderedW, renderedH, 0, (viewH - renderedH) / 2.0);
+            }
+            else
+            {
+                double renderedH = viewH;
+                double renderedW = viewH * imageAspect;
+                return (renderedW, renderedH, (viewW - renderedW) / 2.0, 0);
+            }
+        }
+
+        (double x, double y) ImageToView(double x, double y)
+        {
+            var fit = GetFit(rootGrid.Width, rootGrid.Height);
+            return (
+                fit.offsetX + x / imagePixelW * fit.renderedW,
+                fit.offsetY + y / imagePixelH * fit.renderedH);
+        }
+
+        (double x, double y) ViewToImage(double x, double y)
+        {
+            var fit = GetFit(rootGrid.Width, rootGrid.Height);
+            if (fit.renderedW <= 0 || fit.renderedH <= 0) return (0, 0);
+            return (
+                (x - fit.offsetX) / fit.renderedW * imagePixelW,
+                (y - fit.offsetY) / fit.renderedH * imagePixelH);
+        }
+
+        void PositionHandles()
+        {
+            var fit = GetFit(rootGrid.Width, rootGrid.Height);
+            if (fit.renderedW <= 0 || fit.renderedH <= 0) return;
+
+            var widthPoint = ImageToView(g.CellW, 0);
+            var heightPoint = ImageToView(0, g.CellH);
+            AbsoluteLayout.SetLayoutBounds(hW,
+                new Rect(widthPoint.x - 2, fit.offsetY, 4, fit.renderedH));
+            AbsoluteLayout.SetLayoutBounds(hH,
+                new Rect(fit.offsetX, heightPoint.y - 2, fit.renderedW, 4));
+
+            hBH.IsVisible = g.SeparateBottom;
+            hBW.IsVisible = g.SeparateBottom;
+            if (g.SeparateBottom)
+            {
+                int bottomY = imagePixelH - Math.Clamp(g.BottomCellH, 1, imagePixelH);
+                var bottomPoint = ImageToView(0, bottomY);
+                var bottomWidthPoint = ImageToView(g.BottomCellW, bottomY);
+                var imageBottom = ImageToView(0, imagePixelH);
+                AbsoluteLayout.SetLayoutBounds(hBH,
+                    new Rect(fit.offsetX, bottomPoint.y - 2, fit.renderedW, 4));
+                AbsoluteLayout.SetLayoutBounds(hBW,
+                    new Rect(bottomWidthPoint.x - 2, bottomPoint.y, 4,
+                        Math.Max(4, imageBottom.y - bottomPoint.y)));
+            }
+        }
+
+        void Redraw()
+        {
+            if (_geometryBitmap == null) return;
+            using var overlayBmp = _geometryBitmap.Copy();
+            using var canvas = new SKCanvas(overlayBmp);
+
+            int mainRows = g.MainRows;
+            int cellW = Math.Max(1, g.CellW);
+            int cellH = Math.Max(1, g.CellH);
+            using var fillPaint = new SKPaint
+            {
+                Color = new SKColor(30, 136, 229, 110),
+                Style = SKPaintStyle.Fill
+            };
+            using var borderPaint = new SKPaint
+            {
+                Color = new SKColor(30, 136, 229, 255),
+                StrokeWidth = 5,
+                Style = SKPaintStyle.Stroke,
+                IsAntialias = true
+            };
+            using var linePaint = new SKPaint
+            {
+                Color = new SKColor(255, 255, 255, 200),
+                StrokeWidth = 2,
+                Style = SKPaintStyle.Stroke,
+                IsAntialias = true
+            };
+            using var yellowPaint = new SKPaint
+            {
+                Color = new SKColor(255, 213, 79, 230),
+                StrokeWidth = 3,
+                Style = SKPaintStyle.Stroke,
+                IsAntialias = true
+            };
+            using var textPaint = new SKPaint
+            {
+                Color = SKColors.White,
+                TextSize = Math.Max(20, cellW / 8f),
+                IsAntialias = true,
+                FakeBoldText = true
+            };
+            using var shadowPaint = new SKPaint
+            {
+                Color = new SKColor(0, 0, 0, 180),
+                TextSize = textPaint.TextSize,
+                IsAntialias = true,
+                FakeBoldText = true
+            };
+
+            for (int r = 0; r < mainRows; r++)
+            {
+                for (int c = 0; c < g.Cols; c++)
+                {
+                    int x = c * cellW;
+                    int y = r * cellH;
+                    var rect = new SKRect(x, y, x + cellW, y + cellH);
+                    if (r < selectionRows && c < selectionCols && localSelected[r, c])
+                    {
+                        canvas.DrawRect(rect, fillPaint);
+                        canvas.DrawRect(rect, borderPaint);
+                    }
+                    int panel = r * g.Cols + c + 1;
+                    float tx = x + cellW * 0.05f;
+                    float ty = y + textPaint.TextSize + cellH * 0.04f;
+                    canvas.DrawText(panel.ToString(), tx + 2, ty + 2, shadowPaint);
+                    canvas.DrawText(panel.ToString(), tx, ty, textPaint);
+                }
+            }
+            for (int c = 1; c < g.Cols; c++)
+                canvas.DrawLine(c * cellW, 0, c * cellW, mainRows * cellH, linePaint);
+            for (int r = 1; r < mainRows; r++)
+                canvas.DrawLine(0, r * cellH, imagePixelW, r * cellH, linePaint);
+
+            if (g.SeparateBottom)
+            {
+                int botH = Math.Clamp(g.BottomCellH, 1, imagePixelH);
+                int bottomY = imagePixelH - botH;
+                int botW = Math.Clamp(g.BottomCellW, 1, imagePixelW);
+                canvas.DrawLine(0, bottomY, imagePixelW, bottomY, yellowPaint);
+                for (int c = 1; c <= g.BottomCols; c++)
+                    canvas.DrawLine(c * botW, bottomY, c * botW, imagePixelH, yellowPaint);
+                for (int c = 0; c < g.BottomCols; c++)
+                {
+                    int x = c * botW;
+                    var rect = new SKRect(x, bottomY, x + botW, imagePixelH);
+                    if (g.MainRows < selectionRows && c < selectionCols &&
+                        localSelected[g.MainRows, c])
+                    {
+                        canvas.DrawRect(rect, fillPaint);
+                        canvas.DrawRect(rect, borderPaint);
+                    }
+                    int panel = g.MainRows * g.Cols + c + 1;
+                    float tx = x + botW * 0.05f;
+                    float ty = bottomY + textPaint.TextSize + botH * 0.04f;
+                    canvas.DrawText(panel.ToString(), tx + 2, ty + 2, shadowPaint);
+                    canvas.DrawText(panel.ToString(), tx, ty, textPaint);
+                }
+            }
+
+            using var img = SKImage.FromBitmap(overlayBmp);
+            using var data = img.Encode(SKEncodedImageFormat.Png, 90);
+            var bytes = data.ToArray();
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                displayImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
+            });
+        }
+
+        closeBtn.Clicked += async (_, _) =>
+        {
+            await Navigation.PopAsync();
+            onSelectionChanged?.Invoke(localSelected);
+            onGeometryChanged?.Invoke(g);
+        };
+
+        rootGrid.SizeChanged += (_, _) => PositionHandles();
+
+#if WINDOWS
+        string? activeHandle = null;
+        var pointer = new PointerGestureRecognizer();
+        pointer.PointerPressed += (_, e) =>
+        {
+            var pos = e.GetPosition(rootGrid);
+            if (pos == null) return;
+            var fit = GetFit(rootGrid.Width, rootGrid.Height);
+            var widthPoint = ImageToView(g.CellW, 0);
+            var heightPoint = ImageToView(0, g.CellH);
+            int bottomY = imagePixelH - Math.Clamp(g.BottomCellH, 1, imagePixelH);
+            var bottomPoint = ImageToView(0, bottomY);
+            var bottomWidthPoint = ImageToView(g.BottomCellW, bottomY);
+
+            if (g.SeparateBottom && Math.Abs(pos.Value.Y - bottomPoint.y) <= 14)
+                activeHandle = "hBH";
+            else if (g.SeparateBottom && pos.Value.Y >= bottomPoint.y &&
+                     Math.Abs(pos.Value.X - bottomWidthPoint.x) <= 14)
+                activeHandle = "hBW";
+            else if (Math.Abs(pos.Value.X - widthPoint.x) <= 14)
+                activeHandle = "hW";
+            else if (Math.Abs(pos.Value.Y - heightPoint.y) <= 14)
+                activeHandle = "hH";
+            else
+            {
+                HandleGridTap(pos.Value.X, pos.Value.Y, fit.renderedW, fit.renderedH,
+                    fit.offsetX, fit.offsetY, imagePixelW, imagePixelH, g, localSelected);
+                Redraw();
+            }
+        };
+        pointer.PointerMoved += (_, e) =>
+        {
+            if (activeHandle == null) return;
+            var pos = e.GetPosition(rootGrid);
+            if (pos == null) return;
+            var imagePos = ViewToImage(pos.Value.X, pos.Value.Y);
+            int x = Math.Clamp((int)Math.Round(imagePos.x), 1, Math.Max(1, imagePixelW - 1));
+            int y = Math.Clamp((int)Math.Round(imagePos.y), 1, Math.Max(1, imagePixelH - 1));
+            dragLabel.IsVisible = true;
+            switch (activeHandle)
+            {
+                case "hW":
+                    g.CellW = x;
+                    dragLabel.Text = $"Width: {g.CellW} px";
+                    break;
+                case "hH":
+                    g.CellH = y;
+                    dragLabel.Text = $"Height: {g.CellH} px";
+                    break;
+                case "hBH":
+                    g.BottomCellH = imagePixelH - y;
+                    dragLabel.Text = $"Bottom height: {g.BottomCellH} px";
+                    break;
+                case "hBW":
+                    g.BottomCellW = x;
+                    dragLabel.Text = $"Bottom width: {g.BottomCellW} px";
+                    break;
+            }
+            PositionHandles();
+            AbsoluteLayout.SetLayoutBounds(dragLabel,
+                new Rect(Math.Clamp(pos.Value.X + 12, 0, Math.Max(0, rootGrid.Width - 160)),
+                    Math.Clamp(pos.Value.Y + 12, 0, Math.Max(0, rootGrid.Height - 40)),
+                    150, 34));
+        };
+        pointer.PointerReleased += (_, _) =>
+        {
+            if (activeHandle == null) return;
+            activeHandle = null;
+            dragLabel.IsVisible = false;
+            Redraw();
+            PositionHandles();
+        };
+        rootGrid.GestureRecognizers.Add(pointer);
+#else
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, e) =>
+        {
+            var pos = e.GetPosition(rootGrid);
+            if (pos == null) return;
+            var fit = GetFit(rootGrid.Width, rootGrid.Height);
+            HandleGridTap(pos.Value.X, pos.Value.Y, fit.renderedW, fit.renderedH,
+                fit.offsetX, fit.offsetY, imagePixelW, imagePixelH, g, localSelected);
+            Redraw();
+        };
+        rootGrid.GestureRecognizers.Add(tap);
+#endif
+
+        Content = rootGrid;
+        Redraw();
+    }
+
+    private static void HandleGridTap(
+        double tapX, double tapY,
+        double renderedW, double renderedH,
+        double offsetX, double offsetY,
+        int imagePixelW, int imagePixelH,
+        GridGeometry geometry,
+        bool[,] selected)
+    {
+        if (renderedW <= 0 || renderedH <= 0) return;
+        double relX = tapX - offsetX;
+        double relY = tapY - offsetY;
+        if (relX < 0 || relY < 0 || relX > renderedW || relY > renderedH) return;
+
+        int ix = Math.Clamp((int)(relX / renderedW * imagePixelW), 0, imagePixelW - 1);
+        int iy = Math.Clamp((int)(relY / renderedH * imagePixelH), 0, imagePixelH - 1);
+
+        if (geometry.SeparateBottom &&
+            iy >= imagePixelH - Math.Clamp(geometry.BottomCellH, 1, imagePixelH))
+        {
+            int bottomCellW = Math.Max(1, geometry.BottomCellW);
+            int col = Math.Clamp(ix / bottomCellW, 0, Math.Max(0, geometry.BottomCols - 1));
+            if (geometry.MainRows < selected.GetLength(0) && col < selected.GetLength(1))
+                selected[geometry.MainRows, col] = !selected[geometry.MainRows, col];
+            return;
+        }
+
+        int cellW = Math.Max(1, geometry.CellW);
+        int cellH = Math.Max(1, geometry.CellH);
+        int mainCol = ix / cellW;
+        int mainRow = iy / cellH;
+        if (mainRow < geometry.MainRows && mainCol < geometry.Cols &&
+            mainRow < selected.GetLength(0) && mainCol < selected.GetLength(1))
+            selected[mainRow, mainCol] = !selected[mainRow, mainCol];
     }
 
     private static void HandleGridTap(
