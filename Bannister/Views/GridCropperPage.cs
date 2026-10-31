@@ -429,6 +429,15 @@ public class GridCropperPage : ContentPage
                 ? Colors.White
                 : Color.FromArgb("#37474F");
             _bottomStripPanel.IsVisible = _separateBottomRow;
+            if (_separateBottomRow)
+            {
+                _bottomCellW = _cellW;
+                _bottomCellH = _cellH;
+                _bottomWidthSlider.Value = _bottomCellW;
+                _bottomHeightSlider.Value = _bottomCellH;
+                _bottomWidthValueLabel.Text = $"{_bottomCellW} px";
+                _bottomHeightValueLabel.Text = $"{_bottomCellH} px";
+            }
             if (_sourceBitmap != null) UpdatePreview();
             RebuildSelectionGrid();
         };
@@ -498,7 +507,7 @@ public class GridCropperPage : ContentPage
             _bottomHeightSlider.Value = Math.Max(_bottomHeightSlider.Minimum, _bottomHeightSlider.Value - 5);
         bHRow.Add(bHeightMinusBtn, 1, 0);
 
-        _bottomHeightSlider = new Slider { Minimum = 1, Maximum = 2000, Value = 100 };
+        _bottomHeightSlider = new Slider { Minimum = 1, Maximum = 5000, Value = 100 };
         _bottomHeightSlider.ValueChanged += (_, _) =>
         {
             _bottomCellH = (int)Math.Round(_bottomHeightSlider.Value);
@@ -551,7 +560,7 @@ public class GridCropperPage : ContentPage
             _bottomWidthSlider.Value = Math.Max(_bottomWidthSlider.Minimum, _bottomWidthSlider.Value - 5);
         bWRow.Add(bWidthMinusBtn, 1, 0);
 
-        _bottomWidthSlider = new Slider { Minimum = 1, Maximum = 2000, Value = 100 };
+        _bottomWidthSlider = new Slider { Minimum = 1, Maximum = 5000, Value = 100 };
         _bottomWidthSlider.ValueChanged += (_, _) =>
         {
             _bottomCellW = (int)Math.Round(_bottomWidthSlider.Value);
@@ -908,6 +917,8 @@ public class GridCropperPage : ContentPage
             _widthSlider.Value = Math.Min(_cellW, imgW);
             _heightSlider.Maximum = imgH;
             _heightSlider.Value = Math.Min(_cellH, imgH);
+            _bottomWidthSlider.Maximum = imgW;
+            _bottomHeightSlider.Maximum = imgH;
             _widthSlider.IsEnabled = true;
             _heightSlider.IsEnabled = true;
             UpdatePreview();
