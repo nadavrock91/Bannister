@@ -689,7 +689,7 @@ public class ClipsExperimentPage : ContentPage
             Padding = new Thickness(12, 8),
             Spacing = 8
         };
-        foreach (var experimentItem in experimentItems)
+        foreach (var experimentItem in experimentItems.OrderByDescending(e => e.CreatedDate))
         {
             var item = experimentItem;
             var button = new Button
