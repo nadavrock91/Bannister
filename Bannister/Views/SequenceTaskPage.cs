@@ -443,16 +443,31 @@ public class SequenceTaskPage : ContentPage
                     .Where(l => tasks.TryGetValue(l.TaskItemId, out var t) && !t.IsCompleted && !l.IsPendingTest)
                     .Select(l => tasks[l.TaskItemId])
                     .ToList();
-                var beforeTaskId =
-                    await ShowInsertPositionOverlayAsync(incomplete);
+                var beforeTaskId = await ShowInsertPositionOverlayAsync(incomplete);
                 if (!beforeTaskId.HasValue) return;
 
-                var newTask = await TaskCreationHelper.ShowCreateTaskAsync(
-                    this, _auth, _tasks, _ideasService);
-                if (newTask == null) return;
-
-                await _service.InsertTaskItemAtAsync(
-                    group.Id, newTask.Id, beforeTaskId.Value);
+                bool fromExisting = await DisplayAlert("Add Task", "Add a new task or pick from existing?", "From Existing", "New Task");
+                if (fromExisting)
+                {
+                    var allTasks = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+                    var existingTask = await ChooseExistingTaskAsync(allTasks);
+                    if (existingTask == null) return;
+                    var duplicate = (await _service.GetLinksAsync(group.Id))
+                        .Count(i => i.TaskItemId == existingTask.Id);
+                    if (duplicate > 0)
+                    {
+                        await DisplayAlert("Already Added", $"\"{existingTask.Title}\" is already in this group.", "OK");
+                        return;
+                    }
+                    await _service.InsertTaskItemAtAsync(group.Id, existingTask.Id, beforeTaskId.Value);
+                }
+                else
+                {
+                    var newTask = await TaskCreationHelper.ShowCreateTaskAsync(
+                        this, _auth, _tasks, _ideasService);
+                    if (newTask == null) return;
+                    await _service.InsertTaskItemAtAsync(group.Id, newTask.Id, beforeTaskId.Value);
+                }
                 await RefreshAsync();
             };
             exceptionButtons.Children.Add(exceptionButton);
