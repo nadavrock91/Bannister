@@ -12,6 +12,8 @@ public class SequenceTaskGroup
     public string ExportPromptTemplate { get; set; } = "{tasks}";
     public DateTime CreatedDate { get; set; } = DateTime.Now;
     public bool IsArchived { get; set; }
+    /// <summary>Maximum number of incomplete tasks allowed in this group. 0 = no cap.</summary>
+    public int TaskCap { get; set; } = 0;
 }
 
 [Table("sequence_task_items")]

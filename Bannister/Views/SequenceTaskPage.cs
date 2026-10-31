@@ -20,6 +20,7 @@ public class SequenceTaskPage : ContentPage
     private Entry _nameEntry = null!;
     private Editor _templateEditor = null!;
     private Editor _tasksEditor = null!;
+    private Entry _capEntry = null!;
     private bool _busy;
     private readonly HashSet<int> _selectedTaskIds = new();
     private Button? _doneSelectedButton;
@@ -284,11 +285,47 @@ public class SequenceTaskPage : ContentPage
     {
         var links = await _service.GetLinksAsync(group.Id);
         var tasks = await LoadLinkedTasksAsync(links);
+        async Task<bool> IsCapReachedAsync()
+        {
+            if (group.TaskCap <= 0) return false;
+            var currentLinks = await _service.GetLinksAsync(group.Id);
+            var allActive = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+            var incompleteCount = currentLinks.Count(l =>
+                allActive.Any(t => t.Id == l.TaskItemId && !t.IsCompleted));
+            if (incompleteCount < group.TaskCap) return false;
+            await DisplayAlert("Cap Reached",
+                $"This group has a cap of {group.TaskCap} incomplete tasks. Complete or remove a task to make room.",
+                "OK");
+            return true;
+        }
         var body = new VerticalStackLayout { Spacing = 10 };
         var headingRow = new HorizontalStackLayout { Spacing = 8 };
         headingRow.Children.Add(new Label { Text = group.Name, FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center });
         var editTemplate = MakeButton("Edit Template", "#E8EAF6", "#3949AB");
         headingRow.Children.Add(editTemplate);
+        var editCap = MakeButton(group.TaskCap > 0 ? $"Cap: {group.TaskCap}" : "Set Cap", "#FFF3E0", "#E65100");
+        var capPanel = new VerticalStackLayout { Spacing = 6, IsVisible = false };
+        var capEditEntry = new Entry
+        {
+            Text = group.TaskCap > 0 ? group.TaskCap.ToString() : "",
+            Placeholder = "Task cap (0 = no cap)",
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222"),
+            Keyboard = Keyboard.Numeric
+        };
+        var saveCap = MakeButton("Save Cap", "#E8F5E9", "#2E7D32");
+        saveCap.Clicked += async (_, _) =>
+        {
+            int newCap = int.TryParse(capEditEntry.Text, out var c) ? c : 0;
+            group.TaskCap = newCap;
+            await _service.SaveGroupAsync(group);
+            capPanel.IsVisible = false;
+            await RefreshAsync();
+        };
+        capPanel.Children.Add(capEditEntry);
+        capPanel.Children.Add(saveCap);
+        editCap.Clicked += (_, _) => capPanel.IsVisible = !capPanel.IsVisible;
+        headingRow.Children.Add(editCap);
         body.Children.Add(headingRow);
         var templatePanel = new VerticalStackLayout { Spacing = 6, IsVisible = false };
         var templateEditor = new Editor { Text = group.ExportPromptTemplate, HeightRequest = 140, AutoSize = EditorAutoSizeOption.Disabled, BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
@@ -303,6 +340,7 @@ public class SequenceTaskPage : ContentPage
         templatePanel.Children.Add(saveTemplate);
         editTemplate.Clicked += (_, _) => templatePanel.IsVisible = !templatePanel.IsVisible;
         body.Children.Add(templatePanel);
+        body.Children.Add(capPanel);
         body.Children.Add(new Label { Text = $"{tasks.Values.Count(t => t.IsCompleted)} of {links.Count} completed", FontSize = 13, TextColor = Color.FromArgb("#666") });
         var selectionActions = new HorizontalStackLayout { Spacing = 6 };
         var selectAll = MakeButton("Select All", "#E3F2FD", "#1565C0");
@@ -491,6 +529,7 @@ public class SequenceTaskPage : ContentPage
                     await DisplayAlert("Already Added", $"\"{existingTask.Title}\" is already in this group.", "OK");
                     return;
                 }
+                if (await IsCapReachedAsync()) return;
                 bool insertMode = await DisplayAlert("Add Task", "Where would you like to add this task?", "Insert at position", "Add to end");
                 if (insertMode)
                 {
@@ -518,7 +557,12 @@ public class SequenceTaskPage : ContentPage
             else
             {
                 var task = await TaskCreationHelper.ShowCreateTaskAsync(this, _auth, _tasks, _ideasService);
-                if (task != null) { await _service.AddTaskItemAsync(group.Id, task.Id); await RefreshAsync(); }
+                if (task != null)
+                {
+                    if (await IsCapReachedAsync()) return;
+                    await _service.AddTaskItemAsync(group.Id, task.Id);
+                    await RefreshAsync();
+                }
             }
         };
 
@@ -535,6 +579,7 @@ public class SequenceTaskPage : ContentPage
                 await DisplayAlert("Already Added", $"\"{existingTask.Title}\" is already in this group.", "OK");
                 return;
             }
+            if (await IsCapReachedAsync()) return;
             bool insertMode = await DisplayAlert("Add Task", "Where would you like to add this task?", "Insert at position", "Add to end");
             if (insertMode)
             {
@@ -843,7 +888,10 @@ public class SequenceTaskPage : ContentPage
         _nameEntry = new Entry { Placeholder = "Group name", BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
         _templateEditor = new Editor { Placeholder = "Wrap around each completed task. Use {task} where the task description should appear.", HeightRequest = 140, AutoSize = EditorAutoSizeOption.Disabled, BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
         _tasksEditor = new Editor { Placeholder = "Paste tasks, one per line...", HeightRequest = 180, AutoSize = EditorAutoSizeOption.Disabled, BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
-        form.Children.Add(_nameEntry); form.Children.Add(_templateEditor);
+        _capEntry = new Entry { Placeholder = "Task cap (0 = no cap)", BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222"), Keyboard = Keyboard.Numeric };
+        form.Children.Add(_nameEntry);
+        form.Children.Add(_capEntry);
+        form.Children.Add(_templateEditor);
         var tutorial = MakeButton("Use Tutorial Check Template", "#E8EAF6", "#3949AB");
         tutorial.Clicked += (_, _) => _templateEditor.Text = TutorialTemplate;
         form.Children.Add(tutorial); form.Children.Add(_tasksEditor);
@@ -857,7 +905,7 @@ public class SequenceTaskPage : ContentPage
         _busy = true;
         try
         {
-            var group = new SequenceTaskGroup { Name = _nameEntry.Text.Trim(), ExportPromptTemplate = _templateEditor.Text.Trim(), CreatedDate = DateTime.Now };
+            var group = new SequenceTaskGroup { Name = _nameEntry.Text.Trim(), ExportPromptTemplate = _templateEditor.Text.Trim(), CreatedDate = DateTime.Now, TaskCap = int.TryParse(_capEntry.Text, out var cap) ? cap : 0 };
             await _service.SaveGroupAsync(group);
             var lines = (_tasksEditor.Text ?? "").Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Where(x => x.Length > 0);
             foreach (var line in lines)
