@@ -17,6 +17,11 @@ public class GridCropperPage : ContentPage
     private bool _separateBottomRow = false;
     private int _bottomCols = 4;
     private int _bottomCellH = 100;
+    private int _bottomCellW = 100;
+    private Slider _bottomWidthSlider = null!;
+    private Label _bottomWidthValueLabel = null!;
+    private Image _bottomPreviewImage = null!;
+    private Label _bottomPreviewLabel = null!;
     private Button _pickButton = null!;
     private Label _imageInfoLabel = null!;
     private Slider _widthSlider = null!;
@@ -520,6 +525,78 @@ public class GridCropperPage : ContentPage
         bHRow.Add(_bottomHeightValueLabel, 4, 0);
         _bottomStripPanel.Children.Add(bHRow);
 
+        // Bottom strip width row
+        var bWRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(new GridLength(60)),
+                new ColumnDefinition(new GridLength(38)),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(new GridLength(38)),
+                new ColumnDefinition(new GridLength(60))
+            },
+            ColumnSpacing = 8
+        };
+        bWRow.Add(new Label { Text = "Width", FontSize = 13,
+            TextColor = Color.FromArgb("#444"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+
+        var bWidthMinusBtn = new Button
+        {
+            Text = "−", FontSize = 16, FontAttributes = FontAttributes.Bold,
+            HeightRequest = 36, WidthRequest = 36, CornerRadius = 6, Padding = 0,
+            BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F")
+        };
+        bWidthMinusBtn.Clicked += (_, _) =>
+            _bottomWidthSlider.Value = Math.Max(_bottomWidthSlider.Minimum, _bottomWidthSlider.Value - 5);
+        bWRow.Add(bWidthMinusBtn, 1, 0);
+
+        _bottomWidthSlider = new Slider { Minimum = 1, Maximum = 2000, Value = 100 };
+        _bottomWidthSlider.ValueChanged += (_, _) =>
+        {
+            _bottomCellW = (int)Math.Round(_bottomWidthSlider.Value);
+            _bottomWidthValueLabel.Text = $"{_bottomCellW} px";
+            if (_sourceBitmap != null && _separateBottomRow) UpdatePreview();
+        };
+        bWRow.Add(_bottomWidthSlider, 2, 0);
+
+        var bWidthPlusBtn = new Button
+        {
+            Text = "+", FontSize = 16, FontAttributes = FontAttributes.Bold,
+            HeightRequest = 36, WidthRequest = 36, CornerRadius = 6, Padding = 0,
+            BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F")
+        };
+        bWidthPlusBtn.Clicked += (_, _) =>
+            _bottomWidthSlider.Value = Math.Min(_bottomWidthSlider.Maximum, _bottomWidthSlider.Value + 5);
+        bWRow.Add(bWidthPlusBtn, 3, 0);
+
+        _bottomWidthValueLabel = new Label
+        {
+            Text = "100 px", FontSize = 12, TextColor = Color.FromArgb("#222"),
+            VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End
+        };
+        bWRow.Add(_bottomWidthValueLabel, 4, 0);
+        _bottomStripPanel.Children.Add(bWRow);
+
+        // Bottom strip cell preview
+        _bottomPreviewLabel = new Label
+        {
+            Text = "Bottom-left panel preview:",
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#444")
+        };
+        _bottomStripPanel.Children.Add(_bottomPreviewLabel);
+
+        _bottomPreviewImage = new Image
+        {
+            HeightRequest = 200,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Fill,
+            IsVisible = false
+        };
+        _bottomStripPanel.Children.Add(_bottomPreviewImage);
+
         v.Children.Add(_bottomStripPanel);
 
         v.Children.Add(new Label { Text = "Sliders activate after an image is picked.", FontSize = 11, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
@@ -975,6 +1052,31 @@ public class GridCropperPage : ContentPage
             _gridHeaderLabel.IsVisible = true;
         }
 
+        // ── Bottom strip cell preview ─────────────────────────────────
+        if (_separateBottomRow && _sourceBitmap != null)
+        {
+            int splitY = mainRows * safeH;
+            int botW = Math.Max(1, Math.Min(_bottomCellW, _sourceBitmap.Width));
+            int botH = Math.Max(1, Math.Min(_bottomCellH, _sourceBitmap.Height - splitY));
+            if (botH > 0)
+            {
+                var srcRect = new SKRectI(0, splitY, botW, splitY + botH);
+                using var cropped = new SKBitmap(botW, botH);
+                using var canvas = new SKCanvas(cropped);
+                canvas.DrawBitmap(_sourceBitmap, srcRect, new SKRect(0, 0, botW, botH));
+                using var image = SKImage.FromBitmap(cropped);
+                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+                var bytes = data.ToArray();
+                _bottomPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
+                _bottomPreviewImage.IsVisible = true;
+                _bottomPreviewLabel.Text = $"Bottom-left panel: {botW} × {botH} px";
+            }
+        }
+        else if (_bottomPreviewImage != null)
+        {
+            _bottomPreviewImage.IsVisible = false;
+        }
+
         _selectionHeader.IsVisible = true;
         _selectionGrid.IsVisible = true;
         _selectAllRow.IsVisible = true;
@@ -1053,7 +1155,7 @@ public class GridCropperPage : ContentPage
                 if (_separateBottomRow)
                 {
                     int splitY = mainRows * safeH;
-                    int botW = _sourceBitmap.Width / Math.Max(1, _bottomCols);
+                    int botW = Math.Max(1, Math.Min(_bottomCellW, _sourceBitmap.Width));
                     int botH = Math.Max(1, Math.Min(_bottomCellH, _sourceBitmap.Height - splitY));
                     int stripOffset = mainRows * _cols;
                     for (int col = 0; col < _bottomCols; col++)
