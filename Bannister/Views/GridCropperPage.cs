@@ -27,6 +27,7 @@ public class GridCropperPage : ContentPage
     private Label _gridHeaderLabel = null!;
     private Label _previewLabel = null!;
     private Button _cropButton = null!;
+    private Button _fitButton = null!;
     private Label _statusLabel = null!;
     private Picker _presetPicker = null!;
     private List<CropPresetItem> _presets = new();
@@ -389,6 +390,30 @@ public class GridCropperPage : ContentPage
         presetRow.Children.Add(deletePresetBtn);
 
         v.Children.Add(presetRow);
+        _fitButton = new Button
+        {
+            Text = "⊡ Fit to Image",
+            BackgroundColor = Color.FromArgb("#37474F"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            FontSize = 13,
+            HeightRequest = 38,
+            Padding = new Thickness(12, 0),
+            HorizontalOptions = LayoutOptions.Start,
+            IsEnabled = false
+        };
+        _fitButton.Clicked += (_, _) =>
+        {
+            if (_sourceBitmap == null) return;
+            int fw = _sourceBitmap.Width / _cols;
+            int fh = _sourceBitmap.Height / _rows;
+            fw = Math.Max(10, Math.Min(fw, 1000));
+            fh = Math.Max(10, Math.Min(fh, 1000));
+            _widthSlider.Value = fw;
+            _heightSlider.Value = fh;
+            // OnSliderChanged fires from the slider, updating _cellW/_cellH and calling UpdatePreview
+        };
+        v.Children.Add(_fitButton);
         v.Children.Add(new Label { Text = "Sliders activate after an image is picked.", FontSize = 11, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
         return v;
     }
@@ -666,6 +691,7 @@ public class GridCropperPage : ContentPage
             _heightSlider.Value = Math.Min(_cellH, imgH);
             _widthSlider.IsEnabled = true;
             _heightSlider.IsEnabled = true;
+            _fitButton.IsEnabled = true;
             UpdatePreview();
         }
         catch (Exception ex) { await DisplayAlert("Error", $"Failed to open image: {ex.Message}", "OK"); }
