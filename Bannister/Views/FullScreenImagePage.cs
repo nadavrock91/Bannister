@@ -55,6 +55,8 @@ public class FullScreenImagePage : ContentPage
     }
 
     private SKBitmap? _geometryBitmap;
+    private double _panStartImageX = -1;
+    private double _panStartImageY = -1;
 
     // Non-interactive mode — crop preview
     public FullScreenImagePage(ImageSource source)
@@ -365,9 +367,14 @@ public class FullScreenImagePage : ContentPage
 
         BuildHandles();
 
+#if WINDOWS
+        const string geometryHint = "Tap panels to toggle · drag any line to move just that line";
+#else
+        const string geometryHint = "Tap a grid line to select it, then use ◀▶▲▼ to nudge · tap panel to toggle";
+#endif
         var hint = new Label
         {
-            Text = "Tap panels to toggle · drag any line to move just that line",
+            Text = geometryHint,
             FontSize = 13,
             TextColor = Colors.White.WithAlpha(0.8f),
             HorizontalOptions = LayoutOptions.Center,
@@ -714,9 +721,14 @@ public class FullScreenImagePage : ContentPage
         };
         rootGrid.GestureRecognizers.Add(pointer);
 #else
+        // Android / other platforms: tap to toggle, pan to drag handles
+        Handle? activeHandle = null;
+
         var tap = new TapGestureRecognizer();
         tap.Tapped += (_, e) =>
         {
+            // Only toggle if no drag is in progress
+            if (activeHandle != null) return;
             var pos = e.GetPosition(rootGrid);
             if (pos == null) return;
             var fit = GetFit(rootGrid.Width, rootGrid.Height);
@@ -725,6 +737,186 @@ public class FullScreenImagePage : ContentPage
             Redraw();
         };
         rootGrid.GestureRecognizers.Add(tap);
+
+        var pan = new PanGestureRecognizer();
+        pan.PanUpdated += (_, e) =>
+        {
+            switch (e.StatusType)
+            {
+                case GestureStatus.Started:
+                {
+                    _panStartImageX = -1;
+                    _panStartImageY = -1;
+                    activeHandle = null;
+                    break;
+                }
+                case GestureStatus.Running:
+                {
+                    break;
+                }
+                case GestureStatus.Completed:
+                case GestureStatus.Canceled:
+                    activeHandle = null;
+                    break;
+            }
+        };
+
+        Handle? selectedHandle = null;
+        Button? nudgeA = null, nudgeB = null;
+
+        var nudgeLeft = new Button
+        {
+            Text = "◀", FontSize = 20, BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
+            HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
+            Margin = new Thickness(16, 0, 0, 80), IsVisible = false
+        };
+        var nudgeRight = new Button
+        {
+            Text = "▶", FontSize = 20, BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
+            HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
+            Margin = new Thickness(76, 0, 0, 80), IsVisible = false
+        };
+        var nudgeUp = new Button
+        {
+            Text = "▲", FontSize = 20, BackgroundColor = Color.FromArgb("#E65100"),
+            TextColor = Colors.White, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
+            HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
+            Margin = new Thickness(136, 0, 0, 80), IsVisible = false
+        };
+        var nudgeDown = new Button
+        {
+            Text = "▼", FontSize = 20, BackgroundColor = Color.FromArgb("#E65100"),
+            TextColor = Colors.White, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
+            HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
+            Margin = new Thickness(196, 0, 0, 80), IsVisible = false
+        };
+        var nudgeLabel = new Label
+        {
+            Text = "", FontSize = 12, TextColor = Colors.White,
+            HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
+            Margin = new Thickness(16, 0, 0, 140), IsVisible = false,
+            BackgroundColor = Color.FromArgb("#80000000")
+        };
+        var cancelBtn = new Button
+        {
+            Text = "✕", FontSize = 16, BackgroundColor = Color.FromArgb("#555"),
+            TextColor = Colors.White, CornerRadius = 8, WidthRequest = 52, HeightRequest = 52,
+            HorizontalOptions = LayoutOptions.Start, VerticalOptions = LayoutOptions.End,
+            Margin = new Thickness(256, 0, 0, 80), IsVisible = false
+        };
+        rootGrid.Children.Add(nudgeLeft);
+        rootGrid.Children.Add(nudgeRight);
+        rootGrid.Children.Add(nudgeUp);
+        rootGrid.Children.Add(nudgeDown);
+        rootGrid.Children.Add(nudgeLabel);
+        rootGrid.Children.Add(cancelBtn);
+
+        void ShowNudge(Handle h)
+        {
+            selectedHandle = h;
+            bool isV = h.Kind is HandleKind.MainV or HandleKind.BottomV;
+            nudgeLeft.IsVisible = isV;
+            nudgeRight.IsVisible = isV;
+            nudgeUp.IsVisible = !isV;
+            nudgeDown.IsVisible = !isV;
+            nudgeLabel.IsVisible = true;
+            cancelBtn.IsVisible = true;
+            nudgeLabel.Text = isV
+                ? $"Col line {h.Index}: x = {(h.Kind == HandleKind.MainV ? g.ColEdges[h.Index] : g.BottomColEdges[h.Index])} px"
+                : $"Row line {h.Index}: y = {(h.Kind == HandleKind.MainH ? g.RowEdges[h.Index] : g.BottomTop)} px";
+        }
+
+        void HideNudge()
+        {
+            selectedHandle = null;
+            nudgeLeft.IsVisible = nudgeRight.IsVisible = nudgeUp.IsVisible =
+                nudgeDown.IsVisible = nudgeLabel.IsVisible = cancelBtn.IsVisible = false;
+        }
+
+        void ApplyNudge(int dx, int dy)
+        {
+            if (selectedHandle == null) return;
+            var h = selectedHandle;
+            switch (h.Kind)
+            {
+                case HandleKind.MainV:
+                {
+                    int min = g.ColEdges[h.Index - 1] + 2;
+                    int max = h.Index < g.Cols ? g.ColEdges[h.Index + 1] - 2 : imagePixelW;
+                    g.ColEdges[h.Index] = Math.Clamp(g.ColEdges[h.Index] + dx, min, Math.Max(min, max));
+                    break;
+                }
+                case HandleKind.MainH:
+                {
+                    int min = g.RowEdges[h.Index - 1] + 2;
+                    int max = h.Index < g.MainRows ? g.RowEdges[h.Index + 1] - 2 : imagePixelH;
+                    g.RowEdges[h.Index] = Math.Clamp(g.RowEdges[h.Index] + dy, min, Math.Max(min, max));
+                    break;
+                }
+                case HandleKind.BottomH:
+                    g.BottomTop = Math.Clamp(g.BottomTop + dy, 1, imagePixelH - 2);
+                    break;
+                case HandleKind.BottomV:
+                {
+                    int min = g.BottomColEdges[h.Index - 1] + 2;
+                    int max = h.Index < g.BottomCols ? g.BottomColEdges[h.Index + 1] - 2 : imagePixelW;
+                    g.BottomColEdges[h.Index] = Math.Clamp(g.BottomColEdges[h.Index] + dx, min, Math.Max(min, max));
+                    break;
+                }
+            }
+            PositionHandle(h);
+            Redraw();
+            ShowNudge(h);
+        }
+
+        const int Step = 10;
+        nudgeLeft.Clicked += (_, _) => ApplyNudge(-Step, 0);
+        nudgeRight.Clicked += (_, _) => ApplyNudge(+Step, 0);
+        nudgeUp.Clicked += (_, _) => ApplyNudge(0, -Step);
+        nudgeDown.Clicked += (_, _) => ApplyNudge(0, +Step);
+        cancelBtn.Clicked += (_, _) => HideNudge();
+
+        rootGrid.GestureRecognizers.Remove(tap);
+        var tap2 = new TapGestureRecognizer();
+        tap2.Tapped += (_, e) =>
+        {
+            var pos = e.GetPosition(rootGrid);
+            if (pos == null) return;
+
+            double bestDist = double.MaxValue;
+            Handle? bestH = null;
+            foreach (var h in handles.Where(h => h.View.IsVisible))
+            {
+                var bounds = AbsoluteLayout.GetLayoutBounds(h.View);
+                bool isV = h.Kind is HandleKind.MainV or HandleKind.BottomV;
+                double dist = isV
+                    ? Math.Abs(pos.Value.X - (bounds.X + bounds.Width / 2.0))
+                    : Math.Abs(pos.Value.Y - (bounds.Y + bounds.Height / 2.0));
+                bool inSpan = isV
+                    ? pos.Value.Y >= bounds.Y - 20 && pos.Value.Y <= bounds.Bottom + 20
+                    : pos.Value.X >= bounds.X - 20 && pos.Value.X <= bounds.Right + 20;
+                if (inSpan && dist <= 22 && dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestH = h;
+                }
+            }
+
+            if (bestH != null)
+            {
+                ShowNudge(bestH);
+                return;
+            }
+
+            HideNudge();
+            var fit = GetFit(rootGrid.Width, rootGrid.Height);
+            HandleGridTap(pos.Value.X, pos.Value.Y, fit.renderedW, fit.renderedH,
+                fit.offsetX, fit.offsetY, imagePixelW, imagePixelH, g, localSelected);
+            Redraw();
+        };
+        rootGrid.GestureRecognizers.Add(tap2);
 #endif
 
         Content = rootGrid;
