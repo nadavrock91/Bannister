@@ -255,7 +255,7 @@ public class SequenceTaskPage : ContentPage
                 searchEntry,
                 new ScrollView
                 {
-                    MaximumHeightRequest = 420,
+                    MaximumHeightRequest = 340,
                     Content = items
                 },
                 cancel
@@ -463,8 +463,48 @@ public class SequenceTaskPage : ContentPage
         var add = MakeButton("+ Add Task", "#E8F5E9", "#2E7D32");
         add.Clicked += async (_, _) =>
         {
-            var task = await TaskCreationHelper.ShowCreateTaskAsync(this, _auth, _tasks, _ideasService);
-            if (task != null) { await _service.AddTaskItemAsync(group.Id, task.Id); await RefreshAsync(); }
+            bool fromExisting = await DisplayAlert("Add Task", "Add a new task or pick from existing?", "From Existing", "New Task");
+            if (fromExisting)
+            {
+                var allTasks = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+                var existingTask = await ChooseExistingTaskAsync(allTasks);
+                if (existingTask == null) return;
+                var duplicate = (await _service.GetLinksAsync(group.Id))
+                    .Count(i => i.TaskItemId == existingTask.Id);
+                if (duplicate > 0)
+                {
+                    await DisplayAlert("Already Added", $"\"{existingTask.Title}\" is already in this group.", "OK");
+                    return;
+                }
+                bool insertMode = await DisplayAlert("Add Task", "Where would you like to add this task?", "Insert at position", "Add to end");
+                if (insertMode)
+                {
+                    var currentLinks = await _service.GetLinksAsync(group.Id);
+                    var currentTaskIds = currentLinks.Select(l => l.TaskItemId).ToList();
+                    var allActiveTasks = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+                    var incompleteTasks = currentTaskIds
+                        .Select(id => allActiveTasks.FirstOrDefault(t => t.Id == id))
+                        .Where(t => t != null)
+                        .Cast<TaskItem>()
+                        .ToList();
+                    var insertBeforeTaskId = await ShowInsertPositionOverlayAsync(incompleteTasks);
+                    if (insertBeforeTaskId == null) return;
+                    if (insertBeforeTaskId == 0)
+                        await _service.InsertTaskItemAtAsync(group.Id, existingTask.Id, 0);
+                    else
+                        await _service.InsertTaskItemBeforeAsync(group.Id, existingTask.Id, insertBeforeTaskId.Value);
+                }
+                else
+                {
+                    await _service.AddTaskItemAsync(group.Id, existingTask.Id);
+                }
+                await RefreshAsync();
+            }
+            else
+            {
+                var task = await TaskCreationHelper.ShowCreateTaskAsync(this, _auth, _tasks, _ideasService);
+                if (task != null) { await _service.AddTaskItemAsync(group.Id, task.Id); await RefreshAsync(); }
+            }
         };
 
         var addExisting = MakeButton("+ From Existing", "#E3F2FD", "#1565C0");
@@ -480,7 +520,28 @@ public class SequenceTaskPage : ContentPage
                 await DisplayAlert("Already Added", $"\"{existingTask.Title}\" is already in this group.", "OK");
                 return;
             }
-            await _service.AddTaskItemAsync(group.Id, existingTask.Id);
+            bool insertMode = await DisplayAlert("Add Task", "Where would you like to add this task?", "Insert at position", "Add to end");
+            if (insertMode)
+            {
+                var currentLinks = await _service.GetLinksAsync(group.Id);
+                var currentTaskIds = currentLinks.Select(l => l.TaskItemId).ToList();
+                var allActiveTasks = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+                var incompleteTasks = currentTaskIds
+                    .Select(id => allActiveTasks.FirstOrDefault(t => t.Id == id))
+                    .Where(t => t != null)
+                    .Cast<TaskItem>()
+                    .ToList();
+                var insertBeforeTaskId = await ShowInsertPositionOverlayAsync(incompleteTasks);
+                if (insertBeforeTaskId == null) return;
+                if (insertBeforeTaskId == 0)
+                    await _service.InsertTaskItemAtAsync(group.Id, existingTask.Id, 0);
+                else
+                    await _service.InsertTaskItemBeforeAsync(group.Id, existingTask.Id, insertBeforeTaskId.Value);
+            }
+            else
+            {
+                await _service.AddTaskItemAsync(group.Id, existingTask.Id);
+            }
             await RefreshAsync();
         };
 

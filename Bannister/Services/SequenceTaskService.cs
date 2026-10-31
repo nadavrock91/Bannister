@@ -213,4 +213,35 @@ public class SequenceTaskService
             SortOrder = sortOrder
         });
     }
+
+    public async Task InsertTaskItemBeforeAsync(int groupId, int taskItemId, int beforeTaskId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var existing = await conn.Table<SequenceTaskItem>()
+            .Where(i => i.GroupId == groupId && i.TaskItemId == taskItemId)
+            .CountAsync();
+        if (existing > 0) return;
+        var anchor = await conn.Table<SequenceTaskItem>()
+            .Where(i => i.GroupId == groupId && i.TaskItemId == beforeTaskId)
+            .FirstOrDefaultAsync();
+        int insertAt = anchor?.SortOrder ?? 0;
+        // Shift all items at or after insertAt up by 1
+        var toShift = (await conn.Table<SequenceTaskItem>()
+            .Where(i => i.GroupId == groupId)
+            .ToListAsync())
+            .Where(i => i.SortOrder >= insertAt)
+            .ToList();
+        foreach (var item in toShift)
+        {
+            item.SortOrder++;
+            await conn.UpdateAsync(item);
+        }
+        await conn.InsertAsync(new SequenceTaskItem
+        {
+            GroupId = groupId,
+            TaskItemId = taskItemId,
+            SortOrder = insertAt
+        });
+    }
 }
