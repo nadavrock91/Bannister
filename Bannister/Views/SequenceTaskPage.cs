@@ -165,13 +165,16 @@ public class SequenceTaskPage : ContentPage
 
             foreach (var task in matches)
             {
-                var createdLabel = new Label
+                var row = new Grid
                 {
-                    Text = task.CreatedAt.ToLocalTime().ToString("MMM d, yyyy"),
-                    FontSize = 10,
-                    TextColor = Color.FromArgb("#999"),
-                    Margin = new Thickness(14, 4, 0, 0)
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = GridLength.Auto }
+                    },
+                    Margin = new Thickness(0, 2)
                 };
+
                 var btn = new Button
                 {
                     Text = $"{task.Title}  [{task.Category}]",
@@ -184,39 +187,41 @@ public class SequenceTaskPage : ContentPage
                     LineBreakMode = LineBreakMode.WordWrap
                 };
                 btn.Clicked += (_, _) => Complete(task);
-                items.Children.Add(createdLabel);
-                items.Children.Add(btn);
+
+                var dateLabel = new Label
+                {
+                    Text = task.CreatedAt.ToLocalTime().ToString("MMM d"),
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#999"),
+                    VerticalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(6, 0, 4, 0)
+                };
+
+                Grid.SetColumn(btn, 0);
+                Grid.SetColumn(dateLabel, 1);
+                row.Children.Add(btn);
+                row.Children.Add(dateLabel);
+                items.Children.Add(row);
             }
         }
 
-        // Category chips row
-        var categoryRow = new HorizontalStackLayout { Spacing = 6, Margin = new Thickness(0, 0, 0, 6) };
-        Button MakeCategoryChip(string label, string value)
+        var categoryPicker = new Picker
         {
-            var chip = new Button
-            {
-                Text = label,
-                FontSize = 11,
-                Padding = new Thickness(10, 4),
-                CornerRadius = 12,
-                TextColor = selectedCategory == value ? Colors.White : Color.FromArgb("#444"),
-                BackgroundColor = selectedCategory == value ? Color.FromArgb("#5B63EE") : Color.FromArgb("#E0E0E0")
-            };
-            chip.Clicked += (_, _) =>
-            {
-                selectedCategory = value;
-                // Rebuild all chips to update active state
-                categoryRow.Children.Clear();
-                categoryRow.Children.Add(MakeCategoryChip("All", ""));
-                foreach (var cat in allCategories)
-                    categoryRow.Children.Add(MakeCategoryChip(cat, cat));
-                RebuildButtons(searchEntry.Text ?? "");
-            };
-            return chip;
-        }
-        categoryRow.Children.Add(MakeCategoryChip("All", ""));
+            Title = "All Categories",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#222"),
+            BackgroundColor = Color.FromArgb("#F0F0F0"),
+            Margin = new Thickness(0, 0, 0, 6)
+        };
+        categoryPicker.Items.Add("All");
         foreach (var cat in allCategories)
-            categoryRow.Children.Add(MakeCategoryChip(cat, cat));
+            categoryPicker.Items.Add(cat);
+        categoryPicker.SelectedIndex = 0;
+        categoryPicker.SelectedIndexChanged += (_, _) =>
+        {
+            selectedCategory = categoryPicker.SelectedIndex <= 0 ? "" : allCategories[categoryPicker.SelectedIndex - 1];
+            RebuildButtons(searchEntry.Text ?? "");
+        };
 
         searchEntry.TextChanged += (_, e) => RebuildButtons(e.NewTextValue ?? "");
 
@@ -246,11 +251,7 @@ public class SequenceTaskPage : ContentPage
                     FontAttributes = FontAttributes.Bold,
                     TextColor = Color.FromArgb("#222")
                 },
-                new ScrollView
-                {
-                    Content = categoryRow,
-                    Orientation = ScrollOrientation.Horizontal
-                },
+                categoryPicker,
                 searchEntry,
                 new ScrollView
                 {
