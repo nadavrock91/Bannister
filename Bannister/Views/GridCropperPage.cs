@@ -13,9 +13,10 @@ public class GridCropperPage : ContentPage
     private byte[]? _gridImageBytes;
     private int _cellW = 100;
     private int _cellH = 100;
-    private int _splitY = 0;          // pixel Y of the horizontal split
-    private Slider _splitSlider = null!;
-    private Label _splitValueLabel = null!;
+    private int _rows = 5;
+    private bool _separateBottomRow = false;
+    private int _bottomCols = 4;
+    private int _bottomCellH = 100;
     private Button _pickButton = null!;
     private Label _imageInfoLabel = null!;
     private Slider _widthSlider = null!;
@@ -30,8 +31,11 @@ public class GridCropperPage : ContentPage
     private Label _gridHeaderLabel = null!;
     private Label _previewLabel = null!;
     private Button _cropButton = null!;
-    private Button _splitMinusBtn = null!;
-    private Button _splitPlusBtn = null!;
+    private Button _separateBottomBtn = null!;
+    private VerticalStackLayout _bottomStripPanel = null!;
+    private Slider _bottomHeightSlider = null!;
+    private Label _bottomHeightValueLabel = null!;
+    private Picker _bottomColsPicker = null!;
     private Label _statusLabel = null!;
     private Picker _presetPicker = null!;
     private List<CropPresetItem> _presets = new();
@@ -43,8 +47,8 @@ public class GridCropperPage : ContentPage
     private Switch _requirePrefixSwitch = null!;
     private bool _loadingPrefixSettings;
     private int _cols = 4;
-    private bool[,] _selected = new bool[2, 4];
-    private Button[,] _selectionButtons = new Button[2, 4];
+    private bool[,] _selected = new bool[5, 4];
+    private Button[,] _selectionButtons = new Button[5, 4];
     private Grid _selectionGrid = null!;
     private Label _descLabel = null!;
     private Picker _colsPicker = null!;
@@ -82,7 +86,7 @@ public class GridCropperPage : ContentPage
         stack.Children.Add(new Label { Text = " Grid Cropper", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
         _descLabel = new Label
         {
-            Text = "Pick a 4×2 grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save selected panels.",
+            Text = "Pick a 4×5 grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save selected panels.",
             FontSize = 14,
             TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
@@ -125,18 +129,21 @@ public class GridCropperPage : ContentPage
 
         _colsPicker.SelectedIndexChanged += (_, _) =>
         {
-            if (_colsPicker.SelectedItem is not string value) return;
-            _cols = int.Parse(value);
+            if (_colsPicker.SelectedItem is not string s) return;
+            if (!int.TryParse(s, out int v)) return;
+            _cols = v;
             RebuildSelectionGrid();
             if (_sourceBitmap != null) UpdatePreview();
-            _descLabel.Text = $"Pick a {_cols}×2 grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save selected panels.";
+            _descLabel.Text = $"Pick a {_cols}×{_rows} grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save selected panels.";
         };
         _rowsPicker.SelectedIndexChanged += (_, _) =>
         {
-            if (_rowsPicker.SelectedItem is not string) return;
+            if (_rowsPicker.SelectedItem is not string s) return;
+            if (!int.TryParse(s, out int v)) return;
+            _rows = v;
             RebuildSelectionGrid();
             if (_sourceBitmap != null) UpdatePreview();
-            _descLabel.Text = $"Pick a {_cols}×2 grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save selected panels.";
+            _descLabel.Text = $"Pick a {_cols}×{_rows} grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save selected panels.";
         };
 
         return new HorizontalStackLayout
@@ -393,16 +400,75 @@ public class GridCropperPage : ContentPage
         presetRow.Children.Add(deletePresetBtn);
 
         v.Children.Add(presetRow);
-        v.Children.Add(new Label
+        _separateBottomBtn = new Button
         {
-            Text = "Row split",
+            Text = "⊟ Separate bottom row",
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8,
             FontSize = 13,
+            HeightRequest = 38,
+            Padding = new Thickness(12, 0),
+            HorizontalOptions = LayoutOptions.Start
+        };
+        _separateBottomBtn.Clicked += (_, _) =>
+        {
+            _separateBottomRow = !_separateBottomRow;
+            _separateBottomBtn.Text = _separateBottomRow
+                ? "⊟ Separate bottom row: ON"
+                : "⊟ Separate bottom row";
+            _separateBottomBtn.BackgroundColor = _separateBottomRow
+                ? Color.FromArgb("#1565C0")
+                : Color.FromArgb("#ECEFF1");
+            _separateBottomBtn.TextColor = _separateBottomRow
+                ? Colors.White
+                : Color.FromArgb("#37474F");
+            _bottomStripPanel.IsVisible = _separateBottomRow;
+            if (_sourceBitmap != null) UpdatePreview();
+            RebuildSelectionGrid();
+        };
+        v.Children.Add(_separateBottomBtn);
+
+        _bottomStripPanel = new VerticalStackLayout
+        {
+            Spacing = 8,
+            IsVisible = false,
+            Padding = new Thickness(0, 4, 0, 0)
+        };
+
+        _bottomStripPanel.Children.Add(new Label
+        {
+            Text = "Bottom strip settings:",
+            FontSize = 12,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#444"),
-            Margin = new Thickness(0, 6, 0, 0)
+            TextColor = Color.FromArgb("#1565C0")
         });
 
-        var splitRow = new Grid
+        var bottomColsRow = new HorizontalStackLayout { Spacing = 8 };
+        bottomColsRow.Children.Add(new Label
+        {
+            Text = "Cols:",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#444"),
+            VerticalOptions = LayoutOptions.Center
+        });
+        _bottomColsPicker = new Picker { WidthRequest = 70 };
+        foreach (var s in new[] { "1", "2", "3", "4", "5", "6", "7", "8" })
+            _bottomColsPicker.Items.Add(s);
+        _bottomColsPicker.SelectedIndex = 3;
+        _bottomColsPicker.SelectedIndexChanged += (_, _) =>
+        {
+            if (_bottomColsPicker.SelectedItem is string s && int.TryParse(s, out int v))
+            {
+                _bottomCols = v;
+                if (_sourceBitmap != null) UpdatePreview();
+                RebuildSelectionGrid();
+            }
+        };
+        bottomColsRow.Children.Add(_bottomColsPicker);
+        _bottomStripPanel.Children.Add(bottomColsRow);
+
+        var bHRow = new Grid
         {
             ColumnDefinitions =
             {
@@ -410,55 +476,51 @@ public class GridCropperPage : ContentPage
                 new ColumnDefinition(new GridLength(38)),
                 new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(new GridLength(38)),
-                new ColumnDefinition(new GridLength(80))
+                new ColumnDefinition(new GridLength(60))
             },
             ColumnSpacing = 8
         };
-        splitRow.Add(new Label { Text = "Split Y", FontSize = 13,
+        bHRow.Add(new Label { Text = "Height", FontSize = 13,
             TextColor = Color.FromArgb("#444"), VerticalOptions = LayoutOptions.Center }, 0, 0);
 
-        _splitMinusBtn = new Button
+        var bHeightMinusBtn = new Button
         {
             Text = "−", FontSize = 16, FontAttributes = FontAttributes.Bold,
             HeightRequest = 36, WidthRequest = 36, CornerRadius = 6, Padding = 0,
-            BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F"),
-            IsEnabled = false
+            BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F")
         };
-        _splitMinusBtn.Clicked += (_, _) =>
-        {
-            _splitSlider.Value = Math.Max(_splitSlider.Minimum, _splitSlider.Value - 5);
-        };
-        splitRow.Add(_splitMinusBtn, 1, 0);
+        bHeightMinusBtn.Clicked += (_, _) =>
+            _bottomHeightSlider.Value = Math.Max(_bottomHeightSlider.Minimum, _bottomHeightSlider.Value - 5);
+        bHRow.Add(bHeightMinusBtn, 1, 0);
 
-        _splitSlider = new Slider { Minimum = 1, Maximum = 1000, Value = 500, IsEnabled = false };
-        _splitSlider.ValueChanged += (_, _) =>
+        _bottomHeightSlider = new Slider { Minimum = 1, Maximum = 2000, Value = 100 };
+        _bottomHeightSlider.ValueChanged += (_, _) =>
         {
-            _splitY = (int)Math.Round(_splitSlider.Value);
-            _splitValueLabel.Text = $"{_splitY} px";
-            UpdatePreview();
+            _bottomCellH = (int)Math.Round(_bottomHeightSlider.Value);
+            _bottomHeightValueLabel.Text = $"{_bottomCellH} px";
+            if (_sourceBitmap != null) UpdatePreview();
         };
-        splitRow.Add(_splitSlider, 2, 0);
+        bHRow.Add(_bottomHeightSlider, 2, 0);
 
-        _splitPlusBtn = new Button
+        var bHeightPlusBtn = new Button
         {
             Text = "+", FontSize = 16, FontAttributes = FontAttributes.Bold,
             HeightRequest = 36, WidthRequest = 36, CornerRadius = 6, Padding = 0,
-            BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F"),
-            IsEnabled = false
+            BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F")
         };
-        _splitPlusBtn.Clicked += (_, _) =>
-        {
-            _splitSlider.Value = Math.Min(_splitSlider.Maximum, _splitSlider.Value + 5);
-        };
-        splitRow.Add(_splitPlusBtn, 3, 0);
+        bHeightPlusBtn.Clicked += (_, _) =>
+            _bottomHeightSlider.Value = Math.Min(_bottomHeightSlider.Maximum, _bottomHeightSlider.Value + 5);
+        bHRow.Add(bHeightPlusBtn, 3, 0);
 
-        _splitValueLabel = new Label
+        _bottomHeightValueLabel = new Label
         {
-            Text = "— px", FontSize = 12, TextColor = Color.FromArgb("#222"),
+            Text = "100 px", FontSize = 12, TextColor = Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End
         };
-        splitRow.Add(_splitValueLabel, 4, 0);
-        v.Children.Add(splitRow);
+        bHRow.Add(_bottomHeightValueLabel, 4, 0);
+        _bottomStripPanel.Children.Add(bHRow);
+
+        v.Children.Add(_bottomStripPanel);
 
         v.Children.Add(new Label { Text = "Sliders activate after an image is picked.", FontSize = 11, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
         return v;
@@ -548,24 +610,25 @@ public class GridCropperPage : ContentPage
             await Navigation.PushAsync(new FullScreenImagePage(
                 _gridImageBytes ?? Array.Empty<byte>(),
                 _selected,
-                2,
-                _cols,
+                _selected.GetLength(0),
+                _selected.GetLength(1),
                 _imagePixelW,
                 _imagePixelH,
                 updatedSelection =>
                 {
                     // Copy state immediately on callback thread
-                    for (int r = 0; r < 2; r++)
-                        for (int c = 0; c < _cols; c++)
+                    for (int r = 0; r < _selected.GetLength(0); r++)
+                        for (int c = 0; c < _selected.GetLength(1); c++)
                             _selected[r, c] = updatedSelection[r, c];
 
                     // Update UI on main thread after page is back in view
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        for (int r = 0; r < 2; r++)
-                            for (int c = 0; c < _cols; c++)
-                                ApplyButtonStyle(_selectionButtons[r, c],
-                                    _selected[r, c]);
+                        for (int r = 0; r < _selected.GetLength(0); r++)
+                            for (int c = 0; c < _selected.GetLength(1); c++)
+                                if (_selectionButtons[r, c] != null)
+                                    ApplyButtonStyle(_selectionButtons[r, c],
+                                        _selected[r, c]);
                         UpdateSelectionHint();
                     });
                 }));
@@ -612,9 +675,10 @@ public class GridCropperPage : ContentPage
         };
         selectAllBtn.Clicked += (_, _) =>
         {
-            for (int r = 0; r < 2; r++)
-                for (int c = 0; c < _cols; c++)
+            for (int r = 0; r < _selected.GetLength(0); r++)
+                for (int c = 0; c < _selected.GetLength(1); c++)
                 {
+                    if (_selectionButtons[r, c] == null) continue;
                     _selected[r, c] = true;
                     ApplyButtonStyle(_selectionButtons[r, c], true);
                 }
@@ -634,9 +698,10 @@ public class GridCropperPage : ContentPage
         };
         deselectAllBtn.Clicked += (_, _) =>
         {
-            for (int r = 0; r < 2; r++)
-                for (int c = 0; c < _cols; c++)
+            for (int r = 0; r < _selected.GetLength(0); r++)
+                for (int c = 0; c < _selected.GetLength(1); c++)
                 {
+                    if (_selectionButtons[r, c] == null) continue;
                     _selected[r, c] = false;
                     ApplyButtonStyle(_selectionButtons[r, c], false);
                 }
@@ -673,19 +738,23 @@ public class GridCropperPage : ContentPage
 
     private void RebuildSelectionGrid()
     {
-        _selected = new bool[2, _cols];
-        _selectionButtons = new Button[2, _cols];
+        int mainRows = _separateBottomRow ? Math.Max(1, _rows - 1) : _rows;
+        int totalRows = _separateBottomRow ? mainRows + 1 : mainRows;
+
+        _selected = new bool[totalRows, Math.Max(_cols, _bottomCols)];
+        _selectionButtons = new Button[totalRows, Math.Max(_cols, _bottomCols)];
 
         _selectionGrid.Children.Clear();
         _selectionGrid.RowDefinitions.Clear();
         _selectionGrid.ColumnDefinitions.Clear();
 
-        for (int c = 0; c < _cols; c++)
+        int gridCols = _separateBottomRow ? Math.Max(_cols, _bottomCols) : _cols;
+        for (int c = 0; c < gridCols; c++)
             _selectionGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-        for (int r = 0; r < 2; r++)
+        for (int r = 0; r < totalRows; r++)
             _selectionGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 
-        for (int r = 0; r < 2; r++)
+        for (int r = 0; r < mainRows; r++)
         {
             for (int c = 0; c < _cols; c++)
             {
@@ -714,6 +783,33 @@ public class GridCropperPage : ContentPage
             }
         }
 
+        if (_separateBottomRow)
+        {
+            int stripOffset = mainRows * _cols;
+            for (int c = 0; c < _bottomCols; c++)
+            {
+                int panelNumber = stripOffset + c + 1;
+                int capturedC = c;
+                var btn = new Button
+                {
+                    Text = $"B{panelNumber}",
+                    FontSize = 14, FontAttributes = FontAttributes.Bold,
+                    HeightRequest = 64, CornerRadius = 8, Padding = 0,
+                    HorizontalOptions = LayoutOptions.Fill,
+                    BackgroundColor = Color.FromArgb("#E3F2FD"),
+                    TextColor = Color.FromArgb("#1565C0")
+                };
+                btn.Clicked += (_, _) =>
+                {
+                    _selected[mainRows, capturedC] = !_selected[mainRows, capturedC];
+                    ApplyButtonStyle(btn, _selected[mainRows, capturedC]);
+                    UpdateSelectionHint();
+                };
+                _selectionButtons[mainRows, c] = btn;
+                _selectionGrid.Add(btn, c, mainRows);
+            }
+        }
+
         UpdateSelectionHint();
     }
 
@@ -737,15 +833,6 @@ public class GridCropperPage : ContentPage
             _heightSlider.Value = Math.Min(_cellH, imgH);
             _widthSlider.IsEnabled = true;
             _heightSlider.IsEnabled = true;
-            int defaultSplit = (int)(_sourceBitmap.Height * 0.75);
-            _splitY = defaultSplit;
-            _splitSlider.Maximum = _sourceBitmap.Height - 1;
-            _splitSlider.Minimum = 1;
-            _splitSlider.Value = defaultSplit;
-            _splitValueLabel.Text = $"{_splitY} px";
-            _splitSlider.IsEnabled = true;
-            _splitMinusBtn.IsEnabled = true;
-            _splitPlusBtn.IsEnabled = true;
             UpdatePreview();
         }
         catch (Exception ex) { await DisplayAlert("Error", $"Failed to open image: {ex.Message}", "OK"); }
@@ -767,19 +854,16 @@ public class GridCropperPage : ContentPage
         int imgW = _sourceBitmap.Width;
         int imgH = _sourceBitmap.Height;
         int safeW = Math.Max(1, Math.Min(_cellW, imgW));
-        int splitY = Math.Max(1, Math.Min(_splitY, imgH - 1));
-        int topH = splitY;
-        int botH = imgH - splitY;
+        int safeH = Math.Max(1, Math.Min(_cellH, imgH));
+        int mainRows = _separateBottomRow ? Math.Max(1, _rows - 1) : _rows;
 
         // ── Crop preview: top-left cell ───────────────────────────────
         {
-            int cellW = Math.Max(1, Math.Min(safeW, imgW));
-            int cellH = Math.Max(1, topH);
-            var srcRect = new SKRectI(0, 0, cellW, cellH);
-            using var cropped = new SKBitmap(cellW, cellH);
+            var srcRect = new SKRectI(0, 0, safeW, safeH);
+            using var cropped = new SKBitmap(safeW, safeH);
             using var canvas = new SKCanvas(cropped);
             canvas.DrawBitmap(_sourceBitmap, srcRect,
-                new SKRect(0, 0, cellW, cellH));
+                new SKRect(0, 0, safeW, safeH));
             using var image = SKImage.FromBitmap(cropped);
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);
             var bytes = data.ToArray();
@@ -788,7 +872,7 @@ public class GridCropperPage : ContentPage
             _previewImage.IsVisible = true;
             _cropPreviewHint.IsVisible = true;
             _previewLabel.Text =
-                $"Top-left panel: {cellW} × {cellH} px";
+                $"Top-left panel: {safeW} × {safeH} px";
         }
 
         // ── Grid preview: full image with grid lines and numbers ───────
@@ -809,9 +893,26 @@ public class GridCropperPage : ContentPage
                 Style = SKPaintStyle.Stroke
             };
             for (int col = 1; col < _cols; col++)
-                gridCanvas.DrawLine(col * safeW, 0, col * safeW, imgH, linePaint);
+                gridCanvas.DrawLine(col * safeW, 0, col * safeW, mainRows * safeH, linePaint);
 
-            gridCanvas.DrawLine(0, splitY, imgW, splitY, linePaint);
+            for (int row = 1; row < mainRows; row++)
+                gridCanvas.DrawLine(0, row * safeH, imgW, row * safeH, linePaint);
+
+            if (_separateBottomRow)
+            {
+                int splitY = mainRows * safeH;
+                using var splitPaint = new SKPaint
+                {
+                    Color = new SKColor(255, 220, 50, 230),
+                    StrokeWidth = 3, IsAntialias = true,
+                    Style = SKPaintStyle.Stroke
+                };
+                gridCanvas.DrawLine(0, splitY, imgW, splitY, splitPaint);
+
+                int botW = _bottomCols > 0 ? imgW / _bottomCols : imgW;
+                for (int col = 1; col < _bottomCols; col++)
+                    gridCanvas.DrawLine(col * botW, splitY, col * botW, imgH, linePaint);
+            }
 
             // Draw panel numbers
             using var textPaint = new SKPaint
@@ -828,20 +929,33 @@ public class GridCropperPage : ContentPage
                 IsAntialias = true,
                 FakeBoldText = true
             };
-            int[] rowYs = { 0, splitY };
-            int[] rowHs = { topH, botH };
             int panel = 1;
-            for (int row = 0; row < 2; row++)
+            for (int row = 0; row < mainRows; row++)
             {
                 for (int col = 0; col < _cols; col++)
                 {
                     float tx = col * safeW + safeW * 0.08f;
-                    float ty = rowYs[row] + textPaint.TextSize + rowHs[row] * 0.05f;
+                    float ty = row * safeH + textPaint.TextSize + safeH * 0.05f;
                     // Shadow
                     gridCanvas.DrawText(panel.ToString(), tx + 2, ty + 2, shadowPaint);
                     // Text
                     gridCanvas.DrawText(panel.ToString(), tx, ty, textPaint);
                     panel++;
+                }
+            }
+
+            if (_separateBottomRow)
+            {
+                int splitY = mainRows * safeH;
+                int botW = _bottomCols > 0 ? imgW / _bottomCols : imgW;
+                int botH = imgH - splitY;
+                int stripOffset = mainRows * _cols;
+                for (int col = 0; col < _bottomCols; col++)
+                {
+                    float tx = col * botW + botW * 0.08f;
+                    float ty = splitY + textPaint.TextSize + botH * 0.05f;
+                    gridCanvas.DrawText((stripOffset + col + 1).ToString(), tx + 2, ty + 2, shadowPaint);
+                    gridCanvas.DrawText((stripOffset + col + 1).ToString(), tx, ty, textPaint);
                 }
             }
 
@@ -853,8 +967,10 @@ public class GridCropperPage : ContentPage
                 () => new MemoryStream(gridBytes));
             _gridPreviewImage.IsVisible = true;
             _gridPreviewHint.IsVisible = true;
-            _gridPreviewLabel.Text =
-                $"Full grid: {imgW} × {imgH} px — {_cols}×2 cells (split at {splitY} px)";
+            string desc = _separateBottomRow
+                ? $"Full grid: {imgW}×{imgH} px — {_cols}×{mainRows} main + {_bottomCols} bottom strip"
+                : $"Full grid: {imgW}×{imgH} px — {_cols}×{_rows} cells";
+            _gridPreviewLabel.Text = desc;
             _gridPreviewLabel.IsVisible = true;
             _gridHeaderLabel.IsVisible = true;
         }
@@ -871,9 +987,11 @@ public class GridCropperPage : ContentPage
     {
         if (_sourceBitmap == null || _sourceFilePath == null) return;
 
+        int mainRows = _separateBottomRow ? Math.Max(1, _rows - 1) : _rows;
+        int totalRows = _separateBottomRow ? mainRows + 1 : mainRows;
         int selectedCount = 0;
-        for (int r = 0; r < 2; r++)
-            for (int c = 0; c < _cols; c++)
+        for (int r = 0; r < totalRows; r++)
+            for (int c = 0; c < _selected.GetLength(1); c++)
                 if (_selected[r, c]) selectedCount++;
         if (selectedCount == 0)
         {
@@ -891,9 +1009,7 @@ public class GridCropperPage : ContentPage
         }
 
         int safeW = Math.Max(1, Math.Min(_cellW, _sourceBitmap.Width));
-        int splitY = Math.Max(1, Math.Min(_splitY, _sourceBitmap.Height - 1));
-        int[] rowYs  = { 0, splitY };
-        int[] rowHs  = { splitY, _sourceBitmap.Height - splitY };
+        int safeH = Math.Max(1, Math.Min(_cellH, _sourceBitmap.Height));
         var sourceDir = System.IO.Path.GetDirectoryName(_sourceFilePath) ?? ".";
         var outputDir = System.IO.Path.Combine(sourceDir, "cropped_panels");
 
@@ -905,7 +1021,7 @@ public class GridCropperPage : ContentPage
             var panels = await Task.Run(() =>
             {
                 var result = new List<(string FileName, byte[] Bytes)>();
-                for (int row = 0; row < 2; row++)
+                for (int row = 0; row < mainRows; row++)
                 {
                     for (int col = 0; col < _cols; col++)
                     {
@@ -913,9 +1029,9 @@ public class GridCropperPage : ContentPage
 
                         int panelNumber = row * _cols + col + 1;
                         int x = col * safeW;
-                        int y = rowYs[row];
+                        int y = row * safeH;
                         int cellW = safeW;
-                        int cellH = rowHs[row];
+                        int cellH = safeH;
                         int actualW = Math.Min(cellW, _sourceBitmap.Width - x);
                         int actualH = Math.Min(cellH, _sourceBitmap.Height - y);
                         if (actualW <= 0 || actualH <= 0) continue;
@@ -931,6 +1047,32 @@ public class GridCropperPage : ContentPage
                         using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
                         result.Add(($"panel_{panelNumber:D2}_{timestamp}.png",
                             encoded.ToArray()));
+                    }
+                }
+
+                if (_separateBottomRow)
+                {
+                    int splitY = mainRows * safeH;
+                    int botW = _sourceBitmap.Width / Math.Max(1, _bottomCols);
+                    int botH = Math.Max(1, Math.Min(_bottomCellH, _sourceBitmap.Height - splitY));
+                    int stripOffset = mainRows * _cols;
+                    for (int col = 0; col < _bottomCols; col++)
+                    {
+                        if (!_selected[mainRows, col]) continue;
+                        int panelNumber = stripOffset + col + 1;
+                        int x = col * botW;
+                        int y = splitY;
+                        int actualW = Math.Min(botW, _sourceBitmap.Width - x);
+                        int actualH = Math.Min(botH, _sourceBitmap.Height - y);
+                        if (actualW <= 0 || actualH <= 0) continue;
+                        var srcRect = new SKRectI(x, y, x + actualW, y + actualH);
+                        using var cropped = new SKBitmap(botW, botH);
+                        using var cropCanvas = new SKCanvas(cropped);
+                        cropCanvas.Clear(SKColors.Black);
+                        cropCanvas.DrawBitmap(_sourceBitmap, srcRect, new SKRect(0, 0, actualW, actualH));
+                        using var image = SKImage.FromBitmap(cropped);
+                        using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
+                        result.Add(($"strip_{panelNumber:D2}_{timestamp}.png", encoded.ToArray()));
                     }
                 }
                 return result;
@@ -1018,8 +1160,8 @@ public class GridCropperPage : ContentPage
     private void UpdateSelectionHint()
     {
         int count = 0;
-        for (int r = 0; r < 2; r++)
-            for (int c = 0; c < _cols; c++)
+        for (int r = 0; r < _selected.GetLength(0); r++)
+            for (int c = 0; c < _selected.GetLength(1); c++)
                 if (_selected[r, c]) count++;
 
         if (_selectionHintLabel == null || _cropButton == null) return;
