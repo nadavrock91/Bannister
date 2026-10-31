@@ -294,7 +294,7 @@ public class FocusContextPage : ContentPage
             sb.AppendLine();
             var commitments = await _challengeService.GetCurrentWeekCommitmentsAsync(challenge.Id);
             var allTasks = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
-            var focusTasks = allTasks.Where(t => string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase)).OrderBy(t => t.Priority).ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList();
+            var focusTasks = allTasks.Where(t => string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase)).OrderByDescending(t => t.Priority).ThenBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ToList();
             var committedIds = commitments.Select(c => c.TaskId).ToHashSet();
             sb.AppendLine($"FOCUS TASKS ({focusTasks.Count} in {challenge.FocusCategory}):");
             sb.AppendLine();
@@ -307,11 +307,26 @@ public class FocusContextPage : ContentPage
                 sb.AppendLine($"- [{p}]{top}{committed} {task.Title}{notes}");
             }
 
-            var freeTasks = allTasks.Where(t => !string.Equals(t.Category, challenge.FocusCategory, StringComparison.OrdinalIgnoreCase) && t.IsTopCandidate).OrderBy(t => t.Priority).ToList();
-            if (freeTasks.Count > 0)
+            var freeTasks = allTasks
+                .Where(t =>
+                    !string.Equals(
+                        t.Category,
+                        challenge.FocusCategory,
+                        StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(t => t.Priority)
+                .ToList();
+
+            bool includeFree = await DisplayAlert(
+                "Include Free Tasks?",
+                $"Quota: {challenge.FocusSlotsRequired} focus slots + {challenge.NonFocusSlotsAllowed} free slots this week.\n\nInclude free tasks in export?",
+                "Yes",
+                "No");
+
+            if (includeFree && freeTasks.Count > 0)
             {
                 sb.AppendLine();
-                sb.AppendLine($"FREE TASK TOP CANDIDATES ({freeTasks.Count}):");
+                sb.AppendLine(
+                    $"FREE TASKS ({freeTasks.Count}, quota: {challenge.NonFocusSlotsAllowed} slots):");
                 foreach (var task in freeTasks)
                 {
                     string p = task.Priority switch { 1 => "HIGH", 3 => "LOW", _ => "MED" };
