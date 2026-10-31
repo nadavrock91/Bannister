@@ -18,6 +18,15 @@ public sealed class GridGeometry
 
 public class FullScreenImagePage : ContentPage
 {
+    private enum HandleKind { MainV, MainH, BottomV, BottomH }
+
+    private sealed class Handle
+    {
+        public BoxView View = null!;
+        public HandleKind Kind;
+        public int Index;
+    }
+
     private SKBitmap? _geometryBitmap;
 
     // Non-interactive mode — crop preview
@@ -285,10 +294,7 @@ public class FullScreenImagePage : ContentPage
             InputTransparent = true
         };
 
-        var hW = new BoxView { Color = Color.FromArgb("#42A5F5"), CornerRadius = 2 };
-        var hH = new BoxView { Color = Color.FromArgb("#42A5F5"), CornerRadius = 2 };
-        var hBH = new BoxView { Color = Color.FromArgb("#FFD54F"), CornerRadius = 2 };
-        var hBW = new BoxView { Color = Color.FromArgb("#FFD54F"), CornerRadius = 2 };
+        var handles = new List<Handle>();
         var dragLabel = new Label
         {
             TextColor = Colors.White,
@@ -297,15 +303,43 @@ public class FullScreenImagePage : ContentPage
             Padding = new Thickness(8, 4),
             IsVisible = false
         };
-        overlay.Children.Add(hW);
-        overlay.Children.Add(hH);
-        overlay.Children.Add(hBH);
-        overlay.Children.Add(hBW);
-        overlay.Children.Add(dragLabel);
+
+        void BuildHandles()
+        {
+            overlay.Children.Clear();
+            handles.Clear();
+
+            void AddHandle(HandleKind kind, int index, string color)
+            {
+                var view = new BoxView
+                {
+                    Color = Color.FromArgb(color),
+                    CornerRadius = 2,
+                    Opacity = 0.9
+                };
+                handles.Add(new Handle { View = view, Kind = kind, Index = index });
+                overlay.Children.Add(view);
+            }
+
+            for (int k = 1; k <= g.Cols; k++)
+                AddHandle(HandleKind.MainV, k, "#42A5F5");
+            for (int k = 1; k <= g.MainRows; k++)
+                AddHandle(HandleKind.MainH, k, "#42A5F5");
+            if (g.SeparateBottom)
+            {
+                AddHandle(HandleKind.BottomH, 1, "#FFD54F");
+                for (int k = 1; k <= g.BottomCols; k++)
+                    AddHandle(HandleKind.BottomV, k, "#FFD54F");
+            }
+
+            overlay.Children.Add(dragLabel);
+        }
+
+        BuildHandles();
 
         var hint = new Label
         {
-            Text = "Tap panels to toggle · drag blue/yellow lines to resize cells",
+            Text = "Tap panels to toggle · drag any grid line to resize (far lines = finer control)",
             FontSize = 13,
             TextColor = Colors.White.WithAlpha(0.8f),
             HorizontalOptions = LayoutOptions.Center,
@@ -376,26 +410,52 @@ public class FullScreenImagePage : ContentPage
             var fit = GetFit(rootGrid.Width, rootGrid.Height);
             if (fit.renderedW <= 0 || fit.renderedH <= 0) return;
 
-            var widthPoint = ImageToView(g.CellW, 0);
-            var heightPoint = ImageToView(0, g.CellH);
-            AbsoluteLayout.SetLayoutBounds(hW,
-                new Rect(widthPoint.x - 2, fit.offsetY, 4, fit.renderedH));
-            AbsoluteLayout.SetLayoutBounds(hH,
-                new Rect(fit.offsetX, heightPoint.y - 2, fit.renderedW, 4));
-
-            hBH.IsVisible = g.SeparateBottom;
-            hBW.IsVisible = g.SeparateBottom;
-            if (g.SeparateBottom)
+            foreach (var handle in handles)
             {
-                int bottomY = imagePixelH - Math.Clamp(g.BottomCellH, 1, imagePixelH);
-                var bottomPoint = ImageToView(0, bottomY);
-                var bottomWidthPoint = ImageToView(g.BottomCellW, bottomY);
-                var imageBottom = ImageToView(0, imagePixelH);
-                AbsoluteLayout.SetLayoutBounds(hBH,
-                    new Rect(fit.offsetX, bottomPoint.y - 2, fit.renderedW, 4));
-                AbsoluteLayout.SetLayoutBounds(hBW,
-                    new Rect(bottomWidthPoint.x - 2, bottomPoint.y, 4,
-                        Math.Max(4, imageBottom.y - bottomPoint.y)));
+                double x1, y1, x2, y2;
+                switch (handle.Kind)
+                {
+                    case HandleKind.MainV:
+                        x1 = x2 = handle.Index * g.CellW;
+                        y1 = 0;
+                        y2 = g.MainRows * g.CellH;
+                        handle.View.IsVisible = x1 >= 0 && x1 <= imagePixelW;
+                        break;
+                    case HandleKind.MainH:
+                        x1 = 0;
+                        x2 = g.Cols * g.CellW;
+                        y1 = y2 = handle.Index * g.CellH;
+                        handle.View.IsVisible = y1 >= 0 && y1 <= imagePixelH;
+                        break;
+                    case HandleKind.BottomH:
+                        x1 = 0;
+                        x2 = imagePixelW;
+                        y1 = y2 = imagePixelH - g.BottomCellH;
+                        handle.View.IsVisible = y1 >= 0 && y1 <= imagePixelH;
+                        break;
+                    default:
+                        x1 = x2 = handle.Index * g.BottomCellW;
+                        y1 = imagePixelH - g.BottomCellH;
+                        y2 = imagePixelH;
+                        handle.View.IsVisible = x1 >= 0 && x1 <= imagePixelW;
+                        break;
+                }
+
+                if (!handle.View.IsVisible) continue;
+                var start = ImageToView(x1, y1);
+                var end = ImageToView(x2, y2);
+                if (handle.Kind is HandleKind.MainV or HandleKind.BottomV)
+                {
+                    AbsoluteLayout.SetLayoutBounds(handle.View,
+                        new Rect(start.x - 2, Math.Min(start.y, end.y), 4,
+                            Math.Max(4, Math.Abs(end.y - start.y))));
+                }
+                else
+                {
+                    AbsoluteLayout.SetLayoutBounds(handle.View,
+                        new Rect(Math.Min(start.x, end.x), start.y - 2,
+                            Math.Max(4, Math.Abs(end.x - start.x)), 4));
+                }
             }
         }
 
@@ -518,28 +578,37 @@ public class FullScreenImagePage : ContentPage
         rootGrid.SizeChanged += (_, _) => PositionHandles();
 
 #if WINDOWS
-        string? activeHandle = null;
+        Handle? activeHandle = null;
         var pointer = new PointerGestureRecognizer();
         pointer.PointerPressed += (_, e) =>
         {
             var pos = e.GetPosition(rootGrid);
             if (pos == null) return;
             var fit = GetFit(rootGrid.Width, rootGrid.Height);
-            var widthPoint = ImageToView(g.CellW, 0);
-            var heightPoint = ImageToView(0, g.CellH);
-            int bottomY = imagePixelH - Math.Clamp(g.BottomCellH, 1, imagePixelH);
-            var bottomPoint = ImageToView(0, bottomY);
-            var bottomWidthPoint = ImageToView(g.BottomCellW, bottomY);
 
-            if (g.SeparateBottom && Math.Abs(pos.Value.Y - bottomPoint.y) <= 14)
-                activeHandle = "hBH";
-            else if (g.SeparateBottom && pos.Value.Y >= bottomPoint.y &&
-                     Math.Abs(pos.Value.X - bottomWidthPoint.x) <= 14)
-                activeHandle = "hBW";
-            else if (Math.Abs(pos.Value.X - widthPoint.x) <= 14)
-                activeHandle = "hW";
-            else if (Math.Abs(pos.Value.Y - heightPoint.y) <= 14)
-                activeHandle = "hH";
+            double bestDistance = double.MaxValue;
+            Handle? bestHandle = null;
+            foreach (var handle in handles.Where(h => h.View.IsVisible))
+            {
+                var bounds = AbsoluteLayout.GetLayoutBounds(handle.View);
+                bool vertical = handle.Kind is HandleKind.MainV or HandleKind.BottomV;
+                double distance = vertical
+                    ? Math.Abs(pos.Value.X - (bounds.X + bounds.Width / 2.0))
+                    : Math.Abs(pos.Value.Y - (bounds.Y + bounds.Height / 2.0));
+                bool withinSpan = vertical
+                    ? pos.Value.Y >= bounds.Y - 14 && pos.Value.Y <= bounds.Bottom + 14
+                    : pos.Value.X >= bounds.X - 14 && pos.Value.X <= bounds.Right + 14;
+                if (withinSpan && distance <= 14 && distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestHandle = handle;
+                }
+            }
+
+            if (bestHandle != null)
+            {
+                activeHandle = bestHandle;
+            }
             else
             {
                 HandleGridTap(pos.Value.X, pos.Value.Y, fit.renderedW, fit.renderedH,
@@ -556,23 +625,24 @@ public class FullScreenImagePage : ContentPage
             int x = Math.Clamp((int)Math.Round(imagePos.x), 1, Math.Max(1, imagePixelW - 1));
             int y = Math.Clamp((int)Math.Round(imagePos.y), 1, Math.Max(1, imagePixelH - 1));
             dragLabel.IsVisible = true;
-            switch (activeHandle)
+            switch (activeHandle.Kind)
             {
-                case "hW":
-                    g.CellW = x;
-                    dragLabel.Text = $"Width: {g.CellW} px";
+                case HandleKind.MainV:
+                    g.CellW = Math.Max(1, (int)Math.Round((double)x / activeHandle.Index));
+                    dragLabel.Text = $"Cell width: {g.CellW} px";
                     break;
-                case "hH":
-                    g.CellH = y;
-                    dragLabel.Text = $"Height: {g.CellH} px";
+                case HandleKind.MainH:
+                    g.CellH = Math.Max(1, (int)Math.Round((double)y / activeHandle.Index));
+                    dragLabel.Text = $"Cell height: {g.CellH} px";
                     break;
-                case "hBH":
-                    g.BottomCellH = imagePixelH - y;
-                    dragLabel.Text = $"Bottom height: {g.BottomCellH} px";
+                case HandleKind.BottomH:
+                    g.BottomCellH = Math.Max(1, imagePixelH - y);
+                    dragLabel.Text = $"Strip height: {g.BottomCellH} px";
                     break;
-                case "hBW":
-                    g.BottomCellW = x;
-                    dragLabel.Text = $"Bottom width: {g.BottomCellW} px";
+                case HandleKind.BottomV:
+                    g.BottomCellW = Math.Max(1,
+                        (int)Math.Round((double)x / activeHandle.Index));
+                    dragLabel.Text = $"Strip width: {g.BottomCellW} px";
                     break;
             }
             PositionHandles();
