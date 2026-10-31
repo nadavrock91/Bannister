@@ -20,4 +20,5 @@ public class RclonePreset
     public bool SourceIsInput { get; set; } = true;    // true = prompt user at run time
     public bool DestinationIsInput { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public int Visibility { get; set; } = 2; // 0=private, 1=public, 2=both
 }

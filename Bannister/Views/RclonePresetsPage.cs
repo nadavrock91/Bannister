@@ -8,9 +8,14 @@ public class RclonePresetsPage : ContentPage
 {
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
+    private readonly PrivacyModeService _privacyMode =
+        Application.Current?.Handler?.MauiContext?.Services.GetService<PrivacyModeService>()
+        ?? new PrivacyModeService();
     private List<RclonePreset> _presets = new();
+    private List<RcloneQueueItem> _queueItems = new();
     private List<BackupLocation> _backupLocations = new();
     private VerticalStackLayout _mainStack = null!;
+    private Button _modeBtn = null!;
 
     public RclonePresetsPage(DatabaseService db, AuthService auth)
     {
@@ -83,6 +88,10 @@ public class RclonePresetsPage : ContentPage
             .OrderBy(l => l.Name)
             .ToListAsync();
         _backupLocations = allLocations;
+        _queueItems = await conn.Table<RcloneQueueItem>()
+            .Where(q => q.Username == _auth.CurrentUsername)
+            .OrderBy(q => q.CreatedAt)
+            .ToListAsync();
     }
 
     private async Task<string?> PickDestinationAsync(string currentValue = "")
@@ -143,6 +152,25 @@ public class RclonePresetsPage : ContentPage
         addBtn.Clicked += async (s, e) => await OnAddPresetAsync();
         _mainStack.Children.Add(addBtn);
 
+        _modeBtn = new Button
+        {
+            Text = GetModeBtnText(),
+            FontSize = 12,
+            BackgroundColor = Colors.Transparent,
+            BorderColor = Color.FromArgb("#888"),
+            BorderWidth = 1,
+            CornerRadius = 8,
+            HeightRequest = 36,
+            Padding = new Thickness(8, 0)
+        };
+        _modeBtn.Clicked += async (_, _) =>
+        {
+            _privacyMode.CycleMode(_auth.CurrentUsername);
+            await LoadAsync();
+            Render();
+        };
+        _mainStack.Children.Add(_modeBtn);
+
         if (_presets.Count == 0)
         {
             _mainStack.Children.Add(new Label
@@ -153,11 +181,43 @@ public class RclonePresetsPage : ContentPage
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(0, 24)
             });
-            return;
         }
 
-        foreach (var preset in _presets)
+        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+        var visiblePresets = _presets.Where(p => displayMode switch
+        {
+            ActivityDisplayMode.PublicOnly => p.Visibility == 1 || p.Visibility == 2,
+            ActivityDisplayMode.PrivateOnly => p.Visibility == 0 || p.Visibility == 2,
+            _ => true
+        }).ToList();
+
+        foreach (var preset in visiblePresets)
             _mainStack.Children.Add(BuildPresetCard(preset));
+
+        if (_queueItems.Count > 0)
+        {
+            _mainStack.Children.Add(new Label
+            {
+                Text = "Command Queue",
+                FontSize = 18,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#263238"),
+                Margin = new Thickness(0, 12, 0, 0)
+            });
+
+            foreach (var item in _queueItems)
+                _mainStack.Children.Add(BuildQueueRow(item));
+        }
+    }
+
+    private string GetModeBtnText()
+    {
+        return _privacyMode.GetDisplayMode(_auth.CurrentUsername) switch
+        {
+            ActivityDisplayMode.PublicOnly => "Public",
+            ActivityDisplayMode.PrivateOnly => "Private",
+            _ => "All"
+        };
     }
 
     private Frame BuildPresetCard(RclonePreset preset)
@@ -179,6 +239,7 @@ public class RclonePresetsPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Auto }
@@ -245,6 +306,30 @@ public class RclonePresetsPage : ContentPage
         Grid.SetColumn(deleteBtn, 3);
         titleRow.Children.Add(deleteBtn);
 
+        var visBtn = new Button
+        {
+            Text = preset.Visibility switch { 0 => "Private", 1 => "Public", _ => "Both" },
+            FontSize = 10,
+            HeightRequest = 30,
+            Padding = new Thickness(6, 0),
+            BackgroundColor = Color.FromArgb("#2D333B"),
+            TextColor = Colors.White,
+            CornerRadius = 4
+        };
+        visBtn.Clicked += async (_, _) =>
+        {
+            string? choice = await DisplayActionSheet("Visibility", "Cancel", null,
+                "Private", "Public", "Both");
+            if (choice == null || choice == "Cancel") return;
+            preset.Visibility = choice == "Private" ? 0 : choice == "Public" ? 1 : 2;
+            var db = await _db.GetConnectionAsync();
+            await db.UpdateAsync(preset);
+            await LoadAsync();
+            Render();
+        };
+        Grid.SetColumn(visBtn, 4);
+        titleRow.Children.Add(visBtn);
+
         stack.Children.Add(titleRow);
 
         // Summary of fields
@@ -270,6 +355,75 @@ public class RclonePresetsPage : ContentPage
         });
         frame.Content = stack;
         return frame;
+    }
+
+    private View BuildQueueRow(RcloneQueueItem item)
+    {
+        var row = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 6
+        };
+
+        var titleLabel = new Label
+        {
+            Text = item.Title + (item.IsRunning ? " [Running]" : item.IsDone ? " [Done]" : ""),
+            FontSize = 13,
+            TextColor = Color.FromArgb("#263238"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        row.Add(titleLabel, 0, 0);
+
+        var copyBtn = new Button { Text = "Copy", FontSize = 11, HeightRequest = 32, Padding = new Thickness(8, 0) };
+        copyBtn.Clicked += async (_, _) =>
+        {
+            await Clipboard.Default.SetTextAsync(item.Command);
+            await DisplayAlert("Copied", item.Title, "OK");
+        };
+        row.Add(copyBtn, 1, 0);
+
+        var runningBtn = new Button { Text = "Running", FontSize = 11, HeightRequest = 32, Padding = new Thickness(8, 0) };
+        runningBtn.Clicked += async (_, _) =>
+        {
+            item.IsRunning = !item.IsRunning;
+            if (item.IsRunning) item.IsDone = false;
+            var db = await _db.GetConnectionAsync();
+            await db.UpdateAsync(item);
+            await LoadAsync();
+            Render();
+        };
+        row.Add(runningBtn, 2, 0);
+
+        var doneBtn = new Button { Text = "Done", FontSize = 11, HeightRequest = 32, Padding = new Thickness(8, 0) };
+        doneBtn.Clicked += async (_, _) =>
+        {
+            item.IsDone = true;
+            item.IsRunning = false;
+            var db = await _db.GetConnectionAsync();
+            await db.UpdateAsync(item);
+            await LoadAsync();
+            Render();
+        };
+        row.Add(doneBtn, 3, 0);
+
+        var deleteBtn = new Button { Text = "Delete", FontSize = 11, HeightRequest = 32, Padding = new Thickness(8, 0) };
+        deleteBtn.Clicked += async (_, _) =>
+        {
+            var db = await _db.GetConnectionAsync();
+            await db.DeleteAsync(item);
+            await LoadAsync();
+            Render();
+        };
+        row.Add(deleteBtn, 4, 0);
+
+        return row;
     }
 
     private async Task OnAddPresetAsync()
@@ -421,6 +575,26 @@ public class RclonePresetsPage : ContentPage
         }
 
         string command = $"rclone copy \"{source.Trim()}\" {destination.Trim()} --transfers={preset.Transfers} --checkers={preset.Checkers} --progress";
+
+        string? queueChoice = await DisplayActionSheet(
+            "What do you want to do?", "Cancel", null, "Show command", "Add to Queue");
+        if (queueChoice == null || queueChoice == "Cancel") return;
+        if (queueChoice == "Add to Queue")
+        {
+            var qItem = new RcloneQueueItem
+            {
+                Username = _auth.CurrentUsername,
+                Title = preset.Title,
+                Command = command,
+                CreatedAt = DateTime.UtcNow
+            };
+            var db2 = await _db.GetConnectionAsync();
+            await db2.InsertAsync(qItem);
+            await DisplayAlert("Added", $"'{preset.Title}' added to queue.", "OK");
+            await LoadAsync();
+            Render();
+            return;
+        }
 
         // Show inline dialog overlay
         var overlay = new Grid
