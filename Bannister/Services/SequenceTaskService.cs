@@ -16,6 +16,8 @@ public class SequenceTaskService
         await conn.CreateTableAsync<SequenceTaskGroup>();
         await conn.CreateTableAsync<SequenceTaskItem>();
         await conn.CreateTableAsync<SequenceTaskException>();
+        await conn.CreateTableAsync<SequenceTaskCandidate>();
+        try { await conn.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS ix_seq_candidate_group_task ON sequence_task_candidates (GroupId, TaskItemId)"); } catch { }
         _initialized = true;
     }
 
@@ -243,5 +245,35 @@ public class SequenceTaskService
             TaskItemId = taskItemId,
             SortOrder = insertAt
         });
+    }
+
+    public async Task<List<SequenceTaskCandidate>> GetCandidatesAsync(int groupId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<SequenceTaskCandidate>()
+            .Where(c => c.GroupId == groupId)
+            .ToListAsync();
+    }
+
+    public async Task AddCandidateAsync(int groupId, int taskItemId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var existing = await conn.Table<SequenceTaskCandidate>()
+            .Where(c => c.GroupId == groupId && c.TaskItemId == taskItemId)
+            .CountAsync();
+        if (existing > 0) return;
+        await conn.InsertAsync(new SequenceTaskCandidate { GroupId = groupId, TaskItemId = taskItemId });
+    }
+
+    public async Task RemoveCandidateAsync(int groupId, int taskItemId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var row = await conn.Table<SequenceTaskCandidate>()
+            .Where(c => c.GroupId == groupId && c.TaskItemId == taskItemId)
+            .FirstOrDefaultAsync();
+        if (row != null) await conn.DeleteAsync(row);
     }
 }

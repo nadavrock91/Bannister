@@ -302,8 +302,7 @@ public class SequenceTaskPage : ContentPage
                     "Add to Top Candidates", "Cancel");
                 if (addToTopCandidates)
                 {
-                    task.IsTopCandidate = true;
-                    await _tasks.UpdateTaskAsync(task);
+                    await _service.AddCandidateAsync(group.Id, task.Id);
                     await DisplayAlert("Added to Top Candidates", $"\"{task.Title}\" will appear in the Top Candidates section below.", "OK");
                 }
             }
@@ -359,85 +358,6 @@ public class SequenceTaskPage : ContentPage
         body.Children.Add(templatePanel);
         body.Children.Add(capPanel);
 
-        // Top Candidates section for this group
-        var groupLinkedIds = links.Select(l => l.TaskItemId).ToHashSet();
-        var topCandidates = (await _tasks.GetActiveTasksAsync(_auth.CurrentUsername))
-            .Where(t => t.IsTopCandidate && !groupLinkedIds.Contains(t.Id))
-            .OrderByDescending(t => t.Priority)
-            .ToList();
-
-        if (topCandidates.Count > 0)
-        {
-            var tcHeader = new Label
-            {
-                Text = $"⭐ Top Candidates ({topCandidates.Count})",
-                FontSize = 13,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#FF9800"),
-                Margin = new Thickness(0, 4, 0, 2)
-            };
-            body.Children.Add(tcHeader);
-
-            foreach (var candidate in topCandidates)
-            {
-                var capturedCandidate = candidate;
-                var tcRow = new Grid
-                {
-                    ColumnDefinitions =
-                    {
-                        new ColumnDefinition { Width = GridLength.Star },
-                        new ColumnDefinition { Width = GridLength.Auto }
-                    },
-                    Margin = new Thickness(0, 2)
-                };
-                tcRow.Children.Add(new Label
-                {
-                    Text = $"{capturedCandidate.Title}  [{capturedCandidate.Category}]",
-                    FontSize = 12,
-                    TextColor = Color.FromArgb("#444"),
-                    VerticalOptions = LayoutOptions.Center
-                });
-                var addBtn = MakeButton("+ Add", "#E8F5E9", "#2E7D32");
-                addBtn.Clicked += async (_, _) =>
-                {
-                    var duplicate = (await _service.GetLinksAsync(group.Id))
-                        .Count(i => i.TaskItemId == capturedCandidate.Id);
-                    if (duplicate > 0)
-                    {
-                        await DisplayAlert("Already Added", $"\"{capturedCandidate.Title}\" is already in this group.", "OK");
-                        return;
-                    }
-                    if (await IsCapReachedAsync(capturedCandidate)) return;
-                    bool insertMode = await DisplayAlert("Add Task", "Where would you like to add this task?", "Insert at position", "Add to end");
-                    if (insertMode)
-                    {
-                        var currentLinks2 = await _service.GetLinksAsync(group.Id);
-                        var currentTaskIds2 = currentLinks2.Select(l => l.TaskItemId).ToList();
-                        var allActiveTasks2 = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
-                        var incompleteTasks2 = currentTaskIds2
-                            .Select(id => allActiveTasks2.FirstOrDefault(t => t.Id == id))
-                            .Where(t => t != null)
-                            .Cast<TaskItem>()
-                            .ToList();
-                        var insertBeforeTaskId2 = await ShowInsertPositionOverlayAsync(incompleteTasks2);
-                        if (insertBeforeTaskId2 == null) return;
-                        if (insertBeforeTaskId2 == 0)
-                            await _service.InsertTaskItemAtAsync(group.Id, capturedCandidate.Id, 0);
-                        else
-                            await _service.InsertTaskItemBeforeAsync(group.Id, capturedCandidate.Id, insertBeforeTaskId2.Value);
-                    }
-                    else
-                    {
-                        await _service.AddTaskItemAsync(group.Id, capturedCandidate.Id);
-                    }
-                    await RefreshAsync();
-                };
-                Grid.SetColumn(addBtn, 1);
-                tcRow.Children.Add(addBtn);
-                body.Children.Add(tcRow);
-            }
-            body.Children.Add(new BoxView { HeightRequest = 1, BackgroundColor = Color.FromArgb("#EEE"), Margin = new Thickness(0, 6) });
-        }
         body.Children.Add(new Label { Text = $"{tasks.Values.Count(t => t.IsCompleted)} of {links.Count} completed", FontSize = 13, TextColor = Color.FromArgb("#666") });
         var selectionActions = new HorizontalStackLayout { Spacing = 6 };
         var selectAll = MakeButton("Select All", "#E3F2FD", "#1565C0");
@@ -740,6 +660,111 @@ public class SequenceTaskPage : ContentPage
             await RefreshAsync();
         };
         body.Children.Add(deleteGroup);
+
+        var candidates = await _service.GetCandidatesAsync(group.Id);
+        var allTasksForCandidates = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+        var groupLinkedIds2 = links.Select(l => l.TaskItemId).ToHashSet();
+        var candidateTasks = candidates
+            .Select(c => allTasksForCandidates.FirstOrDefault(t => t.Id == c.TaskItemId))
+            .Where(t => t != null && !groupLinkedIds2.Contains(t.Id))
+            .Cast<TaskItem>()
+            .ToList();
+
+        if (candidateTasks.Count > 0)
+        {
+            bool tcExpanded = false;
+            var tcBody = new VerticalStackLayout { Spacing = 6, IsVisible = false };
+            var tcHeaderLabel = new Label
+            {
+                Text = $"▶ ⭐ Top Candidates ({candidateTasks.Count})",
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#FF9800"),
+                Margin = new Thickness(0, 8, 0, 2)
+            };
+            var tcHeaderTap = new TapGestureRecognizer();
+            tcHeaderTap.Tapped += (_, _) =>
+            {
+                tcExpanded = !tcExpanded;
+                tcBody.IsVisible = tcExpanded;
+                tcHeaderLabel.Text = tcExpanded
+                    ? $"▼ ⭐ Top Candidates ({candidateTasks.Count})"
+                    : $"▶ ⭐ Top Candidates ({candidateTasks.Count})";
+            };
+            tcHeaderLabel.GestureRecognizers.Add(tcHeaderTap);
+
+            foreach (var candidate in candidateTasks)
+            {
+                var capturedCandidate = candidate;
+                var tcRow = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = GridLength.Auto },
+                        new ColumnDefinition { Width = GridLength.Auto }
+                    },
+                    Margin = new Thickness(0, 2)
+                };
+                tcRow.Children.Add(new Label
+                {
+                    Text = $"{capturedCandidate.Title}  [{capturedCandidate.Category}]",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#444"),
+                    VerticalOptions = LayoutOptions.Center
+                });
+                var addBtn = MakeButton("+ Add", "#E8F5E9", "#2E7D32");
+                addBtn.Clicked += async (_, _) =>
+                {
+                    var duplicate = (await _service.GetLinksAsync(group.Id))
+                        .Count(i => i.TaskItemId == capturedCandidate.Id);
+                    if (duplicate > 0)
+                    {
+                        await DisplayAlert("Already Added", $"\"{capturedCandidate.Title}\" is already in this group.", "OK");
+                        return;
+                    }
+                    if (await IsCapReachedAsync(capturedCandidate)) return;
+                    bool insertMode = await DisplayAlert("Add Task", "Where would you like to add this task?", "Insert at position", "Add to end");
+                    if (insertMode)
+                    {
+                        var currentLinks3 = await _service.GetLinksAsync(group.Id);
+                        var currentTaskIds3 = currentLinks3.Select(l => l.TaskItemId).ToList();
+                        var allActiveTasks3 = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+                        var incompleteTasks3 = currentTaskIds3
+                            .Select(id => allActiveTasks3.FirstOrDefault(t => t.Id == id))
+                            .Where(t => t != null)
+                            .Cast<TaskItem>()
+                            .ToList();
+                        var insertBeforeTaskId3 = await ShowInsertPositionOverlayAsync(incompleteTasks3);
+                        if (insertBeforeTaskId3 == null) return;
+                        if (insertBeforeTaskId3 == 0)
+                            await _service.InsertTaskItemAtAsync(group.Id, capturedCandidate.Id, 0);
+                        else
+                            await _service.InsertTaskItemBeforeAsync(group.Id, capturedCandidate.Id, insertBeforeTaskId3.Value);
+                    }
+                    else
+                    {
+                        await _service.AddTaskItemAsync(group.Id, capturedCandidate.Id);
+                    }
+                    await _service.RemoveCandidateAsync(group.Id, capturedCandidate.Id);
+                    await RefreshAsync();
+                };
+                var removeBtn = MakeButton("✕", "#FFEBEE", "#C62828");
+                removeBtn.Clicked += async (_, _) =>
+                {
+                    await _service.RemoveCandidateAsync(group.Id, capturedCandidate.Id);
+                    await RefreshAsync();
+                };
+                Grid.SetColumn(addBtn, 1);
+                Grid.SetColumn(removeBtn, 2);
+                tcRow.Children.Add(addBtn);
+                tcRow.Children.Add(removeBtn);
+                tcBody.Children.Add(tcRow);
+            }
+
+            body.Children.Add(tcHeaderLabel);
+            body.Children.Add(tcBody);
+        }
         return Card(body);
     }
 

@@ -38,3 +38,13 @@ public class SequenceTaskException
     public int GroupId { get; set; }
     public string Label { get; set; } = "";
 }
+
+[Table("sequence_task_candidates")]
+public class SequenceTaskCandidate
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+
+    public int GroupId { get; set; }
+    public int TaskItemId { get; set; }
+}
