@@ -689,9 +689,17 @@ public class ClipsExperimentPage : ContentPage
             Padding = new Thickness(12, 8),
             Spacing = 8
         };
-        foreach (var experimentItem in experimentItems.OrderByDescending(e => e.StartDate ?? e.CreatedDate))
+        var active = experimentItems
+            .Where(e => e.IsRun || e.StartDate.HasValue)
+            .OrderByDescending(e => e.StartDate ?? e.CreatedDate)
+            .ToList();
+        var ideas = experimentItems
+            .Where(e => !e.IsRun && !e.StartDate.HasValue)
+            .OrderByDescending(e => e.CreatedDate)
+            .ToList();
+
+        void AddItemButton(ClipsExperimentItem item)
         {
-            var item = experimentItem;
             if (item.StartDate.HasValue)
             {
                 var dateLabel = new Label
@@ -717,6 +725,29 @@ public class ClipsExperimentPage : ContentPage
             button.Clicked += (_, _) => Complete(item);
             items.Children.Add(button);
         }
+
+        foreach (var item in active)
+            AddItemButton(item);
+
+        if (active.Any() && ideas.Any())
+        {
+            items.Children.Add(new BoxView
+            {
+                HeightRequest = 1,
+                BackgroundColor = Color.FromArgb("#CCCCCC"),
+                Margin = new Thickness(0, 6)
+            });
+            items.Children.Add(new Label
+            {
+                Text = "Ideas",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#888"),
+                Margin = new Thickness(4, 0, 0, 4)
+            });
+        }
+
+        foreach (var item in ideas)
+            AddItemButton(item);
 
         var cancel = MakeButton("Cancel", "#EEEEEE", Color.FromArgb("#555"));
         cancel.Clicked += (_, _) => Complete(null);
