@@ -23,6 +23,7 @@ public class SequenceTaskPage : ContentPage
     private bool _busy;
     private readonly HashSet<int> _selectedTaskIds = new();
     private Button? _doneSelectedButton;
+    private Grid _root = null!;
 
     public SequenceTaskPage(SequenceTaskService service, AuthService auth,
         TaskService tasks, IdeasService? ideasService)
@@ -33,7 +34,9 @@ public class SequenceTaskPage : ContentPage
             ?? throw new InvalidOperationException("PrivacyModeService not available");
         Title = "Sequence Tasks"; BackgroundColor = Color.FromArgb("#F5F5F5");
         _content = new VerticalStackLayout { Padding = new Thickness(16, 16, 16, 32), Spacing = 12 };
-        Content = new ScrollView { Content = _content };
+        _root = new Grid();
+        _root.Children.Add(new ScrollView { Content = _content });
+        Content = _root;
     }
 
     protected override async void OnAppearing()
@@ -83,6 +86,142 @@ public class SequenceTaskPage : ContentPage
         tap.Tapped += async (_, _) => { _openGroup = group; await RefreshAsync(); };
         card.GestureRecognizers.Add(tap);
         return card;
+    }
+
+    private async Task<TaskItem?> ChooseExistingTaskAsync(List<TaskItem> allTasks)
+    {
+        if (allTasks.Count == 0)
+        {
+            await DisplayAlert("No Tasks", "No active tasks found.", "OK");
+            return null;
+        }
+
+        var completion = new TaskCompletionSource<TaskItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var overlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#80000000"),
+            Margin = new Thickness(-20),
+            ZIndex = 100
+        };
+        Grid.SetRow(overlay, 0);
+        Grid.SetRowSpan(overlay, 4);
+
+        void Complete(TaskItem? selected)
+        {
+            _root.Children.Remove(overlay);
+            completion.TrySetResult(selected);
+        }
+
+        var filtered = allTasks.ToList();
+
+        var items = new VerticalStackLayout
+        {
+            Padding = new Thickness(12, 8),
+            Spacing = 6
+        };
+
+        void RebuildButtons(string query)
+        {
+            items.Children.Clear();
+            var matches = string.IsNullOrWhiteSpace(query)
+                ? filtered
+                : filtered.Where(t =>
+                    t.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    (t.Category ?? "").Contains(query, StringComparison.OrdinalIgnoreCase))
+                  .ToList();
+
+            if (matches.Count == 0)
+            {
+                items.Children.Add(new Label
+                {
+                    Text = "No results",
+                    TextColor = Color.FromArgb("#999"),
+                    FontSize = 13,
+                    Margin = new Thickness(4, 8)
+                });
+                return;
+            }
+
+            foreach (var task in matches)
+            {
+                var btn = new Button
+                {
+                    Text = $"{task.Title}  [{task.Category}]",
+                    FontSize = 13,
+                    TextColor = Color.FromArgb("#222"),
+                    BackgroundColor = Color.FromArgb("#F5F5F5"),
+                    CornerRadius = 7,
+                    Padding = new Thickness(12, 8),
+                    HorizontalOptions = LayoutOptions.Fill,
+                    LineBreakMode = LineBreakMode.WordWrap
+                };
+                btn.Clicked += (_, _) => Complete(task);
+                items.Children.Add(btn);
+            }
+        }
+
+        RebuildButtons("");
+
+        var searchEntry = new Entry
+        {
+            Placeholder = "Search tasks…",
+            BackgroundColor = Color.FromArgb("#F0F0F0"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        searchEntry.TextChanged += (_, e) => RebuildButtons(e.NewTextValue ?? "");
+
+        var cancel = new Button
+        {
+            Text = "Cancel",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#555"),
+            BackgroundColor = Color.FromArgb("#EEEEEE"),
+            CornerRadius = 7,
+            Padding = new Thickness(12, 8),
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        cancel.Clicked += (_, _) => Complete(null);
+
+        var cardContent = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Add Existing Task",
+                    FontSize = 18,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#222")
+                },
+                searchEntry,
+                new ScrollView
+                {
+                    MaximumHeightRequest = 420,
+                    Content = items
+                },
+                cancel
+            }
+        };
+
+        overlay.Children.Add(new Frame
+        {
+            Content = cardContent,
+            Padding = 18,
+            CornerRadius = 12,
+            BackgroundColor = Colors.White,
+            MaximumWidthRequest = 520,
+            MaximumHeightRequest = 600,
+            Margin = new Thickness(20),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            HasShadow = true
+        });
+
+        _root.Children.Add(overlay);
+        return await completion.Task;
     }
 
     private async Task<View> BuildOpenGroupAsync(SequenceTaskGroup group)
@@ -276,17 +415,8 @@ public class SequenceTaskPage : ContentPage
         addExisting.Clicked += async (_, _) =>
         {
             var allTasks = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
-            if (allTasks.Count == 0)
-            {
-                await DisplayAlert("No Tasks", "No active tasks found.", "OK");
-                return;
-            }
-            var options = allTasks.Select(t => $"{t.Title} [{t.Category}]").ToArray();
-            var selected = await DisplayActionSheet("Pick Existing Task", "Cancel", null, options);
-            if (string.IsNullOrEmpty(selected) || selected == "Cancel") return;
-            var index = Array.IndexOf(options, selected);
-            if (index < 0) return;
-            var existingTask = allTasks[index];
+            var existingTask = await ChooseExistingTaskAsync(allTasks);
+            if (existingTask == null) return;
             var duplicate = (await _service.GetLinksAsync(group.Id))
                 .Count(i => i.TaskItemId == existingTask.Id);
             if (duplicate > 0)

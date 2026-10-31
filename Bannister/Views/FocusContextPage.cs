@@ -300,7 +300,7 @@ public class FocusContextPage : ContentPage
             sb.AppendLine();
             foreach (var task in focusTasks)
             {
-                string p = task.Priority switch { 1 => "HIGH", 3 => "LOW", _ => "MED" };
+                string p = task.Priority.ToString();
                 string committed = committedIds.Contains(task.Id) ? " [COMMITTED THIS WEEK]" : "";
                 string top = task.IsTopCandidate ? " \u2B50" : "";
                 string notes = string.IsNullOrWhiteSpace(task.Notes) ? "" : $" | Notes: {task.Notes.Trim()}";
@@ -329,7 +329,7 @@ public class FocusContextPage : ContentPage
                     $"FREE TASKS ({freeTasks.Count}, quota: {challenge.NonFocusSlotsAllowed} slots):");
                 foreach (var task in freeTasks)
                 {
-                    string p = task.Priority switch { 1 => "HIGH", 3 => "LOW", _ => "MED" };
+                    string p = task.Priority.ToString();
                     sb.AppendLine($"- [{p}] {task.Title} ({task.Category})");
                 }
             }
