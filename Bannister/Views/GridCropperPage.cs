@@ -628,7 +628,8 @@ public class GridCropperPage : ContentPage
                 new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(GridLength.Star)
             },
-            ColumnSpacing = 8,
+            ColumnSpacing = 12,
+            HorizontalOptions = LayoutOptions.Fill,
             RowDefinitions =
             {
                 new RowDefinition(GridLength.Auto),
@@ -661,10 +662,11 @@ public class GridCropperPage : ContentPage
         // Left: cell preview image
         _previewImage = new Image
         {
-            HeightRequest = 200,
+            HeightRequest = 180,
             Aspect = Aspect.AspectFit,
             IsVisible = false,
-            HorizontalOptions = LayoutOptions.Fill
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
         };
         var cropTap = new TapGestureRecognizer();
         cropTap.Tapped += async (_, _) =>
@@ -678,10 +680,11 @@ public class GridCropperPage : ContentPage
         // Right: grid preview image
         _gridPreviewImage = new Image
         {
-            HeightRequest = 200,
+            HeightRequest = 180,
             Aspect = Aspect.AspectFit,
             IsVisible = false,
-            HorizontalOptions = LayoutOptions.Fill
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
         };
         var gridTap = new TapGestureRecognizer();
         gridTap.Tapped += async (_, _) =>
