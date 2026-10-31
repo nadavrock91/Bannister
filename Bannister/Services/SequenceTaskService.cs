@@ -87,6 +87,10 @@ public class SequenceTaskService
         var count = await conn.Table<SequenceTaskItem>()
             .Where(i => i.GroupId == groupId)
             .CountAsync();
+        var existing = await conn.Table<SequenceTaskItem>()
+            .Where(i => i.GroupId == groupId && i.TaskItemId == taskItemId)
+            .CountAsync();
+        if (existing > 0) return;
         await conn.InsertAsync(new SequenceTaskItem
         {
             GroupId = groupId,

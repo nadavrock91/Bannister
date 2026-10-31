@@ -271,7 +271,37 @@ public class SequenceTaskPage : ContentPage
             var task = await TaskCreationHelper.ShowCreateTaskAsync(this, _auth, _tasks, _ideasService);
             if (task != null) { await _service.AddTaskItemAsync(group.Id, task.Id); await RefreshAsync(); }
         };
-        body.Children.Add(add);
+
+        var addExisting = MakeButton("+ From Existing", "#E3F2FD", "#1565C0");
+        addExisting.Clicked += async (_, _) =>
+        {
+            var allTasks = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
+            if (allTasks.Count == 0)
+            {
+                await DisplayAlert("No Tasks", "No active tasks found.", "OK");
+                return;
+            }
+            var options = allTasks.Select(t => $"{t.Title} [{t.Category}]").ToArray();
+            var selected = await DisplayActionSheet("Pick Existing Task", "Cancel", null, options);
+            if (string.IsNullOrEmpty(selected) || selected == "Cancel") return;
+            var index = Array.IndexOf(options, selected);
+            if (index < 0) return;
+            var existingTask = allTasks[index];
+            var duplicate = (await _service.GetLinksAsync(group.Id))
+                .Count(i => i.TaskItemId == existingTask.Id);
+            if (duplicate > 0)
+            {
+                await DisplayAlert("Already Added", $"\"{existingTask.Title}\" is already in this group.", "OK");
+                return;
+            }
+            await _service.AddTaskItemAsync(group.Id, existingTask.Id);
+            await RefreshAsync();
+        };
+
+        var addRow = new HorizontalStackLayout { Spacing = 8 };
+        addRow.Children.Add(add);
+        addRow.Children.Add(addExisting);
+        body.Children.Add(addRow);
 
         var export = MakeButton("Export & Archive", "#FFF3E0", "#E65100");
         export.Clicked += async (_, _) =>
