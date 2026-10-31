@@ -37,11 +37,14 @@ public class GridCropperPage : ContentPage
     private HookCropperSettings? _prefixSettings;
     private Switch _requirePrefixSwitch = null!;
     private bool _loadingPrefixSettings;
-    private const int Cols = 4;
-    private const int Rows = 5;
-    private readonly bool[,] _selected = new bool[5, 4];
-    private readonly Button[,] _selectionButtons = new Button[5, 4];
+    private int _cols = 4;
+    private int _rows = 5;
+    private bool[,] _selected = new bool[5, 4];
+    private Button[,] _selectionButtons = new Button[5, 4];
     private Grid _selectionGrid = null!;
+    private Label _descLabel = null!;
+    private Picker _colsPicker = null!;
+    private Picker _rowsPicker = null!;
     private Label _selectionHeader = null!;
     private HorizontalStackLayout _selectAllRow = null!;
     private Label _selectionHintLabel = null!;
@@ -73,7 +76,15 @@ public class GridCropperPage : ContentPage
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 16 };
         stack.Children.Add(BuildSectionCard("Prefix Tracking", BuildPrefixSettingsContent()));
         stack.Children.Add(new Label { Text = " Grid Cropper", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
-        stack.Children.Add(new Label { Text = "Pick a 4×5 grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save 20 copies.", FontSize = 14, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
+        _descLabel = new Label
+        {
+            Text = "Pick a 4×5 grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save selected panels.",
+            FontSize = 14,
+            TextColor = Color.FromArgb("#666"),
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+        stack.Children.Add(_descLabel);
+        stack.Children.Add(BuildGridSizeRow());
         stack.Children.Add(BuildSectionCard("Step 1 — Pick the grid image", BuildStep1Content()));
         stack.Children.Add(BuildSectionCard("Step 2 — Set cell size", BuildStep2Content()));
         stack.Children.Add(BuildSectionCard("Step 3 — Preview & Crop", BuildStep3Content()));
@@ -88,6 +99,54 @@ public class GridCropperPage : ContentPage
         inner.Children.Add(new Label { Text = title, FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
         inner.Children.Add(content);
         return new Frame { BackgroundColor = Colors.White, Padding = 16, CornerRadius = 12, HasShadow = true, Content = inner };
+    }
+
+    private View BuildGridSizeRow()
+    {
+        _colsPicker = new Picker
+        {
+            WidthRequest = 70
+        };
+        foreach (var value in new[] { "2", "3", "4", "5", "6", "7", "8" })
+            _colsPicker.Items.Add(value);
+        _colsPicker.SelectedIndex = 2;
+
+        _rowsPicker = new Picker
+        {
+            WidthRequest = 70
+        };
+        foreach (var value in new[] { "2", "3", "4", "5", "6", "7", "8", "9", "10" })
+            _rowsPicker.Items.Add(value);
+        _rowsPicker.SelectedIndex = 3;
+
+        _colsPicker.SelectedIndexChanged += (_, _) =>
+        {
+            if (_colsPicker.SelectedItem is not string value) return;
+            _cols = int.Parse(value);
+            RebuildSelectionGrid();
+            if (_sourceBitmap != null) UpdatePreview();
+            _descLabel.Text = $"Pick a {_cols}×{_rows} grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save selected panels.";
+        };
+        _rowsPicker.SelectedIndexChanged += (_, _) =>
+        {
+            if (_rowsPicker.SelectedItem is not string value) return;
+            _rows = int.Parse(value);
+            RebuildSelectionGrid();
+            if (_sourceBitmap != null) UpdatePreview();
+            _descLabel.Text = $"Pick a {_cols}×{_rows} grid image. Set cell size with the sliders. The top-left panel previews below. Tap Crop to save selected panels.";
+        };
+
+        return new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                new Label { Text = "Cols:", VerticalOptions = LayoutOptions.Center },
+                _colsPicker,
+                new Label { Text = "Rows:", VerticalOptions = LayoutOptions.Center },
+                _rowsPicker
+            }
+        };
     }
 
     private View BuildPrefixSettingsContent()
@@ -418,22 +477,22 @@ public class GridCropperPage : ContentPage
             await Navigation.PushAsync(new FullScreenImagePage(
                 _gridImageBytes ?? Array.Empty<byte>(),
                 _selected,
-                Rows,
-                Cols,
+                _rows,
+                _cols,
                 _imagePixelW,
                 _imagePixelH,
                 updatedSelection =>
                 {
                     // Copy state immediately on callback thread
-                    for (int r = 0; r < Rows; r++)
-                        for (int c = 0; c < Cols; c++)
+                    for (int r = 0; r < _rows; r++)
+                        for (int c = 0; c < _cols; c++)
                             _selected[r, c] = updatedSelection[r, c];
 
                     // Update UI on main thread after page is back in view
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        for (int r = 0; r < Rows; r++)
-                            for (int c = 0; c < Cols; c++)
+                        for (int r = 0; r < _rows; r++)
+                            for (int c = 0; c < _cols; c++)
                                 ApplyButtonStyle(_selectionButtons[r, c],
                                     _selected[r, c]);
                         UpdateSelectionHint();
@@ -465,39 +524,7 @@ public class GridCropperPage : ContentPage
         v.Children.Add(_selectionHeader);
 
         _selectionGrid = new Grid { ColumnSpacing = 4, RowSpacing = 4, IsVisible = false };
-        for (int c = 0; c < Cols; c++)
-            _selectionGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-        for (int r = 0; r < Rows; r++)
-            _selectionGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-
-        for (int r = 0; r < Rows; r++)
-        {
-            for (int c = 0; c < Cols; c++)
-            {
-                int panelNumber = r * Cols + c + 1;
-                int capturedR = r, capturedC = c;
-                var btn = new Button
-                {
-                    Text = panelNumber.ToString(),
-                    FontSize = 16,
-                    FontAttributes = FontAttributes.Bold,
-                    HeightRequest = 64,
-                    CornerRadius = 8,
-                    Padding = 0,
-                    HorizontalOptions = LayoutOptions.Fill,
-                    BackgroundColor = Color.FromArgb("#E0E0E0"),
-                    TextColor = Color.FromArgb("#444")
-                };
-                btn.Clicked += (_, _) =>
-                {
-                    _selected[capturedR, capturedC] = !_selected[capturedR, capturedC];
-                    ApplyButtonStyle(btn, _selected[capturedR, capturedC]);
-                    UpdateSelectionHint();
-                };
-                _selectionButtons[r, c] = btn;
-                _selectionGrid.Add(btn, c, r);
-            }
-        }
+        RebuildSelectionGrid();
         v.Children.Add(_selectionGrid);
 
         _selectAllRow = new HorizontalStackLayout { Spacing = 8, IsVisible = false };
@@ -514,8 +541,8 @@ public class GridCropperPage : ContentPage
         };
         selectAllBtn.Clicked += (_, _) =>
         {
-            for (int r = 0; r < Rows; r++)
-                for (int c = 0; c < Cols; c++)
+            for (int r = 0; r < _rows; r++)
+                for (int c = 0; c < _cols; c++)
                 {
                     _selected[r, c] = true;
                     ApplyButtonStyle(_selectionButtons[r, c], true);
@@ -536,8 +563,8 @@ public class GridCropperPage : ContentPage
         };
         deselectAllBtn.Clicked += (_, _) =>
         {
-            for (int r = 0; r < Rows; r++)
-                for (int c = 0; c < Cols; c++)
+            for (int r = 0; r < _rows; r++)
+                for (int c = 0; c < _cols; c++)
                 {
                     _selected[r, c] = false;
                     ApplyButtonStyle(_selectionButtons[r, c], false);
@@ -571,6 +598,52 @@ public class GridCropperPage : ContentPage
         v.Children.Add(_cropButton);
 
         return v;
+    }
+
+    private void RebuildSelectionGrid()
+    {
+        _selected = new bool[_rows, _cols];
+        _selectionButtons = new Button[_rows, _cols];
+
+        _selectionGrid.Children.Clear();
+        _selectionGrid.RowDefinitions.Clear();
+        _selectionGrid.ColumnDefinitions.Clear();
+
+        for (int c = 0; c < _cols; c++)
+            _selectionGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        for (int r = 0; r < _rows; r++)
+            _selectionGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+
+        for (int r = 0; r < _rows; r++)
+        {
+            for (int c = 0; c < _cols; c++)
+            {
+                int panelNumber = r * _cols + c + 1;
+                int capturedR = r, capturedC = c;
+                var btn = new Button
+                {
+                    Text = panelNumber.ToString(),
+                    FontSize = 16,
+                    FontAttributes = FontAttributes.Bold,
+                    HeightRequest = 64,
+                    CornerRadius = 8,
+                    Padding = 0,
+                    HorizontalOptions = LayoutOptions.Fill,
+                    BackgroundColor = Color.FromArgb("#E0E0E0"),
+                    TextColor = Color.FromArgb("#444")
+                };
+                btn.Clicked += (_, _) =>
+                {
+                    _selected[capturedR, capturedC] = !_selected[capturedR, capturedC];
+                    ApplyButtonStyle(btn, _selected[capturedR, capturedC]);
+                    UpdateSelectionHint();
+                };
+                _selectionButtons[r, c] = btn;
+                _selectionGrid.Add(btn, c, r);
+            }
+        }
+
+        UpdateSelectionHint();
     }
 
     private async Task PickImageAsync()
@@ -651,9 +724,9 @@ public class GridCropperPage : ContentPage
                 IsAntialias = true,
                 Style = SKPaintStyle.Stroke
             };
-            for (int col = 1; col < Cols; col++)
+            for (int col = 1; col < _cols; col++)
                 gridCanvas.DrawLine(col * safeW, 0, col * safeW, imgH, linePaint);
-            for (int row = 1; row < Rows; row++)
+            for (int row = 1; row < _rows; row++)
                 gridCanvas.DrawLine(0, row * safeH, imgW, row * safeH, linePaint);
 
             // Draw panel numbers
@@ -672,9 +745,9 @@ public class GridCropperPage : ContentPage
                 FakeBoldText = true
             };
             int panel = 1;
-            for (int row = 0; row < Rows; row++)
+            for (int row = 0; row < _rows; row++)
             {
-                for (int col = 0; col < Cols; col++)
+                for (int col = 0; col < _cols; col++)
                 {
                     float tx = col * safeW + safeW * 0.08f;
                     float ty = row * safeH + textPaint.TextSize + safeH * 0.05f;
@@ -695,7 +768,7 @@ public class GridCropperPage : ContentPage
             _gridPreviewImage.IsVisible = true;
             _gridPreviewHint.IsVisible = true;
             _gridPreviewLabel.Text =
-                $"Full grid: {imgW} × {imgH} px — {Cols}×{Rows} cells";
+                $"Full grid: {imgW} × {imgH} px — {_cols}×{_rows} cells";
             _gridPreviewLabel.IsVisible = true;
             _gridHeaderLabel.IsVisible = true;
         }
@@ -713,8 +786,8 @@ public class GridCropperPage : ContentPage
         if (_sourceBitmap == null || _sourceFilePath == null) return;
 
         int selectedCount = 0;
-        for (int r = 0; r < Rows; r++)
-            for (int c = 0; c < Cols; c++)
+        for (int r = 0; r < _rows; r++)
+            for (int c = 0; c < _cols; c++)
                 if (_selected[r, c]) selectedCount++;
         if (selectedCount == 0)
         {
@@ -744,13 +817,13 @@ public class GridCropperPage : ContentPage
             var panels = await Task.Run(() =>
             {
                 var result = new List<(string FileName, byte[] Bytes)>();
-                for (int row = 0; row < Rows; row++)
+                for (int row = 0; row < _rows; row++)
                 {
-                    for (int col = 0; col < Cols; col++)
+                    for (int col = 0; col < _cols; col++)
                     {
                         if (!_selected[row, col]) continue;
 
-                        int panelNumber = row * Cols + col + 1;
+                        int panelNumber = row * _cols + col + 1;
                         int x = col * safeW;
                         int y = row * safeH;
 
@@ -856,9 +929,11 @@ public class GridCropperPage : ContentPage
     private void UpdateSelectionHint()
     {
         int count = 0;
-        for (int r = 0; r < Rows; r++)
-            for (int c = 0; c < Cols; c++)
+        for (int r = 0; r < _rows; r++)
+            for (int c = 0; c < _cols; c++)
                 if (_selected[r, c]) count++;
+
+        if (_selectionHintLabel == null || _cropButton == null) return;
 
         _selectionHintLabel.Text = count == 0
             ? "No panels selected."
