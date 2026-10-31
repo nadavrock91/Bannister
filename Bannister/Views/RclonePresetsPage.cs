@@ -88,10 +88,17 @@ public class RclonePresetsPage : ContentPage
             .OrderBy(l => l.Name)
             .ToListAsync();
         _backupLocations = allLocations;
-        _queueItems = await conn.Table<RcloneQueueItem>()
+        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+        _queueItems = (await conn.Table<RcloneQueueItem>()
             .Where(q => q.Username == _auth.CurrentUsername)
             .OrderBy(q => q.CreatedAt)
-            .ToListAsync();
+            .ToListAsync())
+            .Where(q => displayMode switch
+            {
+                ActivityDisplayMode.PublicOnly => q.Visibility == 1 || q.Visibility == 2,
+                ActivityDisplayMode.PrivateOnly => q.Visibility == 0 || q.Visibility == 2,
+                _ => true
+            }).ToList();
     }
 
     private async Task<string?> PickDestinationAsync(string currentValue = "")
@@ -400,6 +407,7 @@ public class RclonePresetsPage : ContentPage
                 new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
             ColumnSpacing = 6
@@ -455,6 +463,28 @@ public class RclonePresetsPage : ContentPage
             Render();
         };
         row.Add(deleteBtn, 4, 0);
+
+        var visBtn = new Button
+        {
+            Text = item.Visibility switch { 0 => "Private", 1 => "Public", _ => "Both" },
+            FontSize = 10,
+            HeightRequest = 30,
+            Padding = new Thickness(6, 0),
+            BackgroundColor = Color.FromArgb("#2D333B"),
+            TextColor = Colors.White,
+            CornerRadius = 4
+        };
+        visBtn.Clicked += async (_, _) =>
+        {
+            string? choice = await DisplayActionSheet("Visibility", "Cancel", null, "Private", "Public", "Both");
+            if (choice == null || choice == "Cancel") return;
+            item.Visibility = choice == "Private" ? 0 : choice == "Public" ? 1 : 2;
+            var db = await _db.GetConnectionAsync();
+            await db.UpdateAsync(item);
+            await LoadAsync();
+            Render();
+        };
+        row.Add(visBtn, 5, 0);
 
         return row;
     }
@@ -770,46 +800,107 @@ public class RclonePresetsPage : ContentPage
 
     private async Task OnEditPresetAsync(RclonePreset preset)
     {
-        string? title = await DisplayPromptAsync("Edit Preset", "Title:", initialValue: preset.Title);
-        if (title == null) return;
-
-        string sourceInputChoice = await DisplayActionSheet("Source path", "Cancel", null, "Fixed value", "Ask at run time") ?? (preset.SourceIsInput ? "Ask at run time" : "Fixed value");
-        bool sourceIsInput = sourceInputChoice != "Fixed value";
-        string source = preset.Source;
-        if (!sourceIsInput)
+        // Work on a copy so Cancel discards all changes
+        var p = new RclonePreset
         {
-            string? picked = await PickFolderAsync();
-            source = picked ?? await DisplayPromptAsync("Source", "Fixed source path:", initialValue: preset.Source) ?? preset.Source;
+            Id = preset.Id, Username = preset.Username,
+            Title = preset.Title, Source = preset.Source,
+            Destination = preset.Destination, Transfers = preset.Transfers,
+            Checkers = preset.Checkers, BwLimitUp = preset.BwLimitUp,
+            BwLimitDown = preset.BwLimitDown, SourceIsInput = preset.SourceIsInput,
+            DestinationIsInput = preset.DestinationIsInput,
+            RclonePath = preset.RclonePath, Visibility = preset.Visibility
+        };
+
+        while (true)
+        {
+            string srcDisplay = p.SourceIsInput ? "[ask at run time]" : (string.IsNullOrEmpty(p.Source) ? "(empty)" : p.Source);
+            string destDisplay = p.DestinationIsInput ? "[ask at run time]" : (string.IsNullOrEmpty(p.Destination) ? "(empty)" : p.Destination);
+            string visDisplay = p.Visibility switch { 0 => "Private", 1 => "Public", _ => "Both" };
+            string bwUpDisplay = string.IsNullOrWhiteSpace(p.BwLimitUp) ? "unlimited" : p.BwLimitUp;
+            string bwDnDisplay = string.IsNullOrWhiteSpace(p.BwLimitDown) ? "unlimited" : p.BwLimitDown;
+
+            string? field = await DisplayActionSheet(
+                $"Edit: {p.Title}",
+                "Cancel",
+                "Save",
+                $"Title: {p.Title}",
+                $"Source: {srcDisplay}",
+                $"Destination: {destDisplay}",
+                $"Transfers: {p.Transfers}",
+                $"Checkers: {p.Checkers}",
+                $"Upload limit: {bwUpDisplay}",
+                $"Download limit: {bwDnDisplay}",
+                $"Visibility: {visDisplay}"
+            );
+
+            if (field == null || field == "Cancel") return;
+            if (field == "Save") break;
+
+            if (field.StartsWith("Title:"))
+            {
+                string? v = await DisplayPromptAsync("Title", "Preset title:", initialValue: p.Title);
+                if (v != null) p.Title = v.Trim();
+            }
+            else if (field.StartsWith("Source:"))
+            {
+                string? choice = await DisplayActionSheet("Source", "Cancel", null, "Fixed value", "Ask at run time");
+                if (choice == "Fixed value")
+                {
+                    string? picked = await PickFolderAsync();
+                    string? v = picked ?? await DisplayPromptAsync("Source", "Fixed source path:", initialValue: p.Source);
+                    if (v != null) { p.Source = v.Trim(); p.SourceIsInput = false; }
+                }
+                else if (choice == "Ask at run time")
+                {
+                    p.SourceIsInput = true;
+                }
+            }
+            else if (field.StartsWith("Destination:"))
+            {
+                string? choice = await DisplayActionSheet("Destination", "Cancel", null, "Fixed value", "Ask at run time");
+                if (choice == "Fixed value")
+                {
+                    string? v = await PickDestinationAsync(p.Destination) ?? p.Destination;
+                    p.Destination = v.Trim();
+                    p.DestinationIsInput = false;
+                }
+                else if (choice == "Ask at run time")
+                {
+                    p.DestinationIsInput = true;
+                }
+            }
+            else if (field.StartsWith("Transfers:"))
+            {
+                string? v = await DisplayPromptAsync("Transfers", "--transfers:", initialValue: p.Transfers.ToString(), keyboard: Keyboard.Numeric);
+                if (int.TryParse(v, out int t) && t > 0) p.Transfers = t;
+            }
+            else if (field.StartsWith("Checkers:"))
+            {
+                string? v = await DisplayPromptAsync("Checkers", "--checkers:", initialValue: p.Checkers.ToString(), keyboard: Keyboard.Numeric);
+                if (int.TryParse(v, out int c) && c > 0) p.Checkers = c;
+            }
+            else if (field.StartsWith("Upload limit:"))
+            {
+                string? v = await DisplayPromptAsync("Upload limit", "Max upload speed (e.g. 5M), blank = unlimited:", initialValue: p.BwLimitUp);
+                if (v != null) p.BwLimitUp = v.Trim();
+            }
+            else if (field.StartsWith("Download limit:"))
+            {
+                string? v = await DisplayPromptAsync("Download limit", "Max download speed (e.g. 5M), blank = unlimited:", initialValue: p.BwLimitDown);
+                if (v != null) p.BwLimitDown = v.Trim();
+            }
+            else if (field.StartsWith("Visibility:"))
+            {
+                string? v = await DisplayActionSheet("Visibility", "Cancel", null, "Private", "Public", "Both");
+                if (v != null && v != "Cancel")
+                    p.Visibility = v == "Private" ? 0 : v == "Public" ? 1 : 2;
+            }
         }
 
-        string destInputChoice = await DisplayActionSheet("Destination", "Cancel", null, "Fixed value", "Ask at run time") ?? (preset.DestinationIsInput ? "Ask at run time" : "Fixed value");
-        bool destIsInput = destInputChoice != "Fixed value";
-        string destination = preset.Destination;
-        if (!destIsInput)
-        {
-            destination = await PickDestinationAsync(preset.Destination) ?? preset.Destination;
-        }
-
-        string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers:", initialValue: preset.Transfers.ToString(), keyboard: Keyboard.Numeric);
-        string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers:", initialValue: preset.Checkers.ToString(), keyboard: Keyboard.Numeric);
-        string? bwUp = await DisplayPromptAsync("Upload limit", "Max upload speed (e.g. 5M), blank = unlimited:", initialValue: preset.BwLimitUp);
-        string? bwDown = await DisplayPromptAsync("Download limit", "Max download speed (e.g. 5M), blank = unlimited:", initialValue: preset.BwLimitDown);
-
-        int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = preset.Transfers;
-        int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = preset.Checkers;
-
-        preset.Title = title.Trim();
-        preset.Source = source.Trim();
-        preset.Destination = destination.Trim();
-        preset.Transfers = transfers;
-        preset.Checkers = checkers;
-        preset.BwLimitUp = bwUp?.Trim() ?? preset.BwLimitUp;
-        preset.BwLimitDown = bwDown?.Trim() ?? preset.BwLimitDown;
-        preset.SourceIsInput = sourceIsInput;
-        preset.DestinationIsInput = destIsInput;
-
+        // Save
         var conn = await _db.GetConnectionAsync();
-        await conn.UpdateAsync(preset);
+        await conn.UpdateAsync(p);
         await LoadAsync();
         Render();
     }

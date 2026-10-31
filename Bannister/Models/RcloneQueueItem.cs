@@ -11,5 +11,6 @@ public class RcloneQueueItem
     public string Command { get; set; } = "";
     public bool IsRunning { get; set; } = false;
     public bool IsDone { get; set; } = false;
+    public int Visibility { get; set; } = 2; // 0=private, 1=public, 2=both
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
