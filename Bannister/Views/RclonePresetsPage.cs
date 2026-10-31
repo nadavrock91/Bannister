@@ -150,7 +150,37 @@ public class RclonePresetsPage : ContentPage
             HorizontalOptions = LayoutOptions.Start
         };
         addBtn.Clicked += async (s, e) => await OnAddPresetAsync();
-        _mainStack.Children.Add(addBtn);
+
+        var addQueueBtn = new Button
+        {
+            Text = "+ Add to Queue",
+            BackgroundColor = Color.FromArgb("#1B5E20"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(12, 8)
+        };
+        addQueueBtn.Clicked += async (_, _) =>
+        {
+            string? title = await DisplayPromptAsync("Add to Queue", "Label for this command:");
+            if (string.IsNullOrWhiteSpace(title)) return;
+            string? command = await DisplayPromptAsync("Add to Queue", "Paste the rclone command:");
+            if (string.IsNullOrWhiteSpace(command)) return;
+            var db = await _db.GetConnectionAsync();
+            await db.InsertAsync(new RcloneQueueItem
+            {
+                Username = _auth.CurrentUsername,
+                Title = title.Trim(),
+                Command = command.Trim(),
+                CreatedAt = DateTime.UtcNow
+            });
+            await LoadAsync();
+            Render();
+        };
+
+        var addRow = new HorizontalStackLayout { Spacing = 10 };
+        addRow.Children.Add(addBtn);
+        addRow.Children.Add(addQueueBtn);
+        _mainStack.Children.Add(addRow);
 
         _modeBtn = new Button
         {
