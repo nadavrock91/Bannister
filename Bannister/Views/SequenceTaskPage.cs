@@ -113,6 +113,7 @@ public class SequenceTaskPage : ContentPage
         }
 
         var filtered = allTasks.ToList();
+        filtered = filtered.OrderByDescending(t => t.CreatedAt).ToList();
 
         var items = new VerticalStackLayout
         {
@@ -120,15 +121,35 @@ public class SequenceTaskPage : ContentPage
             Spacing = 6
         };
 
+        // Collect distinct categories in the order they first appear after sorting
+        var allCategories = filtered
+            .Select(t => t.Category ?? "")
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct()
+            .ToList();
+
+        string selectedCategory = "";  // "" means All
+
+        var searchEntry = new Entry
+        {
+            Placeholder = "Search tasks…",
+            BackgroundColor = Color.FromArgb("#F0F0F0"),
+            TextColor = Color.FromArgb("#222"),
+            PlaceholderColor = Color.FromArgb("#999"),
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+
         void RebuildButtons(string query)
         {
             items.Children.Clear();
-            var matches = string.IsNullOrWhiteSpace(query)
-                ? filtered
-                : filtered.Where(t =>
-                    t.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                    (t.Category ?? "").Contains(query, StringComparison.OrdinalIgnoreCase))
-                  .ToList();
+            var matches = filtered
+                .Where(t =>
+                    (string.IsNullOrWhiteSpace(selectedCategory) ||
+                     string.Equals(t.Category ?? "", selectedCategory, StringComparison.OrdinalIgnoreCase)) &&
+                    (string.IsNullOrWhiteSpace(query) ||
+                     t.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                     (t.Category ?? "").Contains(query, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
 
             if (matches.Count == 0)
             {
@@ -144,6 +165,13 @@ public class SequenceTaskPage : ContentPage
 
             foreach (var task in matches)
             {
+                var createdLabel = new Label
+                {
+                    Text = task.CreatedAt.ToLocalTime().ToString("MMM d, yyyy"),
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#999"),
+                    Margin = new Thickness(14, 4, 0, 0)
+                };
                 var btn = new Button
                 {
                     Text = $"{task.Title}  [{task.Category}]",
@@ -156,21 +184,43 @@ public class SequenceTaskPage : ContentPage
                     LineBreakMode = LineBreakMode.WordWrap
                 };
                 btn.Clicked += (_, _) => Complete(task);
+                items.Children.Add(createdLabel);
                 items.Children.Add(btn);
             }
         }
 
-        RebuildButtons("");
-
-        var searchEntry = new Entry
+        // Category chips row
+        var categoryRow = new HorizontalStackLayout { Spacing = 6, Margin = new Thickness(0, 0, 0, 6) };
+        Button MakeCategoryChip(string label, string value)
         {
-            Placeholder = "Search tasks…",
-            BackgroundColor = Color.FromArgb("#F0F0F0"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            Margin = new Thickness(0, 0, 0, 8)
-        };
+            var chip = new Button
+            {
+                Text = label,
+                FontSize = 11,
+                Padding = new Thickness(10, 4),
+                CornerRadius = 12,
+                TextColor = selectedCategory == value ? Colors.White : Color.FromArgb("#444"),
+                BackgroundColor = selectedCategory == value ? Color.FromArgb("#5B63EE") : Color.FromArgb("#E0E0E0")
+            };
+            chip.Clicked += (_, _) =>
+            {
+                selectedCategory = value;
+                // Rebuild all chips to update active state
+                categoryRow.Children.Clear();
+                categoryRow.Children.Add(MakeCategoryChip("All", ""));
+                foreach (var cat in allCategories)
+                    categoryRow.Children.Add(MakeCategoryChip(cat, cat));
+                RebuildButtons(searchEntry.Text ?? "");
+            };
+            return chip;
+        }
+        categoryRow.Children.Add(MakeCategoryChip("All", ""));
+        foreach (var cat in allCategories)
+            categoryRow.Children.Add(MakeCategoryChip(cat, cat));
+
         searchEntry.TextChanged += (_, e) => RebuildButtons(e.NewTextValue ?? "");
+
+        RebuildButtons("");
 
         var cancel = new Button
         {
@@ -195,6 +245,11 @@ public class SequenceTaskPage : ContentPage
                     FontSize = 18,
                     FontAttributes = FontAttributes.Bold,
                     TextColor = Color.FromArgb("#222")
+                },
+                new ScrollView
+                {
+                    Content = categoryRow,
+                    Orientation = ScrollOrientation.Horizontal
                 },
                 searchEntry,
                 new ScrollView
