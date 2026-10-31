@@ -701,6 +701,7 @@ public class SequenceTaskPage : ContentPage
                     ColumnDefinitions =
                     {
                         new ColumnDefinition { Width = GridLength.Star },
+                        new ColumnDefinition { Width = new GridLength(48) },
                         new ColumnDefinition { Width = GridLength.Auto },
                         new ColumnDefinition { Width = GridLength.Auto }
                     },
@@ -713,6 +714,16 @@ public class SequenceTaskPage : ContentPage
                     TextColor = Color.FromArgb("#444"),
                     VerticalOptions = LayoutOptions.Center
                 });
+                var priorityLabel = new Label
+                {
+                    Text = capturedCandidate.Priority.ToString(),
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#888"),
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                Grid.SetColumn(priorityLabel, 1);
+                tcRow.Children.Add(priorityLabel);
                 var addBtn = MakeButton("+ Add", "#E8F5E9", "#2E7D32");
                 addBtn.Clicked += async (_, _) =>
                 {
@@ -755,8 +766,8 @@ public class SequenceTaskPage : ContentPage
                     await _service.RemoveCandidateAsync(group.Id, capturedCandidate.Id);
                     await RefreshAsync();
                 };
-                Grid.SetColumn(addBtn, 1);
-                Grid.SetColumn(removeBtn, 2);
+                Grid.SetColumn(addBtn, 2);
+                Grid.SetColumn(removeBtn, 3);
                 tcRow.Children.Add(addBtn);
                 tcRow.Children.Add(removeBtn);
                 tcBody.Children.Add(tcRow);
@@ -929,7 +940,7 @@ public class SequenceTaskPage : ContentPage
             selectRow.Children.Add(new Label { Text = "Select this task", VerticalOptions = LayoutOptions.Center, TextColor = Color.FromArgb("#555") });
             body.Children.Add(selectRow);
         }
-        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, Padding = new Thickness(8, 6) };
+        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, Padding = new Thickness(8, 6) };
         var publicMode = IsPublicMode();
         var displayText = (publicMode && task.IsPrivate)
             ? (string.IsNullOrWhiteSpace(task.Impact) ? "(private)" : task.Impact)
@@ -995,9 +1006,20 @@ public class SequenceTaskPage : ContentPage
             await RefreshAsync();
         };
         row.Add(edit, pendingTest ? 4 : 5, 0);
+        if (!task.IsCompleted)
+        {
+            var toCandidate = MakeButton("→ Cand", "#FFF8E1", "#F57F17");
+            toCandidate.Clicked += async (_, _) =>
+            {
+                await _service.AddCandidateAsync(group.Id, task.Id);
+                await _service.DeleteItemAsync(link.Id);
+                await RefreshAsync();
+            };
+            row.Add(toCandidate, pendingTest ? 5 : 6, 0);
+        }
         var delete = MakeButton("Delete", "#FFEBEE", "#C62828");
         delete.Clicked += async (_, _) => { await _service.DeleteItemAsync(link.Id); await RefreshAsync(); };
-        row.Add(delete, pendingTest ? 5 : 6, 0);
+        row.Add(delete, pendingTest ? 6 : 7, 0);
         body.Children.Add(row);
         if (task.IsCompleted) body.Children.Add(new Label { Text = $"Completed {task.CompletedAt:dd MMM yyyy}", FontSize = 11, TextColor = Color.FromArgb("#999"), Margin = new Thickness(8, -4, 0, 0) });
         return new Border { Content = body, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = task.IsCompleted ? Color.FromArgb("#F2F2F2") : Colors.White, Padding = 2 };
