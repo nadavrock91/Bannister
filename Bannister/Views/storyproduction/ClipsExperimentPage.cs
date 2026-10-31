@@ -19,6 +19,7 @@ public class ClipsExperimentPage : ContentPage
     private Entry _conceptEntry = null!;
     private DatePicker _datePicker = null!;
     private List<ClipsExperimentPlatform> _platforms = new();
+    private List<ClipsExperimentItem> _experimentItems = new();
     private readonly HashSet<string> _expandedPostGroups = new();
     private readonly HashSet<string> _expandedExperimentSections = new();
     private readonly HashSet<int> _selectedPostIds = new();
@@ -127,7 +128,8 @@ public class ClipsExperimentPage : ContentPage
         }
         else
         {
-            var experimentItems = await _service.GetExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
+            _experimentItems = await _service.GetExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
+            var experimentItems = _experimentItems;
             var allPlatformData = await _service.GetPlatformDataForExperimentAsync(experiment.Id);
             var platformDataByPost = allPlatformData
                 .GroupBy(data => data.PostId)
@@ -266,6 +268,54 @@ public class ClipsExperimentPage : ContentPage
         _content.Children.Add(_titleEntry);
         _content.Children.Add(_conceptEntry);
         _content.Children.Add(_datePicker);
+
+        // Per-platform stat entries
+        var platformStatRows = new Dictionary<int, (Entry r10, Entry r20, Entry r30, Entry views)>();
+        foreach (var platform in _platforms)
+        {
+            _content.Children.Add(new Label
+            {
+                Text = platform.Name,
+                FontSize = 12,
+                TextColor = Color.FromArgb("#555"),
+                Margin = new Thickness(0, 6, 0, 0)
+            });
+            var row = new HorizontalStackLayout { Spacing = 6 };
+            var r10 = MakeEntry("10s%", true);
+            var r20 = MakeEntry("20s%", true);
+            var r30 = MakeEntry("30s%", true);
+            var views = MakeEntry("Views", true);
+            foreach (var e in new[] { r10, r20, r30, views })
+            {
+                e.WidthRequest = 80;
+                row.Children.Add(e);
+            }
+            _content.Children.Add(row);
+            platformStatRows[platform.Id] = (r10, r20, r30, views);
+        }
+
+        // Assign experiment inline
+        ClipsExperimentItem? _pendingExperimentItem = null;
+        var assignLabel = new Label
+        {
+            Text = "No experiment assigned",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#888"),
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        var experimentItems = _experimentItems;
+        var assignBtn = MakeButton("Assign Experiment", "#E3F2FD", Color.FromArgb("#1565C0"));
+        assignBtn.FontSize = 12;
+        assignBtn.Clicked += async (_, _) =>
+        {
+            var selected = await ChooseExperimentAsync(experimentItems);
+            if (selected == null) return;
+            _pendingExperimentItem = selected;
+            assignLabel.Text = selected.Title;
+        };
+        _content.Children.Add(assignBtn);
+        _content.Children.Add(assignLabel);
+
         var save = MakeButton("Save Post", "#2E7D32", Colors.White);
         save.Clicked += async (_, _) =>
         {
@@ -273,13 +323,36 @@ public class ClipsExperimentPage : ContentPage
             _busy = true;
             try
             {
-                await _service.SavePostAsync(new ClipsPost
+                var post = new ClipsPost
                 {
                     ExperimentId = experiment.Id,
                     Title = _titleEntry.Text.Trim(),
                     Concept = _conceptEntry.Text.Trim(),
-                    PostedDate = _datePicker.Date
-                });
+                    PostedDate = _datePicker.Date,
+                    ExperimentItemId = _pendingExperimentItem?.Id
+                };
+                await _service.SavePostAsync(post);
+
+                // Save platform stats
+                foreach (var platform in _platforms)
+                {
+                    if (!platformStatRows.TryGetValue(platform.Id, out var row)) continue;
+                    double? Parse(Entry e) => double.TryParse(e.Text, out var v) ? v : null;
+                    var r10v = Parse(row.r10);
+                    var r20v = Parse(row.r20);
+                    var r30v = Parse(row.r30);
+                    var viewsv = Parse(row.views);
+                    if (r10v == null && r20v == null && r30v == null && viewsv == null) continue;
+                    await _service.SavePostPlatformDataAsync(new ClipsPostPlatformData
+                    {
+                        PostId = post.Id,
+                        PlatformId = platform.Id,
+                        Retention10s = r10v,
+                        Retention20s = r20v,
+                        Retention30s = r30v,
+                        TotalViews = (int?)viewsv
+                    });
+                }
             }
             finally { _busy = false; }
             await RefreshAsync();
