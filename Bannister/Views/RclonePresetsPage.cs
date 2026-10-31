@@ -377,9 +377,12 @@ public class RclonePresetsPage : ContentPage
             FontSize = 12,
             TextColor = Color.FromArgb("#546E7A")
         });
+        var bwDisplay = "";
+        if (!string.IsNullOrWhiteSpace(preset.BwLimitUp) || !string.IsNullOrWhiteSpace(preset.BwLimitDown))
+            bwDisplay = $"  up:{(string.IsNullOrWhiteSpace(preset.BwLimitUp) ? "∞" : preset.BwLimitUp)}  down:{(string.IsNullOrWhiteSpace(preset.BwLimitDown) ? "∞" : preset.BwLimitDown)}";
         stack.Children.Add(new Label
         {
-            Text = $"--transfers={preset.Transfers}  --checkers={preset.Checkers}",
+            Text = $"--transfers={preset.Transfers}  --checkers={preset.Checkers}{bwDisplay}",
             FontSize = 12,
             TextColor = Color.FromArgb("#90A4AE")
         });
@@ -490,6 +493,8 @@ public class RclonePresetsPage : ContentPage
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers value:", initialValue: "8", keyboard: Keyboard.Numeric);
         string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers value:", initialValue: "16", keyboard: Keyboard.Numeric);
+        string? bwUp = await DisplayPromptAsync("Upload limit", "Max upload speed (e.g. 5M), leave blank for unlimited:", initialValue: "");
+        string? bwDown = await DisplayPromptAsync("Download limit", "Max download speed (e.g. 5M), leave blank for unlimited:", initialValue: "");
 
         int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = 8;
         int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = 16;
@@ -502,6 +507,8 @@ public class RclonePresetsPage : ContentPage
             Destination = destination.Trim(),
             Transfers = transfers,
             Checkers = checkers,
+            BwLimitUp = bwUp?.Trim() ?? "",
+            BwLimitDown = bwDown?.Trim() ?? "",
             SourceIsInput = sourceIsInput,
             DestinationIsInput = destIsInput
         };
@@ -565,6 +572,8 @@ public class RclonePresetsPage : ContentPage
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers value:", initialValue: "8", keyboard: Keyboard.Numeric);
         string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers value:", initialValue: "16", keyboard: Keyboard.Numeric);
+        string? bwUp = await DisplayPromptAsync("Upload limit", "Max upload speed (e.g. 5M), leave blank for unlimited:", initialValue: "");
+        string? bwDown = await DisplayPromptAsync("Download limit", "Max download speed (e.g. 5M), leave blank for unlimited:", initialValue: "");
 
         int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = 8;
         int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = 16;
@@ -578,6 +587,8 @@ public class RclonePresetsPage : ContentPage
             Destination = isUpload ? bbPath : localPath,
             Transfers = transfers,
             Checkers = checkers,
+            BwLimitUp = bwUp?.Trim() ?? "",
+            BwLimitDown = bwDown?.Trim() ?? "",
             SourceIsInput = isUpload ? localIsInput : bbPathIsInput,
             DestinationIsInput = isUpload ? bbPathIsInput : localIsInput
         };
@@ -604,7 +615,14 @@ public class RclonePresetsPage : ContentPage
             if (string.IsNullOrWhiteSpace(destination)) return;
         }
 
-        string command = $"rclone copy \"{source.Trim()}\" {destination.Trim()} --transfers={preset.Transfers} --checkers={preset.Checkers} --progress";
+        string bwFlag = "";
+        if (!string.IsNullOrWhiteSpace(preset.BwLimitUp) || !string.IsNullOrWhiteSpace(preset.BwLimitDown))
+        {
+            string up = string.IsNullOrWhiteSpace(preset.BwLimitUp) ? "off" : preset.BwLimitUp.Trim();
+            string down = string.IsNullOrWhiteSpace(preset.BwLimitDown) ? "off" : preset.BwLimitDown.Trim();
+            bwFlag = $" --bwlimit \"{up}:{down}\"";
+        }
+        string command = $"rclone copy \"{source.Trim()}\" {destination.Trim()} --transfers={preset.Transfers} --checkers={preset.Checkers}{bwFlag} --progress";
 
         string? queueChoice = await DisplayActionSheet(
             "What do you want to do?", "Cancel", null, "Show command", "Add to Queue");
@@ -774,6 +792,8 @@ public class RclonePresetsPage : ContentPage
 
         string? transfersStr = await DisplayPromptAsync("Transfers", "--transfers:", initialValue: preset.Transfers.ToString(), keyboard: Keyboard.Numeric);
         string? checkersStr = await DisplayPromptAsync("Checkers", "--checkers:", initialValue: preset.Checkers.ToString(), keyboard: Keyboard.Numeric);
+        string? bwUp = await DisplayPromptAsync("Upload limit", "Max upload speed (e.g. 5M), blank = unlimited:", initialValue: preset.BwLimitUp);
+        string? bwDown = await DisplayPromptAsync("Download limit", "Max download speed (e.g. 5M), blank = unlimited:", initialValue: preset.BwLimitDown);
 
         int.TryParse(transfersStr, out int transfers); if (transfers <= 0) transfers = preset.Transfers;
         int.TryParse(checkersStr, out int checkers); if (checkers <= 0) checkers = preset.Checkers;
@@ -783,6 +803,8 @@ public class RclonePresetsPage : ContentPage
         preset.Destination = destination.Trim();
         preset.Transfers = transfers;
         preset.Checkers = checkers;
+        preset.BwLimitUp = bwUp?.Trim() ?? preset.BwLimitUp;
+        preset.BwLimitDown = bwDown?.Trim() ?? preset.BwLimitDown;
         preset.SourceIsInput = sourceIsInput;
         preset.DestinationIsInput = destIsInput;
 

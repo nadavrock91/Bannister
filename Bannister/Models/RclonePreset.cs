@@ -16,6 +16,8 @@ public class RclonePreset
     public string Destination { get; set; } = "";      // fixed value, or "" if DestinationIsInput
     public int Transfers { get; set; } = 8;
     public int Checkers { get; set; } = 16;
+    public string BwLimitUp { get; set; } = "";   // e.g. "5M", empty = unlimited
+    public string BwLimitDown { get; set; } = ""; // e.g. "5M", empty = unlimited
     public string RclonePath { get; set; } = "";
     public bool SourceIsInput { get; set; } = true;    // true = prompt user at run time
     public bool DestinationIsInput { get; set; } = false;

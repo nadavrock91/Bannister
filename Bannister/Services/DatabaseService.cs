@@ -507,6 +507,8 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE backup_locations ADD COLUMN RcloneRemote TEXT NOT NULL DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE rclone_presets ADD COLUMN RclonePath TEXT NOT NULL DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE rclone_presets ADD COLUMN Visibility INTEGER NOT NULL DEFAULT 2"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE rclone_presets ADD COLUMN BwLimitUp TEXT NOT NULL DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE rclone_presets ADD COLUMN BwLimitDown TEXT NOT NULL DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE backup_files ADD COLUMN Path TEXT NOT NULL DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE backup_files ADD COLUMN Visibility INTEGER NOT NULL DEFAULT 2"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE backup_file_items ADD COLUMN ParentItemId INTEGER NULL"); } catch { }
