@@ -988,7 +988,7 @@ public class GridCropperPage : ContentPage
 
             if (_separateBottomRow)
             {
-                int splitY = mainRows * safeH;
+                int splitY = (_rows - 1) * safeH;
                 using var splitPaint = new SKPaint
                 {
                     Color = new SKColor(255, 220, 50, 230),
@@ -1034,7 +1034,7 @@ public class GridCropperPage : ContentPage
 
             if (_separateBottomRow)
             {
-                int splitY = mainRows * safeH;
+                int splitY = (_rows - 1) * safeH;
                 int botW = _bottomCols > 0 ? imgW / _bottomCols : imgW;
                 int botH = imgH - splitY;
                 int stripOffset = mainRows * _cols;
@@ -1066,15 +1066,17 @@ public class GridCropperPage : ContentPage
         // ── Bottom strip cell preview ─────────────────────────────────
         if (_separateBottomRow && _sourceBitmap != null)
         {
-            int splitY = mainRows * safeH;
+            int splitY = (_rows - 1) * safeH;
             int botW = Math.Max(1, Math.Min(_bottomCellW, _sourceBitmap.Width));
-            int botH = Math.Max(1, Math.Min(_bottomCellH, _sourceBitmap.Height - splitY));
-            if (botH > 0)
+            int botH = Math.Max(1, _bottomCellH);
             {
-                var srcRect = new SKRectI(0, splitY, botW, splitY + botH);
+                int srcX2 = Math.Min(splitY + botH, _sourceBitmap.Height);
+                int actualBotH = Math.Max(1, srcX2 - splitY);
+                var srcRect = new SKRectI(0, splitY, botW, splitY + actualBotH);
                 using var cropped = new SKBitmap(botW, botH);
                 using var canvas = new SKCanvas(cropped);
-                canvas.DrawBitmap(_sourceBitmap, srcRect, new SKRect(0, 0, botW, botH));
+                canvas.Clear(SKColors.Black);
+                canvas.DrawBitmap(_sourceBitmap, srcRect, new SKRect(0, 0, botW, actualBotH));
                 using var image = SKImage.FromBitmap(cropped);
                 using var data = image.Encode(SKEncodedImageFormat.Png, 100);
                 var bytes = data.ToArray();
@@ -1165,9 +1167,9 @@ public class GridCropperPage : ContentPage
 
                 if (_separateBottomRow)
                 {
-                    int splitY = mainRows * safeH;
+                    int splitY = (_rows - 1) * safeH;
                     int botW = Math.Max(1, Math.Min(_bottomCellW, _sourceBitmap.Width));
-                    int botH = Math.Max(1, Math.Min(_bottomCellH, _sourceBitmap.Height - splitY));
+                    int botH = Math.Max(1, _bottomCellH);
                     int stripOffset = mainRows * _cols;
                     for (int col = 0; col < _bottomCols; col++)
                     {
@@ -1176,7 +1178,7 @@ public class GridCropperPage : ContentPage
                         int x = col * botW;
                         int y = splitY;
                         int actualW = Math.Min(botW, _sourceBitmap.Width - x);
-                        int actualH = Math.Min(botH, _sourceBitmap.Height - y);
+                        int actualH = Math.Min(_sourceBitmap.Height - y, botH);
                         if (actualW <= 0 || actualH <= 0) continue;
                         var srcRect = new SKRectI(x, y, x + actualW, y + actualH);
                         using var cropped = new SKBitmap(botW, botH);
