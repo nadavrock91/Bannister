@@ -689,9 +689,20 @@ public class ClipsExperimentPage : ContentPage
             Padding = new Thickness(12, 8),
             Spacing = 8
         };
-        foreach (var experimentItem in experimentItems.OrderByDescending(e => e.CreatedDate))
+        foreach (var experimentItem in experimentItems.OrderByDescending(e => e.StartDate ?? e.CreatedDate))
         {
             var item = experimentItem;
+            if (item.StartDate.HasValue)
+            {
+                var dateLabel = new Label
+                {
+                    Text = item.StartDate.Value.ToString("MMM d, yyyy"),
+                    FontSize = 11,
+                    TextColor = Color.FromArgb("#888"),
+                    Margin = new Thickness(4, 4, 0, 0)
+                };
+                items.Children.Add(dateLabel);
+            }
             var button = new Button
             {
                 Text = item.Title,
