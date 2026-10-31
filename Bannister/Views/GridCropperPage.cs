@@ -30,7 +30,6 @@ public class GridCropperPage : ContentPage
     private Label _gridHeaderLabel = null!;
     private Label _previewLabel = null!;
     private Button _cropButton = null!;
-    private Button _fitButton = null!;
     private Label _statusLabel = null!;
     private Picker _presetPicker = null!;
     private List<CropPresetItem> _presets = new();
@@ -336,6 +335,10 @@ public class GridCropperPage : ContentPage
             _cellH = p.H;
             _widthValueLabel.Text = $"{_cellW} px";
             _heightValueLabel.Text = $"{_cellH} px";
+            for (int i = 0; i < _colWidths.Length; i++) _colWidths[i] = _cellW;
+            for (int i = 0; i < _rowHeights.Length; i++) _rowHeights[i] = _cellH;
+            RefreshSizeAdjustUI();
+            UpdatePreview();
         };
         presetRow.Children.Add(_presetPicker);
 
@@ -393,27 +396,6 @@ public class GridCropperPage : ContentPage
         presetRow.Children.Add(deletePresetBtn);
 
         v.Children.Add(presetRow);
-        _fitButton = new Button
-        {
-            Text = "⊡ Fit to Image",
-            BackgroundColor = Color.FromArgb("#37474F"),
-            TextColor = Colors.White,
-            CornerRadius = 8,
-            FontSize = 13,
-            HeightRequest = 38,
-            Padding = new Thickness(12, 0),
-            HorizontalOptions = LayoutOptions.Start,
-            IsEnabled = false
-        };
-        _fitButton.Clicked += (_, _) =>
-        {
-            if (_sourceBitmap == null) return;
-            RebuildSizeArrays();
-            RefreshSizeAdjustUI();
-            _sizeAdjustPanel.IsVisible = true;
-            UpdatePreview();
-        };
-        v.Children.Add(_fitButton);
         v.Children.Add(BuildSizeAdjustUI());
         v.Children.Add(new Label { Text = "Sliders activate after an image is picked.", FontSize = 11, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
         return v;
@@ -448,7 +430,7 @@ public class GridCropperPage : ContentPage
 
     private View BuildSizeAdjustUI()
     {
-        _sizeAdjustPanel = new VerticalStackLayout { Spacing = 6, IsVisible = false };
+        _sizeAdjustPanel = new VerticalStackLayout { Spacing = 6, IsVisible = true };
         if (_colWidths.Length != _cols || _rowHeights.Length != _rows)
             RebuildSizeArrays();
         RefreshSizeAdjustUI();
@@ -824,7 +806,6 @@ public class GridCropperPage : ContentPage
             _heightSlider.Value = Math.Min(_cellH, imgH);
             _widthSlider.IsEnabled = true;
             _heightSlider.IsEnabled = true;
-            _fitButton.IsEnabled = true;
             RebuildSizeArrays();
             RefreshSizeAdjustUI();
             _sizeAdjustPanel.IsVisible = true;
@@ -839,6 +820,9 @@ public class GridCropperPage : ContentPage
         _cellH = (int)Math.Round(_heightSlider.Value);
         _widthValueLabel.Text = $"{_cellW} px";
         _heightValueLabel.Text = $"{_cellH} px";
+        for (int i = 0; i < _colWidths.Length; i++) _colWidths[i] = _cellW;
+        for (int i = 0; i < _rowHeights.Length; i++) _rowHeights[i] = _cellH;
+        RefreshSizeAdjustUI();
         UpdatePreview();
     }
 
