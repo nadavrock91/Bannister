@@ -645,6 +645,27 @@ public class RclonePresetsPage : ContentPage
             if (string.IsNullOrWhiteSpace(destination)) return;
         }
 
+        // ── Folder nesting prompt ─────────────────────────────────────
+        bool sourceIsLocal = !string.IsNullOrWhiteSpace(source) && !source.Contains(':');
+        bool destIsRemote  = !string.IsNullOrWhiteSpace(destination) && destination.Contains(':');
+        if (sourceIsLocal && destIsRemote)
+        {
+            string folderName = System.IO.Path.GetFileName(source.TrimEnd('\\', '/'));
+            if (!string.IsNullOrWhiteSpace(folderName))
+            {
+                string? nestChoice = await DisplayActionSheet(
+                    "Upload destination",
+                    "Cancel",
+                    null,
+                    $" Nest in subfolder: {destination}/{folderName}",
+                    $" Flat: dump files directly into {destination}");
+                if (nestChoice == null || nestChoice == "Cancel") return;
+                if (nestChoice.StartsWith(" Nest"))
+                    destination = $"{destination}/{folderName}";
+                // Flat: destination stays as-is
+            }
+        }
+
         string bwFlag = "";
         if (!string.IsNullOrWhiteSpace(preset.BwLimitUp) || !string.IsNullOrWhiteSpace(preset.BwLimitDown))
         {
