@@ -657,10 +657,10 @@ public class RclonePresetsPage : ContentPage
                     "Upload destination",
                     "Cancel",
                     null,
-                    $" Nest in subfolder: {destination}/{folderName}",
-                    $" Flat: dump files directly into {destination}");
+                    $"[Nest] Create subfolder '{folderName}' in bucket",
+                    $"[Flat] Upload files directly into bucket root");
                 if (nestChoice == null || nestChoice == "Cancel") return;
-                if (nestChoice.StartsWith(" Nest"))
+                if (nestChoice.StartsWith("[Nest]"))
                     destination = $"{destination}/{folderName}";
                 // Flat: destination stays as-is
             }
