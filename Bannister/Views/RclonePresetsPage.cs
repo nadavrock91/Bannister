@@ -628,6 +628,20 @@ public class RclonePresetsPage : ContentPage
         Render();
     }
 
+    private static bool IsRcloneRemotePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        string value = path.Trim();
+        int colonIndex = value.IndexOf(':');
+        if (colonIndex <= 0) return false;
+        // Windows drive letter: single letter followed by :\ or :/
+        if (colonIndex == 1 && char.IsLetter(value[0]) &&
+            value.Length > 2 && (value[2] == '\\' || value[2] == '/'))
+            return false;
+        // Rclone remote names have no path separators before the colon
+        return value[..colonIndex].IndexOfAny(new[] { '\\', '/' }) < 0;
+    }
+
     private async Task OnRunPresetAsync(RclonePreset preset)
     {
         string source = preset.Source;
@@ -646,8 +660,8 @@ public class RclonePresetsPage : ContentPage
         }
 
         // ── Folder nesting prompt ─────────────────────────────────────
-        bool sourceIsLocal = !string.IsNullOrWhiteSpace(source) && !source.Contains(':');
-        bool destIsRemote  = !string.IsNullOrWhiteSpace(destination) && destination.Contains(':');
+        bool sourceIsLocal = !string.IsNullOrWhiteSpace(source) && !IsRcloneRemotePath(source);
+        bool destIsRemote  = IsRcloneRemotePath(destination);
         if (sourceIsLocal && destIsRemote)
         {
             string folderName = System.IO.Path.GetFileName(source.TrimEnd('\\', '/'));
