@@ -145,6 +145,7 @@ public class HomePage : ContentPage
     private Button _btnVideoEditing;
     private Button _btnWebsiteBuilder;
     private Button _btnZeroCounts;
+    private Button _btnFileSorter = null!;
     private Button _quickAccessBtn = null!;
     private Button _secondaryQueueActionsBtn = null!;
     private readonly ToolbarItem _secondaryQueueToolbarItem;
@@ -569,6 +570,10 @@ public class HomePage : ContentPage
         _btnZeroCounts.Clicked += OnZeroCountsClicked;
         navButtons.Add(("Zero Counts", _btnZeroCounts));
 
+        _btnFileSorter = CreateButton("File Sorter", Color.FromArgb("#E0F2F1"), Color.FromArgb("#00695C"));
+        _btnFileSorter.Clicked += OnFileSorterClicked;
+        navButtons.Add(("File Sorter", _btnFileSorter));
+
         _allHomeNavButtons = navButtons
             .Select(item => new HomeNavButton(item.sortKey, item.btn))
             .ToList();
@@ -877,6 +882,7 @@ public class HomePage : ContentPage
         foreach (var range in new[] { "A-E", "F-J", "K-O", "P-T", "U-Z" })
         {
             var groupButtons = sortedButtons
+                .Where(button => !button.Id.Equals("File Sorter", StringComparison.OrdinalIgnoreCase))
                 .Where(button => GetButtonRange(button.Id) == range)
                 .ToList();
 
@@ -895,6 +901,16 @@ public class HomePage : ContentPage
                     continue;
                 _buttonSectionsStack.Children.Add(CreateNavButtonWrapper(button, quickAccess.Contains(button.Id)));
             }
+        }
+
+        var fileSorterButton = sortedButtons.FirstOrDefault(button =>
+            button.Id.Equals("File Sorter", StringComparison.OrdinalIgnoreCase));
+        if (fileSorterButton != null && _enabledButtonsCache.Contains(fileSorterButton.Id))
+        {
+            _buttonSectionsStack.Children.Add(CreateButtonSectionHeader("Files Management"));
+            _buttonSectionsStack.Children.Add(CreateNavButtonWrapper(
+                fileSorterButton,
+                quickAccess.Contains(fileSorterButton.Id)));
         }
     }
 
@@ -1004,6 +1020,7 @@ public class HomePage : ContentPage
             "Discipline" => OnDisciplineClicked,
             "Dragons" => OnDragonsClicked,
             "Emotional Management" => OnEmotionalManagementClicked,
+            "File Sorter" => OnFileSorterClicked,
             "Games" => OnGamesClicked,
             "Habits" => OnNewHabitsClicked,
             "Ideas" => OnIdeasClicked,
@@ -3216,6 +3233,14 @@ public class HomePage : ContentPage
     {
         var page = new ZeroCountsPage(_auth, _activities, _games);
         await Navigation.PushAsync(page);
+    }
+
+    private async void OnFileSorterClicked(object? sender, EventArgs e)
+    {
+        var page = Application.Current?.Handler?.MauiContext?.Services
+            .GetService<FileSorterPage>();
+        if (page != null)
+            await Navigation.PushAsync(page);
     }
 
     private async void OnLogoutClicked(object? sender, EventArgs e)
