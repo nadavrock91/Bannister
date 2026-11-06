@@ -16,7 +16,8 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<AppMain>()
-            .UseMauiCommunityToolkit();
+            .UseMauiCommunityToolkit()
+            .UseMauiCommunityToolkitMediaElement();
 
         // Set window to fullscreen/maximized
         builder.ConfigureLifecycleEvents(events =>
@@ -253,6 +254,7 @@ public static class MauiProgram
         builder.Services.AddTransient<JournalAnalysisPage>();
         builder.Services.AddTransient<BatchImageAssignPage>();
         builder.Services.AddTransient<ClipsExperimentPage>();
+        builder.Services.AddTransient<FileSorterPage>();
 
 
 #if DEBUG
