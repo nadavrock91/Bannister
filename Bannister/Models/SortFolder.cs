@@ -10,5 +10,6 @@ public class SortFolder
     public string Name { get; set; } = "";      // button label
     public string Path { get; set; } = "";      // destination folder path
     public int SortOrder { get; set; } = 0;
+    public int? SetId { get; set; } = null;   // null = no set
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

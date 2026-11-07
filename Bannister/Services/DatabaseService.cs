@@ -501,6 +501,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<RcloneQueueItem>();
             await _db!.CreateTableAsync<UserSetting>();
             await _db!.CreateTableAsync<SortFolder>();
+            await _db!.CreateTableAsync<SortSet>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTotalDaysCap INTEGER NOT NULL DEFAULT 0"); } catch { }
@@ -550,6 +551,7 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN Allowance INTEGER DEFAULT 1"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN ConsecutiveAllDoneDays INTEGER DEFAULT 0"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN LastSubmissionDate TEXT"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE sort_folders ADD COLUMN SetId INTEGER NULL"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

@@ -16,6 +16,8 @@ public class FileSorterPage : ContentPage
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
     private List<SortFolder> _sortFolders = new();
+    private List<SortSet> _sortSets = new();
+    private int? _activeSetId = null;
     private List<string> _files = new();
     private int _currentIndex;
     private string? _lastMovedFrom;
@@ -30,6 +32,7 @@ public class FileSorterPage : ContentPage
     private Label _statusLabel = null!;
     private ScrollView _buttonScroll = null!;
     private HorizontalStackLayout _buttonRow = null!;
+    private HorizontalStackLayout _setRow = null!;
     private VerticalStackLayout _mainStack = null!;
     private Button _skipBtn = null!;
     private Button _undoBtn = null!;
@@ -119,11 +122,17 @@ public class FileSorterPage : ContentPage
             Orientation = ScrollOrientation.Horizontal,
             Content = _buttonRow
         };
+        _setRow = new HorizontalStackLayout { Spacing = 8 };
+        var setScroll = new ScrollView
+        {
+            Orientation = ScrollOrientation.Horizontal,
+            Content = _setRow
+        };
         _mainStack = new VerticalStackLayout
         {
             Spacing = 8,
             Padding = 8,
-            Children = { firstSubRow, _statusLabel, _buttonScroll }
+            Children = { firstSubRow, _statusLabel, setScroll, _buttonScroll }
         };
 
         var layout = new Grid
@@ -151,16 +160,21 @@ public class FileSorterPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadSortFoldersAsync();
+        await LoadAsync();
     }
 
-    private async Task LoadSortFoldersAsync()
+    private async Task LoadAsync()
     {
         var conn = await _db.GetConnectionAsync();
+        _sortSets = await conn.Table<SortSet>()
+            .Where(set => set.Username == _auth.CurrentUsername)
+            .OrderBy(set => set.SortOrder)
+            .ToListAsync();
         _sortFolders = await conn.Table<SortFolder>()
             .Where(folder => folder.Username == _auth.CurrentUsername)
             .OrderBy(folder => folder.SortOrder)
             .ToListAsync();
+        RebuildSetRow();
         RebuildSortButtons();
     }
 
@@ -288,21 +302,36 @@ public class FileSorterPage : ContentPage
         if (!result.IsSuccessful)
             return;
 
+        string? setChoice = await DisplayActionSheet(
+            "Add to set",
+            "Cancel",
+            null,
+            new[] { "No Set" }.Concat(_sortSets.Select(set => set.Name)).ToArray());
+        if (setChoice == null || setChoice == "Cancel")
+            return;
+        int? setId = setChoice == "No Set"
+            ? null
+            : _sortSets.FirstOrDefault(set => set.Name == setChoice)?.Id;
+
         var conn = await _db.GetConnectionAsync();
         await conn.InsertAsync(new SortFolder
         {
             Username = _auth.CurrentUsername,
             Name = name.Trim(),
             Path = result.Folder.Path,
-            SortOrder = _sortFolders.Count
+            SortOrder = _sortFolders.Count,
+            SetId = setId
         });
-        await LoadSortFoldersAsync();
+        await LoadAsync();
     }
 
     private void RebuildSortButtons()
     {
         _buttonRow.Children.Clear();
-        foreach (SortFolder folder in _sortFolders)
+        var visible = _activeSetId == null
+            ? _sortFolders
+            : _sortFolders.Where(folder => folder.SetId == _activeSetId).ToList();
+        foreach (SortFolder folder in visible)
         {
             var btn = new Button
             {
@@ -323,6 +352,97 @@ public class FileSorterPage : ContentPage
         }
     }
 
+    private void RebuildSetRow()
+    {
+        _setRow.Children.Clear();
+
+        var addSetBtn = new Button
+        {
+            Text = "+ Set",
+            FontSize = 11,
+            HeightRequest = 32,
+            Padding = new Thickness(10, 0),
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            CornerRadius = 16
+        };
+        addSetBtn.Clicked += async (_, _) =>
+        {
+            string? name = await DisplayPromptAsync("New Set", "Set name:");
+            if (string.IsNullOrWhiteSpace(name)) return;
+            var conn = await _db.GetConnectionAsync();
+            await conn.InsertAsync(new SortSet
+            {
+                Username = _auth.CurrentUsername,
+                Name = name.Trim(),
+                SortOrder = _sortSets.Count
+            });
+            await LoadAsync();
+        };
+        _setRow.Children.Add(addSetBtn);
+
+        foreach (SortSet set in _sortSets)
+        {
+            bool isActive = _activeSetId == set.Id;
+            var chip = new Button
+            {
+                Text = set.Name,
+                FontSize = 11,
+                HeightRequest = 32,
+                Padding = new Thickness(10, 0),
+                BackgroundColor = isActive
+                    ? Color.FromArgb("#1565C0")
+                    : Color.FromArgb("#ECEFF1"),
+                TextColor = isActive ? Colors.White : Color.FromArgb("#263238"),
+                CornerRadius = 16
+            };
+            chip.Clicked += (_, _) =>
+            {
+                _activeSetId = isActive ? null : set.Id;
+                RebuildSetRow();
+                RebuildSortButtons();
+            };
+
+            var editGesture = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
+            editGesture.Tapped += async (_, _) =>
+            {
+                string? action = await DisplayActionSheet(
+                    set.Name, "Cancel", null, "Rename", "Delete");
+                if (action == "Rename")
+                {
+                    string? newName = await DisplayPromptAsync(
+                        "Rename Set", "New name:", initialValue: set.Name);
+                    if (string.IsNullOrWhiteSpace(newName)) return;
+                    set.Name = newName.Trim();
+                    var conn = await _db.GetConnectionAsync();
+                    await conn.UpdateAsync(set);
+                    await LoadAsync();
+                }
+                else if (action == "Delete")
+                {
+                    bool confirm = await DisplayAlert(
+                        "Delete Set",
+                        $"Delete set '{set.Name}'? Folders in it become unassigned.",
+                        "Delete",
+                        "Cancel");
+                    if (!confirm) return;
+                    var conn = await _db.GetConnectionAsync();
+                    var affected = _sortFolders.Where(folder => folder.SetId == set.Id).ToList();
+                    foreach (SortFolder folder in affected)
+                    {
+                        folder.SetId = null;
+                        await conn.UpdateAsync(folder);
+                    }
+                    await conn.DeleteAsync(set);
+                    if (_activeSetId == set.Id) _activeSetId = null;
+                    await LoadAsync();
+                }
+            };
+            chip.GestureRecognizers.Add(editGesture);
+            _setRow.Children.Add(chip);
+        }
+    }
+
     private async Task EditSortFolderAsync(SortFolder folder)
     {
         string action = await DisplayActionSheet(
@@ -330,7 +450,8 @@ public class FileSorterPage : ContentPage
             "Cancel",
             null,
             "Rename",
-            "Delete");
+            "Move to Set",
+            "Remove");
         var conn = await _db.GetConnectionAsync();
 
         if (action == "Rename")
@@ -340,14 +461,28 @@ public class FileSorterPage : ContentPage
             {
                 folder.Name = newName.Trim();
                 await conn.UpdateAsync(folder);
-                await LoadSortFoldersAsync();
+                await LoadAsync();
             }
         }
-        else if (action == "Delete" &&
-                 await DisplayAlert("Delete Folder", $"Delete '{folder.Name}'?", "Delete", "Cancel"))
+        else if (action == "Move to Set")
+        {
+            string? setChoice = await DisplayActionSheet(
+                "Move to Set",
+                "Cancel",
+                null,
+                new[] { "No Set" }.Concat(_sortSets.Select(set => set.Name)).ToArray());
+            if (setChoice == null || setChoice == "Cancel") return;
+            folder.SetId = setChoice == "No Set"
+                ? null
+                : _sortSets.FirstOrDefault(set => set.Name == setChoice)?.Id;
+            await conn.UpdateAsync(folder);
+            await LoadAsync();
+        }
+        else if (action == "Remove" &&
+                 await DisplayAlert("Remove Folder", $"Remove '{folder.Name}'?", "Remove", "Cancel"))
         {
             await conn.DeleteAsync(folder);
-            await LoadSortFoldersAsync();
+            await LoadAsync();
         }
     }
 }
