@@ -18,6 +18,7 @@ public class FileSorterPage : ContentPage
     private List<SortFolder> _sortFolders = new();
     private List<SortSet> _sortSets = new();
     private int? _activeSetId = null;
+    private List<FavoriteSourceFolder> _favFolders = new();
     private List<string> _files = new();
     private int _currentIndex;
     private string? _lastMovedFrom;
@@ -33,6 +34,7 @@ public class FileSorterPage : ContentPage
     private ScrollView _buttonScroll = null!;
     private HorizontalStackLayout _buttonRow = null!;
     private HorizontalStackLayout _setRow = null!;
+    private HorizontalStackLayout _favRow = null!;
     private VerticalStackLayout _mainStack = null!;
     private Button _skipBtn = null!;
     private Button _undoBtn = null!;
@@ -111,6 +113,18 @@ public class FileSorterPage : ContentPage
             Spacing = 8,
             Children = { _openFolderBtn, _undoBtn, _backBtn, _skipBtn, addFolderBtn }
         };
+        var favoriteLabel = new Label
+        {
+            Text = "Source Folders:",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#546E7A")
+        };
+        _favRow = new HorizontalStackLayout { Spacing = 8 };
+        var favoriteScroll = new ScrollView
+        {
+            Orientation = ScrollOrientation.Horizontal,
+            Content = _favRow
+        };
         _statusLabel = new Label
         {
             FontSize = 11,
@@ -132,7 +146,7 @@ public class FileSorterPage : ContentPage
         {
             Spacing = 8,
             Padding = 8,
-            Children = { firstSubRow, _statusLabel, setScroll, _buttonScroll }
+            Children = { favoriteLabel, favoriteScroll, firstSubRow, _statusLabel, setScroll, _buttonScroll }
         };
 
         var layout = new Grid
@@ -170,10 +184,15 @@ public class FileSorterPage : ContentPage
             .Where(set => set.Username == _auth.CurrentUsername)
             .OrderBy(set => set.SortOrder)
             .ToListAsync();
+        _favFolders = await conn.Table<FavoriteSourceFolder>()
+            .Where(folder => folder.Username == _auth.CurrentUsername)
+            .OrderBy(folder => folder.SortOrder)
+            .ToListAsync();
         _sortFolders = await conn.Table<SortFolder>()
             .Where(folder => folder.Username == _auth.CurrentUsername)
             .OrderBy(folder => folder.SortOrder)
             .ToListAsync();
+        RebuildFavRow();
         RebuildSetRow();
         RebuildSortButtons();
     }
@@ -359,6 +378,116 @@ public class FileSorterPage : ContentPage
             menuBtn.Clicked += async (_, _) => await EditSortFolderAsync(folder);
             _buttonRow.Children.Add(btn);
             _buttonRow.Children.Add(menuBtn);
+        }
+    }
+
+    private void RebuildFavRow()
+    {
+        _favRow.Children.Clear();
+
+        var saveBtn = new Button
+        {
+            Text = "☆ Save",
+            FontSize = 11,
+            HeightRequest = 32,
+            Padding = new Thickness(10, 0),
+            BackgroundColor = Color.FromArgb("#F9A825"),
+            TextColor = Colors.White,
+            CornerRadius = 16
+        };
+        saveBtn.Clicked += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(_sourceFolder))
+            {
+                await DisplayAlert("No folder", "Pick a source folder first.", "OK");
+                return;
+            }
+            string defaultName = System.IO.Path.GetFileName(
+                _sourceFolder.TrimEnd('\\', '/'));
+            string? name = await DisplayPromptAsync(
+                "Save Source Folder", "Name:", initialValue: defaultName);
+            if (string.IsNullOrWhiteSpace(name)) return;
+            var conn = await _db.GetConnectionAsync();
+            await conn.InsertAsync(new FavoriteSourceFolder
+            {
+                Username = _auth.CurrentUsername,
+                Name = name.Trim(),
+                Path = _sourceFolder,
+                SortOrder = _favFolders.Count
+            });
+            await LoadAsync();
+        };
+        _favRow.Children.Add(saveBtn);
+
+        foreach (FavoriteSourceFolder fav in _favFolders)
+        {
+            var chip = new Button
+            {
+                Text = fav.Name,
+                FontSize = 11,
+                HeightRequest = 32,
+                Padding = new Thickness(10, 0),
+                BackgroundColor = Color.FromArgb("#FFF8E1"),
+                TextColor = Color.FromArgb("#E65100"),
+                CornerRadius = 16
+            };
+            chip.Clicked += async (_, _) =>
+            {
+                if (!System.IO.Directory.Exists(fav.Path))
+                {
+                    await DisplayAlert("Not found",
+                        $"Folder no longer exists:\n{fav.Path}", "OK");
+                    return;
+                }
+                _sourceFolder = fav.Path;
+                _files = System.IO.Directory
+                    .GetFiles(fav.Path)
+                    .Where(file => SupportedExtensions.Contains(
+                        System.IO.Path.GetExtension(file)))
+                    .OrderBy(file => file)
+                    .ToList();
+                _currentIndex = 0;
+                await ShowCurrentFileAsync();
+            };
+            _favRow.Children.Add(chip);
+
+            var menuBtn = new Button
+            {
+                Text = "⋮",
+                FontSize = 14,
+                WidthRequest = 28,
+                HeightRequest = 32,
+                Padding = 0,
+                BackgroundColor = Color.FromArgb("#FFE082"),
+                TextColor = Color.FromArgb("#E65100"),
+                CornerRadius = 8
+            };
+            menuBtn.Clicked += async (_, _) =>
+            {
+                string? action = await DisplayActionSheet(
+                    fav.Name, "Cancel", null, "Rename", "Remove");
+                if (action == "Rename")
+                {
+                    string? newName = await DisplayPromptAsync(
+                        "Rename", "New name:", initialValue: fav.Name);
+                    if (string.IsNullOrWhiteSpace(newName)) return;
+                    fav.Name = newName.Trim();
+                    var conn = await _db.GetConnectionAsync();
+                    await conn.UpdateAsync(fav);
+                    await LoadAsync();
+                }
+                else if (action == "Remove")
+                {
+                    bool confirm = await DisplayAlert(
+                        "Remove", $"Remove '{fav.Name}' from favorites?",
+                        "Remove", "Cancel");
+                    if (!confirm) return;
+                    var conn = await _db.GetConnectionAsync();
+                    await conn.DeleteAsync(fav);
+                    await LoadAsync();
+                }
+            };
+            _favRow.Children.Add(menuBtn);
         }
     }
 

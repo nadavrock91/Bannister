@@ -502,6 +502,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<UserSetting>();
             await _db!.CreateTableAsync<SortFolder>();
             await _db!.CreateTableAsync<SortSet>();
+            await _db!.CreateTableAsync<FavoriteSourceFolder>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTotalDaysCap INTEGER NOT NULL DEFAULT 0"); } catch { }
