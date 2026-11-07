@@ -15,9 +15,6 @@ public class ClipContinuationPickerPage : ContentPage
     private string? _baseClipPath;
     private readonly FFmpegService _ffmpeg;
     private List<string> _continuations = new();
-    private List<string> _stitchedPaths = new();
-    private string? _ffmpegPath;
-    private bool _stitchingDone = false;
     private int _currentIndex;
     private bool _playingBase;
     private MediaElement _player = null!;
@@ -30,6 +27,7 @@ public class ClipContinuationPickerPage : ContentPage
     private Button _pickBaseBtn = null!;
     private Button _pickFolderBtn = null!;
     private Button _playPauseBtn = null!;
+    private Button _copyToFolderBtn = null!;
 
     public ClipContinuationPickerPage(FFmpegService ffmpeg)
     {
@@ -97,6 +95,17 @@ public class ClipContinuationPickerPage : ContentPage
         _removeBtn.IsEnabled = false;
         _nextBtn = CreateButton("⏭ Next", "#1B5E20");
         _nextBtn.IsEnabled = false;
+        _copyToFolderBtn = new Button
+        {
+            Text = " Copy",
+            BackgroundColor = Color.FromArgb("#4A148C"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            Padding = new Thickness(12, 0),
+            FontSize = 13,
+            IsEnabled = false
+        };
         _countLabel = new Label
         {
             TextColor = Colors.White,
@@ -108,6 +117,7 @@ public class ClipContinuationPickerPage : ContentPage
         _pickFolderBtn.Clicked += async (_, _) => await OnPickFolderAsync();
         _removeBtn.Clicked += async (_, _) => await OnRemoveAsync();
         _nextBtn.Clicked += async (_, _) => await OnNextAsync();
+        _copyToFolderBtn.Clicked += async (_, _) => await OnCopyToFolderAsync();
         _playPauseBtn.Clicked += (_, _) => OnPlayPauseAsync();
 
         var controls = new VerticalStackLayout
@@ -125,7 +135,7 @@ public class ClipContinuationPickerPage : ContentPage
                 new HorizontalStackLayout
                 {
                     Spacing = 8,
-                    Children = { _removeBtn, _nextBtn, _countLabel }
+                    Children = { _removeBtn, _nextBtn, _copyToFolderBtn, _countLabel }
                 }
             }
         };
@@ -217,42 +227,10 @@ public class ClipContinuationPickerPage : ContentPage
         _currentIndex = 0;
         _playingBase = true;
         _noClipsLabel.IsVisible = false;
-        _playPauseBtn.IsEnabled = false;
-        _removeBtn.IsEnabled = false;
-        _nextBtn.IsEnabled = false;
-
-#if WINDOWS
-        // Clean up previous stitched files
-        foreach (var p in _stitchedPaths)
-            try { if (IsGeneratedStitchPath(p)) File.Delete(p); } catch { }
-        _stitchedPaths.Clear();
-        _stitchingDone = false;
-        _stitchingLabel.IsVisible = true;
-        _stitchingLabel.Text = "Preparing FFmpeg...";
-
-        _ffmpegPath ??= await _ffmpeg.EnsureFFmpegAsync();
-        string tempDir = Path.Combine(FileSystem.CacheDirectory, "clip_comparator");
-        Directory.CreateDirectory(tempDir);
-
-        for (int i = 0; i < _continuations.Count; i++)
-        {
-            _stitchingLabel.Text = $"Stitching {i + 1} of {_continuations.Count}...";
-            string outPath = Path.Combine(tempDir, $"stitch_{i:D3}.mp4");
-            var result = await _ffmpeg.ConcatVideosAsync(
-                _ffmpegPath,
-                new List<string> { _baseClipPath!, _continuations[i] },
-                outPath);
-            _stitchedPaths.Add(result.success ? outPath : _continuations[i]);
-        }
-
-        _stitchingLabel.Text = $"✓ {_stitchedPaths.Count} clips ready";
-        _stitchingDone = true;
-#else
-        _stitchingDone = false;
-#endif
-
+        _stitchingLabel.IsVisible = false;
         _removeBtn.IsEnabled = true;
         _nextBtn.IsEnabled = true;
+        _copyToFolderBtn.IsEnabled = true;
         _playPauseBtn.IsEnabled = true;
         await PlayCurrentAsync();
     }
@@ -260,18 +238,6 @@ public class ClipContinuationPickerPage : ContentPage
     private async Task PlayCurrentAsync()
     {
         if (_continuations.Count == 0) return;
-
-#if WINDOWS
-        if (_stitchingDone && _currentIndex < _stitchedPaths.Count)
-        {
-            _player.Source = MediaSource.FromFile(_stitchedPaths[_currentIndex]);
-            _player.Play();
-            UpdateStatus();
-            return;
-        }
-#endif
-
-        // Fallback: play base then continuation
         _playingBase = true;
         _player.Source = MediaSource.FromFile(_baseClipPath!);
         _player.Play();
@@ -281,9 +247,6 @@ public class ClipContinuationPickerPage : ContentPage
 
     private async void OnMediaEndedAsync(object? sender, EventArgs e)
     {
-#if WINDOWS
-        if (_stitchingDone) return;
-#endif
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             if (_playingBase)
@@ -308,30 +271,55 @@ public class ClipContinuationPickerPage : ContentPage
     private async Task OnRemoveAsync()
     {
         if (_continuations.Count == 0) return;
-#if WINDOWS
-        if (_currentIndex < _stitchedPaths.Count)
-        {
-            try
-            {
-                if (IsGeneratedStitchPath(_stitchedPaths[_currentIndex]))
-                    File.Delete(_stitchedPaths[_currentIndex]);
-            }
-            catch { }
-            _stitchedPaths.RemoveAt(_currentIndex);
-        }
-#endif
         _continuations.RemoveAt(_currentIndex);
         if (_continuations.Count == 0)
         {
             _player.Stop();
             _removeBtn.IsEnabled = false;
             _nextBtn.IsEnabled = false;
+            _copyToFolderBtn.IsEnabled = false;
             _playPauseBtn.IsEnabled = false;
             _statusLabel.Text = "No continuations left — winner found!";
             return;
         }
         if (_currentIndex >= _continuations.Count) _currentIndex = 0;
         await PlayCurrentAsync();
+    }
+
+    private async Task OnCopyToFolderAsync()
+    {
+        if (_continuations.Count == 0 || _currentIndex >= _continuations.Count)
+            return;
+
+        string src = _continuations[_currentIndex];
+
+        var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
+        if (!result.IsSuccessful) return;
+
+#if WINDOWS
+        string destFolder = result.Folder.Path;
+#else
+        string destFolder = result.Folder.Path; // content URI on Android — may need handling
+#endif
+
+        string dest = Path.Combine(destFolder, Path.GetFileName(src));
+        if (File.Exists(dest))
+        {
+            string nameNoExt = Path.GetFileNameWithoutExtension(src);
+            string ext = Path.GetExtension(src);
+            dest = Path.Combine(destFolder,
+                $"{nameNoExt}_{DateTime.Now:yyyyMMddHHmmss}{ext}");
+        }
+
+        try
+        {
+            File.Copy(src, dest);
+            _statusLabel.Text = $"✓ Copied to {Path.GetFileName(destFolder)}";
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Copy failed", ex.Message, "OK");
+        }
     }
 
     private void OnPlayPauseAsync()
@@ -369,19 +357,5 @@ public class ClipContinuationPickerPage : ContentPage
     {
         base.OnDisappearing();
         _player.Stop();
-#if WINDOWS
-        foreach (var p in _stitchedPaths)
-            try { if (IsGeneratedStitchPath(p)) File.Delete(p); } catch { }
-        _stitchedPaths.Clear();
-#endif
-    }
-
-    private static bool IsGeneratedStitchPath(string path)
-    {
-        string tempDir = Path.GetFullPath(
-            Path.Combine(FileSystem.CacheDirectory, "clip_comparator"));
-        string fullPath = Path.GetFullPath(path);
-        return fullPath.StartsWith(tempDir + Path.DirectorySeparatorChar,
-            StringComparison.OrdinalIgnoreCase);
     }
 }
