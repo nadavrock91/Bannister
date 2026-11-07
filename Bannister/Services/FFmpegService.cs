@@ -454,6 +454,61 @@ public class FFmpegService
 #endif
     }
 
+    public async Task<(bool success, string error)> ConcatVideosAsync(
+        string ffmpegPath,
+        List<string> inputPaths,
+        string outputPath,
+        IProgress<double>? progress = null)
+    {
+        try
+        {
+            string listPath = Path.ChangeExtension(outputPath, null) + "_list.txt";
+            var sb = new StringBuilder();
+            sb.AppendLine("ffconcat version 1.0");
+            foreach (var p in inputPaths)
+                sb.AppendLine($"file '{p.Replace("\\", "/")}'");
+            await File.WriteAllTextAsync(listPath, sb.ToString());
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = ffmpegPath,
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            startInfo.ArgumentList.Add("-y");
+            startInfo.ArgumentList.Add("-f");
+            startInfo.ArgumentList.Add("concat");
+            startInfo.ArgumentList.Add("-safe");
+            startInfo.ArgumentList.Add("0");
+            startInfo.ArgumentList.Add("-i");
+            startInfo.ArgumentList.Add(listPath);
+            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add("copy");
+            startInfo.ArgumentList.Add(outputPath);
+
+            using var process = new Process { StartInfo = startInfo };
+            var errorLines = new List<string>();
+            process.ErrorDataReceived += (_, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data)) errorLines.Add(e.Data);
+            };
+            process.Start();
+            process.BeginErrorReadLine();
+            await process.WaitForExitAsync();
+
+            if (File.Exists(listPath)) File.Delete(listPath);
+
+            return process.ExitCode == 0
+                ? (true, "")
+                : (false, string.Join("\n", errorLines.TakeLast(5)));
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
     public async Task<TimeSpan> GetVideoDurationAsync(string ffmpegPath, string inputPath)
     {
 #if WINDOWS

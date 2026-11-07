@@ -57,7 +57,7 @@ public class VideoEditingHubPage : ContentPage
             "Pick a base clip and a folder of AI continuations. Play each base→continuation pair, remove the losers, loop until one remains.",
             Color.FromArgb("#4A148C"),
             async () => await Navigation.PushAsync(
-                new ClipContinuationPickerPage())));
+                new ClipContinuationPickerPage(_ffmpeg))));
 
         Content = new ScrollView { Content = stack };
     }
