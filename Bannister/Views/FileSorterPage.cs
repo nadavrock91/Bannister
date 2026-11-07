@@ -113,7 +113,7 @@ public class FileSorterPage : ContentPage
         addFolderBtn.Clicked += async (_, _) => await OnAddFolderAsync();
         _muteBtn = new Button
         {
-            Text = "",
+            Text = " Mute",
             FontSize = 13,
             HeightRequest = 36,
             Padding = new Thickness(10, 0),
@@ -125,7 +125,7 @@ public class FileSorterPage : ContentPage
         {
             _muteVideos = !_muteVideos;
             _mediaElement.ShouldMute = _muteVideos;
-            _muteBtn.Text = _muteVideos ? "" : "";
+            _muteBtn.Text = _muteVideos ? " Mute" : " Mute";
             _muteBtn.BackgroundColor = _muteVideos
                 ? Color.FromArgb("#B71C1C")
                 : Color.FromArgb("#ECEFF1");
