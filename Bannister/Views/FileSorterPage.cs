@@ -96,9 +96,9 @@ public class FileSorterPage : ContentPage
         _undoBtn = CreateControlButton("↩ Undo", "#F57F17");
         _undoBtn.IsEnabled = false;
         _undoBtn.Clicked += async (_, _) => await OnUndoAsync();
-        _skipBtn = CreateControlButton("⏭ Skip", "#546E7A");
+        _skipBtn = CreateControlButton("Next ▶", "#546E7A");
         _skipBtn.Clicked += async (_, _) => await AdvanceAsync();
-        _backBtn = CreateControlButton("⏮ Back", "#546E7A");
+        _backBtn = CreateControlButton("◀ Prev", "#546E7A");
         _backBtn.Clicked += async (_, _) => await GoBackAsync();
         var addFolderBtn = CreateControlButton("+ Add Folder", "#2E7D32");
         addFolderBtn.Clicked += async (_, _) => await OnAddFolderAsync();
@@ -106,7 +106,7 @@ public class FileSorterPage : ContentPage
         var firstSubRow = new HorizontalStackLayout
         {
             Spacing = 8,
-            Children = { _openFolderBtn, _undoBtn, _skipBtn, _backBtn, addFolderBtn }
+            Children = { _openFolderBtn, _undoBtn, _backBtn, _skipBtn, addFolderBtn }
         };
         _statusLabel = new Label
         {
