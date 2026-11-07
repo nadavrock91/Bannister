@@ -9,6 +9,7 @@ public class SortFolder
     public string Username { get; set; } = "";
     public string Name { get; set; } = "";      // button label
     public string Path { get; set; } = "";      // destination folder path
+    public string Device { get; set; } = "";  // "PC", "Phone", or "" = all
     public int SortOrder { get; set; } = 0;
     public int? SetId { get; set; } = null;   // null = no set
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -25,6 +25,7 @@ public class FileSorterPage : ContentPage
     private string? _lastMovedTo;
     private string? _sourceFolder;
     private bool _muteVideos = false;
+    private string _currentDevice = "";
 
     private MediaElement _mediaElement = null!;
     private Image _imageView = null!;
@@ -309,22 +310,86 @@ public class FileSorterPage : ContentPage
 
     private async Task LoadAsync()
     {
+        _currentDevice = DetectDevice();
         var conn = await _db.GetConnectionAsync();
-        _sortSets = await conn.Table<SortSet>()
+        var allSets = await conn.Table<SortSet>()
             .Where(set => set.Username == _auth.CurrentUsername)
             .OrderBy(set => set.SortOrder)
             .ToListAsync();
-        _favFolders = await conn.Table<FavoriteSourceFolder>()
+        foreach (var set in allSets.Where(set => string.IsNullOrEmpty(set.Device)))
+        {
+            string? choice = await DisplayActionSheet(
+                $"Which device is set '{set.Name}' for?",
+                null, null, "PC", "Phone");
+            if (!string.IsNullOrEmpty(choice))
+            {
+                set.Device = choice;
+                await conn.UpdateAsync(set);
+            }
+        }
+
+        var allFolders = await conn.Table<SortFolder>()
             .Where(folder => folder.Username == _auth.CurrentUsername)
             .OrderBy(folder => folder.SortOrder)
             .ToListAsync();
-        _sortFolders = await conn.Table<SortFolder>()
+        foreach (var folder in allFolders.Where(folder =>
+                     string.IsNullOrEmpty(folder.Device) && folder.SetId == null))
+        {
+            string? choice = await DisplayActionSheet(
+                $"Which device is folder '{folder.Name}' for?",
+                null, null, "PC", "Phone");
+            if (!string.IsNullOrEmpty(choice))
+            {
+                folder.Device = choice;
+                await conn.UpdateAsync(folder);
+            }
+        }
+        foreach (var folder in allFolders.Where(folder =>
+                     folder.SetId != null && string.IsNullOrEmpty(folder.Device)))
+        {
+            var parentSet = allSets.FirstOrDefault(set => set.Id == folder.SetId);
+            if (parentSet != null && !string.IsNullOrEmpty(parentSet.Device))
+            {
+                folder.Device = parentSet.Device;
+                await conn.UpdateAsync(folder);
+            }
+        }
+
+        var allFavs = await conn.Table<FavoriteSourceFolder>()
             .Where(folder => folder.Username == _auth.CurrentUsername)
             .OrderBy(folder => folder.SortOrder)
             .ToListAsync();
+        foreach (var favorite in allFavs.Where(favorite => string.IsNullOrEmpty(favorite.Device)))
+        {
+            string? choice = await DisplayActionSheet(
+                $"Which device is source '{favorite.Name}' for?",
+                null, null, "PC", "Phone");
+            if (!string.IsNullOrEmpty(choice))
+            {
+                favorite.Device = choice;
+                await conn.UpdateAsync(favorite);
+            }
+        }
+
+        _sortSets = allSets
+            .Where(set => string.IsNullOrEmpty(set.Device) || set.Device == _currentDevice)
+            .ToList();
+        _sortFolders = allFolders
+            .Where(folder => string.IsNullOrEmpty(folder.Device) || folder.Device == _currentDevice)
+            .ToList();
+        _favFolders = allFavs
+            .Where(favorite => string.IsNullOrEmpty(favorite.Device) || favorite.Device == _currentDevice)
+            .ToList();
         RebuildFavRow();
         RebuildSetRow();
         RebuildSortButtons();
+    }
+
+    private string DetectDevice()
+    {
+        if (DeviceInfo.Platform == DevicePlatform.WinUI) return "PC";
+        if (DeviceInfo.Platform == DevicePlatform.Android) return "Phone";
+        return "PC";
     }
 
     private async Task OnPickSourceFolderAsync()
@@ -556,6 +621,7 @@ public class FileSorterPage : ContentPage
             Username = _auth.CurrentUsername,
             Name = name.Trim(),
             Path = result.Folder.Path,
+            Device = _currentDevice,
             SortOrder = _sortFolders.Count,
             SetId = setId
         });
@@ -909,6 +975,7 @@ public class FileSorterPage : ContentPage
                 Username = _auth.CurrentUsername,
                 Name = name.Trim(),
                 Path = _sourceFolder,
+                Device = _currentDevice,
                 SortOrder = _favFolders.Count
             });
             await LoadAsync();
@@ -1025,6 +1092,7 @@ public class FileSorterPage : ContentPage
             {
                 Username = _auth.CurrentUsername,
                 Name = name.Trim(),
+                Device = _currentDevice,
                 SortOrder = _sortSets.Count
             });
             await LoadAsync();

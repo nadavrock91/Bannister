@@ -8,6 +8,7 @@ public class SortSet
     public int Id { get; set; }
     public string Username { get; set; } = "";
     public string Name { get; set; } = "";
+    public string Device { get; set; } = "";  // "PC", "Phone", or "" = all
     public int SortOrder { get; set; } = 0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

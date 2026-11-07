@@ -553,6 +553,9 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN ConsecutiveAllDoneDays INTEGER DEFAULT 0"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sub_activities ADD COLUMN LastSubmissionDate TEXT"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sort_folders ADD COLUMN SetId INTEGER NULL"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE sort_sets ADD COLUMN Device TEXT NOT NULL DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE sort_folders ADD COLUMN Device TEXT NOT NULL DEFAULT ''"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE favorite_source_folders ADD COLUMN Device TEXT NOT NULL DEFAULT ''"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }
