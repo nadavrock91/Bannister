@@ -34,6 +34,8 @@ public class FileSorterPage : ContentPage
     private Label _statusLabel = null!;
     private ScrollView _buttonScroll = null!;
     private HorizontalStackLayout _buttonRow = null!;
+    private HorizontalStackLayout _copyButtonRow = null!;
+    private ScrollView _copyButtonScroll = null!;
     private HorizontalStackLayout _setRow = null!;
     private HorizontalStackLayout _favRow = null!;
     private VerticalStackLayout _mainStack = null!;
@@ -182,6 +184,25 @@ public class FileSorterPage : ContentPage
             Orientation = ScrollOrientation.Horizontal,
             Content = _buttonRow
         };
+        var moveLabel = new Label
+        {
+            Text = "Move to:",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#546E7A")
+        };
+        var copyLabel = new Label
+        {
+            Text = "Copy to:",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#546E7A")
+        };
+        _copyButtonRow = new HorizontalStackLayout { Spacing = 8 };
+        _copyButtonScroll = new ScrollView
+        {
+            Orientation = ScrollOrientation.Horizontal,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Never,
+            Content = _copyButtonRow
+        };
         _setRow = new HorizontalStackLayout { Spacing = 8 };
         var setScroll = new ScrollView
         {
@@ -192,7 +213,11 @@ public class FileSorterPage : ContentPage
         {
             Spacing = 8,
             Padding = 8,
-            Children = { favoriteLabel, favoriteScroll, firstSubRow, _statusLabel, setScroll, _buttonScroll }
+            Children =
+            {
+                favoriteLabel, favoriteScroll, firstSubRow, _statusLabel,
+                setScroll, moveLabel, _buttonScroll, copyLabel, _copyButtonScroll
+            }
         };
 
         var layout = new Grid
@@ -385,6 +410,32 @@ public class FileSorterPage : ContentPage
         await ShowCurrentFileAsync();
     }
 
+    private async Task CopyCurrentFileAsync(SortFolder folder)
+    {
+        if (_files.Count == 0 || _currentIndex >= _files.Count) return;
+        string src = _files[_currentIndex];
+        string dest = System.IO.Path.Combine(folder.Path,
+            System.IO.Path.GetFileName(src));
+        if (File.Exists(dest))
+        {
+            string nameNoExt = System.IO.Path.GetFileNameWithoutExtension(src);
+            string ext = System.IO.Path.GetExtension(src);
+            dest = System.IO.Path.Combine(folder.Path,
+                $"{nameNoExt}_{DateTime.Now:yyyyMMddHHmmss}{ext}");
+        }
+        try
+        {
+            File.Copy(src, dest);
+            _statusLabel.Text = $"Copied to {folder.Name}";
+            _statusLabel.TextColor = Color.FromArgb("#1B5E20");
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.Text = $"Copy failed: {ex.Message}";
+            _statusLabel.TextColor = Color.FromArgb("#C62828");
+        }
+    }
+
     private async Task AdvanceAsync()
     {
         _mediaElement.Stop();
@@ -470,6 +521,26 @@ public class FileSorterPage : ContentPage
             };
             btn.Clicked += async (_, _) => await MoveCurrentFileAsync(folder);
             _buttonRow.Children.Add(btn);
+        }
+
+        _copyButtonRow.Children.Clear();
+        var visibleCopy = _activeSetId == null
+            ? _sortFolders
+            : _sortFolders.Where(folder => folder.SetId == _activeSetId).ToList();
+        foreach (SortFolder folder in visibleCopy)
+        {
+            var btn = new Button
+            {
+                Text = folder.Name,
+                BackgroundColor = Color.FromArgb("#1B5E20"),
+                TextColor = Colors.White,
+                CornerRadius = 8,
+                HeightRequest = 48,
+                Padding = new Thickness(16, 0),
+                FontSize = 13
+            };
+            btn.Clicked += async (_, _) => await CopyCurrentFileAsync(folder);
+            _copyButtonRow.Children.Add(btn);
         }
     }
 
