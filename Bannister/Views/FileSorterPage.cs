@@ -334,10 +334,25 @@ public class FileSorterPage : ContentPage
             return;
 
         _sourceFolder = result.Folder.Path;
-        _files = Directory.EnumerateFiles(_sourceFolder, "*", SearchOption.TopDirectoryOnly)
+        var files = Directory.EnumerateFiles(_sourceFolder, "*", SearchOption.TopDirectoryOnly)
             .Where(path => SupportedExtensions.Contains(Path.GetExtension(path)))
-            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        string? sortChoice = await DisplayActionSheet(
+            "Sort files by", "Cancel", null,
+            "Name A→Z",
+            "Name Z→A",
+            "Date newest first",
+            "Date oldest first");
+        if (sortChoice == null || sortChoice == "Cancel") return;
+
+        _files = sortChoice switch
+        {
+            "Name A→Z"          => files.OrderBy(file => System.IO.Path.GetFileName(file)).ToList(),
+            "Name Z→A"          => files.OrderByDescending(file => System.IO.Path.GetFileName(file)).ToList(),
+            "Date newest first" => files.OrderByDescending(file => System.IO.File.GetLastWriteTime(file)).ToList(),
+            "Date oldest first" => files.OrderBy(file => System.IO.File.GetLastWriteTime(file)).ToList(),
+            _                   => files.OrderBy(file => file).ToList()
+        };
         _currentIndex = 0;
         await ShowCurrentFileAsync();
     }
@@ -717,12 +732,27 @@ public class FileSorterPage : ContentPage
                     return;
                 }
                 _sourceFolder = fav.Path;
-                _files = System.IO.Directory
+                var files = System.IO.Directory
                     .GetFiles(fav.Path)
                     .Where(file => SupportedExtensions.Contains(
                         System.IO.Path.GetExtension(file)))
-                    .OrderBy(file => file)
                     .ToList();
+                string? sortChoice = await DisplayActionSheet(
+                    "Sort files by", "Cancel", null,
+                    "Name A→Z",
+                    "Name Z→A",
+                    "Date newest first",
+                    "Date oldest first");
+                if (sortChoice == null || sortChoice == "Cancel") return;
+
+                _files = sortChoice switch
+                {
+                    "Name A→Z"          => files.OrderBy(file => System.IO.Path.GetFileName(file)).ToList(),
+                    "Name Z→A"          => files.OrderByDescending(file => System.IO.Path.GetFileName(file)).ToList(),
+                    "Date newest first" => files.OrderByDescending(file => System.IO.File.GetLastWriteTime(file)).ToList(),
+                    "Date oldest first" => files.OrderBy(file => System.IO.File.GetLastWriteTime(file)).ToList(),
+                    _                   => files.OrderBy(file => file).ToList()
+                };
                 _currentIndex = 0;
                 await ShowCurrentFileAsync();
             };
