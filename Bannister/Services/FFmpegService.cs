@@ -483,8 +483,12 @@ public class FFmpegService
             startInfo.ArgumentList.Add("0");
             startInfo.ArgumentList.Add("-i");
             startInfo.ArgumentList.Add(listPath);
-            startInfo.ArgumentList.Add("-c");
-            startInfo.ArgumentList.Add("copy");
+            startInfo.ArgumentList.Add("-c:v");
+            startInfo.ArgumentList.Add("libx264");
+            startInfo.ArgumentList.Add("-preset");
+            startInfo.ArgumentList.Add("fast");
+            startInfo.ArgumentList.Add("-c:a");
+            startInfo.ArgumentList.Add("aac");
             startInfo.ArgumentList.Add(outputPath);
 
             using var process = new Process { StartInfo = startInfo };

@@ -37,6 +37,9 @@ public class ClipContinuationPickerPage : ContentPage
         Title = "Clip Comparator";
         BackgroundColor = Color.FromArgb("#111111");
         BuildUI();
+#if !WINDOWS
+        _pickFolderBtn.Text = " Pick Continuation Clips";
+#endif
     }
 
     private void BuildUI()
@@ -176,10 +179,32 @@ public class ClipContinuationPickerPage : ContentPage
         var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
         if (!result.IsSuccessful) return;
 
-        _continuations = Directory.EnumerateFiles(result.Folder.Path, "*", SearchOption.TopDirectoryOnly)
-            .Where(path => VideoExtensions.Contains(Path.GetExtension(path)))
-            .OrderBy(path => Path.GetFileName(path))
+#if WINDOWS
+        _continuations = Directory
+            .EnumerateFiles(result.Folder.Path, "*", SearchOption.TopDirectoryOnly)
+            .Where(p => VideoExtensions.Contains(Path.GetExtension(p)))
+            .OrderBy(p => Path.GetFileName(p))
             .ToList();
+#else
+        // On Android, FolderPicker.Folder.Path is a content URI.
+        // Use the StorageFile approach: pick multiple files instead.
+        // Fall back to letting user pick files individually via FilePicker.
+        await DisplayAlert("Android",
+            "Folder picking isn't supported on Android for video files.\n\nPlease use 'Pick Files' instead.",
+            "OK");
+        var fileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+        {
+            { DevicePlatform.Android, new[] { "video/*" } }
+        });
+        var files = await FilePicker.Default.PickMultipleAsync(new PickOptions
+        {
+            PickerTitle = "Pick continuation clips",
+            FileTypes = fileTypes
+        });
+        if (files == null) return;
+        _continuations = files.Select(f => f.FullPath).OrderBy(Path.GetFileName).ToList();
+#endif
+
         _currentIndex = 0;
         if (_baseClipPath != null && _continuations.Count > 0)
             await StartSessionAsync();
@@ -235,7 +260,6 @@ public class ClipContinuationPickerPage : ContentPage
     private async Task PlayCurrentAsync()
     {
         if (_continuations.Count == 0) return;
-        _player.Stop();
 
 #if WINDOWS
         if (_stitchingDone && _currentIndex < _stitchedPaths.Count)
@@ -265,7 +289,6 @@ public class ClipContinuationPickerPage : ContentPage
             if (_playingBase)
             {
                 _playingBase = false;
-                _player.Stop();
                 _player.Source = MediaSource.FromFile(
                     _continuations[_currentIndex]);
                 _player.Play();
