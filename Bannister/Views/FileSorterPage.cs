@@ -414,6 +414,28 @@ public class FileSorterPage : ContentPage
             dest = Path.Combine(folder.Path, $"{nameNoExt}_{DateTime.Now:yyyyMMddHHmmss}{ext2}");
         }
 
+        if (!Directory.Exists(folder.Path))
+        {
+            bool retry = await DisplayAlert("Folder not found",
+                $"'{folder.Name}' folder no longer exists:\n{folder.Path}\n\nPick a new location?",
+                "Pick Folder", "Cancel");
+            if (!retry) return;
+            var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
+            if (!result.IsSuccessful) return;
+            folder.Path = result.Folder.Path;
+            var conn = await _db.GetConnectionAsync();
+            await conn.UpdateAsync(folder);
+            dest = System.IO.Path.Combine(folder.Path,
+                System.IO.Path.GetFileName(src));
+            if (File.Exists(dest))
+            {
+                string nameNoExt = System.IO.Path.GetFileNameWithoutExtension(src);
+                string ext2 = System.IO.Path.GetExtension(src);
+                dest = System.IO.Path.Combine(folder.Path,
+                    $"{nameNoExt}_{DateTime.Now:yyyyMMddHHmmss}{ext2}");
+            }
+        }
+
         _mediaElement.Stop();
         File.Move(src, dest);
         _lastMovedFrom = dest;
@@ -437,6 +459,27 @@ public class FileSorterPage : ContentPage
             string ext = System.IO.Path.GetExtension(src);
             dest = System.IO.Path.Combine(folder.Path,
                 $"{nameNoExt}_{DateTime.Now:yyyyMMddHHmmss}{ext}");
+        }
+        if (!Directory.Exists(folder.Path))
+        {
+            bool retry = await DisplayAlert("Folder not found",
+                $"'{folder.Name}' folder no longer exists:\n{folder.Path}\n\nPick a new location?",
+                "Pick Folder", "Cancel");
+            if (!retry) return;
+            var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
+            if (!result.IsSuccessful) return;
+            folder.Path = result.Folder.Path;
+            var conn = await _db.GetConnectionAsync();
+            await conn.UpdateAsync(folder);
+            dest = System.IO.Path.Combine(folder.Path,
+                System.IO.Path.GetFileName(src));
+            if (File.Exists(dest))
+            {
+                string nameNoExt = System.IO.Path.GetFileNameWithoutExtension(src);
+                string ext2 = System.IO.Path.GetExtension(src);
+                dest = System.IO.Path.Combine(folder.Path,
+                    $"{nameNoExt}_{DateTime.Now:yyyyMMddHHmmss}{ext2}");
+            }
         }
         try
         {
