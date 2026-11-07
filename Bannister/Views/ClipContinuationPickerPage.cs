@@ -183,6 +183,7 @@ public class ClipContinuationPickerPage : ContentPage
     {
         if (_baseClipPath == null) return Task.CompletedTask;
         _playingBase = true;
+        _player.Stop();
         _player.Source = MediaSource.FromFile(_baseClipPath);
         _player.Play();
         _playPauseBtn.Text = "⏸ Pause";
@@ -194,6 +195,7 @@ public class ClipContinuationPickerPage : ContentPage
     {
         if (_continuations.Count == 0) return Task.CompletedTask;
         _playingBase = false;
+        _player.Stop();
         _player.Source = MediaSource.FromFile(_continuations[_currentIndex]);
         _player.Play();
         _playPauseBtn.Text = "⏸ Pause";
@@ -205,13 +207,9 @@ public class ClipContinuationPickerPage : ContentPage
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (_continuations.Count == 0) return;
             if (_playingBase)
-            {
                 await PlayCurrentContinuationAsync();
-                return;
-            }
-            await OnNextAsync();
+            // If continuation ended, do nothing — wait for user input
         });
     }
 
