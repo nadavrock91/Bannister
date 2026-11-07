@@ -24,6 +24,7 @@ public class FileSorterPage : ContentPage
     private string? _lastMovedFrom;
     private string? _lastMovedTo;
     private string? _sourceFolder;
+    private bool _muteVideos = false;
 
     private MediaElement _mediaElement = null!;
     private Image _imageView = null!;
@@ -40,6 +41,9 @@ public class FileSorterPage : ContentPage
     private Button _undoBtn = null!;
     private Button _backBtn = null!;
     private Button _openFolderBtn = null!;
+    private Button _muteBtn = null!;
+    private Grid _manageOverlay = null!;
+    private VerticalStackLayout _manageList = null!;
 
     public FileSorterPage(DatabaseService db, AuthService auth)
     {
@@ -107,11 +111,48 @@ public class FileSorterPage : ContentPage
         _backBtn.Clicked += async (_, _) => await GoBackAsync();
         var addFolderBtn = CreateControlButton("+ Add Folder", "#2E7D32");
         addFolderBtn.Clicked += async (_, _) => await OnAddFolderAsync();
+        _muteBtn = new Button
+        {
+            Text = "",
+            FontSize = 13,
+            HeightRequest = 36,
+            Padding = new Thickness(10, 0),
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8
+        };
+        _muteBtn.Clicked += (_, _) =>
+        {
+            _muteVideos = !_muteVideos;
+            _mediaElement.ShouldMute = _muteVideos;
+            _muteBtn.Text = _muteVideos ? "" : "";
+            _muteBtn.BackgroundColor = _muteVideos
+                ? Color.FromArgb("#B71C1C")
+                : Color.FromArgb("#ECEFF1");
+            _muteBtn.TextColor = _muteVideos
+                ? Colors.White
+                : Color.FromArgb("#37474F");
+        };
+        var manageBtn = new Button
+        {
+            Text = "⚙ Manage",
+            FontSize = 13,
+            HeightRequest = 36,
+            Padding = new Thickness(10, 0),
+            BackgroundColor = Color.FromArgb("#37474F"),
+            TextColor = Colors.White,
+            CornerRadius = 8
+        };
+        manageBtn.Clicked += (_, _) =>
+        {
+            RebuildManageList();
+            _manageOverlay.IsVisible = true;
+        };
 
         var firstSubRow = new HorizontalStackLayout
         {
             Spacing = 8,
-            Children = { _openFolderBtn, _undoBtn, _backBtn, _skipBtn, addFolderBtn }
+            Children = { _openFolderBtn, _undoBtn, _backBtn, _skipBtn, addFolderBtn, _muteBtn, manageBtn }
         };
         var favoriteLabel = new Label
         {
@@ -161,6 +202,65 @@ public class FileSorterPage : ContentPage
         layout.Add(previewGrid, 0, 0);
         layout.Add(infoRow, 0, 1);
         layout.Add(_mainStack, 0, 2);
+
+        _manageOverlay = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#CC000000"),
+            IsVisible = false,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill
+        };
+        var manageCard = new Frame
+        {
+            BackgroundColor = Colors.White,
+            CornerRadius = 12,
+            Padding = new Thickness(16),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(16),
+            HasShadow = true
+        };
+        var manageInner = new VerticalStackLayout { Spacing = 8 };
+        var manageHeader = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            }
+        };
+        manageHeader.Add(new Label
+        {
+            Text = "Manage Buttons",
+            FontSize = 16,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#263238"),
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+        var closeManageBtn = new Button
+        {
+            Text = "✕",
+            FontSize = 14,
+            WidthRequest = 36,
+            HeightRequest = 36,
+            Padding = 0,
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 8
+        };
+        closeManageBtn.Clicked += (_, _) => _manageOverlay.IsVisible = false;
+        manageHeader.Add(closeManageBtn, 1, 0);
+        manageInner.Children.Add(manageHeader);
+        _manageList = new VerticalStackLayout { Spacing = 6 };
+        manageInner.Children.Add(new ScrollView
+        {
+            Content = _manageList,
+            MaximumHeightRequest = 400
+        });
+        manageCard.Content = manageInner;
+        _manageOverlay.Children.Add(manageCard);
+        Grid.SetRowSpan(_manageOverlay, 3);
+        layout.Children.Add(_manageOverlay);
         Content = layout;
     }
 
@@ -239,6 +339,7 @@ public class FileSorterPage : ContentPage
         {
             _imageView.IsVisible = false;
             _mediaElement.IsVisible = true;
+            _mediaElement.ShouldMute = _muteVideos;
             _mediaElement.Source = MediaSource.FromFile(path);
             _mediaElement.Play();
         }
@@ -321,16 +422,16 @@ public class FileSorterPage : ContentPage
         if (!result.IsSuccessful)
             return;
 
-        string? setChoice = await DisplayActionSheet(
-            "Add to set",
-            "Cancel",
-            null,
-            new[] { "No Set" }.Concat(_sortSets.Select(set => set.Name)).ToArray());
-        if (setChoice == null || setChoice == "Cancel")
-            return;
-        int? setId = setChoice == "No Set"
-            ? null
-            : _sortSets.FirstOrDefault(set => set.Name == setChoice)?.Id;
+        int? setId = _activeSetId;
+        if (setId == null && _sortSets.Count > 0)
+        {
+            string? setChoice = await DisplayActionSheet(
+                "Add to set", "Cancel", null,
+                new[] { "No Set" }.Concat(_sortSets.Select(set => set.Name)).ToArray());
+            if (setChoice == null || setChoice == "Cancel") return;
+            setId = setChoice == "No Set" ? null
+                : _sortSets.FirstOrDefault(set => set.Name == setChoice)?.Id;
+        }
 
         var conn = await _db.GetConnectionAsync();
         await conn.InsertAsync(new SortFolder
@@ -379,6 +480,120 @@ public class FileSorterPage : ContentPage
             _buttonRow.Children.Add(btn);
             _buttonRow.Children.Add(menuBtn);
         }
+    }
+
+    private void RebuildManageList()
+    {
+        _manageList.Children.Clear();
+
+        string setLabel = _activeSetId == null
+            ? "All folders"
+            : _sortSets.FirstOrDefault(set => set.Id == _activeSetId)?.Name ?? "Unknown set";
+        _manageList.Children.Add(new Label
+        {
+            Text = $"Showing: {setLabel}",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#546E7A"),
+            Margin = new Thickness(0, 0, 0, 4)
+        });
+
+        var visible = _activeSetId == null
+            ? _sortFolders
+            : _sortFolders.Where(folder => folder.SetId == _activeSetId).ToList();
+
+        for (int i = 0; i < visible.Count; i++)
+        {
+            SortFolder folder = visible[i];
+            int capturedI = i;
+            var row = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 4
+            };
+            row.Add(new Label
+            {
+                Text = folder.Name,
+                FontSize = 14,
+                TextColor = Color.FromArgb("#263238"),
+                VerticalOptions = LayoutOptions.Center
+            }, 0, 0);
+
+            var upBtn = new Button
+            {
+                Text = "▲",
+                FontSize = 12,
+                WidthRequest = 34,
+                HeightRequest = 34,
+                Padding = 0,
+                CornerRadius = 6,
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#37474F"),
+                IsEnabled = capturedI > 0
+            };
+            upBtn.Clicked += async (_, _) =>
+            {
+                await SwapSortOrderAsync(visible[capturedI], visible[capturedI - 1]);
+                await LoadAsync();
+                RebuildManageList();
+            };
+            row.Add(upBtn, 1, 0);
+
+            var downBtn = new Button
+            {
+                Text = "▼",
+                FontSize = 12,
+                WidthRequest = 34,
+                HeightRequest = 34,
+                Padding = 0,
+                CornerRadius = 6,
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#37474F"),
+                IsEnabled = capturedI < visible.Count - 1
+            };
+            downBtn.Clicked += async (_, _) =>
+            {
+                await SwapSortOrderAsync(visible[capturedI], visible[capturedI + 1]);
+                await LoadAsync();
+                RebuildManageList();
+            };
+            row.Add(downBtn, 2, 0);
+
+            var menuBtn = new Button
+            {
+                Text = "⋮",
+                FontSize = 14,
+                WidthRequest = 34,
+                HeightRequest = 34,
+                Padding = 0,
+                CornerRadius = 6,
+                BackgroundColor = Color.FromArgb("#ECEFF1"),
+                TextColor = Color.FromArgb("#37474F")
+            };
+            menuBtn.Clicked += async (_, _) =>
+            {
+                await EditSortFolderAsync(folder);
+                await LoadAsync();
+                RebuildManageList();
+            };
+            row.Add(menuBtn, 3, 0);
+            _manageList.Children.Add(row);
+        }
+    }
+
+    private async Task SwapSortOrderAsync(SortFolder a, SortFolder b)
+    {
+        int tmp = a.SortOrder;
+        a.SortOrder = b.SortOrder;
+        b.SortOrder = tmp;
+        var conn = await _db.GetConnectionAsync();
+        await conn.UpdateAsync(a);
+        await conn.UpdateAsync(b);
     }
 
     private void RebuildFavRow()
