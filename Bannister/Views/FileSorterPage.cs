@@ -464,21 +464,7 @@ public class FileSorterPage : ContentPage
                 FontSize = 13
             };
             btn.Clicked += async (_, _) => await MoveCurrentFileAsync(folder);
-
-            var menuBtn = new Button
-            {
-                Text = "⋮",
-                FontSize = 14,
-                WidthRequest = 28,
-                HeightRequest = 48,
-                Padding = 0,
-                BackgroundColor = Color.FromArgb("#283593"),
-                TextColor = Colors.White,
-                CornerRadius = 8
-            };
-            menuBtn.Clicked += async (_, _) => await EditSortFolderAsync(folder);
             _buttonRow.Children.Add(btn);
-            _buttonRow.Children.Add(menuBtn);
         }
     }
 
@@ -756,54 +742,7 @@ public class FileSorterPage : ContentPage
                 RebuildSetRow();
                 RebuildSortButtons();
             };
-
-            var menuBtn = new Button
-            {
-                Text = "⋮",
-                FontSize = 14,
-                WidthRequest = 28,
-                HeightRequest = 32,
-                Padding = 0,
-                BackgroundColor = Color.FromArgb("#CFD8DC"),
-                TextColor = Color.FromArgb("#263238"),
-                CornerRadius = 8
-            };
-            menuBtn.Clicked += async (_, _) =>
-            {
-                string? action = await DisplayActionSheet(
-                    set.Name, "Cancel", null, "Rename", "Delete");
-                if (action == "Rename")
-                {
-                    string? newName = await DisplayPromptAsync(
-                        "Rename Set", "New name:", initialValue: set.Name);
-                    if (string.IsNullOrWhiteSpace(newName)) return;
-                    set.Name = newName.Trim();
-                    var conn = await _db.GetConnectionAsync();
-                    await conn.UpdateAsync(set);
-                    await LoadAsync();
-                }
-                else if (action == "Delete")
-                {
-                    bool confirm = await DisplayAlert(
-                        "Delete Set",
-                        $"Delete '{set.Name}'? Folders in it become unassigned.",
-                        "Delete",
-                        "Cancel");
-                    if (!confirm) return;
-                    var conn = await _db.GetConnectionAsync();
-                    var affected = _sortFolders.Where(folder => folder.SetId == set.Id).ToList();
-                    foreach (SortFolder folder in affected)
-                    {
-                        folder.SetId = null;
-                        await conn.UpdateAsync(folder);
-                    }
-                    await conn.DeleteAsync(set);
-                    if (_activeSetId == set.Id) _activeSetId = null;
-                    await LoadAsync();
-                }
-            };
             _setRow.Children.Add(chip);
-            _setRow.Children.Add(menuBtn);
         }
     }
 
