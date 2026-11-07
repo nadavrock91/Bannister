@@ -152,7 +152,7 @@ public class FileSorterPage : ContentPage
         var firstSubRow = new HorizontalStackLayout
         {
             Spacing = 8,
-            Children = { _openFolderBtn, _undoBtn, _backBtn, _skipBtn, addFolderBtn, _muteBtn, manageBtn }
+            Children = { _muteBtn, _openFolderBtn, _undoBtn, _backBtn, _skipBtn, addFolderBtn, manageBtn }
         };
         var favoriteLabel = new Label
         {
