@@ -345,10 +345,20 @@ public class FileSorterPage : ContentPage
             };
             btn.Clicked += async (_, _) => await MoveCurrentFileAsync(folder);
 
-            var editGesture = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
-            editGesture.Tapped += async (_, _) => await EditSortFolderAsync(folder);
-            btn.GestureRecognizers.Add(editGesture);
+            var menuBtn = new Button
+            {
+                Text = "⋮",
+                FontSize = 14,
+                WidthRequest = 28,
+                HeightRequest = 48,
+                Padding = 0,
+                BackgroundColor = Color.FromArgb("#283593"),
+                TextColor = Colors.White,
+                CornerRadius = 8
+            };
+            menuBtn.Clicked += async (_, _) => await EditSortFolderAsync(folder);
             _buttonRow.Children.Add(btn);
+            _buttonRow.Children.Add(menuBtn);
         }
     }
 
@@ -403,8 +413,18 @@ public class FileSorterPage : ContentPage
                 RebuildSortButtons();
             };
 
-            var editGesture = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
-            editGesture.Tapped += async (_, _) =>
+            var menuBtn = new Button
+            {
+                Text = "⋮",
+                FontSize = 14,
+                WidthRequest = 28,
+                HeightRequest = 32,
+                Padding = 0,
+                BackgroundColor = Color.FromArgb("#CFD8DC"),
+                TextColor = Color.FromArgb("#263238"),
+                CornerRadius = 8
+            };
+            menuBtn.Clicked += async (_, _) =>
             {
                 string? action = await DisplayActionSheet(
                     set.Name, "Cancel", null, "Rename", "Delete");
@@ -422,7 +442,7 @@ public class FileSorterPage : ContentPage
                 {
                     bool confirm = await DisplayAlert(
                         "Delete Set",
-                        $"Delete set '{set.Name}'? Folders in it become unassigned.",
+                        $"Delete '{set.Name}'? Folders in it become unassigned.",
                         "Delete",
                         "Cancel");
                     if (!confirm) return;
@@ -438,8 +458,8 @@ public class FileSorterPage : ContentPage
                     await LoadAsync();
                 }
             };
-            chip.GestureRecognizers.Add(editGesture);
             _setRow.Children.Add(chip);
+            _setRow.Children.Add(menuBtn);
         }
     }
 
