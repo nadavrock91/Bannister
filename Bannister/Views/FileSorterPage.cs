@@ -566,25 +566,10 @@ public class FileSorterPage : ContentPage
     {
         _manageList.Children.Clear();
 
-        string setLabel = _activeSetId == null
-            ? "All folders"
-            : _sortSets.FirstOrDefault(set => set.Id == _activeSetId)?.Name ?? "Unknown set";
-        _manageList.Children.Add(new Label
+        // Helper to build a folder row
+        void AddFolderRow(SortFolder folder, List<SortFolder> group)
         {
-            Text = $"Showing: {setLabel}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#546E7A"),
-            Margin = new Thickness(0, 0, 0, 4)
-        });
-
-        var visible = _activeSetId == null
-            ? _sortFolders
-            : _sortFolders.Where(folder => folder.SetId == _activeSetId).ToList();
-
-        for (int i = 0; i < visible.Count; i++)
-        {
-            SortFolder folder = visible[i];
-            int capturedI = i;
+            int capturedI = group.IndexOf(folder);
             var row = new Grid
             {
                 ColumnDefinitions =
@@ -594,75 +579,229 @@ public class FileSorterPage : ContentPage
                     new ColumnDefinition(GridLength.Auto),
                     new ColumnDefinition(GridLength.Auto)
                 },
-                ColumnSpacing = 4
+                ColumnSpacing = 4,
+                Margin = new Thickness(8, 0, 0, 0)
             };
             row.Add(new Label
             {
                 Text = folder.Name,
-                FontSize = 14,
+                FontSize = 13,
                 TextColor = Color.FromArgb("#263238"),
                 VerticalOptions = LayoutOptions.Center
             }, 0, 0);
 
             var upBtn = new Button
             {
-                Text = "▲",
-                FontSize = 12,
-                WidthRequest = 34,
-                HeightRequest = 34,
-                Padding = 0,
-                CornerRadius = 6,
+                Text = "▲", FontSize = 12, WidthRequest = 34, HeightRequest = 34,
+                Padding = 0, CornerRadius = 6,
                 BackgroundColor = Color.FromArgb("#ECEFF1"),
                 TextColor = Color.FromArgb("#37474F"),
                 IsEnabled = capturedI > 0
             };
             upBtn.Clicked += async (_, _) =>
             {
-                await SwapSortOrderAsync(visible[capturedI], visible[capturedI - 1]);
-                await LoadAsync();
-                RebuildManageList();
+                await SwapSortOrderAsync(group[capturedI], group[capturedI - 1]);
+                await LoadAsync(); RebuildManageList();
             };
             row.Add(upBtn, 1, 0);
 
             var downBtn = new Button
             {
-                Text = "▼",
-                FontSize = 12,
-                WidthRequest = 34,
-                HeightRequest = 34,
-                Padding = 0,
-                CornerRadius = 6,
+                Text = "▼", FontSize = 12, WidthRequest = 34, HeightRequest = 34,
+                Padding = 0, CornerRadius = 6,
                 BackgroundColor = Color.FromArgb("#ECEFF1"),
                 TextColor = Color.FromArgb("#37474F"),
-                IsEnabled = capturedI < visible.Count - 1
+                IsEnabled = capturedI < group.Count - 1
             };
             downBtn.Clicked += async (_, _) =>
             {
-                await SwapSortOrderAsync(visible[capturedI], visible[capturedI + 1]);
-                await LoadAsync();
-                RebuildManageList();
+                await SwapSortOrderAsync(group[capturedI], group[capturedI + 1]);
+                await LoadAsync(); RebuildManageList();
             };
             row.Add(downBtn, 2, 0);
 
             var menuBtn = new Button
             {
-                Text = "⋮",
-                FontSize = 14,
-                WidthRequest = 34,
-                HeightRequest = 34,
-                Padding = 0,
-                CornerRadius = 6,
+                Text = "⋮", FontSize = 14, WidthRequest = 34, HeightRequest = 34,
+                Padding = 0, CornerRadius = 6,
                 BackgroundColor = Color.FromArgb("#ECEFF1"),
                 TextColor = Color.FromArgb("#37474F")
             };
             menuBtn.Clicked += async (_, _) =>
             {
                 await EditSortFolderAsync(folder);
-                await LoadAsync();
-                RebuildManageList();
+                await LoadAsync(); RebuildManageList();
             };
             row.Add(menuBtn, 3, 0);
             _manageList.Children.Add(row);
+        }
+
+        // Helper to build a set section header with bulk-assign button
+        void AddSetHeader(string title, int? setId, List<SortFolder> group)
+        {
+            var headerRow = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 8,
+                Margin = new Thickness(0, 8, 0, 2),
+                BackgroundColor = Color.FromArgb("#E3F2FD")
+            };
+            headerRow.Add(new Label
+            {
+                Text = title,
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#1565C0"),
+                VerticalOptions = LayoutOptions.Center,
+                Margin = new Thickness(6, 4)
+            }, 0, 0);
+
+            if (_sortSets.Count > 0)
+            {
+                var assignBtn = new Button
+                {
+                    Text = "Assign all →",
+                    FontSize = 11,
+                    HeightRequest = 30,
+                    Padding = new Thickness(8, 0),
+                    BackgroundColor = Color.FromArgb("#1565C0"),
+                    TextColor = Colors.White,
+                    CornerRadius = 6
+                };
+                assignBtn.Clicked += async (_, _) =>
+                {
+                    string? setChoice = await DisplayActionSheet(
+                        "Assign all to set", "Cancel", null,
+                        new[] { "No Set" }.Concat(_sortSets.Select(s => s.Name)).ToArray());
+                    if (setChoice == null || setChoice == "Cancel") return;
+                    int? newSetId = setChoice == "No Set" ? null
+                        : _sortSets.FirstOrDefault(s => s.Name == setChoice)?.Id;
+                    var conn = await _db.GetConnectionAsync();
+                    foreach (var f in group)
+                    {
+                        f.SetId = newSetId;
+                        await conn.UpdateAsync(f);
+                    }
+                    await LoadAsync();
+                    RebuildManageList();
+                };
+                headerRow.Add(assignBtn, 1, 0);
+            }
+            _manageList.Children.Add(headerRow);
+        }
+
+        // ── SETS SECTION ─────────────────────────────────────────────
+        _manageList.Children.Add(new Label
+        {
+            Text = "Sets",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#263238"),
+            Margin = new Thickness(0, 0, 0, 4)
+        });
+
+        if (_sortSets.Count == 0)
+            _manageList.Children.Add(new Label
+            {
+                Text = "No sets yet. Use '+ Set' to create one.",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#90A4AE")
+            });
+
+        foreach (var set in _sortSets)
+        {
+            var setRow = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 4,
+                Margin = new Thickness(0, 2)
+            };
+            setRow.Add(new Label
+            {
+                Text = set.Name,
+                FontSize = 13,
+                TextColor = Color.FromArgb("#263238"),
+                VerticalOptions = LayoutOptions.Center
+            }, 0, 0);
+
+            var renameSetBtn = new Button
+            {
+                Text = "✏️", FontSize = 12, WidthRequest = 34, HeightRequest = 34,
+                Padding = 0, CornerRadius = 6,
+                BackgroundColor = Color.FromArgb("#E3F2FD"),
+                TextColor = Color.FromArgb("#1565C0")
+            };
+            renameSetBtn.Clicked += async (_, _) =>
+            {
+                string? newName = await DisplayPromptAsync(
+                    "Rename Set", "New name:", initialValue: set.Name);
+                if (string.IsNullOrWhiteSpace(newName)) return;
+                set.Name = newName.Trim();
+                var conn = await _db.GetConnectionAsync();
+                await conn.UpdateAsync(set);
+                await LoadAsync(); RebuildManageList();
+            };
+            setRow.Add(renameSetBtn, 1, 0);
+
+            var deleteSetBtn = new Button
+            {
+                Text = "", FontSize = 12, WidthRequest = 34, HeightRequest = 34,
+                Padding = 0, CornerRadius = 6,
+                BackgroundColor = Color.FromArgb("#FFEBEE"),
+                TextColor = Color.FromArgb("#C62828")
+            };
+            deleteSetBtn.Clicked += async (_, _) =>
+            {
+                bool confirm = await DisplayAlert("Delete Set",
+                    $"Delete '{set.Name}'? Folders in it become unassigned.",
+                    "Delete", "Cancel");
+                if (!confirm) return;
+                var conn = await _db.GetConnectionAsync();
+                var affected = _sortFolders.Where(f => f.SetId == set.Id).ToList();
+                foreach (var f in affected) { f.SetId = null; await conn.UpdateAsync(f); }
+                await conn.DeleteAsync(set);
+                if (_activeSetId == set.Id) _activeSetId = null;
+                await LoadAsync(); RebuildManageList();
+            };
+            setRow.Add(deleteSetBtn, 2, 0);
+            _manageList.Children.Add(setRow);
+        }
+
+        // ── FOLDERS BY SET ───────────────────────────────────────────
+        _manageList.Children.Add(new Label
+        {
+            Text = "Folders",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#263238"),
+            Margin = new Thickness(0, 12, 0, 4)
+        });
+
+        // Unassigned folders
+        var unassigned = _sortFolders.Where(f => f.SetId == null).ToList();
+        if (unassigned.Count > 0)
+        {
+            AddSetHeader("No Set", null, unassigned);
+            foreach (var f in unassigned) AddFolderRow(f, unassigned);
+        }
+
+        // Per-set folders
+        foreach (var set in _sortSets)
+        {
+            var inSet = _sortFolders.Where(f => f.SetId == set.Id)
+                                    .OrderBy(f => f.SortOrder).ToList();
+            if (inSet.Count == 0) continue;
+            AddSetHeader(set.Name, set.Id, inSet);
+            foreach (var f in inSet) AddFolderRow(f, inSet);
         }
     }
 
