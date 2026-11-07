@@ -52,6 +52,13 @@ public class VideoEditingHubPage : ContentPage
             Color.FromArgb("#00695C"),
             async () => await Navigation.PushAsync(new TalkingHeadCutterPage(_auth, _ffmpeg, _truncatePresets, _shortsProjects))));
 
+        stack.Children.Add(BuildHubCard(
+            " Clip Continuation Comparator",
+            "Pick a base clip and a folder of AI continuations. Play each base→continuation pair, remove the losers, loop until one remains.",
+            Color.FromArgb("#4A148C"),
+            async () => await Navigation.PushAsync(
+                new ClipContinuationPickerPage())));
+
         Content = new ScrollView { Content = stack };
     }
 

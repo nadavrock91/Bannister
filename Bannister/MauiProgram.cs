@@ -189,6 +189,7 @@ public static class MauiProgram
         builder.Services.AddTransient<VideoGenerationHubPage>();
         builder.Services.AddTransient<VideoEditingHubPage>();
         builder.Services.AddTransient<TalkingHeadCutterPage>();
+        builder.Services.AddTransient<ClipContinuationPickerPage>();
         builder.Services.AddTransient<PromptTechniqueLabPage>();
         builder.Services.AddTransient<SlideshowPage>();
         builder.Services.AddTransient<WebsiteBuilderPage>();
