@@ -882,7 +882,6 @@ public class HomePage : ContentPage
         foreach (var range in new[] { "A-E", "F-J", "K-O", "P-T", "U-Z" })
         {
             var groupButtons = sortedButtons
-                .Where(button => !button.Id.Equals("File Sorter", StringComparison.OrdinalIgnoreCase))
                 .Where(button => GetButtonRange(button.Id) == range)
                 .ToList();
 
@@ -901,16 +900,6 @@ public class HomePage : ContentPage
                     continue;
                 _buttonSectionsStack.Children.Add(CreateNavButtonWrapper(button, quickAccess.Contains(button.Id)));
             }
-        }
-
-        var fileSorterButton = sortedButtons.FirstOrDefault(button =>
-            button.Id.Equals("File Sorter", StringComparison.OrdinalIgnoreCase));
-        if (fileSorterButton != null && _enabledButtonsCache.Contains(fileSorterButton.Id))
-        {
-            _buttonSectionsStack.Children.Add(CreateButtonSectionHeader("Files Management"));
-            _buttonSectionsStack.Children.Add(CreateNavButtonWrapper(
-                fileSorterButton,
-                quickAccess.Contains(fileSorterButton.Id)));
         }
     }
 
