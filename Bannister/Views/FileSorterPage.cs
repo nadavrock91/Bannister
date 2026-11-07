@@ -485,12 +485,15 @@ public class FileSorterPage : ContentPage
 
     private async Task OnAddFolderAsync()
     {
-        string? name = await DisplayPromptAsync("Add Folder", "Button label:");
-        if (string.IsNullOrWhiteSpace(name))
-            return;
-
         var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
         if (!result.IsSuccessful)
+            return;
+
+        string defaultName = System.IO.Path.GetFileName(
+            result.Folder.Path.TrimEnd('\\', '/'));
+        string? name = await DisplayPromptAsync(
+            "Add Folder", "Button label:", initialValue: defaultName);
+        if (string.IsNullOrWhiteSpace(name))
             return;
 
         int? setId = _activeSetId;
