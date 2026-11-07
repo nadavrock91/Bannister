@@ -149,10 +149,15 @@ public class FileSorterPage : ContentPage
             _manageOverlay.IsVisible = true;
         };
 
-        var firstSubRow = new HorizontalStackLayout
+        var firstSubRow = new ScrollView
         {
-            Spacing = 8,
-            Children = { _muteBtn, _openFolderBtn, _undoBtn, _backBtn, _skipBtn, addFolderBtn, manageBtn }
+            Orientation = ScrollOrientation.Horizontal,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Never,
+            Content = new HorizontalStackLayout
+            {
+                Spacing = 8,
+                Children = { _muteBtn, _openFolderBtn, _undoBtn, _backBtn, _skipBtn, addFolderBtn, manageBtn }
+            }
         };
         var favoriteLabel = new Label
         {
