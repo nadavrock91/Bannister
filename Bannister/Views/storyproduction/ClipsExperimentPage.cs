@@ -592,13 +592,33 @@ public class ClipsExperimentPage : ContentPage
             LineBreakMode = LineBreakMode.WordWrap
         };
         header.Add(title, 0, 0);
-        header.Add(new Label
+        if (complete)
         {
-            Text = complete ? "✓ Complete" : post.PostedDate.ToString("dd MMM yyyy"),
-            FontSize = 11,
-            TextColor = complete ? Color.FromArgb("#2E7D32") : Color.FromArgb("#888"),
-            VerticalOptions = LayoutOptions.Center
-        }, 1, 0);
+            header.Add(new Label
+            {
+                Text = "✓ Complete",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#2E7D32"),
+                VerticalOptions = LayoutOptions.Center
+            }, 1, 0);
+        }
+        else
+        {
+            var datePicker = new DatePicker
+            {
+                Date = post.PostedDate,
+                Format = "dd MMM yyyy",
+                FontSize = 11,
+                HorizontalOptions = LayoutOptions.End,
+                VerticalOptions = LayoutOptions.Center
+            };
+            datePicker.DateSelected += async (_, _) =>
+            {
+                post.PostedDate = datePicker.Date;
+                await _service.SavePostAsync(post);
+            };
+            header.Add(datePicker, 1, 0);
+        }
         stack.Children.Add(header);
         var matchingExperiment = FindExperimentForPost(post, experimentItems);
         if (matchingExperiment != null)
