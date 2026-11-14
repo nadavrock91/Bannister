@@ -130,13 +130,44 @@ public class ClipsExperimentPage : ContentPage
         {
             _experimentItems = await _service.GetExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
             var experimentItems = _experimentItems;
+            var activeItem = await _service.GetActiveExperimentItemAsync(_auth.CurrentUsername, experiment.Id);
             var allPlatformData = await _service.GetPlatformDataForExperimentAsync(experiment.Id);
             var platformDataByPost = allPlatformData
                 .GroupBy(data => data.PostId)
                 .ToDictionary(group => group.Key, group => group.ToList());
+            BuildActiveItemBanner(activeItem);
             BuildNewPostSection(experiment);
             BuildPostsSection(experiment, posts, experimentItems, platformDataByPost);
             await BuildAveragesSectionAsync(experiment, posts);
+        }
+    }
+
+    private void BuildActiveItemBanner(ClipsExperimentItem? activeItem)
+    {
+        _content.Children.Add(new Label
+        {
+            Text = "Currently Running:",
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            Margin = new Thickness(0, 12, 0, 4)
+        });
+        _content.Children.Add(new Label
+        {
+            Text = activeItem?.Title ?? "No active experiment",
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = activeItem == null ? Color.FromArgb("#777") : Color.FromArgb("#1565C0")
+        });
+        if (activeItem != null)
+        {
+            _content.Children.Add(new Label
+            {
+                Text = FormatDateRange(activeItem),
+                FontSize = 12,
+                TextColor = Color.FromArgb("#666"),
+                Margin = new Thickness(0, 0, 0, 8)
+            });
         }
     }
 
