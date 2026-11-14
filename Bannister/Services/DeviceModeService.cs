@@ -15,6 +15,8 @@ public class DeviceModeService
     private const string PrefMode = "device_mode";
     private const string PrefServerUrl = "sync_server_url";
     private const string PrefLastSyncUtc = "sync_last_utc";
+    private const string PrefLastUploadUtc = "sync_last_upload_utc";
+    private const string PrefLastDownloadUtc = "sync_last_download_utc";
     private const string SecureSyncUser = "sync_username";
     private const string SecureSyncPasswordHash = "sync_password_hash";
 
@@ -67,6 +69,26 @@ public class DeviceModeService
         {
             Preferences.Default.Set(PrefLastSyncUtc, value?.Ticks ?? 0L);
         }
+    }
+
+    public DateTime? LastUploadUtc
+    {
+        get
+        {
+            var ticks = Preferences.Default.Get(PrefLastUploadUtc, 0L);
+            return ticks == 0 ? null : new DateTime(ticks, DateTimeKind.Utc);
+        }
+        set => Preferences.Default.Set(PrefLastUploadUtc, value?.Ticks ?? 0L);
+    }
+
+    public DateTime? LastDownloadUtc
+    {
+        get
+        {
+            var ticks = Preferences.Default.Get(PrefLastDownloadUtc, 0L);
+            return ticks == 0 ? null : new DateTime(ticks, DateTimeKind.Utc);
+        }
+        set => Preferences.Default.Set(PrefLastDownloadUtc, value?.Ticks ?? 0L);
     }
 
     /// <summary>

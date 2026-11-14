@@ -30,6 +30,7 @@ public class SyncSettingsPage : ContentPage
     private Entry _txtUsername;
     private Entry _txtPassword;
     private Label _lblLastSync;
+    private Label _lblLastOperation;
     private Label _lblSyncCounter;
     private Label _lblStatus;
     private Button _btnRegister;
@@ -326,6 +327,14 @@ public class SyncSettingsPage : ContentPage
         };
         stack.Children.Add(_lblLastSync);
 
+        _lblLastOperation = new Label
+        {
+            Text = "",
+            FontSize = 13,
+            TextColor = Color.FromArgb("#666")
+        };
+        stack.Children.Add(_lblLastOperation);
+
         _btnUpload = new Button
         {
             Text = "⬆️ Upload to Server  (master only)",
@@ -509,6 +518,23 @@ public class SyncSettingsPage : ContentPage
         _lblLastSync.Text = last.HasValue
             ? $"Last sync: {last.Value.ToLocalTime():MMM d, yyyy HH:mm}"
             : "Last sync: never";
+        UpdateLastOperationLabel();
+    }
+
+    private void UpdateLastOperationLabel()
+    {
+        if (_lblLastOperation == null) return;
+        var upload = _deviceMode.LastUploadUtc;
+        var download = _deviceMode.LastDownloadUtc;
+        if (upload == null && download == null)
+        {
+            _lblLastOperation.Text = "";
+            return;
+        }
+        if (upload.HasValue && (!download.HasValue || upload > download))
+            _lblLastOperation.Text = $"Uploaded at: {upload.Value.ToLocalTime():MMM d, yyyy HH:mm}";
+        else
+            _lblLastOperation.Text = $"Downloaded at: {download.Value.ToLocalTime():MMM d, yyyy HH:mm}";
     }
 
     private async Task RefreshSyncCounterLabelAsync()
@@ -752,6 +778,11 @@ public class SyncSettingsPage : ContentPage
             await RefreshSyncCounterLabelAsync();
         }
         UpdateLastSyncLabel();
+        if (result.Success)
+        {
+            _deviceMode.LastUploadUtc = DateTime.UtcNow;
+            UpdateLastOperationLabel();
+        }
         }
         finally
         {
@@ -795,6 +826,8 @@ public class SyncSettingsPage : ContentPage
 
             if (result.Success)
             {
+                _deviceMode.LastDownloadUtc = DateTime.UtcNow;
+                UpdateLastOperationLabel();
                 var counter = await _syncCounter.IncrementAsync(await GetSyncUsernameAsync());
                 _lblSyncCounter.Text = $"Sync #{counter}";
                 await DisplayAlert("Downloaded",
