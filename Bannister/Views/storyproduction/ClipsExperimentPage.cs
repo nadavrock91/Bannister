@@ -995,6 +995,86 @@ public class ClipsExperimentPage : ContentPage
         var unrunItems = await _service.GetUnrunExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
         var activeItem = await _service.GetActiveExperimentItemAsync(_auth.CurrentUsername, experiment.Id);
 
+        var upNextExpanded = _expandedExperimentSections.Contains("Up Next");
+        var upNextToggle = MakeButton(
+            $"{(upNextExpanded ? "▼" : "▶")} Up Next ({unrunItems.Count})",
+            "#ECEFF1",
+            Color.FromArgb("#333"));
+        upNextToggle.HorizontalOptions = LayoutOptions.Fill;
+        upNextToggle.Margin = new Thickness(0, 12, 0, 0);
+        upNextToggle.Clicked += (_, _) =>
+        {
+            if (upNextExpanded)
+                _expandedExperimentSections.Remove("Up Next");
+            else
+                _expandedExperimentSections.Add("Up Next");
+            _ = RefreshAsync();
+        };
+        _content.Children.Add(upNextToggle);
+
+        if (upNextExpanded)
+        {
+            foreach (var item in unrunItems)
+            {
+                var stack = new VerticalStackLayout { Spacing = 6 };
+                stack.Children.Add(new Label
+                {
+                    Text = item.Title,
+                    FontSize = 14,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#222")
+                });
+                if (item.StartDate.HasValue || item.EndDate.HasValue)
+                {
+                    stack.Children.Add(new Label
+                    {
+                        Text = FormatDateRange(item),
+                        FontSize = 11,
+                        TextColor = Color.FromArgb("#1565C0")
+                    });
+                }
+
+                var idx = unrunItems.IndexOf(item);
+                var reorderRow = new HorizontalStackLayout { Spacing = 6 };
+                var upBtn = MakeButton("↑", "#F5F5F5", Color.FromArgb("#333"));
+                upBtn.FontSize = 12;
+                upBtn.HeightRequest = 30;
+                upBtn.WidthRequest = 40;
+                upBtn.IsEnabled = idx > 0;
+                upBtn.Clicked += async (_, _) =>
+                {
+                    var prev = unrunItems[idx - 1];
+                    (item.SortOrder, prev.SortOrder) = (prev.SortOrder == item.SortOrder)
+                        ? (item.SortOrder - 1, prev.SortOrder)
+                        : (prev.SortOrder, item.SortOrder);
+                    await _service.SaveExperimentItemAsync(item);
+                    await _service.SaveExperimentItemAsync(prev);
+                    await RefreshAsync();
+                };
+
+                var downBtn = MakeButton("↓", "#F5F5F5", Color.FromArgb("#333"));
+                downBtn.FontSize = 12;
+                downBtn.HeightRequest = 30;
+                downBtn.WidthRequest = 40;
+                downBtn.IsEnabled = idx < unrunItems.Count - 1;
+                downBtn.Clicked += async (_, _) =>
+                {
+                    var next = unrunItems[idx + 1];
+                    (item.SortOrder, next.SortOrder) = (item.SortOrder == next.SortOrder)
+                        ? (item.SortOrder, next.SortOrder + 1)
+                        : (next.SortOrder, item.SortOrder);
+                    await _service.SaveExperimentItemAsync(item);
+                    await _service.SaveExperimentItemAsync(next);
+                    await RefreshAsync();
+                };
+
+                reorderRow.Children.Add(upBtn);
+                reorderRow.Children.Add(downBtn);
+                stack.Children.Add(reorderRow);
+                _content.Children.Add(MakeCard(stack));
+            }
+        }
+
         _content.Children.Add(new Label
         {
             Text = "Currently Running:",
