@@ -326,7 +326,6 @@ public class ClipsExperimentPage : ContentPage
         }
 
         // Assign experiment inline
-        ClipsExperimentItem? _pendingExperimentItem = null;
         var assignLabel = new Label
         {
             Text = "No experiment assigned",
@@ -341,16 +340,11 @@ public class ClipsExperimentPage : ContentPage
         {
             var selected = await ChooseExperimentAsync(experimentItems);
             if (selected == null) return;
-            _pendingExperimentItem = selected;
-            assignLabel.Text = selected.Title;
-        };
-        _content.Children.Add(assignBtn);
-        _content.Children.Add(assignLabel);
-
-        var save = MakeButton("Save Post", "#2E7D32", Colors.White);
-        save.Clicked += async (_, _) =>
-        {
-            if (_busy || string.IsNullOrWhiteSpace(_titleEntry.Text) || string.IsNullOrWhiteSpace(_conceptEntry.Text)) return;
+            if (_busy || string.IsNullOrWhiteSpace(_titleEntry.Text) || string.IsNullOrWhiteSpace(_conceptEntry.Text))
+            {
+                assignLabel.Text = "Fill in title and concept first";
+                return;
+            }
             _busy = true;
             try
             {
@@ -360,11 +354,9 @@ public class ClipsExperimentPage : ContentPage
                     Title = _titleEntry.Text.Trim(),
                     Concept = _conceptEntry.Text.Trim(),
                     PostedDate = _datePicker.Date,
-                    ExperimentItemId = _pendingExperimentItem?.Id
+                    ExperimentItemId = selected.Id
                 };
                 await _service.SavePostAsync(post);
-
-                // Save platform stats
                 foreach (var platform in _platforms)
                 {
                     if (!platformStatRows.TryGetValue(platform.Id, out var row)) continue;
@@ -388,7 +380,8 @@ public class ClipsExperimentPage : ContentPage
             finally { _busy = false; }
             await RefreshAsync();
         };
-        _content.Children.Add(save);
+        _content.Children.Add(assignBtn);
+        _content.Children.Add(assignLabel);
     }
 
     private void BuildPostsSection(
