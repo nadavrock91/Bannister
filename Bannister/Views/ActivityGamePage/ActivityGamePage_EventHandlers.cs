@@ -1059,8 +1059,29 @@ public partial class ActivityGamePage
             }
             else if (prompt == "Stale Activities")
             {
-                var list = new List<Activity> { placeholder };
-                var page = new StaleActivitiesConfirmationPage(list, _activities);
+                var expLogs = await _db.GetExpLogsForGameAsync(
+                    _auth.CurrentUsername,
+                    _game.GameId);
+
+                var staleActivities = await _activities.GetStaleActivitiesAsync(
+                    _auth.CurrentUsername,
+                    _game.GameId,
+                    expLogs);
+
+                staleActivities = staleActivities
+                    .Where(a => a.Category != "Stale" && a.Category != "Expired")
+                    .ToList();
+
+                if (staleActivities.Count == 0)
+                {
+                    await DisplayAlert(
+                        "Stale Activities",
+                        "No stale activities found",
+                        "OK");
+                    return;
+                }
+
+                var page = new StaleActivitiesConfirmationPage(staleActivities, _activities);
                 await Navigation.PushModalAsync(page);
                 await page.GetMovedCountAsync();
             }
