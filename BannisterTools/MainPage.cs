@@ -14,6 +14,10 @@ public class MainPage : ContentPage
     private readonly Label _timerStatusLabel;
     private readonly Entry _minutesEntry;
     private readonly VerticalStackLayout _deadlineList;
+    private Entry _passwordEntry = null!;
+    private Label _passwordErrorLabel = null!;
+    private VerticalStackLayout _passwordSection = null!;
+    private VerticalStackLayout _deadlineSection = null!;
     private string _username = "";
     private int _configuredSeconds = 25 * 60;
     private int _remainingSeconds = 25 * 60;
@@ -115,11 +119,44 @@ public class MainPage : ContentPage
             LineBreakMode = LineBreakMode.WordWrap
         };
 
+        _passwordEntry = new Entry
+        {
+            Placeholder = "Enter password",
+            Keyboard = Keyboard.Text,
+            IsPassword = true,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        var unlockButton = MakeButton("Unlock", "#3949AB");
+        unlockButton.Clicked += async (_, _) => await UnlockAsync();
+        _passwordErrorLabel = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Colors.Red
+        };
+        _passwordSection = new VerticalStackLayout
+        {
+            Spacing = 6,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Bannister Password",
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#666666")
+                },
+                _passwordEntry,
+                unlockButton,
+                _passwordErrorLabel
+            }
+        };
+
         _deadlineList = new VerticalStackLayout { Spacing = 6 };
-        var deadlineSection = new VerticalStackLayout
+        _deadlineSection = new VerticalStackLayout
         {
             Spacing = 8,
             Margin = new Thickness(0, 12, 0, 0),
+            IsVisible = false,
             Children =
             {
                 new Label
@@ -140,7 +177,8 @@ public class MainPage : ContentPage
             Children =
             {
                 header, _timerLabel, _timerStatusLabel,
-                timerButtons, setRow, _statusLabel, deadlineSection
+                timerButtons, setRow, _passwordSection,
+                _statusLabel, _deadlineSection
             }
         };
 
@@ -248,6 +286,24 @@ public class MainPage : ContentPage
 #if ANDROID
         await ReadLocalDatabaseAsync();
 #endif
+    }
+
+    private async Task UnlockAsync()
+    {
+        var password = _passwordEntry.Text ?? "";
+        if (string.IsNullOrWhiteSpace(password)) return;
+        bool ok = await _db.TryOpenWithPasswordAsync(password);
+        if (!ok)
+        {
+            _passwordErrorLabel.Text = "Incorrect password.";
+            return;
+        }
+        _db.SetPassword(password);
+        _passwordErrorLabel.Text = "";
+        _passwordEntry.IsVisible = false;
+        _passwordSection.IsVisible = false;
+        _deadlineSection.IsVisible = true;
+        _username = "";
         var conn = await _db.GetConnectionAsync();
         var user = await conn.Table<User>().FirstOrDefaultAsync();
         _username = user?.Username ?? "";
