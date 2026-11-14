@@ -317,6 +317,15 @@ public class SyncSettingsPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
         headingRow.Children.Add(_lblSyncCounter);
+
+        _lblLastOperation = new Label
+        {
+            Text = "",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666"),
+            VerticalOptions = LayoutOptions.Center
+        };
+        headingRow.Children.Add(_lblLastOperation);
         stack.Children.Add(headingRow);
 
         _lblLastSync = new Label
@@ -326,14 +335,6 @@ public class SyncSettingsPage : ContentPage
             TextColor = Color.FromArgb("#666")
         };
         stack.Children.Add(_lblLastSync);
-
-        _lblLastOperation = new Label
-        {
-            Text = "",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
-        stack.Children.Add(_lblLastOperation);
 
         _btnUpload = new Button
         {
