@@ -1420,6 +1420,47 @@ public class ClipsExperimentPage : ContentPage
                 await RefreshAsync();
             };
             buttons.Children.Add(delete);
+            if (canMarkRun)
+            {
+                var idx = items.IndexOf(item);
+                var reorderRow = new HorizontalStackLayout { Spacing = 6 };
+
+                var upBtn = MakeButton("↑", "#F5F5F5", Color.FromArgb("#333"));
+                upBtn.FontSize = 12;
+                upBtn.HeightRequest = 30;
+                upBtn.WidthRequest = 40;
+                upBtn.IsEnabled = idx > 0;
+                upBtn.Clicked += async (_, _) =>
+                {
+                    var prev = items[idx - 1];
+                    (item.SortOrder, prev.SortOrder) = (prev.SortOrder == item.SortOrder)
+                        ? (item.SortOrder - 1, prev.SortOrder)
+                        : (prev.SortOrder, item.SortOrder);
+                    await _service.SaveExperimentItemAsync(item);
+                    await _service.SaveExperimentItemAsync(prev);
+                    await RefreshAsync();
+                };
+
+                var downBtn = MakeButton("↓", "#F5F5F5", Color.FromArgb("#333"));
+                downBtn.FontSize = 12;
+                downBtn.HeightRequest = 30;
+                downBtn.WidthRequest = 40;
+                downBtn.IsEnabled = idx < items.Count - 1;
+                downBtn.Clicked += async (_, _) =>
+                {
+                    var next = items[idx + 1];
+                    (item.SortOrder, next.SortOrder) = (item.SortOrder == next.SortOrder)
+                        ? (item.SortOrder, next.SortOrder + 1)
+                        : (next.SortOrder, item.SortOrder);
+                    await _service.SaveExperimentItemAsync(item);
+                    await _service.SaveExperimentItemAsync(next);
+                    await RefreshAsync();
+                };
+
+                reorderRow.Children.Add(upBtn);
+                reorderRow.Children.Add(downBtn);
+                stack.Children.Add(reorderRow);
+            }
             stack.Children.Add(buttons);
 
             var describeExperiment = MakeButton(
