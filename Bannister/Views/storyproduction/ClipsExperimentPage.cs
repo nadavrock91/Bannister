@@ -1072,6 +1072,15 @@ public class ClipsExperimentPage : ContentPage
                 reorderRow.Children.Add(upBtn);
                 reorderRow.Children.Add(downBtn);
                 stack.Children.Add(reorderRow);
+                var removeFromQueue = MakeButton("Remove from Queue", "#FFF3E0", Color.FromArgb("#E65100"));
+                removeFromQueue.HorizontalOptions = LayoutOptions.Start;
+                removeFromQueue.Clicked += async (_, _) =>
+                {
+                    item.IsQueued = false;
+                    await _service.SaveExperimentItemAsync(item);
+                    await RefreshAsync();
+                };
+                stack.Children.Add(removeFromQueue);
                 _content.Children.Add(MakeCard(stack));
             }
         }
@@ -1495,7 +1504,7 @@ public class ClipsExperimentPage : ContentPage
             var buttons = new HorizontalStackLayout { Spacing = 8 };
             if (canMarkRun)
             {
-                var markRun = MakeButton("Mark as Run", "#2E7D32", Colors.White);
+                var markRun = MakeButton("Move to Completed", "#2E7D32", Colors.White);
                 markRun.Clicked += async (_, _) =>
                 {
                     await _service.MarkExperimentItemRunAsync(item.Id);
