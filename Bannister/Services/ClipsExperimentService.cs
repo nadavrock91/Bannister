@@ -23,6 +23,13 @@ public class ClipsExperimentService
         try { await conn.ExecuteAsync("ALTER TABLE ClipsExperimentItem ADD COLUMN StartDate TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE ClipsExperimentItem ADD COLUMN EndDate TEXT"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE ClipsExperimentItem ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0"); } catch { }
+        try
+        {
+            await conn.ExecuteAsync(
+                "ALTER TABLE ClipsExperimentItem " +
+                "ADD COLUMN IsQueued INTEGER NOT NULL DEFAULT 0");
+        }
+        catch { }
         _initialized = true;
     }
 
@@ -151,6 +158,21 @@ public class ClipsExperimentService
         var conn = await _db.GetConnectionAsync();
         return await conn.Table<ClipsExperimentItem>()
             .Where(item => item.Username == username && item.ExperimentId == experimentId && !item.IsRun)
+            .OrderBy(item => item.SortOrder)
+            .ThenByDescending(item => item.StartDate)
+            .ToListAsync();
+    }
+
+    public async Task<List<ClipsExperimentItem>> GetQueuedExperimentItemsAsync(string username, int experimentId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<ClipsExperimentItem>()
+            .Where(item =>
+                item.Username == username &&
+                item.ExperimentId == experimentId &&
+                !item.IsRun &&
+                item.IsQueued)
             .OrderBy(item => item.SortOrder)
             .ThenByDescending(item => item.StartDate)
             .ToListAsync();

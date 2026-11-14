@@ -993,11 +993,12 @@ public class ClipsExperimentPage : ContentPage
         var dataPoints = await _service.GetDataPointsAsync(_auth.CurrentUsername, experiment.Id);
         var allItems = await _service.GetExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
         var unrunItems = await _service.GetUnrunExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
+        var queuedItems = await _service.GetQueuedExperimentItemsAsync(_auth.CurrentUsername, experiment.Id);
         var activeItem = await _service.GetActiveExperimentItemAsync(_auth.CurrentUsername, experiment.Id);
 
         var upNextExpanded = _expandedExperimentSections.Contains("Up Next");
         var upNextToggle = MakeButton(
-            $"{(upNextExpanded ? "▼" : "▶")} Up Next ({unrunItems.Count})",
+            $"{(upNextExpanded ? "▼" : "▶")} Up Next ({queuedItems.Count})",
             "#ECEFF1",
             Color.FromArgb("#333"));
         upNextToggle.HorizontalOptions = LayoutOptions.Fill;
@@ -1014,7 +1015,7 @@ public class ClipsExperimentPage : ContentPage
 
         if (upNextExpanded)
         {
-            foreach (var item in unrunItems)
+            foreach (var item in queuedItems)
             {
                 var stack = new VerticalStackLayout { Spacing = 6 };
                 stack.Children.Add(new Label
@@ -1034,7 +1035,7 @@ public class ClipsExperimentPage : ContentPage
                     });
                 }
 
-                var idx = unrunItems.IndexOf(item);
+                var idx = queuedItems.IndexOf(item);
                 var reorderRow = new HorizontalStackLayout { Spacing = 6 };
                 var upBtn = MakeButton("↑", "#F5F5F5", Color.FromArgb("#333"));
                 upBtn.FontSize = 12;
@@ -1043,7 +1044,7 @@ public class ClipsExperimentPage : ContentPage
                 upBtn.IsEnabled = idx > 0;
                 upBtn.Clicked += async (_, _) =>
                 {
-                    var prev = unrunItems[idx - 1];
+                    var prev = queuedItems[idx - 1];
                     (item.SortOrder, prev.SortOrder) = (prev.SortOrder == item.SortOrder)
                         ? (item.SortOrder - 1, prev.SortOrder)
                         : (prev.SortOrder, item.SortOrder);
@@ -1056,10 +1057,10 @@ public class ClipsExperimentPage : ContentPage
                 downBtn.FontSize = 12;
                 downBtn.HeightRequest = 30;
                 downBtn.WidthRequest = 40;
-                downBtn.IsEnabled = idx < unrunItems.Count - 1;
+                downBtn.IsEnabled = idx < queuedItems.Count - 1;
                 downBtn.Clicked += async (_, _) =>
                 {
-                    var next = unrunItems[idx + 1];
+                    var next = queuedItems[idx + 1];
                     (item.SortOrder, next.SortOrder) = (item.SortOrder == next.SortOrder)
                         ? (item.SortOrder, next.SortOrder + 1)
                         : (next.SortOrder, item.SortOrder);
@@ -1478,6 +1479,17 @@ public class ClipsExperimentPage : ContentPage
                     await RefreshAsync();
                 };
                 buttons.Children.Add(markRun);
+                var queueBtn = MakeButton(
+                    item.IsQueued ? "Remove from Queue" : "Add to Queue",
+                    item.IsQueued ? "#FFF3E0" : "#E8F5E9",
+                    item.IsQueued ? Color.FromArgb("#E65100") : Color.FromArgb("#2E7D32"));
+                queueBtn.Clicked += async (_, _) =>
+                {
+                    item.IsQueued = !item.IsQueued;
+                    await _service.SaveExperimentItemAsync(item);
+                    await RefreshAsync();
+                };
+                buttons.Children.Add(queueBtn);
             }
             else
             {

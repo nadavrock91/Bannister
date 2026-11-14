@@ -47,6 +47,7 @@ public class ClipsExperimentItem
     public DateTime? EndDate { get; set; }
     public int SortOrder { get; set; }
     public bool IsRun { get; set; }
+    public bool IsQueued { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 }
 
