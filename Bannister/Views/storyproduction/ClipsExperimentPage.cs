@@ -408,7 +408,6 @@ public class ClipsExperimentPage : ContentPage
         if (posts.Count == 0)
         {
             _content.Children.Add(new Label { Text = "No posts recorded yet.", FontSize = 13, TextColor = Color.FromArgb("#999") });
-            return;
         }
 
         var toggleSelection = MakeButton(
@@ -535,8 +534,8 @@ public class ClipsExperimentPage : ContentPage
                     }, 1, 0);
                 }
                 _content.Children.Add(dateRow);
-                AddPostGroup($"experiment:{experimentItem.Id}", experimentItem.Title, assignedPosts, experimentItems, platformDataByPost);
             }
+            AddPostGroup($"experiment:{experimentItem.Id}", experimentItem.Title, assignedPosts, experimentItems, platformDataByPost);
         }
 
         var unassignedPosts = posts
