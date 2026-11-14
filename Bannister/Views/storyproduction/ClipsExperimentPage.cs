@@ -1309,7 +1309,13 @@ public class ClipsExperimentPage : ContentPage
         _content.Children.Add(editPriority);
 
         BuildExperimentItemsSection("Not Yet Run", unrunItems, true);
-        BuildExperimentItemsSection("Completed", allItems.Where(item => item.IsRun).ToList(), false);
+        BuildExperimentItemsSection(
+            "Completed",
+            allItems
+                .Where(item => item.IsRun || (item.EndDate.HasValue && item.EndDate.Value.Date < DateTime.Today))
+                .OrderByDescending(item => item.EndDate)
+                .ToList(),
+            false);
     }
 
     private void BuildExperimentItemsSection(string heading, List<ClipsExperimentItem> items, bool canMarkRun)
