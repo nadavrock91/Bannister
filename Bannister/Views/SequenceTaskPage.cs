@@ -291,6 +291,7 @@ public class SequenceTaskPage : ContentPage
             var currentLinks = await _service.GetLinksAsync(group.Id);
             var allActive = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
             var incompleteCount = currentLinks.Count(l =>
+                !l.IsPendingTest &&
                 allActive.Any(t => t.Id == l.TaskItemId && !t.IsCompleted));
             if (incompleteCount < group.TaskCap) return false;
 
