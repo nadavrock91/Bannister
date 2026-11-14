@@ -1,3 +1,4 @@
+using Bannister.Models;
 using Bannister.Services;
 
 namespace BannisterTools;
@@ -6,19 +7,29 @@ public class MainPage : ContentPage
 {
     private readonly DatabaseService _db;
     private readonly SyncService _sync;
+    private readonly DailyDeadlineService _deadlineService;
+    private readonly ResetTimeService _resetTime;
     private readonly Label _statusLabel;
     private readonly Label _timerLabel;
     private readonly Label _timerStatusLabel;
     private readonly Entry _minutesEntry;
+    private readonly VerticalStackLayout _deadlineList;
+    private string _username = "";
     private int _configuredSeconds = 25 * 60;
     private int _remainingSeconds = 25 * 60;
     private bool _timerRunning;
     private bool _countingUp;
 
-    public MainPage(DatabaseService db, SyncService sync)
+    public MainPage(
+        DatabaseService db,
+        SyncService sync,
+        DailyDeadlineService deadlineService,
+        ResetTimeService resetTime)
     {
         _db = db;
         _sync = sync;
+        _deadlineService = deadlineService;
+        _resetTime = resetTime;
         Title = "BannisterTools";
         BackgroundColor = Color.FromArgb("#CCF5F5F5");
 
@@ -104,6 +115,24 @@ public class MainPage : ContentPage
             LineBreakMode = LineBreakMode.WordWrap
         };
 
+        _deadlineList = new VerticalStackLayout { Spacing = 6 };
+        var deadlineSection = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Margin = new Thickness(0, 12, 0, 0),
+            Children =
+            {
+                new Label
+                {
+                    Text = "Daily Deadlines",
+                    FontSize = 18,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#222222")
+                },
+                _deadlineList
+            }
+        };
+
         var layout = new VerticalStackLayout
         {
             Padding = 10, Spacing = 8, MaximumWidthRequest = 340,
@@ -111,7 +140,7 @@ public class MainPage : ContentPage
             Children =
             {
                 header, _timerLabel, _timerStatusLabel,
-                timerButtons, setRow, _statusLabel
+                timerButtons, setRow, _statusLabel, deadlineSection
             }
         };
 
@@ -219,7 +248,103 @@ public class MainPage : ContentPage
 #if ANDROID
         await ReadLocalDatabaseAsync();
 #endif
+        var conn = await _db.GetConnectionAsync();
+        var user = await conn.Table<User>().FirstOrDefaultAsync();
+        _username = user?.Username ?? "";
+        await LoadDeadlinesAsync();
     }
+
+    private async Task LoadDeadlinesAsync()
+    {
+        _deadlineList.Children.Clear();
+        if (string.IsNullOrWhiteSpace(_username))
+        {
+            _deadlineList.Children.Add(new Label
+            {
+                Text = "No active deadlines",
+                TextColor = Color.FromArgb("#666666")
+            });
+            return;
+        }
+
+        var active = await _deadlineService.GetActiveItemsAsync(_username);
+        var log = await _deadlineService.GetCurrentLogAsync(_username);
+        var completedIds = ParseIds(log?.CompletedItemIds);
+        if (active.Count == 0)
+        {
+            _deadlineList.Children.Add(new Label
+            {
+                Text = "No active deadlines",
+                TextColor = Color.FromArgb("#666666")
+            });
+            return;
+        }
+
+        var conn = await _db.GetConnectionAsync();
+        foreach (var item in active)
+        {
+            var activity = await conn.Table<Activity>()
+                .Where(a => a.Id == item.ActivityId)
+                .FirstOrDefaultAsync();
+            var row = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Star)
+                },
+                ColumnSpacing = 8
+            };
+            var checkBox = new CheckBox
+            {
+                IsChecked = completedIds.Contains(item.Id),
+                Color = Color.FromArgb("#2E7D32"),
+                VerticalOptions = LayoutOptions.Center
+            };
+            checkBox.CheckedChanged += async (_, e) =>
+                await SetCompletedAsync(item, e.Value);
+            row.Add(checkBox, 0, 0);
+            row.Add(new Label
+            {
+                Text = activity?.Name ?? "(unknown)",
+                FontSize = 14,
+                TextColor = Color.FromArgb("#222222"),
+                VerticalOptions = LayoutOptions.Center,
+                LineBreakMode = LineBreakMode.WordWrap
+            }, 1, 0);
+            _deadlineList.Children.Add(row);
+        }
+    }
+
+    private async Task SetCompletedAsync(
+        DailyDeadlineItem item,
+        bool isCompleted)
+    {
+        var log = await _deadlineService.GetCurrentLogAsync(_username)
+            ?? new DailyDeadlineLog
+            {
+                Username = _username,
+                LogDate = await _resetTime.GetTodayResetKey(_username)
+            };
+        var ids = ParseIds(log.CompletedItemIds);
+        if (isCompleted)
+            ids.Add(item.Id);
+        else
+            ids.Remove(item.Id);
+        log.CompletedItemIds = string.Join(",", ids.OrderBy(i => i));
+        var active = await _deadlineService.GetActiveItemsAsync(_username);
+        log.AllCompleted = active.Count > 0 &&
+            active.All(i => ids.Contains(i.Id));
+        await _deadlineService.SaveLogAsync(log);
+        await LoadDeadlinesAsync();
+    }
+
+    private static HashSet<int> ParseIds(string? value) =>
+        (value ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => int.TryParse(part, out var id) ? id : 0)
+            .Where(id => id > 0)
+            .ToHashSet();
 
 #if ANDROID
     private async void OnSyncClicked(object? sender, EventArgs e)
