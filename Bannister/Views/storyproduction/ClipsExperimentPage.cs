@@ -1179,33 +1179,59 @@ public class ClipsExperimentPage : ContentPage
         _content.Children.Add(startDatePicker);
         _content.Children.Add(new Label { Text = "End date", FontSize = 12, TextColor = Color.FromArgb("#666") });
         _content.Children.Add(endDatePicker);
-        var save = MakeButton("Save Experiment", "#2E7D32", Colors.White);
-        save.Clicked += async (_, _) =>
+        var addButtons = new HorizontalStackLayout { Spacing = 8 };
+
+        var addToNotYetRun = MakeButton("Add to Not Yet Run", "#ECEFF1", Color.FromArgb("#333"));
+        addToNotYetRun.Clicked += async (_, _) =>
         {
             if (_busy || string.IsNullOrWhiteSpace(titleEntry.Text)) return;
-            if (endDatePicker.Date < startDatePicker.Date)
-            {
-                await DisplayAlert("Invalid Dates", "End date must be on or after the start date.", "OK");
-                return;
-            }
             _busy = true;
             try
             {
-                await _service.SaveExperimentItemAsync(new ClipsExperimentItem
+                var item = new ClipsExperimentItem
                 {
                     Username = _auth.CurrentUsername,
                     ExperimentId = experiment.Id,
                     Title = titleEntry.Text.Trim(),
                     Description = descriptionEditor.Text?.Trim() ?? "",
-                    StartDate = startDatePicker.Date.Date,
-                    EndDate = endDatePicker.Date.Date,
+                    StartDate = startDatePicker.Date == DateTime.Today ? null : (DateTime?)startDatePicker.Date,
+                    EndDate = endDatePicker.Date == DateTime.Today ? null : (DateTime?)endDatePicker.Date,
+                    IsQueued = false,
                     CreatedDate = DateTime.UtcNow
-                });
+                };
+                await _service.SaveExperimentItemAsync(item);
             }
             finally { _busy = false; }
             await RefreshAsync();
         };
-        _content.Children.Add(save);
+
+        var addToQueue = MakeButton("Add to Queue", "#E8F5E9", Color.FromArgb("#2E7D32"));
+        addToQueue.Clicked += async (_, _) =>
+        {
+            if (_busy || string.IsNullOrWhiteSpace(titleEntry.Text)) return;
+            _busy = true;
+            try
+            {
+                var item = new ClipsExperimentItem
+                {
+                    Username = _auth.CurrentUsername,
+                    ExperimentId = experiment.Id,
+                    Title = titleEntry.Text.Trim(),
+                    Description = descriptionEditor.Text?.Trim() ?? "",
+                    StartDate = startDatePicker.Date == DateTime.Today ? null : (DateTime?)startDatePicker.Date,
+                    EndDate = endDatePicker.Date == DateTime.Today ? null : (DateTime?)endDatePicker.Date,
+                    IsQueued = true,
+                    CreatedDate = DateTime.UtcNow
+                };
+                await _service.SaveExperimentItemAsync(item);
+            }
+            finally { _busy = false; }
+            await RefreshAsync();
+        };
+
+        addButtons.Children.Add(addToNotYetRun);
+        addButtons.Children.Add(addToQueue);
+        _content.Children.Add(addButtons);
 
         var promptButtons = new VerticalStackLayout { Spacing = 8 };
         var ideas = MakeButton("Get LLM Experiment Ideas", "#6A1B9A", Colors.White);
@@ -1469,9 +1495,6 @@ public class ClipsExperimentPage : ContentPage
             var buttons = new HorizontalStackLayout { Spacing = 8 };
             if (canMarkRun)
             {
-                var setActive = MakeButton("Set as Active", "#E3F2FD", Color.FromArgb("#1565C0"));
-                setActive.Clicked += async (_, _) => await EditExperimentDatesAsync(item);
-                buttons.Children.Add(setActive);
                 var markRun = MakeButton("Mark as Run", "#2E7D32", Colors.White);
                 markRun.Clicked += async (_, _) =>
                 {
