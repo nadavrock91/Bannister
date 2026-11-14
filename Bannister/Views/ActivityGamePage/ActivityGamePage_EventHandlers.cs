@@ -1062,7 +1062,7 @@ public partial class ActivityGamePage
                 var list = new List<Activity>
                 {
                     new Activity { Id = -1, Name = "[Test Placeholder]", IsActive = true, Category = "Test" },
-                    new Activity { Id = -2, Name = "[Test Streak Private Image]", IsActive = true, Category = "Test", IsStreakTracked = true, IsStreakContainer = true, ActivityVisibility = 0, IsImageOnly = true, ImagePath = "activity_639283878539641572.png", StartDate = DateTime.Now.AddMonths(-3) }
+                    new Activity { Id = -2, Name = "[Test Streak Private Image]", IsActive = true, Category = "[Test Streak Private Image]", IsStreakTracked = true, IsStreakContainer = true, ActivityVisibility = 0, IsImageOnly = true, ImagePath = "activity_639283878539641572.png", StartDate = DateTime.Now.AddMonths(-3) }
                 };
                 var page = new StaleActivitiesConfirmationPage(list, _activities);
                 await Navigation.PushModalAsync(page);

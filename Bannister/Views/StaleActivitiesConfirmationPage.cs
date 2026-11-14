@@ -217,19 +217,24 @@ public class StaleActivitiesConfirmationPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         };
 
-        infoStack.Children.Add(BuildActivityVisual(activity));
-
         // Show start date info
         string dateText = activity.StartDate.HasValue 
             ? $"Created: {activity.StartDate.Value:MMM dd, yyyy}" 
             : "No start date";
 
-        infoStack.Children.Add(new Label
+        bool hidesImageOnlyName = activity.IsImageOnly &&
+            !string.IsNullOrWhiteSpace(activity.ImagePath);
+        var subtitleLabel = new Label
         {
-            Text = $"📁 {activity.Category} • {dateText}",
+            Text = hidesImageOnlyName
+                ? dateText
+                : $"📁 {activity.Category} • {dateText}",
             FontSize = 12,
             TextColor = Color.FromArgb("#888")
-        });
+        };
+
+        infoStack.Children.Add(BuildActivityVisual(activity, subtitleLabel, dateText));
+        infoStack.Children.Add(subtitleLabel);
 
         grid.Add(infoStack, 1, 0);
 
@@ -269,7 +274,10 @@ public class StaleActivitiesConfirmationPage : ContentPage
         return frame;
     }
 
-    private static View BuildActivityVisual(Activity activity)
+    private static View BuildActivityVisual(
+        Activity activity,
+        Label subtitleLabel,
+        string dateText)
     {
         if (activity.IsImageOnly && !string.IsNullOrWhiteSpace(activity.ImagePath))
         {
@@ -302,6 +310,9 @@ public class StaleActivitiesConfirmationPage : ContentPage
             {
                 nameLabel.IsVisible = !nameLabel.IsVisible;
                 expandLabel.Text = nameLabel.IsVisible ? "▲ hide" : "▼ show name";
+                subtitleLabel.Text = nameLabel.IsVisible
+                    ? $"📁 {activity.Category} • {dateText}"
+                    : dateText;
             };
             expandLabel.GestureRecognizers.Add(tap);
             stack.Children.Add(expandLabel);
