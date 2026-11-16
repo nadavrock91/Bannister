@@ -32,8 +32,10 @@
     <Compile Include="..\Bannister\Services\DatabaseService.cs" Link="Services\DatabaseService.cs" />
     <Compile Include="..\Bannister\Services\DailyDeadlineService.cs" Link="Services\DailyDeadlineService.cs" />
     <Compile Include="..\Bannister\Services\DeviceModeService.cs" Link="Services\DeviceModeService.cs" />
+    <Compile Include="..\Bannister\Services\LoginMaster.cs" Link="Services\LoginMaster.cs" />
     <Compile Include="..\Bannister\Services\ReadOnlySQLiteAsyncConnection.cs" Link="Services\ReadOnlySQLiteAsyncConnection.cs" />
     <Compile Include="..\Bannister\Services\ResetTimeService.cs" Link="Services\ResetTimeService.cs" />
+    <Compile Include="..\Bannister\Security\PasswordHasher.cs" Link="Security\PasswordHasher.cs" />
     <None Include="..\Bannister\Services\SyncService.cs" Link="Services\SyncService.cs" />
   </ItemGroup>
 

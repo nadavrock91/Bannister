@@ -9,14 +9,16 @@ public class MainPage : ContentPage
     private readonly SyncService _sync;
     private readonly DailyDeadlineService _deadlineService;
     private readonly ResetTimeService _resetTime;
+    private readonly LoginMaster _loginMaster;
     private readonly Label _statusLabel;
     private readonly Label _timerLabel;
     private readonly Label _timerStatusLabel;
     private readonly Entry _minutesEntry;
     private readonly VerticalStackLayout _deadlineList;
-    private Entry _passwordEntry = null!;
-    private Label _passwordErrorLabel = null!;
-    private VerticalStackLayout _passwordSection = null!;
+    private Entry _usernameEntry = null!;
+    private Entry _loginPasswordEntry = null!;
+    private Label _loginErrorLabel = null!;
+    private VerticalStackLayout _loginSection = null!;
     private VerticalStackLayout _deadlineSection = null!;
     private string _username = "";
     private int _configuredSeconds = 25 * 60;
@@ -28,12 +30,14 @@ public class MainPage : ContentPage
         DatabaseService db,
         SyncService sync,
         DailyDeadlineService deadlineService,
-        ResetTimeService resetTime)
+        ResetTimeService resetTime,
+        LoginMaster loginMaster)
     {
         _db = db;
         _sync = sync;
         _deadlineService = deadlineService;
         _resetTime = resetTime;
+        _loginMaster = loginMaster;
         Title = "BannisterTools";
         BackgroundColor = Color.FromArgb("#CCF5F5F5");
 
@@ -119,35 +123,49 @@ public class MainPage : ContentPage
             LineBreakMode = LineBreakMode.WordWrap
         };
 
-        _passwordEntry = new Entry
+        _usernameEntry = new Entry
         {
-            Placeholder = "Enter password",
-            Keyboard = Keyboard.Text,
+            Placeholder = "Username",
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        _loginPasswordEntry = new Entry
+        {
+            Placeholder = "Password",
             IsPassword = true,
             HorizontalOptions = LayoutOptions.Fill
         };
-        var unlockButton = MakeButton("Unlock", "#3949AB");
-        unlockButton.Clicked += async (_, _) => await UnlockAsync();
-        _passwordErrorLabel = new Label
+        var loginButton = new Button
+        {
+            Text = "Login",
+            BackgroundColor = Color.FromArgb("#6200EE"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 48
+        };
+        loginButton.Clicked += async (_, _) => await LoginMasterAsync();
+        _loginErrorLabel = new Label
         {
             Text = "",
             FontSize = 12,
             TextColor = Colors.Red
         };
-        _passwordSection = new VerticalStackLayout
+        _loginSection = new VerticalStackLayout
         {
             Spacing = 6,
             Children =
             {
                 new Label
                 {
-                    Text = "Bannister Password",
-                    FontSize = 12,
-                    TextColor = Color.FromArgb("#666666")
+                    Text = " Bannister Login",
+                    FontSize = 20,
+                    FontAttributes = FontAttributes.Bold,
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    HorizontalOptions = LayoutOptions.Fill
                 },
-                _passwordEntry,
-                unlockButton,
-                _passwordErrorLabel
+                _usernameEntry,
+                _loginPasswordEntry,
+                loginButton,
+                _loginErrorLabel
             }
         };
 
@@ -177,7 +195,7 @@ public class MainPage : ContentPage
             Children =
             {
                 header, _timerLabel, _timerStatusLabel,
-                timerButtons, setRow, _passwordSection,
+                timerButtons, setRow, _loginSection,
                 _statusLabel, _deadlineSection
             }
         };
@@ -288,25 +306,28 @@ public class MainPage : ContentPage
 #endif
     }
 
-    private async Task UnlockAsync()
+    private async Task LoginMasterAsync()
     {
-        var password = _passwordEntry.Text ?? "";
-        if (string.IsNullOrWhiteSpace(password)) return;
-        bool ok = await _db.TryOpenWithPasswordAsync(password);
-        if (!ok)
+        string username = _usernameEntry.Text?.Trim() ?? "";
+        string password = _loginPasswordEntry.Text ?? "";
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
-            _passwordErrorLabel.Text = "Incorrect password.";
+            _loginErrorLabel.Text = "Please enter username and password.";
             return;
         }
-        _db.SetPassword(password);
-        _passwordErrorLabel.Text = "";
-        _passwordEntry.IsVisible = false;
-        _passwordSection.IsVisible = false;
+
+        var user = await _loginMaster.LoginAsync(username, password);
+        if (user == null)
+        {
+            _loginErrorLabel.Text = "Invalid username or password.";
+            return;
+        }
+
+        _loginErrorLabel.Text = "";
+        _username = user.Username;
+        _loginSection.IsVisible = false;
         _deadlineSection.IsVisible = true;
-        _username = "";
-        var conn = await _db.GetConnectionAsync();
-        var user = await conn.Table<User>().FirstOrDefaultAsync();
-        _username = user?.Username ?? "";
         await LoadDeadlinesAsync();
     }
 
