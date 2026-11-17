@@ -19,6 +19,8 @@ public class MainPage : ContentPage
     private Entry _loginPasswordEntry = null!;
     private Label _loginErrorLabel = null!;
     private VerticalStackLayout _loginSection = null!;
+    private CheckBox _rememberMeCheck = null!;
+    private VerticalStackLayout _timerSection = null!;
     private VerticalStackLayout _deadlineSection = null!;
     private string _username = "";
     private int _configuredSeconds = 25 * 60;
@@ -134,6 +136,23 @@ public class MainPage : ContentPage
             IsPassword = true,
             HorizontalOptions = LayoutOptions.Fill
         };
+        _rememberMeCheck = new CheckBox
+        {
+            Color = Color.FromArgb("#6200EE")
+        };
+        var rememberRow = new HorizontalStackLayout
+        {
+            Spacing = 8,
+            Children =
+            {
+                _rememberMeCheck,
+                new Label
+                {
+                    Text = "Remember me",
+                    VerticalOptions = LayoutOptions.Center
+                }
+            }
+        };
         var loginButton = new Button
         {
             Text = "Login",
@@ -164,8 +183,22 @@ public class MainPage : ContentPage
                 },
                 _usernameEntry,
                 _loginPasswordEntry,
+                rememberRow,
                 loginButton,
                 _loginErrorLabel
+            }
+        };
+
+        _timerSection = new VerticalStackLayout
+        {
+            Spacing = 8,
+            IsVisible = false,
+            Children =
+            {
+                _timerLabel,
+                _timerStatusLabel,
+                timerButtons,
+                setRow
             }
         };
 
@@ -194,8 +227,7 @@ public class MainPage : ContentPage
             HorizontalOptions = LayoutOptions.Center,
             Children =
             {
-                header, _timerLabel, _timerStatusLabel,
-                timerButtons, setRow, _loginSection,
+                header, _loginSection, _timerSection,
                 _statusLabel, _deadlineSection
             }
         };
@@ -304,6 +336,22 @@ public class MainPage : ContentPage
 #if ANDROID
         await ReadLocalDatabaseAsync();
 #endif
+        var savedUser = await SecureStorage.GetAsync("tools_username");
+        var savedPass = await SecureStorage.GetAsync("tools_password");
+        if (!string.IsNullOrEmpty(savedUser) && !string.IsNullOrEmpty(savedPass))
+        {
+            var user = await _loginMaster.LoginAsync(savedUser, savedPass);
+            if (user != null)
+            {
+                _username = user.Username;
+                _loginSection.IsVisible = false;
+                _timerSection.IsVisible = true;
+                _deadlineSection.IsVisible = true;
+                _rememberMeCheck.IsChecked = true;
+                await LoadDeadlinesAsync();
+                return;
+            }
+        }
     }
 
     private async Task LoginMasterAsync()
@@ -326,7 +374,18 @@ public class MainPage : ContentPage
 
         _loginErrorLabel.Text = "";
         _username = user.Username;
+        if (_rememberMeCheck.IsChecked)
+        {
+            await SecureStorage.SetAsync("tools_username", _username);
+            await SecureStorage.SetAsync("tools_password", password);
+        }
+        else
+        {
+            SecureStorage.Remove("tools_username");
+            SecureStorage.Remove("tools_password");
+        }
         _loginSection.IsVisible = false;
+        _timerSection.IsVisible = true;
         _deadlineSection.IsVisible = true;
         await LoadDeadlinesAsync();
     }
