@@ -9,6 +9,7 @@ public class DailyDeadlineRowOptions
 {
     public bool ShowMoveButton { get; set; } = false;
     public bool ShowDeleteButton { get; set; } = false;
+    public bool StackButtons { get; set; } = false;
     public Func<DailyDeadlineItem, Task>? OnMove { get; set; }
     public Func<DailyDeadlineItem, Task>? OnDelete { get; set; }
 }
@@ -58,10 +59,13 @@ public static class DailyDeadlineViewHelper
             new ColumnDefinition(GridLength.Auto),
             new ColumnDefinition(GridLength.Star),
         };
-        if (options.ShowMoveButton)
-            colDefs.Add(new ColumnDefinition(GridLength.Auto));
-        if (options.ShowDeleteButton)
-            colDefs.Add(new ColumnDefinition(GridLength.Auto));
+        if (!options.StackButtons)
+        {
+            if (options.ShowMoveButton)
+                colDefs.Add(new ColumnDefinition(GridLength.Auto));
+            if (options.ShowDeleteButton)
+                colDefs.Add(new ColumnDefinition(GridLength.Auto));
+        }
 
         var row = new Grid
         {
@@ -73,16 +77,29 @@ public static class DailyDeadlineViewHelper
         if (activity == null)
         {
             row.BackgroundColor = Color.FromArgb("#F0F0F0");
-            row.Add(new Label
+            var missingLabel = new Label
             {
                 Text = "Activity not found",
                 TextColor = Color.FromArgb("#888"),
                 VerticalOptions = LayoutOptions.Center
-            }, 1, 0);
-            if (options.ShowDeleteButton && options.OnDelete != null)
+            };
+            if (options.StackButtons)
             {
-                int delCol = options.ShowMoveButton ? 3 : 2;
-                row.Add(MakeDeleteButton(item, options.OnDelete), delCol, 0);
+                var rightSide = new VerticalStackLayout { Spacing = 6 };
+                rightSide.Children.Add(missingLabel);
+                var buttonRow = BuildButtonRow(item, options);
+                if (buttonRow.Children.Count > 0)
+                    rightSide.Children.Add(buttonRow);
+                row.Add(rightSide, 1, 0);
+            }
+            else
+            {
+                row.Add(missingLabel, 1, 0);
+                if (options.ShowDeleteButton && options.OnDelete != null)
+                {
+                    int delCol = options.ShowMoveButton ? 3 : 2;
+                    row.Add(MakeDeleteButton(item, options.OnDelete), delCol, 0);
+                }
             }
             return Task.FromResult<View>(new Border
             {
@@ -104,26 +121,24 @@ public static class DailyDeadlineViewHelper
         doneCheck.CheckedChanged += async (_, e) =>
             await SetCompletedAsync(item, e.Value, service, resetTime, username, reload);
         row.Add(doneCheck, 0, 0);
-        row.Add(BuildActivityVisual(activity), 1, 0);
-
-        int nextCol = 2;
-        if (options.ShowMoveButton && options.OnMove != null)
+        if (options.StackButtons)
         {
-            var move = new Button
-            {
-                Text = "Move to Possible",
-                FontSize = 11,
-                Padding = new Thickness(8, 0),
-                HeightRequest = 34,
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#37474F")
-            };
-            move.Clicked += async (_, _) => await options.OnMove(item);
-            row.Add(move, nextCol++, 0);
+            var rightSide = new VerticalStackLayout { Spacing = 6 };
+            rightSide.Children.Add(BuildActivityVisual(activity));
+            var buttonRow = BuildButtonRow(item, options);
+            if (buttonRow.Children.Count > 0)
+                rightSide.Children.Add(buttonRow);
+            row.Add(rightSide, 1, 0);
         }
-        if (options.ShowDeleteButton && options.OnDelete != null)
+        else
         {
-            row.Add(MakeDeleteButton(item, options.OnDelete), nextCol, 0);
+            row.Add(BuildActivityVisual(activity), 1, 0);
+
+            int nextCol = 2;
+            if (options.ShowMoveButton && options.OnMove != null)
+                row.Add(MakeMoveButton(item, options.OnMove), nextCol++, 0);
+            if (options.ShowDeleteButton && options.OnDelete != null)
+                row.Add(MakeDeleteButton(item, options.OnDelete), nextCol, 0);
         }
 
         return Task.FromResult<View>(new Border
@@ -148,6 +163,37 @@ public static class DailyDeadlineViewHelper
                 return new Image { Source = ImageSource.FromFile(path), HeightRequest = 50, WidthRequest = 50, Aspect = Aspect.AspectFit, HorizontalOptions = LayoutOptions.Start };
         }
         return new Label { Text = activity.Name, FontSize = 14, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center };
+    }
+
+    private static HorizontalStackLayout BuildButtonRow(
+        DailyDeadlineItem item,
+        DailyDeadlineRowOptions options)
+    {
+        var buttonRow = new HorizontalStackLayout
+        {
+            HorizontalOptions = LayoutOptions.Start,
+            Spacing = 6
+        };
+        if (options.ShowMoveButton && options.OnMove != null)
+            buttonRow.Children.Add(MakeMoveButton(item, options.OnMove));
+        if (options.ShowDeleteButton && options.OnDelete != null)
+            buttonRow.Children.Add(MakeDeleteButton(item, options.OnDelete));
+        return buttonRow;
+    }
+
+    private static Button MakeMoveButton(DailyDeadlineItem item, Func<DailyDeadlineItem, Task> onMove)
+    {
+        var move = new Button
+        {
+            Text = "Move to Possible",
+            FontSize = 11,
+            Padding = new Thickness(8, 0),
+            HeightRequest = 34,
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F")
+        };
+        move.Clicked += async (_, _) => await onMove(item);
+        return move;
     }
 
     private static Button MakeDeleteButton(DailyDeadlineItem item, Func<DailyDeadlineItem, Task> onDelete)

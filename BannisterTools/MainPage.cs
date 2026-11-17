@@ -536,8 +536,20 @@ public class MainPage : ContentPage
                 LoadDeadlinesAsync,
                 new DailyDeadlineRowOptions
                 {
-                    ShowMoveButton = false,
-                    ShowDeleteButton = false
+                    ShowMoveButton = true,
+                    ShowDeleteButton = true,
+                    StackButtons = true,
+                    OnMove = async i =>
+                    {
+                        i.IsActive = false;
+                        await _deadlineService.SaveItemAsync(i);
+                        await LoadDeadlinesAsync();
+                    },
+                    OnDelete = async i =>
+                    {
+                        await _deadlineService.DeleteItemAsync(i.Id);
+                        await LoadDeadlinesAsync();
+                    }
                 });
             _deadlineList.Children.Add(row);
         }
