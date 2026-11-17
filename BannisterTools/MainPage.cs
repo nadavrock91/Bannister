@@ -10,18 +10,20 @@ public class MainPage : ContentPage
     private readonly DailyDeadlineService _deadlineService;
     private readonly ResetTimeService _resetTime;
     private readonly LoginMaster _loginMaster;
-    private readonly Label _statusLabel;
     private readonly Label _timerLabel;
     private readonly Label _timerStatusLabel;
     private readonly Entry _minutesEntry;
     private readonly VerticalStackLayout _deadlineList;
+    private readonly Label _greetingLabel;
+    private readonly Grid _mainContent;
+    private readonly VerticalStackLayout _homePanel;
+    private readonly VerticalStackLayout _timerPanel;
+    private readonly VerticalStackLayout _deadlinePanel;
     private Entry _usernameEntry = null!;
     private Entry _loginPasswordEntry = null!;
     private Label _loginErrorLabel = null!;
     private VerticalStackLayout _loginSection = null!;
     private CheckBox _rememberMeCheck = null!;
-    private VerticalStackLayout _timerSection = null!;
-    private VerticalStackLayout _deadlineSection = null!;
     private string _username = "";
     private int _configuredSeconds = 25 * 60;
     private int _remainingSeconds = 25 * 60;
@@ -121,13 +123,6 @@ public class MainPage : ContentPage
         setRow.Children.Add(_minutesEntry);
         setRow.Children.Add(setButton);
 
-        _statusLabel = new Label
-        {
-            Text = "", FontSize = 11,
-            TextColor = Color.FromArgb("#666666"),
-            LineBreakMode = LineBreakMode.WordWrap
-        };
-
         _usernameEntry = new Entry
         {
             Placeholder = "Username",
@@ -192,12 +187,58 @@ public class MainPage : ContentPage
             }
         };
 
-        _timerSection = new VerticalStackLayout
+        _greetingLabel = new Label
+        {
+            FontSize = 16,
+            TextColor = Color.FromArgb("#666666"),
+            HorizontalTextAlignment = TextAlignment.Center,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        var timerNavButton = new Button
+        {
+            Text = "⏱ Timer",
+            BackgroundColor = Color.FromArgb("#2E7D32"),
+            TextColor = Colors.White,
+            HeightRequest = 56,
+            CornerRadius = 10
+        };
+        var deadlinesNavButton = new Button
+        {
+            Text = "✅ Daily Deadlines",
+            BackgroundColor = Color.FromArgb("#1565C0"),
+            TextColor = Colors.White,
+            HeightRequest = 56,
+            CornerRadius = 10
+        };
+        _homePanel = new VerticalStackLayout
+        {
+            Spacing = 12,
+            IsVisible = true,
+            Children =
+            {
+                _greetingLabel,
+                timerNavButton,
+                deadlinesNavButton
+            }
+        };
+        var timerHomeButton = new Button
+        {
+            Text = "← Home",
+            FontSize = 12,
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 6,
+            HeightRequest = 32,
+            Padding = new Thickness(10, 0),
+            HorizontalOptions = LayoutOptions.Start
+        };
+        _timerPanel = new VerticalStackLayout
         {
             Spacing = 8,
             IsVisible = false,
             Children =
             {
+                timerHomeButton,
                 _timerLabel,
                 _timerStatusLabel,
                 timerButtons,
@@ -206,13 +247,24 @@ public class MainPage : ContentPage
         };
 
         _deadlineList = new VerticalStackLayout { Spacing = 6 };
-        _deadlineSection = new VerticalStackLayout
+        var deadlineHomeButton = new Button
+        {
+            Text = "← Home",
+            FontSize = 12,
+            BackgroundColor = Color.FromArgb("#ECEFF1"),
+            TextColor = Color.FromArgb("#37474F"),
+            CornerRadius = 6,
+            HeightRequest = 32,
+            Padding = new Thickness(10, 0),
+            HorizontalOptions = LayoutOptions.Start
+        };
+        _deadlinePanel = new VerticalStackLayout
         {
             Spacing = 8,
-            Margin = new Thickness(0, 12, 0, 0),
             IsVisible = false,
             Children =
             {
+                deadlineHomeButton,
                 new Label
                 {
                     Text = "Daily Deadlines",
@@ -224,27 +276,53 @@ public class MainPage : ContentPage
             }
         };
 
+        timerNavButton.Clicked += (_, _) =>
+        {
+            _homePanel.IsVisible = false;
+            _timerPanel.IsVisible = true;
+        };
+        deadlinesNavButton.Clicked += async (_, _) =>
+        {
+            _homePanel.IsVisible = false;
+            _deadlinePanel.IsVisible = true;
+            await LoadDeadlinesAsync();
+        };
+        timerHomeButton.Clicked += (_, _) =>
+        {
+            _timerPanel.IsVisible = false;
+            _homePanel.IsVisible = true;
+        };
+        deadlineHomeButton.Clicked += (_, _) =>
+        {
+            _deadlinePanel.IsVisible = false;
+            _homePanel.IsVisible = true;
+        };
+
+        _mainContent = new Grid
+        {
+            IsVisible = false,
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Star)
+            },
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star)
+            }
+        };
+        _mainContent.Add(_homePanel, 0, 0);
+        _mainContent.Add(_timerPanel, 0, 0);
+        _mainContent.Add(_deadlinePanel, 0, 0);
+
         var layout = new VerticalStackLayout
         {
             Padding = 10, Spacing = 8, MaximumWidthRequest = 340,
             HorizontalOptions = LayoutOptions.Center,
             Children =
             {
-                header, _loginSection, _timerSection,
-                _statusLabel, _deadlineSection
+                header, _loginSection, _mainContent
             }
         };
-
-#if ANDROID
-        var syncButton = new Button
-        {
-            Text = "Sync", BackgroundColor = Color.FromArgb("#3949AB"),
-            TextColor = Colors.White, CornerRadius = 8,
-            HeightRequest = 40
-        };
-        syncButton.Clicked += OnSyncClicked;
-        layout.Children.Add(syncButton);
-#endif
 
         Content = new ScrollView { Content = layout };
     }
@@ -358,9 +436,6 @@ public class MainPage : ContentPage
         string databasePath = DatabaseService.DatabasePath;
         System.Diagnostics.Debug.WriteLine(
             $"BannisterTools database: {databasePath}");
-#if ANDROID
-        await ReadLocalDatabaseAsync();
-#endif
         var savedUser = await SecureStorage.GetAsync("tools_username");
         var savedPass = await SecureStorage.GetAsync("tools_password");
         if (!string.IsNullOrEmpty(savedUser) && !string.IsNullOrEmpty(savedPass))
@@ -370,10 +445,12 @@ public class MainPage : ContentPage
             {
                 _username = user.Username;
                 _loginSection.IsVisible = false;
-                _timerSection.IsVisible = true;
-                _deadlineSection.IsVisible = true;
+                _greetingLabel.Text = $"Welcome, {user.Username}";
+                _homePanel.IsVisible = true;
+                _timerPanel.IsVisible = false;
+                _deadlinePanel.IsVisible = false;
+                _mainContent.IsVisible = true;
                 _rememberMeCheck.IsChecked = true;
-                await LoadDeadlinesAsync();
                 return;
             }
         }
@@ -410,9 +487,11 @@ public class MainPage : ContentPage
             SecureStorage.Remove("tools_password");
         }
         _loginSection.IsVisible = false;
-        _timerSection.IsVisible = true;
-        _deadlineSection.IsVisible = true;
-        await LoadDeadlinesAsync();
+        _greetingLabel.Text = $"Welcome, {user.Username}";
+        _homePanel.IsVisible = true;
+        _timerPanel.IsVisible = false;
+        _deadlinePanel.IsVisible = false;
+        _mainContent.IsVisible = true;
     }
 
     private async Task LoadDeadlinesAsync()
@@ -507,42 +586,4 @@ public class MainPage : ContentPage
             .Where(id => id > 0)
             .ToHashSet();
 
-#if ANDROID
-    private async void OnSyncClicked(object? sender, EventArgs e)
-    {
-        try
-        {
-            _statusLabel.Text = "Syncing...";
-            var result = await _sync.DownloadAsync();
-            if (!result.Success)
-            {
-                _statusLabel.Text = result.Message;
-                await DisplayAlert("Sync", result.Message, "OK");
-                return;
-            }
-            await ReadLocalDatabaseAsync();
-            await DisplayAlert("Sync", result.Message, "OK");
-        }
-        catch (Exception ex)
-        {
-            _statusLabel.Text = ex.Message;
-            await DisplayAlert("Sync Error", ex.Message, "OK");
-        }
-    }
-
-    private async Task ReadLocalDatabaseAsync()
-    {
-        try
-        {
-            var connection = await _db.GetConnectionAsync();
-            await connection.ExecuteScalarAsync<int>(
-                "SELECT COUNT(*) FROM sqlite_master");
-            _statusLabel.Text = "Database ready";
-        }
-        catch (Exception ex)
-        {
-            _statusLabel.Text = $"Database unavailable: {ex.Message}";
-        }
-    }
-#endif
 }
