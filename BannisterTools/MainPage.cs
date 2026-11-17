@@ -526,57 +526,21 @@ public class MainPage : ContentPage
             var activity = await conn.Table<Activity>()
                 .Where(a => a.Id == item.ActivityId)
                 .FirstOrDefaultAsync();
-            var row = new Grid
-            {
-                ColumnDefinitions =
+            var row = await DailyDeadlineViewHelper.BuildRowAsync(
+                item,
+                activity,
+                completedIds,
+                _deadlineService,
+                _resetTime,
+                _username,
+                LoadDeadlinesAsync,
+                new DailyDeadlineRowOptions
                 {
-                    new ColumnDefinition(GridLength.Auto),
-                    new ColumnDefinition(GridLength.Star)
-                },
-                ColumnSpacing = 8
-            };
-            var checkBox = new CheckBox
-            {
-                IsChecked = completedIds.Contains(item.Id),
-                Color = Color.FromArgb("#2E7D32"),
-                VerticalOptions = LayoutOptions.Center
-            };
-            checkBox.CheckedChanged += async (_, e) =>
-                await SetCompletedAsync(item, e.Value);
-            row.Add(checkBox, 0, 0);
-            row.Add(new Label
-            {
-                Text = activity?.Name ?? "(unknown)",
-                FontSize = 14,
-                TextColor = Color.FromArgb("#222222"),
-                VerticalOptions = LayoutOptions.Center,
-                LineBreakMode = LineBreakMode.WordWrap
-            }, 1, 0);
+                    ShowMoveButton = false,
+                    ShowDeleteButton = false
+                });
             _deadlineList.Children.Add(row);
         }
-    }
-
-    private async Task SetCompletedAsync(
-        DailyDeadlineItem item,
-        bool isCompleted)
-    {
-        var log = await _deadlineService.GetCurrentLogAsync(_username)
-            ?? new DailyDeadlineLog
-            {
-                Username = _username,
-                LogDate = await _resetTime.GetTodayResetKey(_username)
-            };
-        var ids = ParseIds(log.CompletedItemIds);
-        if (isCompleted)
-            ids.Add(item.Id);
-        else
-            ids.Remove(item.Id);
-        log.CompletedItemIds = string.Join(",", ids.OrderBy(i => i));
-        var active = await _deadlineService.GetActiveItemsAsync(_username);
-        log.AllCompleted = active.Count > 0 &&
-            active.All(i => ids.Contains(i.Id));
-        await _deadlineService.SaveLogAsync(log);
-        await LoadDeadlinesAsync();
     }
 
     private static HashSet<int> ParseIds(string? value) =>

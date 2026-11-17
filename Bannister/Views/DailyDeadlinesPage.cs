@@ -137,32 +137,21 @@ public class DailyDeadlinesPage : ContentPage
     private async Task<View> BuildActiveRowAsync(DailyDeadlineItem item, HashSet<int> completed)
     {
         var activity = await ResolveActivityAsync(item);
-        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 8, Padding = 8 };
-        if (activity == null)
-        {
-            row.BackgroundColor = Color.FromArgb("#F0F0F0");
-            row.Add(new Label { Text = "Activity not found", TextColor = Color.FromArgb("#888"), VerticalOptions = LayoutOptions.Center }, 1, 0);
-            var missingDelete = MakeDeleteButton(item);
-            row.Add(missingDelete, 3, 0);
-            return new Border { Content = row, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#F0F0F0") };
-        }
-
-        var doneCheck = new CheckBox
-        {
-            IsChecked = completed.Contains(item.Id),
-            Color = Color.FromArgb("#2E7D32"),
-            WidthRequest = 60,
-            VerticalOptions = LayoutOptions.Center,
-            HorizontalOptions = LayoutOptions.Center
-        };
-        doneCheck.CheckedChanged += async (_, e) => await SetCompletedAsync(item, e.Value);
-        row.Add(doneCheck, 0, 0);
-        row.Add(BuildActivityVisual(activity), 1, 0);
-        var move = new Button { Text = "Move to Possible", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F") };
-        move.Clicked += async (_, _) => { item.IsActive = false; await _service.SaveItemAsync(item); await LoadAsync(false); };
-        row.Add(move, 2, 0);
-        row.Add(MakeDeleteButton(item), 3, 0);
-        return new Border { Content = row, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = Colors.White };
+        return await DailyDeadlineViewHelper.BuildRowAsync(
+            item,
+            activity,
+            completed,
+            _service,
+            _resetTime,
+            _auth.CurrentUsername,
+            () => LoadAsync(false),
+            new DailyDeadlineRowOptions
+            {
+                ShowMoveButton = true,
+                ShowDeleteButton = true,
+                OnMove = async i => { i.IsActive = false; await _service.SaveItemAsync(i); await LoadAsync(false); },
+                OnDelete = async i => { await _service.DeleteItemAsync(i.Id); await LoadAsync(false); }
+            });
     }
 
     private async Task<View> BuildPossibleRowAsync(DailyDeadlineItem item, bool full)
@@ -176,7 +165,7 @@ public class DailyDeadlinesPage : ContentPage
             row.Add(MakeDeleteButton(item), 1, 0);
             return new Border { Content = row, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#F0F0F0") };
         }
-        row.Add(BuildActivityVisual(activity), 0, 0);
+        row.Add(DailyDeadlineViewHelper.BuildActivityVisual(activity), 0, 0);
         var move = new Button { Text = "Move to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0") };
         move.Clicked += async (_, _) => { item.IsActive = true; await _service.SaveItemAsync(item); await LoadAsync(false); };
         row.Add(move, 1, 0);
@@ -200,17 +189,8 @@ public class DailyDeadlinesPage : ContentPage
 
     private async Task SetCompletedAsync(DailyDeadlineItem item, bool isCompleted)
     {
-        var log = await _service.GetCurrentLogAsync(_auth.CurrentUsername) ?? new DailyDeadlineLog { Username = _auth.CurrentUsername, LogDate = await _resetTime.GetTodayResetKey(_auth.CurrentUsername) };
-        var ids = ParseIds(log.CompletedItemIds);
-        if (isCompleted)
-            ids.Add(item.Id);
-        else
-            ids.Remove(item.Id);
-        log.CompletedItemIds = string.Join(",", ids.OrderBy(i => i));
-        var active = await _service.GetActiveItemsAsync(_auth.CurrentUsername);
-        log.AllCompleted = active.Count > 0 && active.All(i => ids.Contains(i.Id));
-        await _service.SaveLogAsync(log);
-        await LoadAsync(false);
+        await DailyDeadlineViewHelper.SetCompletedAsync(
+            item, isCompleted, _service, _resetTime, _auth.CurrentUsername, () => LoadAsync(false));
     }
 
     private View BuildAddSection(bool full)
@@ -425,7 +405,7 @@ public class DailyDeadlinesPage : ContentPage
             _selectedPickerActivity = filtered.FirstOrDefault();
         foreach (var activity in filtered)
         {
-            var card = new Border { Content = BuildActivityVisual(activity), Padding = 6, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = ReferenceEquals(activity, _selectedPickerActivity) ? Color.FromArgb("#E3F2FD") : Colors.White };
+            var card = new Border { Content = DailyDeadlineViewHelper.BuildActivityVisual(activity), Padding = 6, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = ReferenceEquals(activity, _selectedPickerActivity) ? Color.FromArgb("#E3F2FD") : Colors.White };
             var captured = activity;
             var tap = new TapGestureRecognizer();
             tap.Tapped += (_, _) =>
@@ -450,21 +430,6 @@ public class DailyDeadlinesPage : ContentPage
     private Activity? FindActivity(DailyDeadlineItem item) =>
         _allActivities.FirstOrDefault(a => a.Id == item.ActivityId && string.Equals(a.Game, item.GameId, StringComparison.OrdinalIgnoreCase))
         ?? _allActivities.FirstOrDefault(a => a.Id == item.ActivityId);
-
-    private static View BuildActivityVisual(Activity? activity)
-    {
-        if (activity == null)
-            return new Label { Text = "Unavailable activity", TextColor = Color.FromArgb("#999"), VerticalOptions = LayoutOptions.Center };
-        if (activity.IsImageOnly && !string.IsNullOrWhiteSpace(activity.ImagePath))
-        {
-            string path = Path.IsPathRooted(activity.ImagePath)
-                ? (File.Exists(activity.ImagePath) ? activity.ImagePath : Path.Combine(FileSystem.AppDataDirectory, "ActivityImages", Path.GetFileName(activity.ImagePath)))
-                : Path.Combine(FileSystem.AppDataDirectory, "ActivityImages", activity.ImagePath);
-            if (File.Exists(path))
-                return new Image { Source = ImageSource.FromFile(path), HeightRequest = 50, WidthRequest = 50, Aspect = Aspect.AspectFit, HorizontalOptions = LayoutOptions.Start };
-        }
-        return new Label { Text = activity.Name, FontSize = 14, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center };
-    }
 
     private async Task ScheduleNextResetAsync()
     {
