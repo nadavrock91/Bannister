@@ -804,6 +804,25 @@ public class SyncSettingsPage : ContentPage
         SetBusy(true, "Downloading...");
         try
         {
+            // Check if BannisterTools is running and holding the database
+            var toolsProc = System.Diagnostics.Process.GetProcessesByName("BannisterTools")
+                .FirstOrDefault();
+            bool shouldReLaunchTools = false;
+            string? toolsExePath = null;
+
+            if (toolsProc != null)
+            {
+                bool closeTools = await DisplayAlert(
+                    "BannisterTools is Running",
+                    "BannisterTools has the database open and must be closed before downloading. " +
+                    "Close BannisterTools now and continue with the download?",
+                    "Close & Download", "Cancel");
+                if (!closeTools) { SetBusy(false); return; }
+
+                try { toolsExePath = toolsProc.MainModule?.FileName; } catch { }
+                shouldReLaunchTools = toolsExePath != null;
+            }
+
             string backupPath = GetBackupPath();
             try
             {
@@ -820,7 +839,34 @@ public class SyncSettingsPage : ContentPage
                     "Continue");
             }
 
-            var result = await _sync.DownloadAsync();
+            var result = await _sync.DownloadAsync(
+                beforeReplace: () =>
+                {
+                    if (toolsProc != null && !toolsProc.HasExited)
+                    {
+                        try { toolsProc.Kill(); toolsProc.WaitForExit(3000); } catch { }
+                    }
+
+                    return Task.CompletedTask;
+                },
+                afterReplace: () =>
+                {
+                    if (shouldReLaunchTools && toolsExePath != null)
+                    {
+                        try
+                        {
+                            System.Diagnostics.Process.Start(
+                                new System.Diagnostics.ProcessStartInfo
+                                {
+                                    FileName = toolsExePath,
+                                    UseShellExecute = true
+                                });
+                        }
+                        catch { /* best-effort relaunch */ }
+                    }
+
+                    return Task.CompletedTask;
+                });
             _lblStatus.Text = result.Message;
             _lblStatus.TextColor = result.Success ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
             UpdateLastSyncLabel();

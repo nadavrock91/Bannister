@@ -176,7 +176,12 @@ public class SyncService
     /// Closes the current connection, replaces the file, and the next GetConnectionAsync
     /// will reopen with the fresh data.
     /// </summary>
-    public async Task<SyncResult> DownloadAsync()
+    public Task<SyncResult> DownloadAsync() =>
+        DownloadAsync(null, null);
+
+    public async Task<SyncResult> DownloadAsync(
+        Func<Task>? beforeReplace,
+        Func<Task>? afterReplace)
     {
         var (url, headers) = await BuildRequestAsync();
         if (url == null) return Fail("Sync server is not configured.");
@@ -205,7 +210,7 @@ public class SyncService
                 return Fail("Server returned an empty file.");
 
             // Hand off to DatabaseService which closes the connection and atomically swaps.
-            await _db.ReplaceDatabaseFromAsync(tempPath);
+            await _db.ReplaceDatabaseFromAsync(tempPath, beforeReplace, afterReplace);
 
             _deviceMode.LastSyncUtc = DateTime.UtcNow;
             return new SyncResult

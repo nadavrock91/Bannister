@@ -665,7 +665,10 @@ namespace Bannister.Services
         ///
         /// Used by SyncService after downloading a fresh DB from the server.
         /// </summary>
-        public async Task ReplaceDatabaseFromAsync(string sourcePath)
+        public async Task ReplaceDatabaseFromAsync(
+            string sourcePath,
+            Func<Task>? beforeReplace = null,
+            Func<Task>? afterReplace = null)
         {
             if (!File.Exists(sourcePath))
                 throw new FileNotFoundException("Source database not found", sourcePath);
@@ -679,6 +682,9 @@ namespace Bannister.Services
                 _isInitialized = false;
             }
 
+            if (beforeReplace != null)
+                await beforeReplace();
+
             // Atomic-ish replace: write to a temp path then move into place
             string tempPath = DatabasePath + ".incoming";
             if (File.Exists(tempPath)) File.Delete(tempPath);
@@ -687,6 +693,9 @@ namespace Bannister.Services
             if (File.Exists(DatabasePath))
                 File.Delete(DatabasePath);
             File.Move(tempPath, DatabasePath);
+
+            if (afterReplace != null)
+                await afterReplace();
 
             System.Diagnostics.Debug.WriteLine("✓ Database file replaced from sync");
         }
