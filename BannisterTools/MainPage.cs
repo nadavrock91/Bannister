@@ -5,6 +5,11 @@ namespace BannisterTools;
 
 public class MainPage : ContentPage
 {
+#if WINDOWS
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+#endif
+
     private readonly DatabaseService _db;
     private readonly SyncService _sync;
     private readonly DailyDeadlineService _deadlineService;
@@ -71,6 +76,25 @@ public class MainPage : ContentPage
             HorizontalOptions = LayoutOptions.Fill
         };
 
+        var minimizeButton = new Button
+        {
+            Text = "—", FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            WidthRequest = 38, HeightRequest = 36, Padding = 0,
+            CornerRadius = 6,
+            BackgroundColor = Color.FromArgb("#E0E0E0"),
+            TextColor = Color.FromArgb("#333333"),
+            HorizontalOptions = LayoutOptions.End
+        };
+        minimizeButton.Clicked += (_, _) =>
+        {
+#if WINDOWS
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(
+                (Application.Current!.Windows[0].Handler!.PlatformView as Microsoft.UI.Xaml.Window)!);
+            ShowWindow(hwnd, 2); // SW_SHOWMINIMIZED = 2
+#endif
+        };
+
         var closeButton = new Button
         {
             Text = "X", FontSize = 16,
@@ -88,8 +112,10 @@ public class MainPage : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
-            }
+            },
+            ColumnSpacing = 4
         };
         header.Add(new Label
         {
@@ -98,7 +124,8 @@ public class MainPage : ContentPage
             TextColor = Color.FromArgb("#222222"),
             VerticalOptions = LayoutOptions.Center
         }, 0, 0);
-        header.Add(closeButton, 1, 0);
+        header.Add(minimizeButton, 1, 0);
+        header.Add(closeButton, 2, 0);
 
         var timerButtons = new HorizontalStackLayout
         {
