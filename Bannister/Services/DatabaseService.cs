@@ -37,7 +37,14 @@ namespace Bannister.Services
         /// <summary>
         /// Get the database file path
         /// </summary>
-        public static string DatabasePath => Path.Combine(FileSystem.AppDataDirectory, "bannister.db");
+        private static string? _databasePathOverride;
+
+        public static void SetDatabasePathOverride(string path) =>
+            _databasePathOverride = path;
+
+        public static string DatabasePath =>
+            _databasePathOverride ??
+            Path.Combine(FileSystem.AppDataDirectory, "bannister.db");
 
         /// <summary>
         /// Path for the old unencrypted database (used during migration)

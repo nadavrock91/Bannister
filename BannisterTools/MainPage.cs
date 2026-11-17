@@ -35,6 +35,9 @@ public class MainPage : ContentPage
         ResetTimeService resetTime,
         LoginMaster loginMaster)
     {
+#if WINDOWS
+        DatabaseService.SetDatabasePathOverride(ResolveBannisterDbPath());
+#endif
         _db = db;
         _sync = sync;
         _deadlineService = deadlineService;
@@ -244,6 +247,28 @@ public class MainPage : ContentPage
 #endif
 
         Content = new ScrollView { Content = layout };
+    }
+
+    private static string ResolveBannisterDbPath()
+    {
+        // On Windows, Bannister (packaged/MSIX) stores its DB under:
+        // %LOCALAPPDATA%\Packages\com.bannister.app_<hash>\LocalState\bannister.db
+        // BannisterTools is unpackaged, so FileSystem.AppDataDirectory points elsewhere.
+        // We find the correct path by searching the Packages folder.
+        string localAppData = Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData);
+        string packagesDir = Path.Combine(localAppData, "Packages");
+        if (Directory.Exists(packagesDir))
+        {
+            foreach (var dir in Directory.GetDirectories(packagesDir, "com.bannister.app_*"))
+            {
+                var candidate = Path.Combine(dir, "LocalState", "bannister.db");
+                if (File.Exists(candidate))
+                    return candidate;
+            }
+        }
+
+        return DatabaseService.DatabasePath;
     }
 
     private static Button MakeButton(string text, string color) => new()
