@@ -150,6 +150,71 @@ public static class DailyDeadlineViewHelper
         });
     }
 
+    public static Task<View> BuildPossibleRowAsync(
+        DailyDeadlineItem item,
+        Activity? activity,
+        bool isFull,
+        DailyDeadlineService service,
+        string username,
+        Func<Task> reload,
+        bool stackButtons = false)
+    {
+        var colDefs = stackButtons
+            ? new ColumnDefinitionCollection
+              {
+                  new ColumnDefinition(GridLength.Star)
+              }
+            : new ColumnDefinitionCollection
+              {
+                  new ColumnDefinition(GridLength.Star),
+                  new ColumnDefinition(GridLength.Auto),
+                  new ColumnDefinition(GridLength.Auto)
+              };
+
+        var row = new Grid { ColumnDefinitions = colDefs, ColumnSpacing = 6, Padding = new Thickness(8) };
+
+        if (activity == null)
+        {
+            row.BackgroundColor = Color.FromArgb("#F0F0F0");
+            row.Add(new Label { Text = "Activity not found", TextColor = Color.FromArgb("#888"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+            if (!stackButtons)
+            {
+                var missingDel = MakeDeleteButton(item, async i => { await service.DeleteItemAsync(i.Id); await reload(); });
+                row.Add(missingDel, 1, 0);
+            }
+            return Task.FromResult<View>(new Border { Content = row, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#F0F0F0") });
+        }
+
+        var moveBtn = new Button
+        {
+            Text = "Move to Active",
+            IsEnabled = !isFull,
+            FontSize = 11,
+            Padding = new Thickness(8, 0),
+            HeightRequest = 34,
+            BackgroundColor = Color.FromArgb("#E3F2FD"),
+            TextColor = Color.FromArgb("#1565C0")
+        };
+        moveBtn.Clicked += async (_, _) => { item.IsActive = true; await service.SaveItemAsync(item); await reload(); };
+
+        var delBtn = MakeDeleteButton(item, async i => { await service.DeleteItemAsync(i.Id); await reload(); });
+
+        if (stackButtons)
+        {
+            var btnRow = new HorizontalStackLayout { Spacing = 6, Children = { moveBtn, delBtn } };
+            var stack = new VerticalStackLayout { Spacing = 4, Children = { BuildActivityVisual(activity), btnRow } };
+            row.Add(stack, 0, 0);
+        }
+        else
+        {
+            row.Add(BuildActivityVisual(activity), 0, 0);
+            row.Add(moveBtn, 1, 0);
+            row.Add(delBtn, 2, 0);
+        }
+
+        return Task.FromResult<View>(new Border { Content = row, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = Colors.White });
+    }
+
     public static View BuildActivityVisual(Activity? activity)
     {
         if (activity == null)
