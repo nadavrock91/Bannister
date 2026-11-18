@@ -20,7 +20,7 @@ public class MainPage : ContentPage
     private readonly Entry _minutesEntry;
     private readonly VerticalStackLayout _deadlineList;
     private readonly Label _greetingLabel;
-    private readonly Grid _mainContent;
+    private VerticalStackLayout _mainContent = null!;
     private readonly VerticalStackLayout _homePanel;
     private readonly VerticalStackLayout _timerPanel;
     private readonly VerticalStackLayout _deadlinePanel;
@@ -325,21 +325,17 @@ public class MainPage : ContentPage
             _homePanel.IsVisible = true;
         };
 
-        _mainContent = new Grid
+        _mainContent = new VerticalStackLayout
         {
             IsVisible = false,
-            RowDefinitions =
+            Spacing = 0,
+            Children =
             {
-                new RowDefinition(GridLength.Star)
-            },
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star)
+                _homePanel,
+                _timerPanel,
+                _deadlinePanel
             }
         };
-        _mainContent.Add(_homePanel, 0, 0);
-        _mainContent.Add(_timerPanel, 0, 0);
-        _mainContent.Add(_deadlinePanel, 0, 0);
 
         var layout = new VerticalStackLayout
         {
