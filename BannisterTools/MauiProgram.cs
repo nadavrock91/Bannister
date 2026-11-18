@@ -53,6 +53,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<DatabaseService>();
         builder.Services.AddSingleton<ResetTimeService>();
         builder.Services.AddSingleton<DailyDeadlineService>();
+        builder.Services.AddSingleton<GameService>();
+        builder.Services.AddSingleton<PrivacyModeService>();
         builder.Services.AddSingleton<LoginMaster>();
         builder.Services.AddSingleton<SyncService>();
         builder.Services.AddTransient<MainPage>();

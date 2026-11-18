@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using Bannister.Views;
 
 namespace BannisterTools;
 
@@ -12,18 +13,16 @@ public class MainPage : ContentPage
 
     private readonly DatabaseService _db;
     private readonly SyncService _sync;
-    private readonly DailyDeadlineService _deadlineService;
-    private readonly ResetTimeService _resetTime;
     private readonly LoginMaster _loginMaster;
     private readonly Label _timerLabel;
     private readonly Label _timerStatusLabel;
     private readonly Entry _minutesEntry;
-    private readonly VerticalStackLayout _deadlineList;
     private readonly Label _greetingLabel;
     private VerticalStackLayout _mainContent = null!;
     private readonly VerticalStackLayout _homePanel;
     private readonly VerticalStackLayout _timerPanel;
     private readonly VerticalStackLayout _deadlinePanel;
+    private readonly DailyDeadlinesView _dailyDeadlinesView;
     private Entry _usernameEntry = null!;
     private Entry _loginPasswordEntry = null!;
     private Label _loginErrorLabel = null!;
@@ -40,6 +39,8 @@ public class MainPage : ContentPage
         SyncService sync,
         DailyDeadlineService deadlineService,
         ResetTimeService resetTime,
+        PrivacyModeService privacyMode,
+        GameService games,
         LoginMaster loginMaster)
     {
 #if WINDOWS
@@ -47,8 +48,6 @@ public class MainPage : ContentPage
 #endif
         _db = db;
         _sync = sync;
-        _deadlineService = deadlineService;
-        _resetTime = resetTime;
         _loginMaster = loginMaster;
         Title = "BannisterTools";
         BackgroundColor = Color.FromArgb("#CCF5F5F5");
@@ -273,7 +272,6 @@ public class MainPage : ContentPage
             }
         };
 
-        _deadlineList = new VerticalStackLayout { Spacing = 6 };
         var deadlineHomeButton = new Button
         {
             Text = "← Home",
@@ -285,11 +283,15 @@ public class MainPage : ContentPage
             Padding = new Thickness(10, 0),
             HorizontalOptions = LayoutOptions.Start
         };
-        var deadlineScroll = new ScrollView
-        {
-            Content = _deadlineList,
-            VerticalOptions = LayoutOptions.Fill
-        };
+        _dailyDeadlinesView = new DailyDeadlinesView(
+            () => _username,
+            deadlineService,
+            resetTime,
+            db,
+            privacyMode,
+            games,
+            compact: true,
+            showAlert: (title, message) => DisplayAlert(title, message, "OK"));
         _deadlinePanel = new VerticalStackLayout
         {
             Spacing = 8,
@@ -297,14 +299,7 @@ public class MainPage : ContentPage
             Children =
             {
                 deadlineHomeButton,
-                new Label
-                {
-                    Text = "Daily Deadlines",
-                    FontSize = 18,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222222")
-                },
-                deadlineScroll
+                _dailyDeadlinesView
             }
         };
 
@@ -317,7 +312,7 @@ public class MainPage : ContentPage
         {
             _homePanel.IsVisible = false;
             _deadlinePanel.IsVisible = true;
-            await LoadDeadlinesAsync();
+            await _dailyDeadlinesView.ActivateAsync(showAlerts: true);
         };
         timerHomeButton.Clicked += (_, _) =>
         {
@@ -326,6 +321,7 @@ public class MainPage : ContentPage
         };
         deadlineHomeButton.Clicked += (_, _) =>
         {
+            _dailyDeadlinesView.Deactivate();
             _deadlinePanel.IsVisible = false;
             _homePanel.IsVisible = true;
         };
@@ -521,73 +517,5 @@ public class MainPage : ContentPage
         _deadlinePanel.IsVisible = false;
         _mainContent.IsVisible = true;
     }
-
-    private async Task LoadDeadlinesAsync()
-    {
-        _deadlineList.Children.Clear();
-        if (string.IsNullOrWhiteSpace(_username))
-        {
-            _deadlineList.Children.Add(new Label
-            {
-                Text = "No active deadlines",
-                TextColor = Color.FromArgb("#666666")
-            });
-            return;
-        }
-
-        var active = await _deadlineService.GetActiveItemsAsync(_username);
-        var log = await _deadlineService.GetCurrentLogAsync(_username);
-        var completedIds = ParseIds(log?.CompletedItemIds);
-        if (active.Count == 0)
-        {
-            _deadlineList.Children.Add(new Label
-            {
-                Text = "No active deadlines",
-                TextColor = Color.FromArgb("#666666")
-            });
-            return;
-        }
-
-        var conn = await _db.GetConnectionAsync();
-        foreach (var item in active)
-        {
-            var activity = await conn.Table<Activity>()
-                .Where(a => a.Id == item.ActivityId)
-                .FirstOrDefaultAsync();
-            var row = await DailyDeadlineViewHelper.BuildRowAsync(
-                item,
-                activity,
-                completedIds,
-                _deadlineService,
-                _resetTime,
-                _username,
-                LoadDeadlinesAsync,
-                new DailyDeadlineRowOptions
-                {
-                    ShowMoveButton = true,
-                    ShowDeleteButton = true,
-                    StackButtons = true,
-                    OnMove = async i =>
-                    {
-                        i.IsActive = false;
-                        await _deadlineService.SaveItemAsync(i);
-                        await LoadDeadlinesAsync();
-                    },
-                    OnDelete = async i =>
-                    {
-                        await _deadlineService.DeleteItemAsync(i.Id);
-                        await LoadDeadlinesAsync();
-                    }
-                });
-            _deadlineList.Children.Add(row);
-        }
-    }
-
-    private static HashSet<int> ParseIds(string? value) =>
-        (value ?? "")
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(part => int.TryParse(part, out var id) ? id : 0)
-            .Where(id => id > 0)
-            .ToHashSet();
 
 }
