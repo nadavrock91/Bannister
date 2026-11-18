@@ -43,7 +43,7 @@ public static class MauiProgram
                     Microsoft.UI.Windowing.OverlappedPresenter presenter)
                 {
                     presenter.IsAlwaysOnTop = true;
-                    presenter.SetBorderAndTitleBar(false, false);
+                    presenter.SetBorderAndTitleBar(true, true);
                 }
             }));
         });
