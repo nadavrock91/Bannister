@@ -19,6 +19,7 @@ public class MainPage : ContentPage
     private readonly Label _timerStatusLabel;
     private readonly Entry _minutesEntry;
     private readonly VerticalStackLayout _deadlineList;
+    private ScrollView _scrollView = null!;
     private readonly Label _greetingLabel;
     private VerticalStackLayout _mainContent = null!;
     private readonly VerticalStackLayout _homePanel;
@@ -347,7 +348,8 @@ public class MainPage : ContentPage
             }
         };
 
-        Content = new ScrollView { Content = layout };
+        _scrollView = new ScrollView { Content = layout };
+        Content = _scrollView;
     }
 
     private static string ResolveBannisterDbPath()
@@ -576,6 +578,8 @@ public class MainPage : ContentPage
                 });
             _deadlineList.Children.Add(row);
         }
+
+        ((Microsoft.Maui.IView)_scrollView).InvalidateMeasure();
     }
 
     private static HashSet<int> ParseIds(string? value) =>
