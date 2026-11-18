@@ -19,7 +19,6 @@ public class MainPage : ContentPage
     private readonly Label _timerStatusLabel;
     private readonly Entry _minutesEntry;
     private readonly VerticalStackLayout _deadlineList;
-    private ScrollView _scrollView = null!;
     private readonly Label _greetingLabel;
     private VerticalStackLayout _mainContent = null!;
     private readonly VerticalStackLayout _homePanel;
@@ -286,6 +285,11 @@ public class MainPage : ContentPage
             Padding = new Thickness(10, 0),
             HorizontalOptions = LayoutOptions.Start
         };
+        var deadlineScroll = new ScrollView
+        {
+            Content = _deadlineList,
+            VerticalOptions = LayoutOptions.Fill
+        };
         _deadlinePanel = new VerticalStackLayout
         {
             Spacing = 8,
@@ -300,7 +304,7 @@ public class MainPage : ContentPage
                     FontAttributes = FontAttributes.Bold,
                     TextColor = Color.FromArgb("#222222")
                 },
-                _deadlineList
+                deadlineScroll
             }
         };
 
@@ -348,8 +352,7 @@ public class MainPage : ContentPage
             }
         };
 
-        _scrollView = new ScrollView { Content = layout };
-        Content = _scrollView;
+        Content = new ScrollView { Content = layout };
     }
 
     private static string ResolveBannisterDbPath()
@@ -578,8 +581,6 @@ public class MainPage : ContentPage
                 });
             _deadlineList.Children.Add(row);
         }
-
-        ((Microsoft.Maui.IView)_scrollView).InvalidateMeasure();
     }
 
     private static HashSet<int> ParseIds(string? value) =>
