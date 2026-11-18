@@ -873,6 +873,28 @@ public class SyncSettingsPage : ContentPage
 
             if (result.Success)
             {
+                var sessionUsername = await SecureStorage.GetAsync("session_user");
+                var sessionPassword = await SecureStorage.GetAsync("session_password");
+
+                bool reauthenticated = false;
+                if (!string.IsNullOrEmpty(sessionUsername) &&
+                    !string.IsNullOrEmpty(sessionPassword))
+                {
+                    reauthenticated = await _auth.LoginAsync(sessionUsername, sessionPassword);
+                    if (!reauthenticated)
+                    {
+                        SecureStorage.Remove("session_user");
+                        SecureStorage.Remove("session_password");
+                    }
+                }
+
+                if (!reauthenticated)
+                {
+                    await Shell.Current.GoToAsync("//login");
+                    return;
+                }
+
+                // Re-authentication succeeded; remain on the current sync settings page.
                 _deviceMode.LastDownloadUtc = DateTime.UtcNow;
                 UpdateLastOperationLabel();
                 var counter = await _syncCounter.IncrementAsync(await GetSyncUsernameAsync());
