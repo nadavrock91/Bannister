@@ -113,7 +113,7 @@ public class MainPage : ContentPage
             }
 
             await Navigation.PushModalAsync(
-                new TimedPopupsPage(_timedPopups, _username));
+                new TimedPopupsPage(_timedPopups, _appSettings, _username));
         };
 
         var header = new Grid

@@ -6,7 +6,9 @@ namespace BannisterTools;
 public class TimedPopupsPage : ContentPage
 {
     private readonly TimedPopupService _service;
+    private readonly AppSettingsService _appSettings;
     private readonly string _username;
+    private TimeSpan? _sleepTime;
     private readonly VerticalStackLayout _popupList = new() { Spacing = 8 };
     private readonly VerticalStackLayout _addForm = new() { Spacing = 8, IsVisible = false };
     private readonly Entry _labelEntry = new() { Placeholder = "Popup text" };
@@ -27,6 +29,11 @@ public class TimedPopupsPage : ContentPage
         Keyboard = Keyboard.Text,
         Text = "0"
     };
+    private readonly Label _computedTimeLabel = new()
+    {
+        FontSize = 12,
+        TextColor = Color.FromArgb("#1565C0")
+    };
     private readonly Label _offsetHelp = new()
     {
         Text = "Use a negative number for minutes before sleep, or positive for after.",
@@ -34,9 +41,13 @@ public class TimedPopupsPage : ContentPage
         TextColor = Color.FromArgb("#666")
     };
 
-    public TimedPopupsPage(TimedPopupService service, string username)
+    public TimedPopupsPage(
+        TimedPopupService service,
+        AppSettingsService appSettings,
+        string username)
     {
         _service = service;
+        _appSettings = appSettings;
         _username = username;
         Title = "Timed Popups";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -67,10 +78,12 @@ public class TimedPopupsPage : ContentPage
         saveButton.Clicked += async (_, _) => await AddPopupAsync();
 
         _modePicker.SelectedIndexChanged += (_, _) => UpdateModeVisibility();
+        _offsetEntry.TextChanged += (_, _) => UpdateComputedTimeLabel();
         _addForm.Children.Add(_labelEntry);
         _addForm.Children.Add(_modePicker);
         _addForm.Children.Add(_absoluteTimePicker);
         _addForm.Children.Add(_offsetEntry);
+        _addForm.Children.Add(_computedTimeLabel);
         _addForm.Children.Add(_offsetHelp);
         _addForm.Children.Add(saveButton);
         UpdateModeVisibility();
@@ -101,7 +114,31 @@ public class TimedPopupsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await LoadSleepTimeAsync();
         await LoadAsync();
+    }
+
+    private async Task LoadSleepTimeAsync()
+    {
+        string? value = await _appSettings.GetAsync(_username, "sleep_time");
+        _sleepTime = TimeSpan.TryParseExact(
+            value, @"hh\:mm", null, out var parsedSleepTime)
+            ? parsedSleepTime
+            : null;
+        UpdateComputedTimeLabel();
+    }
+
+    private void UpdateComputedTimeLabel()
+    {
+        if (!_sleepTime.HasValue)
+        {
+            _computedTimeLabel.Text = "No sleep time set";
+            return;
+        }
+
+        _computedTimeLabel.Text = int.TryParse(_offsetEntry.Text, out int offsetMinutes)
+            ? $"Fires at {DateTime.Today.Add(_sleepTime.Value).AddMinutes(offsetMinutes):HH:mm}"
+            : "Fires at --:--";
     }
 
     private void UpdateModeVisibility()
@@ -109,6 +146,7 @@ public class TimedPopupsPage : ContentPage
         bool absolute = _modePicker.SelectedIndex != 1;
         _absoluteTimePicker.IsVisible = absolute;
         _offsetEntry.IsVisible = !absolute;
+        _computedTimeLabel.IsVisible = !absolute;
         _offsetHelp.IsVisible = !absolute;
     }
 
@@ -208,14 +246,23 @@ public class TimedPopupsPage : ContentPage
         }
     }
 
-    private static string FormatTime(TimedPopup popup)
+    private string FormatTime(TimedPopup popup)
     {
         if (!string.Equals(popup.TimeMode, "relative", StringComparison.OrdinalIgnoreCase))
             return $"At {popup.AbsoluteTime}";
-        if (popup.OffsetMinutes == 0)
-            return "At sleep time";
-        return popup.OffsetMinutes < 0
+
+        string description = popup.OffsetMinutes == 0
+            ? "At sleep time"
+            : popup.OffsetMinutes < 0
             ? $"{Math.Abs(popup.OffsetMinutes)} minutes before sleep time"
             : $"{popup.OffsetMinutes} minutes after sleep time";
+        if (!_sleepTime.HasValue)
+            return description;
+
+        string fireTime = DateTime.Today
+            .Add(_sleepTime.Value)
+            .AddMinutes(popup.OffsetMinutes)
+            .ToString("HH:mm");
+        return $"{description} (At {fireTime})";
     }
 }
