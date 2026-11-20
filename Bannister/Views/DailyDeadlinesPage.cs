@@ -84,6 +84,33 @@ public class DailyDeadlinesPage : ContentPage
         var items = await _service.GetItemsWithActivitiesAsync(username);
         var active = items.Where(i => i.IsActive).ToList();
         var possible = items.Where(i => !i.IsActive).ToList();
+        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+
+        async Task<List<DailyDeadlineItem>> FilterForDisplayModeAsync(
+            IEnumerable<DailyDeadlineItem> source)
+        {
+            var visible = new List<DailyDeadlineItem>();
+            foreach (var item in source)
+            {
+                var activity = await ResolveActivityAsync(item);
+                if (activity == null || displayMode switch
+                    {
+                        ActivityDisplayMode.PublicOnly =>
+                            activity.ActivityVisibility == 1 || activity.ActivityVisibility == 2,
+                        ActivityDisplayMode.PrivateOnly =>
+                            activity.ActivityVisibility == 0 || activity.ActivityVisibility == 2,
+                        _ => true
+                    })
+                {
+                    visible.Add(item);
+                }
+            }
+
+            return visible;
+        }
+
+        var visibleActive = await FilterForDisplayModeAsync(active);
+        var visiblePossible = await FilterForDisplayModeAsync(possible);
         _usedDeadlineActivityIds = items.Select(i => i.ActivityId).ToHashSet();
         _currentActiveCount = active.Count;
         _currentAllowance = state.Allowance;
@@ -118,7 +145,21 @@ public class DailyDeadlinesPage : ContentPage
         activeHeader.Add(new Label { Text = "Done", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#555"), WidthRequest = 60 }, 0, 0);
         activeHeader.Add(new Label { Text = "Deadline", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#555") }, 1, 0);
         activeStack.Children.Add(activeHeader);
-        foreach (var item in active.OrderBy(i => completedIds.Contains(i.Id) ? 1 : 0).ThenBy(i => i.SortOrder))
+        if (displayMode != ActivityDisplayMode.All)
+        {
+            int visibleCompleted = completedIds.Count(id =>
+                visibleActive.Any(item => item.Id == id));
+            int totalCompleted = completedIds.Count;
+            activeStack.Children.Add(new Label
+            {
+                Text = $"{visibleCompleted} / {visibleActive.Count} shown   ({totalCompleted} / {active.Count} total)",
+                TextColor = Color.FromArgb("#FF6600"),
+                FontAttributes = FontAttributes.Bold,
+                FontSize = 13,
+                Margin = new Thickness(0, 0, 0, 6)
+            });
+        }
+        foreach (var item in visibleActive.OrderBy(i => completedIds.Contains(i.Id) ? 1 : 0).ThenBy(i => i.SortOrder))
             activeStack.Children.Add(await BuildActiveRowAsync(item, completedIds));
         if (active.Count > 0 && active.All(i => completedIds.Contains(i.Id)))
             activeStack.Children.Add(new Label { Text = "✓ All done!", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32"), BackgroundColor = Color.FromArgb("#E8F5E9"), Padding = 10 });
@@ -129,7 +170,7 @@ public class DailyDeadlinesPage : ContentPage
 
         var possibleStack = new VerticalStackLayout { Spacing = 6 };
         possibleStack.Children.Add(new Label { Text = "Possible", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
-        foreach (var item in possible)
+        foreach (var item in visiblePossible)
             possibleStack.Children.Add(await BuildPossibleRowAsync(item, active.Count >= state.Allowance));
         _content.Children.Add(Card(possibleStack));
     }
