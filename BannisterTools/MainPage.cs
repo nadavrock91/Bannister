@@ -52,6 +52,8 @@ public class MainPage : ContentPage
     {
 #if WINDOWS
         DatabaseService.SetDatabasePathOverride(ResolveBannisterDbPath());
+        DailyDeadlineViewHelper.SetImageBaseDirOverride(
+            ResolveBannisterImagesPath());
 #endif
         _db = db;
         _sync = sync;
@@ -426,6 +428,13 @@ public class MainPage : ContentPage
         }
 
         return DatabaseService.DatabasePath;
+    }
+
+    private static string ResolveBannisterImagesPath()
+    {
+        string databasePath = ResolveBannisterDbPath();
+        string? localStateDirectory = Path.GetDirectoryName(databasePath);
+        return localStateDirectory ?? FileSystem.AppDataDirectory;
     }
 
     private static Button MakeButton(string text, string color) => new()

@@ -16,6 +16,11 @@ public class DailyDeadlineRowOptions
 
 public static class DailyDeadlineViewHelper
 {
+    private static string? _imageBaseDirOverride;
+
+    public static void SetImageBaseDirOverride(string path) =>
+        _imageBaseDirOverride = path;
+
     public static async Task SetCompletedAsync(
         DailyDeadlineItem item,
         bool isCompleted,
@@ -224,8 +229,8 @@ public static class DailyDeadlineViewHelper
             if (!string.IsNullOrWhiteSpace(activity.ImagePath))
             {
                 string path = Path.IsPathRooted(activity.ImagePath)
-                    ? (File.Exists(activity.ImagePath) ? activity.ImagePath : Path.Combine(FileSystem.AppDataDirectory, "ActivityImages", Path.GetFileName(activity.ImagePath)))
-                    : Path.Combine(FileSystem.AppDataDirectory, "ActivityImages", activity.ImagePath);
+                    ? (File.Exists(activity.ImagePath) ? activity.ImagePath : Path.Combine(_imageBaseDirOverride ?? FileSystem.AppDataDirectory, "ActivityImages", Path.GetFileName(activity.ImagePath)))
+                    : Path.Combine(_imageBaseDirOverride ?? FileSystem.AppDataDirectory, "ActivityImages", activity.ImagePath);
                 if (File.Exists(path))
                     return new Image { Source = ImageSource.FromFile(path), HeightRequest = 50, WidthRequest = 50, Aspect = Aspect.AspectFit, HorizontalOptions = LayoutOptions.Start };
             }
