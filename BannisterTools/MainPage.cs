@@ -116,11 +116,48 @@ public class MainPage : ContentPage
         };
         closeButton.Clicked += (_, _) => Application.Current?.Quit();
 
+        var menuButton = new Button
+        {
+            Text = "⋮",
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            BackgroundColor = Color.FromArgb("#FBC02D"),
+            TextColor = Colors.White,
+            CornerRadius = 22,
+            WidthRequest = 44,
+            HeightRequest = 44,
+            Padding = new Thickness(0),
+            VerticalOptions = LayoutOptions.Center
+        };
+        menuButton.Clicked += async (_, _) =>
+        {
+            string action = await DisplayActionSheet(
+                "Menu",
+                "Cancel",
+                null,
+                "Manage Timed Popups");
+            if (action != "Manage Timed Popups")
+                return;
+
+            if (string.IsNullOrWhiteSpace(_username))
+            {
+                await DisplayAlert(
+                    "Login required",
+                    "Log in before managing timed popups.",
+                    "OK");
+                return;
+            }
+
+            await Navigation.PushModalAsync(
+                new TimedPopupsPage(_timedPopups, _username));
+        };
+
         var header = new Grid
         {
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto),
                 new ColumnDefinition(GridLength.Auto)
             },
@@ -134,7 +171,8 @@ public class MainPage : ContentPage
             VerticalOptions = LayoutOptions.Center
         }, 0, 0);
         header.Add(minimizeButton, 1, 0);
-        header.Add(closeButton, 2, 0);
+        header.Add(menuButton, 2, 0);
+        header.Add(closeButton, 3, 0);
 
         var timerButtons = new HorizontalStackLayout
         {
@@ -359,24 +397,6 @@ public class MainPage : ContentPage
                 header, _loginSection, _mainContent
             }
         };
-
-        var contextMenu = new MenuFlyout();
-        var manageTimedPopups = new MenuFlyoutItem
-        {
-            Text = "Manage Timed Popups"
-        };
-        manageTimedPopups.Clicked += async (_, _) =>
-        {
-            if (string.IsNullOrWhiteSpace(_username))
-            {
-                await DisplayAlert("Login required", "Log in before managing timed popups.", "OK");
-                return;
-            }
-
-            await Navigation.PushModalAsync(new TimedPopupsPage(_timedPopups, _username));
-        };
-        contextMenu.Add(manageTimedPopups);
-        FlyoutBase.SetContextFlyout(layout, contextMenu);
 
         Content = new ScrollView { Content = layout };
     }
