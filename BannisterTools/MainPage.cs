@@ -1,5 +1,6 @@
 using Bannister.Models;
 using Bannister.Services;
+using Bannister.Views;
 
 namespace BannisterTools;
 
@@ -11,16 +12,19 @@ public class MainPage : ContentPage
     private readonly ResetTimeService _resetTime;
     private readonly AppSettingsService _appSettings;
     private readonly TimedPopupService _timedPopups;
+    private readonly PrivacyModeService _privacyModeService;
+    private readonly GameService _gameService;
     private readonly LoginMaster _loginMaster;
     private readonly Label _timerLabel;
     private readonly Label _timerStatusLabel;
     private readonly Entry _minutesEntry;
-    private readonly VerticalStackLayout _deadlineList;
     private readonly Label _greetingLabel;
+    private readonly Button _displayModeButton;
     private readonly Grid _mainContent;
     private readonly VerticalStackLayout _homePanel;
     private readonly VerticalStackLayout _timerPanel;
     private readonly VerticalStackLayout _deadlinePanel;
+    private readonly DailyDeadlinesView _deadlineView;
     private Entry _usernameEntry = null!;
     private Entry _loginPasswordEntry = null!;
     private Label _loginErrorLabel = null!;
@@ -42,6 +46,8 @@ public class MainPage : ContentPage
         ResetTimeService resetTime,
         AppSettingsService appSettings,
         TimedPopupService timedPopups,
+        PrivacyModeService privacyModeService,
+        GameService gameService,
         LoginMaster loginMaster)
     {
 #if WINDOWS
@@ -53,6 +59,8 @@ public class MainPage : ContentPage
         _resetTime = resetTime;
         _appSettings = appSettings;
         _timedPopups = timedPopups;
+        _privacyModeService = privacyModeService;
+        _gameService = gameService;
         _loginMaster = loginMaster;
         Title = "BannisterTools";
         BackgroundColor = Color.FromArgb("#2D1B6B");
@@ -230,6 +238,28 @@ public class MainPage : ContentPage
             HorizontalTextAlignment = TextAlignment.Center,
             HorizontalOptions = LayoutOptions.Fill
         };
+        _displayModeButton = new Button
+        {
+            Text = "⚡ All",
+            FontSize = 12,
+            BackgroundColor = Colors.Transparent,
+            BorderColor = Colors.White,
+            BorderWidth = 1,
+            CornerRadius = 8,
+            HeightRequest = 44,
+            WidthRequest = 90,
+            Padding = new Thickness(6, 0),
+            HorizontalOptions = LayoutOptions.Center,
+            TextColor = Colors.White
+        };
+        _displayModeButton.Clicked += (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(_username))
+                return;
+
+            var mode = _privacyModeService.CycleMode(_username);
+            UpdateDisplayModeVisuals(mode);
+        };
         var timerNavButton = new Button
         {
             Text = "⏱ Timer",
@@ -253,6 +283,7 @@ public class MainPage : ContentPage
             Children =
             {
                 _greetingLabel,
+                _displayModeButton,
                 timerNavButton,
                 deadlinesNavButton
             }
@@ -282,7 +313,6 @@ public class MainPage : ContentPage
             }
         };
 
-        _deadlineList = new VerticalStackLayout { Spacing = 6 };
         var deadlineHomeButton = new Button
         {
             Text = "← Home",
@@ -294,6 +324,15 @@ public class MainPage : ContentPage
             Padding = new Thickness(10, 0),
             HorizontalOptions = LayoutOptions.Start
         };
+        _deadlineView = new DailyDeadlinesView(
+            getUsername: () => _username,
+            service: _deadlineService,
+            resetTime: _resetTime,
+            db: _db,
+            privacyMode: _privacyModeService,
+            games: _gameService,
+            compact: true,
+            showAlert: (title, msg) => DisplayAlert(title, msg, "OK"));
         _deadlinePanel = new VerticalStackLayout
         {
             Spacing = 8,
@@ -301,14 +340,7 @@ public class MainPage : ContentPage
             Children =
             {
                 deadlineHomeButton,
-                new Label
-                {
-                    Text = "Daily Deadlines",
-                    FontSize = 18,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222222")
-                },
-                _deadlineList
+                _deadlineView
             }
         };
 
@@ -321,7 +353,7 @@ public class MainPage : ContentPage
         {
             _homePanel.IsVisible = false;
             _deadlinePanel.IsVisible = true;
-            await LoadDeadlinesAsync();
+            await _deadlineView.ActivateAsync(false);
         };
         timerHomeButton.Clicked += (_, _) =>
         {
@@ -330,6 +362,7 @@ public class MainPage : ContentPage
         };
         deadlineHomeButton.Clicked += (_, _) =>
         {
+            _deadlineView.Deactivate();
             _deadlinePanel.IsVisible = false;
             _homePanel.IsVisible = true;
         };
@@ -402,6 +435,33 @@ public class MainPage : ContentPage
         FontSize = 12, HeightRequest = 36,
         Padding = new Thickness(10, 0)
     };
+
+    private void UpdateDisplayModeVisuals(ActivityDisplayMode mode)
+    {
+        switch (mode)
+        {
+            case ActivityDisplayMode.PublicOnly:
+                BackgroundColor = Color.FromArgb("#1A1A2E");
+                _displayModeButton.Text = " Public";
+                _displayModeButton.TextColor = Color.FromArgb("#00E5FF");
+                _displayModeButton.BorderColor = Color.FromArgb("#00E5FF");
+                break;
+
+            case ActivityDisplayMode.PrivateOnly:
+                BackgroundColor = Color.FromArgb("#2D0A4E");
+                _displayModeButton.Text = " Private";
+                _displayModeButton.TextColor = Color.FromArgb("#FFD700");
+                _displayModeButton.BorderColor = Color.FromArgb("#FFD700");
+                break;
+
+            default:
+                BackgroundColor = Color.FromArgb("#6B73FF");
+                _displayModeButton.Text = "⚡ All";
+                _displayModeButton.TextColor = Colors.White;
+                _displayModeButton.BorderColor = Colors.White;
+                break;
+        }
+    }
 
     private void StartTimer()
     {
@@ -490,6 +550,8 @@ public class MainPage : ContentPage
             if (user != null)
             {
                 _username = user.Username;
+                UpdateDisplayModeVisuals(
+                    _privacyModeService.GetDisplayMode(_username));
                 _loginSection.IsVisible = false;
                 _greetingLabel.Text = $"Welcome, {user.Username}";
                 _homePanel.IsVisible = true;
@@ -523,6 +585,8 @@ public class MainPage : ContentPage
 
         _loginErrorLabel.Text = "";
         _username = user.Username;
+        UpdateDisplayModeVisuals(
+            _privacyModeService.GetDisplayMode(_username));
         if (_rememberMeCheck.IsChecked)
         {
             await SecureStorage.SetAsync("tools_username", _username);
@@ -624,93 +688,5 @@ public class MainPage : ContentPage
             ? date.Add(absoluteTime)
             : null;
     }
-
-    private async Task LoadDeadlinesAsync()
-    {
-        _deadlineList.Children.Clear();
-        if (string.IsNullOrWhiteSpace(_username))
-        {
-            _deadlineList.Children.Add(new Label { Text = "No active deadlines", TextColor = Color.FromArgb("#666666") });
-            return;
-        }
-
-        var conn = await _db.GetConnectionAsync();
-        var allItems = await _deadlineService.GetItemsWithActivitiesAsync(_username);
-        var active = allItems.Where(i => i.IsActive).ToList();
-        var possible = allItems.Where(i => !i.IsActive).ToList();
-        var state = await _deadlineService.GetStateAsync(_username);
-        var log = await _deadlineService.GetCurrentLogAsync(_username);
-        var completedIds = ParseIds(log?.CompletedItemIds);
-        bool isFull = active.Count >= state.Allowance;
-
-        if (active.Count == 0 && possible.Count == 0)
-        {
-            _deadlineList.Children.Add(new Label { Text = "No active deadlines", TextColor = Color.FromArgb("#666666") });
-            return;
-        }
-
-        // Active section
-        _deadlineList.Children.Add(new Label
-        {
-            Text = "Today's Deadlines",
-            FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333333")
-        });
-        foreach (var item in active.OrderBy(i => completedIds.Contains(i.Id) ? 1 : 0).ThenBy(i => i.SortOrder))
-        {
-            var activity = await conn.Table<Activity>().Where(a => a.Id == item.ActivityId).FirstOrDefaultAsync();
-            var row = await DailyDeadlineViewHelper.BuildRowAsync(
-                item,
-                activity,
-                completedIds,
-                _deadlineService,
-                _resetTime,
-                _username,
-                LoadDeadlinesAsync,
-                new DailyDeadlineRowOptions
-                {
-                    ShowMoveButton = true,
-                    ShowDeleteButton = true,
-                    StackButtons = true,
-                    OnMove = async i => { i.IsActive = false; await _deadlineService.SaveItemAsync(i); await LoadDeadlinesAsync(); },
-                    OnDelete = async i => { await _deadlineService.DeleteItemAsync(i.Id); await LoadDeadlinesAsync(); }
-                });
-            _deadlineList.Children.Add(row);
-        }
-
-        // Possible section
-        if (possible.Count > 0)
-        {
-            _deadlineList.Children.Add(new Label
-            {
-                Text = "Possible",
-                FontSize = 15,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333333"),
-                Margin = new Thickness(0, 8, 0, 0)
-            });
-            foreach (var item in possible)
-            {
-                var activity = await conn.Table<Activity>().Where(a => a.Id == item.ActivityId).FirstOrDefaultAsync();
-                var row = await DailyDeadlineViewHelper.BuildPossibleRowAsync(
-                    item,
-                    activity,
-                    isFull,
-                    _deadlineService,
-                    _username,
-                    LoadDeadlinesAsync,
-                    stackButtons: true);
-                _deadlineList.Children.Add(row);
-            }
-        }
-    }
-
-    private static HashSet<int> ParseIds(string? value) =>
-        (value ?? "")
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(part => int.TryParse(part, out var id) ? id : 0)
-            .Where(id => id > 0)
-            .ToHashSet();
 
 }
