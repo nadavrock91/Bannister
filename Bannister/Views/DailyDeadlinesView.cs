@@ -100,6 +100,20 @@ public class DailyDeadlinesView : ContentView
         _content.Children.Clear();
         _content.Children.Add(new Label { Text = "Daily Deadlines", FontSize = 26, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
         _content.Children.Add(new Label { Text = $"Allowance: {state.Allowance} slots    Streak: {state.ConsecutiveStreak} / 3 days", FontSize = 15, TextColor = Color.FromArgb("#555") });
+        if (displayMode != ActivityDisplayMode.All)
+        {
+            int visibleCompleted = completedIds.Count(id =>
+                visibleActive.Any(item => item.Id == id));
+            int totalCompleted = completedIds.Count(id =>
+                active.Any(item => item.Id == id));
+            _content.Children.Add(new Label
+            {
+                Text = $"{visibleCompleted} / {visibleActive.Count} shown   ({totalCompleted} / {active.Count} total)",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#E65100"),
+                FontAttributes = FontAttributes.Bold
+            });
+        }
 
         if (active.Count > state.Allowance)
         {
