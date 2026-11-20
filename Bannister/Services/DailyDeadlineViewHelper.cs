@@ -219,13 +219,24 @@ public static class DailyDeadlineViewHelper
     {
         if (activity == null)
             return new Label { Text = "Unavailable activity", TextColor = Color.FromArgb("#999"), VerticalOptions = LayoutOptions.Center };
-        if (activity.IsImageOnly && !string.IsNullOrWhiteSpace(activity.ImagePath))
+        if (activity.IsImageOnly)
         {
-            string path = Path.IsPathRooted(activity.ImagePath)
-                ? (File.Exists(activity.ImagePath) ? activity.ImagePath : Path.Combine(FileSystem.AppDataDirectory, "ActivityImages", Path.GetFileName(activity.ImagePath)))
-                : Path.Combine(FileSystem.AppDataDirectory, "ActivityImages", activity.ImagePath);
-            if (File.Exists(path))
-                return new Image { Source = ImageSource.FromFile(path), HeightRequest = 50, WidthRequest = 50, Aspect = Aspect.AspectFit, HorizontalOptions = LayoutOptions.Start };
+            if (!string.IsNullOrWhiteSpace(activity.ImagePath))
+            {
+                string path = Path.IsPathRooted(activity.ImagePath)
+                    ? (File.Exists(activity.ImagePath) ? activity.ImagePath : Path.Combine(FileSystem.AppDataDirectory, "ActivityImages", Path.GetFileName(activity.ImagePath)))
+                    : Path.Combine(FileSystem.AppDataDirectory, "ActivityImages", activity.ImagePath);
+                if (File.Exists(path))
+                    return new Image { Source = ImageSource.FromFile(path), HeightRequest = 50, WidthRequest = 50, Aspect = Aspect.AspectFit, HorizontalOptions = LayoutOptions.Start };
+            }
+
+            return new BoxView
+            {
+                HeightRequest = 50,
+                WidthRequest = 50,
+                Color = Colors.Transparent,
+                HorizontalOptions = LayoutOptions.Start
+            };
         }
         return new Label { Text = activity.Name, FontSize = 14, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center };
     }
