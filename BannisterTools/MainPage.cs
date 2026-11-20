@@ -109,7 +109,24 @@ public class MainPage : ContentPage
                 "Menu",
                 "Cancel",
                 null,
-                "Manage Timed Popups");
+                "Manage Timed Popups",
+                "Log Out");
+
+            if (action == "Log Out")
+            {
+                if (string.IsNullOrWhiteSpace(_username))
+                    return;
+
+                bool confirmed = await DisplayAlert(
+                    "Log Out",
+                    "Log out of BannisterTools?",
+                    "Log Out",
+                    "Cancel");
+                if (confirmed)
+                    await LogOutAsync();
+                return;
+            }
+
             if (action != "Manage Timed Popups")
                 return;
 
@@ -613,6 +630,36 @@ public class MainPage : ContentPage
         _deadlinePanel.IsVisible = false;
         _mainContent.IsVisible = true;
         StartTimedPopupScheduler();
+    }
+
+    private async Task LogOutAsync()
+    {
+        _popupSchedulerCts?.Cancel();
+        _popupSchedulerCts?.Dispose();
+        _popupSchedulerCts = null;
+        _firedPopupIds.Clear();
+        _popupResetKey = "";
+
+        _deadlineView.Deactivate();
+        _timerRunning = false;
+
+        SecureStorage.Remove("tools_username");
+        SecureStorage.Remove("tools_password");
+
+        _username = "";
+        _usernameEntry.Text = "";
+        _loginPasswordEntry.Text = "";
+        _rememberMeCheck.IsChecked = false;
+        _loginErrorLabel.Text = "";
+        _greetingLabel.Text = "";
+
+        _homePanel.IsVisible = true;
+        _timerPanel.IsVisible = false;
+        _deadlinePanel.IsVisible = false;
+        _mainContent.IsVisible = false;
+        _loginSection.IsVisible = true;
+
+        await _db.CloseConnectionAndClearPasswordAsync();
     }
 
     private void StartTimedPopupScheduler()
