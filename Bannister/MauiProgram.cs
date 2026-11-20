@@ -79,6 +79,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<TruncatePresetService>();
         builder.Services.AddSingleton<ShortsCutterProjectService>();
         builder.Services.AddSingleton<AppSettingsService>();
+        builder.Services.AddSingleton<TimedPopupService>();
         builder.Services.AddSingleton<AssetLibraryService>();
         builder.Services.AddSingleton<AssetThumbnailService>();
         builder.Services.AddSingleton<MusicProductionService>();

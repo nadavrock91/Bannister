@@ -34,6 +34,7 @@ public class SettingsPage : ContentPage
     private Label _diceModeStatus;
     private bool _loadingSettings;
     private Picker _dailyResetPicker = null!;
+    private TimePicker _sleepTimePicker = null!;
     private Frame _syncDevicesSection = null!;
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup,
@@ -109,6 +110,12 @@ public class SettingsPage : ContentPage
             _loadingSettings = true;
             _dailyResetPicker.SelectedIndex =
                 await _resetTime.GetResetHour(_auth.CurrentUsername);
+            string? sleepTime = await _appSettings.GetAsync(
+                _auth.CurrentUsername, "sleep_time");
+            _sleepTimePicker.Time = TimeSpan.TryParseExact(
+                sleepTime, @"hh\:mm", null, out var parsedSleepTime)
+                ? parsedSleepTime
+                : TimeSpan.FromHours(22);
             _loadingSettings = false;
         }
     }
@@ -496,6 +503,37 @@ public class SettingsPage : ContentPage
                     _dailyResetPicker.SelectedIndex);
         };
         resetStack.Children.Add(_dailyResetPicker);
+
+        resetStack.Children.Add(new Label
+        {
+            Text = "Sleep Time",
+            FontSize = 15,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#333"),
+            Margin = new Thickness(0, 8, 0, 0)
+        });
+        resetStack.Children.Add(new Label
+        {
+            Text = "Used as the fixed reference time for scheduled reminders.",
+            FontSize = 12,
+            TextColor = Color.FromArgb("#666")
+        });
+        _sleepTimePicker = new TimePicker
+        {
+            Format = "HH:mm",
+            Time = TimeSpan.FromHours(22)
+        };
+        _sleepTimePicker.PropertyChanged += async (_, e) =>
+        {
+            if (e.PropertyName != nameof(TimePicker.Time) || _loadingSettings)
+                return;
+
+            await _appSettings.SetAsync(
+                _auth.CurrentUsername,
+                "sleep_time",
+                _sleepTimePicker.Time.ToString(@"hh\:mm"));
+        };
+        resetStack.Children.Add(_sleepTimePicker);
         resetSection.Content = resetStack;
         mainStack.Children.Add(resetSection);
 

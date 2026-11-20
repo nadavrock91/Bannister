@@ -29,7 +29,11 @@
   <ItemGroup>
     <Compile Include="..\Bannister\Models\**\*.cs" LinkBase="Models" />
     <Compile Remove="..\Bannister\Models\ExpModels.cs" />
+    <Compile Remove="..\Bannister\Models\TimedPopup.cs" />
+    <Compile Include="..\Bannister\Models\TimedPopup.cs" Link="Models\TimedPopup.cs" />
     <Compile Include="..\Bannister\Services\DatabaseService.cs" Link="Services\DatabaseService.cs" />
+    <Compile Include="..\Bannister\Services\AppSettingsService.cs" Link="Services\AppSettingsService.cs" />
+    <Compile Include="..\Bannister\Services\TimedPopupService.cs" Link="Services\TimedPopupService.cs" />
     <Compile Include="..\Bannister\Services\DailyDeadlineService.cs" Link="Services\DailyDeadlineService.cs" />
     <Compile Include="..\Bannister\Services\DailyDeadlineViewHelper.cs" Link="Services\DailyDeadlineViewHelper.cs" />
     <Compile Include="..\Bannister\Services\GameService.cs" Link="Services\GameService.cs" />

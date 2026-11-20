@@ -14,6 +14,8 @@ public class MainPage : ContentPage
     private readonly SyncService _sync;
     private readonly DailyDeadlineService _deadlineService;
     private readonly ResetTimeService _resetTime;
+    private readonly AppSettingsService _appSettings;
+    private readonly TimedPopupService _timedPopups;
     private readonly LoginMaster _loginMaster;
     private readonly Label _timerLabel;
     private readonly Label _timerStatusLabel;
@@ -34,12 +36,17 @@ public class MainPage : ContentPage
     private int _remainingSeconds = 25 * 60;
     private bool _timerRunning;
     private bool _countingUp;
+    private CancellationTokenSource? _popupSchedulerCts;
+    private readonly HashSet<int> _firedPopupIds = new();
+    private string _popupResetKey = "";
 
     public MainPage(
         DatabaseService db,
         SyncService sync,
         DailyDeadlineService deadlineService,
         ResetTimeService resetTime,
+        AppSettingsService appSettings,
+        TimedPopupService timedPopups,
         LoginMaster loginMaster)
     {
 #if WINDOWS
@@ -49,6 +56,8 @@ public class MainPage : ContentPage
         _sync = sync;
         _deadlineService = deadlineService;
         _resetTime = resetTime;
+        _appSettings = appSettings;
+        _timedPopups = timedPopups;
         _loginMaster = loginMaster;
         Title = "BannisterTools";
         BackgroundColor = Color.FromArgb("#CCF5F5F5");
@@ -351,6 +360,24 @@ public class MainPage : ContentPage
             }
         };
 
+        var contextMenu = new MenuFlyout();
+        var manageTimedPopups = new MenuFlyoutItem
+        {
+            Text = "Manage Timed Popups"
+        };
+        manageTimedPopups.Clicked += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(_username))
+            {
+                await DisplayAlert("Login required", "Log in before managing timed popups.", "OK");
+                return;
+            }
+
+            await Navigation.PushModalAsync(new TimedPopupsPage(_timedPopups, _username));
+        };
+        contextMenu.Add(manageTimedPopups);
+        FlyoutBase.SetContextFlyout(layout, contextMenu);
+
         Content = new ScrollView { Content = layout };
     }
 
@@ -478,6 +505,7 @@ public class MainPage : ContentPage
                 _deadlinePanel.IsVisible = false;
                 _mainContent.IsVisible = true;
                 _rememberMeCheck.IsChecked = true;
+                StartTimedPopupScheduler();
                 return;
             }
         }
@@ -519,6 +547,90 @@ public class MainPage : ContentPage
         _timerPanel.IsVisible = false;
         _deadlinePanel.IsVisible = false;
         _mainContent.IsVisible = true;
+        StartTimedPopupScheduler();
+    }
+
+    private void StartTimedPopupScheduler()
+    {
+        _popupSchedulerCts?.Cancel();
+        _popupSchedulerCts?.Dispose();
+        _popupSchedulerCts = new CancellationTokenSource();
+        var token = _popupSchedulerCts.Token;
+        _firedPopupIds.Clear();
+        _popupResetKey = "";
+
+        _ = Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    string resetKey = await _resetTime.GetTodayResetKey(_username);
+                    if (!string.Equals(_popupResetKey, resetKey, StringComparison.Ordinal))
+                    {
+                        _popupResetKey = resetKey;
+                        _firedPopupIds.Clear();
+                    }
+
+                    string? sleepValue = await _appSettings.GetAsync(_username, "sleep_time");
+                    TimeSpan? sleepTime = TimeSpan.TryParseExact(
+                        sleepValue, @"hh\:mm", null, out var parsedSleepTime)
+                        ? parsedSleepTime
+                        : null;
+                    var now = DateTime.Now;
+                    var popups = await _timedPopups.GetPopupsAsync(_username);
+
+                    foreach (var popup in popups)
+                    {
+                        if (_firedPopupIds.Contains(popup.Id))
+                            continue;
+
+                        DateTime? fireTime = GetPopupFireTime(popup, sleepTime, now.Date);
+                        if (!fireTime.HasValue || now < fireTime.Value ||
+                            now > fireTime.Value.AddSeconds(30))
+                            continue;
+
+                        _firedPopupIds.Add(popup.Id);
+                        await MainThread.InvokeOnMainThreadAsync(() =>
+                            DisplayAlert("Timed Popup", popup.Label, "OK"));
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Timed popup scheduler error: {ex.Message}");
+                }
+
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(30), token);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+        }, token);
+    }
+
+    private static DateTime? GetPopupFireTime(
+        TimedPopup popup,
+        TimeSpan? sleepTime,
+        DateTime date)
+    {
+        if (string.Equals(popup.TimeMode, "relative", StringComparison.OrdinalIgnoreCase))
+            return sleepTime.HasValue
+                ? date.Add(sleepTime.Value).AddMinutes(popup.OffsetMinutes)
+                : null;
+
+        return TimeSpan.TryParseExact(
+            popup.AbsoluteTime, @"hh\:mm", null, out var absoluteTime)
+            ? date.Add(absoluteTime)
+            : null;
     }
 
     private async Task LoadDeadlinesAsync()
