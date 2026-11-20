@@ -57,6 +57,41 @@ namespace Bannister.Views
             catch { }
         }
 
+        private void OnTogglePasswordVisibilityClicked(object sender, EventArgs e)
+        {
+            txtPassword.IsPassword = !txtPassword.IsPassword;
+            UpdatePasswordCharacterCount();
+        }
+
+        private void OnPasswordTextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdatePasswordCharacterCount();
+        }
+
+        private void UpdatePasswordCharacterCount()
+        {
+            bool isRevealed = !txtPassword.IsPassword;
+            lblPasswordCharacterCount.IsVisible = isRevealed;
+            if (!isRevealed)
+                return;
+
+            string password = txtPassword.Text ?? "";
+            char[] visibleCharacters = password.ToCharArray();
+            int leadingSpaces = password.Length - password.TrimStart(' ').Length;
+            int trailingSpaces = password.Length - password.TrimEnd(' ').Length;
+
+            for (int i = 0; i < leadingSpaces; i++)
+                visibleCharacters[i] = '·';
+
+            for (int i = password.Length - trailingSpaces; i < password.Length; i++)
+                visibleCharacters[i] = '·';
+
+            string visiblePassword = new string(visibleCharacters);
+            string noun = password.Length == 1 ? "character" : "characters";
+            lblPasswordCharacterCount.Text =
+                $"{password.Length} {noun}: {visiblePassword}";
+        }
+
         // Long-press handler for mobile - shows action sheet
         private async void OnLongPress(object sender, EventArgs e)
         {

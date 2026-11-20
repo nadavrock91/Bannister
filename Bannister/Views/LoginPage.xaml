@@ -36,12 +36,33 @@
                            TextColor="#222"
                            PlaceholderColor="#999"
                            BackgroundColor="#FFFFFF" />
-                    <Entry x:Name="txtPassword"
-                           Placeholder="Password"
-                           IsPassword="True"
-                           TextColor="#222"
-                           PlaceholderColor="#999"
-                           BackgroundColor="#FFFFFF" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <Entry x:Name="txtPassword"
+                               Grid.Column="0"
+                               Placeholder="Password"
+                               IsPassword="True"
+                               TextChanged="OnPasswordTextChanged"
+                               TextColor="#222"
+                               PlaceholderColor="#999"
+                               BackgroundColor="#FFFFFF" />
+                        <Button x:Name="btnTogglePasswordVisibility"
+                                Grid.Column="1"
+                                Text="👁"
+                                FontSize="16"
+                                WidthRequest="40"
+                                HeightRequest="40"
+                                Padding="0"
+                                VerticalOptions="Center"
+                                BackgroundColor="Transparent"
+                                TextColor="#555"
+                                Clicked="OnTogglePasswordVisibilityClicked" />
+                    </Grid>
+                    <Label x:Name="lblPasswordCharacterCount"
+                           IsVisible="False"
+                           FontSize="11"
+                           TextColor="#666"
+                           Margin="0,-12,0,0"
+                           LineBreakMode="CharacterWrap" />
 
                     <HorizontalStackLayout Spacing="8">
                         <CheckBox x:Name="chkRemember" Color="#6200EE" />
