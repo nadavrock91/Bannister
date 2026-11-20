@@ -55,7 +55,7 @@ public class MainPage : ContentPage
         _timedPopups = timedPopups;
         _loginMaster = loginMaster;
         Title = "BannisterTools";
-        BackgroundColor = Color.FromArgb("#CCF5F5F5");
+        BackgroundColor = Color.FromArgb("#2D1B6B");
 
         _timerLabel = new Label
         {
@@ -118,6 +118,8 @@ public class MainPage : ContentPage
 
         var header = new Grid
         {
+            BackgroundColor = Color.FromArgb("#2D1B6B"),
+            Padding = new Thickness(10, 8),
             ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
@@ -129,7 +131,7 @@ public class MainPage : ContentPage
         {
             Text = "BannisterTools", FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222222"),
+            TextColor = Colors.White,
             VerticalOptions = LayoutOptions.Center
         }, 0, 0);
         header.Add(menuButton, 1, 0);
@@ -224,7 +226,7 @@ public class MainPage : ContentPage
         _greetingLabel = new Label
         {
             FontSize = 16,
-            TextColor = Color.FromArgb("#666666"),
+            TextColor = Colors.White,
             HorizontalTextAlignment = TextAlignment.Center,
             HorizontalOptions = LayoutOptions.Fill
         };
@@ -348,17 +350,27 @@ public class MainPage : ContentPage
         _mainContent.Add(_timerPanel, 0, 0);
         _mainContent.Add(_deadlinePanel, 0, 0);
 
-        var layout = new VerticalStackLayout
+        var scrollContent = new VerticalStackLayout
         {
             Padding = 10, Spacing = 8, MaximumWidthRequest = 340,
             HorizontalOptions = LayoutOptions.Center,
             Children =
             {
-                header, _loginSection, _mainContent
+                _loginSection, _mainContent
             }
         };
 
-        Content = new ScrollView { Content = layout };
+        var root = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star)
+            }
+        };
+        root.Add(header, 0, 0);
+        root.Add(new ScrollView { Content = scrollContent }, 0, 1);
+        Content = root;
     }
 
     private static string ResolveBannisterDbPath()
