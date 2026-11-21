@@ -500,6 +500,7 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<HomeQuickAccessSetting>();
             await _db!.CreateTableAsync<HomeButtonVisibilitySetting>();
             await _db!.CreateTableAsync<DoNotItem>();
+            await _db!.CreateTableAsync<OpeningClipImageSessionItem>();
             await _db!.CreateTableAsync<ResetEnforcer>();
             await _db!.CreateTableAsync<ResetCondition>();
             await _db!.CreateTableAsync<EnforcerLevel>();

@@ -221,6 +221,7 @@ public static class MauiProgram
         builder.Services.AddTransient<TargetedHooksPage>();
         builder.Services.AddSingleton<DoNotService>();
         builder.Services.AddSingleton<ClipPromptTemplateService>();
+        builder.Services.AddSingleton<OpeningClipImageSessionService>();
         builder.Services.AddSingleton<ResetEnforcerService>();
         builder.Services.AddTransient<OpeningClipPromptPage>();
         builder.Services.AddTransient<GridCropperPage>();

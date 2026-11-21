@@ -9,6 +9,7 @@ public class OpeningClipPromptPage : ContentPage
     private readonly CustomPromptService _customPrompts;
     private readonly DoNotService _doNotService;
     private ClipPromptTemplateService? _templateService;
+    private OpeningClipImageSessionService? _imageSessionService;
 
     private const string Area = "OpeningClipPrompts";
     private const string FoundationStorageKey_Prefix = "opening_clip_foundation_";
@@ -38,6 +39,9 @@ public class OpeningClipPromptPage : ContentPage
 
     // Stage 5 — parsed prompts
     private VerticalStackLayout _promptsContainer = null!;
+    private VerticalStackLayout _sessionStripContainer = null!;
+    private VerticalStackLayout _activePromptImageContainer = null!;
+    private readonly List<OpeningClipImageSessionItem> _sessionItems = new();
 
     private readonly List<string> _parsedPrompts = new();
     private readonly List<string> _parsedTitles = new();
@@ -47,12 +51,14 @@ public class OpeningClipPromptPage : ContentPage
         AuthService auth,
         CustomPromptService customPrompts,
         DoNotService doNotService,
-        ClipPromptTemplateService? templateService = null)
+        ClipPromptTemplateService? templateService = null,
+        OpeningClipImageSessionService? imageSessionService = null)
     {
         _auth = auth;
         _customPrompts = customPrompts;
         _doNotService = doNotService;
         _templateService = templateService;
+        _imageSessionService = imageSessionService;
         Title = "Opening Clip Prompts";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -64,6 +70,7 @@ public class OpeningClipPromptPage : ContentPage
         await LoadFoundationAsync();
         await RefreshDoNotListAsync();
         await RefreshTemplateListAsync();
+        await RefreshImageSessionAsync();
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -104,7 +111,40 @@ public class OpeningClipPromptPage : ContentPage
         stack.Children.Insert(0, BuildStageCard(
             "Stage 0 — Prompt Templates", BuildStage0Content()));
 
+        stack.Children.Insert(0, BuildImageSessionSection());
         Content = new ScrollView { Content = stack };
+    }
+
+    private View BuildImageSessionSection()
+    {
+        var reset = new Button
+        {
+            Text = "Reset Session",
+            BackgroundColor = Color.FromArgb("#FFEBEE"),
+            TextColor = Color.FromArgb("#C62828"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            HorizontalOptions = LayoutOptions.Start,
+            Padding = new Thickness(12, 0)
+        };
+        reset.Clicked += async (_, _) => await ResetImageSessionAsync();
+        _sessionStripContainer = new VerticalStackLayout { Spacing = 8 };
+        return new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Image Session",
+                    FontSize = 17,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#222")
+                },
+                reset,
+                _sessionStripContainer
+            }
+        };
     }
 
     private View BuildStage0Content()
@@ -440,6 +480,8 @@ public class OpeningClipPromptPage : ContentPage
             FontSize = 12,
             TextColor = Color.FromArgb("#666")
         });
+        _activePromptImageContainer = new VerticalStackLayout { Spacing = 6 };
+        v.Children.Add(_activePromptImageContainer);
         _promptsContainer = new VerticalStackLayout { Spacing = 12 };
         v.Children.Add(_promptsContainer);
         return v;
@@ -763,8 +805,200 @@ public class OpeningClipPromptPage : ContentPage
     // ─────────────────────────────────────────────────────────────────
     // PASTE & PARSE
     // ─────────────────────────────────────────────────────────────────
+    private async Task RefreshImageSessionAsync()
+    {
+        _imageSessionService ??= Handler?.MauiContext?.Services
+            .GetService<OpeningClipImageSessionService>();
+        if (_imageSessionService == null) return;
+
+        _sessionItems.Clear();
+        _sessionItems.AddRange(await _imageSessionService.GetItemsAsync(
+            _auth.CurrentUsername));
+        RenderImageSessionStrip();
+        RenderActivePromptImage();
+    }
+
+    private void RenderImageSessionStrip()
+    {
+        if (_sessionStripContainer == null) return;
+        _sessionStripContainer.Children.Clear();
+        if (_sessionItems.Count == 0)
+        {
+            _sessionStripContainer.Children.Add(new Label
+            {
+                Text = "No images in this session",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#777"),
+                FontAttributes = FontAttributes.Italic
+            });
+            return;
+        }
+
+        var row = new HorizontalStackLayout { Spacing = 10 };
+        foreach (var item in _sessionItems)
+        {
+            string path = OpeningClipImageSessionService.ResolvePath(item.ImagePath);
+            var card = new Frame
+            {
+                WidthRequest = 116,
+                Padding = 6,
+                CornerRadius = 9,
+                HasShadow = false,
+                BackgroundColor = item.IsActive
+                    ? Color.FromArgb("#E8EAF6")
+                    : Colors.White,
+                BorderColor = item.IsActive
+                    ? Color.FromArgb("#5B63EE")
+                    : Color.FromArgb("#DDDDDD"),
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 4,
+                    Children =
+                    {
+                        new Image
+                        {
+                            Source = File.Exists(path)
+                                ? ImageSource.FromFile(path)
+                                : null,
+                            HeightRequest = 78,
+                            Aspect = Aspect.AspectFill
+                        },
+                        new Label
+                        {
+                            Text = $"{item.CopyCount} copied",
+                            FontSize = 11,
+                            FontAttributes = item.IsActive
+                                ? FontAttributes.Bold
+                                : FontAttributes.None,
+                            TextColor = item.IsActive
+                                ? Color.FromArgb("#3949AB")
+                                : Color.FromArgb("#666"),
+                            HorizontalTextAlignment = TextAlignment.Center
+                        }
+                    }
+                }
+            };
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += async (_, _) =>
+            {
+                if (_imageSessionService == null) return;
+                await _imageSessionService.SetActiveAsync(
+                    _auth.CurrentUsername, item.Id);
+                await RefreshImageSessionAsync();
+            };
+            card.GestureRecognizers.Add(tap);
+            row.Children.Add(card);
+        }
+        _sessionStripContainer.Children.Add(new ScrollView
+        {
+            Orientation = ScrollOrientation.Horizontal,
+            Content = row
+        });
+    }
+
+    private void RenderActivePromptImage()
+    {
+        if (_activePromptImageContainer == null) return;
+        _activePromptImageContainer.Children.Clear();
+        var active = _sessionItems.FirstOrDefault(item => item.IsActive);
+        if (active == null) return;
+
+        string path = OpeningClipImageSessionService.ResolvePath(active.ImagePath);
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(new GridLength(110)),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 12,
+            Padding = 8,
+            BackgroundColor = Color.FromArgb("#E8EAF6")
+        };
+        grid.Add(new Image
+        {
+            Source = File.Exists(path) ? ImageSource.FromFile(path) : null,
+            HeightRequest = 90,
+            Aspect = Aspect.AspectFill
+        }, 0, 0);
+        grid.Add(new VerticalStackLayout
+        {
+            VerticalOptions = LayoutOptions.Center,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Active thumbnail",
+                    FontSize = 12,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#3949AB")
+                },
+                new Label
+                {
+                    Text = $"{active.CopyCount} copied",
+                    FontSize = 14,
+                    TextColor = Color.FromArgb("#333")
+                }
+            }
+        }, 1, 0);
+        _activePromptImageContainer.Children.Add(grid);
+    }
+
+    private async Task SelectAndAddSessionImageAsync()
+    {
+        if (_imageSessionService == null) return;
+        try
+        {
+            var file = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Select the active opening thumbnail",
+                FileTypes = FilePickerFileType.Images
+            });
+            if (file == null) return;
+            await _imageSessionService.AddImageAsync(
+                _auth.CurrentUsername, file);
+            await RefreshImageSessionAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Image Picker", ex.Message, "OK");
+        }
+    }
+
+    private async Task ResetImageSessionAsync()
+    {
+        if (_sessionItems.Count == 0 || _imageSessionService == null) return;
+        bool confirmed = await DisplayAlert(
+            "Reset Session",
+            "Clear all session thumbnails and copy counters? The copied image files will be deleted.",
+            "Reset", "Cancel");
+        if (!confirmed) return;
+        await _imageSessionService.ResetAsync(_auth.CurrentUsername);
+        await RefreshImageSessionAsync();
+    }
+
+    private async Task PrepareImageSessionForPasteAsync()
+    {
+        if (_imageSessionService == null)
+            await RefreshImageSessionAsync();
+
+        if (_sessionItems.Count == 0)
+        {
+            await SelectAndAddSessionImageAsync();
+            return;
+        }
+
+        bool chooseNew = await DisplayAlert(
+            "Opening Thumbnail",
+            "Select a new thumbnail as the active image?",
+            "Yes", "No");
+        if (chooseNew)
+            await SelectAndAddSessionImageAsync();
+    }
+
     private async Task PasteLLMResponseAsync()
     {
+        await PrepareImageSessionForPasteAsync();
         var result = await ShowMultilineEditorAsync(
             "Paste LLM Response",
             "Paste the full response from Grok/Claude:",
@@ -913,6 +1147,15 @@ public class OpeningClipPromptPage : ContentPage
             copyBtn.Clicked += async (_, _) =>
             {
                 await Clipboard.SetTextAsync(_parsedPrompts[capturedI]);
+                var active = _sessionItems.FirstOrDefault(
+                    item => item.IsActive);
+                if (active != null && _imageSessionService != null)
+                {
+                    await _imageSessionService.RegisterPromptCopyAsync(
+                        active, _parsedPrompts[capturedI]);
+                    RenderImageSessionStrip();
+                    RenderActivePromptImage();
+                }
                 var orig = copyBtn.Text;
                 copyBtn.Text = "✓ Copied!";
                 await Task.Delay(1500);
