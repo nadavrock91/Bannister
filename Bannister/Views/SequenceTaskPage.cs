@@ -394,10 +394,39 @@ public class SequenceTaskPage : ContentPage
         body.Children.Add(pendingToggle);
         body.Children.Add(pendingSection);
 
+        var pendingTemplateLinks = links
+            .Where(link => link.IsPendingTemplate &&
+                tasks.TryGetValue(link.TaskItemId, out var task) &&
+                task.IsCompleted)
+            .OrderBy(link => link.PendingTemplateAt ?? DateTime.MinValue)
+            .ThenBy(link => link.Id)
+            .ToList();
+        var pendingTemplateSection = new VerticalStackLayout
+        {
+            Spacing = 6,
+            IsVisible = false
+        };
+        foreach (var link in pendingTemplateLinks)
+        {
+            if (tasks.TryGetValue(link.TaskItemId, out var task))
+                pendingTemplateSection.Children.Add(
+                    BuildPendingTemplateRow(link, task));
+        }
+        var pendingTemplateToggle = MakeButton(
+            $"Pending Template ({pendingTemplateLinks.Count})",
+            "#E8EAF6",
+            "#3949AB");
+        pendingTemplateToggle.IsVisible = pendingTemplateLinks.Count > 0;
+        pendingTemplateToggle.Clicked += (_, _) =>
+            pendingTemplateSection.IsVisible =
+                !pendingTemplateSection.IsVisible;
+        body.Children.Add(pendingTemplateToggle);
+        body.Children.Add(pendingTemplateSection);
+
         var completedLinks = links
             .Where(link => tasks.TryGetValue(
                 link.TaskItemId, out var task) &&
-                task.IsCompleted)
+                task.IsCompleted && !link.IsPendingTemplate)
             .ToList();
         var completedSection = new VerticalStackLayout
         {
@@ -921,6 +950,62 @@ public class SequenceTaskPage : ContentPage
         await RefreshAsync();
     }
 
+    private View BuildPendingTemplateRow(
+        SequenceTaskItem link, TaskItem task)
+    {
+        var publicMode = IsPublicMode();
+        var displayText = publicMode && task.IsPrivate
+            ? (string.IsNullOrWhiteSpace(task.Impact) ? "(private)" : task.Impact)
+            : task.Title;
+        var row = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 8,
+            Padding = new Thickness(8, 6)
+        };
+        row.Add(new VerticalStackLayout
+        {
+            Spacing = 2,
+            Children =
+            {
+                new Label
+                {
+                    Text = displayText,
+                    FontSize = 14,
+                    TextColor = Color.FromArgb("#333")
+                },
+                new Label
+                {
+                    Text = link.PendingTemplateAt.HasValue
+                        ? $"Completed {link.PendingTemplateAt.Value.ToLocalTime():dd MMM yyyy HH:mm}"
+                        : "Completed",
+                    FontSize = 11,
+                    TextColor = Color.FromArgb("#888")
+                }
+            }
+        }, 0, 0);
+        var copy = MakeButton("Copy", "#E3F2FD", "#1565C0");
+        copy.Clicked += async (_, _) =>
+        {
+            await Clipboard.SetTextAsync(link.PendingTemplatePrompt ?? "");
+            await _service.ClearItemPendingTemplateAsync(link.Id);
+            await RefreshAsync();
+        };
+        row.Add(copy, 1, 0);
+        return new Border
+        {
+            Content = row,
+            Stroke = Color.FromArgb("#C5CAE9"),
+            StrokeThickness = 1,
+            BackgroundColor = Color.FromArgb("#F8F9FF"),
+            Padding = 2
+        };
+    }
+
     private View BuildItemRow(SequenceTaskGroup group, SequenceTaskItem link, TaskItem task, bool pendingTest = false)
     {
         var body = new VerticalStackLayout { Spacing = 4 };
@@ -941,7 +1026,7 @@ public class SequenceTaskPage : ContentPage
             selectRow.Children.Add(new Label { Text = "Select this task", VerticalOptions = LayoutOptions.Center, TextColor = Color.FromArgb("#555") });
             body.Children.Add(selectRow);
         }
-        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, Padding = new Thickness(8, 6) };
+        var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, Padding = new Thickness(8, 6) };
         var publicMode = IsPublicMode();
         var displayText = (publicMode && task.IsPrivate)
             ? (string.IsNullOrWhiteSpace(task.Impact) ? "(private)" : task.Impact)
@@ -993,9 +1078,34 @@ public class SequenceTaskPage : ContentPage
                 await RefreshAsync();
             };
             row.Add(pending, 3, 0);
+            var pendingTemplate = MakeButton(
+                "Done (pending template)",
+                "#E8EAF6",
+                "#3949AB");
+            pendingTemplate.Clicked += async (_, _) =>
+            {
+                if (_busy) return;
+                _busy = true;
+                try
+                {
+                    var prompt = (group.ExportPromptTemplate ?? "")
+                        .Replace("{task}", task.Title);
+                    await _tasks.CompleteTaskAsync(task);
+                    await _service.SetItemPendingTemplateAsync(
+                        link.Id,
+                        prompt,
+                        task.CompletedAt ?? DateTime.UtcNow);
+                }
+                finally
+                {
+                    _busy = false;
+                }
+                await RefreshAsync();
+            };
+            row.Add(pendingTemplate, 4, 0);
             var exception = MakeButton("＋", "#FFF3E0", "#E65100");
             exception.Clicked += async (_, _) => await InsertTaskBeforeAsync(group, task.Id);
-            row.Add(exception, 4, 0);
+            row.Add(exception, 5, 0);
         }
         var edit = MakeButton("Edit", "#FFF3E0", "#E65100");
         edit.Clicked += async (_, _) =>
@@ -1006,7 +1116,7 @@ public class SequenceTaskPage : ContentPage
             await _tasks.UpdateTaskAsync(task);
             await RefreshAsync();
         };
-        row.Add(edit, pendingTest ? 4 : 5, 0);
+        row.Add(edit, pendingTest ? 4 : 6, 0);
         if (!task.IsCompleted)
         {
             var toCandidate = MakeButton("→ Cand", "#FFF8E1", "#F57F17");
@@ -1016,11 +1126,11 @@ public class SequenceTaskPage : ContentPage
                 await _service.DeleteItemAsync(link.Id);
                 await RefreshAsync();
             };
-            row.Add(toCandidate, pendingTest ? 5 : 6, 0);
+            row.Add(toCandidate, pendingTest ? 5 : 7, 0);
         }
         var delete = MakeButton("Delete", "#FFEBEE", "#C62828");
         delete.Clicked += async (_, _) => { await _service.DeleteItemAsync(link.Id); await RefreshAsync(); };
-        row.Add(delete, pendingTest ? 6 : 7, 0);
+        row.Add(delete, pendingTest ? 6 : 8, 0);
         body.Children.Add(row);
         if (task.IsCompleted) body.Children.Add(new Label { Text = $"Completed {task.CompletedAt:dd MMM yyyy}", FontSize = 11, TextColor = Color.FromArgb("#999"), Margin = new Thickness(8, -4, 0, 0) });
         return new Border { Content = body, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = task.IsCompleted ? Color.FromArgb("#F2F2F2") : Colors.White, Padding = 2 };

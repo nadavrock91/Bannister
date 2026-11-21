@@ -17,6 +17,9 @@ public class SequenceTaskService
         await conn.CreateTableAsync<SequenceTaskItem>();
         await conn.CreateTableAsync<SequenceTaskException>();
         await conn.CreateTableAsync<SequenceTaskCandidate>();
+        try { await conn.ExecuteAsync("ALTER TABLE sequence_task_items ADD COLUMN IsPendingTemplate INTEGER NOT NULL DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE sequence_task_items ADD COLUMN PendingTemplateAt TEXT"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE sequence_task_items ADD COLUMN PendingTemplatePrompt TEXT NOT NULL DEFAULT ''"); } catch { }
         try { await conn.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS ix_seq_candidate_group_task ON sequence_task_candidates (GroupId, TaskItemId)"); } catch { }
         _initialized = true;
     }
@@ -137,6 +140,31 @@ public class SequenceTaskService
         var item = await conn.FindAsync<SequenceTaskItem>(sequenceTaskItemId);
         if (item == null) return;
         item.IsPendingTest = isPendingTest;
+        await conn.UpdateAsync(item);
+    }
+
+    public async Task SetItemPendingTemplateAsync(
+        int sequenceTaskItemId, string renderedPrompt, DateTime queuedAt)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var item = await conn.FindAsync<SequenceTaskItem>(sequenceTaskItemId);
+        if (item == null) return;
+        item.IsPendingTemplate = true;
+        item.PendingTemplatePrompt = renderedPrompt;
+        item.PendingTemplateAt = queuedAt;
+        await conn.UpdateAsync(item);
+    }
+
+    public async Task ClearItemPendingTemplateAsync(int sequenceTaskItemId)
+    {
+        await InitAsync();
+        var conn = await _db.GetConnectionAsync();
+        var item = await conn.FindAsync<SequenceTaskItem>(sequenceTaskItemId);
+        if (item == null) return;
+        item.IsPendingTemplate = false;
+        item.PendingTemplatePrompt = "";
+        item.PendingTemplateAt = null;
         await conn.UpdateAsync(item);
     }
 
