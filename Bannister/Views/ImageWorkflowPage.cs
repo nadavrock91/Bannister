@@ -434,12 +434,15 @@ public class ImageWorkflowPage : ContentPage
             if (string.IsNullOrWhiteSpace(t)) return;
 
             // Save custom idea to Ideas DB so it persists
-            IdeasService? svc = null;
-            try { svc = Application.Current?.Handler?.MauiContext?.Services?.GetService<IdeasService>(); } catch { }
-            if (svc != null)
-            {
-                try { await svc.CreateIdeaAsync(_project.Username, t, GetCategory(), fullIdea: t); } catch { }
-            }
+            var logger = Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
+            if (logger != null)
+                _ = logger.LogSilentlyAsync(new IdeaLogRequest
+                {
+                    Username = _project.Username,
+                    Title = t,
+                    Body = t,
+                    Category = GetCategory()
+                });
 
             await LockIdeaAsync(t);
         };
@@ -706,11 +709,20 @@ public class ImageWorkflowPage : ContentPage
         if (ideas.Count == 0) { await DisplayAlert("No Ideas", "Could not parse any ideas.Add(\"...\") lines.", "OK"); return; }
         string cat = GetCategory();
         if (!await DisplayAlert("Import", $"Found {ideas.Count} ideas.\nImport to \"{cat}\"?", "Import", "Cancel")) return;
-        IdeasService? svc = null;
-        try { svc = Application.Current?.Handler?.MauiContext?.Services?.GetService<IdeasService>(); } catch { }
-        if (svc == null) { await DisplayAlert("Error", "Could not access Ideas service.", "OK"); return; }
+        var logger = Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
+        if (logger == null) { await DisplayAlert("Error", "Could not access Ideas logger.", "OK"); return; }
         int n = 0;
-        foreach (var t in ideas) { try { await svc.CreateIdeaAsync(_project.Username, t, cat, fullIdea: t); n++; } catch { } }
+        foreach (var t in ideas)
+        {
+            _ = logger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = _project.Username,
+                Title = t,
+                Body = t,
+                Category = cat
+            });
+            n++;
+        }
         await DisplayAlert("Imported!", $"{n} ideas imported to \"{cat}\".", "OK");
         _step1Content.IsVisible = false; _step1Arrow.Text = "▶";
         _step2Content.IsVisible = true; _step2Arrow.Text = "▼";

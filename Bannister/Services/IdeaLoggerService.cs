@@ -24,6 +24,10 @@ public sealed record IdeaLogRequest
     public bool? IsLlmSource { get; init; }
 }
 
+public sealed record IdeaLogFailure(IdeaLogRequest Request, string Error);
+
+public sealed record IdeaLogBatchResult(int SavedCount, IReadOnlyList<IdeaLogFailure> Failures);
+
 /// <summary>
 /// Reusable service for logging ideas from anywhere in the app.
 /// 
@@ -223,6 +227,51 @@ public class IdeaLoggerService
         if (mode == IdeaLogMode.Silent && idea.Id <= 0)
             throw new InvalidOperationException("The idea was queued for sync and does not have a local Id.");
         return idea.Id;
+    }
+
+    /// <summary>
+    /// Logs an automatic side-effect without UI and never lets logging failure break the caller.
+    /// A read-only-device queue result (which has no local Id) counts as success.
+    /// </summary>
+    public async Task LogSilentlyAsync(IdeaLogRequest request)
+    {
+        try
+        {
+            await EnsureLoadedAsync(request.Username);
+            await SaveIdeaCoreAsync(request, null, null, false);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[IDEA LOGGER] Silent log failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Logs an import batch through the same validation and persistence core as single ideas.
+    /// Silent batches deliberately skip linked-category, audio-link, and confirmation UI.
+    /// </summary>
+    public async Task<IdeaLogBatchResult> LogBatchSilentAsync(IEnumerable<IdeaLogRequest> requests)
+    {
+        ArgumentNullException.ThrowIfNull(requests);
+
+        int savedCount = 0;
+        var failures = new List<IdeaLogFailure>();
+        foreach (var request in requests)
+        {
+            try
+            {
+                await EnsureLoadedAsync(request.Username);
+                await SaveIdeaCoreAsync(request, null, null, false);
+                savedCount++;
+            }
+            catch (Exception ex)
+            {
+                failures.Add(new IdeaLogFailure(request, ex.Message));
+                System.Diagnostics.Debug.WriteLine($"[IDEA LOGGER] Batch log failed for '{request.Title}': {ex.Message}");
+            }
+        }
+
+        return new IdeaLogBatchResult(savedCount, failures);
     }
 
     public async Task<int> UpdateIdeaAsync(int ideaId, IdeaLogRequest request)

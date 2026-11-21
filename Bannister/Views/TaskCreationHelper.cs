@@ -352,11 +352,15 @@ public static class TaskCreationHelper
             await tasks.UpdateTaskAsync(newTask);
         }
 
-        if (ideasService != null)
-        {
-            try { await ideasService.CreateIdeaAsync(auth.CurrentUsername, title, "all_tasks"); }
-            catch { }
-        }
+        var ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
+        if (ideaLogger != null)
+            _ = ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = auth.CurrentUsername,
+                Title = title,
+                Body = title,
+                Category = "all_tasks"
+            });
 
         return newTask;
     }

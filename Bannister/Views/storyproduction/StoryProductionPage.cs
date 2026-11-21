@@ -2128,9 +2128,9 @@ public class StoryProductionPage : ContentPage
         if (_currentProject == null || string.IsNullOrWhiteSpace(_currentProject.LlmConversationLog))
             return;
 
-        if (_ideasService == null)
+        if (_ideaLogger == null)
         {
-            await DisplayAlert("Ideas Unavailable", "Ideas service is not available on this page.", "OK");
+            await DisplayAlert("Ideas Unavailable", "Ideas logger is not available on this page.", "OK");
             return;
         }
 
@@ -2156,7 +2156,14 @@ public class StoryProductionPage : ContentPage
                 if (string.IsNullOrWhiteSpace(item.category) || string.IsNullOrWhiteSpace(item.text))
                     continue;
 
-                await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, item.text.Trim(), item.category.Trim(), fullIdea: item.text.Trim(), isLlmSource: true);
+                _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+                {
+                    Username = _auth.CurrentUsername,
+                    Title = item.text.Trim(),
+                    Body = item.text.Trim(),
+                    Category = item.category.Trim(),
+                    IsLlmSource = true
+                });
                 logged++;
             }
         }

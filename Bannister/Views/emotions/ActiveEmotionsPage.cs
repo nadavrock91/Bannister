@@ -8,6 +8,7 @@ public class ActiveEmotionsPage : ContentPage
     private readonly AuthService _auth;
     private readonly EmotionService _emotions;
     private readonly IdeasService? _ideasService;
+    private readonly IdeaLoggerService _ideaLogger;
     private VerticalStackLayout _activeList;
     private VerticalStackLayout _archivedList;
     private Label _activeCountLabel;
@@ -20,6 +21,8 @@ public class ActiveEmotionsPage : ContentPage
         _auth = auth;
         _emotions = emotions;
         _ideasService = ideasService;
+        _ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<IdeaLoggerService>()
+            ?? throw new InvalidOperationException("IdeaLoggerService not registered.");
         Title = "Active Emotions";
         BackgroundColor = Color.FromArgb("#FFF8E1");
         BuildUI();
@@ -326,11 +329,14 @@ public class ActiveEmotionsPage : ContentPage
         string? description = await DisplayPromptAsync("Description (optional)", "What triggered this?", "Create", "Skip", maxLength: 500);
 
         await _emotions.CreateEmotionAsync(_auth.CurrentUsername, name.Trim(), category, intensity, description?.Trim() ?? "");
-        if (_ideasService != null)
+        string ideaText = name.Trim();
+        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
         {
-            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, name.Trim(), "active_emotions"); }
-            catch { }
-        }
+            Username = _auth.CurrentUsername,
+            Title = ideaText,
+            Body = ideaText,
+            Category = "active_emotions"
+        });
         await LoadEmotionsAsync();
     }
 

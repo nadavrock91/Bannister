@@ -10,6 +10,7 @@ public class MusicForStoriesPage : ContentPage
     private readonly MusicProductionService _musicService;
     private readonly DatabaseService _db;
     private readonly IdeasService _ideas;
+    private readonly IdeaLoggerService _ideaLogger;
     private readonly CustomPromptService _customPrompts;
 
     private Picker _projectPicker = null!;
@@ -83,6 +84,8 @@ public class MusicForStoriesPage : ContentPage
         _musicService = musicService;
         _db = db;
         _ideas = ideas;
+        _ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<IdeaLoggerService>()
+            ?? throw new InvalidOperationException("IdeaLoggerService not registered.");
         _customPrompts = customPrompts;
 
         Title = "Music for Stories";
@@ -1150,7 +1153,13 @@ public class MusicForStoriesPage : ContentPage
         var prompt = await _customPrompts.AddCustomPromptAsync(_auth.CurrentUsername, "music", finalTitle, text.Trim());
 
         await DisplayAlert("Saved", $"Custom prompt \"{finalTitle}\" saved.", "OK");
-        await _ideas.CreateIdeaAsync(_auth.CurrentUsername, prompt.Text, "music_custom_prompts", fullIdea: prompt.Text);
+        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+        {
+            Username = _auth.CurrentUsername,
+            Title = prompt.Text,
+            Body = prompt.Text,
+            Category = "music_custom_prompts"
+        });
     }
 
     private async Task ShowCustomPromptActionsAsync(CustomPromptItem prompt)
@@ -1184,7 +1193,16 @@ public class MusicForStoriesPage : ContentPage
                 await DeleteCustomPromptAsync(prompt);
                 break;
             case "Log As Idea":
-                await _ideas.CreateIdeaAsync(_auth.CurrentUsername, prompt.Text, "music_custom_prompts", fullIdea: prompt.Text);
+                await _ideaLogger.LogIdeaAsync(
+                    new IdeaLogRequest
+                    {
+                        Username = _auth.CurrentUsername,
+                        Title = prompt.Text,
+                        Body = prompt.Text,
+                        Category = "music_custom_prompts"
+                    },
+                    IdeaLogMode.Interactive,
+                    this);
                 break;
         }
     }
@@ -2226,11 +2244,13 @@ public class MusicForStoriesPage : ContentPage
         string trimmedWorkingPrompt = workingPrompt.Trim();
         try
         {
-            await _ideas.CreateIdeaAsync(
-                _auth.CurrentUsername,
-                "Music prompt " + DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
-                "Music Prompts",
-                fullIdea: trimmedWorkingPrompt);
+            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = _auth.CurrentUsername,
+                Title = "Music prompt " + DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+                Body = trimmedWorkingPrompt,
+                Category = "Music Prompts"
+            });
         }
         catch (Exception ex)
         {
@@ -2350,11 +2370,13 @@ public class MusicForStoriesPage : ContentPage
 
         try
         {
-            await _ideas.CreateIdeaAsync(
-                _auth.CurrentUsername,
-                template.Name,
-                "Music Prompt Templates",
-                fullIdea: template.TemplateText);
+            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = _auth.CurrentUsername,
+                Title = template.Name,
+                Body = template.TemplateText,
+                Category = "Music Prompt Templates"
+            });
         }
         catch (Exception ex)
         {

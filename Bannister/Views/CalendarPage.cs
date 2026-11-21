@@ -15,7 +15,7 @@ public class CalendarPage : ContentPage
 
     private readonly AuthService _auth;
     private readonly TaskService _taskService;
-    private readonly IdeasService? _ideasService;
+    private readonly IdeaLoggerService _ideaLogger;
     private readonly DatabaseService _db;
     private readonly LookoutService _lookoutService;
     private readonly RoutineService _routineService;
@@ -46,7 +46,8 @@ public class CalendarPage : ContentPage
     {
         _auth = auth;
         _taskService = taskService;
-        _ideasService = ideasService;
+        _ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<IdeaLoggerService>()
+            ?? throw new InvalidOperationException("IdeaLoggerService not registered.");
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _lookoutService = lookoutService ?? new LookoutService(_db);
         _routineService = routineService ?? new RoutineService(_db, _auth);
@@ -593,7 +594,7 @@ public class CalendarPage : ContentPage
     private async Task NavigateToDayAsync(int day)
     {
         var date = new DateTime(_year, _month, day);
-        var page = new CalendarDayPage(_auth, _taskService, date, _ideasService, _lookoutService, _routineService, _postponedTaskService);
+        var page = new CalendarDayPage(_auth, _taskService, date, ideaLogger: _ideaLogger, lookoutService: _lookoutService, routineService: _routineService, postponedTaskService: _postponedTaskService);
         await Navigation.PushAsync(page);
     }
 
@@ -881,8 +882,14 @@ public class CalendarPage : ContentPage
             _auth.CurrentUsername, title.Trim(), category.Trim(), priority, date);
 
         // Log to ideas
-        if (_ideasService != null)
-            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[{date:MMM d}] {title.Trim()}", "calendar_tasks", fullIdea: $"[{date:MMM d}] {title.Trim()}"); } catch { }
+        string ideaText = $"[{date:MMM d}] {title.Trim()}";
+        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+        {
+            Username = _auth.CurrentUsername,
+            Title = ideaText,
+            Body = ideaText,
+            Category = "calendar_tasks"
+        });
 
         await LoadMonthAsync();
     }
@@ -1089,37 +1096,26 @@ public class CalendarPage : ContentPage
             }
 
             // Phase 3: Batch insert ideas
-            if (_ideasService != null && ideasToInsert.Count > 0)
+            if (ideasToInsert.Count > 0)
             {
                 progressLabel.Text = "Logging to ideas...";
                 progressDetail.Text = $"0 / {ideasToInsert.Count}";
                 await Task.Yield();
 
-                // Use direct DB insert for ideas too
-                var ideaConn = await _db.GetConnectionAsync();
-                for (int i = 0; i < ideasToInsert.Count; i += batchSize)
+                DateTime createdAt = DateTime.Now;
+                var requests = ideasToInsert.Select(x => new IdeaLogRequest
                 {
-                    var batch = ideasToInsert.Skip(i).Take(batchSize).ToList();
-                    await ideaConn.RunInTransactionAsync(db =>
-                    {
-                        foreach (var (text, cat) in batch)
-                        {
-                            var idea = new IdeaItem
-                            {
-                                Username = username,
-                                Title = text,
-                                FullIdea = text,
-                                Category = cat,
-                                CreatedAt = DateTime.Now
-                            };
-                            db.Insert(idea);
-                        }
-                    });
-
-                    int done = Math.Min(i + batchSize, ideasToInsert.Count);
-                    progressDetail.Text = $"{done} / {ideasToInsert.Count} ideas";
-                    await Task.Yield();
-                }
+                    Username = username,
+                    Title = x.text,
+                    Body = x.text,
+                    Category = x.category,
+                    CreatedAt = createdAt
+                });
+                var batchResult = await _ideaLogger.LogBatchSilentAsync(requests);
+                progressDetail.Text = $"{batchResult.SavedCount} / {ideasToInsert.Count} ideas";
+                if (batchResult.Failures.Count > 0)
+                    System.Diagnostics.Debug.WriteLine($"Calendar import idea logging failures: {batchResult.Failures.Count}");
+                await Task.Yield();
             }
 
             await DisplayAlert("Import Complete",
@@ -1723,7 +1719,7 @@ public class CalendarDayPage : ContentPage
     private readonly AuthService _auth;
     private readonly TaskService _taskService;
     private readonly DateTime _date;
-    private readonly IdeasService? _ideasService;
+    private readonly IdeaLoggerService _ideaLogger;
     private readonly LookoutService _lookoutService;
     private readonly RoutineService _routineService;
     private readonly PostponedTaskService _postponedTaskService;
@@ -1742,12 +1738,14 @@ public class CalendarDayPage : ContentPage
     private bool _isAddingLookout;
     private Dictionary<int, Routine> _routineById = new();
 
-    public CalendarDayPage(AuthService auth, TaskService taskService, DateTime date, IdeasService? ideasService = null, LookoutService? lookoutService = null, RoutineService? routineService = null, PostponedTaskService? postponedTaskService = null)
+    public CalendarDayPage(AuthService auth, TaskService taskService, DateTime date, IdeasService? ideasService = null, IdeaLoggerService? ideaLogger = null, LookoutService? lookoutService = null, RoutineService? routineService = null, PostponedTaskService? postponedTaskService = null)
     {
         _auth = auth;
         _taskService = taskService;
         _date = date.Date;
-        _ideasService = ideasService;
+        _ideaLogger = ideaLogger
+            ?? Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<IdeaLoggerService>()
+            ?? throw new InvalidOperationException("IdeaLoggerService not registered.");
         _lookoutService = lookoutService ?? throw new ArgumentNullException(nameof(lookoutService));
         _routineService = routineService ?? throw new ArgumentNullException(nameof(routineService));
         _postponedTaskService = postponedTaskService ?? throw new ArgumentNullException(nameof(postponedTaskService));
@@ -2743,14 +2741,17 @@ public class CalendarDayPage : ContentPage
         await _taskService.UpdateTaskAsync(task);
 
         // Log to ideas
-        if (_ideasService != null)
+        string dateStr = newTask.DueDate.HasValue ? newTask.DueDate.Value.ToString("MMM d") : "no date";
+        string logText = titleChanged
+            ? $"[{dateStr}] Edited: \"{originalTitle}\" → \"{finalTitle}\""
+            : $"[{dateStr}] Notes updated: \"{finalTitle}\"";
+        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
         {
-            string dateStr = newTask.DueDate.HasValue ? newTask.DueDate.Value.ToString("MMM d") : "no date";
-            string logText = titleChanged
-                ? $"[{dateStr}] Edited: \"{originalTitle}\" → \"{finalTitle}\""
-                : $"[{dateStr}] Notes updated: \"{finalTitle}\"";
-            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, logText, "calendar_tasks", fullIdea: logText); } catch { }
-        }
+            Username = _auth.CurrentUsername,
+            Title = logText,
+            Body = logText,
+            Category = "calendar_tasks"
+        });
 
         await LoadTasksAsync();
     }
@@ -2917,8 +2918,14 @@ public class CalendarDayPage : ContentPage
             _auth.CurrentUsername, title.Trim(), category.Trim(), priority, _date);
 
         // Log to ideas
-        if (_ideasService != null)
-            try { await _ideasService.CreateIdeaAsync(_auth.CurrentUsername, $"[{_date:MMM d}] {title.Trim()}", "calendar_tasks", fullIdea: $"[{_date:MMM d}] {title.Trim()}"); } catch { }
+        string ideaText = $"[{_date:MMM d}] {title.Trim()}";
+        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+        {
+            Username = _auth.CurrentUsername,
+            Title = ideaText,
+            Body = ideaText,
+            Category = "calendar_tasks"
+        });
 
         await LoadTasksAsync();
     }

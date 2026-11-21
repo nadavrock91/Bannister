@@ -9,12 +9,12 @@ namespace Bannister.Services
     public class ActivityService
     {
         private readonly DatabaseService _db;
-        private readonly IdeasService? _ideasService;
+        private readonly IdeaLoggerService _ideaLogger;
 
-        public ActivityService(DatabaseService db, IdeasService? ideasService = null)
+        public ActivityService(DatabaseService db, IdeaLoggerService ideaLogger)
         {
             _db = db;
-            _ideasService = ideasService;
+            _ideaLogger = ideaLogger;
         }
 
         public async Task<List<Activity>> GetActivitiesAsync(string username, string game)
@@ -155,8 +155,14 @@ namespace Bannister.Services
             await conn.InsertAsync(activity);
 
             // Log to ideas
-            if (_ideasService != null)
-                try { await _ideasService.CreateIdeaAsync(username, $"{name} ({category}, +{expGain} EXP)", "activities", fullIdea: $"{name} ({category}, +{expGain} EXP)"); } catch { }
+            string ideaText = $"{name} ({category}, +{expGain} EXP)";
+            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = username,
+                Title = ideaText,
+                Body = ideaText,
+                Category = "activities"
+            });
 
             return activity;
         }
@@ -168,8 +174,14 @@ namespace Bannister.Services
             await conn.InsertAsync(activity);
 
             // Log to ideas
-            if (_ideasService != null)
-                try { await _ideasService.CreateIdeaAsync(activity.Username, $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)", "activities", fullIdea: $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)"); } catch { }
+            string ideaText = $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)";
+            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = activity.Username,
+                Title = ideaText,
+                Body = ideaText,
+                Category = "activities"
+            });
 
             return activity;
         }

@@ -31,6 +31,7 @@ public partial class ActivityGamePage : ContentPage
     private readonly ActivityGroupingService? _groupingService;
     private readonly PendingActivityIdeaService _pendingIdeas;
     private readonly IdeasService _ideas;
+    private readonly IdeaLoggerService _ideaLogger;
     private readonly ActivitySuggestionService _activitySuggestions;
     private readonly LastCalculatedLocationService _lastCalculated;
 
@@ -150,6 +151,8 @@ public partial class ActivityGamePage : ContentPage
         _groupingService = groupingService;
         _pendingIdeas = pendingIdeas;
         _ideas = ideas;
+        _ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<IdeaLoggerService>()
+            ?? throw new InvalidOperationException("IdeaLoggerService not registered.");
         _activitySuggestions = activitySuggestions;
         _lastCalculated = lastCalculated;
 

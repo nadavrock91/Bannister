@@ -1,4 +1,5 @@
 using Bannister.Models;
+using Bannister.Services;
 
 namespace Bannister.Views;
 
@@ -92,14 +93,13 @@ public partial class ActivityGamePage
             result.Value.ActivityName,
             result.Value.ActivityCategory);
 
-        try
+        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
         {
-            await _ideas.CreateIdeaAsync(_auth.CurrentUsername, result.Value.ActivityName, "activities", fullIdea: result.Value.ActivityName);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Pending activity idea {id} saved, but Ideas log write failed: {ex.Message}");
-        }
+            Username = _auth.CurrentUsername,
+            Title = result.Value.ActivityName,
+            Body = result.Value.ActivityName,
+            Category = "activities"
+        });
 
         await RefreshPendingActivityIdeaCountAsync();
     }

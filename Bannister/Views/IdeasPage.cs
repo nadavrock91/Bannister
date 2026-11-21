@@ -1605,34 +1605,22 @@ public class IdeasPage : ContentPage
             overlay.Children.Add(pStack);
             progressWrapper.Children.Add(overlay);
 
-            int imported = 0;
-            int batchSize = 50;
-            var conn = await _db.GetConnectionAsync();
-
-            for (int i = 0; i < itemsToInsert.Count; i += batchSize)
+            var requests = itemsToInsert.Select(x => new IdeaLogRequest
             {
-                var batch = itemsToInsert.Skip(i).Take(batchSize).ToList();
-                await conn.RunInTransactionAsync(db =>
-                {
-                    foreach (var (text, createdAt, rating, subcategory) in batch)
-                    {
-                        var idea = new IdeaItem
-                        {
-                            Username = username,
-                            Title = text,
-                            FullIdea = text,
-                            Category = targetCategory,
-                            Rating = rating,
-                            CreatedAt = createdAt,
-                            Subcategory = subcategory
-                        };
-                        db.Insert(idea);
-                    }
-                });
-                imported += batch.Count;
-                pDetail.Text = $"{imported} / {itemsToInsert.Count}";
-                await Task.Yield();
-            }
+                Username = username,
+                Title = x.text,
+                Body = x.text,
+                Category = targetCategory,
+                Rating = x.rating,
+                CreatedAt = x.createdAt,
+                Subcategory = x.subcategory
+            });
+            var batchResult = await _ideaLogger.LogBatchSilentAsync(requests);
+            int imported = batchResult.SavedCount;
+            pDetail.Text = $"{imported} / {itemsToInsert.Count}";
+            if (batchResult.Failures.Count > 0)
+                System.Diagnostics.Debug.WriteLine($"Ideas import logging failures: {batchResult.Failures.Count}");
+            await Task.Yield();
 
             // Remove overlay
             progressWrapper.Children.Remove(overlay);

@@ -1306,17 +1306,14 @@ public class StoryPointsPage : ContentPage
         if (!await TryStoryWriteAsync(() => _storyService.AddStoryPointAsync(_project.Id, text.Trim(), category, subcategory))) return;
 
         // Also log to Ideas under "all_story_points" category
-        if (_ideasService != null)
-        {
-            try
+        if (_ideaLogger != null)
+            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
             {
-                if (!await TryStoryWriteAsync(() => _ideasService.CreateIdeaAsync(_auth.CurrentUsername, text.Trim(), "all_story_points", fullIdea: text.Trim()))) return;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[STORY POINTS] Failed to log idea: {ex.Message}");
-            }
-        }
+                Username = _auth.CurrentUsername,
+                Title = text.Trim(),
+                Body = text.Trim(),
+                Category = "all_story_points"
+            });
 
         await LoadPointsAsync();
     }
