@@ -94,15 +94,23 @@ public class DevWorkflowView : ContentView
 
     private View BuildRunControls()
     {
-        var row = new HorizontalStackLayout { Spacing = 7 };
+        var row = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 7
+        };
         var reset = Button("Reset", "#607D8B");
         reset.Clicked += (_, _) => { ResetRunState(); BuildRunUI(); };
-        row.Children.Add(reset);
+        row.Add(reset, 0, 0);
         if (_projects.Count == 0)
         {
             var add = Button("Add a project", "#5B63EE");
             add.Clicked += async (_, _) => await AddProjectAsync();
-            row.Children.Add(add);
+            row.Add(add, 1, 0);
         }
         else
         {
@@ -112,7 +120,8 @@ public class DevWorkflowView : ContentView
                 ItemsSource = _projects,
                 ItemDisplayBinding = new Binding(nameof(DevWorkflowProject.Name)),
                 SelectedItem = _selectedProject,
-                WidthRequest = 180
+                MaximumWidthRequest = 180,
+                HorizontalOptions = LayoutOptions.Fill
             };
             picker.SelectedIndexChanged += async (_, _) =>
             {
@@ -123,7 +132,7 @@ public class DevWorkflowView : ContentView
                 await _service.SetLastUsedProjectIdAsync(project.Id);
                 BuildRunUI();
             };
-            row.Children.Add(picker);
+            row.Add(picker, 1, 0);
         }
         return row;
     }
@@ -503,26 +512,28 @@ public class DevWorkflowView : ContentView
             };
             ok.Clicked += (_, _) => Close(editor.Text);
             cancel.Clicked += (_, _) => Close(null);
-            var buttons = new Grid
+            var buttons = new FlexLayout
             {
-                ColumnDefinitions =
-                {
-                    new ColumnDefinition(GridLength.Star),
-                    new ColumnDefinition(GridLength.Star),
-                    new ColumnDefinition(GridLength.Star)
-                },
-                ColumnSpacing = 8
+                Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
+                Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+                JustifyContent = Microsoft.Maui.Layouts.FlexJustify.SpaceBetween,
+                AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center
             };
-            buttons.Add(paste, 0, 0); buttons.Add(ok, 1, 0); buttons.Add(cancel, 2, 0);
+            foreach (var button in new[] { paste, ok, cancel })
+            {
+                button.MinimumWidthRequest = 90;
+                button.Margin = new Thickness(3, 3);
+                buttons.Children.Add(button);
+            }
             Content = new Grid
             {
-                Padding = 20,
+                Padding = 16,
                 Children =
                 {
                     new Frame
                     {
-                        WidthRequest = 560, Padding = 20, CornerRadius = 12,
-                        HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
+                        MaximumWidthRequest = 560, Padding = 20, CornerRadius = 12,
+                        HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center,
                         Content = new VerticalStackLayout
                         {
                             Spacing = 12,
