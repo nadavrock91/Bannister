@@ -475,12 +475,45 @@ public class DevWorkflowView : ContentView
                 AutoSize = EditorAutoSizeOption.Disabled,
                 BackgroundColor = Color.FromArgb("#FAFAFA")
             };
+            var paste = new Button { Text = "Paste", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White };
             var ok = new Button { Text = "OK", BackgroundColor = Color.FromArgb("#5B63EE"), TextColor = Colors.White };
             var cancel = new Button { Text = "Cancel", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#333") };
+            paste.Clicked += async (_, _) =>
+            {
+                try
+                {
+                    if (!Clipboard.HasText) return;
+                    string? clipboardText = await Clipboard.GetTextAsync();
+                    if (string.IsNullOrEmpty(clipboardText)) return;
+                    string current = editor.Text ?? "";
+                    int start = Math.Clamp(editor.CursorPosition, 0, current.Length);
+                    int length = Math.Clamp(editor.SelectionLength, 0, current.Length - start);
+                    editor.Text = current.Remove(start, length).Insert(start, clipboardText);
+                    editor.CursorPosition = start + clipboardText.Length;
+                    editor.SelectionLength = 0;
+                }
+                catch
+                {
+                    // Clipboard access can be unavailable; leave the input unchanged.
+                }
+                finally
+                {
+                    editor.Focus();
+                }
+            };
             ok.Clicked += (_, _) => Close(editor.Text);
             cancel.Clicked += (_, _) => Close(null);
-            var buttons = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8 };
-            buttons.Add(ok, 0, 0); buttons.Add(cancel, 1, 0);
+            var buttons = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Star)
+                },
+                ColumnSpacing = 8
+            };
+            buttons.Add(paste, 0, 0); buttons.Add(ok, 1, 0); buttons.Add(cancel, 2, 0);
             Content = new Grid
             {
                 Padding = 20,
