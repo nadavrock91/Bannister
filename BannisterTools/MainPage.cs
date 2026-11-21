@@ -148,30 +148,7 @@ public class MainPage : ContentPage
 
             if (action == "Dev Workflow")
             {
-                if (string.IsNullOrWhiteSpace(_username))
-                {
-                    await DisplayAlert("Login required", "Log in before opening Dev Workflow.", "OK");
-                    return;
-                }
-
-                var view = new DevWorkflowView(
-                    () => _username,
-                    _devWorkflowService,
-                    compact: true,
-                    showAlert: (title, message) => DisplayAlert(title, message, "OK"));
-                var page = new ContentPage
-                {
-                    Title = "Dev Workflow",
-                    BackgroundColor = Color.FromArgb("#2D1B6B"),
-                    Content = view
-                };
-                page.ToolbarItems.Add(new ToolbarItem
-                {
-                    Text = "Close",
-                    Command = new Command(async () => await Navigation.PopModalAsync())
-                });
-                await view.ActivateAsync();
-                await Navigation.PushModalAsync(new NavigationPage(page));
+                await OpenDevWorkflowAsync();
                 return;
             }
 
@@ -372,6 +349,14 @@ public class MainPage : ContentPage
             HeightRequest = 56,
             CornerRadius = 10
         };
+        var devWorkflowNavButton = new Button
+        {
+            Text = "Dev Workflow",
+            BackgroundColor = Color.FromArgb("#6A1B9A"),
+            TextColor = Colors.White,
+            HeightRequest = 56,
+            CornerRadius = 10
+        };
         _homePanel = new VerticalStackLayout
         {
             Spacing = 12,
@@ -381,7 +366,8 @@ public class MainPage : ContentPage
                 _greetingLabel,
                 _displayModeButton,
                 timerNavButton,
-                deadlinesNavButton
+                deadlinesNavButton,
+                devWorkflowNavButton
             }
         };
         var timerHomeButton = new Button
@@ -451,6 +437,7 @@ public class MainPage : ContentPage
             _deadlinePanel.IsVisible = true;
             await _deadlineView.ActivateAsync(false);
         };
+        devWorkflowNavButton.Clicked += async (_, _) => await OpenDevWorkflowAsync();
         timerHomeButton.Clicked += (_, _) =>
         {
             _timerPanel.IsVisible = false;
@@ -573,6 +560,34 @@ public class MainPage : ContentPage
         ApplyDatabasePath(selectedPath);
         _databaseSelectionSection.IsVisible = false;
         _loginSection.IsVisible = true;
+    }
+
+    private async Task OpenDevWorkflowAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_username))
+        {
+            await DisplayAlert("Login required", "Log in before opening Dev Workflow.", "OK");
+            return;
+        }
+
+        var view = new DevWorkflowView(
+            () => _username,
+            _devWorkflowService,
+            compact: true,
+            showAlert: (title, message) => DisplayAlert(title, message, "OK"));
+        var page = new ContentPage
+        {
+            Title = "Dev Workflow",
+            BackgroundColor = Color.FromArgb("#2D1B6B"),
+            Content = view
+        };
+        page.ToolbarItems.Add(new ToolbarItem
+        {
+            Text = "Close",
+            Command = new Command(async () => await Navigation.PopModalAsync())
+        });
+        await view.ActivateAsync();
+        await Navigation.PushModalAsync(new NavigationPage(page));
     }
 
     private static Button MakeButton(string text, string color) => new()

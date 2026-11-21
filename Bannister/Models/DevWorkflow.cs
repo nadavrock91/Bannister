@@ -51,6 +51,7 @@ public class DevWorkflowDeviceSetting
     [PrimaryKey, AutoIncrement] public int Id { get; set; }
     [Indexed] public string MachineName { get; set; } = "";
     public string RepoFolder { get; set; } = "";
+    public int? LastUsedWorkflowId { get; set; }
 }
 
 public sealed class DevGitCheckResult

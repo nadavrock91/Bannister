@@ -45,6 +45,7 @@
     <Compile Include="..\Bannister\Services\ResetTimeService.cs" Link="Services\ResetTimeService.cs" />
     <Compile Include="..\Bannister\Views\DailyDeadlinesView.cs" Link="Views\DailyDeadlinesView.cs" />
     <Compile Include="..\Bannister\Views\DevWorkflowView.cs" Link="Views\DevWorkflowView.cs" />
+    <Compile Include="..\Bannister\Views\DevWorkflowEditorView.cs" Link="Views\DevWorkflowEditorView.cs" />
     <Compile Include="..\Bannister\Security\PasswordHasher.cs" Link="Security\PasswordHasher.cs" />
     <None Include="..\Bannister\Services\SyncService.cs" Link="Services\SyncService.cs" />
   </ItemGroup>

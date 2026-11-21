@@ -19,6 +19,7 @@ public class DevWorkflowService
         await conn.CreateTableAsync<DevProgrammingConstraint>();
         await conn.CreateTableAsync<DevWorkflowOverride>();
         await conn.CreateTableAsync<DevWorkflowDeviceSetting>();
+        try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_device_settings ADD COLUMN LastUsedWorkflowId INTEGER"); } catch { }
         _initialized = true;
     }
 
@@ -101,6 +102,44 @@ public class DevWorkflowService
         if (row == null) await conn.InsertAsync(new DevWorkflowDeviceSetting
         { MachineName = Environment.MachineName, RepoFolder = folder });
         else { row.RepoFolder = folder; await conn.UpdateAsync(row); }
+    }
+
+    public async Task<int?> GetLastUsedWorkflowIdAsync()
+    {
+        await InitAsync(); var conn = await _db.GetConnectionAsync();
+        var row = await conn.Table<DevWorkflowDeviceSetting>()
+            .Where(x => x.MachineName == Environment.MachineName).FirstOrDefaultAsync();
+        return row?.LastUsedWorkflowId;
+    }
+
+    public async Task SetLastUsedWorkflowIdAsync(int? workflowId)
+    {
+        await InitAsync(); var conn = await _db.GetConnectionAsync();
+        var row = await conn.Table<DevWorkflowDeviceSetting>()
+            .Where(x => x.MachineName == Environment.MachineName).FirstOrDefaultAsync();
+        if (row == null)
+            await conn.InsertAsync(new DevWorkflowDeviceSetting
+            { MachineName = Environment.MachineName, LastUsedWorkflowId = workflowId });
+        else { row.LastUsedWorkflowId = workflowId; await conn.UpdateAsync(row); }
+    }
+
+    public async Task SaveWorkflowWithStepsAsync(
+        DevWorkflow workflow, IReadOnlyList<DevWorkflowStep> steps)
+    {
+        await SaveWorkflowAsync(workflow);
+        var conn = await _db.GetConnectionAsync();
+        var existing = await GetStepsAsync(workflow.Username, workflow.Id);
+        var retainedIds = steps.Where(x => x.Id > 0).Select(x => x.Id).ToHashSet();
+        foreach (var removed in existing.Where(x => !retainedIds.Contains(x.Id)))
+            await conn.DeleteAsync(removed);
+        for (int i = 0; i < steps.Count; i++)
+        {
+            var step = steps[i];
+            step.Username = workflow.Username;
+            step.WorkflowId = workflow.Id;
+            step.SortOrder = i;
+            await SaveStepAsync(step);
+        }
     }
 
     public async Task<DevGitCheckResult> CheckGitAsync(string folder)
