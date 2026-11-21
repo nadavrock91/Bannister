@@ -19,8 +19,16 @@ public class DevWorkflowView : ContentView
     private DevWorkflow? _selected;
     private DevWorkflowProject? _selectedProject;
     private string _projectFolder = "";
-    private readonly Dictionary<int, (string State, string Message, bool Behind)> _runStates = new();
-    private int _runIndex = -1;
+    private readonly Dictionary<int, StepChecklistState> _runStates = new();
+    private bool _runStarted;
+
+    private sealed class StepChecklistState
+    {
+        public bool Done { get; set; }
+        public bool Skipped { get; set; }
+        public string Message { get; set; } = "";
+        public bool Behind { get; set; }
+    }
 
     public DevWorkflowView(Func<string> getUsername, DevWorkflowService service,
         bool compact = false, Func<string, string, Task>? showAlert = null)
@@ -78,6 +86,8 @@ public class DevWorkflowView : ContentView
             _content.Children.Add(BuildRunControls());
             if (_steps.Count == 0) _content.Children.Add(new Label { Text = "This workflow has no steps. Use Edit to add some.", TextColor = Color.FromArgb("#777") });
             foreach (var step in _steps) _content.Children.Add(BuildRunStep(step));
+            if (_steps.Count > 0 && _steps.All(IsFinished))
+                _content.Children.Add(new Label { Text = "Workflow complete", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32") });
         }
         BuildSettingsArea();
     }
@@ -88,6 +98,9 @@ public class DevWorkflowView : ContentView
         var run = Button("Run", "#6A1B9A");
         run.Clicked += async (_, _) => await StartRunAsync();
         row.Children.Add(run);
+        var reset = Button("Reset", "#607D8B");
+        reset.Clicked += (_, _) => { ResetRunState(); BuildRunUI(); };
+        row.Children.Add(reset);
         if (_projects.Count == 0)
         {
             var add = Button("Add a project", "#5B63EE");
@@ -109,7 +122,7 @@ public class DevWorkflowView : ContentView
                 if (picker.SelectedItem is not DevWorkflowProject project || project.Id == _selectedProject?.Id) return;
                 _selectedProject = project;
                 _projectFolder = _projectFolders.TryGetValue(project.Id, out var path) ? path : "";
-                _runStates.Clear(); _runIndex = -1;
+                ResetRunState();
                 await _service.SetLastUsedProjectIdAsync(project.Id);
                 BuildRunUI();
             };
@@ -126,7 +139,7 @@ public class DevWorkflowView : ContentView
         picker.SelectedIndexChanged += async (_, _) =>
         {
             if (picker.SelectedItem is not DevWorkflow workflow || workflow.Id == _selected?.Id) return;
-            _selected = workflow; _runStates.Clear(); _runIndex = -1;
+            _selected = workflow; ResetRunState();
             await _service.SetLastUsedWorkflowIdAsync(workflow.Id); await RefreshAsync();
         };
         stack.Children.Add(picker);
@@ -139,38 +152,65 @@ public class DevWorkflowView : ContentView
     private async Task ShowEditorAsync(DevWorkflow? workflow)
     {
         var editor = new DevWorkflowEditorView(Username, _service, workflow, _compact);
-        editor.Saved += async saved => { _selected = saved; _runStates.Clear(); _runIndex = -1; await RefreshAsync(); };
+        editor.Saved += async saved => { _selected = saved; ResetRunState(); await RefreshAsync(); };
         editor.Cancelled += async () => await RefreshAsync();
-        editor.Deleted += async () => { _selected = null; _runStates.Clear(); _runIndex = -1; await RefreshAsync(); };
+        editor.Deleted += async () => { _selected = null; ResetRunState(); await RefreshAsync(); };
         Content = editor; await editor.ActivateAsync();
     }
 
     private View BuildRunStep(DevWorkflowStep step)
     {
         string text = step.StepType == "Check" ? "Git up to date" : step.UseAllConstraints ? "All programming constraints" : step.Text;
+        var state = StateFor(step);
+        bool current = CurrentStep()?.Id == step.Id;
         var stack = new VerticalStackLayout { Spacing = 5 };
-        stack.Children.Add(new Label { Text = $"{step.SortOrder + 1}. [{step.StepType}] {text}", FontSize = 14, FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap });
-        var state = _runStates.TryGetValue(step.Id, out var value) ? value : ("pending", "Not started", false);
-        stack.Children.Add(new Label { Text = $"{state.Item1}: {state.Item2}", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = StateColor(state.Item1) });
-        if (step.StepType == "Check" && NeedsProjectFolder(state.Item2))
+        var heading = new Grid
         {
-            var setFolder = Small("Set Folder", "#5B63EE");
-            setFolder.Clicked += async (_, _) => await SetProjectFolderAndRecheckAsync(step);
-            stack.Children.Add(setFolder);
-        }
-        if (state.Item1 == "failed")
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            }
+        };
+        var checkBox = new CheckBox { IsChecked = state.Done, Color = Color.FromArgb("#2E7D32"), VerticalOptions = LayoutOptions.Center };
+        checkBox.CheckedChanged += async (_, e) => await SetDoneAsync(step, e.Value);
+        heading.Add(checkBox, 0, 0);
+        heading.Add(new Label
         {
-            var actions = new HorizontalStackLayout { Spacing = 5 };
-            var retry = Small("Re-check"); retry.Clicked += async (_, _) => await RunCurrentStepAsync(); actions.Children.Add(retry);
-            if (state.Item3) { var pull = Small("Pull", "#1565C0"); pull.Clicked += async (_, _) => await PullAndRecheckAsync(); actions.Children.Add(pull); }
-            var over = Small("Override", "#E65100"); over.Clicked += async (_, _) => await OverrideAsync(step); actions.Children.Add(over); stack.Children.Add(actions);
-        }
-        else if (state.Item1 == "pending" && step.StepType == "Manual" && _runIndex >= 0 && _runIndex < _steps.Count && _steps[_runIndex].Id == step.Id)
+            Text = $"{step.SortOrder + 1}. [{step.StepType}] {text}", FontSize = 14,
+            FontAttributes = current ? FontAttributes.Bold : FontAttributes.None,
+            LineBreakMode = LineBreakMode.WordWrap, VerticalOptions = LayoutOptions.Center
+        }, 1, 0);
+        var skip = Small(state.Skipped ? "Unskip" : "Skip");
+        skip.IsEnabled = !state.Done;
+        skip.Clicked += async (_, _) => await ToggleSkipAsync(step);
+        heading.Add(skip, 2, 0); stack.Children.Add(heading);
+
+        if (state.Skipped)
+            stack.Children.Add(new Label { Text = "skipped", FontSize = 12, TextColor = Color.FromArgb("#777777") });
+        else if (!string.IsNullOrWhiteSpace(state.Message))
+            stack.Children.Add(new Label { Text = state.Message, FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = state.Done ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828") });
+
+        var actions = new HorizontalStackLayout { Spacing = 5 };
+        if (step.StepType == "Copy" && !state.Done && !state.Skipped)
         {
-            var check = new CheckBox { Color = Color.FromArgb("#2E7D32") }; check.CheckedChanged += async (_, e) => { if (e.Value) await CompleteManualAsync(step); };
-            stack.Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { check, new Label { Text = "Complete", VerticalOptions = LayoutOptions.Center, TextColor = Color.FromArgb("#2E7D32") } } });
+            var copy = Small("Copy", "#1565C0"); copy.Clicked += async (_, _) => await CopyAndCompleteAsync(step); actions.Children.Add(copy);
         }
-        return new Border { Content = stack, Padding = 10, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Colors.White };
+        if (step.StepType == "Check" && !state.Done && !state.Skipped && !string.IsNullOrWhiteSpace(state.Message))
+        {
+            var rerun = Small("Re-run"); rerun.Clicked += async (_, _) => await RunCheckAsync(step); actions.Children.Add(rerun);
+            if (state.Behind) { var pull = Small("Pull", "#1565C0"); pull.Clicked += async (_, _) => await PullAndRecheckAsync(step); actions.Children.Add(pull); }
+            if (NeedsProjectFolder(state.Message)) { var folder = Small("Set Folder", "#5B63EE"); folder.Clicked += async (_, _) => await SetProjectFolderAndRecheckAsync(step); actions.Children.Add(folder); }
+        }
+        if (actions.Children.Count > 0) stack.Children.Add(actions);
+        return new Border
+        {
+            Content = stack, Padding = 10,
+            Stroke = current ? Color.FromArgb("#6A1B9A") : Color.FromArgb("#DDDDDD"),
+            StrokeThickness = current ? 2 : 1,
+            BackgroundColor = current ? Color.FromArgb("#F3E5F5") : Colors.White
+        };
     }
 
     private void BuildSettingsArea()
@@ -236,34 +276,112 @@ public class DevWorkflowView : ContentView
     {
         if (_projects.Count == 0) { await AddProjectAsync(); return; }
         if (_selectedProject == null) { await AlertAsync("Dev Workflow", "Select a project before running."); return; }
-        _runStates.Clear(); foreach (var step in _steps) _runStates[step.Id] = ("pending", "Waiting", false); _runIndex = 0; BuildRunUI(); await RunCurrentStepAsync();
-    }
-    private async Task RunCurrentStepAsync()
-    {
-        while (_runIndex >= 0 && _runIndex < _steps.Count)
-        {
-            var step = _steps[_runIndex];
-            if (step.StepType == "Manual") { _runStates[step.Id] = ("pending", "Complete this item", false); BuildRunUI(); return; }
-            if (step.StepType == "Copy") { await Clipboard.SetTextAsync(step.UseAllConstraints ? ConstraintBlock() : step.Text); _runStates[step.Id] = ("passed", "Copied", false); _runIndex++; BuildRunUI(); continue; }
-            if (_selectedProject == null)
-            {
-                _runStates[step.Id] = ("skipped", "No project selected", false); _runIndex++; BuildRunUI(); continue;
-            }
-            if (string.IsNullOrWhiteSpace(_projectFolder))
-            {
-                _runStates[step.Id] = ("skipped", $"No folder set for {_selectedProject.Name} on this machine", false); _runIndex++; BuildRunUI(); continue;
-            }
-            var result = await _service.CheckGitAsync(_projectFolder);
-            if (!result.IsAvailable) { _runStates[step.Id] = ("skipped", result.Message, false); _runIndex++; BuildRunUI(); continue; }
-            if (!result.Passed) { _runStates[step.Id] = ("failed", result.Message, result.IsBehind); BuildRunUI(); return; }
-            _runStates[step.Id] = ("passed", result.Message, false); _runIndex++; BuildRunUI();
-        }
-        _runIndex = -1; BuildRunUI();
+        _runStarted = true;
+        await AdvanceChecklistAsync(null, true);
     }
 
-    private async Task CompleteManualAsync(DevWorkflowStep step) { _runStates[step.Id] = ("passed", "Completed", false); _runIndex++; BuildRunUI(); await RunCurrentStepAsync(); }
-    private async Task PullAndRecheckAsync() { if (_runIndex < 0 || _runIndex >= _steps.Count) return; var result = await _service.PullAsync(_projectFolder); _runStates[_steps[_runIndex].Id] = (result.Passed ? "passed" : result.IsAvailable ? "failed" : "skipped", result.Message, result.IsBehind); if (result.Passed || !result.IsAvailable) _runIndex++; BuildRunUI(); if (_runIndex >= 0) await RunCurrentStepAsync(); }
-    private async Task OverrideAsync(DevWorkflowStep step) { await _service.SaveOverrideAsync(new DevWorkflowOverride { Username = Username, WorkflowId = _selected!.Id, StepId = step.Id, WorkflowName = _selected.Name, StepName = step.Text.Length > 0 ? step.Text : "Git up to date" }); _runStates[step.Id] = ("passed", "Overridden", false); _runIndex++; BuildRunUI(); await RunCurrentStepAsync(); }
+    private StepChecklistState StateFor(DevWorkflowStep step)
+    {
+        if (!_runStates.TryGetValue(step.Id, out var state))
+        {
+            state = new StepChecklistState();
+            _runStates[step.Id] = state;
+        }
+        return state;
+    }
+
+    private bool IsFinished(DevWorkflowStep step) { var state = StateFor(step); return state.Done || state.Skipped; }
+    private DevWorkflowStep? CurrentStep() => _steps.FirstOrDefault(x => !IsFinished(x));
+
+    private async Task SetDoneAsync(DevWorkflowStep step, bool done)
+    {
+        int? previousCurrentId = CurrentStep()?.Id;
+        var state = StateFor(step);
+        if (state.Done == done) return;
+        if (done && step.StepType == "Check" && !string.IsNullOrWhiteSpace(state.Message))
+        {
+            await LogOverrideAsync(step);
+            state.Message = "Overridden";
+        }
+        else if (!done)
+        {
+            state.Message = "";
+            state.Behind = false;
+        }
+        state.Done = done; state.Skipped = false;
+        await AdvanceChecklistAsync(previousCurrentId);
+    }
+
+    private async Task ToggleSkipAsync(DevWorkflowStep step)
+    {
+        int? previousCurrentId = CurrentStep()?.Id;
+        var state = StateFor(step);
+        if (state.Done) return;
+        if (!state.Skipped && step.StepType == "Check" && !string.IsNullOrWhiteSpace(state.Message))
+            await LogOverrideAsync(step);
+        state.Skipped = !state.Skipped;
+        if (!state.Skipped) { state.Message = ""; state.Behind = false; }
+        await AdvanceChecklistAsync(previousCurrentId);
+    }
+
+    private async Task CopyAndCompleteAsync(DevWorkflowStep step)
+    {
+        int? previousCurrentId = CurrentStep()?.Id;
+        await Clipboard.SetTextAsync(step.UseAllConstraints ? ConstraintBlock() : step.Text);
+        var state = StateFor(step); state.Done = true; state.Skipped = false; state.Message = "Copied";
+        await AdvanceChecklistAsync(previousCurrentId);
+    }
+
+    private async Task AdvanceChecklistAsync(int? previousCurrentId, bool forceCheck = false)
+    {
+        BuildRunUI();
+        var current = CurrentStep();
+        if (_runStarted && current?.StepType == "Check" &&
+            (forceCheck || current.Id != previousCurrentId)) await RunCheckAsync(current);
+    }
+
+    private async Task RunCheckAsync(DevWorkflowStep step)
+    {
+        var state = StateFor(step);
+        if (_selectedProject == null) { state.Message = "No project selected"; state.Behind = false; BuildRunUI(); return; }
+        if (string.IsNullOrWhiteSpace(_projectFolder))
+        {
+            state.Message = $"No folder set for {_selectedProject.Name} on this machine"; state.Behind = false; BuildRunUI(); return;
+        }
+        var result = await _service.CheckGitAsync(_projectFolder);
+        state.Message = result.Message; state.Behind = result.IsBehind;
+        if (result.IsAvailable && result.Passed)
+        {
+            int? previousCurrentId = CurrentStep()?.Id;
+            state.Done = true; state.Skipped = false;
+            await AdvanceChecklistAsync(previousCurrentId);
+        }
+        else BuildRunUI();
+    }
+
+    private async Task PullAndRecheckAsync(DevWorkflowStep step)
+    {
+        var state = StateFor(step);
+        var result = await _service.PullAsync(_projectFolder);
+        state.Message = result.Message; state.Behind = result.IsBehind;
+        if (result.IsAvailable && result.Passed)
+        {
+            int? previousCurrentId = CurrentStep()?.Id;
+            state.Done = true;
+            await AdvanceChecklistAsync(previousCurrentId);
+        }
+        else BuildRunUI();
+    }
+
+    private async Task LogOverrideAsync(DevWorkflowStep step) =>
+        await _service.SaveOverrideAsync(new DevWorkflowOverride
+        {
+            Username = Username, WorkflowId = _selected!.Id, StepId = step.Id,
+            WorkflowName = _selected.Name,
+            StepName = step.Text.Length > 0 ? step.Text : "Git up to date"
+        });
+
+    private void ResetRunState() { _runStates.Clear(); _runStarted = false; }
     private string ConstraintBlock() => string.Join(Environment.NewLine, _constraints.Select(x => x.Text));
     private async Task SwapConstraintsAsync(int a, int b) { (_constraints[a].SortOrder, _constraints[b].SortOrder) = (_constraints[b].SortOrder, _constraints[a].SortOrder); await _service.SaveConstraintAsync(_constraints[a]); await _service.SaveConstraintAsync(_constraints[b]); await RefreshAsync(); }
 
@@ -274,6 +392,7 @@ public class DevWorkflowView : ContentView
         var project = new DevWorkflowProject { Username = Username, Name = name.Trim(), SortOrder = _projects.Count };
         await _service.SaveProjectAsync(project);
         _selectedProject = project;
+        ResetRunState();
         await _service.SetLastUsedProjectIdAsync(project.Id);
         await _service.PickAndSaveProjectFolderAsync(project.Id);
         await RefreshAsync();
@@ -291,7 +410,7 @@ public class DevWorkflowView : ContentView
         var page = HostPage();
         if (page == null || !await page.DisplayAlert("Delete Project", $"Delete '{project.Name}'?", "Delete", "Cancel")) return;
         await _service.DeleteProjectAsync(project);
-        if (_selectedProject?.Id == project.Id) { _selectedProject = null; _projectFolder = ""; }
+        if (_selectedProject?.Id == project.Id) { _selectedProject = null; _projectFolder = ""; ResetRunState(); }
         await RefreshAsync();
     }
 
@@ -308,11 +427,7 @@ public class DevWorkflowView : ContentView
         if (selected == null) return;
         _projectFolder = selected;
         _projectFolders[_selectedProject.Id] = selected;
-        var result = await _service.CheckGitAsync(_projectFolder);
-        _runStates[step.Id] = result.IsAvailable
-            ? (result.Passed ? "passed" : "failed", result.Message, result.IsBehind)
-            : ("skipped", result.Message, false);
-        BuildRunUI();
+        await RunCheckAsync(step);
     }
 
     private static bool NeedsProjectFolder(string message) =>
@@ -322,7 +437,6 @@ public class DevWorkflowView : ContentView
     private Page? HostPage() => Application.Current?.Windows.FirstOrDefault()?.Page;
     private async Task<string?> PromptAsync(string title, string message, string initial) => HostPage() == null ? null : await HostPage()!.DisplayPromptAsync(title, message, "Save", "Cancel", initialValue: initial);
     private async Task AlertAsync(string title, string message) { if (_showAlert != null) await _showAlert(title, message); else if (HostPage() != null) await HostPage()!.DisplayAlert(title, message, "OK"); }
-    private static Color StateColor(string state) => state switch { "passed" => Color.FromArgb("#2E7D32"), "failed" => Color.FromArgb("#C62828"), "skipped" => Color.FromArgb("#777777"), _ => Color.FromArgb("#E65100") };
     private static Frame Card(View content) => new() { Content = content, Padding = 10, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };
     private static Button Button(string text, string color) => new() { Text = text, BackgroundColor = Color.FromArgb(color), TextColor = Colors.White, FontSize = 12, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0) };
     private static Button Small(string text, string color = "#607D8B") => new() { Text = text, BackgroundColor = Color.FromArgb(color), TextColor = Colors.White, FontSize = 10, CornerRadius = 5, HeightRequest = 30, Padding = new Thickness(7, 0) };
