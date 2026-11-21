@@ -19,7 +19,11 @@ public class DevWorkflowService
         await conn.CreateTableAsync<DevProgrammingConstraint>();
         await conn.CreateTableAsync<DevWorkflowOverride>();
         await conn.CreateTableAsync<DevWorkflowDeviceSetting>();
+        await conn.CreateTableAsync<DevWorkflowProject>();
+        await conn.CreateTableAsync<DevWorkflowProjectFolder>();
         try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_device_settings ADD COLUMN LastUsedWorkflowId INTEGER"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_device_settings ADD COLUMN LastUsedProjectId INTEGER"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_device_settings ADD COLUMN LegacyRepoMigrated INTEGER NOT NULL DEFAULT 0"); } catch { }
         _initialized = true;
     }
 
@@ -86,25 +90,55 @@ public class DevWorkflowService
             .OrderByDescending(x => x.OverriddenAt).ToListAsync();
     }
 
-    public async Task<string> GetRepoFolderAsync()
+    public async Task<List<DevWorkflowProject>> GetProjectsAsync(string username)
     {
-        await InitAsync(); var conn = await _db.GetConnectionAsync();
-        var row = await conn.Table<DevWorkflowDeviceSetting>()
-            .Where(x => x.MachineName == Environment.MachineName).FirstOrDefaultAsync();
-        return row?.RepoFolder ?? "";
+        await InitAsync();
+        await MigrateLegacyRepoAsync(username);
+        var conn = await _db.GetConnectionAsync();
+        return await conn.Table<DevWorkflowProject>()
+            .Where(x => x.Username == username)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToListAsync();
     }
 
-    public async Task SetRepoFolderAsync(string folder)
+    public async Task SaveProjectAsync(DevWorkflowProject project)
     {
         await InitAsync(); var conn = await _db.GetConnectionAsync();
-        var row = await conn.Table<DevWorkflowDeviceSetting>()
-            .Where(x => x.MachineName == Environment.MachineName).FirstOrDefaultAsync();
-        if (row == null) await conn.InsertAsync(new DevWorkflowDeviceSetting
-        { MachineName = Environment.MachineName, RepoFolder = folder });
-        else { row.RepoFolder = folder; await conn.UpdateAsync(row); }
+        if (project.Id == 0) await conn.InsertAsync(project); else await conn.UpdateAsync(project);
     }
 
-    public async Task<string?> PickAndSaveRepoFolderAsync()
+    public async Task DeleteProjectAsync(DevWorkflowProject project)
+    {
+        await InitAsync(); var conn = await _db.GetConnectionAsync();
+        foreach (var folder in await conn.Table<DevWorkflowProjectFolder>()
+                     .Where(x => x.ProjectId == project.Id).ToListAsync())
+            await conn.DeleteAsync(folder);
+        await conn.DeleteAsync(project);
+        if (await GetLastUsedProjectIdAsync() == project.Id)
+            await SetLastUsedProjectIdAsync(null);
+    }
+
+    public async Task<string> GetProjectFolderAsync(int projectId)
+    {
+        await InitAsync(); var conn = await _db.GetConnectionAsync();
+        var row = await conn.Table<DevWorkflowProjectFolder>()
+            .Where(x => x.ProjectId == projectId && x.MachineName == Environment.MachineName)
+            .FirstOrDefaultAsync();
+        return row?.FolderPath ?? "";
+    }
+
+    public async Task SetProjectFolderAsync(int projectId, string folder)
+    {
+        await InitAsync(); var conn = await _db.GetConnectionAsync();
+        var row = await conn.Table<DevWorkflowProjectFolder>()
+            .Where(x => x.ProjectId == projectId && x.MachineName == Environment.MachineName)
+            .FirstOrDefaultAsync();
+        if (row == null)
+            await conn.InsertAsync(new DevWorkflowProjectFolder
+            { ProjectId = projectId, MachineName = Environment.MachineName, FolderPath = folder });
+        else { row.FolderPath = folder; await conn.UpdateAsync(row); }
+    }
+
+    public async Task<string?> PickAndSaveProjectFolderAsync(int projectId)
     {
 #if WINDOWS
         var picker = new Windows.Storage.Pickers.FolderPicker();
@@ -115,13 +149,65 @@ public class DevWorkflowService
         WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
         var folder = await picker.PickSingleFolderAsync();
         if (folder == null) return null;
-        await SetRepoFolderAsync(folder.Path);
+        await SetProjectFolderAsync(projectId, folder.Path);
         return folder.Path;
 #else
         await Task.CompletedTask;
         return null;
 #endif
     }
+
+    public async Task<int?> GetLastUsedProjectIdAsync()
+    {
+        await InitAsync(); var conn = await _db.GetConnectionAsync();
+        var row = await conn.Table<DevWorkflowDeviceSetting>()
+            .Where(x => x.MachineName == Environment.MachineName).FirstOrDefaultAsync();
+        return row?.LastUsedProjectId;
+    }
+
+    public async Task SetLastUsedProjectIdAsync(int? projectId)
+    {
+        await InitAsync(); var conn = await _db.GetConnectionAsync();
+        var row = await GetDeviceSettingAsync(conn);
+        if (row == null)
+            await conn.InsertAsync(new DevWorkflowDeviceSetting
+            { MachineName = Environment.MachineName, LastUsedProjectId = projectId });
+        else { row.LastUsedProjectId = projectId; await conn.UpdateAsync(row); }
+    }
+
+    private async Task MigrateLegacyRepoAsync(string username)
+    {
+        var conn = await _db.GetConnectionAsync();
+        var setting = await GetDeviceSettingAsync(conn);
+        if (setting == null || setting.LegacyRepoMigrated) return;
+        if (!string.IsNullOrWhiteSpace(setting.RepoFolder))
+        {
+            string trimmed = setting.RepoFolder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string name = Path.GetFileName(trimmed);
+            if (string.IsNullOrWhiteSpace(name)) name = "Repository";
+            var project = await conn.Table<DevWorkflowProject>()
+                .Where(x => x.Username == username && x.Name == name).FirstOrDefaultAsync();
+            if (project == null)
+            {
+                project = new DevWorkflowProject
+                {
+                    Username = username,
+                    Name = name,
+                    SortOrder = await conn.Table<DevWorkflowProject>()
+                        .Where(x => x.Username == username).CountAsync()
+                };
+                await conn.InsertAsync(project);
+            }
+            await SetProjectFolderAsync(project.Id, setting.RepoFolder);
+            setting.LastUsedProjectId ??= project.Id;
+        }
+        setting.LegacyRepoMigrated = true;
+        await conn.UpdateAsync(setting);
+    }
+
+    private static Task<DevWorkflowDeviceSetting?> GetDeviceSettingAsync(SQLite.ISQLiteAsyncConnection conn) =>
+        conn.Table<DevWorkflowDeviceSetting>()
+            .Where(x => x.MachineName == Environment.MachineName).FirstOrDefaultAsync();
 
     public async Task<int?> GetLastUsedWorkflowIdAsync()
     {

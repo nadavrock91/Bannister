@@ -523,6 +523,8 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<DevProgrammingConstraint>();
             await _db!.CreateTableAsync<DevWorkflowOverride>();
             await _db!.CreateTableAsync<DevWorkflowDeviceSetting>();
+            await _db!.CreateTableAsync<DevWorkflowProject>();
+            await _db!.CreateTableAsync<DevWorkflowProjectFolder>();
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTotalDaysCap INTEGER NOT NULL DEFAULT 0"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakCapReachedNote TEXT NOT NULL DEFAULT ''"); } catch { }

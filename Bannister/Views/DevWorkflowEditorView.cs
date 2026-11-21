@@ -13,7 +13,6 @@ public class DevWorkflowEditorView : ContentView
     private readonly List<DevWorkflowStep> _steps = new();
     private Entry _name = null!;
     private string _draftName = "";
-    private string _repoFolder = "";
     private DevWorkflowStep? _editingStep;
 
     public event Func<DevWorkflow, Task>? Saved;
@@ -37,7 +36,6 @@ public class DevWorkflowEditorView : ContentView
     {
         _steps.Clear();
         _draftName = _source?.Name ?? "";
-        _repoFolder = await _service.GetRepoFolderAsync();
         if (_source != null)
         {
             foreach (var item in await _service.GetStepsAsync(_username, _source.Id))
@@ -137,48 +135,14 @@ public class DevWorkflowEditorView : ContentView
             ItemsSource = new[] { "Git up to date" },
             SelectedIndex = 0
         };
-        var repoLabel = new Label
-        {
-            Text = RepoText(),
-            FontSize = 11,
-            TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.WordWrap
-        };
-        var changeRepo = Small(string.IsNullOrWhiteSpace(_repoFolder) ? "Set Repo Folder" : "Change");
-        changeRepo.Clicked += async (_, _) =>
-        {
-            string? selected = await _service.PickAndSaveRepoFolderAsync();
-            if (selected == null) return;
-            _repoFolder = selected;
-            repoLabel.Text = RepoText();
-            changeRepo.Text = "Change";
-        };
-        var repoArea = new VerticalStackLayout
-        {
-            Spacing = 4,
-            Children = { repoLabel, changeRepo }
-        };
         void UpdateFields()
         {
             string selected = type.SelectedItem?.ToString() ?? "Manual";
             text.IsVisible = selected != "Check";
             allRow.IsVisible = selected == "Copy";
             checkPicker.IsVisible = selected == "Check";
-            repoArea.IsVisible = selected == "Check";
         }
-        type.SelectedIndexChanged += async (_, _) =>
-        {
-            UpdateFields();
-            if (current != null || type.SelectedItem?.ToString() != "Check" ||
-                !string.IsNullOrWhiteSpace(_repoFolder)) return;
-            string? selected = await _service.PickAndSaveRepoFolderAsync();
-            if (selected != null)
-            {
-                _repoFolder = selected;
-                repoLabel.Text = RepoText();
-                changeRepo.Text = "Change";
-            }
-        };
+        type.SelectedIndexChanged += (_, _) => UpdateFields();
         UpdateFields();
         var apply = Button(current == null ? "Add Step" : "Update Step", "#1565C0");
         apply.Clicked += (_, _) =>
@@ -200,7 +164,7 @@ public class DevWorkflowEditorView : ContentView
             Children =
             {
                 new Label { Text = current == null ? "Add Step" : "Edit Step", FontSize = 16, FontAttributes = FontAttributes.Bold },
-                type, text, allRow, checkPicker, repoArea, apply
+                type, text, allRow, checkPicker, apply
             }
         };
         if (current != null)
@@ -211,10 +175,6 @@ public class DevWorkflowEditorView : ContentView
         }
         return Card(form);
     }
-
-    private string RepoText() => string.IsNullOrWhiteSpace(_repoFolder)
-        ? "Repo: No repo folder set"
-        : $"Repo: {_repoFolder}";
 
     private async Task SaveAsync()
     {
