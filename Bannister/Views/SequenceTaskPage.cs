@@ -25,6 +25,8 @@ public class SequenceTaskPage : ContentPage
     private readonly HashSet<int> _selectedTaskIds = new();
     private Button? _doneSelectedButton;
     private Grid _root = null!;
+    private bool _sortTopCandidatesByDate;
+    private bool _topCandidatesExpanded;
 
     public SequenceTaskPage(SequenceTaskService service, AuthService auth,
         TaskService tasks, IdeasService? ideasService)
@@ -700,13 +702,26 @@ public class SequenceTaskPage : ContentPage
             .Cast<TaskItem>()
             .ToList();
 
+        candidateTasks = (_sortTopCandidatesByDate
+                ? candidateTasks.OrderByDescending(t => t.CreatedAt)
+                : candidateTasks
+                    .OrderBy(t => t.Priority <= 0)
+                    .ThenByDescending(t => t.Priority)
+                    .ThenByDescending(t => t.CreatedAt))
+            .ToList();
+
         if (candidateTasks.Count > 0)
         {
-            bool tcExpanded = false;
-            var tcBody = new VerticalStackLayout { Spacing = 6, IsVisible = false };
+            var tcBody = new VerticalStackLayout
+            {
+                Spacing = 6,
+                IsVisible = _topCandidatesExpanded
+            };
             var tcHeaderLabel = new Label
             {
-                Text = $"▶ ⭐ Top Candidates ({candidateTasks.Count})",
+                Text = _topCandidatesExpanded
+                    ? $"▼ ⭐ Top Candidates ({candidateTasks.Count})"
+                    : $"▶ ⭐ Top Candidates ({candidateTasks.Count})",
                 FontSize = 13,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#FF9800"),
@@ -715,13 +730,63 @@ public class SequenceTaskPage : ContentPage
             var tcHeaderTap = new TapGestureRecognizer();
             tcHeaderTap.Tapped += (_, _) =>
             {
-                tcExpanded = !tcExpanded;
-                tcBody.IsVisible = tcExpanded;
-                tcHeaderLabel.Text = tcExpanded
+                _topCandidatesExpanded = !_topCandidatesExpanded;
+                tcBody.IsVisible = _topCandidatesExpanded;
+                tcHeaderLabel.Text = _topCandidatesExpanded
                     ? $"▼ ⭐ Top Candidates ({candidateTasks.Count})"
                     : $"▶ ⭐ Top Candidates ({candidateTasks.Count})";
             };
             tcHeaderLabel.GestureRecognizers.Add(tcHeaderTap);
+
+            var tcColumns = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = new GridLength(48) },
+                    new ColumnDefinition { Width = new GridLength(82) },
+                    new ColumnDefinition { Width = GridLength.Auto },
+                    new ColumnDefinition { Width = GridLength.Auto }
+                },
+                Margin = new Thickness(0, 0, 0, 2)
+            };
+            tcColumns.Children.Add(new Label
+            {
+                Text = "Task",
+                FontSize = 11,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#777"),
+                VerticalOptions = LayoutOptions.Center
+            });
+            var ratingHeader = new Label
+            {
+                Text = _sortTopCandidatesByDate ? "Rating" : "Rating ▼",
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#777"),
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            };
+            Grid.SetColumn(ratingHeader, 1);
+            tcColumns.Children.Add(ratingHeader);
+            var dateHeader = new Button
+            {
+                Text = _sortTopCandidatesByDate ? "Date ▼" : "Date",
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#777"),
+                BackgroundColor = Colors.Transparent,
+                Padding = 0,
+                HeightRequest = 28
+            };
+            dateHeader.Clicked += async (_, _) =>
+            {
+                _sortTopCandidatesByDate = !_sortTopCandidatesByDate;
+                await RefreshAsync();
+            };
+            Grid.SetColumn(dateHeader, 2);
+            tcColumns.Children.Add(dateHeader);
+            tcBody.Children.Add(tcColumns);
 
             foreach (var candidate in candidateTasks)
             {
@@ -732,6 +797,7 @@ public class SequenceTaskPage : ContentPage
                     {
                         new ColumnDefinition { Width = GridLength.Star },
                         new ColumnDefinition { Width = new GridLength(48) },
+                        new ColumnDefinition { Width = new GridLength(82) },
                         new ColumnDefinition { Width = GridLength.Auto },
                         new ColumnDefinition { Width = GridLength.Auto }
                     },
@@ -746,7 +812,9 @@ public class SequenceTaskPage : ContentPage
                 });
                 var priorityLabel = new Label
                 {
-                    Text = capturedCandidate.Priority.ToString(),
+                    Text = capturedCandidate.Priority > 0
+                        ? capturedCandidate.Priority.ToString()
+                        : "—",
                     FontSize = 12,
                     TextColor = Color.FromArgb("#888"),
                     HorizontalOptions = LayoutOptions.Center,
@@ -754,6 +822,17 @@ public class SequenceTaskPage : ContentPage
                 };
                 Grid.SetColumn(priorityLabel, 1);
                 tcRow.Children.Add(priorityLabel);
+                var dateLabel = new Label
+                {
+                    Text = capturedCandidate.CreatedAt.ToLocalTime()
+                        .ToString("dd/MM/yyyy"),
+                    FontSize = 10,
+                    TextColor = Color.FromArgb("#888"),
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                Grid.SetColumn(dateLabel, 2);
+                tcRow.Children.Add(dateLabel);
                 var addBtn = MakeButton("+ Add", "#E8F5E9", "#2E7D32");
                 addBtn.Clicked += async (_, _) =>
                 {
@@ -796,8 +875,8 @@ public class SequenceTaskPage : ContentPage
                     await _service.RemoveCandidateAsync(group.Id, capturedCandidate.Id);
                     await RefreshAsync();
                 };
-                Grid.SetColumn(addBtn, 2);
-                Grid.SetColumn(removeBtn, 3);
+                Grid.SetColumn(addBtn, 3);
+                Grid.SetColumn(removeBtn, 4);
                 tcRow.Children.Add(addBtn);
                 tcRow.Children.Add(removeBtn);
                 tcBody.Children.Add(tcRow);
