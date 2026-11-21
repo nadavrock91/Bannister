@@ -86,6 +86,7 @@ public class HomePage : ContentPage
     private readonly ShortsCutterProjectService _shortsCutterProjects;
     private readonly AppSettingsService _appSettings;
     private readonly DevWorkflowService _devWorkflowService;
+    private readonly CompanionService _companionService;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -148,6 +149,7 @@ public class HomePage : ContentPage
     private Button _btnZeroCounts;
     private Button _btnFileSorter = null!;
     private Button _btnDevWorkflow = null!;
+    private Button _btnCompanions = null!;
     private Button _quickAccessBtn = null!;
     private Button _secondaryQueueActionsBtn = null!;
     private readonly ToolbarItem _secondaryQueueToolbarItem;
@@ -190,7 +192,8 @@ public class HomePage : ContentPage
         TruncatePresetService truncatePresetService,
         ShortsCutterProjectService shortsCutterProjects,
         AppSettingsService appSettings,
-        DevWorkflowService devWorkflowService)
+        DevWorkflowService devWorkflowService,
+        CompanionService companionService)
     {
         _auth = auth;
         _videoGenExperimentService = videoGenExperimentService;
@@ -200,6 +203,7 @@ public class HomePage : ContentPage
         _shortsCutterProjects = shortsCutterProjects;
         _appSettings = appSettings;
         _devWorkflowService = devWorkflowService;
+        _companionService = companionService;
         _games = games;
         _dragons = dragons;
         _backup = backup;
@@ -419,6 +423,10 @@ public class HomePage : ContentPage
         _btnConversationPractice = CreateButton("💬 Conversation Practice", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3F51B5"));
         _btnConversationPractice.Clicked += OnConversationPracticeClicked;
         navButtons.Add(("Conversation Practice", _btnConversationPractice));
+
+        _btnCompanions = CreateButton("Companions", Color.FromArgb("#E8EAF6"), Color.FromArgb("#5E35B1"));
+        _btnCompanions.Clicked += OnCompanionsClicked;
+        navButtons.Add(("Companions", _btnCompanions));
 
         _btnCustomGames = CreateButton("🎲 Custom Games", Color.FromArgb("#EDE7F6"), Color.FromArgb("#512DA8"));
         _btnCustomGames.Clicked += OnCustomGamesClicked;
@@ -1006,6 +1014,7 @@ public class HomePage : ContentPage
             "Progress" => OnProgressClicked,
             "Commands Casino" => OnCommandsCasinoClicked,
             "Conversation Practice" => OnConversationPracticeClicked,
+            "Companions" => OnCompanionsClicked,
             "Custom Games" => OnCustomGamesClicked,
             "Countdowns" => OnCountdownsClicked,
             "Databases" => OnDatabasesClicked,
@@ -3081,6 +3090,12 @@ public class HomePage : ContentPage
     {
         await Navigation.PushAsync(new DevWorkflowPage(
             _auth, _devWorkflowService));
+    }
+
+    private async void OnCompanionsClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new CompanionsPage(
+            _auth, _companionService, _games));
     }
 
     private async void OnVideoEditingClicked(object? sender, EventArgs e)

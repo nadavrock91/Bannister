@@ -501,6 +501,9 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<HomeButtonVisibilitySetting>();
             await _db!.CreateTableAsync<DoNotItem>();
             await _db!.CreateTableAsync<OpeningClipImageSessionItem>();
+            await _db!.CreateTableAsync<Companion>();
+            await _db!.CreateTableAsync<CompanionDataPoint>();
+            await _db!.CreateTableAsync<CompanionInterview>();
             await _db!.CreateTableAsync<ResetEnforcer>();
             await _db!.CreateTableAsync<ResetCondition>();
             await _db!.CreateTableAsync<EnforcerLevel>();
@@ -577,6 +580,18 @@ namespace Bannister.Services
             try { await _db!.ExecuteAsync("ALTER TABLE sort_sets ADD COLUMN Device TEXT NOT NULL DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE sort_folders ADD COLUMN Device TEXT NOT NULL DEFAULT ''"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE favorite_source_folders ADD COLUMN Device TEXT NOT NULL DEFAULT ''"); } catch { }
+            try
+            {
+                await _db!.ExecuteAsync("ALTER TABLE companions ADD COLUMN DefaultQuestionCount INTEGER NOT NULL DEFAULT 10");
+                await _db!.ExecuteAsync("UPDATE companions SET DefaultQuestionCount = DefaultInterviewMinutes");
+            }
+            catch { }
+            try
+            {
+                await _db!.ExecuteAsync("ALTER TABLE companion_interviews ADD COLUMN QuestionCount INTEGER NOT NULL DEFAULT 10");
+                await _db!.ExecuteAsync("UPDATE companion_interviews SET QuestionCount = Minutes");
+            }
+            catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

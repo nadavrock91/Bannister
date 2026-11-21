@@ -82,6 +82,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<LastCalculatedLocationService>();
         builder.Services.AddSingleton<TimedPopupService>();
         builder.Services.AddSingleton<DevWorkflowService>();
+        builder.Services.AddSingleton<CompanionService>();
         builder.Services.AddSingleton<AssetLibraryService>();
         builder.Services.AddSingleton<AssetThumbnailService>();
         builder.Services.AddSingleton<MusicProductionService>();
