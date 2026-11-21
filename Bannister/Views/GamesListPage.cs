@@ -123,14 +123,14 @@ public class GamesListPage : ContentPage
         _lastCalculatedButton = new Button
         {
             IsVisible = false,
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#5B63EE"),
             CornerRadius = 8,
-            HeightRequest = 44,
+            HeightRequest = 48,
+            Margin = new Thickness(0, 16, 0, 0),
             HorizontalOptions = LayoutOptions.Fill
         };
         _lastCalculatedButton.Clicked += async (_, _) => await GoToLastCalculatedAsync();
-        mainStack.Children.Add(_lastCalculatedButton);
 
         // Games grid container using FlexLayout for wrapping
         _gamesGrid = new FlexLayout
@@ -142,6 +142,8 @@ public class GamesListPage : ContentPage
             Margin = new Thickness(0, 16, 0, 0)
         };
         mainStack.Children.Add(_gamesGrid);
+
+        mainStack.Children.Add(_lastCalculatedButton);
 
         // Add Game button
         var btnAddGame = new Button
