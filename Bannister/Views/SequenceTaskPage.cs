@@ -758,14 +758,25 @@ public class SequenceTaskPage : ContentPage
                 TextColor = Color.FromArgb("#777"),
                 VerticalOptions = LayoutOptions.Center
             });
-            var ratingHeader = new Label
+            var ratingHeader = new Button
             {
                 Text = _sortTopCandidatesByDate ? "Rating" : "Rating ▼",
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#777"),
+                BackgroundColor = _sortTopCandidatesByDate
+                    ? Color.FromArgb("#EEEEEE")
+                    : Colors.Transparent,
+                Padding = 0,
+                HeightRequest = 28,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center
+            };
+            ratingHeader.Clicked += async (_, _) =>
+            {
+                if (!_sortTopCandidatesByDate) return;
+                _sortTopCandidatesByDate = false;
+                await RefreshAsync();
             };
             Grid.SetColumn(ratingHeader, 1);
             tcColumns.Children.Add(ratingHeader);
@@ -775,13 +786,16 @@ public class SequenceTaskPage : ContentPage
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#777"),
-                BackgroundColor = Colors.Transparent,
+                BackgroundColor = _sortTopCandidatesByDate
+                    ? Colors.Transparent
+                    : Color.FromArgb("#EEEEEE"),
                 Padding = 0,
                 HeightRequest = 28
             };
             dateHeader.Clicked += async (_, _) =>
             {
-                _sortTopCandidatesByDate = !_sortTopCandidatesByDate;
+                if (_sortTopCandidatesByDate) return;
+                _sortTopCandidatesByDate = true;
                 await RefreshAsync();
             };
             Grid.SetColumn(dateHeader, 2);
