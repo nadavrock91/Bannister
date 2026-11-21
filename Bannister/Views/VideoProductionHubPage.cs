@@ -6,20 +6,12 @@ public class VideoProductionHubPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly PromptTechniqueService _promptTechniqueService;
-    private readonly DenseVideoSequenceService _sequenceService;
-    private readonly FFmpegService _ffmpeg;
-
     public VideoProductionHubPage(
         AuthService auth,
-        PromptTechniqueService promptTechniqueService,
-        DenseVideoSequenceService sequenceService,
-        FFmpegService ffmpeg)
+        PromptTechniqueService promptTechniqueService)
     {
         _auth = auth;
         _promptTechniqueService = promptTechniqueService;
-        _sequenceService = sequenceService;
-        _ffmpeg = ffmpeg;
-
         Title = "Video Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -53,17 +45,6 @@ public class VideoProductionHubPage : ContentPage
             "Track and compare prompting techniques for AI video generation. Log results, identify failure patterns, and discover what works.",
             Color.FromArgb("#1565C0"),
             async () => await Navigation.PushAsync(new PromptTechniqueLabPage(_auth, _promptTechniqueService))));
-        stack.Children.Add(BuildHubCard(
-            "Sequence Builder",
-            "Build a general chain of generated clips, review usable runs, and continue from extracted endpoint frames.",
-            Color.FromArgb("#00897B"),
-            async () => await Navigation.PushAsync(new VideoSequenceBuilderPage(_auth, _sequenceService, _ffmpeg))));
-        stack.Children.Add(BuildHubCard(
-            "Dense Sequence Experiment",
-            "Manage 20 concept grids, select five starting thumbnails, and rotate through structured one-second extensions.",
-            Color.FromArgb("#6A1B9A"),
-            async () => await Navigation.PushAsync(new DenseSequenceExperimentPage(_auth, _sequenceService, _ffmpeg))));
-
         Content = new ScrollView { Content = stack };
     }
 

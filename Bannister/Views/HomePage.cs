@@ -82,7 +82,6 @@ public class HomePage : ContentPage
     private readonly VideoGenExperimentService _videoGenExperimentService;
     private readonly PromptTechniqueService _promptTechniqueService;
     private readonly FFmpegService _ffmpegService;
-    private readonly DenseVideoSequenceService _denseVideoSequenceService;
     private readonly TruncatePresetService _truncatePresetService;
     private readonly ShortsCutterProjectService _shortsCutterProjects;
     private readonly AppSettingsService _appSettings;
@@ -186,7 +185,6 @@ public class HomePage : ContentPage
         VideoGenExperimentService videoGenExperimentService,
         PromptTechniqueService promptTechniqueService,
         FFmpegService ffmpegService,
-        DenseVideoSequenceService denseVideoSequenceService,
         TruncatePresetService truncatePresetService,
         ShortsCutterProjectService shortsCutterProjects,
         AppSettingsService appSettings)
@@ -195,7 +193,6 @@ public class HomePage : ContentPage
         _videoGenExperimentService = videoGenExperimentService;
         _promptTechniqueService = promptTechniqueService;
         _ffmpegService = ffmpegService;
-        _denseVideoSequenceService = denseVideoSequenceService;
         _truncatePresetService = truncatePresetService;
         _shortsCutterProjects = shortsCutterProjects;
         _appSettings = appSettings;
@@ -1080,8 +1077,23 @@ public class HomePage : ContentPage
             // Migrate from Preferences on first load (one-time)
             string legacyPref = Preferences.Default.Get(
                 $"home_quick_access_{_auth.CurrentUsername}", "");
+            string normalizedLegacyPref = string.Join(",",
+                legacyPref.Split(',', StringSplitOptions.RemoveEmptyEntries |
+                                      StringSplitOptions.TrimEntries)
+                    .Select(id => id.Equals("Video Generation",
+                        StringComparison.OrdinalIgnoreCase)
+                        ? "Video Production"
+                        : id)
+                    .Distinct(StringComparer.OrdinalIgnoreCase));
+            if (!string.Equals(legacyPref, normalizedLegacyPref,
+                    StringComparison.Ordinal))
+            {
+                Preferences.Default.Set(
+                    $"home_quick_access_{_auth.CurrentUsername}",
+                    normalizedLegacyPref);
+            }
             await _homeQuickAccess.MigrateFromPreferencesAsync(
-                _auth.CurrentUsername, legacyPref);
+                _auth.CurrentUsername, normalizedLegacyPref);
 
             // Load pinned buttons from SQLite
             _quickAccessCache = await _homeQuickAccess
@@ -3051,9 +3063,7 @@ public class HomePage : ContentPage
     {
         await Navigation.PushAsync(new VideoProductionHubPage(
             _auth,
-            _promptTechniqueService,
-            _denseVideoSequenceService,
-            _ffmpegService));
+            _promptTechniqueService));
     }
 
     private async void OnVideoEditingClicked(object? sender, EventArgs e)

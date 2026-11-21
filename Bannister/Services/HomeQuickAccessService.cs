@@ -4,6 +4,8 @@ namespace Bannister.Services;
 
 public class HomeQuickAccessService
 {
+    private const string LegacyVideoButtonId = "Video Generation";
+    private const string VideoProductionButtonId = "Video Production";
     private readonly DatabaseService _db;
     private bool _initialized;
 
@@ -28,6 +30,7 @@ public class HomeQuickAccessService
         try
         {
             var conn = await _db.GetConnectionAsync();
+            await MigrateLegacyVideoButtonAsync(username, conn);
             var rows = await conn.Table<HomeQuickAccessSetting>()
                 .Where(s => s.Username == username)
                 .ToListAsync();
@@ -108,12 +111,43 @@ public class HomeQuickAccessService
         foreach (var id in ids)
         {
             if (string.IsNullOrWhiteSpace(id)) continue;
+            string buttonId = id.Equals(
+                LegacyVideoButtonId, StringComparison.OrdinalIgnoreCase)
+                ? VideoProductionButtonId
+                : id.Trim();
             await conn.InsertAsync(new HomeQuickAccessSetting
             {
                 Username = username,
-                ButtonId = id.Trim(),
+                ButtonId = buttonId,
                 CreatedAt = DateTime.UtcNow
             });
         }
+    }
+
+    private async Task MigrateLegacyVideoButtonAsync(
+        string username,
+        SQLite.ISQLiteAsyncConnection conn)
+    {
+        if (_db.IsReadOnly) return;
+
+        var rows = await conn.Table<HomeQuickAccessSetting>()
+            .Where(s => s.Username == username)
+            .ToListAsync();
+        var legacyRows = rows.Where(s => s.ButtonId.Equals(
+            LegacyVideoButtonId, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (legacyRows.Count == 0) return;
+
+        bool hasCurrent = rows.Any(s => s.ButtonId.Equals(
+            VideoProductionButtonId, StringComparison.OrdinalIgnoreCase));
+        if (!hasCurrent)
+        {
+            var retained = legacyRows[0];
+            retained.ButtonId = VideoProductionButtonId;
+            await conn.UpdateAsync(retained);
+            legacyRows.RemoveAt(0);
+        }
+
+        foreach (var stale in legacyRows)
+            await conn.DeleteAsync(stale);
     }
 }

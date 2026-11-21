@@ -74,7 +74,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<WritingExperimentService>();
         builder.Services.AddSingleton<ClipsExperimentService>();
         builder.Services.AddSingleton<VideoGenExperimentService>();
-        builder.Services.AddSingleton<DenseVideoSequenceService>();
         builder.Services.AddSingleton<PromptTechniqueService>();
         builder.Services.AddSingleton<FFmpegService>();
         builder.Services.AddSingleton<TruncatePresetService>();
