@@ -6,6 +6,7 @@ namespace BannisterTools;
 
 public class MainPage : ContentPage
 {
+    private const string DatabasePathPreferenceKey = "tools_db_path";
     private readonly DatabaseService _db;
     private readonly SyncService _sync;
     private readonly DailyDeadlineService _deadlineService;
@@ -29,6 +30,7 @@ public class MainPage : ContentPage
     private Entry _loginPasswordEntry = null!;
     private Label _loginErrorLabel = null!;
     private VerticalStackLayout _loginSection = null!;
+    private VerticalStackLayout _databaseSelectionSection = null!;
     private CheckBox _rememberMeCheck = null!;
     private string _username = "";
     private int _configuredSeconds = 25 * 60;
@@ -50,11 +52,6 @@ public class MainPage : ContentPage
         GameService gameService,
         LoginMaster loginMaster)
     {
-#if WINDOWS
-        DatabaseService.SetDatabasePathOverride(ResolveBannisterDbPath());
-        DailyDeadlineViewHelper.SetImageBaseDirOverride(
-            ResolveBannisterImagesPath());
-#endif
         _db = db;
         _sync = sync;
         _deadlineService = deadlineService;
@@ -110,7 +107,25 @@ public class MainPage : ContentPage
                 "Cancel",
                 null,
                 "Manage Timed Popups",
-                "Log Out");
+                "Log Out",
+                "Change Database Location");
+
+            if (action == "Change Database Location")
+            {
+                bool confirmed = await DisplayAlert(
+                    "Change Database Location",
+                    "Log out and choose a different Bannister database?",
+                    "Continue",
+                    "Cancel");
+                if (!confirmed)
+                    return;
+
+                await LogOutAsync();
+                Preferences.Default.Remove(DatabasePathPreferenceKey);
+                DatabaseService.ClearDatabasePathOverride();
+                ShowDatabaseSelection();
+                return;
+            }
 
             if (action == "Log Out")
             {
@@ -232,6 +247,7 @@ public class MainPage : ContentPage
         _loginSection = new VerticalStackLayout
         {
             Spacing = 6,
+            IsVisible = false,
             Children =
             {
                 new Label
@@ -247,6 +263,34 @@ public class MainPage : ContentPage
                 rememberRow,
                 loginButton,
                 _loginErrorLabel
+            }
+        };
+
+        var selectDatabaseButton = new Button
+        {
+            Text = "Select bannister.db",
+            BackgroundColor = Color.FromArgb("#3949AB"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            HeightRequest = 48
+        };
+        selectDatabaseButton.Clicked += async (_, _) =>
+            await SelectDatabaseAsync();
+        _databaseSelectionSection = new VerticalStackLayout
+        {
+            Spacing = 12,
+            IsVisible = false,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Bannister database not found.",
+                    FontSize = 18,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Colors.White,
+                    HorizontalTextAlignment = TextAlignment.Center
+                },
+                selectDatabaseButton
             }
         };
 
@@ -408,7 +452,7 @@ public class MainPage : ContentPage
             HorizontalOptions = LayoutOptions.Center,
             Children =
             {
-                _loginSection, _mainContent
+                _databaseSelectionSection, _loginSection, _mainContent
             }
         };
 
@@ -425,8 +469,18 @@ public class MainPage : ContentPage
         Content = root;
     }
 
-    private static string ResolveBannisterDbPath()
+    private static string? ResolveBannisterDbPath()
     {
+        string savedPath = Preferences.Default.Get(
+            DatabasePathPreferenceKey, "");
+        if (!string.IsNullOrWhiteSpace(savedPath))
+        {
+            if (File.Exists(savedPath))
+                return savedPath;
+
+            Preferences.Default.Remove(DatabasePathPreferenceKey);
+        }
+
         // On Windows, Bannister (packaged/MSIX) stores its DB under:
         // %LOCALAPPDATA%\Packages\com.bannister.app_<hash>\LocalState\bannister.db
         // BannisterTools is unpackaged, so FileSystem.AppDataDirectory points elsewhere.
@@ -440,18 +494,52 @@ public class MainPage : ContentPage
             {
                 var candidate = Path.Combine(dir, "LocalState", "bannister.db");
                 if (File.Exists(candidate))
+                {
+                    Preferences.Default.Set(DatabasePathPreferenceKey, candidate);
                     return candidate;
+                }
             }
         }
 
-        return DatabaseService.DatabasePath;
+        return null;
     }
 
-    private static string ResolveBannisterImagesPath()
+    private static void ApplyDatabasePath(string databasePath)
     {
-        string databasePath = ResolveBannisterDbPath();
-        string? localStateDirectory = Path.GetDirectoryName(databasePath);
-        return localStateDirectory ?? FileSystem.AppDataDirectory;
+        DatabaseService.SetDatabasePathOverride(databasePath);
+        DailyDeadlineViewHelper.SetImageBaseDirOverride(
+            Path.GetDirectoryName(databasePath) ?? FileSystem.AppDataDirectory);
+    }
+
+    private void ShowDatabaseSelection()
+    {
+        _databaseSelectionSection.IsVisible = true;
+        _loginSection.IsVisible = false;
+        _mainContent.IsVisible = false;
+    }
+
+    private async Task SelectDatabaseAsync()
+    {
+        var result = await FilePicker.PickAsync(new PickOptions
+        {
+            PickerTitle = "Select bannister.db",
+            FileTypes = new FilePickerFileType(
+                new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.WinUI, new[] { ".db" } },
+                    { DevicePlatform.Android, new[] { "application/octet-stream", "application/x-sqlite3" } },
+                    { DevicePlatform.iOS, new[] { "public.database" } }
+                })
+        });
+        if (result == null || string.IsNullOrWhiteSpace(result.FullPath) ||
+            !File.Exists(result.FullPath))
+            return;
+
+        string selectedPath = Path.GetFullPath(result.FullPath);
+        Preferences.Default.Set(DatabasePathPreferenceKey, selectedPath);
+        ApplyDatabasePath(selectedPath);
+        _databaseSelectionSection.IsVisible = false;
+        _loginSection.IsVisible = true;
     }
 
     private static Button MakeButton(string text, string color) => new()
@@ -565,9 +653,23 @@ public class MainPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        string? resolvedPath = ResolveBannisterDbPath();
+        if (resolvedPath == null)
+        {
+            DatabaseService.ClearDatabasePathOverride();
+            ShowDatabaseSelection();
+            return;
+        }
+
+        ApplyDatabasePath(resolvedPath);
         string databasePath = DatabaseService.DatabasePath;
         System.Diagnostics.Debug.WriteLine(
             $"BannisterTools database: {databasePath}");
+        _databaseSelectionSection.IsVisible = false;
+        if (!string.IsNullOrWhiteSpace(_username))
+            return;
+
+        _loginSection.IsVisible = true;
         var savedUser = await SecureStorage.GetAsync("tools_username");
         var savedPass = await SecureStorage.GetAsync("tools_password");
         if (!string.IsNullOrEmpty(savedUser) && !string.IsNullOrEmpty(savedPass))
@@ -593,6 +695,14 @@ public class MainPage : ContentPage
 
     private async Task LoginMasterAsync()
     {
+        if (!File.Exists(DatabaseService.DatabasePath))
+        {
+            Preferences.Default.Remove(DatabasePathPreferenceKey);
+            DatabaseService.ClearDatabasePathOverride();
+            ShowDatabaseSelection();
+            return;
+        }
+
         string username = _usernameEntry.Text?.Trim() ?? "";
         string password = _loginPasswordEntry.Text ?? "";
 

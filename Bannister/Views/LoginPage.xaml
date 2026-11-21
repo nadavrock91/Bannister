@@ -26,7 +26,31 @@
             <Label Text="Bannister" FontSize="32" FontAttributes="Bold" HorizontalOptions="Center" />
             <Label Text="Slay your dragons" HorizontalOptions="Center" TextColor="Gray" />
 
-            <Frame BackgroundColor="White" Padding="20" CornerRadius="10" Margin="0,20,0,0">
+            <Frame x:Name="DatabaseMissingSection"
+                   IsVisible="False"
+                   BackgroundColor="White"
+                   Padding="20"
+                   CornerRadius="10"
+                   Margin="0,20,0,0">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="No Bannister database found on this device."
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" />
+                    <Button Text="Select existing database"
+                            Clicked="OnSelectExistingDatabaseClicked"
+                            BackgroundColor="#3949AB"
+                            TextColor="White"
+                            CornerRadius="8" />
+                    <Button Text="Create new database"
+                            Clicked="OnCreateNewDatabaseClicked"
+                            BackgroundColor="#2E7D32"
+                            TextColor="White"
+                            CornerRadius="8" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame x:Name="LoginSection" BackgroundColor="White" Padding="20" CornerRadius="10" Margin="0,20,0,0">
                 <VerticalStackLayout Spacing="16">
 
                     <Label x:Name="lblTitle" Text="Welcome Back" FontSize="18" FontAttributes="Bold" />

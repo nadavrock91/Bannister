@@ -4,8 +4,11 @@ namespace Bannister;
 
 public class AppMain : Application
 {
+    private const string DatabasePathPreferenceKey = "bannister_db_path";
+
     public AppMain()
     {
+        ConfigureDatabasePath();
         MainPage = new MainShell();
 
         // Hook every unhandled-exception channel we can find. SQLite "readonly"
@@ -24,6 +27,25 @@ public class AppMain : Application
         Java.Lang.Thread.DefaultUncaughtExceptionHandler =
             new AndroidUncaughtHandler(this);
 #endif
+    }
+
+    private static void ConfigureDatabasePath()
+    {
+        string savedPath = Preferences.Default.Get(
+            DatabasePathPreferenceKey, "");
+        if (!string.IsNullOrWhiteSpace(savedPath) && File.Exists(savedPath))
+        {
+            DatabaseService.SetDatabasePathOverride(savedPath);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(savedPath))
+            Preferences.Default.Remove(DatabasePathPreferenceKey);
+
+        string defaultPath = DatabaseService.DefaultDatabasePath;
+        DatabaseService.SetDatabasePathOverride(defaultPath);
+        if (File.Exists(defaultPath))
+            Preferences.Default.Set(DatabasePathPreferenceKey, defaultPath);
     }
 
     private void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)

@@ -2,64 +2,72 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class VideoGenerationHubPage : ContentPage
+public class VideoProductionHubPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly PromptTechniqueService _promptTechniqueService;
+    private readonly DenseVideoSequenceService _sequenceService;
+    private readonly FFmpegService _ffmpeg;
 
-    public VideoGenerationHubPage(
+    public VideoProductionHubPage(
         AuthService auth,
-        PromptTechniqueService promptTechniqueService)
+        PromptTechniqueService promptTechniqueService,
+        DenseVideoSequenceService sequenceService,
+        FFmpegService ffmpeg)
     {
         _auth = auth;
         _promptTechniqueService = promptTechniqueService;
+        _sequenceService = sequenceService;
+        _ffmpeg = ffmpeg;
 
-        Title = "Video Generation";
+        Title = "Video Production";
         BackgroundColor = Color.FromArgb("#F5F5F5");
-
         BuildUI();
     }
 
     private void BuildUI()
     {
-        var stack = new VerticalStackLayout
-        {
-            Padding = 16,
-            Spacing = 14
-        };
-
+        var stack = new VerticalStackLayout { Padding = 16, Spacing = 14 };
         stack.Children.Add(new Label
         {
-            Text = " Video Generation",
+            Text = "Video Production",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#C2185B")
         });
-
         stack.Children.Add(new Label
         {
-            Text = "Tools for generating videos from source content.",
+            Text = "Tools for producing videos, testing prompts, and building connected generated sequences.",
             FontSize = 13,
             TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, 0, 0, 4)
         });
 
         stack.Children.Add(BuildHubCard(
-            "️ Slideshow",
+            "Slideshow",
             "Turn a folder of images into an MP4 video with configurable slide duration and playback order.",
             Color.FromArgb("#C2185B"),
             async () => await Navigation.PushAsync(new SlideshowPage(_auth))));
-
         stack.Children.Add(BuildHubCard(
-            " Prompt Technique Lab",
+            "Prompt Technique Lab",
             "Track and compare prompting techniques for AI video generation. Log results, identify failure patterns, and discover what works.",
             Color.FromArgb("#1565C0"),
             async () => await Navigation.PushAsync(new PromptTechniqueLabPage(_auth, _promptTechniqueService))));
+        stack.Children.Add(BuildHubCard(
+            "Sequence Builder",
+            "Build a general chain of generated clips, review usable runs, and continue from extracted endpoint frames.",
+            Color.FromArgb("#00897B"),
+            async () => await Navigation.PushAsync(new VideoSequenceBuilderPage(_auth, _sequenceService, _ffmpeg))));
+        stack.Children.Add(BuildHubCard(
+            "Dense Sequence Experiment",
+            "Manage 20 concept grids, select five starting thumbnails, and rotate through structured one-second extensions.",
+            Color.FromArgb("#6A1B9A"),
+            async () => await Navigation.PushAsync(new DenseSequenceExperimentPage(_auth, _sequenceService, _ffmpeg))));
 
         Content = new ScrollView { Content = stack };
     }
 
-    private Frame BuildHubCard(string header, string subtitle, Color accent, Func<Task> onTap)
+    private static Frame BuildHubCard(string header, string subtitle, Color accent, Func<Task> onTap)
     {
         var frame = new Frame
         {
@@ -78,11 +86,9 @@ public class VideoGenerationHubPage : ContentPage
                 }
             }
         };
-
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (_, _) => await onTap();
         frame.GestureRecognizers.Add(tap);
-
         return frame;
     }
 }

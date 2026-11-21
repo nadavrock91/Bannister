@@ -11,6 +11,7 @@ namespace Bannister.Views
 {
     public partial class LoginPage : ContentPage
     {
+        private const string DatabasePathPreferenceKey = "bannister_db_path";
         private readonly AuthService _auth;
         private readonly DatabaseService _db;
         private readonly DeviceModeService _deviceMode;
@@ -36,8 +37,68 @@ namespace Bannister.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+            if (!EnsureDatabaseSelectionState())
+                return;
+
             if (await _auth.TryRestoreSessionAsync())
                 await Shell.Current.GoToAsync("//home");
+        }
+
+        private bool EnsureDatabaseSelectionState()
+        {
+            string path = DatabaseService.DatabasePath;
+            bool exists = File.Exists(path);
+            DatabaseMissingSection.IsVisible = !exists;
+            LoginSection.IsVisible = exists;
+            return exists;
+        }
+
+        private async void OnSelectExistingDatabaseClicked(object sender, EventArgs e)
+        {
+            var result = await FilePicker.PickAsync(new PickOptions
+            {
+                PickerTitle = "Select bannister.db",
+                FileTypes = new FilePickerFileType(
+                    new Dictionary<DevicePlatform, IEnumerable<string>>
+                    {
+                        { DevicePlatform.WinUI, new[] { ".db" } },
+                        { DevicePlatform.Android, new[] { "application/octet-stream", "application/x-sqlite3" } },
+                        { DevicePlatform.iOS, new[] { "public.database" } }
+                    })
+            });
+            if (result == null)
+                return;
+
+            bool copy = await DisplayAlert(
+                "Copy Database",
+                "Copy this database into Bannister?",
+                "Copy",
+                "Cancel");
+            if (!copy)
+                return;
+
+            string destination = DatabaseService.DefaultDatabasePath;
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            using (var source = await result.OpenReadAsync())
+            using (var target = File.Create(destination))
+                await source.CopyToAsync(target);
+
+            DatabaseService.SetDatabasePathOverride(destination);
+            Preferences.Default.Set(DatabasePathPreferenceKey, destination);
+            DatabaseMissingSection.IsVisible = false;
+            LoginSection.IsVisible = true;
+        }
+
+        private void OnCreateNewDatabaseClicked(object sender, EventArgs e)
+        {
+            string destination = DatabaseService.DefaultDatabasePath;
+            DatabaseService.SetDatabasePathOverride(destination);
+            Preferences.Default.Set(DatabasePathPreferenceKey, destination);
+            DatabaseMissingSection.IsVisible = false;
+            LoginSection.IsVisible = true;
+
+            if (!_isRegistering)
+                OnToggleClicked(sender, e);
         }
 
         private async void LoadSavedCredentials()
@@ -283,6 +344,14 @@ namespace Bannister.Views
             }
             else
             {
+                if (!File.Exists(DatabaseService.DatabasePath))
+                {
+                    ShowError($"Bannister database not found at {DatabaseService.DatabasePath}");
+                    DatabaseMissingSection.IsVisible = true;
+                    LoginSection.IsVisible = false;
+                    return;
+                }
+
                 bool success = await _auth.LoginAsync(username, password);
                 if (success)
                 {

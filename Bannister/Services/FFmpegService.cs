@@ -705,4 +705,34 @@ public class FFmpegService
 
         return TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out time);
     }
+
+    public async Task<(bool success, string message)> ExtractFrameAsync(
+        string inputPath, double timestampSeconds, string outputPath)
+    {
+#if WINDOWS
+        try
+        {
+            string ffmpegPath = await EnsureFFmpegAsync();
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = ffmpegPath,
+                Arguments = $"-y -ss {timestampSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture)} -i \"{inputPath}\" -frames:v 1 \"{outputPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true
+            };
+            using var process = System.Diagnostics.Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Could not start FFmpeg.");
+            string error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            return process.ExitCode == 0 && File.Exists(outputPath)
+                ? (true, "Frame extracted.")
+                : (false, error.Split('\n').TakeLast(8).Aggregate("", (a, b) => a + b + "\n"));
+        }
+        catch (Exception ex) { return (false, ex.Message); }
+#else
+        return (false, "Frame extraction is currently available on Windows only.");
+#endif
+    }
 }

@@ -82,6 +82,7 @@ public class HomePage : ContentPage
     private readonly VideoGenExperimentService _videoGenExperimentService;
     private readonly PromptTechniqueService _promptTechniqueService;
     private readonly FFmpegService _ffmpegService;
+    private readonly DenseVideoSequenceService _denseVideoSequenceService;
     private readonly TruncatePresetService _truncatePresetService;
     private readonly ShortsCutterProjectService _shortsCutterProjects;
     private readonly AppSettingsService _appSettings;
@@ -141,7 +142,7 @@ public class HomePage : ContentPage
     private Button _btnJournal = null!;
     private Button _btnLifePaths = null!;
     private Button _btnToBeTested;
-    private Button _btnVideoGeneration;
+    private Button _btnVideoProduction;
     private Button _btnVideoEditing;
     private Button _btnWebsiteBuilder;
     private Button _btnZeroCounts;
@@ -185,6 +186,7 @@ public class HomePage : ContentPage
         VideoGenExperimentService videoGenExperimentService,
         PromptTechniqueService promptTechniqueService,
         FFmpegService ffmpegService,
+        DenseVideoSequenceService denseVideoSequenceService,
         TruncatePresetService truncatePresetService,
         ShortsCutterProjectService shortsCutterProjects,
         AppSettingsService appSettings)
@@ -193,6 +195,7 @@ public class HomePage : ContentPage
         _videoGenExperimentService = videoGenExperimentService;
         _promptTechniqueService = promptTechniqueService;
         _ffmpegService = ffmpegService;
+        _denseVideoSequenceService = denseVideoSequenceService;
         _truncatePresetService = truncatePresetService;
         _shortsCutterProjects = shortsCutterProjects;
         _appSettings = appSettings;
@@ -550,9 +553,9 @@ public class HomePage : ContentPage
         _btnToBeTested.Clicked += OnToBeTestedClicked;
         navButtons.Add(("To Be Tested", _btnToBeTested));
 
-        _btnVideoGeneration = CreateButton(" Video Generation", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C2185B"));
-        _btnVideoGeneration.Clicked += OnVideoGenerationClicked;
-        navButtons.Add(("Video Generation", _btnVideoGeneration));
+        _btnVideoProduction = CreateButton("Video Production", Color.FromArgb("#FCE4EC"), Color.FromArgb("#C2185B"));
+        _btnVideoProduction.Clicked += OnVideoProductionClicked;
+        navButtons.Add(("Video Production", _btnVideoProduction));
 
         _btnVideoEditing = CreateButton("Video Editing", Color.FromArgb("#E0F2F1"), Color.FromArgb("#00695C"));
         _btnVideoEditing.Clicked += OnVideoEditingClicked;
@@ -1032,7 +1035,7 @@ public class HomePage : ContentPage
             "Tasks" => OnTasksClicked,
             "To Be Tested" => OnToBeTestedClicked,
             "Video Editing" => OnVideoEditingClicked,
-            "Video Generation" => OnVideoGenerationClicked,
+            "Video Production" => OnVideoProductionClicked,
             "Website Builder" => OnWebsiteBuilderClicked,
             "Zero Counts" => OnZeroCountsClicked,
             _ => (_, _) => { }
@@ -3044,9 +3047,13 @@ public class HomePage : ContentPage
         await Navigation.PushAsync(new ImageGenerationHubPage(_openAIKeyService, _openAIImageService, _ownerMode));
     }
 
-    private async void OnVideoGenerationClicked(object? sender, EventArgs e)
+    private async void OnVideoProductionClicked(object? sender, EventArgs e)
     {
-        await Navigation.PushAsync(new VideoGenerationHubPage(_auth, _promptTechniqueService));
+        await Navigation.PushAsync(new VideoProductionHubPage(
+            _auth,
+            _promptTechniqueService,
+            _denseVideoSequenceService,
+            _ffmpegService));
     }
 
     private async void OnVideoEditingClicked(object? sender, EventArgs e)

@@ -42,9 +42,15 @@ namespace Bannister.Services
         public static void SetDatabasePathOverride(string path) =>
             _databasePathOverride = path;
 
+        public static void ClearDatabasePathOverride() =>
+            _databasePathOverride = null;
+
+        public static string DefaultDatabasePath =>
+            Path.Combine(FileSystem.AppDataDirectory, "bannister.db");
+
         public static string DatabasePath =>
             _databasePathOverride ??
-            Path.Combine(FileSystem.AppDataDirectory, "bannister.db");
+            DefaultDatabasePath;
 
         /// <summary>
         /// Path for the old unencrypted database (used during migration)
@@ -511,6 +517,11 @@ namespace Bannister.Services
             await _db!.CreateTableAsync<SortSet>();
             await _db!.CreateTableAsync<FavoriteSourceFolder>();
             await _db!.CreateTableAsync<TimedPopup>();
+            await _db!.CreateTableAsync<DenseVideoSequence>();
+            await _db!.CreateTableAsync<DenseVideoGeneration>();
+            await _db!.CreateTableAsync<DenseSequenceExperiment>();
+            await _db!.CreateTableAsync<DenseConceptGrid>();
+            await _db!.CreateTableAsync<DenseConceptGridImage>();
 
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTargetDays INTEGER DEFAULT 365"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE game_activities ADD COLUMN StreakTotalDaysCap INTEGER NOT NULL DEFAULT 0"); } catch { }
