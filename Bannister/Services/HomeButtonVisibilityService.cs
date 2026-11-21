@@ -4,8 +4,6 @@ namespace Bannister.Services;
 
 public class HomeButtonVisibilityService
 {
-    private const string LegacyVideoButtonId = "Video Generation";
-    private const string VideoProductionButtonId = "Video Production";
     private readonly DatabaseService _db;
     private bool _initialized;
 
@@ -40,7 +38,6 @@ public class HomeButtonVisibilityService
         try
         {
             var conn = await _db.GetConnectionAsync();
-            await MigrateLegacyVideoButtonAsync(username, conn);
             var rows = await conn
                 .Table<HomeButtonVisibilitySetting>()
                 .Where(r => r.Username == username)
@@ -74,8 +71,10 @@ public class HomeButtonVisibilityService
                 }
             }
 
+            var validIds = allButtonIds.ToHashSet(
+                StringComparer.OrdinalIgnoreCase);
             return rows
-                .Where(r => r.IsEnabled)
+                .Where(r => r.IsEnabled && validIds.Contains(r.ButtonId))
                 .Select(r => r.ButtonId)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
@@ -93,7 +92,6 @@ public class HomeButtonVisibilityService
     {
         await EnsureInitializedAsync();
         var conn = await _db.GetConnectionAsync();
-        await MigrateLegacyVideoButtonAsync(username, conn);
         var rows = await conn
             .Table<HomeButtonVisibilitySetting>()
             .Where(r => r.Username == username)
@@ -132,7 +130,10 @@ public class HomeButtonVisibilityService
             .Where(r => r.Username == username)
             .ToListAsync();
 
+        var validIds = allButtonIds.ToHashSet(
+            StringComparer.OrdinalIgnoreCase);
         return rows
+            .Where(r => validIds.Contains(r.ButtonId))
             .OrderBy(r => r.ButtonId, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
@@ -183,38 +184,4 @@ public class HomeButtonVisibilityService
         }
     }
 
-    private async Task MigrateLegacyVideoButtonAsync(
-        string username,
-        SQLite.ISQLiteAsyncConnection conn)
-    {
-        if (_db.IsReadOnly) return;
-
-        var rows = await conn.Table<HomeButtonVisibilitySetting>()
-            .Where(r => r.Username == username)
-            .ToListAsync();
-        var legacyRows = rows.Where(r => r.ButtonId.Equals(
-                LegacyVideoButtonId, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(r => r.UpdatedAt)
-            .ToList();
-        if (legacyRows.Count == 0) return;
-
-        var legacyChoice = legacyRows[0];
-        var current = rows.FirstOrDefault(r => r.ButtonId.Equals(
-            VideoProductionButtonId, StringComparison.OrdinalIgnoreCase));
-        if (current == null)
-        {
-            legacyChoice.ButtonId = VideoProductionButtonId;
-            await conn.UpdateAsync(legacyChoice);
-            legacyRows.RemoveAt(0);
-        }
-        else
-        {
-            current.IsEnabled = legacyChoice.IsEnabled;
-            current.UpdatedAt = DateTime.UtcNow;
-            await conn.UpdateAsync(current);
-        }
-
-        foreach (var stale in legacyRows)
-            await conn.DeleteAsync(stale);
-    }
 }

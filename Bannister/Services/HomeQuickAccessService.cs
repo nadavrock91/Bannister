@@ -24,17 +24,21 @@ public class HomeQuickAccessService
             await _db.EnsureTableAsync<HomeQuickAccessSetting>();
     }
 
-    public async Task<HashSet<string>> GetPinnedButtonsAsync(string username)
+    public async Task<HashSet<string>> GetPinnedButtonsAsync(
+        string username,
+        IEnumerable<string> allButtonIds)
     {
         await EnsureInitializedAsync();
         try
         {
             var conn = await _db.GetConnectionAsync();
-            await MigrateLegacyVideoButtonAsync(username, conn);
             var rows = await conn.Table<HomeQuickAccessSetting>()
                 .Where(s => s.Username == username)
                 .ToListAsync();
+            var validIds = allButtonIds.ToHashSet(
+                StringComparer.OrdinalIgnoreCase);
             return rows
+                .Where(s => validIds.Contains(s.ButtonId))
                 .Select(s => s.ButtonId)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
@@ -81,8 +85,12 @@ public class HomeQuickAccessService
 
     public async Task TogglePinAsync(string username, string buttonId)
     {
-        var pinned = await GetPinnedButtonsAsync(username);
-        if (pinned.Contains(buttonId))
+        await EnsureInitializedAsync();
+        var conn = await _db.GetConnectionAsync();
+        var existing = await conn.Table<HomeQuickAccessSetting>()
+            .Where(s => s.Username == username && s.ButtonId == buttonId)
+            .FirstOrDefaultAsync();
+        if (existing != null)
             await UnpinButtonAsync(username, buttonId);
         else
             await PinButtonAsync(username, buttonId);
@@ -124,30 +132,4 @@ public class HomeQuickAccessService
         }
     }
 
-    private async Task MigrateLegacyVideoButtonAsync(
-        string username,
-        SQLite.ISQLiteAsyncConnection conn)
-    {
-        if (_db.IsReadOnly) return;
-
-        var rows = await conn.Table<HomeQuickAccessSetting>()
-            .Where(s => s.Username == username)
-            .ToListAsync();
-        var legacyRows = rows.Where(s => s.ButtonId.Equals(
-            LegacyVideoButtonId, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (legacyRows.Count == 0) return;
-
-        bool hasCurrent = rows.Any(s => s.ButtonId.Equals(
-            VideoProductionButtonId, StringComparison.OrdinalIgnoreCase));
-        if (!hasCurrent)
-        {
-            var retained = legacyRows[0];
-            retained.ButtonId = VideoProductionButtonId;
-            await conn.UpdateAsync(retained);
-            legacyRows.RemoveAt(0);
-        }
-
-        foreach (var stale in legacyRows)
-            await conn.DeleteAsync(stale);
-    }
 }

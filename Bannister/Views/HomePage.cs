@@ -831,7 +831,7 @@ public class HomePage : ContentPage
         await _homeQuickAccess.TogglePinAsync(
             _auth.CurrentUsername, buttonId);
         _quickAccessCache = await _homeQuickAccess
-            .GetPinnedButtonsAsync(_auth.CurrentUsername);
+            .GetPinnedButtonsAsync(_auth.CurrentUsername, AllButtonIds);
         RefreshButtonsLayout();
     }
 
@@ -1097,7 +1097,9 @@ public class HomePage : ContentPage
 
             // Load pinned buttons from SQLite
             _quickAccessCache = await _homeQuickAccess
-                .GetPinnedButtonsAsync(_auth.CurrentUsername);
+                .GetPinnedButtonsAsync(
+                    _auth.CurrentUsername,
+                    AllButtonIds);
 
             _enabledButtonsCache = await _buttonVisibility
                 .GetEnabledButtonsAsync(

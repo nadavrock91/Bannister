@@ -65,8 +65,11 @@ public class PageVisibilityPage : ContentPage
 
         var settings = await _buttonVisibility
             .GetAllSettingsAsync(_auth.CurrentUsername, allIds);
+        var validIds = allIds.ToHashSet(
+            StringComparer.OrdinalIgnoreCase);
 
-        foreach (var setting in settings)
+        foreach (var setting in settings.Where(
+                     setting => validIds.Contains(setting.ButtonId)))
         {
             bool isSettingsBtn = setting.ButtonId.Equals(
                 "Settings", StringComparison.OrdinalIgnoreCase);
