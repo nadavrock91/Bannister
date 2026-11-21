@@ -354,7 +354,7 @@ public static class TaskCreationHelper
 
         var ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
         if (ideaLogger != null)
-            _ = ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            await ideaLogger.LogSilentlyAsync(new IdeaLogRequest
             {
                 Username = auth.CurrentUsername,
                 Title = title,

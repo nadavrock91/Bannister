@@ -436,7 +436,7 @@ public class ImageWorkflowPage : ContentPage
             // Save custom idea to Ideas DB so it persists
             var logger = Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
             if (logger != null)
-                _ = logger.LogSilentlyAsync(new IdeaLogRequest
+                await logger.LogSilentlyAsync(new IdeaLogRequest
                 {
                     Username = _project.Username,
                     Title = t,
@@ -710,20 +710,28 @@ public class ImageWorkflowPage : ContentPage
         string cat = GetCategory();
         if (!await DisplayAlert("Import", $"Found {ideas.Count} ideas.\nImport to \"{cat}\"?", "Import", "Cancel")) return;
         var logger = Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
-        if (logger == null) { await DisplayAlert("Error", "Could not access Ideas logger.", "OK"); return; }
-        int n = 0;
-        foreach (var t in ideas)
+        int savedCount = 0;
+        IReadOnlyList<IdeaLogFailure> failures = Array.Empty<IdeaLogFailure>();
+        if (logger != null)
         {
-            _ = logger.LogSilentlyAsync(new IdeaLogRequest
+            var requests = ideas.Select(t => new IdeaLogRequest
             {
                 Username = _project.Username,
                 Title = t,
                 Body = t,
                 Category = cat
             });
-            n++;
+            var result = await logger.LogBatchSilentAsync(requests);
+            savedCount = result.SavedCount;
+            failures = result.Failures;
         }
-        await DisplayAlert("Imported!", $"{n} ideas imported to \"{cat}\".", "OK");
+
+        string failureText = logger == null
+            ? "\nIdeas logger unavailable; logging was skipped."
+            : failures.Count == 0
+                ? ""
+                : $"\nFailed: {failures.Count}\n" + string.Join("\n", failures.Take(5).Select(f => $"• {f.Request.Title}: {f.Error}"));
+        await DisplayAlert("Import Complete", $"Saved {savedCount} of {ideas.Count} ideas to \"{cat}\".{failureText}", "OK");
         _step1Content.IsVisible = false; _step1Arrow.Text = "▶";
         _step2Content.IsVisible = true; _step2Arrow.Text = "▼";
         await LoadIdeasAsync();

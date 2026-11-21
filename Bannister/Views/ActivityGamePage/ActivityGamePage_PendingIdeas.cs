@@ -93,13 +93,14 @@ public partial class ActivityGamePage
             result.Value.ActivityName,
             result.Value.ActivityCategory);
 
-        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
-        {
-            Username = _auth.CurrentUsername,
-            Title = result.Value.ActivityName,
-            Body = result.Value.ActivityName,
-            Category = "activities"
-        });
+        if (_ideaLogger != null)
+            await _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = _auth.CurrentUsername,
+                Title = result.Value.ActivityName,
+                Body = result.Value.ActivityName,
+                Category = "activities"
+            });
 
         await RefreshPendingActivityIdeaCountAsync();
     }

@@ -2148,32 +2148,26 @@ public class StoryProductionPage : ContentPage
         if (!confirm)
             return;
 
-        int logged = 0;
-        try
-        {
-            foreach (var item in parsed)
+        var requests = parsed
+            .Where(item => !string.IsNullOrWhiteSpace(item.category) && !string.IsNullOrWhiteSpace(item.text))
+            .Select(item => new IdeaLogRequest
             {
-                if (string.IsNullOrWhiteSpace(item.category) || string.IsNullOrWhiteSpace(item.text))
-                    continue;
+                Username = _auth.CurrentUsername,
+                Title = item.text.Trim(),
+                Body = item.text.Trim(),
+                Category = item.category.Trim(),
+                IsLlmSource = true
+            })
+            .ToList();
 
-                _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
-                {
-                    Username = _auth.CurrentUsername,
-                    Title = item.text.Trim(),
-                    Body = item.text.Trim(),
-                    Category = item.category.Trim(),
-                    IsLlmSource = true
-                });
-                logged++;
-            }
-        }
-        catch (ReadOnlyDatabaseException)
-        {
-            await ShowReadOnlyAlertAsync();
-            return;
-        }
-
-        await DisplayAlert("Ideas Logged", $"Logged {logged} idea(s).", "OK");
+        var result = await _ideaLogger.LogBatchSilentAsync(requests);
+        string failureText = result.Failures.Count == 0
+            ? ""
+            : $"\n\nFailed: {result.Failures.Count}\n" + string.Join("\n", result.Failures.Take(5).Select(f => $"• {f.Request.Title}: {f.Error}"));
+        await DisplayAlert(
+            "Ideas Logged",
+            $"Saved {result.SavedCount} of {requests.Count} idea(s).{failureText}",
+            "OK");
     }
 
     private async Task ShowReadOnlyAlertAsync()

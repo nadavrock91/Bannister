@@ -8,7 +8,7 @@ public class ListsPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly ListsService _lists;
-    private readonly IdeaLoggerService _ideaLogger;
+    private readonly IdeaLoggerService? _ideaLogger;
 
     private Picker _listPicker;
     private Label _statusLabel;
@@ -26,9 +26,7 @@ public class ListsPage : ContentPage
         _lists = lists;
         _ideaLogger = ideaLogger
             ?? Application.Current?.Handler?.MauiContext?.Services
-                .GetService<IdeaLoggerService>()
-            ?? throw new InvalidOperationException(
-                "IdeaLoggerService not available");
+                .GetService<IdeaLoggerService>();
         Title = "Lists";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -331,7 +329,7 @@ public class ListsPage : ContentPage
             "Yes, Log It",
             "No Thanks");
 
-        if (logIdea)
+        if (logIdea && _ideaLogger != null)
         {
             await _ideaLogger.LogIdeaAsync(
                 new IdeaLogRequest

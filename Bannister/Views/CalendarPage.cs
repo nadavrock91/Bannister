@@ -15,7 +15,7 @@ public class CalendarPage : ContentPage
 
     private readonly AuthService _auth;
     private readonly TaskService _taskService;
-    private readonly IdeaLoggerService _ideaLogger;
+    private readonly IdeaLoggerService? _ideaLogger;
     private readonly DatabaseService _db;
     private readonly LookoutService _lookoutService;
     private readonly RoutineService _routineService;
@@ -46,8 +46,7 @@ public class CalendarPage : ContentPage
     {
         _auth = auth;
         _taskService = taskService;
-        _ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<IdeaLoggerService>()
-            ?? throw new InvalidOperationException("IdeaLoggerService not registered.");
+        _ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _lookoutService = lookoutService ?? new LookoutService(_db);
         _routineService = routineService ?? new RoutineService(_db, _auth);
@@ -883,13 +882,14 @@ public class CalendarPage : ContentPage
 
         // Log to ideas
         string ideaText = $"[{date:MMM d}] {title.Trim()}";
-        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
-        {
-            Username = _auth.CurrentUsername,
-            Title = ideaText,
-            Body = ideaText,
-            Category = "calendar_tasks"
-        });
+        if (_ideaLogger != null)
+            await _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = _auth.CurrentUsername,
+                Title = ideaText,
+                Body = ideaText,
+                Category = "calendar_tasks"
+            });
 
         await LoadMonthAsync();
     }
@@ -1111,10 +1111,17 @@ public class CalendarPage : ContentPage
                     Category = x.category,
                     CreatedAt = createdAt
                 });
-                var batchResult = await _ideaLogger.LogBatchSilentAsync(requests);
-                progressDetail.Text = $"{batchResult.SavedCount} / {ideasToInsert.Count} ideas";
-                if (batchResult.Failures.Count > 0)
-                    System.Diagnostics.Debug.WriteLine($"Calendar import idea logging failures: {batchResult.Failures.Count}");
+                if (_ideaLogger != null)
+                {
+                    var batchResult = await _ideaLogger.LogBatchSilentAsync(requests);
+                    progressDetail.Text = $"{batchResult.SavedCount} / {ideasToInsert.Count} ideas";
+                    if (batchResult.Failures.Count > 0)
+                        System.Diagnostics.Debug.WriteLine($"Calendar import idea logging failures: {batchResult.Failures.Count}");
+                }
+                else
+                {
+                    progressDetail.Text = $"0 / {ideasToInsert.Count} ideas (logger unavailable)";
+                }
                 await Task.Yield();
             }
 
@@ -1719,7 +1726,7 @@ public class CalendarDayPage : ContentPage
     private readonly AuthService _auth;
     private readonly TaskService _taskService;
     private readonly DateTime _date;
-    private readonly IdeaLoggerService _ideaLogger;
+    private readonly IdeaLoggerService? _ideaLogger;
     private readonly LookoutService _lookoutService;
     private readonly RoutineService _routineService;
     private readonly PostponedTaskService _postponedTaskService;
@@ -1744,8 +1751,7 @@ public class CalendarDayPage : ContentPage
         _taskService = taskService;
         _date = date.Date;
         _ideaLogger = ideaLogger
-            ?? Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<IdeaLoggerService>()
-            ?? throw new InvalidOperationException("IdeaLoggerService not registered.");
+            ?? Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
         _lookoutService = lookoutService ?? throw new ArgumentNullException(nameof(lookoutService));
         _routineService = routineService ?? throw new ArgumentNullException(nameof(routineService));
         _postponedTaskService = postponedTaskService ?? throw new ArgumentNullException(nameof(postponedTaskService));
@@ -2745,13 +2751,14 @@ public class CalendarDayPage : ContentPage
         string logText = titleChanged
             ? $"[{dateStr}] Edited: \"{originalTitle}\" → \"{finalTitle}\""
             : $"[{dateStr}] Notes updated: \"{finalTitle}\"";
-        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
-        {
-            Username = _auth.CurrentUsername,
-            Title = logText,
-            Body = logText,
-            Category = "calendar_tasks"
-        });
+        if (_ideaLogger != null)
+            await _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = _auth.CurrentUsername,
+                Title = logText,
+                Body = logText,
+                Category = "calendar_tasks"
+            });
 
         await LoadTasksAsync();
     }
@@ -2919,13 +2926,14 @@ public class CalendarDayPage : ContentPage
 
         // Log to ideas
         string ideaText = $"[{_date:MMM d}] {title.Trim()}";
-        _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
-        {
-            Username = _auth.CurrentUsername,
-            Title = ideaText,
-            Body = ideaText,
-            Category = "calendar_tasks"
-        });
+        if (_ideaLogger != null)
+            await _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            {
+                Username = _auth.CurrentUsername,
+                Title = ideaText,
+                Body = ideaText,
+                Category = "calendar_tasks"
+            });
 
         await LoadTasksAsync();
     }

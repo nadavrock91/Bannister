@@ -1307,7 +1307,7 @@ public class StoryPointsPage : ContentPage
 
         // Also log to Ideas under "all_story_points" category
         if (_ideaLogger != null)
-            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            await _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
             {
                 Username = _auth.CurrentUsername,
                 Title = text.Trim(),

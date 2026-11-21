@@ -156,7 +156,7 @@ namespace Bannister.Services
 
             // Log to ideas
             string ideaText = $"{name} ({category}, +{expGain} EXP)";
-            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            await _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
             {
                 Username = username,
                 Title = ideaText,
@@ -175,7 +175,7 @@ namespace Bannister.Services
 
             // Log to ideas
             string ideaText = $"{activity.Name} ({activity.Category}, +{activity.ExpGain} EXP)";
-            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+            await _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
             {
                 Username = activity.Username,
                 Title = ideaText,

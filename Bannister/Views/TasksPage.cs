@@ -14,7 +14,7 @@ public class TasksPage : ContentPage
     private readonly WeeklyChallengeService _challengeService;
     private readonly SequenceTaskService _sequenceTaskService;
     private readonly IdeasService? _ideasService;
-    private readonly IdeaLoggerService _ideaLogger;
+    private readonly IdeaLoggerService? _ideaLogger;
     private readonly DatabaseService? _db;
     private readonly PrivacyModeService _privacyMode;
     
@@ -77,8 +77,7 @@ public class TasksPage : ContentPage
         _challengeService = challengeService;
         _sequenceTaskService = sequenceTaskService;
         _ideasService = ideasService;
-        _ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetRequiredService<IdeaLoggerService>()
-            ?? throw new InvalidOperationException("IdeaLoggerService not registered.");
+        _ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
         _db = db;
         _privacyMode = privacyMode
             ?? Application.Current?.Handler?.MauiContext?.Services
@@ -1096,13 +1095,14 @@ public class TasksPage : ContentPage
             _detailTitle.Text = _selectedTask.Title;
 
             string ideaText = $"[Edited] \"{originalTitle}\" → \"{t.Trim()}\"";
-            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
-            {
-                Username = _auth.CurrentUsername,
-                Title = ideaText,
-                Body = ideaText,
-                Category = "tasks_ideas"
-            });
+            if (_ideaLogger != null)
+                await _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+                {
+                    Username = _auth.CurrentUsername,
+                    Title = ideaText,
+                    Body = ideaText,
+                    Category = "tasks_ideas"
+                });
 
             await RefreshTasksAsync();
         }
@@ -2434,13 +2434,14 @@ public class TasksPage : ContentPage
             }
 
             string ideaText = title.Trim();
-            _ = _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
-            {
-                Username = _auth.CurrentUsername,
-                Title = ideaText,
-                Body = ideaText,
-                Category = "all_tasks"
-            });
+            if (_ideaLogger != null)
+                await _ideaLogger.LogSilentlyAsync(new IdeaLogRequest
+                {
+                    Username = _auth.CurrentUsername,
+                    Title = ideaText,
+                    Body = ideaText,
+                    Category = "all_tasks"
+                });
 
             allTasks.Add(newTask);
             ApplyFilterAndSort();
