@@ -592,6 +592,7 @@ namespace Bannister.Services
                 await _db!.ExecuteAsync("UPDATE companion_interviews SET QuestionCount = Minutes");
             }
             catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE companion_interviews ADD COLUMN IdeaId INTEGER NULL"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

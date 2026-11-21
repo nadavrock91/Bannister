@@ -22,7 +22,12 @@ public sealed class CompanionExtraction
 public class CompanionService
 {
     private readonly DatabaseService _db;
-    public CompanionService(DatabaseService db) => _db = db;
+    private readonly IdeasService _ideas;
+    public CompanionService(DatabaseService db, IdeasService ideas)
+    {
+        _db = db;
+        _ideas = ideas;
+    }
 
     private async Task<SQLite.ISQLiteAsyncConnection> ConnectionAsync() =>
         await _db.GetConnectionAsync();
@@ -102,6 +107,78 @@ public class CompanionService
     {
         var conn = await ConnectionAsync();
         if (interview.Id == 0) await conn.InsertAsync(interview); else await conn.UpdateAsync(interview);
+    }
+
+    public async Task<string> SaveInterviewIdeaAsync(string username, Companion companion, CompanionInterview interview, string scopeLabel)
+    {
+        var categories = await _ideas.GetCategoriesAsync(username);
+        string category = categories.FirstOrDefault(IsAiConversationCategory) ?? "AI Conversations";
+        var startedAt = interview.StartedAt.ToLocalTime();
+        string title = $"{companion.Nickname} interview · {startedAt:yyyy-MM-dd}";
+        string body = BuildInterviewIdeaBody(companion, interview, scopeLabel, startedAt);
+
+        IdeaItem? idea = null;
+        if (interview.IdeaId is int ideaId)
+        {
+            idea = (await _ideas.GetIdeasAsync(username)).FirstOrDefault(x => x.Id == ideaId);
+            idea ??= (await _ideas.GetArchivedIdeasAsync(username)).FirstOrDefault(x => x.Id == ideaId);
+        }
+
+        if (idea == null)
+        {
+            idea = await _ideas.CreateIdeaAsync(
+                username,
+                title,
+                category,
+                createdAt: startedAt,
+                fullIdea: body,
+                isLlmSource: true);
+            if (idea.Id > 0)
+            {
+                interview.IdeaId = idea.Id;
+                await SaveInterviewAsync(interview);
+            }
+        }
+        else
+        {
+            idea.Title = title;
+            idea.Category = category;
+            idea.FullIdea = body;
+            await _ideas.UpdateIdeaAsync(idea);
+        }
+
+        return category;
+    }
+
+    private static bool IsAiConversationCategory(string category)
+    {
+        string name = category.Trim();
+        if (name.Contains("conversation", StringComparison.OrdinalIgnoreCase) &&
+            name.Contains("ai", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return name.Equals("AI Conversations", StringComparison.OrdinalIgnoreCase) ||
+               name.Equals("Conversations with AI", StringComparison.OrdinalIgnoreCase) ||
+               name.Equals("AI Chats", StringComparison.OrdinalIgnoreCase) ||
+               name.Equals("LLM Conversations", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildInterviewIdeaBody(Companion companion, CompanionInterview interview, string scopeLabel, DateTime startedAt)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Companion: {companion.Nickname}");
+        sb.AppendLine($"Scope: {scopeLabel}");
+        sb.AppendLine($"Questions: {interview.QuestionCount}");
+        sb.AppendLine($"Date: {startedAt:yyyy-MM-dd HH:mm}");
+        sb.AppendLine();
+        sb.AppendLine("Transcript:");
+        sb.AppendLine(interview.Transcript);
+        if (!string.IsNullOrWhiteSpace(interview.Notes))
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Extraction applied: {interview.PointsAdded} added, {interview.PointsReprioritized} reprioritized, {interview.PointsArchived} archived");
+        }
+        return sb.ToString().TrimEnd();
     }
 
     public async Task<string> BuildInterviewPromptAsync(string username, Companion companion, int questionCount, string scopeLabel)

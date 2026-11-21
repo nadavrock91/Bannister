@@ -89,7 +89,8 @@ public class CompanionsPage : ContentPage
         _content.Children.Add(back);
         _content.Children.Add(Heading(companion.Nickname, 24));
         var gamesById = (await _games.GetGamesAsync(_auth.CurrentUsername)).ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
-        _content.Children.Add(new Label { Text = ScopeLabel(companion, gamesById), FontSize = 13, TextColor = Color.FromArgb("#666") });
+        string scopeLabel = ScopeLabel(companion, gamesById);
+        _content.Children.Add(new Label { Text = scopeLabel, FontSize = 13, TextColor = Color.FromArgb("#666") });
 
         var interviewActions = new HorizontalStackLayout { Spacing = 8 };
         var start = Button("Start Interview", "#5B63EE", Colors.White);
@@ -98,8 +99,14 @@ public class CompanionsPage : ContentPage
         if (_selectedInterview != null)
         {
             var resume = Button(InterviewStepText(_selectedInterview), "#E8EAF6", Color.FromArgb("#3949AB"));
-            resume.Clicked += async (_, _) => await ContinueInterviewAsync(companion, _selectedInterview);
+            resume.Clicked += async (_, _) => await ContinueInterviewAsync(companion, _selectedInterview, scopeLabel);
             interviewActions.Children.Add(resume);
+            if (!string.IsNullOrWhiteSpace(_selectedInterview.Transcript))
+            {
+                var replace = Button("Paste Conversation Again", "#FFF3E0", Color.FromArgb("#E65100"));
+                replace.Clicked += async (_, _) => await SaveConversationAsync(companion, _selectedInterview, scopeLabel);
+                interviewActions.Children.Add(replace);
+            }
         }
         _content.Children.Add(interviewActions);
         if (_selectedInterview != null)
@@ -178,17 +185,12 @@ public class CompanionsPage : ContentPage
         await RefreshAsync();
     }
 
-    private async Task ContinueInterviewAsync(Companion companion, CompanionInterview interview)
+    private async Task ContinueInterviewAsync(Companion companion, CompanionInterview interview, string scopeLabel)
     {
         if (string.IsNullOrWhiteSpace(interview.Transcript))
         {
-            var transcript = await CompanionTextInputPage.ShowAsync(Navigation, "Paste Conversation", interview.Transcript, "Paste the complete interview transcript...");
-            if (string.IsNullOrWhiteSpace(transcript)) return;
-            interview.Transcript = transcript.Trim(); await _service.SaveInterviewAsync(interview);
-            var points = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id);
-            await Clipboard.SetTextAsync(CompanionService.BuildExtractionPrompt(companion, interview, points));
-            await DisplayAlert("Extraction Prompt Copied", "Run the copied prompt in your LLM, then return and paste the extraction result.", "OK");
-            await RefreshAsync(); return;
+            await SaveConversationAsync(companion, interview, scopeLabel);
+            return;
         }
         var response = await CompanionTextInputPage.ShowAsync(Navigation, "Paste Extraction Result", "", "Paste the structured extraction result...");
         if (string.IsNullOrWhiteSpace(response)) return;
@@ -196,8 +198,34 @@ public class CompanionsPage : ContentPage
         await CompanionExtractionReviewPage.ShowAsync(Navigation, extraction, async (adds, priorities, archives, updates) =>
         {
             await _service.ApplyExtractionAsync(_auth.CurrentUsername, companion, interview, adds, priorities, archives, updates);
+            await TrySaveInterviewIdeaAsync(companion, interview, scopeLabel);
         });
         await RefreshAsync();
+    }
+
+    private async Task SaveConversationAsync(Companion companion, CompanionInterview interview, string scopeLabel)
+    {
+        var transcript = await CompanionTextInputPage.ShowAsync(Navigation, "Paste Conversation", interview.Transcript, "Paste the complete interview transcript...");
+        if (string.IsNullOrWhiteSpace(transcript)) return;
+        interview.Transcript = transcript.Trim();
+        await _service.SaveInterviewAsync(interview);
+        await TrySaveInterviewIdeaAsync(companion, interview, scopeLabel);
+        var points = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id);
+        await Clipboard.SetTextAsync(CompanionService.BuildExtractionPrompt(companion, interview, points));
+        await DisplayAlert("Extraction Prompt Copied", "Run the copied prompt in your LLM, then return and paste the extraction result.", "OK");
+        await RefreshAsync();
+    }
+
+    private async Task TrySaveInterviewIdeaAsync(Companion companion, CompanionInterview interview, string scopeLabel)
+    {
+        try
+        {
+            await _service.SaveInterviewIdeaAsync(_auth.CurrentUsername, companion, interview, scopeLabel);
+        }
+        catch
+        {
+            await DisplayAlert("Idea Logging Warning", "The interview was saved, but it could not be logged on the Ideas page.", "OK");
+        }
     }
 
     private static string InterviewStepText(CompanionInterview interview) =>

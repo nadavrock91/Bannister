@@ -44,6 +44,7 @@ public class CompanionInterview
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public int Minutes { get; set; }
     public int QuestionCount { get; set; } = 10;
+    public int? IdeaId { get; set; }
     public string Transcript { get; set; } = "";
     public string Notes { get; set; } = "";
     public int PointsAdded { get; set; }
