@@ -3,6 +3,27 @@ using SQLite;
 
 namespace Bannister.Services;
 
+public enum IdeaLogMode
+{
+    Interactive,
+    Silent
+}
+
+public sealed record IdeaLogRequest
+{
+    public required string Username { get; init; }
+    public string? Title { get; init; }
+    public string? Body { get; init; }
+    public string? Category { get; init; }
+    public string? Notes { get; init; }
+    public string? Subcategory { get; init; }
+    public int? Rating { get; init; }
+    public bool? IsStarred { get; init; }
+    public int? Status { get; init; }
+    public DateTime? CreatedAt { get; init; }
+    public bool? IsLlmSource { get; init; }
+}
+
 /// <summary>
 /// Reusable service for logging ideas from anywhere in the app.
 /// 
@@ -183,114 +204,149 @@ public class IdeaLoggerService
         }
     }
 
-    public async Task<IdeaItem?> LogIdeaAsync(Page page, string username, string? prefillText = null, string? suggestedCategory = null)
+    public async Task<int?> LogIdeaAsync(IdeaLogRequest request, IdeaLogMode mode, Page? page = null)
     {
-        await EnsureLoadedAsync(username);
-        var existingCategories = await _ideas.GetCategoriesAsync(username);
-        var result = await ShowIdeaPopupAsync(page, username, existingCategories, prefillText, suggestedCategory);
-
-        if (result == null || string.IsNullOrWhiteSpace(result.Value.title) || string.IsNullOrWhiteSpace(result.Value.fullIdea))
-            return null;
-
-        string category = result.Value.category.Trim();
-        string? subcategory = result.Value.subcategory;
-        string title = result.Value.title.Trim();
-        string fullIdea = result.Value.fullIdea.Trim();
-        int rating = result.Value.rating;
-        _lastUsedCategory = category;
-
-        var idea = _db.IsReadOnly
-            ? await _ideas.CreateIdeaAsync(username, title, category, subcategory: subcategory, rating: rating, fullIdea: fullIdea, isLlmSource: result.Value.isLlmSource)
-            : await _ideas.CreateIdeaAsync(username, title, category, fullIdea: fullIdea, isLlmSource: result.Value.isLlmSource);
-        idea.Rating = rating;
-        idea.Subcategory = subcategory;
-        if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(idea);
-
-        // Check for linked categories
-        if (_linkedCategories.TryGetValue(category, out var linked) && linked.Count > 0)
+        await EnsureLoadedAsync(request.Username);
+        IdeaLogRequest finalRequest = request;
+        bool interactive = mode == IdeaLogMode.Interactive;
+        if (interactive)
         {
-            await HandleLinkedCategoriesAsync(page, username, title, fullIdea, rating, linked);
+            if (page == null)
+                throw new ArgumentException("Interactive idea logging requires a page.", nameof(page));
+            var existingCategories = await _ideas.GetCategoriesAsync(request.Username);
+            var edited = await ShowIdeaPopupAsync(page, request, existingCategories);
+            if (edited == null) return null;
+            finalRequest = edited;
         }
 
-        // Check for audio library link
-        if (_audioLinkedCategories.TryGetValue(category, out var audioCategory) && _audioLib != null)
+        var idea = await SaveIdeaCoreAsync(finalRequest, null, interactive ? page : null, interactive);
+        if (mode == IdeaLogMode.Silent && idea.Id <= 0)
+            throw new InvalidOperationException("The idea was queued for sync and does not have a local Id.");
+        return idea.Id;
+    }
+
+    public async Task<int> UpdateIdeaAsync(int ideaId, IdeaLogRequest request)
+    {
+        await EnsureLoadedAsync(request.Username);
+        var idea = await SaveIdeaCoreAsync(request, ideaId, null, false);
+        return idea.Id;
+    }
+
+    private async Task<IdeaItem> SaveIdeaCoreAsync(IdeaLogRequest request, int? ideaId, Page? page, bool interactiveSideEffects)
+    {
+        try
         {
-            await HandleAudioLinkAsync(page, username, GetIdeaContentText(fullIdea, title), audioCategory);
+            string username = request.Username?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(username))
+                throw new ArgumentException("Username is required.", nameof(request));
+
+            IdeaItem? existing = null;
+            if (ideaId.HasValue)
+            {
+                existing = (await _ideas.GetIdeasAsync(username)).FirstOrDefault(x => x.Id == ideaId.Value);
+                existing ??= (await _ideas.GetArchivedIdeasAsync(username)).FirstOrDefault(x => x.Id == ideaId.Value);
+                if (existing == null)
+                    throw new InvalidOperationException($"Idea {ideaId.Value} was not found for user {username}.");
+            }
+
+            string title = (request.Title ?? existing?.Title ?? "").Trim();
+            string body = (request.Body ?? existing?.FullIdea ?? "").Trim();
+            string category = (request.Category ?? existing?.Category ?? "").Trim();
+            string? notes = request.Notes == null ? existing?.Notes : request.Notes.Trim();
+            string? subcategory = request.Subcategory == null
+                ? existing?.Subcategory
+                : string.IsNullOrWhiteSpace(request.Subcategory) ? null : request.Subcategory.Trim();
+            int rating = Math.Clamp(request.Rating ?? existing?.Rating ?? 50, 0, 100);
+            bool isStarred = request.IsStarred ?? existing?.IsStarred ?? false;
+            int status = request.Status ?? existing?.Status ?? 0;
+            DateTime createdAt = request.CreatedAt ?? existing?.CreatedAt ?? DateTime.Now;
+            bool isLlmSource = request.IsLlmSource ?? false;
+
+            if (string.IsNullOrWhiteSpace(title))
+                throw new ArgumentException("Idea title is required.", nameof(request));
+            if (string.IsNullOrWhiteSpace(body))
+                throw new ArgumentException("Idea body is required.", nameof(request));
+
+            var normalized = request with
+            {
+                Username = username,
+                Title = title,
+                Body = body,
+                Category = category,
+                Notes = notes,
+                Subcategory = subcategory,
+                Rating = rating,
+                IsStarred = isStarred,
+                Status = status,
+                CreatedAt = createdAt,
+                IsLlmSource = isLlmSource
+            };
+
+            IdeaItem idea;
+            if (existing == null)
+            {
+                idea = await _ideas.CreateIdeaAsync(
+                    username,
+                    title,
+                    category,
+                    notes: notes,
+                    subcategory: subcategory,
+                    rating: rating,
+                    isStarred: isStarred,
+                    status: status,
+                    createdAt: createdAt,
+                    fullIdea: body,
+                    isLlmSource: isLlmSource);
+                if (!_db.IsReadOnly)
+                    await _ideas.UpdateIdeaAsync(idea);
+            }
+            else
+            {
+                existing.Title = title;
+                existing.FullIdea = body;
+                existing.Category = category;
+                existing.Notes = notes;
+                existing.Subcategory = subcategory;
+                existing.Rating = rating;
+                existing.IsStarred = isStarred;
+                existing.Status = status;
+                existing.CreatedAt = createdAt;
+                await _ideas.UpdateIdeaAsync(existing);
+                if (request.IsLlmSource.HasValue && !string.IsNullOrWhiteSpace(category))
+                    await _ideas.SetClassificationAsync(username, category, isLlmSource ? "llm" : "normal");
+                idea = existing;
+            }
+
+            _lastUsedCategory = category;
+
+            if (interactiveSideEffects && page != null)
+            {
+                if (_linkedCategories.TryGetValue(category, out var linked) && linked.Count > 0)
+                    await HandleLinkedCategoriesAsync(page, normalized, linked);
+
+                if (_audioLinkedCategories.TryGetValue(category, out var audioCategory) && _audioLib != null)
+                    await HandleAudioLinkAsync(page, username, GetIdeaContentText(body, title), audioCategory);
+
+                string heading = idea.Id > 0 ? "✅ Idea Logged" : "Idea Queued";
+                await page.DisplayAlert(
+                    heading,
+                    $"{(title.Length > 60 ? title[..57] + "..." : title)}\n\nCategory: {category}{(subcategory != null ? $"\nSubcategory: {subcategory}" : "")}",
+                    "OK");
+            }
+
+            return idea;
         }
-
-        // Confirm to user
-        if (page != null)
-            await page.DisplayAlert("✅ Idea Logged", $"{(title.Length > 60 ? title.Substring(0, 57) + "..." : title)}\n\nCategory: {category}{(subcategory != null ? $"\nSubcategory: {subcategory}" : "")}", "OK");
-
-        return idea;
-    }
-
-    public async Task<bool> LogIdeaToQueueAsync(
-        Page page,
-        string username,
-        OperationQueueService queue,
-        string? prefillText = null,
-        string? suggestedCategory = null)
-    {
-        await EnsureLoadedAsync(username);
-        var existingCategories = await _ideas.GetCategoriesAsync(username);
-        var result = await ShowIdeaPopupAsync(page, username, existingCategories, prefillText, suggestedCategory);
-
-        if (result == null || string.IsNullOrWhiteSpace(result.Value.title) || string.IsNullOrWhiteSpace(result.Value.fullIdea))
-            return false;
-
-        string category = result.Value.category.Trim();
-        string? subcategory = string.IsNullOrWhiteSpace(result.Value.subcategory)
-            ? null
-            : result.Value.subcategory.Trim();
-        string title = result.Value.title.Trim();
-        string fullIdea = result.Value.fullIdea.Trim();
-        int rating = Math.Clamp(result.Value.rating, 0, 100);
-        _lastUsedCategory = category;
-
-        await queue.EnqueueAsync("idea_logged", new
+        catch (Exception ex) when (ex is not ArgumentException && ex is not InvalidOperationException)
         {
-            username,
-            title,
-            category,
-            full_idea = fullIdea,
-            subcategory,
-            rating,
-            notes = (string?)null,
-            is_starred = false,
-            status = 0,
-            created_at = DateTime.UtcNow
-        });
-
-        await page.DisplayAlert(
-            "Idea Queued",
-            $"{(title.Length > 60 ? title[..57] + "..." : title)}\n\nCategory: {category}",
-            "OK");
-        return true;
+            throw new InvalidOperationException($"Idea logging failed: {ex.Message}", ex);
+        }
     }
 
-    public async Task<IdeaItem?> QuickLogAsync(Page page, string username, string text, string category, int rating = 50)
+    private async Task<IdeaLogRequest?> ShowIdeaPopupAsync(
+        Page page, IdeaLogRequest request, List<string> existingCategories)
     {
-        bool confirm = await page.DisplayAlert(
-            "Log to Ideas?",
-            $"Save as idea?\n\n\"{(text.Length > 100 ? text.Substring(0, 100) + "..." : text)}\"\n\nCategory: {category}\nRating: {rating}",
-            "Save", "Cancel");
-
-        if (!confirm) return null;
-
-        _lastUsedCategory = category;
-        var idea = _db.IsReadOnly
-            ? await _ideas.CreateIdeaAsync(username, text.Trim(), category.Trim(), rating: rating, fullIdea: text.Trim())
-            : await _ideas.CreateIdeaAsync(username, text.Trim(), category.Trim(), fullIdea: text.Trim());
-        idea.Rating = rating;
-        if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(idea);
-        return idea;
-    }
-
-    private async Task<(string title, string fullIdea, string category, string? subcategory, int rating, bool isLlmSource)?> ShowIdeaPopupAsync(
-        Page page, string username, List<string> existingCategories, string? prefillText, string? suggestedCategory)
-    {
-        var tcs = new TaskCompletionSource<(string title, string fullIdea, string category, string? subcategory, int rating, bool isLlmSource)?>();
+        string username = request.Username;
+        var tcs = new TaskCompletionSource<IdeaLogRequest?>();
         bool isPhone = DeviceInfo.Idiom == DeviceIdiom.Phone ||
             DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density < 600;
 
@@ -325,7 +381,7 @@ public class IdeaLoggerService
         var holder = new[] { "" };
 
         // Determine initial category
-        string? initialCategory = suggestedCategory;
+        string? initialCategory = request.Category;
         if (string.IsNullOrEmpty(initialCategory) && _lastUsedCategory != null && _favoriteCategories.Contains(_lastUsedCategory))
             initialCategory = _lastUsedCategory;
 
@@ -367,7 +423,7 @@ public class IdeaLoggerService
         mainStack.Children.Add(new Label { Text = "Title:", FontSize = 12, TextColor = Color.FromArgb("#666") });
         var titleEntry = new Editor
         {
-            Text = prefillText ?? "", Placeholder = "Idea title",
+            Text = request.Title ?? request.Body ?? "", Placeholder = "Idea title",
             BackgroundColor = Color.FromArgb("#F5F5F5"), HeightRequest = 100, FontSize = 14
         };
         StylePhoneEditor(titleEntry);
@@ -376,7 +432,7 @@ public class IdeaLoggerService
         mainStack.Children.Add(new Label { Text = "Full Idea:", FontSize = 12, TextColor = Color.FromArgb("#666") });
         var fullIdeaEditor = new Editor
         {
-            Text = prefillText ?? "", Placeholder = "Write the full idea...",
+            Text = request.Body ?? request.Title ?? "", Placeholder = "Write the full idea...",
             BackgroundColor = Color.FromArgb("#F5F5F5"), HeightRequest = 100, FontSize = 14
         };
         StylePhoneEditor(fullIdeaEditor);
@@ -847,11 +903,17 @@ public class IdeaLoggerService
         // Show subcategories if initial category has them
         if (!string.IsNullOrEmpty(initialCategory) && _subcategories.ContainsKey(initialCategory))
             RefreshSubPicker(subPicker, initialCategory);
+        if (!string.IsNullOrWhiteSpace(request.Subcategory) && !string.IsNullOrWhiteSpace(initialCategory))
+        {
+            if (!subSection.IsVisible) RefreshSubPicker(subPicker, initialCategory);
+            if (!subPicker.Items.Contains(request.Subcategory)) subPicker.Items.Add(request.Subcategory);
+            subPicker.SelectedIndex = subPicker.Items.IndexOf(request.Subcategory);
+        }
 
         // ====== RATING ======
         mainStack.Children.Add(new Label { Text = "Rating:", FontSize = 12, TextColor = Color.FromArgb("#666"), Margin = new Thickness(0, 4, 0, 0) });
 
-        int selectedRating = 50;
+        int selectedRating = Math.Clamp(request.Rating ?? 50, 0, 100);
         Button? selectedRatingBtn = null;
         Layout ratingFlow = isPhone
             ? new HorizontalStackLayout { Spacing = 4 }
@@ -885,6 +947,8 @@ public class IdeaLoggerService
 
         var customRating = new Entry { Placeholder = "Custom", Keyboard = Keyboard.Numeric, BackgroundColor = Color.FromArgb("#F5F5F5"), WidthRequest = 60, HeightRequest = 32 };
         StylePhoneEntry(customRating);
+        if (!new[] { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 }.Contains(selectedRating))
+            customRating.Text = selectedRating.ToString();
         customRating.TextChanged += (s, e) =>
         {
             if (int.TryParse(e.NewTextValue, out int c) && c >= 0 && c <= 100)
@@ -985,13 +1049,19 @@ public class IdeaLoggerService
                 if (classChoice == "Cancel" || string.IsNullOrWhiteSpace(classChoice))
                     return;
 
-                var classString = classChoice == "LLM category" ? "llm" : "normal";
-                isLlmSource = classString == "llm";
-                await _ideas.SetClassificationAsync(username, finalCategory, classString);
+                isLlmSource = classChoice == "LLM category";
             }
 
             container.Children.Remove(popup);
-            tcs.TrySetResult((title, fullIdea, finalCategory, string.IsNullOrWhiteSpace(subHolder[0]) ? null : subHolder[0], selectedRating, isLlmSource));
+            tcs.TrySetResult(request with
+            {
+                Title = title,
+                Body = fullIdea,
+                Category = finalCategory,
+                Subcategory = string.IsNullOrWhiteSpace(subHolder[0]) ? null : subHolder[0],
+                Rating = selectedRating,
+                IsLlmSource = isLlmSource
+            });
         }
 
         if (contentPage.Content is Grid pageGrid)
@@ -1019,7 +1089,7 @@ public class IdeaLoggerService
 
     // ====== LINKED CATEGORIES ======
 
-    private async Task HandleLinkedCategoriesAsync(Page page, string username, string title, string fullIdea, int rating, List<string> linkedCategories)
+    private async Task HandleLinkedCategoriesAsync(Page page, IdeaLogRequest request, List<string> linkedCategories)
     {
         string linkedList = string.Join(", ", linkedCategories);
         string choice = await page.DisplayActionSheet(
@@ -1052,11 +1122,11 @@ public class IdeaLoggerService
         {
             try
             {
-                var linkedIdea = _db.IsReadOnly
-                    ? await _ideas.CreateIdeaAsync(username, title, cat, rating: rating, fullIdea: fullIdea)
-                    : await _ideas.CreateIdeaAsync(username, title, cat, fullIdea: fullIdea);
-                linkedIdea.Rating = rating;
-                if (!_db.IsReadOnly) await _ideas.UpdateIdeaAsync(linkedIdea);
+                await SaveIdeaCoreAsync(
+                    request with { Category = cat, Subcategory = null, IsLlmSource = null },
+                    null,
+                    null,
+                    false);
             }
             catch (Exception ex)
             {

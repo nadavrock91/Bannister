@@ -782,10 +782,9 @@ public class WritingExperimentPage : ContentPage
                     if (logIdea)
                     {
                         await _ideaLogger.LogIdeaAsync(
-                            this,
-                            _auth.CurrentUsername,
-                            trimmedName,
-                            "Story Production Processes");
+                            new IdeaLogRequest { Username = _auth.CurrentUsername, Title = trimmedName, Body = trimmedName, Category = "Story Production Processes" },
+                            IdeaLogMode.Interactive,
+                            this);
                     }
                 }
 

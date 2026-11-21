@@ -1324,7 +1324,10 @@ public class StoryPointsPage : ContentPage
     private async Task LogIdeaAsync()
     {
         if (_ideaLogger == null) return;
-        await TryStoryWriteAsync(() => _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername));
+        await TryStoryWriteAsync(() => _ideaLogger.LogIdeaAsync(
+            new IdeaLogRequest { Username = _auth.CurrentUsername },
+            IdeaLogMode.Interactive,
+            this));
     }
 
     private async Task EditPointAsync(StoryPoint point)

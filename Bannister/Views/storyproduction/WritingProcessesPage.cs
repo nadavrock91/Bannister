@@ -338,10 +338,9 @@ public class WritingProcessesPage : ContentPage
                 if (addAsIdea)
                 {
                     await _ideaLogger.LogIdeaAsync(
-                        this,
-                        _auth.CurrentUsername,
-                        name.Trim(),
-                        "Story Production Processes");
+                        new IdeaLogRequest { Username = _auth.CurrentUsername, Title = name.Trim(), Body = name.Trim(), Category = "Story Production Processes" },
+                        IdeaLogMode.Interactive,
+                        this);
                 }
             }
 

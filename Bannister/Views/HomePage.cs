@@ -3232,13 +3232,10 @@ public class HomePage : ContentPage
         var journalService =
             Application.Current?.Handler?.MauiContext?
             .Services.GetService<JournalService>();
-        var ideasService =
-            Application.Current?.Handler?.MauiContext?
-            .Services.GetService<IdeasService>();
-        if (journalService == null || ideasService == null)
+        if (journalService == null)
             return;
         var page = new JournalPage(
-            _auth, journalService, ideasService);
+            _auth, journalService, _ideaLogger);
         await Navigation.PushAsync(page);
     }
 
@@ -3333,7 +3330,10 @@ public class HomePage : ContentPage
         switch (action)
         {
             case SecondaryQueueAction.LogIdea:
-                await _ideaLogger.LogIdeaToQueueAsync(this, _auth.CurrentUsername, _operationQueue);
+                await _ideaLogger.LogIdeaAsync(
+                    new IdeaLogRequest { Username = _auth.CurrentUsername },
+                    IdeaLogMode.Interactive,
+                    this);
                 break;
 
             case SecondaryQueueAction.AddPendingActivityIdea:

@@ -1602,7 +1602,10 @@ public class StoryProductionPage : ContentPage
 
                 if (logIdea)
                 {
-                    await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, process, "Story Production Processes");
+                    await _ideaLogger.LogIdeaAsync(
+                        new IdeaLogRequest { Username = _auth.CurrentUsername, Title = process, Body = process, Category = "Story Production Processes" },
+                        IdeaLogMode.Interactive,
+                        this);
                 }
             }
         }
@@ -3827,7 +3830,10 @@ public class StoryProductionPage : ContentPage
 
                 if (logIdea)
                 {
-                    await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, writingProcess, "Story Production Processes");
+                    await _ideaLogger.LogIdeaAsync(
+                        new IdeaLogRequest { Username = _auth.CurrentUsername, Title = writingProcess, Body = writingProcess, Category = "Story Production Processes" },
+                        IdeaLogMode.Interactive,
+                        this);
                 }
             }
         }
@@ -4403,7 +4409,10 @@ public class StoryProductionPage : ContentPage
         await DisplayAlert("Saved", $"Custom prompt \"{finalTitle}\" saved.", "OK");
 
         if (_ideaLogger != null)
-            await TryStoryWriteAsync(() => _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, prompt!.Text, "story_custom_prompts"));
+            await TryStoryWriteAsync(() => _ideaLogger.LogIdeaAsync(
+                new IdeaLogRequest { Username = _auth.CurrentUsername, Title = prompt!.Text, Body = prompt.Text, Category = "story_custom_prompts" },
+                IdeaLogMode.Interactive,
+                this));
     }
 
     private async Task ShowCustomPromptActionsAsync(CustomPromptItem prompt)
@@ -4438,7 +4447,10 @@ public class StoryProductionPage : ContentPage
                 break;
             case "Log As Idea":
                 if (_ideaLogger != null)
-                    await TryStoryWriteAsync(() => _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, prompt.Text, "story_custom_prompts"));
+                    await TryStoryWriteAsync(() => _ideaLogger.LogIdeaAsync(
+                        new IdeaLogRequest { Username = _auth.CurrentUsername, Title = prompt.Text, Body = prompt.Text, Category = "story_custom_prompts" },
+                        IdeaLogMode.Interactive,
+                        this));
                 break;
         }
     }

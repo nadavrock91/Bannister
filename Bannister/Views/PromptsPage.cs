@@ -1078,13 +1078,18 @@ public class PromptsPage : ContentPage
 
         await _prompts.AddPromptAsync(prompt);
 
-        var idea = await _ideaLogger.LogIdeaAsync(
-            this,
-            _auth.CurrentUsername,
-            text.Trim(),
-            $"Prompts: {packName.Trim()}");
+        var ideaId = await _ideaLogger.LogIdeaAsync(
+            new IdeaLogRequest
+            {
+                Username = _auth.CurrentUsername,
+                Title = text.Trim(),
+                Body = text.Trim(),
+                Category = $"Prompts: {packName.Trim()}"
+            },
+            IdeaLogMode.Interactive,
+            this);
 
-        if (idea == null)
+        if (ideaId == null)
             await DisplayAlert("Added", "Prompt added successfully!", "OK");
         
         // Refresh packs in case new one was created

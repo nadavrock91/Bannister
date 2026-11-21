@@ -22,11 +22,11 @@ public sealed class CompanionExtraction
 public class CompanionService
 {
     private readonly DatabaseService _db;
-    private readonly IdeasService _ideas;
-    public CompanionService(DatabaseService db, IdeasService ideas)
+    private readonly IdeaLoggerService _ideaLogger;
+    public CompanionService(DatabaseService db, IdeaLoggerService ideaLogger)
     {
         _db = db;
-        _ideas = ideas;
+        _ideaLogger = ideaLogger;
     }
 
     private async Task<SQLite.ISQLiteAsyncConnection> ConnectionAsync() =>
@@ -116,34 +116,25 @@ public class CompanionService
         string title = $"{companion.Nickname} interview · {startedAt:yyyy-MM-dd}";
         string body = BuildInterviewIdeaBody(companion, interview, scopeLabel, startedAt);
 
-        IdeaItem? idea = null;
-        if (interview.IdeaId is int ideaId)
+        var request = new IdeaLogRequest
         {
-            idea = (await _ideas.GetIdeasAsync(username)).FirstOrDefault(x => x.Id == ideaId);
-            idea ??= (await _ideas.GetArchivedIdeasAsync(username)).FirstOrDefault(x => x.Id == ideaId);
-        }
+            Username = username,
+            Title = title,
+            Body = body,
+            Category = category,
+            CreatedAt = startedAt,
+            IsLlmSource = true
+        };
 
-        if (idea == null)
-        {
-            idea = await _ideas.CreateIdeaAsync(
-                username,
-                title,
-                category,
-                createdAt: startedAt,
-                fullIdea: body,
-                isLlmSource: true);
-            if (idea.Id > 0)
-            {
-                interview.IdeaId = idea.Id;
-                await SaveInterviewAsync(interview);
-            }
-        }
+        int ideaId;
+        if (interview.IdeaId is int existingIdeaId)
+            ideaId = await _ideaLogger.UpdateIdeaAsync(existingIdeaId, request);
         else
         {
-            idea.Title = title;
-            idea.Category = category;
-            idea.FullIdea = body;
-            await _ideas.UpdateIdeaAsync(idea);
+            ideaId = await _ideaLogger.LogIdeaAsync(request, IdeaLogMode.Silent)
+                ?? throw new InvalidOperationException("Silent idea logging did not return an idea Id.");
+            interview.IdeaId = ideaId;
+            await SaveInterviewAsync(interview);
         }
 
         return category;

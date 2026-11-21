@@ -1376,8 +1376,11 @@ public class IdeasPage : ContentPage
     private async void OnAddIdeaClicked(object? sender, EventArgs e)
     {
         string? cat = (_selectedCategory == "All" || _selectedCategory == "⭐ Starred" || string.IsNullOrEmpty(_selectedCategory)) ? null : _selectedCategory;
-        var idea = await _ideaLogger.LogIdeaAsync(this, _auth.CurrentUsername, null, cat);
-        if (idea != null)
+        var ideaId = await _ideaLogger.LogIdeaAsync(
+            new IdeaLogRequest { Username = _auth.CurrentUsername, Category = cat },
+            IdeaLogMode.Interactive,
+            this);
+        if (ideaId != null)
         {
             InvalidateStatsCache();
             await LoadCategoriesAsync();

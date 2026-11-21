@@ -334,10 +334,15 @@ public class ListsPage : ContentPage
         if (logIdea)
         {
             await _ideaLogger.LogIdeaAsync(
-                this,
-                _auth.CurrentUsername,
-                text,
-                notes ?? "");
+                new IdeaLogRequest
+                {
+                    Username = _auth.CurrentUsername,
+                    Title = text,
+                    Body = text,
+                    Category = notes ?? ""
+                },
+                IdeaLogMode.Interactive,
+                this);
         }
 
         await LoadItemsAsync();

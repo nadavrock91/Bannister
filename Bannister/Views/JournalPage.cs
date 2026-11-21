@@ -7,7 +7,7 @@ public class JournalPage : ContentPage
 {
     private readonly AuthService _auth;
     private readonly JournalService _journalService;
-    private readonly IdeasService _ideasService;
+    private readonly IdeaLoggerService _ideaLogger;
 
     private VerticalStackLayout _entriesContainer = null!;
     private Editor _entryEditor = null!;
@@ -23,11 +23,11 @@ public class JournalPage : ContentPage
     public JournalPage(
         AuthService auth,
         JournalService journalService,
-        IdeasService ideasService)
+        IdeaLoggerService ideaLogger)
     {
         _auth = auth;
         _journalService = journalService;
-        _ideasService = ideasService;
+        _ideaLogger = ideaLogger;
         Title = "Journal";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         BuildUI();
@@ -344,13 +344,16 @@ public class JournalPage : ContentPage
             string title = text.Length > 60
                 ? text[..57] + "..."
                 : text;
-            await _ideasService.CreateIdeaAsync(
-                _auth.CurrentUsername,
-                title,
-                category: "Journal",
-                fullIdea: text,
-                notes: $"Solo journal entry — " +
-                       $"{DateTime.Now:dd MMM yyyy HH:mm}");
+            await _ideaLogger.LogIdeaAsync(
+                new IdeaLogRequest
+                {
+                    Username = _auth.CurrentUsername,
+                    Title = title,
+                    Body = text,
+                    Category = "Journal",
+                    Notes = $"Solo journal entry — {DateTime.Now:dd MMM yyyy HH:mm}"
+                },
+                IdeaLogMode.Silent);
 
             _entryEditor.Text = "";
             await LoadEntriesAsync();
@@ -380,13 +383,16 @@ public class JournalPage : ContentPage
             string title = text.Length > 60
                 ? text[..57] + "..."
                 : text;
-            await _ideasService.CreateIdeaAsync(
-                _auth.CurrentUsername,
-                title,
-                category: IdeasService.AiConversationCategory,
-                fullIdea: text,
-                notes: $"AI conversation — " +
-                       $"{DateTime.Now:dd MMM yyyy HH:mm}");
+            await _ideaLogger.LogIdeaAsync(
+                new IdeaLogRequest
+                {
+                    Username = _auth.CurrentUsername,
+                    Title = title,
+                    Body = text,
+                    Category = IdeasService.AiConversationCategory,
+                    Notes = $"AI conversation — {DateTime.Now:dd MMM yyyy HH:mm}"
+                },
+                IdeaLogMode.Silent);
 
             _aiEditor.Text = "";
             await LoadEntriesAsync();
