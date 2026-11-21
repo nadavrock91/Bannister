@@ -111,7 +111,7 @@ public class CompanionService
 
     public async Task<string> SaveInterviewIdeaAsync(string username, Companion companion, CompanionInterview interview, string scopeLabel)
     {
-        const string category = IdeasService.AiConversationCategory;
+        const string category = IdeasService.CompanionInterviewCategory;
         var startedAt = interview.StartedAt.ToLocalTime();
         string title = $"{companion.Nickname} interview · {startedAt:yyyy-MM-dd}";
         string body = BuildInterviewIdeaBody(companion, interview, scopeLabel, startedAt);
