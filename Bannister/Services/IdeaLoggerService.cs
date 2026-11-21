@@ -26,7 +26,12 @@ public sealed record IdeaLogRequest
 
 public sealed record IdeaLogFailure(IdeaLogRequest Request, string Error);
 
-public sealed record IdeaLogBatchResult(int SavedCount, IReadOnlyList<IdeaLogFailure> Failures);
+public sealed record IdeaLogSuccess(IdeaLogRequest Request, int? IdeaId);
+
+public sealed record IdeaLogBatchResult(
+    int SavedCount,
+    IReadOnlyList<IdeaLogFailure> Failures,
+    IReadOnlyList<IdeaLogSuccess> Successes);
 
 /// <summary>
 /// Reusable service for logging ideas from anywhere in the app.
@@ -256,12 +261,14 @@ public class IdeaLoggerService
 
         int savedCount = 0;
         var failures = new List<IdeaLogFailure>();
+        var successes = new List<IdeaLogSuccess>();
         foreach (var request in requests)
         {
             try
             {
                 await EnsureLoadedAsync(request.Username);
-                await SaveIdeaCoreAsync(request, null, null, false);
+                var idea = await SaveIdeaCoreAsync(request, null, null, false);
+                successes.Add(new IdeaLogSuccess(request, idea.Id > 0 ? idea.Id : null));
                 savedCount++;
             }
             catch (Exception ex)
@@ -271,7 +278,7 @@ public class IdeaLoggerService
             }
         }
 
-        return new IdeaLogBatchResult(savedCount, failures);
+        return new IdeaLogBatchResult(savedCount, failures, successes);
     }
 
     public async Task<int> UpdateIdeaAsync(int ideaId, IdeaLogRequest request)

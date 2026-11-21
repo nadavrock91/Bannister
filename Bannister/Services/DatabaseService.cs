@@ -593,6 +593,7 @@ namespace Bannister.Services
             }
             catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE companion_interviews ADD COLUMN IdeaId INTEGER NULL"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN IdeaId INTEGER NULL"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

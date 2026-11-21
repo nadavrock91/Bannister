@@ -9,7 +9,7 @@ public sealed record CompanionAddProposal(int Index, string Text, int Priority);
 public sealed record CompanionPriorityProposal(int PointId, int Priority);
 public sealed record CompanionArchiveProposal(int PointId, string Reason);
 public sealed record CompanionUpdateProposal(int PointId, string Text);
-public sealed record CompanionApplyResult(int Added, int Reprioritized, int Archived, int Updated);
+public sealed record CompanionApplyResult(int Added, int Reprioritized, int Archived, int Updated, int IdeaLoggingFailures);
 
 public sealed class CompanionExtraction
 {
@@ -95,6 +95,33 @@ public class CompanionService
         point.UpdatedAt = DateTime.UtcNow;
         var conn = await ConnectionAsync();
         if (point.Id == 0) await conn.InsertAsync(point); else await conn.UpdateAsync(point);
+    }
+
+    public async Task<int> SaveManualPointAsync(
+        string username,
+        Companion companion,
+        string scopeLabel,
+        string text,
+        int priority)
+    {
+        var point = new CompanionDataPoint
+        {
+            Username = username,
+            CompanionId = companion.Id,
+            Text = text.Trim(),
+            Priority = priority,
+            Source = "manual"
+        };
+        await SavePointAsync(point);
+        try
+        {
+            return await LogNewContextPointsAsync(username, companion, scopeLabel, new[] { point }, null);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to log manual context point {point.Id}: {ex}");
+            return 1;
+        }
     }
 
     public async Task DeletePointAsync(CompanionDataPoint point) =>
@@ -302,21 +329,27 @@ public class CompanionService
     }
 
     public async Task<CompanionApplyResult> ApplyExtractionAsync(string username, Companion companion, CompanionInterview interview,
+        string scopeLabel,
         IEnumerable<CompanionAddProposal> adds, IEnumerable<CompanionPriorityProposal> priorities,
         IEnumerable<CompanionArchiveProposal> archives, IEnumerable<CompanionUpdateProposal> updates)
     {
         var existing = await GetPointsAsync(username, companion.Id, true);
         int added = 0, reprioritized = 0, archived = 0, updated = 0;
+        var addedPoints = new List<CompanionDataPoint>();
+        var changedLinkedPoints = new Dictionary<int, CompanionDataPoint>();
         foreach (var proposal in adds)
         {
             if (string.IsNullOrWhiteSpace(proposal.Text)) continue;
-            await SavePointAsync(new CompanionDataPoint { Username = username, CompanionId = companion.Id, Text = proposal.Text.Trim(), Priority = proposal.Priority, Source = "interview", InterviewId = interview.Id });
+            var point = new CompanionDataPoint { Username = username, CompanionId = companion.Id, Text = proposal.Text.Trim(), Priority = proposal.Priority, Source = "interview", InterviewId = interview.Id };
+            await SavePointAsync(point);
+            addedPoints.Add(point);
             added++;
         }
         foreach (var proposal in priorities)
         {
             var point = existing.FirstOrDefault(x => x.Id == proposal.PointId); if (point == null) continue;
             point.Priority = proposal.Priority; await SavePointAsync(point); reprioritized++;
+            if (point.IdeaId.HasValue) changedLinkedPoints[point.Id] = point;
         }
         foreach (var proposal in archives)
         {
@@ -327,13 +360,118 @@ public class CompanionService
         {
             var point = existing.FirstOrDefault(x => x.Id == proposal.PointId); if (point == null || string.IsNullOrWhiteSpace(proposal.Text)) continue;
             point.Text = proposal.Text.Trim(); await SavePointAsync(point); updated++;
+            if (point.IdeaId.HasValue) changedLinkedPoints[point.Id] = point;
         }
         interview.PointsAdded += added;
         interview.PointsReprioritized += reprioritized;
         interview.PointsArchived += archived;
         interview.Notes = $"Extraction applied {DateTime.Now:yyyy-MM-dd HH:mm}";
         await SaveInterviewAsync(interview);
-        return new CompanionApplyResult(added, reprioritized, archived, updated);
+
+        int ideaLoggingFailures = 0;
+        try
+        {
+            ideaLoggingFailures += await LogNewContextPointsAsync(username, companion, scopeLabel, addedPoints, interview);
+        }
+        catch (Exception ex)
+        {
+            ideaLoggingFailures += addedPoints.Count;
+            System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to batch-log context points: {ex}");
+        }
+
+        foreach (var point in changedLinkedPoints.Values)
+        {
+            try
+            {
+                string sourceLine = await GetContextPointSourceLineAsync(point, interview);
+                await _ideaLogger.UpdateIdeaAsync(
+                    point.IdeaId!.Value,
+                    BuildContextPointIdeaRequest(username, companion, scopeLabel, point, sourceLine, includeCreatedAt: false));
+            }
+            catch (Exception ex)
+            {
+                ideaLoggingFailures++;
+                System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to update context-point idea for point {point.Id}: {ex}");
+            }
+        }
+
+        return new CompanionApplyResult(added, reprioritized, archived, updated, ideaLoggingFailures);
+    }
+
+    private async Task<int> LogNewContextPointsAsync(
+        string username,
+        Companion companion,
+        string scopeLabel,
+        IReadOnlyList<CompanionDataPoint> points,
+        CompanionInterview? interview)
+    {
+        if (points.Count == 0) return 0;
+
+        string sourceLine = interview == null
+            ? "From: manual"
+            : $"From interview: {interview.StartedAt.ToLocalTime():yyyy-MM-dd}";
+        var entries = points.Select(point => new
+        {
+            Point = point,
+            Request = BuildContextPointIdeaRequest(username, companion, scopeLabel, point, sourceLine, includeCreatedAt: true)
+        }).ToList();
+
+        var batch = await _ideaLogger.LogBatchSilentAsync(entries.Select(x => x.Request));
+        int failures = batch.Failures.Count;
+        foreach (var success in batch.Successes)
+        {
+            if (!success.IdeaId.HasValue) continue;
+            var entry = entries.First(x => ReferenceEquals(x.Request, success.Request));
+            try
+            {
+                entry.Point.IdeaId = success.IdeaId.Value;
+                await SavePointAsync(entry.Point);
+            }
+            catch (Exception ex)
+            {
+                failures++;
+                System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Failed to link context point {entry.Point.Id} to idea {success.IdeaId.Value}: {ex}");
+            }
+        }
+        return failures;
+    }
+
+    private async Task<string> GetContextPointSourceLineAsync(CompanionDataPoint point, CompanionInterview currentInterview)
+    {
+        if (string.Equals(point.Source, "manual", StringComparison.OrdinalIgnoreCase) || !point.InterviewId.HasValue)
+            return "From: manual";
+
+        CompanionInterview? sourceInterview = point.InterviewId.Value == currentInterview.Id
+            ? currentInterview
+            : await (await ConnectionAsync()).Table<CompanionInterview>()
+                .Where(x => x.Id == point.InterviewId.Value)
+                .FirstOrDefaultAsync();
+        sourceInterview ??= currentInterview;
+        return $"From interview: {sourceInterview.StartedAt.ToLocalTime():yyyy-MM-dd}";
+    }
+
+    private static IdeaLogRequest BuildContextPointIdeaRequest(
+        string username,
+        Companion companion,
+        string scopeLabel,
+        CompanionDataPoint point,
+        string sourceLine,
+        bool includeCreatedAt)
+    {
+        string text = point.Text.Trim();
+        string title = text.Length <= 80 ? text : text[..79].TrimEnd() + "…";
+        string body = $"{text}\n\nPriority: {point.Priority}\nCompanion: {companion.Nickname} ({scopeLabel})\n{sourceLine}";
+        return new IdeaLogRequest
+        {
+            Username = username,
+            Title = title,
+            Body = body,
+            Category = IdeasService.CompanionContextPointCategory,
+            Subcategory = companion.Nickname,
+            Rating = point.Priority * 20,
+            CreatedAt = includeCreatedAt ? point.CreatedAt.ToLocalTime() : null,
+            IsLlmSource = true
+        };
     }
 
     public static string DecodeLlmValue(string value) =>

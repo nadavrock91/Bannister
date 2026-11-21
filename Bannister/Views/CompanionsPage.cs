@@ -115,7 +115,7 @@ public class CompanionsPage : ContentPage
         _content.Children.Add(Heading(_showArchived ? "Data Points (including archived)" : "Active Data Points", 18));
         var pointActions = new HorizontalStackLayout { Spacing = 8 };
         var addPoint = Button("+ Add Data Point", "#2E7D32", Colors.White);
-        addPoint.Clicked += async (_, _) => await AddPointAsync(companion);
+        addPoint.Clicked += async (_, _) => await AddPointAsync(companion, scopeLabel);
         var archived = Button(_showArchived ? "Hide Archived" : "Show Archived", "#ECEFF1", Color.FromArgb("#555"));
         archived.Clicked += async (_, _) => { _showArchived = !_showArchived; await RefreshAsync(); };
         pointActions.Children.Add(addPoint); pointActions.Children.Add(archived); _content.Children.Add(pointActions);
@@ -157,13 +157,13 @@ public class CompanionsPage : ContentPage
         return Card(stack);
     }
 
-    private async Task AddPointAsync(Companion companion)
+    private async Task AddPointAsync(Companion companion, string scopeLabel)
     {
         var text = await CompanionTextInputPage.ShowAsync(Navigation, "Add Data Point", "", "Write a durable fact or observation...");
         if (string.IsNullOrWhiteSpace(text)) return;
         var priorityText = await DisplayPromptAsync("Priority", "1-5 (5 is most important)", "Save", "Cancel", keyboard: Keyboard.Numeric, initialValue: "3");
         if (!int.TryParse(priorityText, out int priority) || priority is < 1 or > 5) return;
-        await _service.SavePointAsync(new CompanionDataPoint { Username = _auth.CurrentUsername, CompanionId = companion.Id, Text = text.Trim(), Priority = priority, Source = "manual" });
+        await _service.SaveManualPointAsync(_auth.CurrentUsername, companion, scopeLabel, text, priority);
         await RefreshAsync();
     }
 
@@ -209,15 +209,18 @@ public class CompanionsPage : ContentPage
 
             var applied = await CompanionExtractionReviewPage.ShowAsync(Navigation, extraction, async (adds, priorities, archives, updates) =>
             {
-                var result = await _service.ApplyExtractionAsync(_auth.CurrentUsername, companion, interview, adds, priorities, archives, updates);
+                var result = await _service.ApplyExtractionAsync(_auth.CurrentUsername, companion, interview, scopeLabel, adds, priorities, archives, updates);
                 await TrySaveInterviewIdeaAsync(companion, interview, scopeLabel);
                 return result;
             });
             if (applied == null) return;
 
+            string loggingNote = applied.IdeaLoggingFailures > 0
+                ? $" ({applied.IdeaLoggingFailures} not logged to Ideas)"
+                : "";
             await DisplayAlert(
                 "Extraction Applied",
-                $"Added {applied.Added}, reprioritized {applied.Reprioritized}, archived {applied.Archived}, updated {applied.Updated}",
+                $"Added {applied.Added}{loggingNote}, reprioritized {applied.Reprioritized}, archived {applied.Archived}, updated {applied.Updated}",
                 "OK");
             await RefreshAsync();
         }

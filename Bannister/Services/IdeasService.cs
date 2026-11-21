@@ -9,6 +9,7 @@ public class IdeasService
 {
     public const string AiConversationCategory = "Journal - AI";
     public const string CompanionInterviewCategory = "Conversations with AI";
+    public const string CompanionContextPointCategory = "AI Context Points";
 
     private readonly DatabaseService _db;
     private readonly OperationQueueService _queue;

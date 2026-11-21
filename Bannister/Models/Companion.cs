@@ -31,6 +31,7 @@ public class CompanionDataPoint
     public string Status { get; set; } = "active";
     public string Source { get; set; } = "manual";
     public int? InterviewId { get; set; }
+    public int? IdeaId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
