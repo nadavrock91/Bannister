@@ -20,7 +20,6 @@ public class DevWorkflowView : ContentView
     private DevWorkflowProject? _selectedProject;
     private string _projectFolder = "";
     private readonly Dictionary<int, StepChecklistState> _runStates = new();
-    private bool _runStarted;
 
     private sealed class StepChecklistState
     {
@@ -95,9 +94,6 @@ public class DevWorkflowView : ContentView
     private View BuildRunControls()
     {
         var row = new HorizontalStackLayout { Spacing = 7 };
-        var run = Button("Run", "#6A1B9A");
-        run.Clicked += async (_, _) => await StartRunAsync();
-        row.Children.Add(run);
         var reset = Button("Reset", "#607D8B");
         reset.Clicked += (_, _) => { ResetRunState(); BuildRunUI(); };
         row.Children.Add(reset);
@@ -182,10 +178,19 @@ public class DevWorkflowView : ContentView
             FontAttributes = current ? FontAttributes.Bold : FontAttributes.None,
             LineBreakMode = LineBreakMode.WordWrap, VerticalOptions = LayoutOptions.Center
         }, 1, 0);
+        var headingActions = new HorizontalStackLayout { Spacing = 4 };
+        if (step.StepType == "Check")
+        {
+            var run = Small(string.IsNullOrWhiteSpace(state.Message) ? "Run" : "Re-run", "#6A1B9A");
+            run.IsEnabled = !state.Skipped;
+            run.Clicked += async (_, _) => await RunCheckAsync(step);
+            headingActions.Children.Add(run);
+        }
         var skip = Small(state.Skipped ? "Unskip" : "Skip");
         skip.IsEnabled = !state.Done;
         skip.Clicked += async (_, _) => await ToggleSkipAsync(step);
-        heading.Add(skip, 2, 0); stack.Children.Add(heading);
+        headingActions.Children.Add(skip);
+        heading.Add(headingActions, 2, 0); stack.Children.Add(heading);
 
         if (state.Skipped)
             stack.Children.Add(new Label { Text = "skipped", FontSize = 12, TextColor = Color.FromArgb("#777777") });
@@ -199,7 +204,6 @@ public class DevWorkflowView : ContentView
         }
         if (step.StepType == "Check" && !state.Done && !state.Skipped && !string.IsNullOrWhiteSpace(state.Message))
         {
-            var rerun = Small("Re-run"); rerun.Clicked += async (_, _) => await RunCheckAsync(step); actions.Children.Add(rerun);
             if (state.Behind) { var pull = Small("Pull", "#1565C0"); pull.Clicked += async (_, _) => await PullAndRecheckAsync(step); actions.Children.Add(pull); }
             if (NeedsProjectFolder(state.Message)) { var folder = Small("Set Folder", "#5B63EE"); folder.Clicked += async (_, _) => await SetProjectFolderAndRecheckAsync(step); actions.Children.Add(folder); }
         }
@@ -272,14 +276,6 @@ public class DevWorkflowView : ContentView
         stack.Children.Add(toggle); stack.Children.Add(list); return Card(stack);
     }
 
-    private async Task StartRunAsync()
-    {
-        if (_projects.Count == 0) { await AddProjectAsync(); return; }
-        if (_selectedProject == null) { await AlertAsync("Dev Workflow", "Select a project before running."); return; }
-        _runStarted = true;
-        await AdvanceChecklistAsync(null, true);
-    }
-
     private StepChecklistState StateFor(DevWorkflowStep step)
     {
         if (!_runStates.TryGetValue(step.Id, out var state))
@@ -295,7 +291,6 @@ public class DevWorkflowView : ContentView
 
     private async Task SetDoneAsync(DevWorkflowStep step, bool done)
     {
-        int? previousCurrentId = CurrentStep()?.Id;
         var state = StateFor(step);
         if (state.Done == done) return;
         if (done && step.StepType == "Check" && !string.IsNullOrWhiteSpace(state.Message))
@@ -309,40 +304,31 @@ public class DevWorkflowView : ContentView
             state.Behind = false;
         }
         state.Done = done; state.Skipped = false;
-        await AdvanceChecklistAsync(previousCurrentId);
+        BuildRunUI();
     }
 
     private async Task ToggleSkipAsync(DevWorkflowStep step)
     {
-        int? previousCurrentId = CurrentStep()?.Id;
         var state = StateFor(step);
         if (state.Done) return;
         if (!state.Skipped && step.StepType == "Check" && !string.IsNullOrWhiteSpace(state.Message))
             await LogOverrideAsync(step);
         state.Skipped = !state.Skipped;
         if (!state.Skipped) { state.Message = ""; state.Behind = false; }
-        await AdvanceChecklistAsync(previousCurrentId);
+        BuildRunUI();
     }
 
     private async Task CopyAndCompleteAsync(DevWorkflowStep step)
     {
-        int? previousCurrentId = CurrentStep()?.Id;
         await Clipboard.SetTextAsync(step.UseAllConstraints ? ConstraintBlock() : step.Text);
         var state = StateFor(step); state.Done = true; state.Skipped = false; state.Message = "Copied";
-        await AdvanceChecklistAsync(previousCurrentId);
-    }
-
-    private async Task AdvanceChecklistAsync(int? previousCurrentId, bool forceCheck = false)
-    {
         BuildRunUI();
-        var current = CurrentStep();
-        if (_runStarted && current?.StepType == "Check" &&
-            (forceCheck || current.Id != previousCurrentId)) await RunCheckAsync(current);
     }
 
     private async Task RunCheckAsync(DevWorkflowStep step)
     {
         var state = StateFor(step);
+        state.Done = false; state.Skipped = false; state.Behind = false;
         if (_selectedProject == null) { state.Message = "No project selected"; state.Behind = false; BuildRunUI(); return; }
         if (string.IsNullOrWhiteSpace(_projectFolder))
         {
@@ -352,9 +338,8 @@ public class DevWorkflowView : ContentView
         state.Message = result.Message; state.Behind = result.IsBehind;
         if (result.IsAvailable && result.Passed)
         {
-            int? previousCurrentId = CurrentStep()?.Id;
             state.Done = true; state.Skipped = false;
-            await AdvanceChecklistAsync(previousCurrentId);
+            BuildRunUI();
         }
         else BuildRunUI();
     }
@@ -366,9 +351,8 @@ public class DevWorkflowView : ContentView
         state.Message = result.Message; state.Behind = result.IsBehind;
         if (result.IsAvailable && result.Passed)
         {
-            int? previousCurrentId = CurrentStep()?.Id;
             state.Done = true;
-            await AdvanceChecklistAsync(previousCurrentId);
+            BuildRunUI();
         }
         else BuildRunUI();
     }
@@ -381,7 +365,7 @@ public class DevWorkflowView : ContentView
             StepName = step.Text.Length > 0 ? step.Text : "Git up to date"
         });
 
-    private void ResetRunState() { _runStates.Clear(); _runStarted = false; }
+    private void ResetRunState() => _runStates.Clear();
     private string ConstraintBlock() => string.Join(Environment.NewLine, _constraints.Select(x => x.Text));
     private async Task SwapConstraintsAsync(int a, int b) { (_constraints[a].SortOrder, _constraints[b].SortOrder) = (_constraints[b].SortOrder, _constraints[a].SortOrder); await _service.SaveConstraintAsync(_constraints[a]); await _service.SaveConstraintAsync(_constraints[b]); await RefreshAsync(); }
 
