@@ -99,6 +99,12 @@ public class DevWorkflowView : ContentView
         stack.Children.Add(new Label { Text = $"{step.SortOrder + 1}. [{step.StepType}] {text}", FontSize = 14, FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap });
         var state = _runStates.TryGetValue(step.Id, out var value) ? value : ("pending", "Not started", false);
         stack.Children.Add(new Label { Text = $"{state.Item1}: {state.Item2}", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = StateColor(state.Item1) });
+        if (step.StepType == "Check" && NeedsRepoFolder(state.Item2))
+        {
+            var setRepo = Small("Set Repo Folder", "#5B63EE");
+            setRepo.Clicked += async (_, _) => await SetRepoFolderAndRecheckAsync(step);
+            stack.Children.Add(setRepo);
+        }
         if (state.Item1 == "failed")
         {
             var actions = new HorizontalStackLayout { Spacing = 5 };
@@ -121,7 +127,7 @@ public class DevWorkflowView : ContentView
         var repo = new VerticalStackLayout { Spacing = 5 };
         repo.Children.Add(new Label { Text = "Repository", FontSize = 16, FontAttributes = FontAttributes.Bold });
         repo.Children.Add(new Label { Text = string.IsNullOrWhiteSpace(_repoFolder) ? "No folder selected" : _repoFolder, FontSize = 11, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
-        var choose = Button("Set Repo Folder", "#5B63EE"); choose.Clicked += async (_, _) => await PickRepoFolderAsync(); repo.Children.Add(choose);
+        var choose = Button("Set Repo Folder", "#5B63EE"); choose.Clicked += async (_, _) => await PickRepoFolderAndRefreshAsync(); repo.Children.Add(choose);
         panel.Children.Add(Card(repo)); panel.Children.Add(BuildConstraints()); panel.Children.Add(BuildOverrideLog());
         _content.Children.Add(toggle); _content.Children.Add(panel);
     }
@@ -173,16 +179,27 @@ public class DevWorkflowView : ContentView
     private string ConstraintBlock() => string.Join(Environment.NewLine, _constraints.Select(x => x.Text));
     private async Task SwapConstraintsAsync(int a, int b) { (_constraints[a].SortOrder, _constraints[b].SortOrder) = (_constraints[b].SortOrder, _constraints[a].SortOrder); await _service.SaveConstraintAsync(_constraints[a]); await _service.SaveConstraintAsync(_constraints[b]); await RefreshAsync(); }
 
-    private async Task PickRepoFolderAsync()
+    private async Task PickRepoFolderAndRefreshAsync()
     {
-#if WINDOWS
-        var picker = new Windows.Storage.Pickers.FolderPicker(); picker.FileTypeFilter.Add("*"); var window = Application.Current?.Windows.FirstOrDefault(); if (window?.Handler?.PlatformView == null) return;
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window.Handler.PlatformView); WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd); var folder = await picker.PickSingleFolderAsync();
-        if (folder != null) { await _service.SetRepoFolderAsync(folder.Path); await RefreshAsync(); }
-#else
-        await AlertAsync("Repository", "Folder selection is not available on this device.");
-#endif
+        string? selected = await _service.PickAndSaveRepoFolderAsync();
+        if (selected != null) await RefreshAsync();
     }
+
+    private async Task SetRepoFolderAndRecheckAsync(DevWorkflowStep step)
+    {
+        string? selected = await _service.PickAndSaveRepoFolderAsync();
+        if (selected == null) return;
+        _repoFolder = selected;
+        var result = await _service.CheckGitAsync(_repoFolder);
+        _runStates[step.Id] = result.IsAvailable
+            ? (result.Passed ? "passed" : "failed", result.Message, result.IsBehind)
+            : ("skipped", result.Message, false);
+        BuildRunUI();
+    }
+
+    private static bool NeedsRepoFolder(string message) =>
+        message.Equals("No repo folder set", StringComparison.OrdinalIgnoreCase) ||
+        message.StartsWith("Repo folder does not exist", StringComparison.OrdinalIgnoreCase);
 
     private Page? HostPage() => Application.Current?.Windows.FirstOrDefault()?.Page;
     private async Task<string?> PromptAsync(string title, string message, string initial) => HostPage() == null ? null : await HostPage()!.DisplayPromptAsync(title, message, "Save", "Cancel", initialValue: initial);

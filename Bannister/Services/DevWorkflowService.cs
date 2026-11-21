@@ -104,6 +104,25 @@ public class DevWorkflowService
         else { row.RepoFolder = folder; await conn.UpdateAsync(row); }
     }
 
+    public async Task<string?> PickAndSaveRepoFolderAsync()
+    {
+#if WINDOWS
+        var picker = new Windows.Storage.Pickers.FolderPicker();
+        picker.FileTypeFilter.Add("*");
+        var window = Application.Current?.Windows.FirstOrDefault();
+        if (window?.Handler?.PlatformView == null) return null;
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window.Handler.PlatformView);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        var folder = await picker.PickSingleFolderAsync();
+        if (folder == null) return null;
+        await SetRepoFolderAsync(folder.Path);
+        return folder.Path;
+#else
+        await Task.CompletedTask;
+        return null;
+#endif
+    }
+
     public async Task<int?> GetLastUsedWorkflowIdAsync()
     {
         await InitAsync(); var conn = await _db.GetConnectionAsync();
