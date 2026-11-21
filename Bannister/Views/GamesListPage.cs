@@ -30,17 +30,20 @@ public class GamesListPage : ContentPage
     private readonly ActivityGroupingService _groupingService;
     private readonly PrivacyModeService _privacyMode;
     private readonly ActivitySuggestionService _activitySuggestions;
+    private readonly LastCalculatedLocationService _lastCalculated;
     private bool _isNavigating = false;
     
     private FlexLayout _gamesGrid;
     private VerticalStackLayout _groupingsContainer;
     private Grid _loadingOverlay;
     private Button _restoreBtn;
+    private Button _lastCalculatedButton = null!;
 
     public GamesListPage(AuthService auth, GameService games, ActivityService activities, ExpService exp, DatabaseService db,
         ActivityGroupingService groupingService,
         PrivacyModeService privacyMode,
-        ActivitySuggestionService activitySuggestions)
+        ActivitySuggestionService activitySuggestions,
+        LastCalculatedLocationService lastCalculated)
     {
         _auth = auth;
         _games = games;
@@ -50,6 +53,7 @@ public class GamesListPage : ContentPage
         _groupingService = groupingService;
         _privacyMode = privacyMode;
         _activitySuggestions = activitySuggestions;
+        _lastCalculated = lastCalculated;
         
         Title = "Games";
         BackgroundColor = Color.FromArgb("#6B73FF");
@@ -115,6 +119,18 @@ public class GamesListPage : ContentPage
         headerGrid.Add(_privateModeToggleBtn, 1, 0);
 
         mainStack.Children.Add(headerGrid);
+
+        _lastCalculatedButton = new Button
+        {
+            IsVisible = false,
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            HeightRequest = 44,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        _lastCalculatedButton.Clicked += async (_, _) => await GoToLastCalculatedAsync();
+        mainStack.Children.Add(_lastCalculatedButton);
 
         // Games grid container using FlexLayout for wrapping
         _gamesGrid = new FlexLayout
@@ -310,6 +326,31 @@ public class GamesListPage : ContentPage
         
         await LoadGamesAsync();
         await LoadGroupingsAsync();
+        await UpdateLastCalculatedButtonAsync();
+    }
+
+    private async Task UpdateLastCalculatedButtonAsync()
+    {
+        var location = await _lastCalculated.GetAsync(_auth.CurrentUsername);
+        if (location == null) { _lastCalculatedButton.IsVisible = false; return; }
+        var game = await _games.GetGameAsync(_auth.CurrentUsername, location.GameId);
+        _lastCalculatedButton.Text = $"↩ Last: {game?.DisplayName ?? location.GameId} / {location.Category}";
+        _lastCalculatedButton.IsVisible = true;
+    }
+
+    private async Task GoToLastCalculatedAsync()
+    {
+        var location = await _lastCalculated.GetAsync(_auth.CurrentUsername);
+        if (location == null) { _lastCalculatedButton.IsVisible = false; return; }
+        var game = await _games.GetGameAsync(_auth.CurrentUsername, location.GameId);
+        if (game == null)
+        {
+            await DisplayAlert("Last calculated", "The saved game no longer exists.", "OK");
+            return;
+        }
+        string route = $"activitygrid?gameId={Uri.EscapeDataString(location.GameId)}" +
+            $"&targetCategory={Uri.EscapeDataString(location.Category)}&targetActivityId={location.ActivityId}";
+        await Shell.Current.GoToAsync(route);
     }
 
     private async Task CycleDisplayModeAsync()

@@ -56,9 +56,25 @@ public partial class ActivityGamePage
             RowDefinitions =
             {
                 new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto }
             }
         };
+
+        btnLastCalculated = new Button
+        {
+            IsVisible = false,
+            BackgroundColor = Color.FromArgb("#E8EAF6"),
+            TextColor = Color.FromArgb("#3949AB"),
+            CornerRadius = 8,
+            HeightRequest = 36,
+            FontSize = 12,
+            HorizontalOptions = LayoutOptions.Fill
+        };
+        btnLastCalculated.Clicked += async (_, _) => await GoToLastCalculatedAsync();
+        Grid.SetRow(btnLastCalculated, 0);
+        outerGrid.Children.Add(btnLastCalculated);
 
         // Category navigation
         var navGrid = new Grid
@@ -107,7 +123,7 @@ public partial class ActivityGamePage
         Grid.SetColumn(btnNextPage, 2);
         navGrid.Children.Add(btnNextPage);
 
-        Grid.SetRow(navGrid, 0);
+        Grid.SetRow(navGrid, 1);
         outerGrid.Children.Add(navGrid);
 
         // Pickers - 3 columns
@@ -169,7 +185,7 @@ public partial class ActivityGamePage
         Grid.SetColumn(sortPicker, 2);
         pickerGrid.Children.Add(sortPicker);
 
-        Grid.SetRow(pickerGrid, 1);
+        Grid.SetRow(pickerGrid, 2);
         outerGrid.Children.Add(pickerGrid);
 
         // Show All toggle row
@@ -201,8 +217,7 @@ public partial class ActivityGamePage
             VerticalOptions = LayoutOptions.Center
         });
 
-        Grid.SetRow(showAllRow, 2);
-        outerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Grid.SetRow(showAllRow, 3);
         outerGrid.Children.Add(showAllRow);
 
         frame.Content = outerGrid;
@@ -218,6 +233,7 @@ public partial class ActivityGamePage
         var cts = new CancellationTokenSource();
         _renderCts = cts;
         var ct = cts.Token;
+        _activityCards.Clear();
 
         System.Diagnostics.Debug.WriteLine(
             $"[BUILD_GRID] ENTER activities=" +
@@ -244,6 +260,7 @@ public partial class ActivityGamePage
                     mainStack, streakContainer, ct);
                 if (ct.IsCancellationRequested) return;
                 activitiesCollection.Content = mainStack;
+                await RevealTargetActivityAsync();
                 return;
             }
         }
@@ -313,6 +330,7 @@ public partial class ActivityGamePage
 
             // Create activity card
             var card = CreateActivityCard(activity);
+            _activityCards[activity.Id] = card;
             Grid.SetColumn(card, columnIndex);
             currentRow.Children.Add(card);
 
@@ -321,6 +339,7 @@ public partial class ActivityGamePage
 
         if (ct.IsCancellationRequested) return;
         activitiesCollection.Content = mainStack;
+        await RevealTargetActivityAsync();
     }
 
     private Frame CreateActivityCard(ActivityGameViewModel activity)

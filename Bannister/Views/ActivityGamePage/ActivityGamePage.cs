@@ -13,6 +13,8 @@ namespace Bannister.Views;
 /// </summary>
 [QueryProperty(nameof(GameId), "gameId")]
 [QueryProperty(nameof(GroupingIdStr), "groupingId")]
+[QueryProperty(nameof(TargetCategory), "targetCategory")]
+[QueryProperty(nameof(TargetActivityId), "targetActivityId")]
 public partial class ActivityGamePage : ContentPage
 {
     // Services
@@ -30,6 +32,7 @@ public partial class ActivityGamePage : ContentPage
     private readonly PendingActivityIdeaService _pendingIdeas;
     private readonly IdeasService _ideas;
     private readonly ActivitySuggestionService _activitySuggestions;
+    private readonly LastCalculatedLocationService _lastCalculated;
 
     // State
     private string _gameId = "";
@@ -48,7 +51,12 @@ public partial class ActivityGamePage : ContentPage
     private bool _isInitialLoad = true; // Track if page has been loaded already
     private bool _isLoadInProgress = false;
     private bool _showAllActivities = false; // When true, bypass display day filtering
+    private string _targetCategory = "";
+    private int _targetActivityId;
+    private bool _targetMessageShown;
+    private readonly Dictionary<int, Frame> _activityCards = new();
     private Button btnShowAll;
+    private Button btnLastCalculated = null!;
 
     // Chart data and views
     private GraphicsView? _expChartView;
@@ -110,11 +118,24 @@ public partial class ActivityGamePage : ContentPage
         }
     }
 
+    public string TargetCategory
+    {
+        get => _targetCategory;
+        set => _targetCategory = Uri.UnescapeDataString(value ?? "");
+    }
+
+    public string TargetActivityId
+    {
+        get => _targetActivityId.ToString();
+        set => _targetActivityId = int.TryParse(value, out int id) ? id : 0;
+    }
+
     public ActivityGamePage(AuthService auth, GameService games, ActivityService activities,
         ExpService exp, DragonService dragons, AttemptService attempts, DatabaseService db, StreakService streaks,
         StreakGoalService streakGoals, DailyCheckService dailyChecks, ActivityGroupingService groupingService,
         PendingActivityIdeaService pendingIdeas, IdeasService ideas,
-        ActivitySuggestionService activitySuggestions)
+        ActivitySuggestionService activitySuggestions,
+        LastCalculatedLocationService lastCalculated)
     {
         _auth = auth;
         _games = games;
@@ -130,6 +151,7 @@ public partial class ActivityGamePage : ContentPage
         _pendingIdeas = pendingIdeas;
         _ideas = ideas;
         _activitySuggestions = activitySuggestions;
+        _lastCalculated = lastCalculated;
 
         Title = "Game";
         BackgroundColor = Color.FromArgb("#F5F5F5");
@@ -174,6 +196,7 @@ public partial class ActivityGamePage : ContentPage
                 try
                 {
                     await LoadGameAsync();
+                    await UpdateLastCalculatedButtonAsync();
                     await ShowActivitySuggestionsAsync();
                     InjectConversationButtonIfNeeded();
                     _isInitialLoad = false; // Mark as loaded

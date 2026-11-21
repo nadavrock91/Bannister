@@ -87,6 +87,8 @@ public partial class ActivityGamePage
             }
         }
 
+        await SaveLastCalculatedAsync(selected[^1].Activity);
+
         int totalExpValue = await _exp.GetTotalExpAsync(_auth.CurrentUsername, _game!.GameId);
         
         // Handle negative EXP case

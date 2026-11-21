@@ -103,6 +103,7 @@ public partial class ActivityGamePage
             await RefreshExpAsync();
             await UpdateEscalationTimerAsync(); // Update escalation timer display
             await LoadCategoriesAsync();
+            await PrepareTargetLocationAsync();
 
             _currentMetaFilter = "All Activities"; // Set default
             metaFilterPicker.SelectedIndex = 0;
