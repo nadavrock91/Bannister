@@ -111,8 +111,7 @@ public class CompanionService
 
     public async Task<string> SaveInterviewIdeaAsync(string username, Companion companion, CompanionInterview interview, string scopeLabel)
     {
-        var categories = await _ideas.GetCategoriesAsync(username);
-        string category = categories.FirstOrDefault(IsAiConversationCategory) ?? "AI Conversations";
+        const string category = IdeasService.AiConversationCategory;
         var startedAt = interview.StartedAt.ToLocalTime();
         string title = $"{companion.Nickname} interview · {startedAt:yyyy-MM-dd}";
         string body = BuildInterviewIdeaBody(companion, interview, scopeLabel, startedAt);
@@ -148,19 +147,6 @@ public class CompanionService
         }
 
         return category;
-    }
-
-    private static bool IsAiConversationCategory(string category)
-    {
-        string name = category.Trim();
-        if (name.Contains("conversation", StringComparison.OrdinalIgnoreCase) &&
-            name.Contains("ai", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        return name.Equals("AI Conversations", StringComparison.OrdinalIgnoreCase) ||
-               name.Equals("Conversations with AI", StringComparison.OrdinalIgnoreCase) ||
-               name.Equals("AI Chats", StringComparison.OrdinalIgnoreCase) ||
-               name.Equals("LLM Conversations", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string BuildInterviewIdeaBody(Companion companion, CompanionInterview interview, string scopeLabel, DateTime startedAt)

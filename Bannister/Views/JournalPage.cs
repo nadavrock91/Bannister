@@ -383,7 +383,7 @@ public class JournalPage : ContentPage
             await _ideasService.CreateIdeaAsync(
                 _auth.CurrentUsername,
                 title,
-                category: "Journal - AI",
+                category: IdeasService.AiConversationCategory,
                 fullIdea: text,
                 notes: $"AI conversation — " +
                        $"{DateTime.Now:dd MMM yyyy HH:mm}");

@@ -7,6 +7,8 @@ namespace Bannister.Services;
 /// </summary>
 public class IdeasService
 {
+    public const string AiConversationCategory = "Journal - AI";
+
     private readonly DatabaseService _db;
     private readonly OperationQueueService _queue;
     private bool _initialized = false;
