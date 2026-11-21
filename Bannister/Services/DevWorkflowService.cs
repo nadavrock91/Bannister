@@ -145,19 +145,45 @@ public class DevWorkflowService
     public async Task<DevGitCheckResult> CheckGitAsync(string folder)
     {
 #if WINDOWS
-        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
-            return Unavailable();
-        var repo = await RunGitAsync(folder, "rev-parse", "--is-inside-work-tree");
+        if (string.IsNullOrWhiteSpace(folder))
+            return Unavailable("No repo folder set");
+        if (!Directory.Exists(folder))
+            return Unavailable($"Repo folder does not exist: {folder}");
+
+        var git = FindGitExecutable();
+        if (git.Path == null)
+            return Unavailable($"git not found (looked in: {string.Join(", ", git.LookedIn)})");
+
+        var repo = await RunGitAsync(git.Path, folder, "rev-parse", "--is-inside-work-tree");
+        if (!repo.Started)
+            return Unavailable($"git could not be started: {repo.Error}");
         if (repo.ExitCode != 0 || !repo.Output.Trim().Equals("true", StringComparison.OrdinalIgnoreCase))
-            return Unavailable();
-        var fetch = await RunGitAsync(folder, "fetch");
+            return Unavailable("Folder is not a git repo");
+
+        var fetch = await RunGitAsync(git.Path, folder, "fetch");
+        if (!fetch.Started)
+            return Unavailable($"git could not be started: {fetch.Error}");
         if (fetch.ExitCode != 0) return new() { IsAvailable = true, Message = fetch.Error.Trim(), Passed = false };
-        var counts = await RunGitAsync(folder, "rev-list", "--left-right", "--count", "HEAD...@{upstream}");
-        if (counts.ExitCode != 0) return Unavailable();
+        var counts = await RunGitAsync(git.Path, folder, "rev-list", "--left-right", "--count", "HEAD...@{upstream}");
+        if (!counts.Started)
+            return Unavailable($"git could not be started: {counts.Error}");
+        if (counts.ExitCode != 0)
+        {
+            string error = counts.Error.Trim();
+            if (error.Contains("no upstream", StringComparison.OrdinalIgnoreCase) ||
+                error.Contains("unknown revision", StringComparison.OrdinalIgnoreCase) ||
+                error.Contains("ambiguous argument", StringComparison.OrdinalIgnoreCase))
+                return Unavailable("No upstream branch");
+            return Unavailable($"git failed: {NonEmpty(error, counts.Output)}");
+        }
         var parts = counts.Output.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         int ahead = parts.Length > 0 && int.TryParse(parts[0], out var a) ? a : 0;
         int behind = parts.Length > 1 && int.TryParse(parts[1], out var b) ? b : 0;
-        var status = await RunGitAsync(folder, "status", "--porcelain");
+        var status = await RunGitAsync(git.Path, folder, "status", "--porcelain");
+        if (!status.Started)
+            return Unavailable($"git could not be started: {status.Error}");
+        if (status.ExitCode != 0)
+            return Unavailable($"git failed: {NonEmpty(status.Error, status.Output)}");
         int changed = status.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
         if (behind > 0) return new() { IsAvailable = true, IsBehind = true, Message = $"Behind by {behind} commits" };
         if (ahead > 0) return new() { IsAvailable = true, Message = $"{ahead} unpushed commits" };
@@ -165,35 +191,64 @@ public class DevWorkflowService
         return new() { IsAvailable = true, Passed = true, Message = "Up to date" };
 #else
         await Task.CompletedTask;
-        return Unavailable();
+        return Unavailable("Not available on this platform");
 #endif
     }
 
     public async Task<DevGitCheckResult> PullAsync(string folder)
     {
 #if WINDOWS
-        var pull = await RunGitAsync(folder, "pull", "--ff-only");
+        if (string.IsNullOrWhiteSpace(folder)) return Unavailable("No repo folder set");
+        if (!Directory.Exists(folder)) return Unavailable($"Repo folder does not exist: {folder}");
+        var git = FindGitExecutable();
+        if (git.Path == null)
+            return Unavailable($"git not found (looked in: {string.Join(", ", git.LookedIn)})");
+        var pull = await RunGitAsync(git.Path, folder, "pull", "--ff-only");
+        if (!pull.Started) return Unavailable($"git could not be started: {pull.Error}");
         if (pull.ExitCode != 0)
             return new() { IsAvailable = true, Message = pull.Error.Trim(), Passed = false };
         return await CheckGitAsync(folder);
 #else
         await Task.CompletedTask;
-        return Unavailable();
+        return Unavailable("Not available on this platform");
 #endif
     }
 
-    private static DevGitCheckResult Unavailable() => new()
-    { IsAvailable = false, Passed = true, Message = "Not available on this device" };
+    private static DevGitCheckResult Unavailable(string message) => new()
+    { IsAvailable = false, Passed = true, Message = message };
 
 #if WINDOWS
-    private static async Task<(int ExitCode, string Output, string Error)> RunGitAsync(
-        string folder, params string[] arguments)
+    private static (string? Path, List<string> LookedIn) FindGitExecutable()
+    {
+        var candidates = new List<string>();
+        string? path = Environment.GetEnvironmentVariable("PATH");
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            foreach (string directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+            {
+                try { candidates.Add(Path.Combine(directory.Trim().Trim('"'), "git.exe")); }
+                catch { }
+            }
+        }
+        candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Git", "cmd", "git.exe"));
+        candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Git", "bin", "git.exe"));
+        candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Git", "cmd", "git.exe"));
+        var distinct = candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        return (distinct.FirstOrDefault(File.Exists), distinct);
+    }
+
+    private static string NonEmpty(string first, string second) =>
+        !string.IsNullOrWhiteSpace(first) ? first.Trim() :
+        !string.IsNullOrWhiteSpace(second) ? second.Trim() : "Unknown error";
+
+    private static async Task<(bool Started, int ExitCode, string Output, string Error)> RunGitAsync(
+        string gitPath, string folder, params string[] arguments)
     {
         try
         {
             var info = new ProcessStartInfo
             {
-                FileName = "git",
+                FileName = gitPath,
                 WorkingDirectory = folder,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
@@ -202,13 +257,13 @@ public class DevWorkflowService
             };
             foreach (var argument in arguments) info.ArgumentList.Add(argument);
             using var process = Process.Start(info);
-            if (process == null) return (-1, "", "Git could not be started.");
+            if (process == null) return (false, -1, "", "Process.Start returned no process.");
             string output = await process.StandardOutput.ReadToEndAsync();
             string error = await process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
-            return (process.ExitCode, output, error);
+            return (true, process.ExitCode, output, error);
         }
-        catch (Exception ex) { return (-1, "", ex.Message); }
+        catch (Exception ex) { return (false, -1, "", ex.Message); }
     }
 #endif
 }
