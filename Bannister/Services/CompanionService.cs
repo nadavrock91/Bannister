@@ -9,6 +9,7 @@ public sealed record CompanionAddProposal(int Index, string Text, int Priority);
 public sealed record CompanionPriorityProposal(int PointId, int Priority);
 public sealed record CompanionArchiveProposal(int PointId, string Reason);
 public sealed record CompanionUpdateProposal(int PointId, string Text);
+public sealed record CompanionApplyResult(int Added, int Reprioritized, int Archived, int Updated);
 
 public sealed class CompanionExtraction
 {
@@ -16,6 +17,7 @@ public sealed class CompanionExtraction
     public List<CompanionPriorityProposal> Priorities { get; } = new();
     public List<CompanionArchiveProposal> Archives { get; } = new();
     public List<CompanionUpdateProposal> Updates { get; } = new();
+    public List<string> Warnings { get; } = new();
     public List<string> SkippedLines { get; } = new();
 }
 
@@ -226,32 +228,85 @@ public class CompanionService
     {
         var result = new CompanionExtraction();
         var normalized = response.Replace("\"\"", "\"");
-        var recognized = new HashSet<int>();
-        var lines = normalized.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
-        var addRegex = new Regex("addPoint\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;\\s*addPriority\\[\\1\\]\\s*=\\s*([1-5])\\s*;", RegexOptions.IgnoreCase);
+        var recognizedSpans = new List<(int Start, int Length)>();
+        var addRegex = new Regex("addPoint\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.IgnoreCase);
+        var addPriorityRegex = new Regex("addPriority\\[(\\d+)\\]\\s*=\\s*([1-5])\\s*;", RegexOptions.IgnoreCase);
         var priorityRegex = new Regex("setPriority\\[(\\d+)\\]\\s*=\\s*([1-5])\\s*;", RegexOptions.IgnoreCase);
         var archiveRegex = new Regex("archivePoint\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.IgnoreCase);
         var updateRegex = new Regex("updatePoint\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.IgnoreCase);
-        for (int i = 0; i < lines.Length; i++)
+
+        var addPoints = new List<(int Index, string Text)>();
+        var addIndexes = new HashSet<int>();
+        foreach (Match match in addRegex.Matches(normalized))
         {
-            string line = lines[i].Trim();
-            var add = addRegex.Match(line);
-            if (add.Success) result.Adds.Add(new(int.Parse(add.Groups[1].Value, CultureInfo.InvariantCulture), DecodeLlmValue(add.Groups[2].Value), int.Parse(add.Groups[3].Value, CultureInfo.InvariantCulture)));
-            else if (priorityRegex.Match(line) is { Success: true } priority) result.Priorities.Add(new(int.Parse(priority.Groups[1].Value, CultureInfo.InvariantCulture), int.Parse(priority.Groups[2].Value, CultureInfo.InvariantCulture)));
-            else if (archiveRegex.Match(line) is { Success: true } archive) result.Archives.Add(new(int.Parse(archive.Groups[1].Value, CultureInfo.InvariantCulture), DecodeLlmValue(archive.Groups[2].Value)));
-            else if (updateRegex.Match(line) is { Success: true } update) result.Updates.Add(new(int.Parse(update.Groups[1].Value, CultureInfo.InvariantCulture), DecodeLlmValue(update.Groups[2].Value)));
-            else { result.SkippedLines.Add(line); continue; }
-            recognized.Add(i);
+            recognizedSpans.Add((match.Index, match.Length));
+            int index = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            if (!addIndexes.Add(index))
+            {
+                result.Warnings.Add($"Duplicate addPoint[{index}]; using the first value");
+                continue;
+            }
+            addPoints.Add((index, DecodeLlmValue(match.Groups[2].Value)));
+        }
+
+        var addPriorities = new Dictionary<int, int>();
+        foreach (Match match in addPriorityRegex.Matches(normalized))
+        {
+            recognizedSpans.Add((match.Index, match.Length));
+            int index = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            int priority = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+            if (!addPriorities.TryAdd(index, priority))
+                result.Warnings.Add($"Duplicate addPriority[{index}]; using the first value {addPriorities[index]}");
+        }
+
+        foreach (var point in addPoints)
+        {
+            int priority = 3;
+            if (!addPriorities.TryGetValue(point.Index, out priority))
+            {
+                priority = 3;
+                result.Warnings.Add($"Point {point.Index} has no addPriority[{point.Index}]; using priority 3");
+            }
+            result.Adds.Add(new(point.Index, point.Text, priority));
+        }
+
+        foreach (var priority in addPriorities)
+            if (!addIndexes.Contains(priority.Key))
+                result.Warnings.Add($"addPriority[{priority.Key}] has no matching addPoint[{priority.Key}]");
+
+        foreach (Match match in priorityRegex.Matches(normalized))
+        {
+            recognizedSpans.Add((match.Index, match.Length));
+            result.Priorities.Add(new(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture), int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)));
+        }
+        foreach (Match match in archiveRegex.Matches(normalized))
+        {
+            recognizedSpans.Add((match.Index, match.Length));
+            result.Archives.Add(new(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture), DecodeLlmValue(match.Groups[2].Value)));
+        }
+        foreach (Match match in updateRegex.Matches(normalized))
+        {
+            recognizedSpans.Add((match.Index, match.Length));
+            result.Updates.Add(new(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture), DecodeLlmValue(match.Groups[2].Value)));
+        }
+
+        var unrecognized = normalized.ToCharArray();
+        foreach (var span in recognizedSpans)
+            Array.Fill(unrecognized, ' ', span.Start, span.Length);
+        foreach (string rawLine in new string(unrecognized).Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            string line = rawLine.Trim().Trim(';').Trim();
+            if (!string.IsNullOrWhiteSpace(line)) result.SkippedLines.Add(line);
         }
         return result;
     }
 
-    public async Task ApplyExtractionAsync(string username, Companion companion, CompanionInterview interview,
+    public async Task<CompanionApplyResult> ApplyExtractionAsync(string username, Companion companion, CompanionInterview interview,
         IEnumerable<CompanionAddProposal> adds, IEnumerable<CompanionPriorityProposal> priorities,
         IEnumerable<CompanionArchiveProposal> archives, IEnumerable<CompanionUpdateProposal> updates)
     {
         var existing = await GetPointsAsync(username, companion.Id, true);
-        int added = 0, reprioritized = 0, archived = 0;
+        int added = 0, reprioritized = 0, archived = 0, updated = 0;
         foreach (var proposal in adds)
         {
             if (string.IsNullOrWhiteSpace(proposal.Text)) continue;
@@ -271,13 +326,14 @@ public class CompanionService
         foreach (var proposal in updates)
         {
             var point = existing.FirstOrDefault(x => x.Id == proposal.PointId); if (point == null || string.IsNullOrWhiteSpace(proposal.Text)) continue;
-            point.Text = proposal.Text.Trim(); await SavePointAsync(point);
+            point.Text = proposal.Text.Trim(); await SavePointAsync(point); updated++;
         }
         interview.PointsAdded += added;
         interview.PointsReprioritized += reprioritized;
         interview.PointsArchived += archived;
         interview.Notes = $"Extraction applied {DateTime.Now:yyyy-MM-dd HH:mm}";
         await SaveInterviewAsync(interview);
+        return new CompanionApplyResult(added, reprioritized, archived, updated);
     }
 
     public static string DecodeLlmValue(string value) =>

@@ -192,15 +192,40 @@ public class CompanionsPage : ContentPage
             await SaveConversationAsync(companion, interview, scopeLabel);
             return;
         }
-        var response = await CompanionTextInputPage.ShowAsync(Navigation, "Paste Extraction Result", "", "Paste the structured extraction result...");
-        if (string.IsNullOrWhiteSpace(response)) return;
-        var extraction = CompanionService.ParseExtraction(response);
-        await CompanionExtractionReviewPage.ShowAsync(Navigation, extraction, async (adds, priorities, archives, updates) =>
+        try
         {
-            await _service.ApplyExtractionAsync(_auth.CurrentUsername, companion, interview, adds, priorities, archives, updates);
-            await TrySaveInterviewIdeaAsync(companion, interview, scopeLabel);
-        });
-        await RefreshAsync();
+            var response = await CompanionTextInputPage.ShowAsync(Navigation, "Paste Extraction Result", "", "Paste the structured extraction result...");
+            if (string.IsNullOrWhiteSpace(response)) return;
+            var extraction = CompanionService.ParseExtraction(response);
+            int recognizedCount = extraction.Adds.Count + extraction.Priorities.Count + extraction.Archives.Count + extraction.Updates.Count;
+            if (recognizedCount == 0)
+            {
+                string details = string.Join("\n", extraction.SkippedLines.Concat(extraction.Warnings));
+                string message = "Nothing recognized in the pasted result";
+                if (!string.IsNullOrWhiteSpace(details)) message += $"\n\n{details}";
+                await DisplayAlert("Nothing Recognized", message, "OK");
+                return;
+            }
+
+            var applied = await CompanionExtractionReviewPage.ShowAsync(Navigation, extraction, async (adds, priorities, archives, updates) =>
+            {
+                var result = await _service.ApplyExtractionAsync(_auth.CurrentUsername, companion, interview, adds, priorities, archives, updates);
+                await TrySaveInterviewIdeaAsync(companion, interview, scopeLabel);
+                return result;
+            });
+            if (applied == null) return;
+
+            await DisplayAlert(
+                "Extraction Applied",
+                $"Added {applied.Added}, reprioritized {applied.Reprioritized}, archived {applied.Archived}, updated {applied.Updated}",
+                "OK");
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Extraction import failed: {ex}");
+            await DisplayAlert("Extraction Import Failed", ex.Message, "OK");
+        }
     }
 
     private async Task SaveConversationAsync(Companion companion, CompanionInterview interview, string scopeLabel)
@@ -275,7 +300,7 @@ internal sealed class CompanionEditPage : ContentPage
         Content = new ScrollView { Content = new VerticalStackLayout { Padding = 18, Spacing = 9, Children = { new Label { Text = Title, FontSize = 22, FontAttributes = FontAttributes.Bold }, scope, game, topic, nickname, persona, stance, questionCount, new HorizontalStackLayout { Spacing = 8, Children = { save, cancel } } } } };
     }
     private static string DefaultStance(Companion item, List<Game> games) => item.Scope == "game" ? $"get to know the user in the context of {games.FirstOrDefault(x => x.GameId == item.GameId)?.DisplayName ?? "this game"}" : item.Scope == "custom" ? $"get to know the user in the context of {item.Topic}" : "get to know the user";
-    private async Task CloseAsync(Companion? result) { _completion.TrySetResult(result); await Navigation.PopModalAsync(); }
+    private async Task CloseAsync(Companion? result) { await Navigation.PopModalAsync(); _completion.TrySetResult(result); }
     public static async Task<Companion?> ShowAsync(INavigation navigation, Companion? item, List<Game> games, string username) { var page = new CompanionEditPage(item, games, username); await navigation.PushModalAsync(page); return await page._completion.Task; }
 }
 
@@ -293,14 +318,14 @@ internal sealed class CompanionTextInputPage : ContentPage
         Content = new Grid { Padding = 16, RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) }, Children = { editor } };
         var buttons = new FlexLayout { Direction = Microsoft.Maui.Layouts.FlexDirection.Row, Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start, Children = { paste, ok, cancel } }; Grid.SetRow(buttons, 1); ((Grid)Content).Children.Add(buttons);
     }
-    private async Task CloseAsync(string? value) { _completion.TrySetResult(value); await Navigation.PopModalAsync(); }
+    private async Task CloseAsync(string? value) { await Navigation.PopModalAsync(); _completion.TrySetResult(value); }
     public static async Task<string?> ShowAsync(INavigation navigation, string title, string initial, string placeholder) { var page = new CompanionTextInputPage(title, initial, placeholder); await navigation.PushModalAsync(page); return await page._completion.Task; }
 }
 
 internal sealed class CompanionExtractionReviewPage : ContentPage
 {
-    private readonly TaskCompletionSource<bool> _completion = new();
-    private CompanionExtractionReviewPage(CompanionExtraction result, Func<List<CompanionAddProposal>, List<CompanionPriorityProposal>, List<CompanionArchiveProposal>, List<CompanionUpdateProposal>, Task> apply)
+    private readonly TaskCompletionSource<CompanionApplyResult?> _completion = new();
+    private CompanionExtractionReviewPage(CompanionExtraction result, Func<List<CompanionAddProposal>, List<CompanionPriorityProposal>, List<CompanionArchiveProposal>, List<CompanionUpdateProposal>, Task<CompanionApplyResult>> apply)
     {
         Title = "Review Extraction";
         var stack = new VerticalStackLayout { Padding = 16, Spacing = 8 };
@@ -309,14 +334,28 @@ internal sealed class CompanionExtractionReviewPage : ContentPage
         var priorities = AddRows(stack, "Priority changes", result.Priorities, x => $"Point {x.PointId} → priority {x.Priority}");
         var archives = AddRows(stack, "Archives", result.Archives, x => $"Point {x.PointId}: {x.Reason}");
         var updates = AddRows(stack, "Text updates", result.Updates, x => $"Point {x.PointId}: {x.Text}");
+        if (result.Warnings.Count > 0) { stack.Children.Add(new Label { Text = $"Warnings ({result.Warnings.Count})", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#E65100") }); foreach (var warning in result.Warnings) stack.Children.Add(new Label { Text = warning, FontSize = 11, TextColor = Color.FromArgb("#777") }); }
         if (result.SkippedLines.Count > 0) { stack.Children.Add(new Label { Text = $"Skipped invalid lines ({result.SkippedLines.Count})", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#E65100") }); foreach (var line in result.SkippedLines) stack.Children.Add(new Label { Text = line, FontSize = 11, TextColor = Color.FromArgb("#777") }); }
         var applyButton = new Button { Text = "Apply Selected", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White };
-        applyButton.Clicked += async (_, _) => { await apply(Selected(result.Adds, adds), Selected(result.Priorities, priorities), Selected(result.Archives, archives), Selected(result.Updates, updates)); await CloseAsync(); };
-        var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync();
+        applyButton.Clicked += async (_, _) =>
+        {
+            try
+            {
+                applyButton.IsEnabled = false;
+                var applied = await apply(Selected(result.Adds, adds), Selected(result.Priorities, priorities), Selected(result.Archives, archives), Selected(result.Updates, updates));
+                await CloseAsync(applied);
+            }
+            catch (Exception ex)
+            {
+                await CloseWithErrorAsync(ex);
+            }
+        };
+        var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync(null);
         stack.Children.Add(new HorizontalStackLayout { Spacing = 8, Children = { applyButton, cancel } }); Content = new ScrollView { Content = stack };
     }
     private static List<CheckBox> AddRows<T>(VerticalStackLayout stack, string title, List<T> values, Func<T, string> text) { var checks = new List<CheckBox>(); if (values.Count == 0) return checks; stack.Children.Add(new Label { Text = title, FontSize = 17, FontAttributes = FontAttributes.Bold }); foreach (var value in values) { var check = new CheckBox { IsChecked = true }; checks.Add(check); stack.Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { check, new Label { Text = text(value), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap } } }); } return checks; }
     private static List<T> Selected<T>(List<T> values, List<CheckBox> checks) => values.Where((_, i) => checks[i].IsChecked).ToList();
-    private async Task CloseAsync() { _completion.TrySetResult(true); await Navigation.PopModalAsync(); }
-    public static async Task ShowAsync(INavigation navigation, CompanionExtraction result, Func<List<CompanionAddProposal>, List<CompanionPriorityProposal>, List<CompanionArchiveProposal>, List<CompanionUpdateProposal>, Task> apply) { var page = new CompanionExtractionReviewPage(result, apply); await navigation.PushModalAsync(page); await page._completion.Task; }
+    private async Task CloseAsync(CompanionApplyResult? result) { await Navigation.PopModalAsync(); _completion.TrySetResult(result); }
+    private async Task CloseWithErrorAsync(Exception exception) { await Navigation.PopModalAsync(); _completion.TrySetException(exception); }
+    public static async Task<CompanionApplyResult?> ShowAsync(INavigation navigation, CompanionExtraction result, Func<List<CompanionAddProposal>, List<CompanionPriorityProposal>, List<CompanionArchiveProposal>, List<CompanionUpdateProposal>, Task<CompanionApplyResult>> apply) { var page = new CompanionExtractionReviewPage(result, apply); await navigation.PushModalAsync(page); return await page._completion.Task; }
 }
