@@ -27,6 +27,7 @@ public class DevWorkflowView : ContentView
         public bool Skipped { get; set; }
         public string Message { get; set; } = "";
         public bool Behind { get; set; }
+        public string LastInput { get; set; } = "";
     }
 
     public DevWorkflowView(Func<string> getUsername, DevWorkflowService service,
@@ -179,11 +180,15 @@ public class DevWorkflowView : ContentView
             LineBreakMode = LineBreakMode.WordWrap, VerticalOptions = LayoutOptions.Center
         }, 1, 0);
         var headingActions = new HorizontalStackLayout { Spacing = 4 };
-        if (step.StepType == "Check")
+        if (step.StepType is "Check" or "Wrap & Copy")
         {
             var run = Small(string.IsNullOrWhiteSpace(state.Message) ? "Run" : "Re-run", "#6A1B9A");
             run.IsEnabled = !state.Skipped;
-            run.Clicked += async (_, _) => await RunCheckAsync(step);
+            run.Clicked += async (_, _) =>
+            {
+                if (step.StepType == "Check") await RunCheckAsync(step);
+                else await RunWrapAndCopyAsync(step);
+            };
             headingActions.Children.Add(run);
         }
         var skip = Small(state.Skipped ? "Unskip" : "Skip");
@@ -344,6 +349,36 @@ public class DevWorkflowView : ContentView
         else BuildRunUI();
     }
 
+    private async Task RunWrapAndCopyAsync(DevWorkflowStep step)
+    {
+        var state = StateFor(step);
+        string? input = await ShowMultilineInputAsync("Paste your task", state.LastInput);
+        if (string.IsNullOrWhiteSpace(input)) return;
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(step.WrapPrefix)) parts.Add(step.WrapPrefix.Trim());
+        parts.Add(input.Trim());
+        if (!string.IsNullOrWhiteSpace(step.WrapSuffix)) parts.Add(step.WrapSuffix.Trim());
+        if (step.AppendConstraints && !string.IsNullOrWhiteSpace(ConstraintBlock()))
+            parts.Add(ConstraintBlock().Trim());
+        string result = string.Join(Environment.NewLine + Environment.NewLine, parts);
+        await Clipboard.SetTextAsync(result);
+        state.LastInput = input;
+        state.Done = true;
+        state.Skipped = false;
+        state.Message = $"Copied ({result.Length} characters)";
+        BuildRunUI();
+    }
+
+    private async Task<string?> ShowMultilineInputAsync(string title, string initialValue)
+    {
+        var navigation = HostPage()?.Navigation;
+        if (navigation == null) return null;
+        var page = new DevWorkflowTextInputPage(title, initialValue);
+        await navigation.PushModalAsync(page);
+        return await page.WaitForResultAsync();
+    }
+
     private async Task PullAndRecheckAsync(DevWorkflowStep step)
     {
         var state = StateFor(step);
@@ -424,4 +459,64 @@ public class DevWorkflowView : ContentView
     private static Frame Card(View content) => new() { Content = content, Padding = 10, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };
     private static Button Button(string text, string color) => new() { Text = text, BackgroundColor = Color.FromArgb(color), TextColor = Colors.White, FontSize = 12, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0) };
     private static Button Small(string text, string color = "#607D8B") => new() { Text = text, BackgroundColor = Color.FromArgb(color), TextColor = Colors.White, FontSize = 10, CornerRadius = 5, HeightRequest = 30, Padding = new Thickness(7, 0) };
+
+    private sealed class DevWorkflowTextInputPage : ContentPage
+    {
+        private readonly TaskCompletionSource<string?> _result = new();
+
+        public DevWorkflowTextInputPage(string title, string initialValue)
+        {
+            BackgroundColor = Color.FromArgb("#80000000");
+            var editor = new Editor
+            {
+                Placeholder = "Paste your task",
+                Text = initialValue,
+                HeightRequest = 260,
+                AutoSize = EditorAutoSizeOption.Disabled,
+                BackgroundColor = Color.FromArgb("#FAFAFA")
+            };
+            var ok = new Button { Text = "OK", BackgroundColor = Color.FromArgb("#5B63EE"), TextColor = Colors.White };
+            var cancel = new Button { Text = "Cancel", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#333") };
+            ok.Clicked += (_, _) => Close(editor.Text);
+            cancel.Clicked += (_, _) => Close(null);
+            var buttons = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8 };
+            buttons.Add(ok, 0, 0); buttons.Add(cancel, 1, 0);
+            Content = new Grid
+            {
+                Padding = 20,
+                Children =
+                {
+                    new Frame
+                    {
+                        WidthRequest = 560, Padding = 20, CornerRadius = 12,
+                        HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
+                        Content = new VerticalStackLayout
+                        {
+                            Spacing = 12,
+                            Children =
+                            {
+                                new Label { Text = title, FontSize = 20, FontAttributes = FontAttributes.Bold },
+                                editor,
+                                buttons
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        public Task<string?> WaitForResultAsync() => _result.Task;
+
+        private async void Close(string? value)
+        {
+            if (!_result.TrySetResult(value)) return;
+            await Navigation.PopModalAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            _result.TrySetResult(null);
+            base.OnDisappearing();
+        }
+    }
 }

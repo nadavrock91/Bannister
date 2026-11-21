@@ -108,11 +108,12 @@ public class DevWorkflowEditorView : ContentView
     private View BuildStepForm()
     {
         var current = _editingStep;
+        var stepTypes = new[] { "Manual", "Copy", "Check", "Wrap & Copy" };
         var type = new Picker
         {
             Title = "Step type",
-            ItemsSource = new[] { "Manual", "Copy", "Check" },
-            SelectedIndex = Math.Max(0, Array.IndexOf(new[] { "Manual", "Copy", "Check" }, current?.StepType ?? "Manual"))
+            ItemsSource = stepTypes,
+            SelectedIndex = Math.Max(0, Array.IndexOf(stepTypes, current?.StepType ?? "Manual"))
         };
         var text = new Entry
         {
@@ -135,12 +136,40 @@ public class DevWorkflowEditorView : ContentView
             ItemsSource = new[] { "Git up to date" },
             SelectedIndex = 0
         };
+        var prefix = new Editor
+        {
+            Placeholder = "Prefix",
+            Text = current?.WrapPrefix ?? "",
+            HeightRequest = 90,
+            AutoSize = EditorAutoSizeOption.Disabled
+        };
+        var suffix = new Editor
+        {
+            Placeholder = "Suffix",
+            Text = current?.WrapSuffix ?? "",
+            HeightRequest = 90,
+            AutoSize = EditorAutoSizeOption.Disabled
+        };
+        var appendConstraints = new CheckBox { IsChecked = current?.AppendConstraints ?? false };
+        var appendConstraintsRow = new HorizontalStackLayout
+        {
+            Spacing = 6,
+            Children =
+            {
+                appendConstraints,
+                new Label { Text = "Append programming constraints", VerticalOptions = LayoutOptions.Center }
+            }
+        };
         void UpdateFields()
         {
             string selected = type.SelectedItem?.ToString() ?? "Manual";
             text.IsVisible = selected != "Check";
+            text.Placeholder = selected == "Wrap & Copy" ? "Step name" : "Step text";
             allRow.IsVisible = selected == "Copy";
             checkPicker.IsVisible = selected == "Check";
+            prefix.IsVisible = selected == "Wrap & Copy";
+            suffix.IsVisible = selected == "Wrap & Copy";
+            appendConstraintsRow.IsVisible = selected == "Wrap & Copy";
         }
         type.SelectedIndexChanged += (_, _) => UpdateFields();
         UpdateFields();
@@ -148,12 +177,18 @@ public class DevWorkflowEditorView : ContentView
         apply.Clicked += (_, _) =>
         {
             string selected = type.SelectedItem?.ToString() ?? "Manual";
+            if (selected == "Wrap & Copy" &&
+                (string.IsNullOrWhiteSpace(text.Text) ||
+                 (string.IsNullOrWhiteSpace(prefix.Text) && string.IsNullOrWhiteSpace(suffix.Text) && !appendConstraints.IsChecked))) return;
             if (selected != "Check" && !(selected == "Copy" && all.IsChecked) && string.IsNullOrWhiteSpace(text.Text)) return;
             var item = current ?? new DevWorkflowStep();
             item.StepType = selected;
             item.Text = text.Text?.Trim() ?? "";
             item.UseAllConstraints = selected == "Copy" && all.IsChecked;
             item.CheckKind = selected == "Check" ? "GitUpToDate" : "";
+            item.WrapPrefix = selected == "Wrap & Copy" ? prefix.Text?.Trim() ?? "" : "";
+            item.WrapSuffix = selected == "Wrap & Copy" ? suffix.Text?.Trim() ?? "" : "";
+            item.AppendConstraints = selected == "Wrap & Copy" && appendConstraints.IsChecked;
             if (current == null) _steps.Add(item);
             _editingStep = null;
             BuildUI();
@@ -164,7 +199,7 @@ public class DevWorkflowEditorView : ContentView
             Children =
             {
                 new Label { Text = current == null ? "Add Step" : "Edit Step", FontSize = 16, FontAttributes = FontAttributes.Bold },
-                type, text, allRow, checkPicker, apply
+                type, text, allRow, checkPicker, prefix, suffix, appendConstraintsRow, apply
             }
         };
         if (current != null)
@@ -213,7 +248,9 @@ public class DevWorkflowEditorView : ContentView
     {
         Id = x.Id, Username = x.Username, WorkflowId = x.WorkflowId,
         SortOrder = x.SortOrder, StepType = x.StepType, Text = x.Text,
-        UseAllConstraints = x.UseAllConstraints, CheckKind = x.CheckKind
+        UseAllConstraints = x.UseAllConstraints, CheckKind = x.CheckKind,
+        WrapPrefix = x.WrapPrefix, WrapSuffix = x.WrapSuffix,
+        AppendConstraints = x.AppendConstraints
     };
 
     private static Frame Card(View content) => new() { Content = content, Padding = 10, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };

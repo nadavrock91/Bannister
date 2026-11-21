@@ -24,6 +24,9 @@ public class DevWorkflowService
         try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_device_settings ADD COLUMN LastUsedWorkflowId INTEGER"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_device_settings ADD COLUMN LastUsedProjectId INTEGER"); } catch { }
         try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_device_settings ADD COLUMN LegacyRepoMigrated INTEGER NOT NULL DEFAULT 0"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_steps ADD COLUMN WrapPrefix TEXT NOT NULL DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_steps ADD COLUMN WrapSuffix TEXT NOT NULL DEFAULT ''"); } catch { }
+        try { await conn.ExecuteAsync("ALTER TABLE dev_workflow_steps ADD COLUMN AppendConstraints INTEGER NOT NULL DEFAULT 0"); } catch { }
         _initialized = true;
     }
 

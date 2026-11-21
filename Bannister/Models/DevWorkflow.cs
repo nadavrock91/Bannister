@@ -22,6 +22,9 @@ public class DevWorkflowStep
     public string Text { get; set; } = "";
     public bool UseAllConstraints { get; set; }
     public string CheckKind { get; set; } = "";
+    public string WrapPrefix { get; set; } = "";
+    public string WrapSuffix { get; set; } = "";
+    public bool AppendConstraints { get; set; }
 }
 
 [Table("dev_programming_constraints")]
