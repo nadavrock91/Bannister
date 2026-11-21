@@ -1081,6 +1081,10 @@ public class ClipsExperimentPage : ContentPage
                     await RefreshAsync();
                 };
                 stack.Children.Add(removeFromQueue);
+                var edit = MakeButton("Edit", "#E3F2FD", Color.FromArgb("#1565C0"));
+                edit.HorizontalOptions = LayoutOptions.Start;
+                edit.Clicked += async (_, _) => await EditExperimentItemAsync(item);
+                stack.Children.Add(edit);
                 _content.Children.Add(MakeCard(stack));
             }
         }
@@ -1128,6 +1132,9 @@ public class ClipsExperimentPage : ContentPage
                 await RefreshAsync();
             };
             activeButtons.Children.Add(moveToCompleted);
+            var edit = MakeButton("Edit", "#E3F2FD", Color.FromArgb("#1565C0"));
+            edit.Clicked += async (_, _) => await EditExperimentItemAsync(activeItem);
+            activeButtons.Children.Add(edit);
             activeStack.Children.Add(activeButtons);
         }
         _content.Children.Add(MakeCard(activeStack));
@@ -1168,20 +1175,8 @@ public class ClipsExperimentPage : ContentPage
         };
         addExperimentHeader.Add(describeActiveExperiment, 1, 0);
         _content.Children.Add(addExperimentHeader);
-        var titleEntry = MakeEntry("Experiment title");
-        var descriptionEditor = MakeEditor("What should be tested, and why?");
-        var startDatePicker = new DatePicker
-        {
-            Date = DateTime.Today,
-            Format = "dd MMM yyyy",
-            HorizontalOptions = LayoutOptions.Start
-        };
-        var endDatePicker = new DatePicker
-        {
-            Date = DateTime.Today.AddDays(6),
-            Format = "dd MMM yyyy",
-            HorizontalOptions = LayoutOptions.Start
-        };
+        var (titleEntry, descriptionEditor, startDatePicker, endDatePicker) =
+            CreateExperimentItemFields();
         _content.Children.Add(titleEntry);
         _content.Children.Add(descriptionEditor);
         _content.Children.Add(new Label { Text = "Start date", FontSize = 12, TextColor = Color.FromArgb("#666") });
@@ -1193,7 +1188,8 @@ public class ClipsExperimentPage : ContentPage
         var addToNotYetRun = MakeButton("Add to Not Yet Run", "#ECEFF1", Color.FromArgb("#333"));
         addToNotYetRun.Clicked += async (_, _) =>
         {
-            if (_busy || string.IsNullOrWhiteSpace(titleEntry.Text)) return;
+            if (_busy || !await ValidateExperimentItemFieldsAsync(
+                    titleEntry, startDatePicker, endDatePicker)) return;
             _busy = true;
             try
             {
@@ -1217,7 +1213,8 @@ public class ClipsExperimentPage : ContentPage
         var addToQueue = MakeButton("Add to Queue", "#E8F5E9", Color.FromArgb("#2E7D32"));
         addToQueue.Clicked += async (_, _) =>
         {
-            if (_busy || string.IsNullOrWhiteSpace(titleEntry.Text)) return;
+            if (_busy || !await ValidateExperimentItemFieldsAsync(
+                    titleEntry, startDatePicker, endDatePicker)) return;
             _busy = true;
             try
             {
@@ -1536,6 +1533,9 @@ public class ClipsExperimentPage : ContentPage
                 editDates.Clicked += async (_, _) => await EditExperimentDatesAsync(item);
                 buttons.Children.Add(editDates);
             }
+            var edit = MakeButton("Edit", "#E3F2FD", Color.FromArgb("#1565C0"));
+            edit.Clicked += async (_, _) => await EditExperimentItemAsync(item);
+            buttons.Children.Add(edit);
             var delete = MakeButton("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
             delete.Clicked += async (_, _) =>
             {
@@ -1605,6 +1605,149 @@ public class ClipsExperimentPage : ContentPage
             stack.Children.Add(describeExperiment);
             _content.Children.Add(MakeCard(stack));
         }
+    }
+
+    private static (Entry title, Editor description, DatePicker start, DatePicker end)
+        CreateExperimentItemFields(ClipsExperimentItem? item = null)
+    {
+        var title = MakeEntry("Experiment title");
+        title.Text = item?.Title ?? "";
+        var description = MakeEditor("What should be tested, and why?");
+        description.Text = item?.Description ?? "";
+        var start = new DatePicker
+        {
+            Date = item?.StartDate ?? DateTime.Today,
+            Format = "dd MMM yyyy",
+            HorizontalOptions = LayoutOptions.Start
+        };
+        var end = new DatePicker
+        {
+            Date = item?.EndDate ?? DateTime.Today.AddDays(6),
+            Format = "dd MMM yyyy",
+            HorizontalOptions = LayoutOptions.Start
+        };
+        return (title, description, start, end);
+    }
+
+    private async Task<bool> ValidateExperimentItemFieldsAsync(
+        Entry title, DatePicker start, DatePicker end)
+    {
+        if (string.IsNullOrWhiteSpace(title.Text))
+        {
+            await DisplayAlert("Title Required", "Enter an experiment title.", "OK");
+            return false;
+        }
+        if (end.Date.Date < start.Date.Date)
+        {
+            await DisplayAlert(
+                "Invalid Dates",
+                "End date must be on or after the start date.",
+                "OK");
+            return false;
+        }
+        return true;
+    }
+
+    private async Task EditExperimentItemAsync(ClipsExperimentItem item)
+    {
+        var (title, description, start, end) =
+            CreateExperimentItemFields(item);
+        var completion = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var overlay = CreateDimmedOverlay();
+
+        void Complete(bool saved)
+        {
+            _root.Children.Remove(overlay);
+            completion.TrySetResult(saved);
+        }
+
+        var save = MakeButton("Save", "#1565C0", Colors.White);
+        save.Clicked += async (_, _) =>
+        {
+            if (_busy || !await ValidateExperimentItemFieldsAsync(
+                    title, start, end)) return;
+
+            var allItems = await _service.GetExperimentItemsAsync(
+                _auth.CurrentUsername, item.ExperimentId);
+            var activeBefore = await _service.GetActiveExperimentItemAsync(
+                _auth.CurrentUsername, item.ExperimentId);
+            var today = DateTime.Today;
+            int? activeAfterId = allItems
+                .Select(existing => new
+                {
+                    Item = existing,
+                    Start = existing.Id == item.Id
+                        ? (DateTime?)start.Date.Date
+                        : existing.StartDate,
+                    End = existing.Id == item.Id
+                        ? (DateTime?)end.Date.Date
+                        : existing.EndDate
+                })
+                .OrderBy(value => value.Item.SortOrder)
+                .ThenByDescending(value => value.Start)
+                .FirstOrDefault(value =>
+                    value.Start.HasValue && value.End.HasValue &&
+                    value.Start.Value.Date <= today &&
+                    value.End.Value.Date >= today)
+                ?.Item.Id;
+
+            if (activeAfterId != activeBefore?.Id)
+            {
+                await DisplayAlert(
+                    "Currently Running",
+                    "These dates would change which experiment is currently running. Adjust the dates and try again.",
+                    "OK");
+                return;
+            }
+
+            _busy = true;
+            try
+            {
+                item.Title = title.Text.Trim();
+                item.Description = description.Text?.Trim() ?? "";
+                item.StartDate = start.Date.Date;
+                item.EndDate = end.Date.Date;
+                await _service.SaveExperimentItemAsync(item);
+            }
+            finally
+            {
+                _busy = false;
+            }
+            Complete(true);
+        };
+        var cancel = MakeButton("Cancel", "#EEEEEE", Color.FromArgb("#555"));
+        cancel.Clicked += (_, _) => Complete(false);
+
+        var form = new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
+            {
+                new Label
+                {
+                    Text = "Edit Experiment",
+                    FontSize = 18,
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#222")
+                },
+                title,
+                description,
+                new Label { Text = "Start date", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                start,
+                new Label { Text = "End date", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                end,
+                new HorizontalStackLayout
+                {
+                    Spacing = 8,
+                    Children = { save, cancel }
+                }
+            }
+        };
+        overlay.Children.Add(CreateOverlayCard(form, 620, 620));
+        _root.Children.Add(overlay);
+        bool saved = await completion.Task;
+        if (saved) await RefreshAsync();
     }
 
     private async Task EditExperimentDatesAsync(ClipsExperimentItem item)
