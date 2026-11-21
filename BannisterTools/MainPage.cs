@@ -16,6 +16,7 @@ public class MainPage : ContentPage
     private readonly PrivacyModeService _privacyModeService;
     private readonly GameService _gameService;
     private readonly LoginMaster _loginMaster;
+    private readonly DevWorkflowService _devWorkflowService;
     private readonly Label _timerLabel;
     private readonly Label _timerStatusLabel;
     private readonly Entry _minutesEntry;
@@ -50,7 +51,8 @@ public class MainPage : ContentPage
         TimedPopupService timedPopups,
         PrivacyModeService privacyModeService,
         GameService gameService,
-        LoginMaster loginMaster)
+        LoginMaster loginMaster,
+        DevWorkflowService devWorkflowService)
     {
         _db = db;
         _sync = sync;
@@ -61,6 +63,7 @@ public class MainPage : ContentPage
         _privacyModeService = privacyModeService;
         _gameService = gameService;
         _loginMaster = loginMaster;
+        _devWorkflowService = devWorkflowService;
         Title = "BannisterTools";
         BackgroundColor = Color.FromArgb("#2D1B6B");
 
@@ -107,6 +110,7 @@ public class MainPage : ContentPage
                 "Cancel",
                 null,
                 "Manage Timed Popups",
+                "Dev Workflow",
                 "Log Out",
                 "Change Database Location");
 
@@ -139,6 +143,35 @@ public class MainPage : ContentPage
                     "Cancel");
                 if (confirmed)
                     await LogOutAsync();
+                return;
+            }
+
+            if (action == "Dev Workflow")
+            {
+                if (string.IsNullOrWhiteSpace(_username))
+                {
+                    await DisplayAlert("Login required", "Log in before opening Dev Workflow.", "OK");
+                    return;
+                }
+
+                var view = new DevWorkflowView(
+                    () => _username,
+                    _devWorkflowService,
+                    compact: true,
+                    showAlert: (title, message) => DisplayAlert(title, message, "OK"));
+                var page = new ContentPage
+                {
+                    Title = "Dev Workflow",
+                    BackgroundColor = Color.FromArgb("#2D1B6B"),
+                    Content = view
+                };
+                page.ToolbarItems.Add(new ToolbarItem
+                {
+                    Text = "Close",
+                    Command = new Command(async () => await Navigation.PopModalAsync())
+                });
+                await view.ActivateAsync();
+                await Navigation.PushModalAsync(new NavigationPage(page));
                 return;
             }
 

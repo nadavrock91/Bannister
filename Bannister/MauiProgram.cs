@@ -80,6 +80,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ShortsCutterProjectService>();
         builder.Services.AddSingleton<AppSettingsService>();
         builder.Services.AddSingleton<TimedPopupService>();
+        builder.Services.AddSingleton<DevWorkflowService>();
         builder.Services.AddSingleton<AssetLibraryService>();
         builder.Services.AddSingleton<AssetThumbnailService>();
         builder.Services.AddSingleton<MusicProductionService>();
@@ -188,6 +189,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ImageGenerationHubPage>();
         builder.Services.AddTransient<ChatGptImageGenerationPage>();
         builder.Services.AddTransient<VideoProductionHubPage>();
+        builder.Services.AddTransient<DevWorkflowPage>();
         builder.Services.AddTransient<VideoEditingHubPage>();
         builder.Services.AddTransient<TalkingHeadCutterPage>();
         builder.Services.AddTransient<ClipContinuationPickerPage>();

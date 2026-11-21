@@ -36,6 +36,7 @@
     <Compile Include="..\Bannister\Services\TimedPopupService.cs" Link="Services\TimedPopupService.cs" />
     <Compile Include="..\Bannister\Services\DailyDeadlineService.cs" Link="Services\DailyDeadlineService.cs" />
     <Compile Include="..\Bannister\Services\DailyDeadlineViewHelper.cs" Link="Services\DailyDeadlineViewHelper.cs" />
+    <Compile Include="..\Bannister\Services\DevWorkflowService.cs" Link="Services\DevWorkflowService.cs" />
     <Compile Include="..\Bannister\Services\GameService.cs" Link="Services\GameService.cs" />
     <Compile Include="..\Bannister\Services\PrivacyModeService.cs" Link="Services\PrivacyModeService.cs" />
     <Compile Include="..\Bannister\Services\DeviceModeService.cs" Link="Services\DeviceModeService.cs" />
@@ -43,6 +44,7 @@
     <Compile Include="..\Bannister\Services\ReadOnlySQLiteAsyncConnection.cs" Link="Services\ReadOnlySQLiteAsyncConnection.cs" />
     <Compile Include="..\Bannister\Services\ResetTimeService.cs" Link="Services\ResetTimeService.cs" />
     <Compile Include="..\Bannister\Views\DailyDeadlinesView.cs" Link="Views\DailyDeadlinesView.cs" />
+    <Compile Include="..\Bannister\Views\DevWorkflowView.cs" Link="Views\DevWorkflowView.cs" />
     <Compile Include="..\Bannister\Security\PasswordHasher.cs" Link="Security\PasswordHasher.cs" />
     <None Include="..\Bannister\Services\SyncService.cs" Link="Services\SyncService.cs" />
   </ItemGroup>

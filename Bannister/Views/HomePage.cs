@@ -85,6 +85,7 @@ public class HomePage : ContentPage
     private readonly TruncatePresetService _truncatePresetService;
     private readonly ShortsCutterProjectService _shortsCutterProjects;
     private readonly AppSettingsService _appSettings;
+    private readonly DevWorkflowService _devWorkflowService;
     private bool _introChecked = false;
     private bool _queueCheckCompleted = false;
     private bool _expiredActivitiesPromptChecked = false;
@@ -146,6 +147,7 @@ public class HomePage : ContentPage
     private Button _btnWebsiteBuilder;
     private Button _btnZeroCounts;
     private Button _btnFileSorter = null!;
+    private Button _btnDevWorkflow = null!;
     private Button _quickAccessBtn = null!;
     private Button _secondaryQueueActionsBtn = null!;
     private readonly ToolbarItem _secondaryQueueToolbarItem;
@@ -187,7 +189,8 @@ public class HomePage : ContentPage
         FFmpegService ffmpegService,
         TruncatePresetService truncatePresetService,
         ShortsCutterProjectService shortsCutterProjects,
-        AppSettingsService appSettings)
+        AppSettingsService appSettings,
+        DevWorkflowService devWorkflowService)
     {
         _auth = auth;
         _videoGenExperimentService = videoGenExperimentService;
@@ -196,6 +199,7 @@ public class HomePage : ContentPage
         _truncatePresetService = truncatePresetService;
         _shortsCutterProjects = shortsCutterProjects;
         _appSettings = appSettings;
+        _devWorkflowService = devWorkflowService;
         _games = games;
         _dragons = dragons;
         _backup = backup;
@@ -431,6 +435,10 @@ public class HomePage : ContentPage
         _btnDeadlines = CreateButton("Deadlines", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
         _btnDeadlines.Clicked += OnDeadlinesClicked;
         navButtons.Add(("Deadlines", _btnDeadlines));
+
+        _btnDevWorkflow = CreateButton("Dev Workflow", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3949AB"));
+        _btnDevWorkflow.Clicked += OnDevWorkflowClicked;
+        navButtons.Add(("Dev Workflow", _btnDevWorkflow));
 
         _btnDailyDeadlines = CreateButton("Daily Deadlines", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
         _btnDailyDeadlines.Clicked += OnDailyDeadlinesClicked;
@@ -1002,6 +1010,7 @@ public class HomePage : ContentPage
             "Countdowns" => OnCountdownsClicked,
             "Databases" => OnDatabasesClicked,
             "Deadlines" => OnDeadlinesClicked,
+            "Dev Workflow" => OnDevWorkflowClicked,
             "Daily Deadlines" => OnDailyDeadlinesClicked,
             "Dates Competition" => OnDailyChampionsClicked,
             "Motivation" => OnMotivationClicked,
@@ -3066,6 +3075,12 @@ public class HomePage : ContentPage
         await Navigation.PushAsync(new VideoProductionHubPage(
             _auth,
             _promptTechniqueService));
+    }
+
+    private async void OnDevWorkflowClicked(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new DevWorkflowPage(
+            _auth, _devWorkflowService));
     }
 
     private async void OnVideoEditingClicked(object? sender, EventArgs e)
