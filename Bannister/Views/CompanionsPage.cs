@@ -8,14 +8,19 @@ public class CompanionsPage : ContentPage
     private readonly AuthService _auth;
     private readonly CompanionService _service;
     private readonly GameService _games;
+    private readonly PrivacyModeService _privacyMode;
     private readonly VerticalStackLayout _content = new() { Padding = 16, Spacing = 10 };
     private Companion? _selected;
     private CompanionInterview? _selectedInterview;
     private bool _showArchived;
+    private string? _pointGameFilter;
+    private string? _pointCategoryFilter;
+    private bool _pointGameFilterIsNoGame;
+    private bool _pointCategoryFilterIsNoCategory;
 
-    public CompanionsPage(AuthService auth, CompanionService service, GameService games)
+    public CompanionsPage(AuthService auth, CompanionService service, GameService games, PrivacyModeService privacyMode)
     {
-        _auth = auth; _service = service; _games = games;
+        _auth = auth; _service = service; _games = games; _privacyMode = privacyMode;
         Title = "Companions";
         BackgroundColor = Color.FromArgb("#F5F5F5");
         Content = new ScrollView { Content = _content };
@@ -49,17 +54,27 @@ public class CompanionsPage : ContentPage
         };
         _content.Children.Add(add);
         var companions = await _service.GetCompanionsAsync(_auth.CurrentUsername);
-        var gamesById = (await _games.GetGamesAsync(_auth.CurrentUsername)).ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
+        var games = await GetAllGamesAsync();
+        var gamesById = games.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
+        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         foreach (var companion in companions)
         {
-            var points = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id);
+            var points = (await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id))
+                .Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode))
+                .ToList();
             string scope = ScopeLabel(companion, gamesById);
             var stack = new VerticalStackLayout { Spacing = 4 };
             stack.Children.Add(Heading(companion.Nickname, 17));
             stack.Children.Add(new Label { Text = $"{scope} · {points.Count} active data point{(points.Count == 1 ? "" : "s")}", FontSize = 12, TextColor = Color.FromArgb("#666") });
             var actions = new HorizontalStackLayout { Spacing = 6 };
             var open = Button("Open", "#E3F2FD", Color.FromArgb("#1565C0"));
-            open.Clicked += async (_, _) => { _selected = companion; _selectedInterview = null; await RefreshAsync(); };
+            open.Clicked += async (_, _) =>
+            {
+                _selected = companion; _selectedInterview = null;
+                _pointGameFilter = null; _pointCategoryFilter = null;
+                _pointGameFilterIsNoGame = false; _pointCategoryFilterIsNoCategory = false;
+                await RefreshAsync();
+            };
             var edit = Button("Edit", "#FFF3E0", Color.FromArgb("#E65100"));
             edit.Clicked += async (_, _) =>
             {
@@ -88,23 +103,24 @@ public class CompanionsPage : ContentPage
         back.Clicked += async (_, _) => { _selected = null; _selectedInterview = null; await RefreshAsync(); };
         _content.Children.Add(back);
         _content.Children.Add(Heading(companion.Nickname, 24));
-        var gamesById = (await _games.GetGamesAsync(_auth.CurrentUsername)).ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
+        var games = await GetAllGamesAsync();
+        var gamesById = games.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
         string scopeLabel = ScopeLabel(companion, gamesById);
         _content.Children.Add(new Label { Text = scopeLabel, FontSize = 13, TextColor = Color.FromArgb("#666") });
 
         var interviewActions = new HorizontalStackLayout { Spacing = 8 };
         var start = Button("Start Interview", "#5B63EE", Colors.White);
-        start.Clicked += async (_, _) => await StartInterviewAsync(companion, gamesById);
+        start.Clicked += async (_, _) => await StartInterviewAsync(companion, games, gamesById);
         interviewActions.Children.Add(start);
         if (_selectedInterview != null)
         {
             var resume = Button(InterviewStepText(_selectedInterview), "#E8EAF6", Color.FromArgb("#3949AB"));
-            resume.Clicked += async (_, _) => await ContinueInterviewAsync(companion, _selectedInterview, scopeLabel);
+            resume.Clicked += async (_, _) => await ContinueInterviewAsync(companion, _selectedInterview, scopeLabel, games);
             interviewActions.Children.Add(resume);
             if (!string.IsNullOrWhiteSpace(_selectedInterview.Transcript))
             {
                 var replace = Button("Paste Conversation Again", "#FFF3E0", Color.FromArgb("#E65100"));
-                replace.Clicked += async (_, _) => await SaveConversationAsync(companion, _selectedInterview, scopeLabel);
+                replace.Clicked += async (_, _) => await SaveConversationAsync(companion, _selectedInterview, scopeLabel, games);
                 interviewActions.Children.Add(replace);
             }
         }
@@ -115,13 +131,90 @@ public class CompanionsPage : ContentPage
         _content.Children.Add(Heading(_showArchived ? "Data Points (including archived)" : "Active Data Points", 18));
         var pointActions = new HorizontalStackLayout { Spacing = 8 };
         var addPoint = Button("+ Add Data Point", "#2E7D32", Colors.White);
-        addPoint.Clicked += async (_, _) => await AddPointAsync(companion, scopeLabel);
+        var allPoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, _showArchived);
+        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+        var categorySourcePoints = _showArchived
+            ? allPoints
+            : await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, true);
+        var allCategories = categorySourcePoints
+            .Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode))
+            .Select(x => x.Category).Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+        addPoint.Clicked += async (_, _) => await AddPointAsync(companion, scopeLabel, games, allCategories);
         var archived = Button(_showArchived ? "Hide Archived" : "Show Archived", "#ECEFF1", Color.FromArgb("#555"));
         archived.Clicked += async (_, _) => { _showArchived = !_showArchived; await RefreshAsync(); };
         pointActions.Children.Add(addPoint); pointActions.Children.Add(archived); _content.Children.Add(pointActions);
-        var points = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, _showArchived);
+        var modeVisiblePoints = allPoints.Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
+        if (modeVisiblePoints.Count != allPoints.Count)
+            _content.Children.Add(new Label
+            {
+                Text = $"{modeVisiblePoints.Count} / {allPoints.Count} shown",
+                FontSize = 13,
+                TextColor = Color.FromArgb("#E65100"),
+                FontAttributes = FontAttributes.Bold
+            });
+
+        var gameOptions = new List<CompanionPointFilterOption>
+        {
+            new("All games", null, false),
+            new("No game", null, true)
+        };
+        gameOptions.AddRange(games.Select(x => new CompanionPointFilterOption(x.DisplayName, x.GameId, false)));
+        var gameFilter = new Picker { Title = "Game", ItemsSource = gameOptions, ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label)) };
+        var selectedGameOption = gameOptions.FirstOrDefault(x => x.IsNone == _pointGameFilterIsNoGame &&
+            string.Equals(x.Value, _pointGameFilter, StringComparison.OrdinalIgnoreCase));
+        if (selectedGameOption == null)
+        {
+            _pointGameFilter = null; _pointGameFilterIsNoGame = false;
+            selectedGameOption = gameOptions[0];
+        }
+        gameFilter.SelectedItem = selectedGameOption;
+        gameFilter.SelectedIndexChanged += async (_, _) =>
+        {
+            if (gameFilter.SelectedItem is not CompanionPointFilterOption option) return;
+            _pointGameFilter = option.Value; _pointGameFilterIsNoGame = option.IsNone;
+            await RefreshAsync();
+        };
+
+        var visibleCategories = modeVisiblePoints.Select(x => x.Category).Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+        var categoryOptions = new List<CompanionPointFilterOption>
+        {
+            new("All categories", null, false),
+            new("No category", null, true)
+        };
+        categoryOptions.AddRange(visibleCategories.Select(x => new CompanionPointFilterOption(x, x, false)));
+        var categoryFilter = new Picker { Title = "Category", ItemsSource = categoryOptions, ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label)) };
+        var selectedCategoryOption = categoryOptions.FirstOrDefault(x => x.IsNone == _pointCategoryFilterIsNoCategory &&
+            string.Equals(x.Value, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase));
+        if (selectedCategoryOption == null)
+        {
+            _pointCategoryFilter = null; _pointCategoryFilterIsNoCategory = false;
+            selectedCategoryOption = categoryOptions[0];
+        }
+        categoryFilter.SelectedItem = selectedCategoryOption;
+        categoryFilter.SelectedIndexChanged += async (_, _) =>
+        {
+            if (categoryFilter.SelectedItem is not CompanionPointFilterOption option) return;
+            _pointCategoryFilter = option.Value; _pointCategoryFilterIsNoCategory = option.IsNone;
+            await RefreshAsync();
+        };
+        _content.Children.Add(new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) },
+            ColumnSpacing = 8,
+            Children = { gameFilter, categoryFilter }
+        });
+        Grid.SetColumn(categoryFilter, 1);
+
+        var points = modeVisiblePoints.Where(x =>
+                (_pointGameFilterIsNoGame ? string.IsNullOrWhiteSpace(x.GameId) :
+                    _pointGameFilter == null || string.Equals(x.GameId, _pointGameFilter, StringComparison.OrdinalIgnoreCase)) &&
+                (_pointCategoryFilterIsNoCategory ? string.IsNullOrWhiteSpace(x.Category) :
+                    _pointCategoryFilter == null || string.Equals(x.Category, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
         if (points.Count == 0) _content.Children.Add(new Label { Text = "No data points yet.", TextColor = Color.FromArgb("#999") });
-        foreach (var point in points) _content.Children.Add(BuildPointCard(point));
+        foreach (var point in points) _content.Children.Add(BuildPointCard(point, companion, scopeLabel, games, gamesById, allCategories));
 
         _content.Children.Add(Heading("Interview History", 18));
         var interviews = await _service.GetInterviewsAsync(_auth.CurrentUsername, companion.Id);
@@ -157,35 +250,46 @@ public class CompanionsPage : ContentPage
         }
     }
 
-    private View BuildPointCard(CompanionDataPoint point)
+    private View BuildPointCard(CompanionDataPoint point, Companion companion, string scopeLabel,
+        List<Game> games, IReadOnlyDictionary<string, Game> gamesById, List<string> categories)
     {
         var stack = new VerticalStackLayout { Spacing = 5 };
         stack.Children.Add(new Label { Text = point.Text, FontSize = 14, TextColor = point.Status == "archived" ? Color.FromArgb("#888") : Color.FromArgb("#222") });
+        string gameName = !string.IsNullOrWhiteSpace(point.GameId) && gamesById.TryGetValue(point.GameId, out var game)
+            ? game.DisplayName
+            : string.IsNullOrWhiteSpace(point.GameId) ? "No game" : point.GameId;
+        string category = string.IsNullOrWhiteSpace(point.Category) ? "No category" : point.Category;
+        string visibility = VisibilityName(CompanionService.GetEffectiveVisibility(point, gamesById)) + (point.VisibilityOverride.HasValue ? " (manual)" : "");
+        stack.Children.Add(new Label { Text = $"Game: {gameName} · Category: {category} · {visibility}", FontSize = 11, TextColor = Color.FromArgb("#555") });
         stack.Children.Add(new Label { Text = $"Priority {point.Priority} · {point.Source} · {point.Status} · {point.UpdatedAt.ToLocalTime():dd MMM yyyy}", FontSize = 11, TextColor = Color.FromArgb("#777") });
         var actions = new HorizontalStackLayout { Spacing = 5 };
         var edit = Button("Edit", "#FFF3E0", Color.FromArgb("#E65100"));
-        edit.Clicked += async (_, _) => { var text = await DisplayPromptAsync("Edit Data Point", "Text", "Save", "Cancel", initialValue: point.Text); if (string.IsNullOrWhiteSpace(text)) return; point.Text = text.Trim(); await _service.SavePointAsync(point); await RefreshAsync(); };
-        var priority = Button("Priority", "#E3F2FD", Color.FromArgb("#1565C0"));
-        priority.Clicked += async (_, _) => { var value = await DisplayPromptAsync("Priority", "1-5 (5 is most important)", "Save", "Cancel", keyboard: Keyboard.Numeric, initialValue: point.Priority.ToString()); if (!int.TryParse(value, out int p) || p is < 1 or > 5) return; point.Priority = p; await _service.SavePointAsync(point); await RefreshAsync(); };
+        edit.Clicked += async (_, _) =>
+        {
+            var edited = await CompanionDataPointEditPage.ShowAsync(Navigation, point, games, categories);
+            if (edited == null) return;
+            edited.ApplyTo(point);
+            await _service.SavePointAsync(point);
+            await RefreshAsync();
+        };
         var archive = Button(point.Status == "active" ? "Archive" : "Restore", "#ECEFF1", Color.FromArgb("#555"));
         archive.Clicked += async (_, _) => { point.Status = point.Status == "active" ? "archived" : "active"; await _service.SavePointAsync(point); await RefreshAsync(); };
         var delete = Button("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
         delete.Clicked += async (_, _) => { if (!await DisplayAlert("Delete Data Point", "Delete this data point?", "Delete", "Cancel")) return; await _service.DeletePointAsync(point); await RefreshAsync(); };
-        actions.Children.Add(edit); actions.Children.Add(priority); actions.Children.Add(archive); actions.Children.Add(delete); stack.Children.Add(actions);
+        actions.Children.Add(edit); actions.Children.Add(archive); actions.Children.Add(delete); stack.Children.Add(actions);
         return Card(stack);
     }
 
-    private async Task AddPointAsync(Companion companion, string scopeLabel)
+    private async Task AddPointAsync(Companion companion, string scopeLabel, List<Game> games, List<string> categories)
     {
-        var text = await CompanionTextInputPage.ShowAsync(Navigation, "Add Data Point", "", "Write a durable fact or observation...");
-        if (string.IsNullOrWhiteSpace(text)) return;
-        var priorityText = await DisplayPromptAsync("Priority", "1-5 (5 is most important)", "Save", "Cancel", keyboard: Keyboard.Numeric, initialValue: "3");
-        if (!int.TryParse(priorityText, out int priority) || priority is < 1 or > 5) return;
-        await _service.SaveManualPointAsync(_auth.CurrentUsername, companion, scopeLabel, text, priority);
+        var edited = await CompanionDataPointEditPage.ShowAsync(Navigation, null, games, categories);
+        if (edited == null) return;
+        await _service.SaveManualPointAsync(_auth.CurrentUsername, companion, scopeLabel, edited.Text, edited.Priority,
+            edited.GameId, edited.Category, edited.VisibilityOverride);
         await RefreshAsync();
     }
 
-    private async Task StartInterviewAsync(Companion companion, Dictionary<string, Game> gamesById)
+    private async Task StartInterviewAsync(Companion companion, List<Game> games, Dictionary<string, Game> gamesById)
     {
         var value = await DisplayPromptAsync("Start Interview", "Number of questions", "Copy Prompt", "Cancel", keyboard: Keyboard.Numeric, initialValue: companion.DefaultQuestionCount.ToString());
         if (value == null) return;
@@ -196,18 +300,21 @@ public class CompanionsPage : ContentPage
         }
         var interview = new CompanionInterview { Username = _auth.CurrentUsername, CompanionId = companion.Id, QuestionCount = questionCount, StartedAt = DateTime.UtcNow };
         await _service.SaveInterviewAsync(interview);
-        string prompt = await _service.BuildInterviewPromptAsync(_auth.CurrentUsername, companion, questionCount, ScopeLabel(companion, gamesById));
-        await Clipboard.SetTextAsync(prompt);
+        var prompt = await _service.BuildInterviewPromptAsync(
+            _auth.CurrentUsername, companion, questionCount, ScopeLabel(companion, gamesById), games,
+            _privacyMode.GetDisplayMode(_auth.CurrentUsername));
+        await Clipboard.SetTextAsync(prompt.Prompt);
         _selectedInterview = interview;
-        await DisplayAlert("Interview Prompt Copied", "Paste it into your LLM and conduct the interview. Return here to paste the conversation.", "OK");
+        await DisplayAlert("Interview Prompt Copied",
+            "Paste it into your LLM and conduct the interview. Return here to paste the conversation." + OmittedPointsNote(prompt.OmittedPointCount), "OK");
         await RefreshAsync();
     }
 
-    private async Task ContinueInterviewAsync(Companion companion, CompanionInterview interview, string scopeLabel)
+    private async Task ContinueInterviewAsync(Companion companion, CompanionInterview interview, string scopeLabel, List<Game> games)
     {
         if (string.IsNullOrWhiteSpace(interview.Transcript))
         {
-            await SaveConversationAsync(companion, interview, scopeLabel);
+            await SaveConversationAsync(companion, interview, scopeLabel, games);
             return;
         }
         try
@@ -215,6 +322,7 @@ public class CompanionsPage : ContentPage
             var response = await CompanionTextInputPage.ShowAsync(Navigation, "Paste Extraction Result", "", "Paste the structured extraction result...");
             if (string.IsNullOrWhiteSpace(response)) return;
             var extraction = CompanionService.ParseExtraction(response);
+            CompanionService.ResolveExtractionGames(extraction, games);
             int recognizedCount = extraction.Adds.Count + extraction.Priorities.Count + extraction.Archives.Count + extraction.Updates.Count;
             if (recognizedCount == 0)
             {
@@ -249,16 +357,20 @@ public class CompanionsPage : ContentPage
         }
     }
 
-    private async Task SaveConversationAsync(Companion companion, CompanionInterview interview, string scopeLabel)
+    private async Task SaveConversationAsync(Companion companion, CompanionInterview interview, string scopeLabel, List<Game> games)
     {
         var transcript = await CompanionTextInputPage.ShowAsync(Navigation, "Paste Conversation", interview.Transcript, "Paste the complete interview transcript...");
         if (string.IsNullOrWhiteSpace(transcript)) return;
         interview.Transcript = transcript.Trim();
         await _service.SaveInterviewAsync(interview);
         await TrySaveInterviewIdeaAsync(companion, interview, scopeLabel);
-        var points = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id);
-        await Clipboard.SetTextAsync(CompanionService.BuildExtractionPrompt(companion, interview, points));
-        await DisplayAlert("Extraction Prompt Copied", "Run the copied prompt in your LLM, then return and paste the extraction result.", "OK");
+        var allPoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id);
+        var gamesById = games.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
+        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+        var points = allPoints.Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
+        await Clipboard.SetTextAsync(CompanionService.BuildExtractionPrompt(companion, interview, points, games));
+        await DisplayAlert("Extraction Prompt Copied",
+            "Run the copied prompt in your LLM, then return and paste the extraction result." + OmittedPointsNote(allPoints.Count - points.Count), "OK");
         await RefreshAsync();
     }
 
@@ -285,9 +397,143 @@ public class CompanionsPage : ContentPage
         _ => $"Custom · {(string.IsNullOrWhiteSpace(item.Topic) ? "No topic" : item.Topic)}"
     };
 
+    private static string VisibilityName(int visibility) => visibility switch
+    {
+        0 => "Private",
+        1 => "Public",
+        _ => "Both"
+    };
+
+    private static string OmittedPointsNote(int omitted) => omitted > 0
+        ? $"\n\n{omitted} data point{(omitted == 1 ? " was" : "s were")} left out because of the current privacy mode."
+        : "\n\nNo data points were left out by the current privacy mode.";
+
+    private async Task<List<Game>> GetAllGamesAsync() =>
+        (await _games.GetGamesAsync(_auth.CurrentUsername))
+        .Concat(await _games.GetInactiveGamesAsync(_auth.CurrentUsername))
+        .GroupBy(x => x.GameId, StringComparer.OrdinalIgnoreCase)
+        .Select(x => x.First())
+        .OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
     private static Label Heading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") };
     private static Button Button(string text, string background, Color foreground) => new() { Text = text, BackgroundColor = Color.FromArgb(background), TextColor = foreground, CornerRadius = 7, FontSize = 12, HeightRequest = 38, Padding = new Thickness(10, 0) };
     private static Frame Card(View content) => new() { Content = content, Padding = 12, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };
+}
+
+internal sealed record CompanionPointFilterOption(string Label, string? Value, bool IsNone);
+internal sealed record CompanionPointGameOption(string Label, string? GameId);
+
+internal sealed record CompanionDataPointEditResult(
+    string Text,
+    int Priority,
+    string? GameId,
+    string? Category,
+    int? VisibilityOverride)
+{
+    public void ApplyTo(CompanionDataPoint point)
+    {
+        point.Text = Text;
+        point.Priority = Priority;
+        point.GameId = GameId;
+        point.Category = string.IsNullOrWhiteSpace(Category) ? null : Category.Trim();
+        point.VisibilityOverride = VisibilityOverride;
+    }
+}
+
+internal sealed class CompanionDataPointEditPage : ContentPage
+{
+    private readonly TaskCompletionSource<CompanionDataPointEditResult?> _completion = new();
+
+    private CompanionDataPointEditPage(CompanionDataPoint? point, List<Game> games, List<string> categories)
+    {
+        Title = point == null ? "Add Data Point" : "Edit Data Point";
+        var text = new Editor
+        {
+            Placeholder = "Write a durable fact or observation...",
+            Text = point?.Text ?? "",
+            HeightRequest = 150,
+            AutoSize = EditorAutoSizeOption.TextChanges
+        };
+        var priority = new Entry
+        {
+            Placeholder = "Priority (1-5)",
+            Text = (point?.Priority ?? 3).ToString(),
+            Keyboard = Keyboard.Numeric
+        };
+        var gameOptions = new List<CompanionPointGameOption> { new("No game", null) };
+        gameOptions.AddRange(games.Select(x => new CompanionPointGameOption(x.DisplayName, x.GameId)));
+        var game = new Picker
+        {
+            Title = "Game",
+            ItemsSource = gameOptions,
+            ItemDisplayBinding = new Binding(nameof(CompanionPointGameOption.Label))
+        };
+        game.SelectedItem = gameOptions.FirstOrDefault(x =>
+            string.Equals(x.GameId, point?.GameId, StringComparison.OrdinalIgnoreCase)) ?? gameOptions[0];
+
+        var category = new Entry { Placeholder = "Category (optional)", Text = point?.Category ?? "" };
+        var categorySuggestions = new Picker { Title = "Suggestions from used categories", ItemsSource = categories };
+        categorySuggestions.SelectedIndexChanged += (_, _) =>
+        {
+            if (categorySuggestions.SelectedItem is string selected) category.Text = selected;
+        };
+
+        string[] visibilityOptions = { "Auto (follow game)", "Private", "Public", "Both" };
+        var visibility = new Picker { Title = "Visibility", ItemsSource = visibilityOptions };
+        visibility.SelectedIndex = point?.VisibilityOverride switch { 0 => 1, 1 => 2, 2 => 3, _ => 0 };
+
+        var save = new Button { Text = "Save", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White };
+        save.Clicked += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(text.Text))
+            {
+                await DisplayAlert("Text Required", "Enter a data point.", "OK");
+                return;
+            }
+            if (!int.TryParse(priority.Text, out int priorityValue) || priorityValue is < 1 or > 5)
+            {
+                await DisplayAlert("Invalid Priority", "Enter a whole number from 1 to 5.", "OK");
+                return;
+            }
+            int? visibilityOverride = visibility.SelectedIndex switch { 1 => 0, 2 => 1, 3 => 2, _ => null };
+            var selectedGame = game.SelectedItem as CompanionPointGameOption;
+            await CloseAsync(new CompanionDataPointEditResult(
+                text.Text.Trim(), priorityValue, selectedGame?.GameId,
+                string.IsNullOrWhiteSpace(category.Text) ? null : category.Text.Trim(), visibilityOverride));
+        };
+        var cancel = new Button { Text = "Cancel" };
+        cancel.Clicked += async (_, _) => await CloseAsync(null);
+
+        Content = new ScrollView
+        {
+            Content = new VerticalStackLayout
+            {
+                Padding = 18,
+                Spacing = 9,
+                Children =
+                {
+                    new Label { Text = Title, FontSize = 22, FontAttributes = FontAttributes.Bold },
+                    text, priority, game, category, categorySuggestions, visibility,
+                    new HorizontalStackLayout { Spacing = 8, Children = { save, cancel } }
+                }
+            }
+        };
+    }
+
+    private async Task CloseAsync(CompanionDataPointEditResult? result)
+    {
+        await Navigation.PopModalAsync();
+        _completion.TrySetResult(result);
+    }
+
+    public static async Task<CompanionDataPointEditResult?> ShowAsync(
+        INavigation navigation, CompanionDataPoint? point, List<Game> games, List<string> categories)
+    {
+        var page = new CompanionDataPointEditPage(point, games, categories);
+        await navigation.PushModalAsync(page);
+        return await page._completion.Task;
+    }
 }
 
 internal sealed class CompanionEditPage : ContentPage
@@ -351,7 +597,8 @@ internal sealed class CompanionExtractionReviewPage : ContentPage
         Title = "Review Extraction";
         var stack = new VerticalStackLayout { Padding = 16, Spacing = 8 };
         stack.Children.Add(new Label { Text = "Review Proposed Changes", FontSize = 22, FontAttributes = FontAttributes.Bold });
-        var adds = AddRows(stack, "Add points", result.Adds, x => $"P{x.Priority}: {x.Text}");
+        var adds = AddRows(stack, "Add points", result.Adds, x =>
+            $"P{x.Priority}: {x.Text}\nGame: {(string.IsNullOrWhiteSpace(x.GameName) ? "No game" : x.GameName)} · Category: {(string.IsNullOrWhiteSpace(x.Category) ? "No category" : x.Category)}");
         var priorities = AddRows(stack, "Priority changes", result.Priorities, x => $"Point {x.PointId} → priority {x.Priority}");
         var archives = AddRows(stack, "Archives", result.Archives, x => $"Point {x.PointId}: {x.Reason}");
         var updates = AddRows(stack, "Text updates", result.Updates, x => $"Point {x.PointId}: {x.Text}");

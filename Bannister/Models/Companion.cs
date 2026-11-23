@@ -32,6 +32,10 @@ public class CompanionDataPoint
     public string Source { get; set; } = "manual";
     public int? InterviewId { get; set; }
     public int? IdeaId { get; set; }
+    public string? GameId { get; set; }
+    public string? Category { get; set; }
+    /// <summary>0 = Private, 1 = Public, 2 = Both; null follows the game.</summary>
+    public int? VisibilityOverride { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -5,11 +5,18 @@ using Bannister.Models;
 
 namespace Bannister.Services;
 
-public sealed record CompanionAddProposal(int Index, string Text, int Priority);
+public sealed record CompanionAddProposal(
+    int Index,
+    string Text,
+    int Priority,
+    string? GameName = null,
+    string? GameId = null,
+    string? Category = null);
 public sealed record CompanionPriorityProposal(int PointId, int Priority);
 public sealed record CompanionArchiveProposal(int PointId, string Reason);
 public sealed record CompanionUpdateProposal(int PointId, string Text);
 public sealed record CompanionApplyResult(int Added, int Reprioritized, int Archived, int Updated, int IdeaLoggingFailures);
+public sealed record CompanionPromptResult(string Prompt, int OmittedPointCount);
 
 public sealed class CompanionExtraction
 {
@@ -92,9 +99,37 @@ public class CompanionService
     public async Task SavePointAsync(CompanionDataPoint point)
     {
         point.Priority = Math.Clamp(point.Priority, 1, 5);
+        if (point.VisibilityOverride.HasValue && point.VisibilityOverride.Value is not (0 or 1 or 2))
+            point.VisibilityOverride = null;
         point.UpdatedAt = DateTime.UtcNow;
         var conn = await ConnectionAsync();
         if (point.Id == 0) await conn.InsertAsync(point); else await conn.UpdateAsync(point);
+    }
+
+    public static int GetEffectiveVisibility(
+        CompanionDataPoint point,
+        IReadOnlyDictionary<string, Game> gamesById)
+    {
+        if (point.VisibilityOverride.HasValue)
+            return point.VisibilityOverride.Value;
+        if (!string.IsNullOrWhiteSpace(point.GameId) &&
+            gamesById.TryGetValue(point.GameId, out var game))
+            return game.GameVisibility;
+        return 2;
+    }
+
+    public static bool IsVisibleInDisplayMode(
+        CompanionDataPoint point,
+        IReadOnlyDictionary<string, Game> gamesById,
+        ActivityDisplayMode displayMode)
+    {
+        int visibility = GetEffectiveVisibility(point, gamesById);
+        return displayMode switch
+        {
+            ActivityDisplayMode.PublicOnly => visibility is 1 or 2,
+            ActivityDisplayMode.PrivateOnly => visibility is 0 or 2,
+            _ => true
+        };
     }
 
     public async Task<int> SaveManualPointAsync(
@@ -102,7 +137,10 @@ public class CompanionService
         Companion companion,
         string scopeLabel,
         string text,
-        int priority)
+        int priority,
+        string? gameId,
+        string? category,
+        int? visibilityOverride)
     {
         var point = new CompanionDataPoint
         {
@@ -110,7 +148,10 @@ public class CompanionService
             CompanionId = companion.Id,
             Text = text.Trim(),
             Priority = priority,
-            Source = "manual"
+            Source = "manual",
+            GameId = gameId,
+            Category = string.IsNullOrWhiteSpace(category) ? null : category.Trim(),
+            VisibilityOverride = visibilityOverride
         };
         await SavePointAsync(point);
         try
@@ -215,8 +256,16 @@ public class CompanionService
         return sb.ToString().TrimEnd();
     }
 
-    public async Task<string> BuildInterviewPromptAsync(string username, Companion companion, int questionCount, string scopeLabel)
+    public async Task<CompanionPromptResult> BuildInterviewPromptAsync(
+        string username,
+        Companion companion,
+        int questionCount,
+        string scopeLabel,
+        IReadOnlyList<Game> games,
+        ActivityDisplayMode displayMode)
     {
+        var gamesById = games.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
+        int omitted = 0;
         var sb = new StringBuilder();
         sb.AppendLine($"You are {companion.Nickname}.");
         if (!string.IsNullOrWhiteSpace(companion.PersonaDescription))
@@ -238,7 +287,9 @@ public class CompanionService
             bool any = false;
             foreach (var source in companions)
             {
-                var points = await GetPointsAsync(username, source.Id);
+                var allPoints = await GetPointsAsync(username, source.Id);
+                var points = allPoints.Where(x => IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
+                omitted += allPoints.Count - points.Count;
                 if (points.Count == 0) continue;
                 any = true;
                 sb.AppendLine($"[{source.Nickname}]");
@@ -248,16 +299,22 @@ public class CompanionService
         }
         else
         {
-            var points = await GetPointsAsync(username, companion.Id);
+            var allPoints = await GetPointsAsync(username, companion.Id);
+            var points = allPoints.Where(x => IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
+            omitted = allPoints.Count - points.Count;
             if (points.Count == 0) sb.AppendLine("- Nothing yet.");
             foreach (var point in points) sb.AppendLine($"- (Priority {point.Priority}) {point.Text}");
         }
         sb.AppendLine();
         sb.AppendLine("Begin the interview now with your first question.");
-        return sb.ToString();
+        return new CompanionPromptResult(sb.ToString(), omitted);
     }
 
-    public static string BuildExtractionPrompt(Companion companion, CompanionInterview interview, IReadOnlyList<CompanionDataPoint> points)
+    public static string BuildExtractionPrompt(
+        Companion companion,
+        CompanionInterview interview,
+        IReadOnlyList<CompanionDataPoint> points,
+        IReadOnlyList<Game> games)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"You are extracting durable knowledge for the companion {companion.Nickname} from an interview transcript.");
@@ -265,17 +322,31 @@ public class CompanionService
         sb.AppendLine();
         sb.AppendLine("CURRENT DATA POINTS:");
         if (points.Count == 0) sb.AppendLine("- None.");
-        foreach (var point in points) sb.AppendLine($"[ID:{point.Id}] [Priority:{point.Priority}] {point.Text}");
+        var gamesById = games.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
+        foreach (var point in points)
+        {
+            string gameName = !string.IsNullOrWhiteSpace(point.GameId) && gamesById.TryGetValue(point.GameId, out var game)
+                ? game.DisplayName
+                : "No game";
+            string category = string.IsNullOrWhiteSpace(point.Category) ? "No category" : point.Category;
+            sb.AppendLine($"[ID:{point.Id}] [Priority:{point.Priority}] [Game:{gameName}] [Category:{category}] {point.Text}");
+        }
+        sb.AppendLine();
+        sb.AppendLine("AVAILABLE GAMES (use these names exactly):");
+        if (games.Count == 0) sb.AppendLine("- None.");
+        foreach (var game in games) sb.AppendLine($"- {game.DisplayName}");
         sb.AppendLine();
         sb.AppendLine("INTERVIEW TRANSCRIPT:");
         sb.AppendLine(interview.Transcript);
         sb.AppendLine();
         sb.AppendLine("Return ONLY applicable lines in exactly these formats:");
         sb.AppendLine("addPoint[1] = \"text\"; addPriority[1] = 4;");
+        sb.AppendLine("addGame[1] = \"game name\";");
+        sb.AppendLine("addCategory[1] = \"free-text category\";");
         sb.AppendLine("setPriority[<existing id>] = 2;");
         sb.AppendLine("archivePoint[<existing id>] = \"reason\";");
         sb.AppendLine("updatePoint[<existing id>] = \"corrected text\";");
-        sb.AppendLine("Use priorities 1-5, where 5 is most important. Number added points consecutively from 1. Do not include explanations or Markdown.");
+        sb.AppendLine("addGame and addCategory are optional and use the same index as addPoint. Use priorities 1-5, where 5 is most important. Number added points consecutively from 1. Do not include explanations or Markdown.");
         return sb.ToString();
     }
 
@@ -286,6 +357,8 @@ public class CompanionService
         var recognizedSpans = new List<(int Start, int Length)>();
         var addRegex = new Regex("addPoint\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.IgnoreCase);
         var addPriorityRegex = new Regex("addPriority\\[(\\d+)\\]\\s*=\\s*([1-5])\\s*;", RegexOptions.IgnoreCase);
+        var addGameRegex = new Regex("addGame\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.IgnoreCase);
+        var addCategoryRegex = new Regex("addCategory\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.IgnoreCase);
         var priorityRegex = new Regex("setPriority\\[(\\d+)\\]\\s*=\\s*([1-5])\\s*;", RegexOptions.IgnoreCase);
         var archiveRegex = new Regex("archivePoint\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.IgnoreCase);
         var updateRegex = new Regex("updatePoint\\[(\\d+)\\]\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.IgnoreCase);
@@ -314,6 +387,9 @@ public class CompanionService
                 result.Warnings.Add($"Duplicate addPriority[{index}]; using the first value {addPriorities[index]}");
         }
 
+        var addGames = ParseIndexedTextValues(normalized, addGameRegex, "addGame", recognizedSpans, result.Warnings);
+        var addCategories = ParseIndexedTextValues(normalized, addCategoryRegex, "addCategory", recognizedSpans, result.Warnings);
+
         foreach (var point in addPoints)
         {
             int priority = 3;
@@ -322,12 +398,20 @@ public class CompanionService
                 priority = 3;
                 result.Warnings.Add($"Point {point.Index} has no addPriority[{point.Index}]; using priority 3");
             }
-            result.Adds.Add(new(point.Index, point.Text, priority));
+            addGames.TryGetValue(point.Index, out string? gameName);
+            addCategories.TryGetValue(point.Index, out string? category);
+            result.Adds.Add(new(point.Index, point.Text, priority, gameName, null, category));
         }
 
         foreach (var priority in addPriorities)
             if (!addIndexes.Contains(priority.Key))
                 result.Warnings.Add($"addPriority[{priority.Key}] has no matching addPoint[{priority.Key}]");
+        foreach (var game in addGames)
+            if (!addIndexes.Contains(game.Key))
+                result.Warnings.Add($"addGame[{game.Key}] has no matching addPoint[{game.Key}]");
+        foreach (var category in addCategories)
+            if (!addIndexes.Contains(category.Key))
+                result.Warnings.Add($"addCategory[{category.Key}] has no matching addPoint[{category.Key}]");
 
         foreach (Match match in priorityRegex.Matches(normalized))
         {
@@ -356,6 +440,42 @@ public class CompanionService
         return result;
     }
 
+    private static Dictionary<int, string> ParseIndexedTextValues(
+        string response,
+        Regex regex,
+        string fieldName,
+        List<(int Start, int Length)> recognizedSpans,
+        List<string> warnings)
+    {
+        var values = new Dictionary<int, string>();
+        foreach (Match match in regex.Matches(response))
+        {
+            recognizedSpans.Add((match.Index, match.Length));
+            int index = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            string value = DecodeLlmValue(match.Groups[2].Value);
+            if (!values.TryAdd(index, value))
+                warnings.Add($"Duplicate {fieldName}[{index}]; using the first value");
+        }
+        return values;
+    }
+
+    public static void ResolveExtractionGames(CompanionExtraction extraction, IReadOnlyList<Game> games)
+    {
+        for (int i = 0; i < extraction.Adds.Count; i++)
+        {
+            var add = extraction.Adds[i];
+            if (string.IsNullOrWhiteSpace(add.GameName)) continue;
+            var game = games.FirstOrDefault(x =>
+                string.Equals(x.DisplayName.Trim(), add.GameName.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (game == null)
+            {
+                extraction.Warnings.Add($"Point {add.Index} names unknown game '{add.GameName}'; leaving game empty");
+                continue;
+            }
+            extraction.Adds[i] = add with { GameId = game.GameId, GameName = game.DisplayName };
+        }
+    }
+
     public async Task<CompanionApplyResult> ApplyExtractionAsync(string username, Companion companion, CompanionInterview interview,
         string scopeLabel,
         IEnumerable<CompanionAddProposal> adds, IEnumerable<CompanionPriorityProposal> priorities,
@@ -368,7 +488,17 @@ public class CompanionService
         foreach (var proposal in adds)
         {
             if (string.IsNullOrWhiteSpace(proposal.Text)) continue;
-            var point = new CompanionDataPoint { Username = username, CompanionId = companion.Id, Text = proposal.Text.Trim(), Priority = proposal.Priority, Source = "interview", InterviewId = interview.Id };
+            var point = new CompanionDataPoint
+            {
+                Username = username,
+                CompanionId = companion.Id,
+                Text = proposal.Text.Trim(),
+                Priority = proposal.Priority,
+                Source = "interview",
+                InterviewId = interview.Id,
+                GameId = proposal.GameId,
+                Category = string.IsNullOrWhiteSpace(proposal.Category) ? null : proposal.Category.Trim()
+            };
             await SavePointAsync(point);
             addedPoints.Add(point);
             added++;

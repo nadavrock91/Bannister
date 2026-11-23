@@ -594,6 +594,9 @@ namespace Bannister.Services
             catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE companion_interviews ADD COLUMN IdeaId INTEGER NULL"); } catch { }
             try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN IdeaId INTEGER NULL"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN GameId TEXT NULL"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN Category TEXT NULL"); } catch { }
+            try { await _db!.ExecuteAsync("ALTER TABLE companion_data_points ADD COLUMN VisibilityOverride INTEGER NULL"); } catch { }
 
             System.Diagnostics.Debug.WriteLine("✓ All Bannister tables created/verified");
         }

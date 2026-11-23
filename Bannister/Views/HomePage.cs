@@ -3095,7 +3095,7 @@ public class HomePage : ContentPage
     private async void OnCompanionsClicked(object? sender, EventArgs e)
     {
         await Navigation.PushAsync(new CompanionsPage(
-            _auth, _companionService, _games));
+            _auth, _companionService, _games, _privacyMode));
     }
 
     private async void OnVideoEditingClicked(object? sender, EventArgs e)
