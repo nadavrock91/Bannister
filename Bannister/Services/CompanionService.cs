@@ -138,6 +138,34 @@ public class CompanionService
         if (interview.Id == 0) await conn.InsertAsync(interview); else await conn.UpdateAsync(interview);
     }
 
+    public async Task DeleteInterviewAsync(int interviewId, bool deletePoints)
+    {
+        var conn = await ConnectionAsync();
+        var points = await conn.Table<CompanionDataPoint>()
+            .Where(x => x.InterviewId == interviewId)
+            .ToListAsync();
+
+        await conn.RunInTransactionAsync(db =>
+        {
+            foreach (var point in points)
+            {
+                if (deletePoints)
+                {
+                    point.IdeaId = null;
+                    db.Update(point);
+                    db.Delete(point);
+                }
+                else
+                {
+                    point.InterviewId = null;
+                    db.Update(point);
+                }
+            }
+
+            db.Delete<CompanionInterview>(interviewId);
+        });
+    }
+
     public async Task<string> SaveInterviewIdeaAsync(string username, Companion companion, CompanionInterview interview, string scopeLabel)
     {
         const string category = IdeasService.CompanionInterviewCategory;

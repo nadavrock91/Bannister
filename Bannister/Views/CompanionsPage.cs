@@ -135,7 +135,25 @@ public class CompanionsPage : ContentPage
             var resume = Button("Open / Resume", "#E8EAF6", Color.FromArgb("#3949AB"));
             resume.HorizontalOptions = LayoutOptions.Start;
             resume.Clicked += async (_, _) => { _selectedInterview = interview; await RefreshAsync(); };
-            row.Children.Add(resume); _content.Children.Add(Card(row));
+            var delete = Button("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
+            delete.HorizontalOptions = LayoutOptions.Start;
+            delete.Clicked += async (_, _) =>
+            {
+                string? choice = await DisplayActionSheet(
+                    "Delete Interview",
+                    "Cancel",
+                    null,
+                    "Delete interview only",
+                    "Delete interview and its data points");
+                if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel") return;
+
+                bool deletePoints = choice == "Delete interview and its data points";
+                await _service.DeleteInterviewAsync(interview.Id, deletePoints);
+                if (_selectedInterview?.Id == interview.Id) _selectedInterview = null;
+                await RefreshAsync();
+            };
+            row.Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { resume, delete } });
+            _content.Children.Add(Card(row));
         }
     }
 
