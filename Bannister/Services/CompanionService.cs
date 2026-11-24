@@ -96,7 +96,24 @@ public class CompanionService
             .OrderByDescending(x => x.Priority).ThenByDescending(x => x.CreatedAt).ToList();
     }
 
-    public async Task SavePointAsync(CompanionDataPoint point)
+    public async Task<List<string>> GetPointCategoriesAsync(string username)
+    {
+        var conn = await ConnectionAsync();
+        var points = await conn.Table<CompanionDataPoint>()
+            .Where(x => x.Username == username)
+            .ToListAsync();
+        return points.Select(x => x.Category)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task SavePointAsync(
+        CompanionDataPoint point,
+        Companion? companionForIdeaUpdate = null,
+        string? scopeLabelForIdeaUpdate = null)
     {
         point.Priority = Math.Clamp(point.Priority, 1, 5);
         if (point.VisibilityOverride.HasValue && point.VisibilityOverride.Value is not (0 or 1 or 2))
@@ -104,6 +121,23 @@ public class CompanionService
         point.UpdatedAt = DateTime.UtcNow;
         var conn = await ConnectionAsync();
         if (point.Id == 0) await conn.InsertAsync(point); else await conn.UpdateAsync(point);
+
+        if (point.IdeaId.HasValue && companionForIdeaUpdate != null && !string.IsNullOrWhiteSpace(scopeLabelForIdeaUpdate))
+        {
+            try
+            {
+                string sourceLine = await GetContextPointSourceLineAsync(point);
+                await _ideaLogger.UpdateIdeaAsync(
+                    point.IdeaId.Value,
+                    BuildContextPointIdeaRequest(
+                        point.Username, companionForIdeaUpdate, scopeLabelForIdeaUpdate,
+                        point, sourceLine, includeCreatedAt: false));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[COMPANIONS] Point {point.Id} saved, but its linked idea could not be updated: {ex}");
+            }
+        }
     }
 
     public static int GetEffectiveVisibility(
@@ -594,18 +628,22 @@ public class CompanionService
         return failures;
     }
 
-    private async Task<string> GetContextPointSourceLineAsync(CompanionDataPoint point, CompanionInterview currentInterview)
+    private async Task<string> GetContextPointSourceLineAsync(
+        CompanionDataPoint point,
+        CompanionInterview? currentInterview = null)
     {
         if (string.Equals(point.Source, "manual", StringComparison.OrdinalIgnoreCase) || !point.InterviewId.HasValue)
             return "From: manual";
 
-        CompanionInterview? sourceInterview = point.InterviewId.Value == currentInterview.Id
+        CompanionInterview? sourceInterview = currentInterview != null && point.InterviewId.Value == currentInterview.Id
             ? currentInterview
             : await (await ConnectionAsync()).Table<CompanionInterview>()
                 .Where(x => x.Id == point.InterviewId.Value)
                 .FirstOrDefaultAsync();
         sourceInterview ??= currentInterview;
-        return $"From interview: {sourceInterview.StartedAt.ToLocalTime():yyyy-MM-dd}";
+        return sourceInterview == null
+            ? "From: interview"
+            : $"From interview: {sourceInterview.StartedAt.ToLocalTime():yyyy-MM-dd}";
     }
 
     private static IdeaLogRequest BuildContextPointIdeaRequest(

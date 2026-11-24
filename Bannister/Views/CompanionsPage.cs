@@ -133,13 +133,7 @@ public class CompanionsPage : ContentPage
         var addPoint = Button("+ Add Data Point", "#2E7D32", Colors.White);
         var allPoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, _showArchived);
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
-        var categorySourcePoints = _showArchived
-            ? allPoints
-            : await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, true);
-        var allCategories = categorySourcePoints
-            .Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode))
-            .Select(x => x.Category).Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x!).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+        var allCategories = await _service.GetPointCategoriesAsync(_auth.CurrentUsername);
         addPoint.Clicked += async (_, _) => await AddPointAsync(companion, scopeLabel, games, allCategories);
         var archived = Button(_showArchived ? "Hide Archived" : "Show Archived", "#ECEFF1", Color.FromArgb("#555"));
         archived.Clicked += async (_, _) => { _showArchived = !_showArchived; await RefreshAsync(); };
@@ -255,6 +249,98 @@ public class CompanionsPage : ContentPage
     {
         var stack = new VerticalStackLayout { Spacing = 5 };
         stack.Children.Add(new Label { Text = point.Text, FontSize = 14, TextColor = point.Status == "archived" ? Color.FromArgb("#888") : Color.FromArgb("#222") });
+
+        var categoryChoices = CompanionDataPointEditorOptions.BuildCategories(categories, point.Category);
+        var categoryPicker = new Picker
+        {
+            Title = "Category",
+            ItemsSource = categoryChoices,
+            FontSize = 12,
+            HeightRequest = 40,
+            WidthRequest = 175
+        };
+        categoryPicker.SelectedItem = string.IsNullOrWhiteSpace(point.Category)
+            ? CompanionDataPointEditorOptions.NoCategory
+            : categoryChoices.First(x => string.Equals(x, point.Category, StringComparison.OrdinalIgnoreCase));
+        bool changingCategory = false;
+        categoryPicker.SelectedIndexChanged += async (_, _) =>
+        {
+            if (changingCategory || categoryPicker.SelectedItem is not string selectedCategory) return;
+            string? previousCategory = point.Category;
+            string? newCategory;
+            if (selectedCategory == CompanionDataPointEditorOptions.NewCategory)
+            {
+                string? entered = await DisplayPromptAsync(
+                    "New Category", "Category name", "Save", "Cancel", initialValue: "");
+                if (string.IsNullOrWhiteSpace(entered))
+                {
+                    changingCategory = true;
+                    categoryPicker.SelectedItem = string.IsNullOrWhiteSpace(previousCategory)
+                        ? CompanionDataPointEditorOptions.NoCategory
+                        : categoryChoices.First(x => string.Equals(x, previousCategory, StringComparison.OrdinalIgnoreCase));
+                    changingCategory = false;
+                    return;
+                }
+                newCategory = entered.Trim();
+            }
+            else
+            {
+                newCategory = selectedCategory == CompanionDataPointEditorOptions.NoCategory ? null : selectedCategory;
+            }
+
+            if (string.Equals(previousCategory?.Trim(), newCategory, StringComparison.OrdinalIgnoreCase))
+            {
+                changingCategory = true;
+                categoryPicker.SelectedItem = string.IsNullOrWhiteSpace(previousCategory)
+                    ? CompanionDataPointEditorOptions.NoCategory
+                    : categoryChoices.First(x => string.Equals(x, previousCategory, StringComparison.OrdinalIgnoreCase));
+                changingCategory = false;
+                return;
+            }
+            point.Category = newCategory;
+            await _service.SavePointAsync(point, companion, scopeLabel);
+            await RefreshAsync();
+        };
+
+        var visibilityPicker = new Picker
+        {
+            Title = "Visibility",
+            ItemsSource = CompanionDataPointEditorOptions.Visibility,
+            FontSize = 12,
+            HeightRequest = 40,
+            WidthRequest = 165,
+            SelectedIndex = CompanionDataPointEditorOptions.VisibilityIndex(point.VisibilityOverride)
+        };
+        var autoResult = new Label
+        {
+            Text = AutoVisibilityText(point, gamesById),
+            FontSize = 11,
+            TextColor = Color.FromArgb("#555"),
+            VerticalOptions = LayoutOptions.Center,
+            IsVisible = !point.VisibilityOverride.HasValue
+        };
+        visibilityPicker.SelectedIndexChanged += async (_, _) =>
+        {
+            int? newOverride = CompanionDataPointEditorOptions.VisibilityOverride(visibilityPicker.SelectedIndex);
+            if (point.VisibilityOverride == newOverride) return;
+            point.VisibilityOverride = newOverride;
+            await _service.SavePointAsync(point, companion, scopeLabel);
+
+            var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+            bool remainsVisible = CompanionService.IsVisibleInDisplayMode(point, gamesById, displayMode);
+            if (!remainsVisible && displayMode != ActivityDisplayMode.All)
+                await DisplayAlert("Visibility Changed", $"Hidden in {DisplayModeName(displayMode)} mode.", "OK");
+            await RefreshAsync();
+        };
+        stack.Children.Add(new FlexLayout
+        {
+            Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+            AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center,
+            JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
+            Children = { categoryPicker, visibilityPicker, autoResult }
+        });
+
         string gameName = !string.IsNullOrWhiteSpace(point.GameId) && gamesById.TryGetValue(point.GameId, out var game)
             ? game.DisplayName
             : string.IsNullOrWhiteSpace(point.GameId) ? "No game" : point.GameId;
@@ -269,7 +355,7 @@ public class CompanionsPage : ContentPage
             var edited = await CompanionDataPointEditPage.ShowAsync(Navigation, point, games, categories);
             if (edited == null) return;
             edited.ApplyTo(point);
-            await _service.SavePointAsync(point);
+            await _service.SavePointAsync(point, companion, scopeLabel);
             await RefreshAsync();
         };
         var archive = Button(point.Status == "active" ? "Archive" : "Restore", "#ECEFF1", Color.FromArgb("#555"));
@@ -404,6 +490,23 @@ public class CompanionsPage : ContentPage
         _ => "Both"
     };
 
+    private static string AutoVisibilityText(
+        CompanionDataPoint point,
+        IReadOnlyDictionary<string, Game> gamesById)
+    {
+        string source = !string.IsNullOrWhiteSpace(point.GameId) && gamesById.TryGetValue(point.GameId, out var game)
+            ? $"game: {game.DisplayName}"
+            : string.IsNullOrWhiteSpace(point.GameId) ? "no game" : $"game: {point.GameId}";
+        return $"Auto \u2192 {VisibilityName(CompanionService.GetEffectiveVisibility(point, gamesById))} ({source})";
+    }
+
+    private static string DisplayModeName(ActivityDisplayMode displayMode) => displayMode switch
+    {
+        ActivityDisplayMode.PublicOnly => "Public",
+        ActivityDisplayMode.PrivateOnly => "Private",
+        _ => "All"
+    };
+
     private static string OmittedPointsNote(int omitted) => omitted > 0
         ? $"\n\n{omitted} data point{(omitted == 1 ? " was" : "s were")} left out because of the current privacy mode."
         : "\n\nNo data points were left out by the current privacy mode.";
@@ -419,6 +522,40 @@ public class CompanionsPage : ContentPage
     private static Label Heading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") };
     private static Button Button(string text, string background, Color foreground) => new() { Text = text, BackgroundColor = Color.FromArgb(background), TextColor = foreground, CornerRadius = 7, FontSize = 12, HeightRequest = 38, Padding = new Thickness(10, 0) };
     private static Frame Card(View content) => new() { Content = content, Padding = 12, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };
+}
+
+internal static class CompanionDataPointEditorOptions
+{
+    public const string NoCategory = "No category";
+    public const string NewCategory = "New category\u2026";
+    public static readonly string[] Visibility = { "Auto (follow game)", "Private", "Public", "Both" };
+
+    public static List<string> BuildCategories(IEnumerable<string> categories, string? currentCategory = null)
+    {
+        var used = categories
+            .Append(currentCategory ?? "")
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase);
+        return new[] { NoCategory }.Concat(used).Append(NewCategory).ToList();
+    }
+
+    public static int VisibilityIndex(int? visibilityOverride) => visibilityOverride switch
+    {
+        0 => 1,
+        1 => 2,
+        2 => 3,
+        _ => 0
+    };
+
+    public static int? VisibilityOverride(int selectedIndex) => selectedIndex switch
+    {
+        1 => 0,
+        2 => 1,
+        3 => 2,
+        _ => null
+    };
 }
 
 internal sealed record CompanionPointFilterOption(string Label, string? Value, bool IsNone);
@@ -473,15 +610,24 @@ internal sealed class CompanionDataPointEditPage : ContentPage
             string.Equals(x.GameId, point?.GameId, StringComparison.OrdinalIgnoreCase)) ?? gameOptions[0];
 
         var category = new Entry { Placeholder = "Category (optional)", Text = point?.Category ?? "" };
-        var categorySuggestions = new Picker { Title = "Suggestions from used categories", ItemsSource = categories };
+        var categorySuggestions = new Picker
+        {
+            Title = "Category",
+            ItemsSource = CompanionDataPointEditorOptions.BuildCategories(categories, point?.Category)
+        };
         categorySuggestions.SelectedIndexChanged += (_, _) =>
         {
-            if (categorySuggestions.SelectedItem is string selected) category.Text = selected;
+            if (categorySuggestions.SelectedItem is not string selected) return;
+            if (selected == CompanionDataPointEditorOptions.NoCategory)
+                category.Text = "";
+            else if (selected == CompanionDataPointEditorOptions.NewCategory)
+                category.Focus();
+            else
+                category.Text = selected;
         };
 
-        string[] visibilityOptions = { "Auto (follow game)", "Private", "Public", "Both" };
-        var visibility = new Picker { Title = "Visibility", ItemsSource = visibilityOptions };
-        visibility.SelectedIndex = point?.VisibilityOverride switch { 0 => 1, 1 => 2, 2 => 3, _ => 0 };
+        var visibility = new Picker { Title = "Visibility", ItemsSource = CompanionDataPointEditorOptions.Visibility };
+        visibility.SelectedIndex = CompanionDataPointEditorOptions.VisibilityIndex(point?.VisibilityOverride);
 
         var save = new Button { Text = "Save", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White };
         save.Clicked += async (_, _) =>
@@ -496,7 +642,7 @@ internal sealed class CompanionDataPointEditPage : ContentPage
                 await DisplayAlert("Invalid Priority", "Enter a whole number from 1 to 5.", "OK");
                 return;
             }
-            int? visibilityOverride = visibility.SelectedIndex switch { 1 => 0, 2 => 1, 3 => 2, _ => null };
+            int? visibilityOverride = CompanionDataPointEditorOptions.VisibilityOverride(visibility.SelectedIndex);
             var selectedGame = game.SelectedItem as CompanionPointGameOption;
             await CloseAsync(new CompanionDataPointEditResult(
                 text.Text.Trim(), priorityValue, selectedGame?.GameId,
