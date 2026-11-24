@@ -43,10 +43,11 @@ public class CompanionsPage : ContentPage
     {
         _content.Children.Add(Heading("Companions", 24));
         _content.Children.Add(new Label { Text = "LLM companions that learn durable context about you through interviews.", FontSize = 13, TextColor = Color.FromArgb("#666") });
+        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         var add = Button("+ Add Companion", "#5B63EE", Colors.White);
         add.Clicked += async (_, _) =>
         {
-            var games = await _games.GetGamesAsync(_auth.CurrentUsername);
+            var games = GamesForDisplayMode(await GetAllGamesAsync(), displayMode);
             var item = await CompanionEditPage.ShowAsync(Navigation, null, games, _auth.CurrentUsername);
             if (item == null) return;
             item.SortOrder = (await _service.GetCompanionsAsync(_auth.CurrentUsername)).Count;
@@ -56,7 +57,6 @@ public class CompanionsPage : ContentPage
         var companions = await _service.GetCompanionsAsync(_auth.CurrentUsername);
         var games = await GetAllGamesAsync();
         var gamesById = games.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
-        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         foreach (var companion in companions)
         {
             var points = (await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id))
@@ -67,21 +67,14 @@ public class CompanionsPage : ContentPage
             stack.Children.Add(Heading(companion.Nickname, 17));
             stack.Children.Add(new Label { Text = $"{scope} · {points.Count} active data point{(points.Count == 1 ? "" : "s")}", FontSize = 12, TextColor = Color.FromArgb("#666") });
             var actions = new HorizontalStackLayout { Spacing = 6 };
-            var open = Button("Open", "#E3F2FD", Color.FromArgb("#1565C0"));
-            open.Clicked += async (_, _) =>
-            {
-                _selected = companion; _selectedInterview = null;
-                _pointGameFilter = null; _pointCategoryFilter = null;
-                _pointGameFilterIsNoGame = false; _pointCategoryFilterIsNoCategory = false;
-                await RefreshAsync();
-            };
             var edit = Button("Edit", "#FFF3E0", Color.FromArgb("#E65100"));
             edit.Clicked += async (_, _) =>
             {
-                var edited = await CompanionEditPage.ShowAsync(Navigation, companion, await _games.GetGamesAsync(_auth.CurrentUsername), _auth.CurrentUsername);
+                var editGames = GamesForDisplayMode(games, displayMode, companion.GameId);
+                var edited = await CompanionEditPage.ShowAsync(Navigation, companion, editGames, _auth.CurrentUsername);
                 if (edited == null) return; await _service.SaveCompanionAsync(edited); await RefreshAsync();
             };
-            actions.Children.Add(open); actions.Children.Add(edit);
+            actions.Children.Add(edit);
             if (companion.Scope != "meta")
             {
                 var delete = Button("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
@@ -92,8 +85,21 @@ public class CompanionsPage : ContentPage
                 };
                 actions.Children.Add(delete);
             }
-            stack.Children.Add(actions); _content.Children.Add(Card(stack));
+            stack.Children.Add(actions);
+            var card = Card(stack);
+            var openTap = new TapGestureRecognizer();
+            openTap.Tapped += async (_, _) => await OpenCompanionAsync(companion);
+            card.GestureRecognizers.Add(openTap);
+            _content.Children.Add(card);
         }
+    }
+
+    private async Task OpenCompanionAsync(Companion companion)
+    {
+        _selected = companion; _selectedInterview = null;
+        _pointGameFilter = null; _pointCategoryFilter = null;
+        _pointGameFilterIsNoGame = false; _pointCategoryFilterIsNoCategory = false;
+        await RefreshAsync();
     }
 
     private async Task BuildDetailAsync()
@@ -103,24 +109,26 @@ public class CompanionsPage : ContentPage
         back.Clicked += async (_, _) => { _selected = null; _selectedInterview = null; await RefreshAsync(); };
         _content.Children.Add(back);
         _content.Children.Add(Heading(companion.Nickname, 24));
-        var games = await GetAllGamesAsync();
-        var gamesById = games.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
+        var allGames = await GetAllGamesAsync();
+        var gamesById = allGames.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
+        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+        var games = GamesForDisplayMode(allGames, displayMode);
         string scopeLabel = ScopeLabel(companion, gamesById);
         _content.Children.Add(new Label { Text = scopeLabel, FontSize = 13, TextColor = Color.FromArgb("#666") });
 
         var interviewActions = new HorizontalStackLayout { Spacing = 8 };
         var start = Button("Start Interview", "#5B63EE", Colors.White);
-        start.Clicked += async (_, _) => await StartInterviewAsync(companion, games, gamesById);
+        start.Clicked += async (_, _) => await StartInterviewAsync(companion, allGames, gamesById);
         interviewActions.Children.Add(start);
         if (_selectedInterview != null)
         {
             var resume = Button(InterviewStepText(_selectedInterview), "#E8EAF6", Color.FromArgb("#3949AB"));
-            resume.Clicked += async (_, _) => await ContinueInterviewAsync(companion, _selectedInterview, scopeLabel, games);
+            resume.Clicked += async (_, _) => await ContinueInterviewAsync(companion, _selectedInterview, scopeLabel, allGames);
             interviewActions.Children.Add(resume);
             if (!string.IsNullOrWhiteSpace(_selectedInterview.Transcript))
             {
                 var replace = Button("Paste Conversation Again", "#FFF3E0", Color.FromArgb("#E65100"));
-                replace.Clicked += async (_, _) => await SaveConversationAsync(companion, _selectedInterview, scopeLabel, games);
+                replace.Clicked += async (_, _) => await SaveConversationAsync(companion, _selectedInterview, scopeLabel, allGames);
                 interviewActions.Children.Add(replace);
             }
         }
@@ -132,7 +140,6 @@ public class CompanionsPage : ContentPage
         var pointActions = new HorizontalStackLayout { Spacing = 8 };
         var addPoint = Button("+ Add Data Point", "#2E7D32", Colors.White);
         var allPoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, _showArchived);
-        var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         var allCategories = await _service.GetPointCategoriesAsync(_auth.CurrentUsername);
         addPoint.Clicked += async (_, _) => await AddPointAsync(companion, scopeLabel, games, allCategories);
         var archived = Button(_showArchived ? "Hide Archived" : "Show Archived", "#ECEFF1", Color.FromArgb("#555"));
@@ -208,7 +215,11 @@ public class CompanionsPage : ContentPage
                     _pointCategoryFilter == null || string.Equals(x.Category, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase)))
             .ToList();
         if (points.Count == 0) _content.Children.Add(new Label { Text = "No data points yet.", TextColor = Color.FromArgb("#999") });
-        foreach (var point in points) _content.Children.Add(BuildPointCard(point, companion, scopeLabel, games, gamesById, allCategories));
+        foreach (var point in points)
+        {
+            var pointGames = GamesForDisplayMode(allGames, displayMode, point.GameId);
+            _content.Children.Add(BuildPointCard(point, companion, scopeLabel, pointGames, gamesById, allCategories));
+        }
 
         _content.Children.Add(Heading("Interview History", 18));
         var interviews = await _service.GetInterviewsAsync(_auth.CurrentUsername, companion.Id);
@@ -253,17 +264,18 @@ public class CompanionsPage : ContentPage
         var categoryChoices = CompanionDataPointEditorOptions.BuildClassifications(games, categories, point.Category);
         var categoryPicker = new Picker
         {
-            Title = "Category",
             ItemsSource = categoryChoices,
             ItemDisplayBinding = new Binding(nameof(CompanionPointClassificationOption.Label)),
             FontSize = 12,
             TextColor = Color.FromArgb("#222222"),
             TitleColor = Color.FromArgb("#666666"),
-            HeightRequest = 40,
+            MinimumHeightRequest = 44,
+            VerticalOptions = LayoutOptions.Center,
             WidthRequest = 175
         };
         categoryPicker.SelectedItem = CompanionDataPointEditorOptions.CurrentClassification(
             categoryChoices, point.GameId, point.Category);
+        TraceInlinePicker(categoryPicker, point.Id, "category");
         bool changingCategory = false;
         categoryPicker.SelectedIndexChanged += async (_, _) =>
         {
@@ -315,16 +327,17 @@ public class CompanionsPage : ContentPage
 
         var visibilityPicker = new Picker
         {
-            Title = "Visibility",
             ItemsSource = CompanionDataPointEditorOptions.Visibility,
             FontSize = 12,
             TextColor = Color.FromArgb("#222222"),
             TitleColor = Color.FromArgb("#666666"),
-            HeightRequest = 40,
+            MinimumHeightRequest = 44,
+            VerticalOptions = LayoutOptions.Center,
             WidthRequest = 165
         };
         visibilityPicker.SelectedItem = CompanionDataPointEditorOptions.Visibility[
             CompanionDataPointEditorOptions.VisibilityIndex(point.VisibilityOverride)];
+        TraceInlinePicker(visibilityPicker, point.Id, "visibility");
         var autoResult = new Label
         {
             Text = AutoVisibilityText(point, gamesById),
@@ -514,6 +527,35 @@ public class CompanionsPage : ContentPage
         return $"Auto \u2192 {VisibilityName(CompanionService.GetEffectiveVisibility(point, gamesById))} ({source})";
     }
 
+    private static void TraceInlinePicker(Picker picker, int pointId, string pickerName)
+    {
+        void WriteState(string stage)
+        {
+            var items = picker.ItemsSource?.Cast<object>().ToList() ?? new List<object>();
+            object? selected = picker.SelectedItem;
+            bool referenceMatch = selected != null && items.Any(x => ReferenceEquals(x, selected));
+            bool valueMatch = selected != null && items.Any(x => Equals(x, selected));
+            string display = selected switch
+            {
+                CompanionPointClassificationOption option => option.Label,
+                null => "<null>",
+                _ => selected.ToString() ?? "<empty>"
+            };
+#if WINDOWS
+            string native = picker.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.ComboBox comboBox
+                ? $", nativeIndex={comboBox.SelectedIndex}, selectionBox={comboBox.SelectionBoxItem ?? "<null>"}, nativeSize={comboBox.ActualWidth:0.#}x{comboBox.ActualHeight:0.#}"
+                : ", native=<not attached>";
+#else
+            string native = "";
+#endif
+            System.Diagnostics.Debug.WriteLine(
+                $"[COMPANIONS PICKER] point={pointId}, picker={pickerName}, stage={stage}, index={picker.SelectedIndex}, itemCount={items.Count}, referenceMatch={referenceMatch}, valueMatch={valueMatch}, display='{display}', size={picker.Width:0.#}x{picker.Height:0.#}{native}");
+        }
+
+        WriteState("built");
+        picker.Loaded += (_, _) => WriteState("loaded-after-refresh");
+    }
+
     private static string DisplayModeName(ActivityDisplayMode displayMode) => displayMode switch
     {
         ActivityDisplayMode.PublicOnly => "Public",
@@ -531,6 +573,22 @@ public class CompanionsPage : ContentPage
         .GroupBy(x => x.GameId, StringComparer.OrdinalIgnoreCase)
         .Select(x => x.First())
         .OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    private static List<Game> GamesForDisplayMode(
+        IEnumerable<Game> games,
+        ActivityDisplayMode displayMode,
+        string? currentGameId = null) => games
+        .Where(game =>
+            (!string.IsNullOrWhiteSpace(currentGameId) &&
+             string.Equals(game.GameId, currentGameId, StringComparison.OrdinalIgnoreCase)) ||
+            displayMode switch
+            {
+                ActivityDisplayMode.PublicOnly => game.GameVisibility is 1 or 2,
+                ActivityDisplayMode.PrivateOnly => game.GameVisibility is 0 or 2,
+                _ => true
+            })
+        .OrderBy(game => game.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
     private static Label Heading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") };
@@ -612,7 +670,10 @@ internal enum CompanionPointClassificationKind { None, Game, Category, NewCatego
 internal sealed record CompanionPointClassificationOption(
     string Label,
     CompanionPointClassificationKind Kind,
-    string? Value);
+    string? Value)
+{
+    public override string ToString() => Label;
+}
 internal sealed record CompanionPointFilterOption(string Label, string? Value, bool IsNone);
 
 internal sealed record CompanionDataPointEditResult(
