@@ -250,55 +250,66 @@ public class CompanionsPage : ContentPage
         var stack = new VerticalStackLayout { Spacing = 5 };
         stack.Children.Add(new Label { Text = point.Text, FontSize = 14, TextColor = point.Status == "archived" ? Color.FromArgb("#888") : Color.FromArgb("#222") });
 
-        var categoryChoices = CompanionDataPointEditorOptions.BuildCategories(categories, point.Category);
+        var categoryChoices = CompanionDataPointEditorOptions.BuildClassifications(games, categories, point.Category);
         var categoryPicker = new Picker
         {
             Title = "Category",
             ItemsSource = categoryChoices,
+            ItemDisplayBinding = new Binding(nameof(CompanionPointClassificationOption.Label)),
             FontSize = 12,
+            TextColor = Color.FromArgb("#222222"),
+            TitleColor = Color.FromArgb("#666666"),
             HeightRequest = 40,
             WidthRequest = 175
         };
-        categoryPicker.SelectedItem = string.IsNullOrWhiteSpace(point.Category)
-            ? CompanionDataPointEditorOptions.NoCategory
-            : categoryChoices.First(x => string.Equals(x, point.Category, StringComparison.OrdinalIgnoreCase));
+        categoryPicker.SelectedItem = CompanionDataPointEditorOptions.CurrentClassification(
+            categoryChoices, point.GameId, point.Category);
         bool changingCategory = false;
         categoryPicker.SelectedIndexChanged += async (_, _) =>
         {
-            if (changingCategory || categoryPicker.SelectedItem is not string selectedCategory) return;
+            if (changingCategory || categoryPicker.SelectedItem is not CompanionPointClassificationOption selected) return;
+            var previousSelection = CompanionDataPointEditorOptions.CurrentClassification(
+                categoryChoices, point.GameId, point.Category);
+            string? previousGameId = point.GameId;
             string? previousCategory = point.Category;
-            string? newCategory;
-            if (selectedCategory == CompanionDataPointEditorOptions.NewCategory)
+            string? newGameId = null;
+            string? newCategory = null;
+            if (selected.Kind == CompanionPointClassificationKind.NewCategory)
             {
                 string? entered = await DisplayPromptAsync(
                     "New Category", "Category name", "Save", "Cancel", initialValue: "");
                 if (string.IsNullOrWhiteSpace(entered))
                 {
                     changingCategory = true;
-                    categoryPicker.SelectedItem = string.IsNullOrWhiteSpace(previousCategory)
-                        ? CompanionDataPointEditorOptions.NoCategory
-                        : categoryChoices.First(x => string.Equals(x, previousCategory, StringComparison.OrdinalIgnoreCase));
+                    categoryPicker.SelectedItem = previousSelection;
                     changingCategory = false;
                     return;
                 }
                 newCategory = entered.Trim();
             }
-            else
+            else if (selected.Kind == CompanionPointClassificationKind.Game)
             {
-                newCategory = selectedCategory == CompanionDataPointEditorOptions.NoCategory ? null : selectedCategory;
+                newGameId = selected.Value;
             }
+            else if (selected.Kind == CompanionPointClassificationKind.Category)
+                newCategory = selected.Value;
 
-            if (string.Equals(previousCategory?.Trim(), newCategory, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(previousGameId, newGameId, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(previousCategory?.Trim(), newCategory, StringComparison.OrdinalIgnoreCase))
             {
                 changingCategory = true;
-                categoryPicker.SelectedItem = string.IsNullOrWhiteSpace(previousCategory)
-                    ? CompanionDataPointEditorOptions.NoCategory
-                    : categoryChoices.First(x => string.Equals(x, previousCategory, StringComparison.OrdinalIgnoreCase));
+                categoryPicker.SelectedItem = previousSelection;
                 changingCategory = false;
                 return;
             }
+            point.GameId = newGameId;
             point.Category = newCategory;
             await _service.SavePointAsync(point, companion, scopeLabel);
+
+            var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
+            bool remainsVisible = CompanionService.IsVisibleInDisplayMode(point, gamesById, displayMode);
+            if (!remainsVisible && displayMode != ActivityDisplayMode.All)
+                await DisplayAlert("Visibility Changed", $"Hidden in {DisplayModeName(displayMode)} mode.", "OK");
             await RefreshAsync();
         };
 
@@ -307,10 +318,13 @@ public class CompanionsPage : ContentPage
             Title = "Visibility",
             ItemsSource = CompanionDataPointEditorOptions.Visibility,
             FontSize = 12,
+            TextColor = Color.FromArgb("#222222"),
+            TitleColor = Color.FromArgb("#666666"),
             HeightRequest = 40,
-            WidthRequest = 165,
-            SelectedIndex = CompanionDataPointEditorOptions.VisibilityIndex(point.VisibilityOverride)
+            WidthRequest = 165
         };
+        visibilityPicker.SelectedItem = CompanionDataPointEditorOptions.Visibility[
+            CompanionDataPointEditorOptions.VisibilityIndex(point.VisibilityOverride)];
         var autoResult = new Label
         {
             Text = AutoVisibilityText(point, gamesById),
@@ -530,15 +544,51 @@ internal static class CompanionDataPointEditorOptions
     public const string NewCategory = "New category\u2026";
     public static readonly string[] Visibility = { "Auto (follow game)", "Private", "Public", "Both" };
 
-    public static List<string> BuildCategories(IEnumerable<string> categories, string? currentCategory = null)
+    public static List<CompanionPointClassificationOption> BuildClassifications(
+        IEnumerable<Game> games,
+        IEnumerable<string> categories,
+        string? currentCategory = null)
     {
-        var used = categories
+        var options = new List<CompanionPointClassificationOption>
+        {
+            new(NoCategory, CompanionPointClassificationKind.None, null)
+        };
+        options.AddRange(games
+            .OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(x => new CompanionPointClassificationOption(
+                $"Game: {x.DisplayName}{(x.IsActive ? "" : " (inactive)")}",
+                CompanionPointClassificationKind.Game,
+                x.GameId)));
+        options.AddRange(categories
             .Append(currentCategory ?? "")
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase);
-        return new[] { NoCategory }.Concat(used).Append(NewCategory).ToList();
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .Select(x => new CompanionPointClassificationOption(
+                x, CompanionPointClassificationKind.Category, x)));
+        options.Add(new(NewCategory, CompanionPointClassificationKind.NewCategory, null));
+        return options;
+    }
+
+    public static CompanionPointClassificationOption CurrentClassification(
+        IReadOnlyList<CompanionPointClassificationOption> options,
+        string? gameId,
+        string? category)
+    {
+        if (!string.IsNullOrWhiteSpace(gameId))
+        {
+            var game = options.FirstOrDefault(x => x.Kind == CompanionPointClassificationKind.Game &&
+                string.Equals(x.Value, gameId, StringComparison.OrdinalIgnoreCase));
+            if (game != null) return game;
+        }
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var textCategory = options.FirstOrDefault(x => x.Kind == CompanionPointClassificationKind.Category &&
+                string.Equals(x.Value, category, StringComparison.OrdinalIgnoreCase));
+            if (textCategory != null) return textCategory;
+        }
+        return options.First(x => x.Kind == CompanionPointClassificationKind.None);
     }
 
     public static int VisibilityIndex(int? visibilityOverride) => visibilityOverride switch
@@ -558,8 +608,12 @@ internal static class CompanionDataPointEditorOptions
     };
 }
 
+internal enum CompanionPointClassificationKind { None, Game, Category, NewCategory }
+internal sealed record CompanionPointClassificationOption(
+    string Label,
+    CompanionPointClassificationKind Kind,
+    string? Value);
 internal sealed record CompanionPointFilterOption(string Label, string? Value, bool IsNone);
-internal sealed record CompanionPointGameOption(string Label, string? GameId);
 
 internal sealed record CompanionDataPointEditResult(
     string Text,
@@ -598,36 +652,55 @@ internal sealed class CompanionDataPointEditPage : ContentPage
             Text = (point?.Priority ?? 3).ToString(),
             Keyboard = Keyboard.Numeric
         };
-        var gameOptions = new List<CompanionPointGameOption> { new("No game", null) };
-        gameOptions.AddRange(games.Select(x => new CompanionPointGameOption(x.DisplayName, x.GameId)));
-        var game = new Picker
+        var classificationOptions = CompanionDataPointEditorOptions.BuildClassifications(
+            games, categories, point?.Category);
+        var classification = new Picker
         {
-            Title = "Game",
-            ItemsSource = gameOptions,
-            ItemDisplayBinding = new Binding(nameof(CompanionPointGameOption.Label))
+            Title = "Game or category",
+            ItemsSource = classificationOptions,
+            ItemDisplayBinding = new Binding(nameof(CompanionPointClassificationOption.Label))
         };
-        game.SelectedItem = gameOptions.FirstOrDefault(x =>
-            string.Equals(x.GameId, point?.GameId, StringComparison.OrdinalIgnoreCase)) ?? gameOptions[0];
-
-        var category = new Entry { Placeholder = "Category (optional)", Text = point?.Category ?? "" };
-        var categorySuggestions = new Picker
+        var lastClassification = CompanionDataPointEditorOptions.CurrentClassification(
+            classificationOptions, point?.GameId, point?.Category);
+        classification.SelectedItem = lastClassification;
+        bool changingClassification = false;
+        classification.SelectedIndexChanged += async (_, _) =>
         {
-            Title = "Category",
-            ItemsSource = CompanionDataPointEditorOptions.BuildCategories(categories, point?.Category)
-        };
-        categorySuggestions.SelectedIndexChanged += (_, _) =>
-        {
-            if (categorySuggestions.SelectedItem is not string selected) return;
-            if (selected == CompanionDataPointEditorOptions.NoCategory)
-                category.Text = "";
-            else if (selected == CompanionDataPointEditorOptions.NewCategory)
-                category.Focus();
+            if (changingClassification ||
+                classification.SelectedItem is not CompanionPointClassificationOption selected) return;
+            if (selected.Kind != CompanionPointClassificationKind.NewCategory)
+            {
+                lastClassification = selected;
+                return;
+            }
+            string? entered = await DisplayPromptAsync(
+                "New Category", "Category name", "Save", "Cancel", initialValue: "");
+            changingClassification = true;
+            if (string.IsNullOrWhiteSpace(entered))
+            {
+                classification.SelectedItem = lastClassification;
+            }
             else
-                category.Text = selected;
+            {
+                string newCategory = entered.Trim();
+                categories = categories.Append(newCategory)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                classificationOptions = CompanionDataPointEditorOptions.BuildClassifications(
+                    games, categories, newCategory);
+                classification.ItemsSource = classificationOptions;
+                lastClassification = classificationOptions.First(x =>
+                    x.Kind == CompanionPointClassificationKind.Category &&
+                    string.Equals(x.Value, newCategory, StringComparison.OrdinalIgnoreCase));
+                classification.SelectedItem = lastClassification;
+            }
+            changingClassification = false;
         };
 
         var visibility = new Picker { Title = "Visibility", ItemsSource = CompanionDataPointEditorOptions.Visibility };
-        visibility.SelectedIndex = CompanionDataPointEditorOptions.VisibilityIndex(point?.VisibilityOverride);
+        visibility.SelectedItem = CompanionDataPointEditorOptions.Visibility[
+            CompanionDataPointEditorOptions.VisibilityIndex(point?.VisibilityOverride)];
 
         var save = new Button { Text = "Save", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White };
         save.Clicked += async (_, _) =>
@@ -643,10 +716,15 @@ internal sealed class CompanionDataPointEditPage : ContentPage
                 return;
             }
             int? visibilityOverride = CompanionDataPointEditorOptions.VisibilityOverride(visibility.SelectedIndex);
-            var selectedGame = game.SelectedItem as CompanionPointGameOption;
+            var selectedClassification = classification.SelectedItem as CompanionPointClassificationOption;
+            string? gameId = selectedClassification?.Kind == CompanionPointClassificationKind.Game
+                ? selectedClassification.Value
+                : null;
+            string? category = selectedClassification?.Kind == CompanionPointClassificationKind.Category
+                ? selectedClassification.Value
+                : null;
             await CloseAsync(new CompanionDataPointEditResult(
-                text.Text.Trim(), priorityValue, selectedGame?.GameId,
-                string.IsNullOrWhiteSpace(category.Text) ? null : category.Text.Trim(), visibilityOverride));
+                text.Text.Trim(), priorityValue, gameId, category, visibilityOverride));
         };
         var cancel = new Button { Text = "Cancel" };
         cancel.Clicked += async (_, _) => await CloseAsync(null);
@@ -660,7 +738,7 @@ internal sealed class CompanionDataPointEditPage : ContentPage
                 Children =
                 {
                     new Label { Text = Title, FontSize = 22, FontAttributes = FontAttributes.Bold },
-                    text, priority, game, category, categorySuggestions, visibility,
+                    text, priority, classification, visibility,
                     new HorizontalStackLayout { Spacing = 8, Children = { save, cancel } }
                 }
             }
