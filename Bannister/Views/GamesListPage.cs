@@ -365,29 +365,20 @@ public class GamesListPage : ContentPage
 
     private void UpdateModeVisuals(ActivityDisplayMode mode)
     {
+        var theme = ModeTheme.Get(mode);
+        BackgroundColor = theme.Background;
+        _privateModeToggleBtn.TextColor = theme.Accent;
+        _privateModeToggleBtn.BorderColor = theme.Accent;
         switch (mode)
         {
             case ActivityDisplayMode.PublicOnly:
-                BackgroundColor = Color.FromArgb("#1A1A2E");
                 _privateModeToggleBtn.Text = " Public";
-                _privateModeToggleBtn.TextColor =
-                    Color.FromArgb("#00E5FF");
-                _privateModeToggleBtn.BorderColor =
-                    Color.FromArgb("#00E5FF");
                 break;
             case ActivityDisplayMode.PrivateOnly:
-                BackgroundColor = Color.FromArgb("#2D0A4E");
                 _privateModeToggleBtn.Text = " Private";
-                _privateModeToggleBtn.TextColor =
-                    Color.FromArgb("#FFD700");
-                _privateModeToggleBtn.BorderColor =
-                    Color.FromArgb("#FFD700");
                 break;
             default: // All
-                BackgroundColor = Color.FromArgb("#6B73FF");
                 _privateModeToggleBtn.Text = " All";
-                _privateModeToggleBtn.TextColor = Colors.White;
-                _privateModeToggleBtn.BorderColor = Colors.White;
                 break;
         }
     }

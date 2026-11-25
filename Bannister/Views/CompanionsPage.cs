@@ -17,18 +17,20 @@ public class CompanionsPage : ContentPage
     private string? _pointCategoryFilter;
     private bool _pointGameFilterIsNoGame;
     private bool _pointCategoryFilterIsNoCategory;
+    private ModeThemeColors _modeColors = ModeTheme.Get(ActivityDisplayMode.All);
 
     public CompanionsPage(AuthService auth, CompanionService service, GameService games, PrivacyModeService privacyMode)
     {
         _auth = auth; _service = service; _games = games; _privacyMode = privacyMode;
         Title = "Companions";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+        BackgroundColor = _modeColors.Background;
         Content = new ScrollView { Content = _content };
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        ApplyModeTheme();
         await _service.EnsureMetaAsync(_auth.CurrentUsername);
         await RefreshAsync();
     }
@@ -39,10 +41,16 @@ public class CompanionsPage : ContentPage
         if (_selected == null) await BuildListAsync(); else await BuildDetailAsync();
     }
 
+    private void ApplyModeTheme()
+    {
+        _modeColors = ModeTheme.Get(_privacyMode.GetDisplayMode(_auth.CurrentUsername));
+        BackgroundColor = _modeColors.Background;
+    }
+
     private async Task BuildListAsync()
     {
-        _content.Children.Add(Heading("Companions", 24));
-        _content.Children.Add(new Label { Text = "LLM companions that learn durable context about you through interviews.", FontSize = 13, TextColor = Color.FromArgb("#666") });
+        _content.Children.Add(PageHeading("Companions", 24));
+        _content.Children.Add(new Label { Text = "LLM companions that learn durable context about you through interviews.", FontSize = 13, TextColor = _modeColors.MutedForeground });
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         var add = Button("+ Add Companion", "#5B63EE", Colors.White);
         add.Clicked += async (_, _) =>
@@ -108,13 +116,13 @@ public class CompanionsPage : ContentPage
         var back = Button("← All Companions", "#ECEFF1", Color.FromArgb("#37474F"));
         back.Clicked += async (_, _) => { _selected = null; _selectedInterview = null; await RefreshAsync(); };
         _content.Children.Add(back);
-        _content.Children.Add(Heading(companion.Nickname, 24));
+        _content.Children.Add(PageHeading(companion.Nickname, 24));
         var allGames = await GetAllGamesAsync();
         var gamesById = allGames.ToDictionary(x => x.GameId, StringComparer.OrdinalIgnoreCase);
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         var games = GamesForDisplayMode(allGames, displayMode);
         string scopeLabel = ScopeLabel(companion, gamesById);
-        _content.Children.Add(new Label { Text = scopeLabel, FontSize = 13, TextColor = Color.FromArgb("#666") });
+        _content.Children.Add(new Label { Text = scopeLabel, FontSize = 13, TextColor = _modeColors.MutedForeground });
 
         var interviews = await _service.GetInterviewsAsync(_auth.CurrentUsername, companion.Id);
         if (_selectedInterview != null)
@@ -128,6 +136,7 @@ public class CompanionsPage : ContentPage
             _auth.CurrentUsername,
             companion,
             _service,
+            _privacyMode,
             interview => _selectedInterview = interview,
             deletedInterviewId =>
             {
@@ -148,9 +157,9 @@ public class CompanionsPage : ContentPage
         }
         _content.Children.Add(interviewActions);
         if (_selectedInterview != null)
-            _content.Children.Add(new Label { Text = $"Current interview: {CompanionInterviewPresentation.StepText(_selectedInterview)}", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#5B63EE") });
+            _content.Children.Add(new Label { Text = $"Current interview: {CompanionInterviewPresentation.StepText(_selectedInterview)}", FontAttributes = FontAttributes.Bold, TextColor = _modeColors.Accent });
 
-        _content.Children.Add(Heading(_showArchived ? "Data Points (including archived)" : "Active Data Points", 18));
+        _content.Children.Add(PageHeading(_showArchived ? "Data Points (including archived)" : "Active Data Points", 18));
         var pointActions = new HorizontalStackLayout { Spacing = 8 };
         var addPoint = Button("+ Add Data Point", "#2E7D32", Colors.White);
         var allPoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, _showArchived);
@@ -165,7 +174,7 @@ public class CompanionsPage : ContentPage
             {
                 Text = $"{modeVisiblePoints.Count} / {allPoints.Count} shown",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#E65100"),
+                TextColor = _modeColors.Accent,
                 FontAttributes = FontAttributes.Bold
             });
 
@@ -175,7 +184,13 @@ public class CompanionsPage : ContentPage
             new("No game", null, true)
         };
         gameOptions.AddRange(games.Select(x => new CompanionPointFilterOption(x.DisplayName, x.GameId, false)));
-        var gameFilter = new Picker { Title = "Game", ItemsSource = gameOptions, ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label)) };
+        var gameFilter = new Picker
+        {
+            ItemsSource = gameOptions,
+            ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label)),
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222")
+        };
         var selectedGameOption = gameOptions.FirstOrDefault(x => x.IsNone == _pointGameFilterIsNoGame &&
             string.Equals(x.Value, _pointGameFilter, StringComparison.OrdinalIgnoreCase));
         if (selectedGameOption == null)
@@ -199,7 +214,13 @@ public class CompanionsPage : ContentPage
             new("No category", null, true)
         };
         categoryOptions.AddRange(visibleCategories.Select(x => new CompanionPointFilterOption(x, x, false)));
-        var categoryFilter = new Picker { Title = "Category", ItemsSource = categoryOptions, ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label)) };
+        var categoryFilter = new Picker
+        {
+            ItemsSource = categoryOptions,
+            ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label)),
+            BackgroundColor = Colors.White,
+            TextColor = Color.FromArgb("#222")
+        };
         var selectedCategoryOption = categoryOptions.FirstOrDefault(x => x.IsNone == _pointCategoryFilterIsNoCategory &&
             string.Equals(x.Value, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase));
         if (selectedCategoryOption == null)
@@ -214,13 +235,31 @@ public class CompanionsPage : ContentPage
             _pointCategoryFilter = option.Value; _pointCategoryFilterIsNoCategory = option.IsNone;
             await RefreshAsync();
         };
+        var gameFilterStack = new VerticalStackLayout
+        {
+            Spacing = 3,
+            Children =
+            {
+                new Label { Text = "Game", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = _modeColors.Foreground },
+                gameFilter
+            }
+        };
+        var categoryFilterStack = new VerticalStackLayout
+        {
+            Spacing = 3,
+            Children =
+            {
+                new Label { Text = "Category", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = _modeColors.Foreground },
+                categoryFilter
+            }
+        };
         _content.Children.Add(new Grid
         {
             ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) },
             ColumnSpacing = 8,
-            Children = { gameFilter, categoryFilter }
+            Children = { gameFilterStack, categoryFilterStack }
         });
-        Grid.SetColumn(categoryFilter, 1);
+        Grid.SetColumn(categoryFilterStack, 1);
 
         var points = modeVisiblePoints.Where(x =>
                 (_pointGameFilterIsNoGame ? string.IsNullOrWhiteSpace(x.GameId) :
@@ -228,7 +267,7 @@ public class CompanionsPage : ContentPage
                 (_pointCategoryFilterIsNoCategory ? string.IsNullOrWhiteSpace(x.Category) :
                     _pointCategoryFilter == null || string.Equals(x.Category, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase)))
             .ToList();
-        if (points.Count == 0) _content.Children.Add(new Label { Text = "No data points yet.", TextColor = Color.FromArgb("#999") });
+        if (points.Count == 0) _content.Children.Add(new Label { Text = "No data points yet.", TextColor = _modeColors.MutedForeground });
         foreach (var point in points)
         {
             var pointGames = GamesForDisplayMode(allGames, displayMode, point.GameId);
@@ -569,6 +608,7 @@ public class CompanionsPage : ContentPage
         .OrderBy(game => game.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
+    private Label PageHeading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = _modeColors.Foreground };
     private static Label Heading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") };
     private static Button Button(string text, string background, Color foreground) => new() { Text = text, BackgroundColor = Color.FromArgb(background), TextColor = foreground, CornerRadius = 7, FontSize = 12, HeightRequest = 38, Padding = new Thickness(10, 0) };
     private static Frame Card(View content) => new() { Content = content, Padding = 12, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };

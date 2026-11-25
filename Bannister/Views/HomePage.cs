@@ -2626,31 +2626,22 @@ public class HomePage : ContentPage
 
     private void UpdateModeVisuals(ActivityDisplayMode mode)
     {
+        var theme = ModeTheme.Get(mode);
+        BackgroundColor = theme.Background;
+        _displayModeBtn.TextColor = theme.Accent;
+        _displayModeBtn.BorderColor = theme.Accent;
         switch (mode)
         {
             case ActivityDisplayMode.PublicOnly:
-                BackgroundColor = Color.FromArgb("#1A1A2E");
                 _displayModeBtn.Text = " Public";
-                _displayModeBtn.TextColor =
-                    Color.FromArgb("#00E5FF");
-                _displayModeBtn.BorderColor =
-                    Color.FromArgb("#00E5FF");
                 break;
 
             case ActivityDisplayMode.PrivateOnly:
-                BackgroundColor = Color.FromArgb("#2D0A4E");
                 _displayModeBtn.Text = " Private";
-                _displayModeBtn.TextColor =
-                    Color.FromArgb("#FFD700");
-                _displayModeBtn.BorderColor =
-                    Color.FromArgb("#FFD700");
                 break;
 
             default:
-                BackgroundColor = Color.FromArgb("#6B73FF");
                 _displayModeBtn.Text = "\u26A1 All";
-                _displayModeBtn.TextColor = Colors.White;
-                _displayModeBtn.BorderColor = Colors.White;
                 break;
         }
     }

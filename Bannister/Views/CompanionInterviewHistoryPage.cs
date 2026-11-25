@@ -8,6 +8,7 @@ public sealed class CompanionInterviewHistoryPage : ContentPage
     private readonly string _username;
     private readonly Companion _companion;
     private readonly CompanionService _service;
+    private readonly PrivacyModeService _privacyMode;
     private readonly Action<CompanionInterview> _onSelected;
     private readonly Action<int> _onDeleted;
     private readonly VerticalStackLayout _content = new() { Padding = 16, Spacing = 10 };
@@ -17,22 +18,25 @@ public sealed class CompanionInterviewHistoryPage : ContentPage
         string username,
         Companion companion,
         CompanionService service,
+        PrivacyModeService privacyMode,
         Action<CompanionInterview> onSelected,
         Action<int> onDeleted)
     {
         _username = username;
         _companion = companion;
         _service = service;
+        _privacyMode = privacyMode;
         _onSelected = onSelected;
         _onDeleted = onDeleted;
         Title = $"{companion.Nickname} · Interview History";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+        BackgroundColor = ModeTheme.GetBackground(ActivityDisplayMode.All);
         Content = new ScrollView { Content = _content };
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        BackgroundColor = ModeTheme.GetBackground(_privacyMode.GetDisplayMode(_username));
         await LoadAsync();
     }
 
@@ -43,13 +47,14 @@ public sealed class CompanionInterviewHistoryPage : ContentPage
         try
         {
             var interviews = await _service.GetInterviewsAsync(_username, _companion.Id);
+            var modeColors = ModeTheme.Get(_privacyMode.GetDisplayMode(_username));
             _content.Children.Clear();
             if (interviews.Count == 0)
             {
                 _content.Children.Add(new Label
                 {
                     Text = "No interviews yet.",
-                    TextColor = Color.FromArgb("#999")
+                    TextColor = modeColors.MutedForeground
                 });
                 return;
             }
