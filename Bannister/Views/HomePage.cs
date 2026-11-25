@@ -7,7 +7,7 @@ using System.IO;
 
 namespace Bannister.Views;
 
-public class HomePage : ContentPage
+public class HomePage : Bannister.Views.ModeThemedPage
 {
     private sealed record HomeNavButton(string Id, Button SourceButton);
 
@@ -274,7 +274,7 @@ public class HomePage : ContentPage
         _secondaryQueueToolbarItem.Clicked += OnSecondaryQueueToolbarClicked;
 
         Title = "Bannister";
-        BackgroundColor = Color.FromArgb("#6B73FF");
+
 
         BuildUI();
         _ = RefreshOwnerModeUiAsync();
@@ -2626,10 +2626,8 @@ public class HomePage : ContentPage
 
     private void UpdateModeVisuals(ActivityDisplayMode mode)
     {
-        var theme = ModeTheme.Get(mode);
-        BackgroundColor = theme.Background;
-        _displayModeBtn.TextColor = theme.Accent;
-        _displayModeBtn.BorderColor = theme.Accent;
+        _displayModeBtn.SetDynamicResource(Button.TextColorProperty, "ModeAccent");
+        _displayModeBtn.SetDynamicResource(Button.BorderColorProperty, "ModeAccent");
         switch (mode)
         {
             case ActivityDisplayMode.PublicOnly:

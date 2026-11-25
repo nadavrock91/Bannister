@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ZeroCountsPage : ContentPage
+public class ZeroCountsPage : Bannister.Views.ModeThemedPage
 {
     private enum ViewMode
     {
@@ -29,7 +29,7 @@ public class ZeroCountsPage : ContentPage
         _games = games;
 
         Title = "Zero Counts";
-        BackgroundColor = Color.FromArgb("#111827");
+
 
         var root = new VerticalStackLayout
         {

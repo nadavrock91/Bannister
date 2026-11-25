@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class SystemsYearlyProgressPage : ContentPage
+public class SystemsYearlyProgressPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
@@ -18,7 +18,7 @@ public class SystemsYearlyProgressPage : ContentPage
         _db = db;
 
         Title = "Yearly Progress";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

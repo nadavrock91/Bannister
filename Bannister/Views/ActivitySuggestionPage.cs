@@ -2,7 +2,7 @@ using Bannister.Models;
 
 namespace Bannister.Views;
 
-public class ActivitySuggestionPage : ContentPage
+public class ActivitySuggestionPage : Bannister.Views.ModeThemedPage
 {
     private readonly List<ActivitySuggestion> _suggestions;
     private readonly HashSet<string> _selectedIds = new(
@@ -15,7 +15,7 @@ public class ActivitySuggestionPage : ContentPage
     {
         _suggestions = suggestions;
         Title = "Activity Suggestions";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         var stack = new VerticalStackLayout
         {

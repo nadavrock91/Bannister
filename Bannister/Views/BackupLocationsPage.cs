@@ -4,7 +4,7 @@ using CommunityToolkit.Maui.Storage;
 
 namespace Bannister.Views;
 
-public class BackupLocationsPage : ContentPage
+public class BackupLocationsPage : Bannister.Views.ModeThemedPage
 {
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
@@ -25,7 +25,7 @@ public class BackupLocationsPage : ContentPage
         _db = db;
         _auth = auth;
         Title = "Backup Locations";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildShell();
     }
 

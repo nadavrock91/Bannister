@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ContextMenuOrderPage : ContentPage
+public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
 {
     private readonly ContextMenuOrderService _orderService;
     private readonly AuthService _auth;
@@ -16,7 +16,7 @@ public class ContextMenuOrderPage : ContentPage
         _orderService = orderService;
         _auth = auth;
         Title = "Context Menu Order";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

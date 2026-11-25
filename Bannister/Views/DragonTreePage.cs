@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace Bannister.Views;
 
 [QueryProperty(nameof(GameId), "gameId")]
-public class DragonTreePage : ContentPage
+public class DragonTreePage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DragonService _dragonService;
@@ -37,7 +37,7 @@ public class DragonTreePage : ContentPage
         _dragonService = dragonService;
 
         Title = "Dragon Hierarchy";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Main hub page for all chart visualizations
 /// </summary>
-public class ChartsHubPage : ContentPage
+public class ChartsHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
@@ -21,7 +21,7 @@ public class ChartsHubPage : ContentPage
         _db = db;
 
         Title = "Charts";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

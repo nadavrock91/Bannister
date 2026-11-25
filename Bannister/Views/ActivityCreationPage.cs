@@ -19,7 +19,7 @@ namespace Bannister.Views;
 [QueryProperty(nameof(PrefillEndDate), "prefillEndDate")]
 [QueryProperty(nameof(PrefillStreakTrackedStr), "prefillStreakTracked")]
 [QueryProperty(nameof(PrefillStreakTargetDays), "prefillStreakTargetDays")]
-public class ActivityCreationPage : ContentPage
+public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;

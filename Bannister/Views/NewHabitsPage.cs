@@ -4,7 +4,7 @@ using Bannister.Services;
 namespace Bannister.Views;
 
 [QueryProperty(nameof(Frequency), "frequency")]
-public class NewHabitsPage : ContentPage
+public class NewHabitsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
@@ -52,7 +52,7 @@ public class NewHabitsPage : ContentPage
         _db = db;
 
         Title = "Daily Habits";
-        BackgroundColor = Color.FromArgb("#5C6BC0"); // Default indigo for Daily
+         // Default indigo for Daily
 
         BuildUI();
     }
@@ -92,7 +92,7 @@ public class NewHabitsPage : ContentPage
             _ => "🌅"
         };
 
-        BackgroundColor = Color.FromArgb(bgColor);
+
         Title = $"{_frequency} Habits";
 
         if (_lblHeader != null)

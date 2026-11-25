@@ -8,7 +8,7 @@ using Bannister.Services;
 namespace Bannister.Views;
 
 [QueryProperty(nameof(GameId), "gameId")]
-public partial class SetupGoalPage : ContentPage
+public partial class SetupGoalPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DragonService _dragons;

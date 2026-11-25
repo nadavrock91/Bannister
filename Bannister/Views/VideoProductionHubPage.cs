@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class VideoProductionHubPage : ContentPage
+public class VideoProductionHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly PromptTechniqueService _promptTechniqueService;
@@ -13,7 +13,7 @@ public class VideoProductionHubPage : ContentPage
         _auth = auth;
         _promptTechniqueService = promptTechniqueService;
         Title = "Video Production";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// Modal page for changing the user's password.
 /// All password fields are masked (IsPassword = true).
 /// </summary>
-public class ChangePasswordPage : ContentPage
+public class ChangePasswordPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DatabaseService _db;
@@ -24,7 +24,7 @@ public class ChangePasswordPage : ContentPage
         _backup = backup;
 
         Title = "Change Password";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

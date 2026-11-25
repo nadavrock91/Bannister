@@ -10,7 +10,7 @@ using Microsoft.Maui.Controls;
 
 namespace Bannister.Views;
 
-public partial class EditActivityPage : ContentPage
+public partial class EditActivityPage : Bannister.Views.ModeThemedPage
 {
     private const string NewCategoryOption = "+ New Category...";
     private const string DefaultImagePathKey =

@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Bannister.Views.AttemptsPage"
-             Title="Attempts"
-             BackgroundColor="#F5F7FC">
+             Title="Attempts">
     
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="20">
@@ -105,4 +104,4 @@
         </VerticalStackLayout>
     </ScrollView>
     
-</ContentPage>
+</mode:ModeThemedPage>

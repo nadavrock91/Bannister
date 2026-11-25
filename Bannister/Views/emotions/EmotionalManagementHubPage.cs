@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class EmotionalManagementHubPage : ContentPage
+public class EmotionalManagementHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly EmotionService _emotions;
@@ -14,7 +14,7 @@ public class EmotionalManagementHubPage : ContentPage
         _emotions = emotions;
         _ideasService = ideasService;
         Title = "Emotional Management";
-        BackgroundColor = Color.FromArgb("#FFF8E1");
+
         BuildUI();
     }
 

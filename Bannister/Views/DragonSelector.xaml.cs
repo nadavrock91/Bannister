@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Bannister.Views;
 
-public partial class DragonSelector : ContentPage
+public partial class DragonSelector : Bannister.Views.ModeThemedPage
 {
     private string? _selectedImage = null;
     private readonly TaskCompletionSource<string?> _completion = new();

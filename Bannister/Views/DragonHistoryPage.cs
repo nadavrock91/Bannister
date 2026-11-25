@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Page showing the history of daily logs for a dragon attempt
 /// </summary>
-public class DragonHistoryPage : ContentPage
+public class DragonHistoryPage : Bannister.Views.ModeThemedPage
 {
     private readonly Dragon _dragon;
     private readonly Attempt _attempt;
@@ -22,7 +22,7 @@ public class DragonHistoryPage : ContentPage
         _attempt = attempt;
 
         Title = "Dragon History";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

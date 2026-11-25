@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class MusicProductionHubPage : ContentPage
+public class MusicProductionHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly MusicProductionService _musicService;
@@ -19,7 +19,7 @@ public class MusicProductionHubPage : ContentPage
         _customPrompts = customPrompts;
 
         Title = "Music Production";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

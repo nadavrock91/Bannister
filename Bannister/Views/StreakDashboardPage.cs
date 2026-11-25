@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Dashboard page showing all streak-tracked activities across all games
 /// with collapsible attempt cards under each activity
 /// </summary>
-public class StreakDashboardPage : ContentPage
+public class StreakDashboardPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
@@ -28,7 +28,7 @@ public class StreakDashboardPage : ContentPage
         _games = games;
 
         Title = "Streak Tracking";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

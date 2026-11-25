@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Bannister.Views;
 
-public class DesignationsPage : ContentPage
+public class DesignationsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DesignationService _designations;
@@ -24,7 +24,7 @@ public class DesignationsPage : ContentPage
         _auth = auth;
         _designations = designations;
         Title = "Designations";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

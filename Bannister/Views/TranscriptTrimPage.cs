@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
-public class TranscriptTrimPage : ContentPage
+public class TranscriptTrimPage : Bannister.Views.ModeThemedPage
 {
     private readonly List<TalkingHeadCutterPage.TranscriptWord> _transcriptWords;
     private readonly string _originalText;
@@ -35,7 +35,7 @@ public class TranscriptTrimPage : ContentPage
         _onKeepDataChanged = onKeepDataChanged;
 
         Title = "Trim & Compare";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _targetMinutesEntry = CreateEntry("3");
         _keepListEntry = CreateEditor("Paste keep = 1,3,5...\nratings = 1:8,2:7...", 120);

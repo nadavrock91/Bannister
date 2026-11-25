@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Bannister.Views;
 
-public class ListsPage : ContentPage
+public class ListsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ListsService _lists;
@@ -28,7 +28,7 @@ public class ListsPage : ContentPage
             ?? Application.Current?.Handler?.MauiContext?.Services
                 .GetService<IdeaLoggerService>();
         Title = "Lists";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

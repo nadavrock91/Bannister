@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class SortActivitiesPage : ContentPage
+public class SortActivitiesPage : Bannister.Views.ModeThemedPage
 {
     private readonly ActivityService _activityService;
     private readonly GameService _gameService;
@@ -40,7 +40,7 @@ public class SortActivitiesPage : ContentPage
         _gameService = gameService;
         _auth = auth;
         Title = "Sort Activities";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

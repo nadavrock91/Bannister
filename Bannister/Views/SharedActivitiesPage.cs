@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class SharedActivitiesPage : ContentPage
+public class SharedActivitiesPage : Bannister.Views.ModeThemedPage
 {
     private readonly SharedActivityService _sharedService;
     private readonly ActivityService _activityService;
@@ -32,7 +32,7 @@ public class SharedActivitiesPage : ContentPage
         _db = db;
         _streakService = streakService;
         Title = "Shared Activities";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

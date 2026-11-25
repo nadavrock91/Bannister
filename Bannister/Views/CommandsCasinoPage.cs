@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace Bannister.Views;
 
-public class CommandsCasinoPage : ContentPage
+public class CommandsCasinoPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly CommandsCasinoService _casino;
@@ -51,7 +51,7 @@ public class CommandsCasinoPage : ContentPage
         _casino = casino;
 
         Title = "Commands Casino";
-        BackgroundColor = Color.FromArgb("#F6F2EA");
+
         BuildUI();
     }
 

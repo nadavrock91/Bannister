@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
-public class ClipsExperimentPage : ContentPage
+public class ClipsExperimentPage : Bannister.Views.ModeThemedPage
 {
     private readonly ClipsExperimentService _service;
     private readonly AuthService _auth;
@@ -33,7 +33,7 @@ public class ClipsExperimentPage : ContentPage
         _service = service;
         _auth = auth;
         Title = "AI Clips Experiment";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

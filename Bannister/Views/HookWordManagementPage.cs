@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class HookWordManagementPage : ContentPage
+public class HookWordManagementPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly HookWordService _hookWordService;
@@ -27,7 +27,7 @@ public class HookWordManagementPage : ContentPage
         _auth = auth;
         _hookWordService = hookWordService;
         Title = "Hook Word Pool Management";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

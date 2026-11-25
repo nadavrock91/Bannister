@@ -5,7 +5,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class QueueAuditPage : ContentPage
+public class QueueAuditPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly IdeasService _ideas;
@@ -36,7 +36,7 @@ public class QueueAuditPage : ContentPage
         _db = db;
 
         Title = "Queue Audit";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _databaseCountLabel = CreateSummaryLabel("Database: 0 ideas", "#333333");
         _pendingCountLabel = CreateSummaryLabel("Pending on server: 0", "#EF6C00");

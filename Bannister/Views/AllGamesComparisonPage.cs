@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Shows bar chart comparison of all games, with monthly snapshots that you can scroll through
 /// </summary>
-public class AllGamesComparisonPage : ContentPage
+public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
@@ -26,7 +26,7 @@ public class AllGamesComparisonPage : ContentPage
         _db = db;
 
         Title = "All Games Comparison";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

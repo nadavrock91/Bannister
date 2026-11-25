@@ -8,7 +8,7 @@ namespace Bannister.Views;
 /// Supports adding items by category, attaching audio files,
 /// or generating audio from text.
 /// </summary>
-public class AudioLibraryPage : ContentPage
+public class AudioLibraryPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly AudioLibraryService _audioLib;
@@ -29,7 +29,7 @@ public class AudioLibraryPage : ContentPage
         _audioLib = audioLib;
 
         Title = "Audio Library";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

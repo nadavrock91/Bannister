@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Page showing all clips/shots for a line with progress tracking.
 /// Shows X/Y clips ready at top, then list of clips with checkmarks.
 /// </summary>
-public class ShotBreakdownPage : ContentPage
+public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
 {
     private readonly StoryProductionService _storyService;
     private readonly StoryLine _line;
@@ -22,7 +22,7 @@ public class ShotBreakdownPage : ContentPage
         _line = line;
         
         Title = $"Shot Breakdown - Line #{line.LineOrder}";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
         LoadClips();

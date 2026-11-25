@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class RoutinesPage : ContentPage
+public class RoutinesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly RoutineService _routines;
@@ -16,7 +16,7 @@ public class RoutinesPage : ContentPage
         _auth = auth;
         _routines = routines;
         Title = "Routines";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

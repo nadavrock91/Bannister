@@ -43,8 +43,9 @@ public sealed class GridGeometry
     }
 }
 
-public class FullScreenImagePage : ContentPage
+public class FullScreenImagePage : Bannister.Views.ModeThemedPage
 {
+    protected override bool PreserveCanvasBackground => true;
     private enum HandleKind { MainV, MainH, BottomV, BottomH }
 
     private sealed class Handle
@@ -62,7 +63,7 @@ public class FullScreenImagePage : ContentPage
     public FullScreenImagePage(ImageSource source)
     {
         Title = "";
-        BackgroundColor = Colors.Black;
+
         NavigationPage.SetHasNavigationBar(this, false);
 
         var image = new Image
@@ -108,7 +109,7 @@ public class FullScreenImagePage : ContentPage
         Action<bool[,]>? onSelectionChanged)
     {
         Title = "";
-        BackgroundColor = Colors.Black;
+
         NavigationPage.SetHasNavigationBar(this, false);
 
         // Deep-copy selection
@@ -295,7 +296,7 @@ public class FullScreenImagePage : ContentPage
         Action<GridGeometry>? onGeometryChanged)
     {
         Title = "";
-        BackgroundColor = Colors.Black;
+
         NavigationPage.SetHasNavigationBar(this, false);
 
         var g = geometry.Clone();

@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class CompanionsPage : ContentPage
+public class CompanionsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly CompanionService _service;
@@ -17,20 +17,18 @@ public class CompanionsPage : ContentPage
     private string? _pointCategoryFilter;
     private bool _pointGameFilterIsNoGame;
     private bool _pointCategoryFilterIsNoCategory;
-    private ModeThemeColors _modeColors = ModeTheme.Get(ActivityDisplayMode.All);
 
     public CompanionsPage(AuthService auth, CompanionService service, GameService games, PrivacyModeService privacyMode)
     {
         _auth = auth; _service = service; _games = games; _privacyMode = privacyMode;
         Title = "Companions";
-        BackgroundColor = _modeColors.Background;
+
         Content = new ScrollView { Content = _content };
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        ApplyModeTheme();
         await _service.EnsureMetaAsync(_auth.CurrentUsername);
         await RefreshAsync();
     }
@@ -41,16 +39,10 @@ public class CompanionsPage : ContentPage
         if (_selected == null) await BuildListAsync(); else await BuildDetailAsync();
     }
 
-    private void ApplyModeTheme()
-    {
-        _modeColors = ModeTheme.Get(_privacyMode.GetDisplayMode(_auth.CurrentUsername));
-        BackgroundColor = _modeColors.Background;
-    }
-
     private async Task BuildListAsync()
     {
         _content.Children.Add(PageHeading("Companions", 24));
-        _content.Children.Add(new Label { Text = "LLM companions that learn durable context about you through interviews.", FontSize = 13, TextColor = _modeColors.MutedForeground });
+        _content.Children.Add(new Label { Text = "LLM companions that learn durable context about you through interviews.", FontSize = 13, TextColor = Colors.White });
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         var add = Button("+ Add Companion", "#5B63EE", Colors.White);
         add.Clicked += async (_, _) =>
@@ -122,7 +114,7 @@ public class CompanionsPage : ContentPage
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         var games = GamesForDisplayMode(allGames, displayMode);
         string scopeLabel = ScopeLabel(companion, gamesById);
-        _content.Children.Add(new Label { Text = scopeLabel, FontSize = 13, TextColor = _modeColors.MutedForeground });
+        _content.Children.Add(new Label { Text = scopeLabel, FontSize = 13, TextColor = Colors.White });
 
         var interviews = await _service.GetInterviewsAsync(_auth.CurrentUsername, companion.Id);
         if (_selectedInterview != null)
@@ -157,7 +149,7 @@ public class CompanionsPage : ContentPage
         }
         _content.Children.Add(interviewActions);
         if (_selectedInterview != null)
-            _content.Children.Add(new Label { Text = $"Current interview: {CompanionInterviewPresentation.StepText(_selectedInterview)}", FontAttributes = FontAttributes.Bold, TextColor = _modeColors.Accent });
+            _content.Children.Add(new Label { Text = $"Current interview: {CompanionInterviewPresentation.StepText(_selectedInterview)}", FontAttributes = FontAttributes.Bold, TextColor = Colors.White });
 
         _content.Children.Add(PageHeading(_showArchived ? "Data Points (including archived)" : "Active Data Points", 18));
         var pointActions = new HorizontalStackLayout { Spacing = 8 };
@@ -174,7 +166,7 @@ public class CompanionsPage : ContentPage
             {
                 Text = $"{modeVisiblePoints.Count} / {allPoints.Count} shown",
                 FontSize = 13,
-                TextColor = _modeColors.Accent,
+                TextColor = Colors.White,
                 FontAttributes = FontAttributes.Bold
             });
 
@@ -240,7 +232,7 @@ public class CompanionsPage : ContentPage
             Spacing = 3,
             Children =
             {
-                new Label { Text = "Game", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = _modeColors.Foreground },
+                new Label { Text = "Game", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Colors.White },
                 gameFilter
             }
         };
@@ -249,7 +241,7 @@ public class CompanionsPage : ContentPage
             Spacing = 3,
             Children =
             {
-                new Label { Text = "Category", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = _modeColors.Foreground },
+                new Label { Text = "Category", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Colors.White },
                 categoryFilter
             }
         };
@@ -267,7 +259,7 @@ public class CompanionsPage : ContentPage
                 (_pointCategoryFilterIsNoCategory ? string.IsNullOrWhiteSpace(x.Category) :
                     _pointCategoryFilter == null || string.Equals(x.Category, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase)))
             .ToList();
-        if (points.Count == 0) _content.Children.Add(new Label { Text = "No data points yet.", TextColor = _modeColors.MutedForeground });
+        if (points.Count == 0) _content.Children.Add(new Label { Text = "No data points yet.", TextColor = Colors.White });
         foreach (var point in points)
         {
             var pointGames = GamesForDisplayMode(allGames, displayMode, point.GameId);
@@ -608,7 +600,7 @@ public class CompanionsPage : ContentPage
         .OrderBy(game => game.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
-    private Label PageHeading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = _modeColors.Foreground };
+    private Label PageHeading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Colors.White };
     private static Label Heading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") };
     private static Button Button(string text, string background, Color foreground) => new() { Text = text, BackgroundColor = Color.FromArgb(background), TextColor = foreground, CornerRadius = 7, FontSize = 12, HeightRequest = 38, Padding = new Thickness(10, 0) };
     private static Frame Card(View content) => new() { Content = content, Padding = 12, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };

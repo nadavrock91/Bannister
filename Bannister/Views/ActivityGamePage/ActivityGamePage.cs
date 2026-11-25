@@ -15,7 +15,7 @@ namespace Bannister.Views;
 [QueryProperty(nameof(GroupingIdStr), "groupingId")]
 [QueryProperty(nameof(TargetCategory), "targetCategory")]
 [QueryProperty(nameof(TargetActivityId), "targetActivityId")]
-public partial class ActivityGamePage : ContentPage
+public partial class ActivityGamePage : Bannister.Views.ModeThemedPage
 {
     // Services
     private readonly AuthService _auth;
@@ -156,7 +156,7 @@ public partial class ActivityGamePage : ContentPage
         _lastCalculated = lastCalculated;
 
         Title = "Game";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         try
         {

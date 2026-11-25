@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public sealed class CompanionInterviewHistoryPage : ContentPage
+public sealed class CompanionInterviewHistoryPage : Bannister.Views.ModeThemedPage
 {
     private readonly string _username;
     private readonly Companion _companion;
@@ -29,14 +29,14 @@ public sealed class CompanionInterviewHistoryPage : ContentPage
         _onSelected = onSelected;
         _onDeleted = onDeleted;
         Title = $"{companion.Nickname} · Interview History";
-        BackgroundColor = ModeTheme.GetBackground(ActivityDisplayMode.All);
+
         Content = new ScrollView { Content = _content };
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        BackgroundColor = ModeTheme.GetBackground(_privacyMode.GetDisplayMode(_username));
+
         await LoadAsync();
     }
 
@@ -47,14 +47,13 @@ public sealed class CompanionInterviewHistoryPage : ContentPage
         try
         {
             var interviews = await _service.GetInterviewsAsync(_username, _companion.Id);
-            var modeColors = ModeTheme.Get(_privacyMode.GetDisplayMode(_username));
             _content.Children.Clear();
             if (interviews.Count == 0)
             {
                 _content.Children.Add(new Label
                 {
                     Text = "No interviews yet.",
-                    TextColor = modeColors.MutedForeground
+                    TextColor = Colors.White
                 });
                 return;
             }

@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bannister.Views;
 
-public class HooksFromRandomWordsPage : ContentPage
+public class HooksFromRandomWordsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly HookWordService _hookWordService;
@@ -129,7 +129,7 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             ?? throw new InvalidOperationException("HookWordService is not available.");
 
         Title = "Hooks from Random Words";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
-public class SmartTrimPage : ContentPage
+public class SmartTrimPage : Bannister.Views.ModeThemedPage
 {
     private readonly List<TalkingHeadCutterPage.TranscriptWord> _transcriptWords;
     private readonly Dictionary<int, int> _ratings;
@@ -35,7 +35,7 @@ public class SmartTrimPage : ContentPage
         _onVideoPathChanged = onVideoPathChanged;
 
         Title = "Smart Trim";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _suggestionsEditor = CreateEditor("Paste cut[n] / reason[n] / save[n] response here...", 120);
         _importStatusLabel = CreateMutedLabel("No suggestions imported");

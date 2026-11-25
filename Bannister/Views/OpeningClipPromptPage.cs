@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class OpeningClipPromptPage : ContentPage
+public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly CustomPromptService _customPrompts;
@@ -60,7 +60,7 @@ public class OpeningClipPromptPage : ContentPage
         _templateService = templateService;
         _imageSessionService = imageSessionService;
         Title = "Opening Clip Prompts";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

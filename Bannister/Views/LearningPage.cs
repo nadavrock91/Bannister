@@ -30,7 +30,7 @@ public class FocusSettings
 /// <summary>
 /// Learning hub page with Books and Videos sections
 /// </summary>
-public class LearningPage : ContentPage
+public class LearningPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly LearningService _learning;
@@ -102,7 +102,7 @@ public class LearningPage : ContentPage
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         
         Title = "Learning";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
     }
@@ -5587,7 +5587,7 @@ public class LearningPage : ContentPage
 
     #endregion
 }
-public class LearningSpeakersPage : ContentPage
+public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly LearningService _learning;
@@ -5598,7 +5598,7 @@ public class LearningSpeakersPage : ContentPage
         _auth = auth;
         _learning = learning;
         Title = "Speakers";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

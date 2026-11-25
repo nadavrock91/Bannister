@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class HomePopupsSettingsPage : ContentPage
+public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly HomePopupPreferenceService _service;
@@ -28,7 +28,7 @@ public class HomePopupsSettingsPage : ContentPage
         _service = service;
 
         Title = "HomePage Popups";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _cardsStack = new VerticalStackLayout { Spacing = 12 };
         BuildUI();

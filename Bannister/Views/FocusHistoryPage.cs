@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class FocusHistoryPage : ContentPage
+public class FocusHistoryPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly WeeklyChallengeService _challengeService;
@@ -19,7 +19,7 @@ public class FocusHistoryPage : ContentPage
         _challengeService = challengeService;
         _tasks = tasks;
         Title = "Focus History";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class CustomGameEditPage : ContentPage
+public class CustomGameEditPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly CustomGameService _customGames;
@@ -25,7 +25,7 @@ public class CustomGameEditPage : ContentPage
         _customGames = customGames;
         _gameId = gameId;
         Title = gameId.HasValue ? "Edit Custom Game" : "New Custom Game";
-        BackgroundColor = Color.FromArgb("#FAFAFA");
+
 
         _endTypePicker.ItemsSource = new List<string> { "Timer (Seconds)", "Date", "Amount" };
         _endTypePicker.SelectedIndex = 0;

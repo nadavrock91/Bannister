@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class PromptsLibraryPage : ContentPage
+public class PromptsLibraryPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly PromptLibraryService _libraryService;
@@ -18,7 +18,7 @@ public class PromptsLibraryPage : ContentPage
         _libraryService = libraryService;
 
         Title = "Prompts Library";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

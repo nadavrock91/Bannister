@@ -129,7 +129,7 @@ public partial class ActivityGamePage
     private async Task CheckAndMoveExpiredActivitiesAsync()
     {
         System.Diagnostics.Debug.WriteLine($"[EXPIRED CHECK] Method entered, _game is null: {_game == null}");
-        
+
         if (_game == null) return;
 
         string lastCheckedKey = $"ExpiredActivitiesCheck_{_auth.CurrentUsername}_{_game.GameId}";
@@ -290,14 +290,7 @@ public partial class ActivityGamePage
                             a.ActivityVisibility == 2).ToList(),
             _ => activities
         };
-        BackgroundColor = displayMode switch
-        {
-            ActivityDisplayMode.PublicOnly =>
-                Color.FromArgb("#1A1A2E"),
-            ActivityDisplayMode.PrivateOnly =>
-                Color.FromArgb("#2D0A4E"),
-            _ => Color.FromArgb("#F5F5F5")
-        };
+
 
         return activities;
     }

@@ -7,7 +7,7 @@ namespace ConversationPractice.Views;
 /// <summary>
 /// Page for managing custom conversation scenarios (edit/delete)
 /// </summary>
-public class ManageScenariosPage : ContentPage
+public class ManageScenariosPage : Bannister.Views.ModeThemedPage
 {
     private readonly ConversationService _conversationService;
     private readonly string? _username;
@@ -19,7 +19,7 @@ public class ManageScenariosPage : ContentPage
         _username = username;
 
         Title = "Manage Scenarios";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

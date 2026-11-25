@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ToBeTestedPage : ContentPage
+public class ToBeTestedPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
@@ -21,7 +21,7 @@ public class ToBeTestedPage : ContentPage
         _exp = exp;
 
         Title = "To Be Tested";
-        BackgroundColor = Color.FromArgb("#FAFAFA");
+
 
         _listStack = new VerticalStackLayout
         {

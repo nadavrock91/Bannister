@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class DailyRemindersPage : ContentPage
+public class DailyRemindersPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DailyReminderService _reminderService;
@@ -19,7 +19,7 @@ public class DailyRemindersPage : ContentPage
         _reminderService = reminderService;
         _taskService = taskService;
         Title = "Daily Reminders";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

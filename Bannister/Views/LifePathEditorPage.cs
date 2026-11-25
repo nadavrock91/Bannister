@@ -93,13 +93,13 @@ public class EditorBlock
     public int Id { get; set; } public int? ParentId { get; set; } public string GameId { get; set; } = ""; public string Label { get; set; } = ""; public string Reason { get; set; } = ""; public string AnalysisNote { get; set; } = ""; public string EvidenceEntryIds { get; set; } = "[]"; public DateTime StartDate { get; set; } public DateTime? EndDate { get; set; } public int Level { get; set; } public string ColorHex { get; set; } = "";
 }
 
-public class LifePathEditorPage : ContentPage
+public class LifePathEditorPage : Bannister.Views.ModeThemedPage
 {
     private readonly Game _game; private readonly LifePathService _lifePathService; private readonly GameService _gameService; private readonly AuthService _auth; private readonly DatabaseService _db;
     private bool _isSaving; private int? _selectedBlockId; private VerticalStackLayout _timelineRows = null!; private VerticalStackLayout _detailPanel = null!; private List<EditorBlock> _blocks = new(); private List<PeriodData> _periods = new(); private DateTime _rangeStart, _rangeEnd; private double _totalSpanDays; private float _barW;
     private static readonly string[] Palette = { "#1F6FEB", "#F78166", "#3FB950", "#D2A8FF", "#FFA657", "#79C0FF", "#56D364", "#FF7B72", "#E3B341", "#58A6FF", "#BC8CFF", "#63E6BE" };
     public LifePathEditorPage(Game game, LifePathService lifePathService, GameService gameService, AuthService auth, DatabaseService? db = null)
-    { _game = game; _lifePathService = lifePathService; _gameService = gameService; _auth = auth; _db = db ?? Application.Current?.Handler?.MauiContext?.Services.GetService<DatabaseService>() ?? throw new InvalidOperationException("DatabaseService not available"); Title = game.DisplayName; BackgroundColor = Color.FromArgb("#0D1117"); BuildUI(); }
+    { _game = game; _lifePathService = lifePathService; _gameService = gameService; _auth = auth; _db = db ?? Application.Current?.Handler?.MauiContext?.Services.GetService<DatabaseService>() ?? throw new InvalidOperationException("DatabaseService not available"); Title = game.DisplayName;  BuildUI(); }
     protected override async void OnAppearing() { base.OnAppearing(); await LoadAsync(); }
     private void BuildUI()
     {

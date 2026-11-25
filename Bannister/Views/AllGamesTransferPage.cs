@@ -4,7 +4,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class AllGamesTransferPage : ContentPage
+public class AllGamesTransferPage : Bannister.Views.ModeThemedPage
 {
     private readonly GameService _games;
     private readonly ActivityService _activities;
@@ -43,7 +43,7 @@ public class AllGamesTransferPage : ContentPage
         _activities = activities;
         _auth = auth;
         Title = "Transfer All Games";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

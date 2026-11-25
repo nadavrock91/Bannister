@@ -4,7 +4,7 @@ using Bannister.Services;
 namespace Bannister.Views;
 
 [QueryProperty(nameof(GameId), "gameId")]
-public partial class ExpLogPage : ContentPage
+public partial class ExpLogPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DatabaseService _db;

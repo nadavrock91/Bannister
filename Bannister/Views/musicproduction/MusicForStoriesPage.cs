@@ -4,7 +4,7 @@ using Microsoft.Maui.Controls.Shapes;
 
 namespace Bannister.Views;
 
-public class MusicForStoriesPage : ContentPage
+public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly MusicProductionService _musicService;
@@ -88,7 +88,7 @@ public class MusicForStoriesPage : ContentPage
         _customPrompts = customPrompts;
 
         Title = "Music for Stories";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

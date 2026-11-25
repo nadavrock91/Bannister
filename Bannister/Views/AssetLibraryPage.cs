@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class AssetLibraryPage : ContentPage
+public class AssetLibraryPage : Bannister.Views.ModeThemedPage
 {
     private const string DefaultLookupPrompt = """
 You're helping me find reusable visual assets for a video production. Below is what I'm working on (a script or description) and the available asset library inventory.
@@ -88,7 +88,7 @@ Include every filename from the list above. Each filename gets at least one cate
         _assetService = assetService;
         _thumbnailService = thumbnailService;
         Title = "Asset Library";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

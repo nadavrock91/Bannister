@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Bannister.Views.ManageActivitiesPage"
-             Title="Manage Activities"
-             BackgroundColor="#F5F7FC">
+             Title="Manage Activities">
 
     <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="15">
         
@@ -184,4 +183,4 @@
             </Grid>
         </Frame>
     </Grid>
-</ContentPage>
+</mode:ModeThemedPage>

@@ -8,7 +8,7 @@ using Microsoft.Maui.Controls;
 
 namespace Bannister.Views;
 
-public partial class ActivitiesMissingImagesPage : ContentPage
+public partial class ActivitiesMissingImagesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;

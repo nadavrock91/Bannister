@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Page for handling broken streak decisions - one activity at a time
 /// </summary>
-public class StreakBrokenPage : ContentPage
+public class StreakBrokenPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
@@ -58,7 +58,7 @@ public class StreakBrokenPage : ContentPage
         _brokenStreaks = brokenStreaks;
         
         Title = "Streak Broken";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
         ShowCurrentStreak();

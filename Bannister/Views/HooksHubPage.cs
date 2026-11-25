@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class HooksHubPage : ContentPage
+public class HooksHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly HookWordService _hookWordService;
@@ -33,7 +33,7 @@ public class HooksHubPage : ContentPage
         _appSettings = appSettings;
 
         Title = "Hooks Creation";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         var stack = new VerticalStackLayout
         {

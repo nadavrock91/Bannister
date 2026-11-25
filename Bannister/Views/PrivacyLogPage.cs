@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class PrivacyLogPage : ContentPage
+public class PrivacyLogPage : Bannister.Views.ModeThemedPage
 {
     private readonly ActivityService _activityService;
     private readonly GameService _gameService;
@@ -29,7 +29,7 @@ public class PrivacyLogPage : ContentPage
         _gameService = gameService;
         _auth = auth;
         Title = "Privacy Log";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

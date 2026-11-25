@@ -2,14 +2,14 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class DevWorkflowPage : ContentPage
+public class DevWorkflowPage : Bannister.Views.ModeThemedPage
 {
     private readonly DevWorkflowView _view;
 
     public DevWorkflowPage(AuthService auth, DevWorkflowService service)
     {
         Title = "Dev Workflow";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         _view = new DevWorkflowView(
             () => auth.CurrentUsername,
             service,

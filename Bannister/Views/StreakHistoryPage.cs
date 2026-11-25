@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Page showing the history of changes for a specific streak
 /// </summary>
-public class StreakHistoryPage : ContentPage
+public class StreakHistoryPage : Bannister.Views.ModeThemedPage
 {
     private readonly StreakService _streaks;
     private readonly StreakAttempt _streak;
@@ -18,7 +18,7 @@ public class StreakHistoryPage : ContentPage
         _streak = streak;
 
         Title = "Streak History";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

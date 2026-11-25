@@ -3,7 +3,7 @@ using Bannister.Models;
 
 namespace Bannister.Views;
 
-public class SubActivitiesPage : ContentPage
+public class SubActivitiesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly SubActivityService _subActivityService;
@@ -16,7 +16,7 @@ public class SubActivitiesPage : ContentPage
         _auth = auth;
         _subActivityService = subActivityService;
         Title = "SubActivities";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

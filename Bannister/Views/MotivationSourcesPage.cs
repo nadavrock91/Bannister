@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class MotivationSourcesPage : ContentPage
+public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly MotivationService _service;
@@ -17,7 +17,7 @@ public class MotivationSourcesPage : ContentPage
         _auth = auth;
         _service = service;
         Title = "Motivation Sources";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         Content = new ScrollView
         {
             Content = new VerticalStackLayout

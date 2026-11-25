@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Tasks page with compact data grid view and detail panel.
 /// Includes weekly challenge widget with full functionality.
 /// </summary>
-public class TasksPage : ContentPage
+public class TasksPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly TaskService _tasks;
@@ -86,7 +86,7 @@ public class TasksPage : ContentPage
                 "PrivacyModeService not available");
         
         Title = "Tasks";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
     }

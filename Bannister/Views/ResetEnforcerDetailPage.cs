@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ResetEnforcerDetailPage : ContentPage
+public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
 {
     private readonly ResetEnforcerService _service;
     private readonly AuthService _auth;
@@ -25,7 +25,7 @@ public class ResetEnforcerDetailPage : ContentPage
         _auth = auth;
         _enforcer = enforcer;
         Title = enforcer.Name;
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

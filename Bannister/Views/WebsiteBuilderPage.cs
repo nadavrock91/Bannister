@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
-public class WebsiteBuilderPage : ContentPage
+public class WebsiteBuilderPage : Bannister.Views.ModeThemedPage
 {
     private const string DefaultPromptConstraints =
         "Never writes a fix prompt before an inspection. If the root cause isn't confirmed from actual code or a live API response, the only valid output is a READ-ONLY diagnostic prompt. A fix prompt without a preceding diagnostic is a guess, and guesses ship wrong commits.";
@@ -363,7 +363,7 @@ Output ONLY the C# code block.
         _gameService = gameService;
         _ownerMode = ownerMode;
         Title = "Website Builder";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _ideaPicker = CreatePicker("Load a saved idea...");
         _ideaPicker.SelectedIndexChanged += async (_, _) => await OnIdeaSelectedAsync();

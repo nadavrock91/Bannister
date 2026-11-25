@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class MotivationHubPage : ContentPage
+public class MotivationHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly MotivationService _service;
@@ -12,7 +12,7 @@ public class MotivationHubPage : ContentPage
         _auth = auth;
         _service = service;
         Title = "Motivation";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 12 };
         stack.Children.Add(new Label
         {

@@ -367,7 +367,7 @@ public partial class ActivityGamePage
         }
     }
 
-    private sealed class PendingActivityIdeaProcessPage : ContentPage
+    private sealed class PendingActivityIdeaProcessPage : Bannister.Views.ModeThemedPage
     {
         private readonly TaskCompletionSource<PendingIdeaProcessAction> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private bool _isCompleting;
@@ -375,7 +375,7 @@ public partial class ActivityGamePage
         private PendingActivityIdeaProcessPage(PendingActivityIdea idea, int count)
         {
             Title = "Process Pending Idea";
-            BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
+
 
             var createButton = new Button
             {

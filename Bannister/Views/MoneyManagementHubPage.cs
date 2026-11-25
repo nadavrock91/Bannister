@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class MoneyManagementHubPage : ContentPage
+public class MoneyManagementHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly MoneyManagementService _moneyManagement;
@@ -18,7 +18,7 @@ public class MoneyManagementHubPage : ContentPage
         _recurringExpenditureService = recurringExpenditureService;
 
         Title = "Money Management";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

@@ -8,7 +8,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Shows Level over time chart for each game in a grid of square cards
 /// </summary>
-public class LevelOverTimeChartsPage : ContentPage
+public class LevelOverTimeChartsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
@@ -23,7 +23,7 @@ public class LevelOverTimeChartsPage : ContentPage
         _db = db;
 
         Title = "Level Over Time";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

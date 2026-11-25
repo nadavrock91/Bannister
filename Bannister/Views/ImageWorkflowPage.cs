@@ -268,7 +268,7 @@ public static class ClipStartFrameConfig
 /// Step 1: Get Ideas → Step 2: Choose Idea → Step 3: Generate Image (direct attempt, then blockout on failure).
 /// Configured via ImageWorkflowConfig for different use cases.
 /// </summary>
-public class ImageWorkflowPage : ContentPage
+public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
 {
     private readonly ImageProject _project;
     private readonly ImageWorkflowConfig _config;
@@ -294,7 +294,7 @@ public class ImageWorkflowPage : ContentPage
         _config = config;
         _imageService = imageService;
         Title = config.PageTitle;
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         // Restore locked idea if it matches this workflow
         if (_project.LockedWorkflow == config.IdeasCategoryPrefix && !string.IsNullOrWhiteSpace(_project.LockedIdea))

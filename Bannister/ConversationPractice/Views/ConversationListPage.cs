@@ -8,7 +8,7 @@ namespace ConversationPractice.Views;
 /// Browse and select conversation practice scenarios
 /// Pure C# implementation - no XAML needed
 /// </summary>
-public class ConversationListPage : ContentPage
+public class ConversationListPage : Bannister.Views.ModeThemedPage
 {
     private readonly ConversationService _conversationService;
     private readonly string? _username;
@@ -23,7 +23,7 @@ public class ConversationListPage : ContentPage
         _username = username;
 
         Title = "Conversation Practice";
-        BackgroundColor = Colors.White;
+
 
         BuildUI();
     }

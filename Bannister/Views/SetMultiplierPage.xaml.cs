@@ -4,7 +4,7 @@ using Microsoft.Maui.Controls;
 
 namespace Bannister.Views;
 
-public partial class SetMultiplierPage : ContentPage
+public partial class SetMultiplierPage : Bannister.Views.ModeThemedPage
 {
     private readonly Activity _activity;
     private readonly TaskCompletionSource<int?> _completion = new();

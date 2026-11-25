@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ProgressSummaryPage : ContentPage
+public class ProgressSummaryPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
@@ -17,7 +17,7 @@ public class ProgressSummaryPage : ContentPage
         _db = db;
 
         Title = "Progress Summary";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

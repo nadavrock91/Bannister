@@ -13,7 +13,7 @@ namespace Bannister.Views;
 ///   2. Paste story/video concept into project
 ///   3. Enter "Hook First Frame" to generate prompts for LLM
 /// </summary>
-public class ImageProductionPage : ContentPage
+public class ImageProductionPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ImageProductionService _imageService;
@@ -34,7 +34,7 @@ public class ImageProductionPage : ContentPage
         _auth = auth;
         _imageService = imageService;
         Title = "Image Production";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

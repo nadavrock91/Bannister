@@ -14,7 +14,7 @@ public sealed record HomePromptManagerResult(string Action, string? PromptId = n
     public const string AddressAll = "address_all";
 }
 
-public class HomePromptManagerPage : ContentPage
+public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
 {
     private readonly TaskCompletionSource<HomePromptManagerResult?> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly List<HomePromptDefinition> _prompts;
@@ -27,7 +27,7 @@ public class HomePromptManagerPage : ContentPage
     {
         _prompts = prompts.ToList();
         Title = "Today's Prompts";
-        BackgroundColor = Color.FromArgb("#80000000");
+
 
         var title = new Label
         {

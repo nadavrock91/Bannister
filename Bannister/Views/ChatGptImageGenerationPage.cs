@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
-public class ChatGptImageGenerationPage : ContentPage
+public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
 {
     private const decimal CostPerImageUsd = 0.011m;
     private const string CostPerImageNote = "as of June 2026";
@@ -88,7 +88,7 @@ public class ChatGptImageGenerationPage : ContentPage
         _visionService = visionService ?? new OpenAIVisionService(keyService);
         _ownerMode = ownerMode;
         Title = "ChatGPT Image Generation";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _keyStatusLabel = new Label
         {

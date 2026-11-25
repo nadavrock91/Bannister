@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Full-screen page for setting habit target dates on activities.
 /// Shows activities one at a time with full name visibility and easy date selection.
 /// </summary>
-public class HabitTargetDecisionPage : ContentPage
+public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
 {
     private readonly ActivityService _activities;
     private readonly List<Activity> _activitiesToProcess;
@@ -28,7 +28,7 @@ public class HabitTargetDecisionPage : ContentPage
         _isExpiredMode = isExpiredMode;
 
         Title = isExpiredMode ? "Expired Habit Targets" : "Set Habit Targets";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
         ShowCurrentActivity();

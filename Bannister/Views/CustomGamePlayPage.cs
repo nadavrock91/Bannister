@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class CustomGamePlayPage : ContentPage
+public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly CustomGameService _customGames;
@@ -26,7 +26,7 @@ public class CustomGamePlayPage : ContentPage
         _auth = auth;
         _customGames = customGames;
         _gameId = gameId;
-        BackgroundColor = Color.FromArgb("#FAFAFA");
+
 
         var endButton = new Button
         {

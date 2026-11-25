@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class PageVisibilityPage : ContentPage
+public class PageVisibilityPage : Bannister.Views.ModeThemedPage
 {
     private readonly HomeButtonVisibilityService _buttonVisibility;
     private readonly AuthService _auth;
@@ -15,7 +15,7 @@ public class PageVisibilityPage : ContentPage
         _buttonVisibility = buttonVisibility;
         _auth = auth;
         Title = "Page Visibility";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

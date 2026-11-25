@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class OverdueHomePage : ContentPage
+public class OverdueHomePage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly CountdownService _countdowns;
@@ -17,7 +17,7 @@ public class OverdueHomePage : ContentPage
         _countdowns = countdowns;
         
         Title = "Overdue";
-        BackgroundColor = Color.FromArgb("#1A1A2E");
+
         
         BuildUI();
     }

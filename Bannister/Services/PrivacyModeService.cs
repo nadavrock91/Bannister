@@ -13,6 +13,7 @@ public enum ActivityDisplayMode
 
 public class PrivacyModeService
 {
+    public static event EventHandler<DisplayModeChangedEventArgs>? ModeChanged;
     private const string KeyPrefix = "activity_display_mode_";
 
     public ActivityDisplayMode GetDisplayMode(string username)
@@ -40,6 +41,7 @@ public class PrivacyModeService
                 KeyPrefix + username, (int)mode);
         }
         catch { }
+        ModeChanged?.Invoke(this, new DisplayModeChangedEventArgs(username, mode));
     }
 
     public ActivityDisplayMode CycleMode(string username)
@@ -70,4 +72,10 @@ public class PrivacyModeService
             : ActivityDisplayMode.All);
         return Task.CompletedTask;
     }
+}
+
+public sealed class DisplayModeChangedEventArgs(string username, ActivityDisplayMode mode) : EventArgs
+{
+    public string Username { get; } = username;
+    public ActivityDisplayMode Mode { get; } = mode;
 }

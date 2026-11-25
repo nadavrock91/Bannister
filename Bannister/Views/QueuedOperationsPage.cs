@@ -4,7 +4,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class QueuedOperationsPage : ContentPage
+public class QueuedOperationsPage : Bannister.Views.ModeThemedPage
 {
     private readonly SyncService _sync;
     private readonly OperationQueueService _queue;
@@ -48,7 +48,7 @@ public class QueuedOperationsPage : ContentPage
         _pendingIdeas = pendingIdeas;
 
         Title = "Queued Operations";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _summaryLabel = new Label
         {
@@ -637,7 +637,7 @@ public class QueuedOperationsPage : ContentPage
         Cancel
     }
 
-    private sealed class PendingActivityIdeaCrossGameProcessPage : ContentPage
+    private sealed class PendingActivityIdeaCrossGameProcessPage : Bannister.Views.ModeThemedPage
     {
         private readonly TaskCompletionSource<PendingActivityIdeaProcessAction> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private bool _isCompleting;
@@ -645,7 +645,7 @@ public class QueuedOperationsPage : ContentPage
         private PendingActivityIdeaCrossGameProcessPage(PendingActivityIdea idea, int count)
         {
             Title = "Process Pending Activity Idea";
-            BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
+
 
             var createButton = new Button
             {

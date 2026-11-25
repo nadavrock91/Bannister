@@ -8,7 +8,7 @@ namespace Bannister.Views;
 /// Supports pack selection, prompt generation with group-based rules,
 /// and displays results in a scrollable list.
 /// </summary>
-public class PromptsPage : ContentPage
+public class PromptsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly PromptService _prompts;
@@ -44,7 +44,7 @@ public class PromptsPage : ContentPage
         _ideas = ideas;
         
         Title = "Prompts";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
     }

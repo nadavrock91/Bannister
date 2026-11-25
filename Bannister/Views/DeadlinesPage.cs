@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class DeadlinesPage : ContentPage
+public class DeadlinesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DeadlineService _deadlines;
@@ -18,7 +18,7 @@ public class DeadlinesPage : ContentPage
         _deadlines = deadlines;
         _bucket = bucket;
         Title = $"{DeadlineService.BucketName(bucket)} Deadlines";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

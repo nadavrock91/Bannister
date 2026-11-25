@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class DailyLoginPromptsPage : ContentPage
+public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DailyLoginPromptService _prompts;
@@ -15,7 +15,7 @@ public class DailyLoginPromptsPage : ContentPage
         _prompts = prompts;
 
         Title = "Daily Login Prompts";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

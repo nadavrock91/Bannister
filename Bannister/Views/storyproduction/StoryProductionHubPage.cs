@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// Hub page for Story Production - entry point from HomePage.
 /// Provides access to Drafts (main production UI) and Production Stats.
 /// </summary>
-public class StoryProductionHubPage : ContentPage
+public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
@@ -37,7 +37,7 @@ public class StoryProductionHubPage : ContentPage
         _videoGenExperimentService = videoGenExperimentService;
         
         Title = "Story Production";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
     }

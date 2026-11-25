@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class CustomGameTopScoresPage : ContentPage
+public class CustomGameTopScoresPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly CustomGameService _customGames;
@@ -16,7 +16,7 @@ public class CustomGameTopScoresPage : ContentPage
         _auth = auth;
         _customGames = customGames;
         _gameId = gameId;
-        BackgroundColor = Color.FromArgb("#FAFAFA");
+
 
         _emptyLabel = new Label
         {

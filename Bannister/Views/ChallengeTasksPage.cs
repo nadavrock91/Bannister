@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ChallengeTasksPage : ContentPage
+public class ChallengeTasksPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly TaskService _tasks;
@@ -36,7 +36,7 @@ public class ChallengeTasksPage : ContentPage
         _ideasService = ideasService;
         _isFocusMode = isFocusMode;
         Title = isFocusMode ? "Focus Tasks" : "Free Tasks";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

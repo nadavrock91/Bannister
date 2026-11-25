@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class FocusContextPage : ContentPage
+public class FocusContextPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly TaskService _tasks;
@@ -25,7 +25,7 @@ public class FocusContextPage : ContentPage
         _db = db;
         _service = new FocusContextService(db);
         Title = "Focus Context";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

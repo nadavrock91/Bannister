@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Bannister.Views;
 
-public class ProductionStatsDetailPage : ContentPage
+public class ProductionStatsDetailPage : Bannister.Views.ModeThemedPage
 {
     private readonly StoryProductionService _storyService;
     private readonly AuthService _auth;
@@ -21,7 +21,7 @@ public class ProductionStatsDetailPage : ContentPage
         _projectId = projectId;
 
         Title = "Production Stats Detail";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

@@ -7,7 +7,7 @@ using Microsoft.Maui.Controls;
 
 namespace Bannister.Views;
 
-public partial class BatchAddActivitiesPage : ContentPage
+public partial class BatchAddActivitiesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;

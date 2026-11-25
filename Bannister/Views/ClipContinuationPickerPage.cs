@@ -5,7 +5,7 @@ using CommunityToolkit.Maui.Storage;
 
 namespace Bannister.Views;
 
-public class ClipContinuationPickerPage : ContentPage
+public class ClipContinuationPickerPage : Bannister.Views.ModeThemedPage
 {
     private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -33,7 +33,7 @@ public class ClipContinuationPickerPage : ContentPage
     {
         _ffmpeg = ffmpeg;
         Title = "Clip Comparator";
-        BackgroundColor = Color.FromArgb("#111111");
+
         BuildUI();
 #if !WINDOWS
         _pickFolderBtn.Text = " Pick Continuation Clips";

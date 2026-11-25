@@ -1,6 +1,6 @@
 namespace Bannister.Views;
 
-internal class TestLoadPromptsPage : ContentPage
+internal class TestLoadPromptsPage : Bannister.Views.ModeThemedPage
 {
     private readonly TaskCompletionSource<string?> _completion = new();
     private bool _isClosing;
@@ -8,7 +8,7 @@ internal class TestLoadPromptsPage : ContentPage
     public TestLoadPromptsPage()
     {
         Title = "Test Load Prompts";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         var stack = new VerticalStackLayout
         {

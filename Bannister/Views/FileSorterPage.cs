@@ -5,7 +5,7 @@ using CommunityToolkit.Maui.Storage;
 
 namespace Bannister.Views;
 
-public class FileSorterPage : ContentPage
+public class FileSorterPage : Bannister.Views.ModeThemedPage
 {
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {

@@ -4,7 +4,7 @@ using CommunityToolkit.Maui.Storage;
 
 namespace Bannister.Views;
 
-public class RclonePresetsPage : ContentPage
+public class RclonePresetsPage : Bannister.Views.ModeThemedPage
 {
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
@@ -22,7 +22,7 @@ public class RclonePresetsPage : ContentPage
         _db = db;
         _auth = auth;
         Title = "Rclone Presets";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildShell();
     }
 

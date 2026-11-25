@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Page showing streak attempt history for a specific activity
 /// </summary>
-public class StreakAttemptsPage : ContentPage
+public class StreakAttemptsPage : Bannister.Views.ModeThemedPage
 {
     private readonly StreakService _streaks;
     private readonly string _username;
@@ -23,7 +23,7 @@ public class StreakAttemptsPage : ContentPage
         _activity = activity;
 
         Title = $"Streak History: {activity.Name}";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

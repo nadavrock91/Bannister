@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class DailyDeadlinesPage : ContentPage
+public class DailyDeadlinesPage : Bannister.Views.ModeThemedPage
 {
     private static List<Activity>? _cachedActivities;
     private static bool _activitiesCached;
@@ -45,7 +45,7 @@ public class DailyDeadlinesPage : ContentPage
         _privacyMode = privacyMode;
         _games = games;
         Title = "Daily Deadlines";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         _rootGrid.Children.Add(new ScrollView { Content = _content });
         Content = _rootGrid;
     }

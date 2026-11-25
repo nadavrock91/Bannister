@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ActiveEmotionsPage : ContentPage
+public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly EmotionService _emotions;
@@ -23,7 +23,7 @@ public class ActiveEmotionsPage : ContentPage
         _ideasService = ideasService;
         _ideaLogger = Application.Current?.Handler?.MauiContext?.Services.GetService<IdeaLoggerService>();
         Title = "Active Emotions";
-        BackgroundColor = Color.FromArgb("#FFF8E1");
+
         BuildUI();
     }
 

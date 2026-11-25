@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Page for viewing, filtering, and editing all prompts.
 /// Provides full CRUD operations with group/pack filtering.
 /// </summary>
-public class PromptsEditPage : ContentPage
+public class PromptsEditPage : Bannister.Views.ModeThemedPage
 {
     private readonly PromptService _prompts;
     
@@ -36,7 +36,7 @@ public class PromptsEditPage : ContentPage
             System.Diagnostics.Debug.WriteLine("PromptsEditPage: PromptService assigned");
             
             Title = "Edit Prompts";
-            BackgroundColor = Color.FromArgb("#F5F5F5");
+
             System.Diagnostics.Debug.WriteLine("PromptsEditPage: Basic properties set");
             
             BuildUI();

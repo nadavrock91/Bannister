@@ -19,7 +19,7 @@ public class GameListViewModel
     public double CardOpacity => VisitedToday ? 0.6 : 1.0;
 }
 
-public class GamesListPage : ContentPage
+public class GamesListPage : Bannister.Views.ModeThemedPage
 {
     private Button _privateModeToggleBtn = null!;
     private readonly AuthService _auth;
@@ -56,7 +56,7 @@ public class GamesListPage : ContentPage
         _lastCalculated = lastCalculated;
         
         Title = "Games";
-        BackgroundColor = Color.FromArgb("#6B73FF");
+
         
         BuildUI();
     }
@@ -365,10 +365,8 @@ public class GamesListPage : ContentPage
 
     private void UpdateModeVisuals(ActivityDisplayMode mode)
     {
-        var theme = ModeTheme.Get(mode);
-        BackgroundColor = theme.Background;
-        _privateModeToggleBtn.TextColor = theme.Accent;
-        _privateModeToggleBtn.BorderColor = theme.Accent;
+        _privateModeToggleBtn.SetDynamicResource(Button.TextColorProperty, "ModeAccent");
+        _privateModeToggleBtn.SetDynamicResource(Button.BorderColorProperty, "ModeAccent");
         switch (mode)
         {
             case ActivityDisplayMode.PublicOnly:

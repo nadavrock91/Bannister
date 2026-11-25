@@ -1378,14 +1378,14 @@ public partial class ActivityGamePage
     }
 }
 
-internal class SqlResultPage : ContentPage
+internal class SqlResultPage : Bannister.Views.ModeThemedPage
 {
     private readonly TaskCompletionSource<bool> _completion = new();
     private bool _isClosing;
 
     private SqlResultPage(string resultText)
     {
-        BackgroundColor = Color.FromArgb("#80000000");
+
 
         var card = new Frame
         {

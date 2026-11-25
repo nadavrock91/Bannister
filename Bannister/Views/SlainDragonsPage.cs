@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Page showing all slain dragons with the same style as ActiveDragonsPage
 /// </summary>
-public class SlainDragonsPage : ContentPage
+public class SlainDragonsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DragonService _dragons;
@@ -26,7 +26,7 @@ public class SlainDragonsPage : ContentPage
         _attempts = attempts;
 
         Title = "Slain Dragons";
-        BackgroundColor = Color.FromArgb("#F5F7FC");
+
 
         BuildUI();
     }

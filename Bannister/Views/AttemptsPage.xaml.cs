@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace Bannister.Views;
 
-public partial class AttemptsPage : ContentPage
+public partial class AttemptsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly AttemptService _attempts;

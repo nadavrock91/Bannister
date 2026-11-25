@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class PostponedTasksManagementPage : ContentPage
+public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly PostponedTaskService _postponedTasks;
@@ -22,7 +22,7 @@ public class PostponedTasksManagementPage : ContentPage
         _auth = auth;
         _postponedTasks = postponedTasks;
         Title = "Postponed Tasks";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

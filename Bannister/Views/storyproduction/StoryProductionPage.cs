@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Bannister.Views;
 
-public class StoryProductionPage : ContentPage
+public class StoryProductionPage : Bannister.Views.ModeThemedPage
 {
     private const int DefaultConversationIdeaCharsPerPart = 12000;
     private const int MinConversationIdeaCharsPerPart = 2000;
@@ -84,7 +84,7 @@ public class StoryProductionPage : ContentPage
         _customPrompts = customPrompts;
         
         Title = "Story Production";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
 

@@ -8,7 +8,7 @@ namespace Bannister.Views;
 /// Shows all groupings with activity counts, allows creating/renaming/deleting,
 /// and tapping a grouping opens ActivityGamePage in grouping mode.
 /// </summary>
-public class GroupingsPage : ContentPage
+public class GroupingsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ActivityGroupingService _groupingService;
@@ -20,7 +20,7 @@ public class GroupingsPage : ContentPage
         _groupingService = groupingService;
 
         Title = "Groupings";
-        BackgroundColor = Color.FromArgb("#6B73FF");
+
 
         BuildUI();
     }

@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Full-screen page for selecting an activity to turn into a habit.
 /// Shows habit target info (days since set, postpone count) to help prioritize.
 /// </summary>
-public class ActivitySelectionPage : ContentPage
+public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
 {
     private readonly ActivityService _activities;
     private readonly GameService _games;
@@ -38,7 +38,7 @@ public class ActivitySelectionPage : ContentPage
         _tcs = new TaskCompletionSource<Activity?>();
 
         Title = title;
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
         _ = LoadGamesAsync();

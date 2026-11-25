@@ -5,7 +5,7 @@ using System.ComponentModel;
 
 namespace Bannister.Views;
 
-public class ExpiredActivitiesPage : ContentPage
+public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;
@@ -19,7 +19,7 @@ public class ExpiredActivitiesPage : ContentPage
         _activities = activities;
         
         Title = "Expired Activities";
-        BackgroundColor = Color.FromArgb("#F5F7FC");
+
         
         BuildUI();
     }

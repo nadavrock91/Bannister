@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Page showing all active dragons with collapsible attempt history
 /// Similar to StreakDashboardPage but for dragon-slaying attempts
 /// </summary>
-public class ActiveDragonsPage : ContentPage
+public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DragonService _dragons;
@@ -27,7 +27,7 @@ public class ActiveDragonsPage : ContentPage
         _attempts = attempts;
 
         Title = "Active Dragons";
-        BackgroundColor = Color.FromArgb("#F5F7FC");
+
 
         BuildUI();
     }

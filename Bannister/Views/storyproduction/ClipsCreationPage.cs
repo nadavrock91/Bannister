@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ClipsCreationPage : ContentPage
+public class ClipsCreationPage : Bannister.Views.ModeThemedPage
 {
     private readonly StoryProductionService _storyService;
     private readonly StoryProjectSelector _selector;
@@ -63,7 +63,7 @@ public class ClipsCreationPage : ContentPage
         _selector.HideControls += OnHideControls;
 
         Title = "Clips Creation";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace Bannister.Views;
 
-public class RecurringExpenditurePage : ContentPage
+public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly RecurringExpenditureService _recurringExpenditures;
@@ -22,7 +22,7 @@ public class RecurringExpenditurePage : ContentPage
         _recurringExpenditures = recurringExpenditures;
 
         Title = "Data-Based Recurring Expenditures";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _approvedTotalLabel = new Label
         {

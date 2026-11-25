@@ -8,7 +8,7 @@ namespace ConversationPractice.Views;
 /// Page for creating custom conversation practice scenarios
 /// Pure C# implementation - no XAML
 /// </summary>
-public class AddScenarioPage : ContentPage
+public class AddScenarioPage : Bannister.Views.ModeThemedPage
 {
     private readonly ConversationService _conversationService;
     private readonly string? _username;
@@ -30,7 +30,7 @@ public class AddScenarioPage : ContentPage
         _username = username;
 
         Title = "Create Custom Scenario";
-        BackgroundColor = Colors.White;
+
 
         BuildUI();
     }

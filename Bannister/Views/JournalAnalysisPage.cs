@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class JournalAnalysisPage : ContentPage
+public class JournalAnalysisPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly JournalAnalysisService _analysis;
@@ -20,7 +20,7 @@ public class JournalAnalysisPage : ContentPage
 
     public JournalAnalysisPage(AuthService auth, JournalAnalysisService analysis,
         IJournalAnalysisProvider provider, JournalService journalService, DatabaseService db)
-    { _auth=auth; _analysis=analysis; _provider=provider; _journalService=journalService; _db=db; Title="Journal Analysis"; BackgroundColor=Color.FromArgb("#F5F5F5"); BuildUI(); }
+    { _auth=auth; _analysis=analysis; _provider=provider; _journalService=journalService; _db=db; Title="Journal Analysis";  BuildUI(); }
     protected override async void OnAppearing(){base.OnAppearing();await RefreshCheckpointAsync();await LoadProposalsAsync();}
     private void BuildUI()
     {

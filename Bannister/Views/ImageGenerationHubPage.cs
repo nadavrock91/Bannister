@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ImageGenerationHubPage : ContentPage
+public class ImageGenerationHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly OpenAIKeyService _keyService;
     private readonly OpenAIImageService _imageService;
@@ -15,7 +15,7 @@ public class ImageGenerationHubPage : ContentPage
         _imageService = imageService;
         _ownerMode = ownerMode;
         Title = "Image Generation";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         var stack = new VerticalStackLayout
         {

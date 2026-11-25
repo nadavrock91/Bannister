@@ -8,7 +8,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Page for viewing production statistics - publication status and timelines.
 /// </summary>
-public class ProductionStatsPage : ContentPage
+public class ProductionStatsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
@@ -32,7 +32,7 @@ public class ProductionStatsPage : ContentPage
         _storyService = storyService;
         
         Title = "Production Stats";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
     }

@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ResetsPage : ContentPage
+public class ResetsPage : Bannister.Views.ModeThemedPage
 {
     private readonly ResetEnforcerService _service;
     private readonly AuthService _auth;
@@ -24,7 +24,7 @@ public class ResetsPage : ContentPage
                 ?.Services.GetService<PrivacyModeService>()
             ?? new PrivacyModeService();
         Title = "Resets";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

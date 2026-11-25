@@ -1,9 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Bannister.Views.SetupGoalPage"
-             Title="Diet Dragon (Level 100 Goal)"
-             BackgroundColor="White">
+             Title="Diet Dragon (Level 100 Goal)">
 
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="16" MaximumWidthRequest="500">
@@ -116,4 +115,4 @@
 
         </VerticalStackLayout>
     </ScrollView>
-</ContentPage>
+</mode:ModeThemedPage>

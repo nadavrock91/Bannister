@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class ConsequencesHubPage : ContentPage
+public class ConsequencesHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ResetEnforcerService _resetService;
@@ -14,7 +14,7 @@ public class ConsequencesHubPage : ContentPage
         _auth = auth;
         _resetService = resetService;
         Title = "Consequences";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

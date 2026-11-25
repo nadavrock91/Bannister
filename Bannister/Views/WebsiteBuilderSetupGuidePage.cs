@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 namespace Bannister.Views;
 
-public class WebsiteBuilderSetupGuidePage : ContentPage
+public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
 {
     private const int TotalSteps = 15;
 
@@ -31,7 +31,7 @@ public class WebsiteBuilderSetupGuidePage : ContentPage
         _steps = CreateSteps();
 
         Title = "Setup Guide";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _stepIndicator = new HorizontalStackLayout
         {

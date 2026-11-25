@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Bannister.Views;
 
-public class PromptTechniqueLabPage : ContentPage
+public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
 {
     private static readonly string[] Statuses =
         { "Testing", "Promising", "Confirmed", "Abandoned" };
@@ -29,7 +29,7 @@ public class PromptTechniqueLabPage : ContentPage
         _promptTechniques = promptTechniques;
 
         Title = "Prompt Technique Lab";
-        BackgroundColor = Color.FromArgb("#F5F7FB");
+
 
         _tabs = new HorizontalStackLayout { Spacing = 8 };
         _body = new VerticalStackLayout { Spacing = 14 };

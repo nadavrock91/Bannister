@@ -7,7 +7,7 @@ namespace ConversationPractice.Views;
 /// <summary>
 /// Page for editing an existing conversation scenario
 /// </summary>
-public class EditScenarioPage : ContentPage
+public class EditScenarioPage : Bannister.Views.ModeThemedPage
 {
     private readonly ConversationService _conversationService;
     private readonly Conversation _scenario;
@@ -31,7 +31,7 @@ public class EditScenarioPage : ContentPage
         _username = username;
 
         Title = "Edit Scenario";
-        BackgroundColor = Colors.White;
+
 
         BuildUI();
         LoadScenarioData();

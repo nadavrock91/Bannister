@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// Configure Secondary Device Mode: pick master/secondary, set server URL + credentials,
 /// trigger manual upload/download, and view last sync status.
 /// </summary>
-public class SyncSettingsPage : ContentPage
+public class SyncSettingsPage : Bannister.Views.ModeThemedPage
 {
     private const string QueuePromptSnoozedUntilKey = "queue_prompt_snoozed_until";
     private readonly DeviceModeService _deviceMode;
@@ -78,7 +78,7 @@ public class SyncSettingsPage : ContentPage
         _operationQueue = operationQueue;
 
         Title = "Sync & Devices";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

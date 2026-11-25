@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class WritingProcessesPage : ContentPage
+public class WritingProcessesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
@@ -20,7 +20,7 @@ public class WritingProcessesPage : ContentPage
         _ideaLogger = ideaLogger;
 
         Title = "Writing Processes";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

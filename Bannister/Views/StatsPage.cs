@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class StatsPage : ContentPage
+public class StatsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly StatTrackerService _stats;
@@ -16,7 +16,7 @@ public class StatsPage : ContentPage
         _auth = auth;
         _stats = stats;
         Title = "Stats Tracker";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

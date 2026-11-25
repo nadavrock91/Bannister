@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class VideoGenExperimentPage : ContentPage
+public class VideoGenExperimentPage : Bannister.Views.ModeThemedPage
 {
     private readonly VideoGenExperimentService _service;
     private readonly AuthService _auth;
@@ -15,7 +15,7 @@ public class VideoGenExperimentPage : ContentPage
     private readonly Dictionary<int, int> _executionStages = new();
 
     public VideoGenExperimentPage(VideoGenExperimentService service, AuthService auth)
-    { _service = service; _auth = auth; Title = "Video Generation Experiments"; BackgroundColor = Color.FromArgb("#F5F5F5"); BuildUI(); }
+    { _service = service; _auth = auth; Title = "Video Generation Experiments";  BuildUI(); }
     protected override async void OnAppearing() { base.OnAppearing(); await RefreshAsync(); }
     private void BuildUI()
     {

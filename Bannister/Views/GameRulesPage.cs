@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Page for managing game rules/clarifications.
 /// Supports add, edit, delete, and reorder.
 /// </summary>
-public class GameRulesPage : ContentPage
+public class GameRulesPage : Bannister.Views.ModeThemedPage
 {
     private readonly DatabaseService _db;
     private readonly string _username;
@@ -20,7 +20,7 @@ public class GameRulesPage : ContentPage
         _username = username;
 
         Title = "Rules of the Game";
-        BackgroundColor = Color.FromArgb("#F5F7FC");
+
 
         BuildUI();
     }

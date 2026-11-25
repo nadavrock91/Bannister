@@ -9,7 +9,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Ideas page using DataGridView for tabular display with built-in pagination.
 /// </summary>
-public class IdeasPage : ContentPage
+public class IdeasPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly IdeasService _ideas;
@@ -79,7 +79,7 @@ public class IdeasPage : ContentPage
         _queue = queue;
         _sync = sync;
         Title = "Ideas";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         _isPhoneLayout = DeviceInfo.Idiom == DeviceIdiom.Phone || DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density < 600;
         if (_isPhoneLayout) BuildPhoneUI();
         else BuildUI();

@@ -4,7 +4,7 @@ using Bannister.Services;
 namespace Bannister.Views;
 
 [QueryProperty(nameof(GameId), "gameId")]
-public class GameCatchUpPage : ContentPage
+public class GameCatchUpPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
@@ -49,7 +49,7 @@ public class GameCatchUpPage : ContentPage
         _newHabits = newHabits;
 
         Title = "Catch Up";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _applyButton = new Button
         {

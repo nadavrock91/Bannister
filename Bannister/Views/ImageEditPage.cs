@@ -2,7 +2,7 @@ using SkiaSharp;
 
 namespace Bannister.Views;
 
-public class ImageEditPage : ContentPage
+public class ImageEditPage : Bannister.Views.ModeThemedPage
 {
     private const string PrimaryColor = "#5B63EE";
     private const string LightButtonColor = "#ECEFF1";
@@ -31,7 +31,7 @@ public class ImageEditPage : ContentPage
     public ImageEditPage()
     {
         Title = "Image Edit";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _sourcePathLabel = new Label
         {

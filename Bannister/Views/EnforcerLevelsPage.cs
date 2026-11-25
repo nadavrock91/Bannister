@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class EnforcerLevelsPage : ContentPage
+public class EnforcerLevelsPage : Bannister.Views.ModeThemedPage
 {
     private readonly ResetEnforcerService _service;
     private readonly ResetEnforcer _enforcer;
@@ -16,7 +16,7 @@ public class EnforcerLevelsPage : ContentPage
         _service = service;
         _enforcer = enforcer;
         Title = $"{enforcer.Name} — Levels";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class JournalPage : ContentPage
+public class JournalPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly JournalService _journalService;
@@ -29,7 +29,7 @@ public class JournalPage : ContentPage
         _journalService = journalService;
         _ideaLogger = ideaLogger;
         Title = "Journal";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

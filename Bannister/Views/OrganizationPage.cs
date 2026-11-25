@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class OrganizationPage : ContentPage
+public class OrganizationPage : Bannister.Views.ModeThemedPage
 {
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
@@ -13,7 +13,7 @@ public class OrganizationPage : ContentPage
         _db = db;
         _auth = auth;
         Title = "Organization";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

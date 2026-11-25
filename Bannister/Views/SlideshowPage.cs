@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Bannister.Views;
 
-public class SlideshowPage : ContentPage
+public class SlideshowPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private string? _sourceFolder;
@@ -31,7 +31,7 @@ public class SlideshowPage : ContentPage
         _auth = auth;
 
         Title = "Slideshow";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

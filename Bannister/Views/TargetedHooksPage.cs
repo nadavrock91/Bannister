@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class TargetedHooksPage : ContentPage
+public class TargetedHooksPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly CropPresetService _cropPresets;
@@ -38,7 +38,7 @@ public class TargetedHooksPage : ContentPage
         _hookPrefixes = hookPrefixes;
         _appSettings = appSettings;
         Title = "Targeted Hooks";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

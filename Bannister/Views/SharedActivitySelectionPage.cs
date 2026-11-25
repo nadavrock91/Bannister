@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class SharedActivitySelectionPage : ContentPage
+public class SharedActivitySelectionPage : Bannister.Views.ModeThemedPage
 {
     private readonly ActivityService _activityService;
     private readonly GameService _gameService;
@@ -29,7 +29,7 @@ public class SharedActivitySelectionPage : ContentPage
         _auth = auth;
         _onConfirm = onConfirm;
         Title = "Select Activities to Share";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

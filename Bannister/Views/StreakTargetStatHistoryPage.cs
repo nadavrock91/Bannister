@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class StreakTargetStatHistoryPage : ContentPage
+public class StreakTargetStatHistoryPage : Bannister.Views.ModeThemedPage
 {
     private readonly StreakService _streaks;
     private readonly string _username;
@@ -18,7 +18,7 @@ public class StreakTargetStatHistoryPage : ContentPage
         _targetDays = targetDays;
 
         Title = $"{targetDays} Stat History";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Bannister.Views;
 
-public class SetAutoAwardPage : ContentPage
+public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
 {
     private readonly Activity _activity;
     private readonly bool _requireAutoAward;
@@ -34,7 +34,7 @@ public class SetAutoAwardPage : ContentPage
         }
 
         Title = "Auto-Award Settings";
-        BackgroundColor = Colors.White;
+
 
         BuildUI();
         LoadCurrentSettings();

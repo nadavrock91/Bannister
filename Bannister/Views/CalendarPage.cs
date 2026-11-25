@@ -9,7 +9,7 @@ namespace Bannister.Views;
 /// Each day card shows how many tasks are due on that day.
 /// Previous/Next buttons to navigate months.
 /// </summary>
-public class CalendarPage : ContentPage
+public class CalendarPage : Bannister.Views.ModeThemedPage
 {
     private const string NotYetPlacedCategory = "not yet placed";
 
@@ -57,7 +57,7 @@ public class CalendarPage : ContentPage
             ?? throw new InvalidOperationException(
                 "DailyReminderService not registered.");
         Title = "Calendar";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         var now = DateTime.Today;
         _year = now.Year;
@@ -1719,7 +1719,7 @@ public class CalendarPage : ContentPage
 /// <summary>
 /// Sub-page showing all tasks for a specific date with add/complete/delete functionality.
 /// </summary>
-public class CalendarDayPage : ContentPage
+public class CalendarDayPage : Bannister.Views.ModeThemedPage
 {
     private const string NotYetPlacedCategory = "not yet placed";
 
@@ -1756,7 +1756,7 @@ public class CalendarDayPage : ContentPage
         _routineService = routineService ?? throw new ArgumentNullException(nameof(routineService));
         _postponedTaskService = postponedTaskService ?? throw new ArgumentNullException(nameof(postponedTaskService));
         Title = date.ToString("MMM d, yyyy");
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 
@@ -2939,7 +2939,7 @@ public class CalendarDayPage : ContentPage
     }
 }
 
-public class LookoutScenarioPage : ContentPage
+public class LookoutScenarioPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly LookoutService _lookoutService;
@@ -2955,7 +2955,7 @@ public class LookoutScenarioPage : ContentPage
         _lookoutService = lookoutService;
         _lookout = lookout;
         Title = lookout.Title;
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Database browser. Two dropdowns + DataGridView with toolbar fixed outside scroll.
 /// SQLCIPHER: Uses the DB password from DatabaseService for encrypted connections.
 /// </summary>
-public class DatabasesPage : ContentPage
+public class DatabasesPage : Bannister.Views.ModeThemedPage
 {
     private readonly DatabaseService _db;
     private readonly AuthService _auth;
@@ -34,7 +34,7 @@ public class DatabasesPage : ContentPage
         _db = db;
         _auth = auth;
         Title = "Databases";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

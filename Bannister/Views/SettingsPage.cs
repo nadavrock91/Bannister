@@ -8,7 +8,7 @@ namespace Bannister.Views;
 /// Settings page accessible from HomePage.
 /// Provides account management options like changing password.
 /// </summary>
-public class SettingsPage : ContentPage
+public class SettingsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DatabaseService _db;
@@ -95,7 +95,7 @@ public class SettingsPage : ContentPage
                 "OwnerModeService is not registered.");
 
         Title = "Settings";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

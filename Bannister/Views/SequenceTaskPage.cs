@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class SequenceTaskPage : ContentPage
+public class SequenceTaskPage : Bannister.Views.ModeThemedPage
 {
     private const string TutorialTemplate =
         "I just completed the following development task:\n\n{task}\n\n" +
@@ -35,7 +35,7 @@ public class SequenceTaskPage : ContentPage
         _privacyMode = Application.Current?.Handler?.MauiContext?.Services
             .GetService<PrivacyModeService>()
             ?? throw new InvalidOperationException("PrivacyModeService not available");
-        Title = "Sequence Tasks"; BackgroundColor = Color.FromArgb("#F5F5F5");
+        Title = "Sequence Tasks";
         _content = new VerticalStackLayout { Padding = new Thickness(16, 16, 16, 32), Spacing = 12 };
         _root = new Grid();
         _root.Children.Add(new ScrollView { Content = _content });

@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class VideoEditingHubPage : ContentPage
+public class VideoEditingHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly FFmpegService _ffmpeg;
@@ -17,7 +17,7 @@ public class VideoEditingHubPage : ContentPage
         _shortsProjects = shortsProjects;
 
         Title = "Video Editing";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

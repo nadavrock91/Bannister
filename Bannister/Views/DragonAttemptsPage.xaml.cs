@@ -5,7 +5,7 @@ namespace Bannister.Views;
 
 [QueryProperty(nameof(GameId), "game")]
 [QueryProperty(nameof(DragonTitle), "dragon")]
-public partial class DragonAttemptsPage : ContentPage
+public partial class DragonAttemptsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly AttemptService _attempts;

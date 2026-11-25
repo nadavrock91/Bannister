@@ -4,7 +4,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class GridCropperPage : ContentPage
+public class GridCropperPage : Bannister.Views.ModeThemedPage
 {
     private string? _sourceFilePath;
     private SKBitmap? _sourceBitmap;
@@ -69,7 +69,7 @@ public class GridCropperPage : ContentPage
         _panelSaver = panelSaver;
         _hookPrefixes = hookPrefixes;
         Title = "Grid Cropper";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

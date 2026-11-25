@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
-public class StoryBasedAssetDiscoveryPage : ContentPage
+public class StoryBasedAssetDiscoveryPage : Bannister.Views.ModeThemedPage
 {
     private const string DefaultStageAPrompt = """
 You're helping me find reusable visual assets for a video production. I have an asset library organized by category, and I'll be showing you the story I want to produce plus a list of available categories.
@@ -92,7 +92,7 @@ Use only filenames from the sampled list above. Do not invent filenames.
         _assetService = assetService;
         _thumbnailService = thumbnailService;
         Title = "Story-Based Asset Discovery";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

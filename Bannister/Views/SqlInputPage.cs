@@ -4,14 +4,14 @@ namespace Bannister.Views;
 /// Modal page with a multi-line text editor for pasting SQL statements.
 /// Replaces DisplayPromptAsync which only supports single-line input.
 /// </summary>
-public class SqlInputPage : ContentPage
+public class SqlInputPage : Bannister.Views.ModeThemedPage
 {
     private readonly TaskCompletionSource<string?> _tcs = new();
     private Editor _editor;
 
     public SqlInputPage()
     {
-        BackgroundColor = Color.FromArgb("#80000000");
+
         BuildUI();
     }
 

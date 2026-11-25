@@ -9,7 +9,7 @@ namespace ConversationPractice.Views;
 /// - Even depth (0, 2, 4...) = THEM speaking (shown as text, random from siblings)
 /// - Odd depth (1, 3, 5...) = YOU speaking (shown as buttons to pick)
 /// </summary>
-public class PracticePage : ContentPage
+public class PracticePage : Bannister.Views.ModeThemedPage
 {
     private readonly ConversationService _conversationService;
     private Conversation _conversation;
@@ -34,7 +34,7 @@ public class PracticePage : ContentPage
         _conversation = conversation;
 
         Title = $"Practice: {conversation.Title}";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

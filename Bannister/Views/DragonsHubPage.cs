@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Hub page for all dragon-related pages
 /// </summary>
-public class DragonsHubPage : ContentPage
+public class DragonsHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DragonService _dragons;
@@ -23,7 +23,7 @@ public class DragonsHubPage : ContentPage
         _attempts = attempts;
 
         Title = "Dragons";
-        BackgroundColor = Color.FromArgb("#F5F7FC");
+
 
         BuildUI();
     }

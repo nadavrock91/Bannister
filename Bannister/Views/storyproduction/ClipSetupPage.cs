@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Page for setting up a single clip/shot.
 /// Shows tasks required to create the clip with collapsible prompt sections.
 /// </summary>
-public class ClipSetupPage : ContentPage
+public class ClipSetupPage : Bannister.Views.ModeThemedPage
 {
     private readonly StoryProductionService _storyService;
     private readonly StoryLine _line;
@@ -25,7 +25,7 @@ public class ClipSetupPage : ContentPage
         _allShots = allShots;
         
         Title = $"Clip {shot.Index} Setup";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
     }

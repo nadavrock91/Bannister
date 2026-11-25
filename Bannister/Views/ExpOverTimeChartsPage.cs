@@ -8,7 +8,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Shows EXP over time chart for each game in a grid of cards
 /// </summary>
-public class ExpOverTimeChartsPage : ContentPage
+public class ExpOverTimeChartsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
@@ -23,7 +23,7 @@ public class ExpOverTimeChartsPage : ContentPage
         _db = db;
 
         Title = "EXP Over Time";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

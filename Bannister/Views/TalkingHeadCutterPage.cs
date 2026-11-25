@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace Bannister.Views;
 
-public class TalkingHeadCutterPage : ContentPage
+public class TalkingHeadCutterPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly FFmpegService _ffmpeg;
@@ -62,7 +62,7 @@ public class TalkingHeadCutterPage : ContentPage
         _shortsProjects = shortsProjects;
 
         Title = "Talking Head Shorts Cutter";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         _projectPicker = new Picker
         {

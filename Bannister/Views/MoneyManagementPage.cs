@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace Bannister.Views;
 
-public class MoneyManagementPage : ContentPage
+public class MoneyManagementPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly MoneyManagementService _money;
@@ -26,7 +26,7 @@ public class MoneyManagementPage : ContentPage
         _auth = auth;
         _money = money;
         Title = "Money Management";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

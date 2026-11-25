@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class CountdownCategoryPage : ContentPage
+public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly CountdownService _countdowns;
@@ -18,7 +18,7 @@ public class CountdownCategoryPage : ContentPage
         _category = category;
         
         Title = category;
-        BackgroundColor = Color.FromArgb("#1A1A2E");
+
         
         BuildUI();
     }

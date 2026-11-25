@@ -9,7 +9,7 @@ using System.Collections.ObjectModel;
 
 namespace Bannister.Views;
 
-public partial class ManageActivitiesPage : ContentPage
+public partial class ManageActivitiesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ActivityService _activities;

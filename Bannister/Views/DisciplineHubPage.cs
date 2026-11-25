@@ -2,7 +2,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class DisciplineHubPage : ContentPage
+public class DisciplineHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly ResetEnforcerService _resetService;
@@ -14,7 +14,7 @@ public class DisciplineHubPage : ContentPage
         _auth = auth;
         _resetService = resetService;
         Title = "Discipline";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

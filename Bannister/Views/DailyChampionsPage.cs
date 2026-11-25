@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Bannister.Views;
 
-public class DailyChampionsPage : ContentPage
+public class DailyChampionsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly FeatService _feats;
@@ -28,7 +28,7 @@ public class DailyChampionsPage : ContentPage
         _feats = feats;
 
         Title = "Dates Competition";
-        BackgroundColor = Color.FromArgb("#F5F7FB");
+
 
         _todayStack = new VerticalStackLayout { Spacing = 10 };
         _managementStack = new VerticalStackLayout { Spacing = 10, IsVisible = false };

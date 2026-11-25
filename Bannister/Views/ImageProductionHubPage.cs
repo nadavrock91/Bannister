@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bannister.Views;
 
-public class ImageProductionHubPage : ContentPage
+public class ImageProductionHubPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly DatabaseService _db;
@@ -14,7 +14,7 @@ public class ImageProductionHubPage : ContentPage
         _db = db;
 
         Title = "Image Production";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         var stack = new VerticalStackLayout
         {

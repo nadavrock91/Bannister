@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class AllowancesPage : ContentPage
+public class AllowancesPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly AllowanceService _allowances;
@@ -14,7 +14,7 @@ public class AllowancesPage : ContentPage
         _auth = auth;
         _allowances = allowances;
         Title = "Allowances";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

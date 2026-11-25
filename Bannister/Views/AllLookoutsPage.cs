@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class AllLookoutsPage : ContentPage
+public class AllLookoutsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly LookoutService _lookoutService;
@@ -16,7 +16,7 @@ public class AllLookoutsPage : ContentPage
         _auth = auth;
         _lookoutService = lookoutService;
         Title = "All Lookouts";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

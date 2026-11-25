@@ -7,7 +7,7 @@ namespace ConversationPractice.Views;
 /// <summary>
 /// Page for building conversation tree branches
 /// </summary>
-public class TreeBuilderPage : ContentPage
+public class TreeBuilderPage : Bannister.Views.ModeThemedPage
 {
     private readonly ConversationService _conversationService;
     private readonly Conversation _conversation;
@@ -23,7 +23,7 @@ public class TreeBuilderPage : ContentPage
         _conversation = conversation;
 
         Title = $"Build Tree: {conversation.Title}";
-        BackgroundColor = Colors.White;
+
 
         BuildUI();
     }

@@ -3,7 +3,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class HabitsHomePage : ContentPage
+public class HabitsHomePage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly GameService _games;
@@ -32,7 +32,7 @@ public class HabitsHomePage : ContentPage
         _db = db;
 
         Title = "New Habits";
-        BackgroundColor = Color.FromArgb("#667eea"); // Nice purple-blue gradient base
+         // Nice purple-blue gradient base
 
         BuildUI();
     }

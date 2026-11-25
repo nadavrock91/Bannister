@@ -7,7 +7,7 @@ namespace Bannister.Views;
 /// Page for organizing story points into categories: Active (Chronological/Misc), Partial, Pending, Possible, Archived.
 /// Allows reordering within categories and exporting for discussion.
 /// </summary>
-public class StoryPointsPage : ContentPage
+public class StoryPointsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth;
     private readonly StoryProductionService _storyService;
@@ -41,7 +41,7 @@ public class StoryPointsPage : ContentPage
         _ideaLogger = ideaLogger;
 
         Title = "Story Points";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
 
         BuildUI();
     }

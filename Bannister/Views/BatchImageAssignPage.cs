@@ -4,7 +4,7 @@ using Bannister.Services;
 
 namespace Bannister.Views;
 
-public class BatchImageAssignPage : ContentPage
+public class BatchImageAssignPage : Bannister.Views.ModeThemedPage
 {
     private readonly ActivityService _activityService;
     private readonly GameService _gameService;
@@ -26,7 +26,7 @@ public class BatchImageAssignPage : ContentPage
         _gameService = gameService;
         _auth = auth;
         Title = "Batch Image Assign";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         BuildUI();
     }
 

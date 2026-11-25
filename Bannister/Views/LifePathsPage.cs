@@ -26,7 +26,7 @@ public class TimelineBarDrawable : IDrawable
     }
 }
 
-public class LifePathsPage : ContentPage
+public class LifePathsPage : Bannister.Views.ModeThemedPage
 {
     private readonly AuthService _auth; private readonly GameService _gameService; private readonly DatabaseService _db; private readonly LifePathService? _lifePathService; private readonly PrivacyModeService _privacyMode;
     private Label _statusLabel=null!; private Button _generateBtn=null!; private VerticalStackLayout _rowsContainer=null!; private Grid _axisContainer=null!; private Button _btnMonth=null!; private Button _btnYear=null!; private Button _btnDecade=null!;
@@ -34,7 +34,7 @@ public class LifePathsPage : ContentPage
     private HashSet<string> _pinnedGameIds = new();
     private const string PinnedKeyPrefix = "lifepaths_pinned_";
     private const float LabelW=110f, EditW=28f, Gutter=8f, BarH=16f;
-    public LifePathsPage(AuthService auth, GameService gameService, DatabaseService db, LifePathService? lifePathService=null, PrivacyModeService? privacyMode=null){_auth=auth;_gameService=gameService;_db=db;_lifePathService=lifePathService;_privacyMode=privacyMode??new PrivacyModeService();Title="Life Paths";BackgroundColor=Color.FromArgb("#0D1117");BuildUI();}
+    public LifePathsPage(AuthService auth, GameService gameService, DatabaseService db, LifePathService? lifePathService=null, PrivacyModeService? privacyMode=null){_auth=auth;_gameService=gameService;_db=db;_lifePathService=lifePathService;_privacyMode=privacyMode??new PrivacyModeService();Title="Life Paths";BuildUI();}
     protected override async void OnAppearing(){base.OnAppearing();LoadPinnedGames();await LoadDataAsync();}
     private float GetBarW()
     {

@@ -6,7 +6,7 @@ namespace Bannister.Views;
 /// <summary>
 /// Browse prompts with compact data grid view and detail panel.
 /// </summary>
-public class PromptsBrowsePage : ContentPage
+public class PromptsBrowsePage : Bannister.Views.ModeThemedPage
 {
     private readonly PromptService _prompts;
     
@@ -46,7 +46,7 @@ public class PromptsBrowsePage : ContentPage
         _prompts = prompts;
         
         Title = "Browse Prompts";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+
         
         BuildUI();
     }
