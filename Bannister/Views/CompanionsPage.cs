@@ -116,13 +116,27 @@ public class CompanionsPage : ContentPage
         string scopeLabel = ScopeLabel(companion, gamesById);
         _content.Children.Add(new Label { Text = scopeLabel, FontSize = 13, TextColor = Color.FromArgb("#666") });
 
+        var interviews = await _service.GetInterviewsAsync(_auth.CurrentUsername, companion.Id);
+        if (_selectedInterview != null)
+            _selectedInterview = interviews.FirstOrDefault(x => x.Id == _selectedInterview.Id);
         var interviewActions = new HorizontalStackLayout { Spacing = 8 };
         var start = Button("Start Interview", "#5B63EE", Colors.White);
         start.Clicked += async (_, _) => await StartInterviewAsync(companion, allGames, gamesById);
         interviewActions.Children.Add(start);
+        var history = Button($"Interview History ({interviews.Count})", "#ECEFF1", Color.FromArgb("#37474F"));
+        history.Clicked += async (_, _) => await Navigation.PushAsync(new CompanionInterviewHistoryPage(
+            _auth.CurrentUsername,
+            companion,
+            _service,
+            interview => _selectedInterview = interview,
+            deletedInterviewId =>
+            {
+                if (_selectedInterview?.Id == deletedInterviewId) _selectedInterview = null;
+            }));
+        interviewActions.Children.Add(history);
         if (_selectedInterview != null)
         {
-            var resume = Button(InterviewStepText(_selectedInterview), "#E8EAF6", Color.FromArgb("#3949AB"));
+            var resume = Button(CompanionInterviewPresentation.StepText(_selectedInterview), "#E8EAF6", Color.FromArgb("#3949AB"));
             resume.Clicked += async (_, _) => await ContinueInterviewAsync(companion, _selectedInterview, scopeLabel, allGames);
             interviewActions.Children.Add(resume);
             if (!string.IsNullOrWhiteSpace(_selectedInterview.Transcript))
@@ -134,7 +148,7 @@ public class CompanionsPage : ContentPage
         }
         _content.Children.Add(interviewActions);
         if (_selectedInterview != null)
-            _content.Children.Add(new Label { Text = $"Current interview: {InterviewStepText(_selectedInterview)}", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#5B63EE") });
+            _content.Children.Add(new Label { Text = $"Current interview: {CompanionInterviewPresentation.StepText(_selectedInterview)}", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#5B63EE") });
 
         _content.Children.Add(Heading(_showArchived ? "Data Points (including archived)" : "Active Data Points", 18));
         var pointActions = new HorizontalStackLayout { Spacing = 8 };
@@ -221,38 +235,6 @@ public class CompanionsPage : ContentPage
             _content.Children.Add(BuildPointCard(point, companion, scopeLabel, pointGames, gamesById, allCategories));
         }
 
-        _content.Children.Add(Heading("Interview History", 18));
-        var interviews = await _service.GetInterviewsAsync(_auth.CurrentUsername, companion.Id);
-        if (interviews.Count == 0) _content.Children.Add(new Label { Text = "No interviews yet.", TextColor = Color.FromArgb("#999") });
-        foreach (var interview in interviews)
-        {
-            var row = new VerticalStackLayout { Spacing = 4 };
-            row.Children.Add(new Label { Text = $"{interview.StartedAt.ToLocalTime():dd MMM yyyy HH:mm} · {interview.QuestionCount} questions", FontAttributes = FontAttributes.Bold });
-            row.Children.Add(new Label { Text = $"Added {interview.PointsAdded} · Reprioritized {interview.PointsReprioritized} · Archived {interview.PointsArchived}", FontSize = 12, TextColor = Color.FromArgb("#666") });
-            row.Children.Add(new Label { Text = InterviewStepText(interview), FontSize = 12, TextColor = Color.FromArgb("#5B63EE") });
-            var resume = Button("Open / Resume", "#E8EAF6", Color.FromArgb("#3949AB"));
-            resume.HorizontalOptions = LayoutOptions.Start;
-            resume.Clicked += async (_, _) => { _selectedInterview = interview; await RefreshAsync(); };
-            var delete = Button("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
-            delete.HorizontalOptions = LayoutOptions.Start;
-            delete.Clicked += async (_, _) =>
-            {
-                string? choice = await DisplayActionSheet(
-                    "Delete Interview",
-                    "Cancel",
-                    null,
-                    "Delete interview only",
-                    "Delete interview and its data points");
-                if (string.IsNullOrWhiteSpace(choice) || choice == "Cancel") return;
-
-                bool deletePoints = choice == "Delete interview and its data points";
-                await _service.DeleteInterviewAsync(interview.Id, deletePoints);
-                if (_selectedInterview?.Id == interview.Id) _selectedInterview = null;
-                await RefreshAsync();
-            };
-            row.Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { resume, delete } });
-            _content.Children.Add(Card(row));
-        }
     }
 
     private View BuildPointCard(CompanionDataPoint point, Companion companion, string scopeLabel,
@@ -498,10 +480,6 @@ public class CompanionsPage : ContentPage
             await DisplayAlert("Idea Logging Warning", "The interview was saved, but it could not be logged on the Ideas page.", "OK");
         }
     }
-
-    private static string InterviewStepText(CompanionInterview interview) =>
-        string.IsNullOrWhiteSpace(interview.Transcript) ? "Step 2 of 3: Paste conversation" :
-        !string.IsNullOrWhiteSpace(interview.Notes) ? "Extraction applied (can review another result)" : "Step 3 of 3: Paste extraction result";
 
     private static string ScopeLabel(Companion item, IReadOnlyDictionary<string, Game> games) => item.Scope switch
     {
