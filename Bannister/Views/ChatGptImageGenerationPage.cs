@@ -90,161 +90,132 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
         Title = "ChatGPT Image Generation";
 
 
-        _keyStatusLabel = new Label
+        _keyStatusLabel = (new Label
         {
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#C62828")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1);
 
-        _keySourceLabel = new Label
+        _keySourceLabel = (new Label
         {
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.TailTruncation
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
 
-        _configureKeyButton = new Button
+        _configureKeyButton = (new Button
         {
             Text = "Configure Key File",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _configureKeyButton.Clicked += async (_, _) => await ConfigureKeyFileAsync();
 
-        _clearKeyButton = new Button
+        _clearKeyButton = (new Button
         {
             Text = "Clear Stored Key",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 8,
             HeightRequest = 42,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         _clearKeyButton.Clicked += async (_, _) => await ClearStoredKeyAsync();
 
-        _promptEditor = new Editor
+        _promptEditor = (new Editor
         {
             Placeholder = "Describe the image you want to generate...",
             AutoSize = EditorAutoSizeOption.TextChanges,
             MinimumHeightRequest = 160,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
             FontSize = 15
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        _generateButton = new Button
+        _generateButton = (new Button
         {
             Text = "Generate Image",
-            BackgroundColor = Color.FromArgb("#C2185B"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightPinkText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _generateButton.Clicked += async (_, _) => await GenerateImageAsync();
 
-        _generationIndicator = new ActivityIndicator
+        _generationIndicator = (new ActivityIndicator
         {
             IsRunning = false,
             IsVisible = false,
-            Color = Color.FromArgb("#C2185B"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.HighlightPinkText);
 
-        _generationStatusLabel = new Label
+        _generationStatusLabel = (new Label
         {
             Text = "",
             FontSize = 13,
-            TextColor = Color.FromArgb("#555"),
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
 
-        _generatedImage = new Image
+        _generatedImage = (new Image
         {
             IsVisible = false,
             HeightRequest = 400,
-            Aspect = Aspect.AspectFit,
-            BackgroundColor = Colors.White
-        };
+            Aspect = Aspect.AspectFit
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        _batchPasteEditor = new Editor
+        _batchPasteEditor = (new Editor
         {
             Placeholder = "Paste a C# string array, for example:\nvar prompts = new[]\n{\n    \"painterly storybook scene of a wooden door\",\n    \"an old man holding a glowing pocket watch\"\n};",
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 200,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
             FontSize = 14
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        _parseBatchButton = new Button
+        _parseBatchButton = (new Button
         {
             Text = "Parse Prompts",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _parseBatchButton.Clicked += async (_, _) => await ParseBatchPromptsAsync();
 
         _batchPasteFrame = CreateBatchPasteSection();
-        _queueHeaderLabel = new Label
+        _queueHeaderLabel = (new Label
         {
             Text = "0 prompts queued",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.Center
-        };
-        _queueCostLabel = new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+        _queueCostLabel = (new Label
         {
             FontSize = 12,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666666")
-        };
-        _viewPricingButton = new Button
+            FontAttributes = FontAttributes.Italic
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
+        _viewPricingButton = (new Button
         {
             Text = "View current OpenAI pricing",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _viewPricingButton.Clicked += async (_, _) => await Launcher.OpenAsync("https://openai.com/api/pricing/");
         _queueItemsStack = new VerticalStackLayout { Spacing = 8 };
-        _startQueueButton = new Button
+        _startQueueButton = (new Button
         {
             Text = "Start Queue",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _startQueueButton.Clicked += async (_, _) => await RunQueueAsync();
-        _cancelQueueButton = new Button
+        _cancelQueueButton = (new Button
         {
             Text = "Cancel Queue",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 44,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _cancelQueueButton.Clicked += (_, _) => _cancelQueueRequested = true;
-        _clearQueueButton = new Button
+        _clearQueueButton = (new Button
         {
             Text = "Clear Queue",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _clearQueueButton.Clicked += async (_, _) => await ClearQueueAsync();
         _queueFrame = CreateQueueSection();
         _batchGalleryStack = new VerticalStackLayout
@@ -252,64 +223,54 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
             Spacing = 12,
             IsVisible = false
         };
-        _renameFolderLabel = new Label
+        _renameFolderLabel = (new Label
         {
             Text = "Folder: (not set)",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.TailTruncation
-        };
-        _renameCountLabel = new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
+        _renameCountLabel = (new Label
+        {
+            Text = "",
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
+        _renameProgressLabel = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
-        _renameProgressLabel = new Label
-        {
-            Text = "",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#1565C0"),
             IsVisible = false
-        };
-        _renameRetryCapEntry = new Entry
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3);
+        _renameRetryCapEntry = (new Entry
         {
             Text = _renameRetryCap.ToString(),
             Keyboard = Keyboard.Numeric,
             WidthRequest = 60,
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             HeightRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _renameRetryCapEntry.TextChanged += OnRetryCapChanged;
-        _renamePickFolderButton = new Button
+        _renamePickFolderButton = (new Button
         {
             Text = "Pick folder",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 40
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _renamePickFolderButton.Clicked += OnPickRenameFolderClicked;
-        _renameRunButton = new Button
+        _renameRunButton = (new Button
         {
             Text = "▶ Run",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42,
             IsEnabled = false,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _renameRunButton.Clicked += OnRunRenameClicked;
-        _renameCancelButton = new Button
+        _renameCancelButton = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#B71C1C"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 36,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _renameCancelButton.Clicked += (_, _) => _renameCts?.Cancel();
 
         _normalContent = new ScrollView
@@ -320,46 +281,41 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                 Spacing = 14,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "ChatGPT Image Generation",
                         FontSize = 26,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
-                    new Label
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label
                     {
                         Text = "Generate images using OpenAI's image API.",
                         FontSize = 15,
-                        TextColor = Color.FromArgb("#666"),
                         Margin = new Thickness(0, -6, 0, 10)
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2),
                     CreateKeySettingsSection(),
-                    new Label
+                    (new Label
                     {
                         Text = "Prompt",
                         FontSize = 14,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333")
-                    },
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     _promptEditor,
                     _generateButton,
                     _generationIndicator,
                     _generationStatusLabel,
                     _generatedImage,
-                    new BoxView
+                    (new BoxView
                     {
                         HeightRequest = 1,
-                        BackgroundColor = Color.FromArgb("#DDDDDD"),
                         Margin = new Thickness(0, 14, 0, 2)
-                    },
-                    new Label
+                    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator),
+                    (new Label
                     {
                         Text = "Batch from Pasted Prompts",
                         FontSize = 18,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
                     _batchPasteFrame,
                     _queueFrame,
                     _batchGalleryStack,
@@ -388,15 +344,13 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
 
     private View CreateLockedContent()
     {
-        var backButton = new Button
+        var backButton = (new Button
         {
             Text = "Back",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333333"),
             CornerRadius = 8,
             WidthRequest = 140,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         backButton.Clicked += async (_, _) => await Navigation.PopAsync();
 
         return new Grid
@@ -411,21 +365,19 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                     HorizontalOptions = LayoutOptions.Center,
                     Children =
                     {
-                        new Label
+                        (new Label
                         {
                             Text = "Owner Mode Locked",
                             FontSize = 24,
                             FontAttributes = FontAttributes.Bold,
-                            TextColor = Color.FromArgb("#222"),
                             HorizontalTextAlignment = TextAlignment.Center
-                        },
-                        new Label
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                        (new Label
                         {
                             Text = "ChatGPT Image Generation is available only when Owner Mode is unlocked.",
                             FontSize = 14,
-                            TextColor = Color.FromArgb("#666"),
                             HorizontalTextAlignment = TextAlignment.Center
-                        },
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2),
                         backButton
                     }
                 }
@@ -435,12 +387,10 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
 
     private Frame CreateKeySettingsSection()
     {
-        return new Frame
+        return (new Frame
         {
             Padding = 14,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false,
             Content = new VerticalStackLayout
             {
@@ -460,17 +410,15 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                     }
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private Frame CreateBatchPasteSection()
     {
-        return new Frame
+        return (new Frame
         {
             Padding = 14,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false,
             Content = new VerticalStackLayout
             {
@@ -481,7 +429,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                     _parseBatchButton
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private Frame CreateQueueSection()
@@ -510,12 +458,10 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
         buttonGrid.Add(_startQueueButton, 0, 0);
         buttonGrid.Add(_cancelQueueButton, 1, 0);
 
-        return new Frame
+        return (new Frame
         {
             Padding = 14,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false,
             IsVisible = false,
             Content = new VerticalStackLayout
@@ -530,7 +476,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                     buttonGrid
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private Frame CreateBulkRenameSection()
@@ -560,31 +506,27 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
             Children = { retryCapLabel, _renameRetryCapEntry }
         };
 
-        return new Frame
+        return (new Frame
         {
             Padding = 14,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false,
             Content = new VerticalStackLayout
             {
                 Spacing = 10,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Bulk Image Rename via Vision",
                         FontSize = 16,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
-                    new Label
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label
                     {
                         Text = "Pick a folder. The vision API names each top-level image, renames successful files, and moves them into a 'renamed' subfolder. Unnamed files remain in the source folder for retries.",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#666")
-                    },
+                        FontSize = 12
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                     folderRow,
                     retryCapRow,
                     _renameCountLabel,
@@ -593,7 +535,7 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
                     _renameCancelButton
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private async Task RefreshKeyStatusAsync()
@@ -604,21 +546,21 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
         if (configured)
         {
             _keyStatusLabel.Text = "✓ API key configured";
-            _keyStatusLabel.TextColor = Color.FromArgb("#2E7D32");
+            _keyStatusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1);
             _configureKeyButton.Text = "Re-select Key File";
             _clearKeyButton.IsVisible = true;
         }
         else if (!string.IsNullOrWhiteSpace(sourcePath))
         {
             _keyStatusLabel.Text = "⚠ Key file moved or missing — re-select";
-            _keyStatusLabel.TextColor = Color.FromArgb("#F57C00");
+            _keyStatusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1);
             _configureKeyButton.Text = "Configure Key File";
             _clearKeyButton.IsVisible = false;
         }
         else
         {
             _keyStatusLabel.Text = "⚠ API key not configured";
-            _keyStatusLabel.TextColor = Color.FromArgb("#C62828");
+            _keyStatusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1);
             _configureKeyButton.Text = "Configure Key File";
             _clearKeyButton.IsVisible = false;
         }
@@ -1325,33 +1267,30 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
 
     private View CreateQueueItemView(QueuedPrompt item)
     {
-        var statusLabel = new Label
+        var statusLabel = (new Label
         {
             Text = GetStatusText(item.Status),
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
-            TextColor = GetStatusColor(item.Status),
             VerticalOptions = LayoutOptions.Start,
             WidthRequest = 92
-        };
+        }).ThemeColor(Label.TextColorProperty, GetStatusColor(item.Status), ThemeKey.PageText3);
 
-        var promptLabel = new Label
+        var promptLabel = (new Label
         {
             Text = TruncatePrompt(item.Text),
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.TailTruncation,
             MaxLines = 2
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
-        var indexLabel = new Label
+        var indexLabel = (new Label
         {
             Text = $"{item.Index} / {_queue.Count}",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.End,
             WidthRequest = 54
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
 
         var grid = new Grid
         {
@@ -1384,29 +1323,26 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
             return;
 
         _batchGalleryStack.IsVisible = true;
-        _batchGalleryStack.Children.Add(new Label
+        _batchGalleryStack.Children.Add((new Label
         {
             Text = $"{item.Index:000}: {TruncatePrompt(item.Text)}",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        _batchGalleryStack.Children.Add(new Image
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
+        _batchGalleryStack.Children.Add((new Image
         {
             Source = ImageSource.FromStream(() => new MemoryStream(item.ImageBytes)),
             HeightRequest = 200,
-            Aspect = Aspect.AspectFit,
-            BackgroundColor = Colors.White
-        });
+            Aspect = Aspect.AspectFit
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground));
         if (!string.IsNullOrWhiteSpace(item.SavedPath))
         {
-            _batchGalleryStack.Children.Add(new Label
+            _batchGalleryStack.Children.Add((new Label
             {
                 Text = $"Saved to: {item.SavedPath}",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#666"),
                 LineBreakMode = LineBreakMode.TailTruncation
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         }
     }
 
@@ -1420,15 +1356,9 @@ public class ChatGptImageGenerationPage : Bannister.Views.ModeThemedPage
         _ => "Queued"
     };
 
-    private static Color GetStatusColor(QueueStatus status) => status switch
+    private static ThemeKey GetStatusColor(QueueStatus status) => status switch
     {
-        QueueStatus.Queued => Color.FromArgb("#666666"),
-        QueueStatus.Generating => Color.FromArgb("#1565C0"),
-        QueueStatus.Done => Color.FromArgb("#2E7D32"),
-        QueueStatus.Failed => Color.FromArgb("#C62828"),
-        QueueStatus.Cancelled => Color.FromArgb("#666666"),
-        _ => Color.FromArgb("#666666")
-    };
+        QueueStatus.Queued => ThemeKey.CardText2,        QueueStatus.Generating => ThemeKey.InfoText,        QueueStatus.Done => ThemeKey.SuccessText,        QueueStatus.Failed => ThemeKey.ErrorText,        QueueStatus.Cancelled => ThemeKey.CardText2,        _ => ThemeKey.CardText2    };
 
     private static string TruncatePrompt(string prompt)
     {

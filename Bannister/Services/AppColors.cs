@@ -27,6 +27,10 @@ public static class AppColors
     }
 
     public static string Hex(ThemeKey key) => ModeTheme.ToHex(Get(key));
+
+    // Saved per-item colors are user data; an empty override follows the named default.
+    public static Color Get(ThemeKey key, string? storedHex) => string.IsNullOrWhiteSpace(storedHex)
+        ? Get(key) : ModeTheme.ParseStoredHex(storedHex);
 }
 
 public static class ThemeColorExtensions

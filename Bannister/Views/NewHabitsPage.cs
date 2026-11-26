@@ -70,10 +70,10 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         // Update colors based on frequency
         string bgColor = _frequency switch
         {
-            "Daily" => "#5C6BC0",   // Indigo
-            "Weekly" => "#00897B",  // Teal
-            "Monthly" => "#8E24AA", // Purple
-            _ => "#5C6BC0"
+            "Daily" => AppColors.Hex(ThemeKey.IndigoMutedButton),   // Indigo
+            "Weekly" => AppColors.Hex(ThemeKey.TealButtonBackground),  // Teal
+            "Monthly" => AppColors.Hex(ThemeKey.AccentPurpleButtonBackground), // Purple
+            _ => AppColors.Hex(ThemeKey.IndigoMutedButton)
         };
 
         string graduationText = _frequency switch
@@ -115,42 +115,38 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        _lblHeader = new Label
+        _lblHeader = (new Label
         {
             Text = "🌅 Daily Habits",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
         mainStack.Children.Add(_lblHeader);
 
-        _lblSubheader = new Label
+        _lblSubheader = (new Label
         {
             Text = "Complete every day for 7 days to graduate",
-            TextColor = Colors.White,
             Opacity = 0.9
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
         mainStack.Children.Add(_lblSubheader);
 
         _allowanceChartContainer = new VerticalStackLayout { Spacing = 8 };
-        mainStack.Children.Add(new Frame
+        mainStack.Children.Add((new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 14,
             CornerRadius = 12,
             HasShadow = true,
             Content = _allowanceChartContainer
-        });
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground));
 
         // Allowance display
-        _allowanceFrame = new Frame
+        _allowanceFrame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2E7D32"),
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground);
 
         var allowanceTap = new TapGestureRecognizer();
         allowanceTap.Tapped += OnAllowanceTapped;
@@ -158,101 +154,91 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
 
         var allowanceStack = new VerticalStackLayout { Spacing = 8 };
 
-        _lblAllowance = new Label
+        _lblAllowance = (new Label
         {
             Text = "Allowance: 1",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
         allowanceStack.Children.Add(_lblAllowance);
 
-        _lblAvailableSlots = new Label
+        _lblAvailableSlots = (new Label
         {
             Text = "0 slots available",
             FontSize = 14,
-            TextColor = Colors.White,
             Opacity = 0.9,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
         allowanceStack.Children.Add(_lblAvailableSlots);
 
         // Countdown to allowance increase
-        _lblAllowanceCountdown = new Label
+        _lblAllowanceCountdown = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Colors.White,
             Opacity = 0.8,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3);
         allowanceStack.Children.Add(_lblAllowanceCountdown);
 
         // Week Concluded button (Daily frequency only)
-        _btnWeekConcluded = new Button
+        _btnWeekConcluded = (new Button
         {
             Text = "Week Concluded",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold,
             IsVisible = false,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnWeekConcluded.Clicked += OnWeekConcludedClicked;
         allowanceStack.Children.Add(_btnWeekConcluded);
 
-        allowanceStack.Children.Add(new Label
+        allowanceStack.Children.Add((new Label
         {
             Text = "tap to edit",
             FontSize = 11,
-            TextColor = Colors.White,
             Opacity = 0.6,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3));
 
         _allowanceFrame.Content = allowanceStack;
         mainStack.Children.Add(_allowanceFrame);
 
         // Add habit button
-        _btnAddHabit = new Button
+        _btnAddHabit = (new Button
         {
             Text = "+ Add New Habit",
-            BackgroundColor = Color.FromArgb("#666"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold,
             IsEnabled = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralHoverButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnAddHabit.Clicked += OnAddHabitClicked;
         mainStack.Children.Add(_btnAddHabit);
 
         // Active habits section
-        _lblActiveHeader = new Label
+        _lblActiveHeader = (new Label
         {
             Text = "🔥 Daily Habits",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             Margin = new Thickness(0, 16, 0, 8)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
         mainStack.Children.Add(_lblActiveHeader);
 
         _activeHabitsContainer = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_activeHabitsContainer);
 
         // Top pending spotlight
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "⭐ Top Pending",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             Margin = new Thickness(0, 16, 0, 8)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
 
         _topPendingHabitsContainer = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_topPendingHabitsContainer);
@@ -268,25 +254,22 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 16, 0, 8)
         };
 
-        pendingHeader.Add(new Label
+        pendingHeader.Add((new Label
         {
             Text = "⏳ Pending Queue",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1), 0, 0);
 
-        _btnAddPending = new Button
+        _btnAddPending = (new Button
         {
             Text = "+ Add to Queue",
-            BackgroundColor = Color.FromArgb("#7B1FA2"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 12,
             Padding = new Thickness(12, 6),
             HeightRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnAddPending.Clicked += OnAddPendingClicked;
         pendingHeader.Add(_btnAddPending, 1, 0);
 
@@ -296,29 +279,27 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(_pendingQueueContainer);
 
         // Graduated habits section
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "🎓 Graduated Habits",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             Margin = new Thickness(0, 16, 0, 8)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
 
         _graduatedHabitsContainer = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_graduatedHabitsContainer);
 
         // Info section
-        var infoFrame = new Frame
+        var infoFrame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#C8E6C9"),
             Padding = 16,
             CornerRadius = 12,
             HasShadow = false,
             Margin = new Thickness(0, 16, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground);
 
-        infoFrame.Content = new Label
+        infoFrame.Content = (new Label
         {
             Text = "📖 How it works:\n\n" +
                    "• You start with 1 allowance slot\n" +
@@ -329,10 +310,9 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                    "• Graduate ALL habits → allowance increases\n" +
                    "• Fail = -1 allowance slot (min 1)\n\n" +
                    "💡 Use Pending to queue habits for later!",
-            TextColor = Color.FromArgb("#1B5E20"),
             FontSize = 13,
             LineHeight = 1.4
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1);
         mainStack.Children.Add(infoFrame);
 
         scrollView.Content = mainStack;
@@ -343,24 +323,22 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
     {
         _allowanceChartContainer.Children.Clear();
 
-        _allowanceChartContainer.Children.Add(new Label
+        _allowanceChartContainer.Children.Add((new Label
         {
             Text = $"{_frequency} habit allowance over time",
             FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         var history = await _newHabits.GetSnapshotHistoryAsync(_auth.CurrentUsername, _frequency);
         if (history.Count == 0)
         {
-            _allowanceChartContainer.Children.Add(new Label
+            _allowanceChartContainer.Children.Add((new Label
             {
                 Text = "Allowance history will appear here as periods elapse.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#777"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
             return;
         }
 
@@ -534,9 +512,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         }
 
         _btnAddHabit.IsEnabled = availableSlots > 0;
-        _btnAddHabit.BackgroundColor = availableSlots > 0
-            ? Color.FromArgb("#FF9800")
-            : Color.FromArgb("#666");
+        _btnAddHabit.ThemeColor(VisualElement.BackgroundColorProperty, availableSlots > 0 ? ThemeKey.WarningButtonBackground : ThemeKey.CardText2);
 
         // Reload active habits (they may have changed after graduation)
         allActiveHabits = await _newHabits.GetAllActiveHabitsAsync(_auth.CurrentUsername);
@@ -610,14 +586,13 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
 
         if (activeHabits.Count == 0)
         {
-            _activeHabitsContainer.Children.Add(new Label
+            _activeHabitsContainer.Children.Add((new Label
             {
                 Text = $"No {_frequency.ToLower()} habits yet. Add one to get started!",
-                TextColor = Colors.White,
                 Opacity = 0.7,
                 FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
         }
         else
         {
@@ -644,14 +619,13 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         _topPendingHabitsContainer.Children.Clear();
         if (topPendingHabits.Count == 0)
         {
-            _topPendingHabitsContainer.Children.Add(new Label
+            _topPendingHabitsContainer.Children.Add((new Label
             {
                 Text = "No spotlight habits yet. Promote one from the queue!",
-                TextColor = Colors.White,
                 Opacity = 0.7,
                 FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
         }
         else
         {
@@ -669,14 +643,13 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
 
         if (queueHabits.Count == 0)
         {
-            _pendingQueueContainer.Children.Add(new Label
+            _pendingQueueContainer.Children.Add((new Label
             {
                 Text = "No pending habits. Add habits to your queue!",
-                TextColor = Colors.White,
                 Opacity = 0.7,
                 FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
         }
         else
         {
@@ -697,14 +670,13 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
 
         if (graduatedHabits.Count == 0)
         {
-            _graduatedHabitsContainer.Children.Add(new Label
+            _graduatedHabitsContainer.Children.Add((new Label
             {
                 Text = "No graduated habits yet.",
-                TextColor = Colors.White,
                 Opacity = 0.7,
                 FontSize = 14,
                 HorizontalTextAlignment = TextAlignment.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
         }
         else
         {
@@ -898,13 +870,12 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
 
     private Frame CreateActiveHabitCard(NewHabit habit, int availableSlots)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var grid = new Grid
         {
@@ -924,21 +895,19 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         };
 
         // Habit name
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = habit.HabitName,
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        }, 0, 0);
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
 
         // Game
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = $"📁 {habit.Game}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        }, 0, 1);
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3), 0, 1);
 
         // Progress circles
         var progressStack = new HorizontalStackLayout { Spacing = 4 };
@@ -971,58 +940,52 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             statusText = $"⏳ {habit.DaysRemaining} {(_frequency == "Daily" ? "days" : _frequency == "Weekly" ? "weeks" : "months")} to go";
         }
 
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = statusText,
             FontSize = 12,
-            TextColor = isReadyToGraduate ? Color.FromArgb("#4CAF50") : Color.FromArgb("#666"),
             FontAttributes = isReadyToGraduate ? FontAttributes.Bold : FontAttributes.None
-        }, 0, 3);
+        }).ThemeColor(Label.TextColorProperty, isReadyToGraduate ? ThemeKey.SuccessLightText : ThemeKey.CardText2, ThemeKey.PageText3), 0, 3);
 
         // Action buttons
         var buttonStack = new HorizontalStackLayout { Spacing = 8 };
 
         // Edit progress button
-        var btnEditProgress = new Button
+        var btnEditProgress = (new Button
         {
             Text = "✏️",
-            BackgroundColor = Color.FromArgb("#2196F3"),
-            TextColor = Colors.White,
             FontSize = 14,
             WidthRequest = 40,
             HeightRequest = 40,
             Padding = 0,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnEditProgress.Clicked += async (s, e) => await EditHabitProgressAsync(habit);
         buttonStack.Children.Add(btnEditProgress);
 
         // Move to pending button
-        var btnMoveToPending = new Button
+        var btnMoveToPending = (new Button
         {
             Text = "⏸️",
-            BackgroundColor = Color.FromArgb("#7B1FA2"),
-            TextColor = Colors.White,
             FontSize = 14,
             WidthRequest = 40,
             HeightRequest = 40,
             Padding = 0,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnMoveToPending.Clicked += async (s, e) => await MoveToPendingAsync(habit);
         buttonStack.Children.Add(btnMoveToPending);
 
         // Delete button
-        var btnDelete = new Button
+        var btnDelete = (new Button
         {
             Text = "🗑️",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#F44336"),
             FontSize = 16,
             WidthRequest = 40,
             HeightRequest = 40,
             Padding = 0
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorButtonBackground);
         btnDelete.Clicked += async (s, e) => await DeleteHabitAsync(habit);
         buttonStack.Children.Add(btnDelete);
 
@@ -1036,13 +999,12 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         NewHabit habit, int index, int total,
         int availableSlots, bool isTopPending = false)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#E1BEE7"),
             Padding = 12,
             CornerRadius = 10,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSelected);
 
         var grid = new Grid
         {
@@ -1056,40 +1018,36 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         };
 
         // Order number
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = $"#{index + 1}",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#7B1FA2"),
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1), 0, 0);
 
         // Info stack
         var infoStack = new VerticalStackLayout { Spacing = 2 };
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = habit.HabitName,
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        infoStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
+        infoStack.Children.Add((new Label
         {
             Text = $"📁 {habit.Game}",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         int pendingDays = habit.PendingAddedDate.HasValue
             ? Math.Max(0, (int)(DateTime.UtcNow.Date -
                 habit.PendingAddedDate.Value.ToUniversalTime().Date).TotalDays)
             : 0;
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = $"{pendingDays} day{(pendingDays == 1 ? "" : "s")} pending",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#7B1FA2")
-        });
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText3));
         grid.Add(infoStack, 1, 0);
 
         // Action buttons
@@ -1098,17 +1056,15 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         // Move up
         if (index > 0)
         {
-            var btnUp = new Button
+            var btnUp = (new Button
             {
                 Text = "▲",
-                BackgroundColor = Color.FromArgb("#7B1FA2"),
-                TextColor = Colors.White,
                 FontSize = 12,
                 WidthRequest = 32,
                 HeightRequest = 32,
                 Padding = 0,
                 CornerRadius = 6
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnUp.Clicked += async (s, e) =>
             {
                 await _newHabits.MovePendingHabitUpAsync(habit);
@@ -1120,17 +1076,15 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         // Move down
         if (index < total - 1)
         {
-            var btnDown = new Button
+            var btnDown = (new Button
             {
                 Text = "▼",
-                BackgroundColor = Color.FromArgb("#7B1FA2"),
-                TextColor = Colors.White,
                 FontSize = 12,
                 WidthRequest = 32,
                 HeightRequest = 32,
                 Padding = 0,
                 CornerRadius = 6
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnDown.Clicked += async (s, e) =>
             {
                 await _newHabits.MovePendingHabitDownAsync(habit);
@@ -1139,19 +1093,15 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             buttonStack.Children.Add(btnDown);
         }
 
-        var btnSpotlight = new Button
+        var btnSpotlight = (new Button
         {
             Text = isTopPending ? "↓ To Queue" : "⭐ Promote",
-            BackgroundColor = isTopPending
-                ? Color.FromArgb("#7B1FA2")
-                : Color.FromArgb("#FFB300"),
-            TextColor = Colors.White,
             FontSize = 11,
             Padding = new Thickness(8, 0),
             HeightRequest = 32,
             CornerRadius = 6,
             IsEnabled = isTopPending || _topPendingCount < 3
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isTopPending ? ThemeKey.AccentPurpleSurface : ThemeKey.HighlightYellowButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSpotlight.Clicked += async (_, _) =>
         {
             habit.IsTopPending = !isTopPending;
@@ -1161,49 +1111,43 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         buttonStack.Children.Add(btnSpotlight);
 
         // Activate button
-        var btnActivate = new Button
+        var btnActivate = (new Button
         {
             Text = "▶️",
-            BackgroundColor = availableSlots > 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#999"),
-            TextColor = Colors.White,
             FontSize = 12,
             WidthRequest = 32,
             HeightRequest = 32,
             Padding = 0,
             CornerRadius = 6,
             IsEnabled = availableSlots > 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, availableSlots > 0 ? ThemeKey.SuccessButtonBackground : ThemeKey.CardText3).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnActivate.Clicked += async (s, e) => await ActivatePendingAsync(habit);
         buttonStack.Children.Add(btnActivate);
 
         // Graduate directly (skip active phase)
-        var btnGraduate = new Button
+        var btnGraduate = (new Button
         {
             Text = "\U0001F393",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             FontSize = 12,
             WidthRequest = 32,
             HeightRequest = 32,
             Padding = 0,
             CornerRadius = 6
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnGraduate.Clicked += async (s, e) =>
             await GraduatePendingAsync(habit);
         buttonStack.Children.Add(btnGraduate);
 
         // Delete button
-        var btnDelete = new Button
+        var btnDelete = (new Button
         {
             Text = "✕",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             FontSize = 12,
             WidthRequest = 32,
             HeightRequest = 32,
             Padding = 0,
             CornerRadius = 6
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnDelete.Clicked += async (s, e) => await DeletePendingAsync(habit);
         buttonStack.Children.Add(btnDelete);
 
@@ -1215,13 +1159,12 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
 
     private Frame CreateGraduatedHabitCard(NewHabit habit)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
             Padding = 12,
             CornerRadius = 8,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground);
 
         var grid = new Grid
         {
@@ -1242,28 +1185,25 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         }, 0, 0);
 
         var infoStack = new VerticalStackLayout();
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = habit.HabitName,
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#2E7D32")
-        });
-        infoStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1));
+        infoStack.Children.Add((new Label
         {
             Text = habit.Game,
-            FontSize = 11,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         grid.Add(infoStack, 1, 0);
 
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = habit.CompletedAt?.ToString("MMM dd") ?? "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        }, 2, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3), 2, 0);
 
         frame.Content = grid;
         return frame;
@@ -1801,7 +1741,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
         {
             if (_data.Count == 0)
             {
-                canvas.FontColor = Color.FromArgb("#777");
+                canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
                 canvas.FontSize = 13;
                 canvas.DrawString("No allowance history", dirtyRect.Center.X, dirtyRect.Center.Y, HorizontalAlignment.Center);
                 return;
@@ -1825,10 +1765,10 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             int minValue = 0;
             int maxValue = Math.Max(1, data.Max(d => d.Value) + 1);
 
-            canvas.FillColor = Color.FromArgb("#FAFAFA");
+            canvas.FillColor = AppColors.Get(ThemeKey.SecondarySurface);
             canvas.FillRectangle(leftMargin, topMargin, chartWidth, chartHeight);
 
-            canvas.StrokeColor = Color.FromArgb("#E0E0E0");
+            canvas.StrokeColor = AppColors.Get(ThemeKey.Separator);
             canvas.StrokeSize = 1;
             int gridLines = Math.Max(1, maxValue);
             for (int i = 0; i <= gridLines; i++)
@@ -1837,11 +1777,11 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                 canvas.DrawLine(leftMargin, y, leftMargin + chartWidth, y);
             }
 
-            canvas.StrokeColor = Color.FromArgb("#BDBDBD");
+            canvas.StrokeColor = AppColors.Get(ThemeKey.DisabledButtonBackground);
             canvas.DrawLine(leftMargin, topMargin, leftMargin, topMargin + chartHeight);
             canvas.DrawLine(leftMargin, topMargin + chartHeight, leftMargin + chartWidth, topMargin + chartHeight);
 
-            canvas.StrokeColor = Color.FromArgb("#2E7D32");
+            canvas.StrokeColor = AppColors.Get(ThemeKey.SuccessText);
             canvas.StrokeSize = 3;
             var path = new PathF();
             for (int i = 0; i < data.Count; i++)
@@ -1859,7 +1799,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
             }
             canvas.DrawPath(path);
 
-            canvas.FillColor = Color.FromArgb("#2E7D32");
+            canvas.FillColor = AppColors.Get(ThemeKey.SuccessText);
             for (int i = 0; i < data.Count; i++)
             {
                 float x = leftMargin + chartWidth * i / Math.Max(1, data.Count - 1);
@@ -1867,7 +1807,7 @@ public class NewHabitsPage : Bannister.Views.ModeThemedPage
                 canvas.FillCircle(x, y, 4);
             }
 
-            canvas.FontColor = Color.FromArgb("#555");
+            canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
             canvas.FontSize = 10;
             canvas.DrawString($"{maxValue}", 4, topMargin + 4, HorizontalAlignment.Left);
             canvas.DrawString("0", 4, topMargin + chartHeight - 2, HorizontalAlignment.Left);

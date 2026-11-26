@@ -33,15 +33,12 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
 
         _tabs = new HorizontalStackLayout { Spacing = 8 };
         _body = new VerticalStackLayout { Spacing = 14 };
-        _globalPrefixEditor = new Editor
+        _globalPrefixEditor = (new Editor
         {
             Placeholder = "Enter your video idea / starting prompt here...",
             HeightRequest = 120,
-            AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#777")
-        };
+            AutoSize = EditorAutoSizeOption.TextChanges
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText2);
         _globalPrefixEditor.TextChanged += (_, _) => UpdateCopyPromptButtons();
         _globalPrefixFrame = CreateFrame(_globalPrefixEditor);
 
@@ -62,13 +59,12 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        main.Children.Add(new Label
+        main.Children.Add((new Label
         {
             Text = "Prompt Technique Lab",
             FontSize = 26,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1));
         main.Children.Add(_tabs);
         main.Children.Add(_body);
 
@@ -82,16 +78,14 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
         foreach (var tab in new[] { "Techniques", "Log Result", "Stats" })
         {
             var isActive = tab == _activeTab;
-            var button = new Button
+            var button = (new Button
             {
                 Text = tab,
-                BackgroundColor = isActive ? Color.FromArgb("#1565C0") : Color.FromArgb("#E3F2FD"),
-                TextColor = isActive ? Colors.White : Color.FromArgb("#1565C0"),
                 CornerRadius = 8,
                 FontSize = 13,
                 HeightRequest = 40,
                 Padding = new Thickness(14, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, isActive ? ThemeKey.ButtonPrimaryBackground : ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, isActive ? ThemeKey.OnColorText : ThemeKey.InfoText);
             button.Clicked += async (_, _) =>
             {
                 _activeTab = tab;
@@ -148,23 +142,21 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 8
         };
-        header.Add(new Label
+        header.Add((new Label
         {
             Text = technique.Title,
             FontSize = 17,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        }, 0, 0);
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1), 0, 0);
         header.Add(CreateStatusBadge(technique.Status), 1, 0);
         stack.Children.Add(header);
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = technique.Description,
             FontSize = 13,
-            TextColor = Color.FromArgb("#555"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        var copyPrompt = CreateActionButton("Copy Prompt", Color.FromArgb("#1565C0"));
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
+        var copyPrompt = CreateActionButton("Copy Prompt", ThemeKey.ButtonPrimaryBackground);
         copyPrompt.IsEnabled = HasGlobalPrefix();
         copyPrompt.Clicked += async (_, _) => await CopyTechniquePromptAsync(technique);
         _copyPromptButtons.Add(copyPrompt);
@@ -190,27 +182,22 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
     private View CreateTechniqueEditForm(PromptTechnique technique)
     {
         var title = CreateEntry("Title", technique.Title);
-        var description = new Editor
+        var description = (new Editor
         {
             Text = technique.Description,
             HeightRequest = 100,
-            AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222")
-        };
-        var promptSuffix = new Editor
+            AutoSize = EditorAutoSizeOption.TextChanges
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        var promptSuffix = (new Editor
         {
             Text = technique.PromptSuffix,
             Placeholder = "Prompt suffix",
             HeightRequest = 120,
-            AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#777")
-        };
+            AutoSize = EditorAutoSizeOption.TextChanges
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText2);
         var status = CreateStatusPicker(technique.Status);
 
-        var save = CreateActionButton("Save", Color.FromArgb("#2E7D32"));
+        var save = CreateActionButton("Save", ThemeKey.SuccessDarkButtonBackground);
         save.Clicked += async (_, _) =>
         {
             technique.Title = title.Text?.Trim() ?? "";
@@ -222,7 +209,7 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
             await RefreshAsync();
         };
 
-        var delete = CreateActionButton("Delete", Color.FromArgb("#C62828"));
+        var delete = CreateActionButton("Delete", ThemeKey.ErrorDarkButtonBackground);
         delete.Clicked += async (_, _) =>
         {
             var confirm = await DisplayAlert(
@@ -254,27 +241,21 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
     private View CreateAddTechniqueCard()
     {
         var title = CreateEntry("Technique title", "");
-        var description = new Editor
+        var description = (new Editor
         {
             Placeholder = "Description",
             HeightRequest = 120,
-            AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#777")
-        };
-        var promptSuffix = new Editor
+            AutoSize = EditorAutoSizeOption.TextChanges
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText2);
+        var promptSuffix = (new Editor
         {
             Placeholder = "Prompt suffix",
             HeightRequest = 120,
-            AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#777")
-        };
+            AutoSize = EditorAutoSizeOption.TextChanges
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText2);
         var status = CreateStatusPicker("Testing");
 
-        var save = CreateActionButton("Save Technique", Color.FromArgb("#1565C0"));
+        var save = CreateActionButton("Save Technique", ThemeKey.ButtonPrimaryBackground);
         save.Clicked += async (_, _) =>
         {
             if (string.IsNullOrWhiteSpace(title.Text))
@@ -317,41 +298,37 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
         var activeTechniques = _techniques
             .Where(x => x.Status != "Abandoned")
             .ToList();
-        var techniquePicker = new Picker
+        var techniquePicker = (new Picker
         {
             Title = "Technique",
             ItemDisplayBinding = new Binding(nameof(PromptTechnique.Title)),
-            ItemsSource = activeTechniques,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222")
-        };
+            ItemsSource = activeTechniques
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
 
-        var ratingLabel = new Label
+        var ratingLabel = (new Label
         {
             Text = $"Quality: {RatingName(_selectedRating)}",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
         var ratingRow = new HorizontalStackLayout { Spacing = 8 };
         foreach (var option in new[]
         {
-            ("Terrible", 1, Color.FromArgb("#C62828")),
-            ("Usable", 5, Color.FromArgb("#F57C00")),
-            ("Extraordinary", 10, Color.FromArgb("#2E7D32"))
+            ("Terrible", 1, ThemeKey.ErrorDarkButtonBackground),
+            ("Usable", 5, ThemeKey.WarningHoverButtonBackground),
+            ("Extraordinary", 10, ThemeKey.SuccessDarkButtonBackground)
         })
         {
             var rating = option.Item2;
             var color = option.Item3;
-            var button = new Button
+            var button = (new Button
             {
                 Text = option.Item1,
                 HeightRequest = 40,
                 Padding = new Thickness(12, 0),
-                CornerRadius = 6,
-                BackgroundColor = rating == _selectedRating ? color : Color.FromArgb("#ECEFF1"),
-                TextColor = rating == _selectedRating ? Colors.White : Color.FromArgb("#333")
-            };
+                CornerRadius = 6
+            }).ThemeColor(Button.TextColorProperty, rating == _selectedRating ? ThemeKey.OnColorText : ThemeKey.CardText1)
+                .ThemeColor(VisualElement.BackgroundColorProperty, rating == _selectedRating ? color : ThemeKey.NeutralButtonBackground);
             button.Clicked += (_, _) =>
             {
                 _selectedRating = rating;
@@ -360,19 +337,19 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
                 {
                     var childOption = child.Text switch
                     {
-                        "Terrible" => (value: 1, selectedColor: Color.FromArgb("#C62828")),
-                        "Extraordinary" => (value: 10, selectedColor: Color.FromArgb("#2E7D32")),
-                        _ => (value: 5, selectedColor: Color.FromArgb("#F57C00"))
+                        "Terrible" => (value: 1, selectedColor: ThemeKey.ErrorDarkButtonBackground),
+                        "Extraordinary" => (value: 10, selectedColor: ThemeKey.SuccessDarkButtonBackground),
+                        _ => (value: 5, selectedColor: ThemeKey.WarningHoverButtonBackground)
                     };
                     var isSelected = childOption.value == _selectedRating;
-                    child.BackgroundColor = isSelected ? childOption.selectedColor : Color.FromArgb("#ECEFF1");
-                    child.TextColor = isSelected ? Colors.White : Color.FromArgb("#333");
+                    child.ThemeColor(VisualElement.BackgroundColorProperty, isSelected ? childOption.selectedColor : ThemeKey.NeutralButtonBackground);
+                    child.ThemeColor(Button.TextColorProperty, isSelected ? ThemeKey.OnColorText : ThemeKey.CardText1);
                 }
             };
             ratingRow.Children.Add(button);
         }
 
-        var save = CreateActionButton("Save Result", Color.FromArgb("#1565C0"));
+        var save = CreateActionButton("Save Result", ThemeKey.ButtonPrimaryBackground);
         save.Clicked += async (_, _) =>
         {
             if (techniquePicker.SelectedItem is not PromptTechnique technique)
@@ -433,26 +410,23 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
                 Spacing = 4,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = $"{techniqueTitle} - {result.QualityRating}/10",
                         FontSize = 15,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
-                    new Label
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label
                     {
                         Text = result.CreatedDate.ToLocalTime().ToString("MMM d, yyyy h:mm tt"),
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#666")
-                    },
-                    new Label
+                        FontSize = 12
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
+                    (new Label
                     {
                         Text = result.Notes,
                         FontSize = 13,
-                        TextColor = Color.FromArgb("#444"),
                         LineBreakMode = LineBreakMode.WordWrap
-                    }
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1)
                 }
             }));
         }
@@ -483,15 +457,15 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
         }).ToList();
 
         var dataGrid = DataGridView.Create(headers, rows)
-            .WithHeaderStyle(Color.FromArgb("#1565C0"), Colors.White)
-            .WithAlternateRowColor(Color.FromArgb("#E3F2FD"))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.InfoText), AppColors.Get(ThemeKey.OnColorText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.RowSelected))
             .WithColumnWidths(100, 260)
             .WithCellPadding(6)
             .WithFontSize(12, 12)
             .WithPageSize(100)
             .Build();
 
-        var export = CreateActionButton("LLM Export", Color.FromArgb("#2E7D32"));
+        var export = CreateActionButton("LLM Export", ThemeKey.SuccessDarkButtonBackground);
         export.Clicked += async (_, _) => await CopyExportPromptAsync();
 
         _body.Children.Add(export);
@@ -557,77 +531,54 @@ public class PromptTechniqueLabPage : Bannister.Views.ModeThemedPage
 
     private static Picker CreateStatusPicker(string selected)
     {
-        var picker = new Picker
+        var picker = (new Picker
         {
             Title = "Status",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
             ItemsSource = Statuses.ToList()
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
         picker.SelectedItem = Statuses.Contains(selected) ? selected : "Testing";
         return picker;
     }
 
-    private static Entry CreateEntry(string placeholder, string text) => new()
-    {
+    private static Entry CreateEntry(string placeholder, string text) => (new Entry(){
         Placeholder = placeholder,
-        Text = text,
-        BackgroundColor = Colors.White,
-        TextColor = Color.FromArgb("#222"),
-        PlaceholderColor = Color.FromArgb("#777")
-    };
+        Text = text
+    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText2);
 
-    private static Label CreateSectionTitle(string text) => new()
-    {
+    private static Label CreateSectionTitle(string text) => (new Label(){
         Text = text,
         FontSize = 18,
-        FontAttributes = FontAttributes.Bold,
-        TextColor = Color.FromArgb("#222")
-    };
+        FontAttributes = FontAttributes.Bold
+    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
 
-    private static Label CreateMutedLabel(string text) => new()
-    {
+    private static Label CreateMutedLabel(string text) => (new Label(){
         Text = text,
-        FontSize = 13,
-        TextColor = Color.FromArgb("#666")
-    };
+        FontSize = 13
+    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
 
-    private static Label CreateStatusBadge(string status) => new()
-    {
+    private static Label CreateStatusBadge(string status) => (new Label(){
         Text = status,
         FontSize = 12,
         FontAttributes = FontAttributes.Bold,
         Padding = new Thickness(8, 4),
-        BackgroundColor = StatusColor(status),
-        TextColor = Colors.White,
         VerticalOptions = LayoutOptions.Center
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, StatusColor(status)).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3);
 
-    private static Button CreateActionButton(string text, Color color) => new()
-    {
+    private static Button CreateActionButton(string text, ThemeKey color) => (new Button(){
         Text = text,
-        BackgroundColor = color,
-        TextColor = Colors.White,
         CornerRadius = 8,
         HeightRequest = 42,
         Padding = new Thickness(14, 0)
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-    private static Frame CreateFrame(View content) => new()
-    {
-        BackgroundColor = Colors.White,
+    private static Frame CreateFrame(View content) => (new Frame(){
         CornerRadius = 8,
         Padding = 14,
         HasShadow = false,
-        BorderColor = Color.FromArgb("#E0E0E0"),
         Content = content
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
-    private static Color StatusColor(string status) => status switch
+    private static ThemeKey StatusColor(string status) => status switch
     {
-        "Confirmed" => Color.FromArgb("#2E7D32"),
-        "Promising" => Color.FromArgb("#1565C0"),
-        "Abandoned" => Color.FromArgb("#757575"),
-        _ => Color.FromArgb("#F57C00")
-    };
+        "Confirmed" => ThemeKey.SuccessText,        "Promising" => ThemeKey.InfoText,        "Abandoned" => ThemeKey.NeutralHoverButton,        _ => ThemeKey.WarningStrongText    };
 }

@@ -109,67 +109,63 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         // ====== ROW 0: Header ======
         var headerRow = new HorizontalStackLayout { Spacing = 12 };
         headerRow.Children.Add(new Label { Text = "💡", FontSize = 20, VerticalOptions = LayoutOptions.Center });
-        _headerLabel = new Label
+        _headerLabel = (new Label
         {
             Text = "0 ideas",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 230,
             LineBreakMode = LineBreakMode.TailTruncation,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
         headerRow.Children.Add(_headerLabel);
 
-        _pendingSyncLabel = new Label
+        _pendingSyncLabel = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#F57C00"),
             VerticalOptions = LayoutOptions.Center,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText3);
         headerRow.Children.Add(_pendingSyncLabel);
 
-        _syncQueuedIdeasBtn = new Button
+        _syncQueuedIdeasBtn = (new Button
         {
             Text = "Sync queued ideas",
-            BackgroundColor = Color.FromArgb("#F57C00"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             HeightRequest = 36,
             Padding = new Thickness(10, 0),
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningHoverButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _syncQueuedIdeasBtn.Clicked += OnSyncQueuedIdeasClicked;
         headerRow.Children.Add(_syncQueuedIdeasBtn);
 
-        _searchEntry = new Entry { Placeholder = "🔍 Search...", BackgroundColor = Colors.White, WidthRequest = 150 };
+        _searchEntry = (new Entry { Placeholder = "🔍 Search...", WidthRequest = 150 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _searchEntry.TextChanged += OnSearchChanged;
         headerRow.Children.Add(_searchEntry);
 
         _categoryPicker = new Picker { IsVisible = false };
         _categoryPicker.SelectedIndexChanged += OnCategoryChanged;
 
-        var addBtn = new Button { Text = "+ New", BackgroundColor = Color.FromArgb("#4CAF50"), TextColor = Colors.White, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(12, 0) };
+        var addBtn = (new Button { Text = "+ New", CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += OnAddIdeaClicked;
         headerRow.Children.Add(addBtn);
 
-        headerRow.Children.Add(new Label { Text = "Sort:", FontSize = 12, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center, Margin = new Thickness(10, 0, 0, 0) });
+        headerRow.Children.Add((new Label { Text = "Sort:", FontSize = 12, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(10, 0, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
-        _sortDateBtn = new Button { Text = "📅 Date ↓", BackgroundColor = Color.FromArgb("#2196F3"), TextColor = Colors.White, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(8, 0) };
+        _sortDateBtn = (new Button { Text = "📅 Date ↓", CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(8, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _sortDateBtn.Clicked += OnSortDateClicked;
         headerRow.Children.Add(_sortDateBtn);
 
-        _sortRatingBtn = new Button { Text = "⭐ Rating", BackgroundColor = Color.FromArgb("#757575"), TextColor = Colors.White, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(8, 0) };
+        _sortRatingBtn = (new Button { Text = "⭐ Rating", CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(8, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralHoverButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _sortRatingBtn.Clicked += OnSortRatingClicked;
         headerRow.Children.Add(_sortRatingBtn);
 
-        _showArchivedBtn = new Button { Text = "📦", BackgroundColor = Color.FromArgb("#9E9E9E"), TextColor = Colors.White, CornerRadius = 6, WidthRequest = 36, HeightRequest = 36 };
+        _showArchivedBtn = (new Button { Text = "📦", CornerRadius = 6, WidthRequest = 36, HeightRequest = 36 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _showArchivedBtn.Clicked += OnShowArchivedClicked;
         headerRow.Children.Add(_showArchivedBtn);
 
-        var importBtn = new Button { Text = "📥 Import", BackgroundColor = Color.FromArgb("#795548"), TextColor = Colors.White, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(8, 0) };
+        var importBtn = (new Button { Text = "📥 Import", CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(8, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrownLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         importBtn.Clicked += OnImportClicked;
         headerRow.Children.Add(importBtn);
 
@@ -209,22 +205,20 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
     private void BuildPhoneUI()
     {
-        var root = new Grid
+        var root = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             RowDefinitions =
             {
                 new RowDefinition(GridLength.Auto),
                 new RowDefinition(GridLength.Star)
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-        var header = new VerticalStackLayout
+        var header = (new VerticalStackLayout
         {
             Padding = new Thickness(14, 12, 14, 8),
-            Spacing = 10,
-            BackgroundColor = Colors.White
-        };
+            Spacing = 10
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var titleRow = new Grid
         {
@@ -236,61 +230,52 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 10
         };
 
-        _headerLabel = new Label
+        _headerLabel = (new Label
         {
             Text = "0 ideas",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         titleRow.Add(_headerLabel, 0, 0);
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ New",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42,
             Padding = new Thickness(16, 0),
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += OnAddIdeaClicked;
         titleRow.Add(addBtn, 1, 0);
         header.Children.Add(titleRow);
 
-        _pendingSyncLabel = new Label
+        _pendingSyncLabel = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#F57C00"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText3);
         header.Children.Add(_pendingSyncLabel);
 
-        _syncQueuedIdeasBtn = new Button
+        _syncQueuedIdeasBtn = (new Button
         {
             Text = "Sync queued ideas",
-            BackgroundColor = Color.FromArgb("#F57C00"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42,
             FontAttributes = FontAttributes.Bold,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningHoverButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _syncQueuedIdeasBtn.Clicked += OnSyncQueuedIdeasClicked;
         header.Children.Add(_syncQueuedIdeasBtn);
 
-        _searchEntry = new Entry
+        _searchEntry = (new Entry
         {
             Placeholder = "Search ideas...",
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Colors.White,
             FontSize = 14
-        };
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _searchEntry.TextChanged += OnSearchChanged;
         header.Children.Add(_searchEntry);
 
@@ -310,73 +295,63 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        _sortDateBtn = new Button
+        _sortDateBtn = (new Button
         {
             Text = "Date",
-            BackgroundColor = Color.FromArgb("#2196F3"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _sortDateBtn.Clicked += OnSortDateClicked;
         controlsRow.Add(_sortDateBtn, 0, 0);
 
-        _sortRatingBtn = new Button
+        _sortRatingBtn = (new Button
         {
             Text = "Rating",
-            BackgroundColor = Color.FromArgb("#757575"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralHoverButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _sortRatingBtn.Clicked += OnSortRatingClicked;
         controlsRow.Add(_sortRatingBtn, 1, 0);
 
-        _showArchivedBtn = new Button
+        _showArchivedBtn = (new Button
         {
             Text = "Archive",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             Padding = new Thickness(12, 0),
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _showArchivedBtn.Clicked += OnShowArchivedClicked;
         controlsRow.Add(_showArchivedBtn, 2, 0);
         header.Children.Add(controlsRow);
 
-        var importBtn = new Button
+        var importBtn = (new Button
         {
             Text = "Import",
-            BackgroundColor = Color.FromArgb("#795548"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrownLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         importBtn.Clicked += OnImportClicked;
         header.Children.Add(importBtn);
 
-        _phoneEmptyLabel = new Label
+        _phoneEmptyLabel = (new Label
         {
             Text = "Select a category to view ideas.",
-            TextColor = Color.FromArgb("#777"),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Margin = new Thickness(20)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
 
-        _phoneIdeasView = new CollectionView
+        _phoneIdeasView = (new CollectionView
         {
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             SelectionMode = SelectionMode.Single,
             ItemTemplate = new DataTemplate(CreatePhoneIdeaCard),
             EmptyView = _phoneEmptyLabel,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
         _phoneIdeasView.SelectionChanged += OnPhoneIdeaSelected;
         _ideasContentView = _phoneIdeasView;
 
@@ -390,38 +365,35 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
     private View BuildLoadingAndEmptyState()
     {
-        _emptyStateLabel = new Label
+        _emptyStateLabel = (new Label
         {
             Text = "Pick a category from the dropdowns above to load ideas.",
             FontSize = 15,
-            TextColor = Color.FromArgb("#999"),
             FontAttributes = FontAttributes.Italic,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 40)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2);
 
-        _loadingIndicator = new ActivityIndicator
+        _loadingIndicator = (new ActivityIndicator
         {
-            Color = Color.FromArgb("#1565C0"),
             WidthRequest = 48,
             HeightRequest = 48,
             HorizontalOptions = LayoutOptions.Center,
             IsVisible = false,
             IsRunning = false
-        };
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.InfoText);
 
-        _loadingLabel = new Label
+        _loadingLabel = (new Label
         {
             Text = "Loading ideas...",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             IsVisible = false,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
 
         _loadingStateView = new Grid
         {
@@ -448,44 +420,39 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
     private View CreatePhoneIdeaCard()
     {
-        var card = new Frame
+        var card = (new Frame
         {
             Margin = new Thickness(12, 8),
             Padding = 14,
             CornerRadius = 8,
-            HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Colors.White
-        };
+            HasShadow = false
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
-        var title = new Label
+        var title = (new Label
         {
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.TailTruncation,
             MaxLines = 2
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
         title.SetBinding(Label.TextProperty, nameof(IdeaItem.Title));
         stack.Children.Add(title);
 
-        var meta = new Label
+        var meta = (new Label
         {
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.TailTruncation
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
         meta.SetBinding(Label.TextProperty, new Binding(".", converter: new PhoneIdeaMetaConverter()));
         stack.Children.Add(meta);
 
-        var detail = new Label
+        var detail = (new Label
         {
             FontSize = 12,
-            TextColor = Color.FromArgb("#888"),
             LineBreakMode = LineBreakMode.TailTruncation
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
         detail.SetBinding(Label.TextProperty, new Binding(".", converter: new PhoneIdeaDetailConverter()));
         stack.Children.Add(detail);
 
@@ -503,53 +470,52 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
     private void BuildDetailPanel()
     {
-        _detailPanel = new Frame
+        _detailPanel = (new Frame
         {
-            Padding = 12, CornerRadius = 8, BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#FF9800"), HasShadow = true, IsVisible = false
-        };
+            Padding = 12, CornerRadius = 8, HasShadow = true, IsVisible = false
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
 
         var detailStack = new VerticalStackLayout { Spacing = 10 };
 
         var closeRow = new HorizontalStackLayout();
-        closeRow.Children.Add(new Label { Text = "📄 Details", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FF9800"), HorizontalOptions = LayoutOptions.StartAndExpand, VerticalOptions = LayoutOptions.Center });
-        var closeBtn = new Button { Text = "✕", BackgroundColor = Colors.Transparent, TextColor = Color.FromArgb("#999"), WidthRequest = 30, HeightRequest = 30, Padding = 0 };
+        closeRow.Children.Add((new Label { Text = "📄 Details", FontSize = 14, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.StartAndExpand, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1));
+        var closeBtn = (new Button { Text = "✕", BackgroundColor = Colors.Transparent, WidthRequest = 30, HeightRequest = 30, Padding = 0 }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         closeBtn.Clicked += (s, e) => { _detailPanel.IsVisible = false; _selectedIdea = null; };
         closeRow.Children.Add(closeBtn);
         detailStack.Children.Add(closeRow);
 
-        _detailTitle = new Label { FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), LineBreakMode = LineBreakMode.WordWrap };
+        _detailTitle = (new Label { FontSize = 14, FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         detailStack.Children.Add(_detailTitle);
 
-        _detailMeta = new Label { FontSize = 10, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap };
+        _detailMeta = (new Label { FontSize = 10, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
         detailStack.Children.Add(_detailMeta);
 
-        detailStack.Children.Add(new Label { Text = "Full Idea", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666") });
-        _detailFullIdea = new Editor { Placeholder = "Full idea...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 150, FontSize = 12, IsReadOnly = true };
+        detailStack.Children.Add((new Label { Text = "Full Idea", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        _detailFullIdea = (new Editor { Placeholder = "Full idea...", HeightRequest = 150, FontSize = 12, IsReadOnly = true }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         detailStack.Children.Add(_detailFullIdea);
 
-        detailStack.Children.Add(new Label { Text = "Notes", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666") });
-        _detailContent = new Editor { Placeholder = "Notes...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 150, FontSize = 12 };
+        detailStack.Children.Add((new Label { Text = "Notes", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        _detailContent = (new Editor { Placeholder = "Notes...", HeightRequest = 150, FontSize = 12 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _detailContent.Unfocused += OnDetailContentSave;
         detailStack.Children.Add(_detailContent);
 
         // Rating
         var ratingSection = new VerticalStackLayout { Spacing = 6 };
         var ratingHeader = new HorizontalStackLayout { Spacing = 8 };
-        ratingHeader.Children.Add(new Label { Text = "Rating:", FontSize = 12, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center });
-        _ratingLabel = new Label { Text = "50", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FF9800"), VerticalOptions = LayoutOptions.Center };
+        ratingHeader.Children.Add((new Label { Text = "Rating:", FontSize = 12, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        _ratingLabel = (new Label { Text = "50", FontSize = 14, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1);
         ratingHeader.Children.Add(_ratingLabel);
         ratingSection.Children.Add(ratingHeader);
 
         _ratingButtonsContainer = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start };
         foreach (var rating in new[] { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 })
         {
-            var btn = new Button { Text = rating.ToString(), BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#333"), CornerRadius = 4, WidthRequest = 38, HeightRequest = 30, Padding = 0, Margin = new Thickness(0, 0, 4, 4), FontSize = 11 };
+            var btn = (new Button { Text = rating.ToString(), CornerRadius = 4, WidthRequest = 38, HeightRequest = 30, Padding = 0, Margin = new Thickness(0, 0, 4, 4), FontSize = 11 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
             var r = rating; btn.Clicked += async (s, e) => await SetRatingAsync(r);
             _ratingButtons.Add(btn); _ratingButtonsContainer.Children.Add(btn);
         }
 
-        _customRatingEntry = new Entry { Placeholder = "Custom", Keyboard = Keyboard.Numeric, BackgroundColor = Color.FromArgb("#F5F5F5"), WidthRequest = 55, HeightRequest = 30, FontSize = 11 };
+        _customRatingEntry = (new Entry { Placeholder = "Custom", Keyboard = Keyboard.Numeric, WidthRequest = 55, HeightRequest = 30, FontSize = 11 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _customRatingEntry.Completed += async (s, e) =>
         {
             if (int.TryParse(_customRatingEntry.Text, out int custom) && custom >= 0 && custom <= 100) await SetRatingAsync(custom);
@@ -561,12 +527,12 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
         // Actions
         var actions = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
-        var btnEdit = MiniBtn("✏️", "#2196F3"); btnEdit.Clicked += OnEditClicked;
-        var btnStar = MiniBtn("⭐", "#FFC107"); btnStar.Clicked += OnStarClicked;
-        var btnMove = MiniBtn("📂", "#9C27B0"); btnMove.Clicked += OnMoveClicked;
-        var btnDone = MiniBtn("✅", "#4CAF50"); btnDone.Clicked += OnDoneClicked;
-        var btnArchive = MiniBtn("🗄️", "#757575"); btnArchive.Clicked += OnArchiveClicked;
-        var btnDelete = MiniBtn("🗑️", "#F44336"); btnDelete.Clicked += OnDeleteClicked;
+        var btnEdit = MiniBtn("✏️", ThemeKey.InfoButtonBackground); btnEdit.Clicked += OnEditClicked;
+        var btnStar = MiniBtn("⭐", ThemeKey.HighlightAmberButton); btnStar.Clicked += OnStarClicked;
+        var btnMove = MiniBtn("📂", ThemeKey.AccentPurpleButtonBackground); btnMove.Clicked += OnMoveClicked;
+        var btnDone = MiniBtn("✅", ThemeKey.SuccessButtonBackground); btnDone.Clicked += OnDoneClicked;
+        var btnArchive = MiniBtn("🗄️", ThemeKey.NeutralHoverButton); btnArchive.Clicked += OnArchiveClicked;
+        var btnDelete = MiniBtn("🗑️", ThemeKey.ErrorButtonBackground); btnDelete.Clicked += OnDeleteClicked;
         actions.Children.Add(btnEdit); actions.Children.Add(btnStar); actions.Children.Add(btnMove);
         actions.Children.Add(btnDone); actions.Children.Add(btnArchive); actions.Children.Add(btnDelete);
         detailStack.Children.Add(actions);
@@ -574,11 +540,10 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         _detailPanel.Content = detailStack;
     }
 
-    private Button MiniBtn(string text, string color) => new Button
+    private Button MiniBtn(string text, ThemeKey color) => (new Button
     {
-        Text = text, BackgroundColor = Color.FromArgb(color), TextColor = Colors.White,
-        CornerRadius = 4, WidthRequest = 36, HeightRequest = 32, Padding = 0, Margin = new Thickness(0, 0, 4, 4)
-    };
+        Text = text,         CornerRadius = 4, WidthRequest = 36, HeightRequest = 32, Padding = 0, Margin = new Thickness(0, 0, 4, 4)
+    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
     private View BuildCategoryFilterSection()
     {
@@ -594,36 +559,28 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(0, 8)
         };
 
-        _allButton = new Button
+        _allButton = (new Button
         {
             Text = "All",
-            BackgroundColor = Color.FromArgb("#1976D2"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             WidthRequest = 60,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoHoverButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _allButton.Clicked += OnAllButtonClicked;
 
-        _normalCategoryPicker = new Picker
+        _normalCategoryPicker = (new Picker
         {
             Title = "Normal category",
-            HeightRequest = 40,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
-            TitleColor = Color.FromArgb("#1565C0")
-        };
+            HeightRequest = 40
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.InfoText).ThemeColor(Picker.TitleColorProperty, ThemeKey.InfoText);
         _normalCategoryPicker.SelectedIndexChanged += OnNormalCategoryPickerChanged;
 
-        _llmCategoryPicker = new Picker
+        _llmCategoryPicker = (new Picker
         {
             Title = "LLM category",
-            HeightRequest = 40,
-            BackgroundColor = Color.FromArgb("#F3E5F5"),
-            TextColor = Color.FromArgb("#6A1B9A"),
-            TitleColor = Color.FromArgb("#6A1B9A")
-        };
+            HeightRequest = 40
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.AccentPurpleStrongText).ThemeColor(Picker.TitleColorProperty, ThemeKey.AccentPurpleStrongText);
         _llmCategoryPicker.SelectedIndexChanged += OnLlmCategoryPickerChanged;
 
         filterRow.Add(_allButton, 0, 0);
@@ -838,7 +795,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
         var promptStack = new VerticalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(40) };
         promptStack.Children.Add(new Label { Text = "📁", FontSize = 48, HorizontalOptions = LayoutOptions.Center });
-        promptStack.Children.Add(new Label { Text = "Select a category from the dropdown above", FontSize = 14, TextColor = Color.FromArgb("#666"), HorizontalOptions = LayoutOptions.Center });
+        promptStack.Children.Add((new Label { Text = "Select a category from the dropdown above", FontSize = 14, HorizontalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
         _gridContainer.Children.Add(promptStack);
     }
 
@@ -884,7 +841,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
         if (ideas.Count == 0)
         {
-            _gridContainer.Children.Add(new Label { Text = "No ideas in this category.", TextColor = Color.FromArgb("#999"), HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(20) });
+            _gridContainer.Children.Add((new Label { Text = "No ideas in this category.", HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(20) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2));
             return;
         }
 
@@ -909,8 +866,8 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(Color.FromArgb("#FF9800"), Colors.White)
-            .WithAlternateRowColor(Color.FromArgb("#FFF8E1"))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.WarningAccentText), AppColors.Get(ThemeKey.OnColorText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightYellow))
             .WithColumnWidths(40, 250)
             .WithCellPadding(6)
             .WithFontSize(12, 12)
@@ -999,22 +956,18 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
     {
         _selectedIdea = idea;
 
-        var notes = new Editor
+        var notes = (new Editor
         {
             Text = idea.Notes ?? "",
             Placeholder = "Notes...",
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Colors.White,
             AutoSize = EditorAutoSizeOption.TextChanges,
             MinimumHeightRequest = 160
-        };
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
-        var page = new ContentPage
+        var page = (new ContentPage
         {
-            Title = "Idea Details",
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
+            Title = "Idea Details"
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
         var stack = new VerticalStackLayout
         {
@@ -1022,50 +975,44 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
             Spacing = 14
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = idea.Title,
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"{idea.Category}  |  Rating {idea.Rating}  |  {idea.CreatedAt:MMM d, yyyy}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         if (!string.IsNullOrWhiteSpace(idea.FullIdea))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = "Full Idea",
                 FontSize = 13,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#666")
-            });
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1));
 
-            stack.Children.Add(new Editor
+            stack.Children.Add((new Editor
             {
                 Text = idea.FullIdea,
-                TextColor = Color.FromArgb("#222"),
-                BackgroundColor = Colors.White,
                 IsReadOnly = true,
                 AutoSize = EditorAutoSizeOption.TextChanges,
                 MinimumHeightRequest = 160
-            });
+            }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground));
         }
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Notes",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1));
 
         stack.Children.Add(notes);
 
@@ -1086,7 +1033,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
             RowSpacing = 8
         };
 
-        var editBtn = PhoneActionButton("Edit", "#2196F3");
+        var editBtn = PhoneActionButton("Edit", ThemeKey.InfoButtonBackground);
         editBtn.Clicked += async (_, _) =>
         {
             string? t = await DisplayPromptAsync("Edit", "Update idea:", "Save", "Cancel", initialValue: idea.Title);
@@ -1100,7 +1047,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         };
         actionGrid.Add(editBtn, 0, 0);
 
-        var starBtn = PhoneActionButton(idea.IsStarred ? "Unstar" : "Star", "#FFC107");
+        var starBtn = PhoneActionButton(idea.IsStarred ? "Unstar" : "Star", ThemeKey.HighlightAmberButton);
         starBtn.Clicked += async (_, _) =>
         {
             await _ideas.ToggleStarAsync(idea.Id);
@@ -1111,7 +1058,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         };
         actionGrid.Add(starBtn, 1, 0);
 
-        var moveBtn = PhoneActionButton("Move", "#9C27B0");
+        var moveBtn = PhoneActionButton("Move", ThemeKey.AccentPurpleButtonBackground);
         moveBtn.Clicked += async (_, _) =>
         {
             var opts = _categories.Where(c => c != idea.Category).Concat(new[] { "+ New" }).ToArray();
@@ -1128,7 +1075,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         };
         actionGrid.Add(moveBtn, 0, 1);
 
-        var doneBtn = PhoneActionButton(idea.Status == 2 ? "Reopen" : "Done", "#4CAF50");
+        var doneBtn = PhoneActionButton(idea.Status == 2 ? "Reopen" : "Done", ThemeKey.SuccessButtonBackground);
         doneBtn.Clicked += async (_, _) =>
         {
             if (idea.Status == 2) { idea.Status = 0; idea.CompletedAt = null; }
@@ -1140,7 +1087,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         };
         actionGrid.Add(doneBtn, 1, 1);
 
-        var archiveBtn = PhoneActionButton(idea.Status == 3 ? "Restore" : "Archive", "#757575");
+        var archiveBtn = PhoneActionButton(idea.Status == 3 ? "Restore" : "Archive", ThemeKey.NeutralHoverButton);
         archiveBtn.Clicked += async (_, _) =>
         {
             if (idea.Status == 3) await _ideas.RestoreIdeaAsync(idea.Id);
@@ -1151,7 +1098,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         };
         actionGrid.Add(archiveBtn, 0, 2);
 
-        var deleteBtn = PhoneActionButton("Delete", "#F44336");
+        var deleteBtn = PhoneActionButton("Delete", ThemeKey.ErrorButtonBackground);
         deleteBtn.Clicked += async (_, _) =>
         {
             if (await DisplayAlert("Delete?", "Permanently delete?", "Delete", "Cancel"))
@@ -1166,14 +1113,12 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
         stack.Children.Add(actionGrid);
 
-        var saveCloseBtn = new Button
+        var saveCloseBtn = (new Button
         {
             Text = "Save & Close",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         saveCloseBtn.Clicked += async (_, _) =>
         {
             if (_selectedIdea != null)
@@ -1186,12 +1131,11 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         };
         stack.Children.Add(saveCloseBtn);
 
-        var closeBtn = new Button
+        var closeBtn = (new Button
         {
             Text = "Close",
-            BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#666")
-        };
+            BackgroundColor = Colors.Transparent
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         closeBtn.Clicked += async (_, _) => await page.Navigation.PopModalAsync();
         stack.Children.Add(closeBtn);
 
@@ -1199,15 +1143,12 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         await Navigation.PushModalAsync(page);
     }
 
-    private Button PhoneActionButton(string text, string color) => new()
-    {
+    private Button PhoneActionButton(string text, ThemeKey color) => (new Button(){
         Text = text,
-        BackgroundColor = Color.FromArgb(color),
-        TextColor = Colors.White,
         CornerRadius = 8,
         HeightRequest = 42,
         FontSize = 13
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
     private async Task ShowPhoneActionMenuAsync(IdeaItem? idea)
     {
@@ -1250,13 +1191,14 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         for (int i = 0; i < _ratingButtons.Count && i < vals.Length; i++)
         {
             bool sel = vals[i] == rating;
-            _ratingButtons[i].BackgroundColor = sel ? GetRatingColor(rating) : Color.FromArgb("#E0E0E0");
-            _ratingButtons[i].TextColor = sel ? Colors.White : Color.FromArgb("#333");
+            _ratingButtons[i].ThemeColor(VisualElement.BackgroundColorProperty, sel ? GetRatingColor(rating) : ThemeKey.Separator);
+            _ratingButtons[i].ThemeColor(Button.TextColorProperty, sel ? ThemeKey.OnColorText : ThemeKey.CardText1);
         }
     }
 
-    private Color GetRatingColor(int r) => r >= 70 ? Color.FromArgb("#4CAF50") : r >= 40 ? Color.FromArgb("#FF9800") : Color.FromArgb("#9E9E9E");
-    private void UpdateRatingLabelColor(int r) => _ratingLabel.TextColor = r >= 70 ? Color.FromArgb("#4CAF50") : r >= 40 ? Color.FromArgb("#FF9800") : Color.FromArgb("#999");
+    private ThemeKey GetRatingColor(int r) => r >= 70 ? ThemeKey.SuccessLightText : r >= 40 ? ThemeKey.WarningAccentText : ThemeKey.DisabledButtonBackground;
+    private void UpdateRatingLabelColor(int r) => _ratingLabel.ThemeColor(Label.TextColorProperty,
+        r >= 70 ? ThemeKey.SuccessLightText : r >= 40 ? ThemeKey.WarningAccentText : ThemeKey.CardText3);
 
     private async Task SetRatingAsync(int rating)
     {
@@ -1281,7 +1223,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
     {
         _selectedCategory = "All";
         _showingArchived = false;
-        _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
+        _showArchivedBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground);
 
         _isLoadingFilters = true;
         try
@@ -1307,7 +1249,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
         _selectedCategory = selected;
         _showingArchived = false;
-        _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
+        _showArchivedBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground);
 
         _isLoadingFilters = true;
         try
@@ -1332,7 +1274,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
 
         _selectedCategory = selected;
         _showingArchived = false;
-        _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
+        _showArchivedBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground);
 
         _isLoadingFilters = true;
         try
@@ -1352,7 +1294,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
         if (_loadingCategories) return;
         if (_categoryPicker.SelectedIndex < 0) return;
         _selectedCategory = _categoryPicker.Items[_categoryPicker.SelectedIndex] as string ?? "All";
-        _showingArchived = false; _showArchivedBtn.BackgroundColor = Color.FromArgb("#9E9E9E");
+        _showingArchived = false; _showArchivedBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground);
         await FetchAndRenderIdeasAsync();
     }
 
@@ -1367,7 +1309,7 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
     {
         if (!_hasLoadedIdeas) return;
         _showingArchived = !_showingArchived;
-        _showArchivedBtn.BackgroundColor = _showingArchived ? Color.FromArgb("#F57C00") : Color.FromArgb("#9E9E9E");
+        _showArchivedBtn.ThemeColor(VisualElement.BackgroundColorProperty, _showingArchived ? ThemeKey.WarningHoverButtonBackground : ThemeKey.DisabledButtonBackground);
         await FetchAndRenderIdeasAsync();
     }
 
@@ -1459,8 +1401,8 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
     private void UpdateSortButtons()
     {
         string a = _sortDescending ? "↓" : "↑";
-        if (_sortColumn == "Date") { _sortDateBtn.Text = $"📅 Date {a}"; _sortDateBtn.BackgroundColor = Color.FromArgb("#2196F3"); _sortRatingBtn.Text = "⭐ Rating"; _sortRatingBtn.BackgroundColor = Color.FromArgb("#757575"); }
-        else { _sortDateBtn.Text = "📅 Date"; _sortDateBtn.BackgroundColor = Color.FromArgb("#757575"); _sortRatingBtn.Text = $"⭐ Rating {a}"; _sortRatingBtn.BackgroundColor = Color.FromArgb("#FF9800"); }
+        if (_sortColumn == "Date") { _sortDateBtn.Text = $"📅 Date {a}"; _sortDateBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground); _sortRatingBtn.Text = "⭐ Rating"; _sortRatingBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralHoverButton); }
+        else { _sortDateBtn.Text = "📅 Date"; _sortDateBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralHoverButton); _sortRatingBtn.Text = $"⭐ Rating {a}"; _sortRatingBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground); }
     }
 
     // ===================== IMPORT =====================
@@ -1595,11 +1537,11 @@ public class IdeasPage : Bannister.Views.ModeThemedPage
             this.Content = progressWrapper;
             progressWrapper.Children.Add(originalContent);
 
-            var overlay = new Grid { BackgroundColor = Color.FromArgb("#CC000000"), HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
+            var overlay = (new Grid { HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayStrong);
             var pStack = new VerticalStackLayout { HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center, Spacing = 12 };
-            pStack.Children.Add(new ActivityIndicator { IsRunning = true, Color = Colors.White, HeightRequest = 40, WidthRequest = 40 });
-            var pLabel = new Label { Text = "Importing ideas...", FontSize = 16, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
-            var pDetail = new Label { Text = $"0 / {itemsToInsert.Count}", FontSize = 13, TextColor = Color.FromArgb("#BBDEFB"), HorizontalTextAlignment = TextAlignment.Center };
+            pStack.Children.Add((new ActivityIndicator { IsRunning = true, HeightRequest = 40, WidthRequest = 40 }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
+            var pLabel = (new Label { Text = "Importing ideas...", FontSize = 16, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+            var pDetail = (new Label { Text = $"0 / {itemsToInsert.Count}", FontSize = 13, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightBlueStrong, ThemeKey.PageText1);
             pStack.Children.Add(pLabel);
             pStack.Children.Add(pDetail);
             overlay.Children.Add(pStack);

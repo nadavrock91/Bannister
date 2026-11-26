@@ -80,22 +80,20 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 16 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = " Opening Clip Prompts",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
+        stack.Children.Add((new Label
         {
             Text = "Bannister builds a retention-optimised prompt for 5 Grok " +
                    "video variations. Copy to clipboard, attach the image in " +
                    "Grok, paste and run.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         stack.Children.Add(BuildStageCard(
             "Stage 1 — Core Foundation", BuildStage1Content()));
@@ -117,16 +115,14 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
 
     private View BuildImageSessionSection()
     {
-        var reset = new Button
+        var reset = (new Button
         {
             Text = "Reset Session",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 8,
             HeightRequest = 36,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         reset.Clicked += async (_, _) => await ResetImageSessionAsync();
         _sessionStripContainer = new VerticalStackLayout { Spacing = 8 };
         return new VerticalStackLayout
@@ -134,13 +130,12 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             Spacing = 10,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Image Session",
                     FontSize = 17,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
                 reset,
                 _sessionStripContainer
             }
@@ -150,48 +145,42 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
     private View BuildStage0Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
-        v.Children.Add(new Label
+        v.Children.Add((new Label
         {
             Text = "Save reusable prompt bodies and any extra exclusions.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         _templateList = new VerticalStackLayout { Spacing = 6 };
         v.Children.Add(_templateList);
 
-        _templateNameEntry = new Entry
+        _templateNameEntry = (new Entry
         {
             Placeholder = "Template name",
-            FontSize = 13,
-            BackgroundColor = Color.FromArgb("#FAFAFA")
-        };
-        _templateBodyEditor = new Editor
+            FontSize = 13
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
+        _templateBodyEditor = (new Editor
         {
             Placeholder = "Prompt body",
             HeightRequest = 180,
             AutoSize = EditorAutoSizeOption.Disabled,
-            FontSize = 12,
-            BackgroundColor = Color.FromArgb("#FAFAFA")
-        };
-        _templateExtraDoNotsEditor = new Editor
+            FontSize = 12
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
+        _templateExtraDoNotsEditor = (new Editor
         {
             Placeholder = "Additional do-nots for this template...",
             HeightRequest = 90,
             AutoSize = EditorAutoSizeOption.Disabled,
-            FontSize = 12,
-            BackgroundColor = Color.FromArgb("#FAFAFA")
-        };
-        _templateSaveButton = new Button
+            FontSize = 12
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
+        _templateSaveButton = (new Button
         {
             Text = "Save Template",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 38,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(14, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _templateSaveButton.Clicked += async (_, _) =>
             await SaveTemplateFormAsync();
         v.Children.Add(_templateNameEntry);
@@ -204,22 +193,20 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
     private static Frame BuildStageCard(string title, View content)
     {
         var inner = new VerticalStackLayout { Spacing = 10 };
-        inner.Children.Add(new Label
+        inner.Children.Add((new Label
         {
             Text = title,
             FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1));
         inner.Children.Add(content);
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true,
             Content = inner
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     // ── Stage 1: Foundation ───────────────────────────────────────────
@@ -231,13 +218,12 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
 
         _templates = await _templateService.GetAllTemplatesAsync();
         _templateList.Children.Clear();
-        _templateList.Children.Add(new Label
+        _templateList.Children.Add((new Label
         {
             Text = "Default (built-in)",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         foreach (var template in _templates)
         {
@@ -251,22 +237,19 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                 },
                 ColumnSpacing = 6
             };
-            row.Add(new Label
+            row.Add((new Label
             {
                 Text = template.Name,
                 FontSize = 13,
-                TextColor = Color.FromArgb("#444"),
                 VerticalOptions = LayoutOptions.Center
-            }, 0, 0);
-            var edit = new Button
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
+            var edit = (new Button
             {
                 Text = "Edit",
                 FontSize = 11,
                 HeightRequest = 32,
-                Padding = new Thickness(8, 0),
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0")
-            };
+                Padding = new Thickness(8, 0)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
             edit.Clicked += (_, _) =>
             {
                 _editingTemplateId = template.Id;
@@ -276,15 +259,13 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                 _templateSaveButton.Text = "Update Template";
             };
             row.Add(edit, 1, 0);
-            var delete = new Button
+            var delete = (new Button
             {
                 Text = "Delete",
                 FontSize = 11,
                 HeightRequest = 32,
-                Padding = new Thickness(8, 0),
-                BackgroundColor = Color.FromArgb("#FFEBEE"),
-                TextColor = Color.FromArgb("#C62828")
-            };
+                Padding = new Thickness(8, 0)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
             delete.Clicked += async (_, _) =>
             {
                 if (!await DisplayAlert("Delete Template",
@@ -324,39 +305,33 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
     private View BuildStage1Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
-        v.Children.Add(new Label
+        v.Children.Add((new Label
         {
             Text = "The current retention hypothesis to keep constant across " +
                    "variations (e.g. \"foe + movement\"). Edit per experiment.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        _foundationEditor = new Editor
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        _foundationEditor = (new Editor
         {
             HeightRequest = 60,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13,
-            Placeholder = "e.g. foe + movement",
-            PlaceholderColor = Color.FromArgb("#999")
-        };
+            Placeholder = "e.g. foe + movement"
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
         _foundationEditor.TextChanged += async (_, e) =>
             await SaveFoundationAsync(e.NewTextValue ?? "");
         v.Children.Add(_foundationEditor);
 
-        var resetBtn = new Button
+        var resetBtn = (new Button
         {
             Text = "↺ Reset to Default",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 36,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         resetBtn.Clicked += async (_, _) =>
         {
             _foundationEditor.Text = DefaultFoundation;
@@ -370,29 +345,26 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
     private View BuildStage2Content()
     {
         var v = new VerticalStackLayout { Spacing = 10 };
-        v.Children.Add(new Label
+        v.Children.Add((new Label
         {
             Text = "Things you do NOT want the LLM to generate. " +
                    "These are injected into the prompt automatically.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         _doNotContainer = new VerticalStackLayout { Spacing = 6 };
         v.Children.Add(_doNotContainer);
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add Do Not",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 38,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(14, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         addBtn.Clicked += async (_, _) => await AddDoNotAsync();
         v.Children.Add(addBtn);
 
@@ -403,41 +375,37 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
     private View BuildStage3Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
-        v.Children.Add(new Label
+        v.Children.Add((new Label
         {
             Text = "Builds the full prompt with your foundation and do-nots " +
                    "injected. Attach the starting frame image in Grok/Claude " +
                    "after pasting.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         _templatePickerContainer = new VerticalStackLayout
         {
             Spacing = 6,
             IsVisible = false
         };
         v.Children.Add(_templatePickerContainer);
-        _buildButton = new Button
+        _buildButton = (new Button
         {
             Text = " Build & Copy Prompt to Clipboard",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _buildButton.Clicked += async (_, _) => await BuildAndCopyPromptAsync();
         v.Children.Add(_buildButton);
-        _outputStatusLabel = new Label
+        _outputStatusLabel = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#2E7D32"),
             IsVisible = false,
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3);
         v.Children.Add(_outputStatusLabel);
         return v;
     }
@@ -446,23 +414,20 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
     private View BuildStage4Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
-        v.Children.Add(new Label
+        v.Children.Add((new Label
         {
             Text = "After running the prompt in Grok/Claude with the image " +
                    "attached, paste the response here to parse the 5 clip prompts.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        _pasteResponseButton = new Button
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        _pasteResponseButton = (new Button
         {
             Text = " Paste LLM Response",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _pasteResponseButton.Clicked += async (_, _) =>
             await PasteLLMResponseAsync();
         v.Children.Add(_pasteResponseButton);
@@ -473,13 +438,12 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
     private View BuildStage5Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
-        v.Children.Add(new Label
+        v.Children.Add((new Label
         {
             Text = "Parsed prompts appear here. Skim the titles, " +
                    "tap Copy to send each to Grok.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         _activePromptImageContainer = new VerticalStackLayout { Spacing = 6 };
         v.Children.Add(_activePromptImageContainer);
         _promptsContainer = new VerticalStackLayout { Spacing = 12 };
@@ -503,13 +467,12 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
 
         if (_doNotItems.Count == 0)
         {
-            _doNotContainer.Children.Add(new Label
+            _doNotContainer.Children.Add((new Label
             {
                 Text = "No exclusions added yet.",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
             return;
         }
 
@@ -526,41 +489,36 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                 ColumnSpacing = 6
             };
 
-            row.Add(new Label
+            row.Add((new Label
             {
                 Text = item.Text,
                 FontSize = 13,
-                TextColor = Color.FromArgb("#222"),
                 VerticalOptions = LayoutOptions.Center
-            }, 0, 0);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1), 0, 0);
 
-            var editBtn = new Button
+            var editBtn = (new Button
             {
                 Text = "✏",
                 FontSize = 13,
                 HeightRequest = 34,
                 WidthRequest = 34,
                 CornerRadius = 6,
-                Padding = 0,
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0")
-            };
+                Padding = 0
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
             var capturedItem = item;
             editBtn.Clicked += async (_, _) =>
                 await EditDoNotAsync(capturedItem);
             row.Add(editBtn, 1, 0);
 
-            var delBtn = new Button
+            var delBtn = (new Button
             {
                 Text = "✕",
                 FontSize = 13,
                 HeightRequest = 34,
                 WidthRequest = 34,
                 CornerRadius = 6,
-                Padding = 0,
-                BackgroundColor = Color.FromArgb("#FFEBEE"),
-                TextColor = Color.FromArgb("#C62828")
-            };
+                Padding = 0
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
             delBtn.Clicked += async (_, _) =>
                 await DeleteDoNotAsync(capturedItem);
             row.Add(delBtn, 2, 0);
@@ -637,12 +595,11 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
     private async Task<int?> ShowTemplatePickerAsync()
     {
         _templatePickerContainer.Children.Clear();
-        _templatePickerContainer.Children.Add(new Label
+        _templatePickerContainer.Children.Add((new Label
         {
             Text = "Choose a prompt template:",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#555")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         var tcs = new TaskCompletionSource<int?>();
         void Select(int? index)
@@ -651,39 +608,34 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             tcs.TrySetResult(index);
         }
 
-        var defaultButton = new Button
+        var defaultButton = (new Button
         {
             Text = "Default (built-in)",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             CornerRadius = 7,
             HeightRequest = 38
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         defaultButton.Clicked += (_, _) => Select(0);
         _templatePickerContainer.Children.Add(defaultButton);
 
         for (int i = 0; i < _templates.Count; i++)
         {
             int capturedIndex = i + 1;
-            var templateButton = new Button
+            var templateButton = (new Button
             {
                 Text = _templates[i].Name,
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0"),
                 CornerRadius = 7,
                 HeightRequest = 38
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
             templateButton.Clicked += (_, _) => Select(capturedIndex);
             _templatePickerContainer.Children.Add(templateButton);
         }
 
-        var cancelButton = new Button
+        var cancelButton = (new Button
         {
             Text = "Cancel",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#888"),
             HeightRequest = 32
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         cancelButton.Clicked += (_, _) => Select(null);
         _templatePickerContainer.Children.Add(cancelButton);
         _templatePickerContainer.IsVisible = true;
@@ -824,13 +776,12 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
         _sessionStripContainer.Children.Clear();
         if (_sessionItems.Count == 0)
         {
-            _sessionStripContainer.Children.Add(new Label
+            _sessionStripContainer.Children.Add((new Label
             {
                 Text = "No images in this session",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#777"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
             return;
         }
 
@@ -838,18 +789,12 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
         foreach (var item in _sessionItems)
         {
             string path = OpeningClipImageSessionService.ResolvePath(item.ImagePath);
-            var card = new Frame
+            var card = (new Frame
             {
                 WidthRequest = 116,
                 Padding = 6,
                 CornerRadius = 9,
                 HasShadow = false,
-                BackgroundColor = item.IsActive
-                    ? Color.FromArgb("#E8EAF6")
-                    : Colors.White,
-                BorderColor = item.IsActive
-                    ? Color.FromArgb("#5B63EE")
-                    : Color.FromArgb("#DDDDDD"),
                 Content = new VerticalStackLayout
                 {
                     Spacing = 4,
@@ -863,21 +808,18 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                             HeightRequest = 78,
                             Aspect = Aspect.AspectFill
                         },
-                        new Label
+                        (new Label
                         {
                             Text = $"{item.CopyCount} copied",
                             FontSize = 11,
                             FontAttributes = item.IsActive
                                 ? FontAttributes.Bold
                                 : FontAttributes.None,
-                            TextColor = item.IsActive
-                                ? Color.FromArgb("#3949AB")
-                                : Color.FromArgb("#666"),
                             HorizontalTextAlignment = TextAlignment.Center
-                        }
+                        }).ThemeColor(Label.TextColorProperty, item.IsActive ? ThemeKey.HighlightIndigoButton : ThemeKey.CardText2, ThemeKey.PageText3)
                     }
                 }
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, item.IsActive ? ThemeKey.HighlightIndigo : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, item.IsActive ? ThemeKey.SecondaryAccentText : ThemeKey.Separator);
             var tap = new TapGestureRecognizer();
             tap.Tapped += async (_, _) =>
             {
@@ -904,7 +846,7 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
         if (active == null) return;
 
         string path = OpeningClipImageSessionService.ResolvePath(active.ImagePath);
-        var grid = new Grid
+        var grid = (new Grid
         {
             ColumnDefinitions =
             {
@@ -912,9 +854,8 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition(GridLength.Star)
             },
             ColumnSpacing = 12,
-            Padding = 8,
-            BackgroundColor = Color.FromArgb("#E8EAF6")
-        };
+            Padding = 8
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo);
         grid.Add(new Image
         {
             Source = File.Exists(path) ? ImageSource.FromFile(path) : null,
@@ -926,19 +867,17 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Active thumbnail",
                     FontSize = 12,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#3949AB")
-                },
-                new Label
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText3),
+                (new Label
                 {
                     Text = $"{active.CopyCount} copied",
-                    FontSize = 14,
-                    TextColor = Color.FromArgb("#333")
-                }
+                    FontSize = 14
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1)
             }
         }, 1, 0);
         _activePromptImageContainer.Children.Add(grid);
@@ -1085,65 +1024,57 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             var hook = i < _parsedHooks.Count
                 ? _parsedHooks[i] : "";
 
-            var card = new Frame
+            var card = (new Frame
             {
-                BackgroundColor = Color.FromArgb("#F8F9FF"),
                 Padding = 14,
                 CornerRadius = 10,
-                BorderColor = Color.FromArgb("#C5CAE9"),
                 HasShadow = false
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightIndigoStrong);
             var inner = new VerticalStackLayout { Spacing = 6 };
 
             // Number + title (longer, describes what happens)
-            inner.Children.Add(new Label
+            inner.Children.Add((new Label
             {
                 Text = $"{i + 1}. {title}",
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#1565C0"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1));
 
             // Hook summary (why it works psychologically)
             if (!string.IsNullOrWhiteSpace(hook))
-                inner.Children.Add(new Label
+                inner.Children.Add((new Label
                 {
                     Text = hook,
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#5B63EE"),
                     FontAttributes = FontAttributes.Italic,
                     LineBreakMode = LineBreakMode.WordWrap
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3));
 
             // Separator
-            inner.Children.Add(new BoxView
+            inner.Children.Add((new BoxView
             {
                 HeightRequest = 1,
-                BackgroundColor = Color.FromArgb("#E8EAF6"),
                 Margin = new Thickness(0, 2, 0, 2)
-            });
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo));
 
             // Full prompt (smaller, secondary)
-            inner.Children.Add(new Label
+            inner.Children.Add((new Label
             {
                 Text = promptText,
                 FontSize = 11,
-                TextColor = Color.FromArgb("#555"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
-            var copyBtn = new Button
+            var copyBtn = (new Button
             {
                 Text = " Copy",
-                BackgroundColor = Color.FromArgb("#1565C0"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 FontSize = 13,
                 HeightRequest = 36,
                 HorizontalOptions = LayoutOptions.Start,
                 Padding = new Thickness(14, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             copyBtn.Clicked += async (_, _) =>
             {
                 await Clipboard.SetTextAsync(_parsedPrompts[capturedI]);
@@ -1175,32 +1106,27 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
         string initialValue, string placeholder)
     {
         var tcs = new TaskCompletionSource<string>();
-        var editorPage = new ContentPage
+        var editorPage = (new ContentPage
         {
-            Title = title,
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
-        var editor = new Editor
+            Title = title
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+        var editor = (new Editor
         {
             Text = initialValue,
             Placeholder = placeholder,
             HeightRequest = 300,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13,
             Margin = new Thickness(16)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         editorPage.Disappearing += (_, _) =>
             tcs.TrySetResult(editor.Text ?? "");
-        var confirmBtn = new Button
+        var confirmBtn = (new Button
         {
             Text = "Done",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Margin = new Thickness(16, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         confirmBtn.Clicked += async (_, _) =>
         {
             tcs.TrySetResult(editor.Text ?? "");
@@ -1212,14 +1138,13 @@ public class OpeningClipPromptPage : Bannister.Views.ModeThemedPage
             Padding = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = message,
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#444"),
                     Margin = new Thickness(16, 16, 16, 0),
                     LineBreakMode = LineBreakMode.WordWrap
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 editor,
                 confirmBtn
             }

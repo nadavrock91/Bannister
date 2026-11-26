@@ -76,13 +76,12 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var topStack = new VerticalStackLayout { Padding = new Thickness(20, 12, 20, 4), Spacing = 6 };
-        topStack.Children.Add(new Label
+        topStack.Children.Add((new Label
         {
             Text = "\U0001F3AC Clips Creation",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1));
 
         var selectorRow = new FlexLayout
         {
@@ -122,58 +121,50 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         _selector.WritingProcessFilterBtn.Margin = new Thickness(0, 0, 4, 4);
         actionsRow.Children.Add(_selector.WritingProcessFilterBtn);
 
-        var navigateBtn = new Button
+        var navigateBtn = (new Button
         {
             Text = "\U0001F4DD Navigate",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             HeightRequest = 32,
             FontSize = 11,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         navigateBtn.Margin = new Thickness(0, 0, 4, 4);
         navigateBtn.Clicked += async (_, _) => await OpenClipNavigatorAsync();
         actionsRow.Children.Add(navigateBtn);
 
-        var markEmptyBtn = new Button
+        var markEmptyBtn = (new Button
         {
             Text = "\u2705 Empty Done",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             CornerRadius = 6,
             HeightRequest = 32,
             FontSize = 11,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         markEmptyBtn.Margin = new Thickness(0, 0, 4, 4);
         markEmptyBtn.Clicked += async (_, _) => await MarkEmptyClipsDoneAsync();
         actionsRow.Children.Add(markEmptyBtn);
 
-        var chatGptBtn = new Button
+        var chatGptBtn = (new Button
         {
             Text = "\U0001F4AC ChatGPT Setup",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             HeightRequest = 32,
             FontSize = 11,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         chatGptBtn.Margin = new Thickness(0, 0, 4, 4);
         chatGptBtn.Clicked += async (_, _) => await OpenPromptNavigatorAsync();
         actionsRow.Children.Add(chatGptBtn);
 
-        var clearAllDescBtn = new Button
+        var clearAllDescBtn = (new Button
         {
             Text = "\U0001F5D1 Clear All",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 6,
             HeightRequest = 32,
             FontSize = 11,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         clearAllDescBtn.Margin = new Thickness(0, 0, 4, 4);
         clearAllDescBtn.Clicked += async (_, _) => await ClearAllDescriptionsAsync();
         actionsRow.Children.Add(clearAllDescBtn);
@@ -186,8 +177,8 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         metaRow.Children.Add(_selector.ProjectMetaLabel);
         topStack.Children.Add(metaRow);
 
-        _linesHeaderLabel = new Label { Text = "Lines", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), Margin = new Thickness(0, 0, 0, 4) };
-        _clipsHeaderLabel = new Label { Text = "Clips", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), Margin = new Thickness(0, 0, 0, 4) };
+        _linesHeaderLabel = (new Label { Text = "Lines", FontSize = 15, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 0, 0, 4) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
+        _clipsHeaderLabel = (new Label { Text = "Clips", FontSize = 15, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 0, 0, 4) }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1);
 
         var headersGrid = new Grid
         {
@@ -241,26 +232,23 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
 
     private void BuildNavigator()
     {
-        _navigatorTitleLabel = new Label { FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), LineBreakMode = LineBreakMode.WordWrap };
-        _navigatorCountLabel = new Label { FontSize = 11, TextColor = Color.FromArgb("#888") };
-        _navigatorEditor = new Editor
+        _navigatorTitleLabel = (new Label { FontSize = 14, FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
+        _navigatorCountLabel = (new Label { FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
+        _navigatorEditor = (new Editor
         {
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 120,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
             Placeholder = "Type clip description or notes here...",
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        _navigatorPrevBtn = MakeNavigatorButton("\u25C0 Back", "#E0E0E0", "#333");
-        _navigatorNextBtn = MakeNavigatorButton("Next \u25B6", "#1565C0", "#FFFFFF");
-        _navigatorCloseBtn = MakeNavigatorButton("Close", "#9E9E9E", "#FFFFFF");
-        _navigatorClearBtn = MakeNavigatorButton("Clear", "#FFEBEE", "#C62828");
-        _navigatorClearNextBtn = MakeNavigatorButton("Clear+Next", "#FFCDD2", "#C62828");
-        _navigatorDoneNextBtn = MakeNavigatorButton("\u2705 Done+Next", "#4CAF50", "#FFFFFF");
-        _navigatorNextNotDoneBtn = MakeNavigatorButton("Next Undone \u25B6", "#FF9800", "#FFFFFF");
+        _navigatorPrevBtn = MakeNavigatorButton("\u25C0 Back", ThemeKey.Separator, ThemeKey.CardText1);
+        _navigatorNextBtn = MakeNavigatorButton("Next \u25B6", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
+        _navigatorCloseBtn = MakeNavigatorButton("Close", ThemeKey.DisabledButtonBackground, ThemeKey.OnColorText);
+        _navigatorClearBtn = MakeNavigatorButton("Clear", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
+        _navigatorClearNextBtn = MakeNavigatorButton("Clear+Next", ThemeKey.ErrorSelectedBackground, ThemeKey.ErrorText);
+        _navigatorDoneNextBtn = MakeNavigatorButton("\u2705 Done+Next", ThemeKey.SuccessButtonBackground, ThemeKey.OnColorText);
+        _navigatorNextNotDoneBtn = MakeNavigatorButton("Next Undone \u25B6", ThemeKey.WarningButtonBackground, ThemeKey.OnColorText);
         _navigatorPrevBtn.Clicked += async (_, _) => await NavigateClipAsync(-1);
         _navigatorNextBtn.Clicked += async (_, _) => await NavigateClipAsync(1);
         _navigatorClearBtn.Clicked += async (_, _) =>
@@ -309,11 +297,10 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
             await DisplayAlert("No More", "No more clips that aren't done.", "OK");
         };
 
-        _navigatorDoneCheckbox = new CheckBox
+        _navigatorDoneCheckbox = (new CheckBox
         {
-            Color = Color.FromArgb("#4CAF50"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
         _navigatorDoneCheckbox.CheckedChanged += async (_, e) =>
         {
             if (_currentClipIndex < 0 || _currentClipIndex >= _allClips.Count) return;
@@ -324,13 +311,12 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
             _promptNavIndex = -1;
             _promptNavClipIndices.Clear();
         };
-        _navigatorDoneLabel = new Label
+        _navigatorDoneLabel = (new Label
         {
             Text = "Clip setup complete",
             FontSize = 12,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3);
 
         var navRow1 = new FlexLayout
         {
@@ -364,12 +350,10 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         doneRow.Children.Add(_navigatorDoneCheckbox);
         doneRow.Children.Add(_navigatorDoneLabel);
 
-        _navigatorFrame = new Frame
+        _navigatorFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#1565C0"),
             HasShadow = true,
             IsVisible = false,
             MaximumWidthRequest = 550,
@@ -381,25 +365,25 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
                 Spacing = 10,
                 Children = { _navigatorTitleLabel, _navigatorCountLabel, _navigatorEditor, doneRow, navRow1, navRow2 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoText);
     }
 
     private void BuildPromptNavigator()
     {
-        _promptNavTitleLabel = new Label { FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), LineBreakMode = LineBreakMode.WordWrap };
-        _promptNavCountLabel = new Label { FontSize = 11, TextColor = Color.FromArgb("#888") };
-        _promptNavScriptLabel = PromptNavLabel(12, "#333");
-        _promptNavVisualLabel = PromptNavLabel(12, "#555");
-        _promptNavDescLabel = PromptNavLabel(12, "#666", FontAttributes.Italic);
-        _promptNavPromptsLabel = PromptNavLabel(10, "#999");
+        _promptNavTitleLabel = (new Label { FontSize = 15, FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1);
+        _promptNavCountLabel = (new Label { FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
+        _promptNavScriptLabel = PromptNavLabel(12, ThemeKey.CardText1);
+        _promptNavVisualLabel = PromptNavLabel(12, ThemeKey.CardText2);
+        _promptNavDescLabel = PromptNavLabel(12, ThemeKey.CardText2, FontAttributes.Italic);
+        _promptNavPromptsLabel = PromptNavLabel(10, ThemeKey.CardText3);
 
-        _promptNavCopyBtn = MakePromptNavButton("\U0001F4CB Copy Description", "#1565C0", "#FFFFFF", 40, true);
-        _promptNavMarkDoneBtn = MakePromptNavButton("\U0001F4AC Has ChatGPT Project & Next", "#1565C0", "#FFFFFF");
-        _promptNavPrevBtn = MakePromptNavButton("\u25C0 Back", "#E0E0E0", "#333333");
-        _promptNavNextBtn = MakePromptNavButton("Skip \u25B6", "#FF9800", "#FFFFFF");
-        _promptNavCloseBtn = MakePromptNavButton("Close", "#9E9E9E", "#FFFFFF");
-        _promptNavDoneNextBtn = MakePromptNavButton("\U0001F4AC ChatGPT & Next", "#1565C0", "#FFFFFF");
-        _promptNavNextNotDoneBtn = MakePromptNavButton("Next Not Done \u25B6", "#FF9800", "#FFFFFF");
+        _promptNavCopyBtn = MakePromptNavButton("\U0001F4CB Copy Description", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText, 40, true);
+        _promptNavMarkDoneBtn = MakePromptNavButton("\U0001F4AC Has ChatGPT Project & Next", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
+        _promptNavPrevBtn = MakePromptNavButton("\u25C0 Back", ThemeKey.Separator, ThemeKey.CardText1);
+        _promptNavNextBtn = MakePromptNavButton("Skip \u25B6", ThemeKey.WarningButtonBackground, ThemeKey.OnColorText);
+        _promptNavCloseBtn = MakePromptNavButton("Close", ThemeKey.DisabledButtonBackground, ThemeKey.OnColorText);
+        _promptNavDoneNextBtn = MakePromptNavButton("\U0001F4AC ChatGPT & Next", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
+        _promptNavNextNotDoneBtn = MakePromptNavButton("Next Not Done \u25B6", ThemeKey.WarningButtonBackground, ThemeKey.OnColorText);
 
         var navRow = new FlexLayout
         {
@@ -438,18 +422,16 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         var frameContent = new VerticalStackLayout { Spacing = 10 };
         frameContent.Children.Add(_promptNavTitleLabel);
         frameContent.Children.Add(_promptNavCountLabel);
-        frameContent.Children.Add(new BoxView { HeightRequest = 1, Color = Color.FromArgb("#E0E0E0") });
+        frameContent.Children.Add((new BoxView { HeightRequest = 1 }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         frameContent.Children.Add(new ScrollView { MaximumHeightRequest = 250, Content = promptContent });
-        frameContent.Children.Add(new BoxView { HeightRequest = 1, Color = Color.FromArgb("#E0E0E0") });
+        frameContent.Children.Add((new BoxView { HeightRequest = 1 }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         frameContent.Children.Add(actionRow);
         frameContent.Children.Add(navRow);
 
-        _promptNavFrame = new Frame
+        _promptNavFrame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#1565C0"),
             HasShadow = true,
             IsVisible = false,
             MaximumWidthRequest = 560,
@@ -457,40 +439,32 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(16, 0),
             VerticalOptions = LayoutOptions.Center,
             Content = frameContent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoText);
     }
 
-    private static Label PromptNavLabel(double size, string color, FontAttributes attributes = FontAttributes.None) => new()
-    {
+    private static Label PromptNavLabel(double size, ThemeKey color, FontAttributes attributes = FontAttributes.None) => (new Label(){
         FontSize = size,
-        TextColor = Color.FromArgb(color),
         FontAttributes = attributes,
         LineBreakMode = LineBreakMode.WordWrap,
         IsVisible = false
-    };
+    }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1);
 
-    private static Button MakePromptNavButton(string text, string background, string foreground, double height = 36, bool bold = false) => new()
-    {
+    private static Button MakePromptNavButton(string text, ThemeKey background, ThemeKey foreground, double height = 36, bool bold = false) => (new Button(){
         Text = text,
-        BackgroundColor = Color.FromArgb(background),
-        TextColor = Color.FromArgb(foreground),
         CornerRadius = 8,
         HeightRequest = height,
         FontSize = bold ? 13 : 12,
         FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None,
         Padding = new Thickness(bold ? 16 : 12, 0)
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
 
-    private static Button MakeNavigatorButton(string text, string background, string foreground) => new()
-    {
+    private static Button MakeNavigatorButton(string text, ThemeKey background, ThemeKey foreground) => (new Button(){
         Text = text,
-        BackgroundColor = Color.FromArgb(background),
-        TextColor = Color.FromArgb(foreground),
         CornerRadius = 8,
         HeightRequest = 32,
         FontSize = 11,
         Padding = new Thickness(8, 0)
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
 
     private async Task OpenClipNavigatorAsync()
     {
@@ -506,7 +480,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
 
         if (Content is not Grid rootGrid || rootGrid.Children.Contains(_navigatorFrame)) return;
 
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         overlay.Children.Add(_navigatorFrame);
         var tapToDismiss = new TapGestureRecognizer();
         tapToDismiss.Tapped += async (_, _) => await CloseNavigatorAsync(rootGrid, overlay);
@@ -663,7 +637,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         DisplayPromptNavClip();
         if (Content is not Grid rootGrid) return;
 
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         var blockTap = new TapGestureRecognizer();
         blockTap.Tapped += (_, _) => { };
         _promptNavFrame.GestureRecognizers.Clear();
@@ -769,10 +743,10 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         string clipText = $"{line.LineOrder}.{shot.Index}: {description}";
         await Clipboard.SetTextAsync(clipText);
         _promptNavCopyBtn.Text = "\u2705 Copied!";
-        _promptNavCopyBtn.BackgroundColor = Color.FromArgb("#4CAF50");
+        _promptNavCopyBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground);
         await Task.Delay(1500);
         _promptNavCopyBtn.Text = "\U0001F4CB Copy Description";
-        _promptNavCopyBtn.BackgroundColor = Color.FromArgb("#1565C0");
+        _promptNavCopyBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground);
     }
 
     private async Task MarkCurrentPromptDoneAndAdvanceAsync(Grid rootGrid, Grid overlay)
@@ -826,7 +800,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
             foreach (var frame in stack.Children.OfType<Frame>())
             {
                 if (frame.BindingContext is int index)
-                    frame.BorderColor = index == _currentClipIndex ? Color.FromArgb("#1565C0") : Color.FromArgb("#E0E0E0");
+                    frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, index == _currentClipIndex ? ThemeKey.InfoText : ThemeKey.Separator);
             }
         }
     }
@@ -871,7 +845,7 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
         if (lines.Count == 0)
         {
             _alignedGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var emptyLabel = new Label { Text = "No lines in this draft yet.", FontSize = 13, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic };
+            var emptyLabel = (new Label { Text = "No lines in this draft yet.", FontSize = 13, FontAttributes = FontAttributes.Italic }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2);
             Grid.SetColumn(emptyLabel, 0);
             Grid.SetColumnSpan(emptyLabel, 2);
             _alignedGrid.Children.Add(emptyLabel);
@@ -887,15 +861,15 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
             completedShots += shots.Count(s => s.Done);
             _alignedGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var lineFrame = new Frame { Padding = 10, CornerRadius = 8, BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false, VerticalOptions = LayoutOptions.Start };
+            var lineFrame = (new Frame { Padding = 10, CornerRadius = 8, HasShadow = false, VerticalOptions = LayoutOptions.Start }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
             var lineStack = new VerticalStackLayout { Spacing = 4 };
             string preview = string.IsNullOrWhiteSpace(line.LineText) ? "[VISUAL]" : line.LineText.Length > 80 ? line.LineText[..80] + "..." : line.LineText;
-            lineStack.Children.Add(new Label { Text = $"Line {line.LineOrder}", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
-            lineStack.Children.Add(new Label { Text = preview, FontSize = 11, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
+            lineStack.Children.Add((new Label { Text = $"Line {line.LineOrder}", FontSize = 12, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3));
+            lineStack.Children.Add((new Label { Text = preview, FontSize = 11, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
             if (shots.Count > 0)
             {
                 int lineDone = shots.Count(s => s.Done);
-                lineStack.Children.Add(new Label { Text = $"{lineDone}/{shots.Count} clips", FontSize = 10, TextColor = lineDone == shots.Count ? Color.FromArgb("#2E7D32") : Color.FromArgb("#F57C00") });
+                lineStack.Children.Add((new Label { Text = $"{lineDone}/{shots.Count} clips", FontSize = 10 }).ThemeColor(Label.TextColorProperty, lineDone == shots.Count ? ThemeKey.SuccessText : ThemeKey.WarningStrongText, ThemeKey.PageText3));
             }
             lineFrame.Content = lineStack;
             Grid.SetColumn(lineFrame, 0);
@@ -908,36 +882,32 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
             {
                 int clipIndex = _allClips.Count;
                 _allClips.Add((line, shot, shots));
-                var clipFrame = new Frame
+                var clipFrame = (new Frame
                 {
                     Padding = 10,
                     CornerRadius = 8,
-                    BackgroundColor = shot.Done ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFEBEE"),
-                    BorderColor = shot.HasChatGptProject ? Color.FromArgb("#1565C0") : Color.FromArgb("#E0E0E0"),
                     HasShadow = false,
                     BindingContext = clipIndex
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, shot.Done ? ThemeKey.SuccessBackground : ThemeKey.ErrorBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, shot.HasChatGptProject ? ThemeKey.InfoText : ThemeKey.Separator);
                 var clipStack = new VerticalStackLayout { Spacing = 2 };
                 string statusIcon = shot.Done ? "\u2705" : "\U0001F534";
                 string description = !string.IsNullOrWhiteSpace(shot.Description) ? (shot.Description.Length > 40 ? shot.Description[..40] + "..." : shot.Description) : "(no description)";
-                clipStack.Children.Add(new Label { Text = $"{statusIcon} L{line.LineOrder} C{shot.Index}", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
-                clipStack.Children.Add(new Label { Text = description, FontSize = 10, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.TailTruncation });
+                clipStack.Children.Add((new Label { Text = $"{statusIcon} L{line.LineOrder} C{shot.Index}", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3));
+                clipStack.Children.Add((new Label { Text = description, FontSize = 10, LineBreakMode = LineBreakMode.TailTruncation }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
                 string tasks = ((!shot.Task1_ImageGenerated ? "IMG " : "") + (!shot.Task2_VideoGenerated ? "VID" : "")).Trim();
                 if (!string.IsNullOrEmpty(tasks))
-                    clipStack.Children.Add(new Label { Text = tasks, FontSize = 9, TextColor = Color.FromArgb("#F57C00"), FontAttributes = FontAttributes.Bold });
+                    clipStack.Children.Add((new Label { Text = tasks, FontSize = 9, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText3));
 
-                var openSetupBtn = new Button
+                var openSetupBtn = (new Button
                 {
                     Text = "\u2699",
-                    BackgroundColor = Color.FromArgb("#E3F2FD"),
-                    TextColor = Color.FromArgb("#1565C0"),
                     CornerRadius = 4,
                     HeightRequest = 24,
                     WidthRequest = 36,
                     Padding = 0,
                     FontSize = 10,
                     HorizontalOptions = LayoutOptions.End
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
                 var capturedLineForSetup = line;
                 var capturedShotForSetup = shot;
                 var capturedShotsForSetup = shots;
@@ -949,21 +919,19 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
                 };
                 clipStack.Children.Add(openSetupBtn);
 
-                var cardChatGptCheckbox = new CheckBox
+                var cardChatGptCheckbox = (new CheckBox
                 {
                     IsChecked = shot.HasChatGptProject,
-                    Color = Color.FromArgb("#1565C0"),
                     Scale = 0.7,
                     VerticalOptions = LayoutOptions.Center
-                };
+                }).ThemeColor(CheckBox.ColorProperty, ThemeKey.InfoText);
 
-                var cardDoneCheckbox = new CheckBox
+                var cardDoneCheckbox = (new CheckBox
                 {
                     IsChecked = shot.Done,
-                    Color = Color.FromArgb("#4CAF50"),
                     Scale = 0.7,
                     VerticalOptions = LayoutOptions.Center
-                };
+                }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
                 var capturedShotForDone = shot;
                 var capturedLineForDone = line;
                 var capturedShotsForDone = shots;
@@ -977,17 +945,16 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
                     }
                     try { await _storyService.SaveShotsAsync(capturedLineForDone, capturedShotsForDone); }
                     catch { }
-                    clipFrame.BackgroundColor = e.Value ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFEBEE");
+                    clipFrame.ThemeColor(VisualElement.BackgroundColorProperty, e.Value ? ThemeKey.SuccessBackground : ThemeKey.ErrorBackground);
                 };
                 var cardDoneRow = new HorizontalStackLayout { Spacing = 4 };
                 cardDoneRow.Children.Add(cardDoneCheckbox);
-                cardDoneRow.Children.Add(new Label
+                cardDoneRow.Children.Add((new Label
                 {
                     Text = "Setup done",
                     FontSize = 9,
-                    TextColor = Color.FromArgb("#666"),
                     VerticalOptions = LayoutOptions.Center
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
                 clipStack.Children.Add(cardDoneRow);
 
                 var capturedShotForChatGpt = shot;
@@ -998,18 +965,17 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
                     capturedShotForChatGpt.HasChatGptProject = e.Value;
                     try { await _storyService.SaveShotsAsync(capturedLineForChatGpt, capturedShotsForChatGpt); }
                     catch { }
-                    clipFrame.BorderColor = e.Value ? Color.FromArgb("#1565C0") : Color.FromArgb("#E0E0E0");
+                    clipFrame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, e.Value ? ThemeKey.InfoText : ThemeKey.Separator);
                 };
 
                 var cardChatGptRow = new HorizontalStackLayout { Spacing = 4 };
                 cardChatGptRow.Children.Add(cardChatGptCheckbox);
-                cardChatGptRow.Children.Add(new Label
+                cardChatGptRow.Children.Add((new Label
                 {
                     Text = "\U0001F4AC ChatGPT",
                     FontSize = 9,
-                    TextColor = Color.FromArgb("#1565C0"),
                     VerticalOptions = LayoutOptions.Center
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3));
                 clipStack.Children.Add(cardChatGptRow);
                 clipFrame.Content = clipStack;
                 clipsStack.Children.Add(clipFrame);
@@ -1017,13 +983,12 @@ public class ClipsCreationPage : Bannister.Views.ModeThemedPage
 
             if (shots.Count == 0)
             {
-                clipsStack.Children.Add(new Label
+                clipsStack.Children.Add((new Label
                 {
                     Text = "(no clips)",
                     FontSize = 10,
-                    TextColor = Color.FromArgb("#999"),
                     FontAttributes = FontAttributes.Italic
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
             }
 
             Grid.SetColumn(clipsStack, 1);

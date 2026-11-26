@@ -403,11 +403,10 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             SelectionMode = SelectionMode.Single,
             ItemTemplate = new DataTemplate(() =>
             {
-                var label = new Label
+                var label = (new Label
                 {
-                    Padding = new Thickness(8, 4),
-                    TextColor = Color.FromArgb("#5B63EE")
-                };
+                    Padding = new Thickness(8, 4)
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1);
                 label.SetBinding(Label.TextProperty, ".");
                 return label;
             })
@@ -417,65 +416,48 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 
         // ── Visibility ────────────────────────────────────────
         var visSection = new VerticalStackLayout { Spacing = 6 };
-        visSection.Children.Add(new Label
+        visSection.Children.Add((new Label
         {
             Text = "Visibility",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        visSection.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
+        visSection.Children.Add((new Label
         {
             Text = "Controls which display mode shows this activity.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         var visRow = new HorizontalStackLayout { Spacing = 8 };
 
-        Button MakeVisBtn(string text, int vis, string activeHex)
+        Button MakeVisBtn(string text, int vis, ThemeKey activeHex)
         {
             bool isActive = _selectedVisibility == vis;
-            var btn = new Button
+            var btn = (new Button
             {
                 Text = text,
                 FontSize = 12,
                 HeightRequest = 34,
                 CornerRadius = 6,
-                Padding = new Thickness(12, 0),
-                BackgroundColor = isActive
-                    ? Color.FromArgb(activeHex)
-                    : Color.FromArgb("#ECEFF1"),
-                TextColor = isActive
-                    ? Colors.White
-                    : Color.FromArgb("#37474F")
-            };
+                Padding = new Thickness(12, 0)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, isActive ? activeHex : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, isActive ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
             return btn;
         }
 
-        var pubBtn = MakeVisBtn(" Public", 1, "#1565C0");
-        var privBtn = MakeVisBtn(" Private", 0, "#6A0DAD");
-        var bothBtn = MakeVisBtn(" Both", 2, "#2E7D32");
+        var pubBtn = MakeVisBtn(" Public", 1, ThemeKey.InfoText);
+        var privBtn = MakeVisBtn(" Private", 0, ThemeKey.AccentPurpleDarkButtonBackground);
+        var bothBtn = MakeVisBtn(" Both", 2, ThemeKey.SuccessText);
 
         void UpdateVisBtns()
         {
-            pubBtn.BackgroundColor = _selectedVisibility == 1
-                ? Color.FromArgb("#1565C0")
-                : Color.FromArgb("#ECEFF1");
-            pubBtn.TextColor = _selectedVisibility == 1
-                ? Colors.White : Color.FromArgb("#37474F");
+            pubBtn.ThemeColor(VisualElement.BackgroundColorProperty, _selectedVisibility == 1 ? ThemeKey.ButtonPrimaryBackground : ThemeKey.NeutralButtonBackground);
+            pubBtn.ThemeColor(Button.TextColorProperty, _selectedVisibility == 1 ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
 
-            privBtn.BackgroundColor = _selectedVisibility == 0
-                ? Color.FromArgb("#6A0DAD")
-                : Color.FromArgb("#ECEFF1");
-            privBtn.TextColor = _selectedVisibility == 0
-                ? Colors.White : Color.FromArgb("#37474F");
+            privBtn.ThemeColor(VisualElement.BackgroundColorProperty, _selectedVisibility == 0 ? ThemeKey.AccentPurpleDarkButtonBackground : ThemeKey.NeutralButtonBackground);
+            privBtn.ThemeColor(Button.TextColorProperty, _selectedVisibility == 0 ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
 
-            bothBtn.BackgroundColor = _selectedVisibility == 2
-                ? Color.FromArgb("#2E7D32")
-                : Color.FromArgb("#ECEFF1");
-            bothBtn.TextColor = _selectedVisibility == 2
-                ? Colors.White : Color.FromArgb("#37474F");
+            bothBtn.ThemeColor(VisualElement.BackgroundColorProperty, _selectedVisibility == 2 ? ThemeKey.SuccessDarkButtonBackground : ThemeKey.NeutralButtonBackground);
+            bothBtn.ThemeColor(Button.TextColorProperty, _selectedVisibility == 2 ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
         }
 
         _updateVisBtns = UpdateVisBtns;
@@ -509,27 +491,25 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             Spacing = 10,
             Margin = new Thickness(0, 4, 0, 0)
         };
-        imageOnlyCheck = new CheckBox
+        imageOnlyCheck = (new CheckBox
         {
-            IsChecked = false,
-            Color = Color.FromArgb("#1565C0")
-        };
+            IsChecked = false
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.InfoText);
         imageOnlyCheck.CheckedChanged += (_, e) =>
         {
             _isImageOnly = e.Value;
         };
         imageOnlyRow.Children.Add(imageOnlyCheck);
-        imageOnlyRow.Children.Add(new Label
+        imageOnlyRow.Children.Add((new Label
         {
             Text = " Image Only mode\n" +
                    "(hides activity name in UI, " +
                    "copies name to Notes " +
                    "as private label)",
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center,
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         mainStack.Children.Add(imageOnlyRow);
 
         // Reward Type Picker
@@ -573,12 +553,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         txtMeaningful.TextChanged += OnMeaningfulChanged;
         meaningfulStack.Children.Add(txtMeaningful);
 
-        lblExpPreview = new Label
+        lblExpPreview = (new Label
         {
             Text = "→ This activity will give: +40 EXP",
-            TextColor = Color.FromArgb("#5B63EE"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1);
         meaningfulStack.Children.Add(lblExpPreview);
 
         fixedExpSection.Children.Add(meaningfulStack);
@@ -604,12 +583,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         };
         percentStack.Children.Add(txtPercentOfLevel);
 
-        percentStack.Children.Add(new Label
+        percentStack.Children.Add((new Label
         {
             Text = "% (e.g., 1 = 1% of level span)",
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         percentExpSection.Children.Add(percentStack);
 
@@ -632,22 +610,20 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         };
         cutoffStack.Children.Add(txtPercentCutoff);
 
-        cutoffStack.Children.Add(new Label
+        cutoffStack.Children.Add((new Label
         {
             Text = "(after this level, EXP stays fixed)",
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         percentExpSection.Children.Add(cutoffStack);
 
-        percentExpSection.Children.Add(new Label
+        percentExpSection.Children.Add((new Label
         {
             Text = "💡 EXP scales with your level until cutoff, then stays fixed",
             FontSize = 12,
-            TextColor = Color.FromArgb("#4CAF50"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3));
 
         mainStack.Children.Add(percentExpSection);
 
@@ -727,12 +703,11 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(endDateStack);
 
         // Quick add buttons
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Quick add to end date:",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         var quickAddGrid = new Grid
         {
@@ -800,13 +775,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             IsEnabled = false
         };
         streakTargetRow.Children.Add(txtStreakTargetDays);
-        streakTargetRow.Children.Add(new Label
+        streakTargetRow.Children.Add((new Label
         {
             Text = "shown as days / target",
             VerticalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#666"),
             FontSize = 12
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         streakSection.Children.Add(streakTargetRow);
 
         // "Enough is enough" cap row
@@ -824,23 +798,21 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             IsEnabled = false
         };
         capRow.Children.Add(txtStreakTotalDaysCap);
-        capRow.Children.Add(new Label
+        capRow.Children.Add((new Label
         {
             Text = "total days (0 = off)",
             VerticalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#666"),
             FontSize = 12
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         streakSection.Children.Add(capRow);
 
         // "What to do" note row
-        streakSection.Children.Add(new Label
+        streakSection.Children.Add((new Label
         {
             Text = "What to do when reached:",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, 4, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         txtStreakCapReachedNote = new Entry
         {
             Placeholder = "e.g. Take a break, reassess goals…",
@@ -848,13 +820,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         };
         streakSection.Children.Add(txtStreakCapReachedNote);
         
-        streakSection.Children.Add(new Label
+        streakSection.Children.Add((new Label
         {
             Text = "🔥 When enabled, consecutive days of using this activity will be tracked as streaks",
             FontSize = 12,
-            TextColor = Color.FromArgb("#FF9800"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3));
 
         var showStreakAsDaysRow = new HorizontalStackLayout { Spacing = 12 };
         chkShowStreakAsDaysSinceStarted = new CheckBox();
@@ -896,13 +867,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         });
         statusSection.Children.Add(possibleRow);
         
-        statusSection.Children.Add(new Label
+        statusSection.Children.Add((new Label
         {
             Text = "💡 Possible activities won't show in normal filters - only under 'Possible' filter",
             FontSize = 12,
-            TextColor = Color.FromArgb("#9C27B0"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleButtonBackground, ThemeKey.PageText3));
 
         var toBeTestedRow = new HorizontalStackLayout { Spacing = 12 };
         chkIsToBeTested = new CheckBox();
@@ -914,13 +884,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         });
         statusSection.Children.Add(toBeTestedRow);
 
-        statusSection.Children.Add(new Label
+        statusSection.Children.Add((new Label
         {
             Text = "Mark this activity as something you haven't tried in real life yet and want to remember to try.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         statusSection.Children.Add(new Label
         {
@@ -934,13 +903,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             Keyboard = Keyboard.Numeric
         };
         statusSection.Children.Add(txtManualPriority);
-        statusSection.Children.Add(new Label
+        statusSection.Children.Add((new Label
         {
             Text = "Activities with a priority show first, lower numbers first (1 = top). Leave blank for default order.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         // Show Times Completed Badge
         var timesCompletedRow = new HorizontalStackLayout { Spacing = 12 };
@@ -953,24 +921,22 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         });
         statusSection.Children.Add(timesCompletedRow);
         
-        statusSection.Children.Add(new Label
+        statusSection.Children.Add((new Label
         {
             Text = "💡 Badge shows how many times you've gained EXP from this activity",
             FontSize = 12,
-            TextColor = Color.FromArgb("#9C27B0"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleButtonBackground, ThemeKey.PageText3));
 
         mainStack.Children.Add(statusSection);
 
         // Habit Target Date Section
         var habitTargetSection = new VerticalStackLayout { Spacing = 8 };
-        habitTargetSection.Children.Add(new Label
+        habitTargetSection.Children.Add((new Label
         {
             Text = "Habit Target (required)",
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#D32F2F")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorStrongText, ThemeKey.PageText1));
         
         // Option 1: Don't want as habit
         var noHabitRow = new HorizontalStackLayout { Spacing = 12 };
@@ -1016,13 +982,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         habitTargetSection.Children.Add(hasTargetRow);
         
         // Quick add buttons for habit target
-        habitTargetSection.Children.Add(new Label
+        habitTargetSection.Children.Add((new Label
         {
             Text = "Quick add to target date:",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, 4, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         
         var habitQuickButtonsGrid = new Grid
         {
@@ -1037,40 +1002,39 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 4
         };
         
-        var btnHabit7 = new Button { Text = "+7d", BackgroundColor = Color.FromArgb("#FFF3E0"), TextColor = Color.FromArgb("#E65100"), CornerRadius = 6, Padding = new Thickness(4, 6) };
+        var btnHabit7 = (new Button { Text = "+7d", CornerRadius = 6, Padding = new Thickness(4, 6) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         btnHabit7.Clicked += (s, e) => { chkHasHabitTarget.IsChecked = true; dateHabitTarget.Date = dateHabitTarget.Date.AddDays(7); };
         Grid.SetColumn(btnHabit7, 0);
         habitQuickButtonsGrid.Children.Add(btnHabit7);
         
-        var btnHabit30 = new Button { Text = "+30d", BackgroundColor = Color.FromArgb("#FFF3E0"), TextColor = Color.FromArgb("#E65100"), CornerRadius = 6, Padding = new Thickness(4, 6) };
+        var btnHabit30 = (new Button { Text = "+30d", CornerRadius = 6, Padding = new Thickness(4, 6) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         btnHabit30.Clicked += (s, e) => { chkHasHabitTarget.IsChecked = true; dateHabitTarget.Date = dateHabitTarget.Date.AddDays(30); };
         Grid.SetColumn(btnHabit30, 1);
         habitQuickButtonsGrid.Children.Add(btnHabit30);
         
-        var btnHabit90 = new Button { Text = "+90d", BackgroundColor = Color.FromArgb("#FFF3E0"), TextColor = Color.FromArgb("#E65100"), CornerRadius = 6, Padding = new Thickness(4, 6) };
+        var btnHabit90 = (new Button { Text = "+90d", CornerRadius = 6, Padding = new Thickness(4, 6) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         btnHabit90.Clicked += (s, e) => { chkHasHabitTarget.IsChecked = true; dateHabitTarget.Date = dateHabitTarget.Date.AddDays(90); };
         Grid.SetColumn(btnHabit90, 2);
         habitQuickButtonsGrid.Children.Add(btnHabit90);
         
-        var btnHabit180 = new Button { Text = "+180d", BackgroundColor = Color.FromArgb("#FFF3E0"), TextColor = Color.FromArgb("#E65100"), CornerRadius = 6, Padding = new Thickness(4, 6) };
+        var btnHabit180 = (new Button { Text = "+180d", CornerRadius = 6, Padding = new Thickness(4, 6) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         btnHabit180.Clicked += (s, e) => { chkHasHabitTarget.IsChecked = true; dateHabitTarget.Date = dateHabitTarget.Date.AddDays(180); };
         Grid.SetColumn(btnHabit180, 3);
         habitQuickButtonsGrid.Children.Add(btnHabit180);
         
-        var btnHabit365 = new Button { Text = "+1yr", BackgroundColor = Color.FromArgb("#FFF3E0"), TextColor = Color.FromArgb("#E65100"), CornerRadius = 6, Padding = new Thickness(4, 6) };
+        var btnHabit365 = (new Button { Text = "+1yr", CornerRadius = 6, Padding = new Thickness(4, 6) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         btnHabit365.Clicked += (s, e) => { chkHasHabitTarget.IsChecked = true; dateHabitTarget.Date = dateHabitTarget.Date.AddDays(365); };
         Grid.SetColumn(btnHabit365, 4);
         habitQuickButtonsGrid.Children.Add(btnHabit365);
         
         habitTargetSection.Children.Add(habitQuickButtonsGrid);
         
-        habitTargetSection.Children.Add(new Label
+        habitTargetSection.Children.Add((new Label
         {
             Text = "📅 You must either set a target date or mark that you don't want this as a habit",
             FontSize = 12,
-            TextColor = Color.FromArgb("#FF9800"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3));
         mainStack.Children.Add(habitTargetSection);
 
         // Display Days Section
@@ -1086,23 +1050,19 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 
         var imageButtonsStack = new HorizontalStackLayout { Spacing = 12 };
         
-        btnPickImage = new Button
+        btnPickImage = (new Button
         {
             Text = "Pick Image",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnPickImage.Clicked += OnPickImageClicked;
         imageButtonsStack.Children.Add(btnPickImage);
         
-        var btnSetBlackImage = new Button
+        var btnSetBlackImage = (new Button
         {
             Text = "Set Black Image",
-            BackgroundColor = Color.FromArgb("#333333"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSetBlackImage.Clicked += OnSetBlackImageClicked;
         imageButtonsStack.Children.Add(btnSetBlackImage);
         
@@ -1117,16 +1077,14 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(imgPreview);
 
         // Save Button
-        var btnSave = new Button
+        var btnSave = (new Button
         {
             Text = "Save Activity",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 20, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSave.Clicked += OnSaveClicked;
         mainStack.Children.Add(btnSave);
 
@@ -1136,15 +1094,13 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
 
     private void AddQuickButton(Grid grid, string text, int days, int col, int row)
     {
-        var btn = new Button
+        var btn = (new Button
         {
             Text = text,
             FontSize = 11,
             Padding = new Thickness(8, 4),
-            CornerRadius = 4,
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333")
-        };
+            CornerRadius = 4
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         btn.Clicked += (s, e) =>
         {
             chkEndDate.IsChecked = true;
@@ -1217,12 +1173,12 @@ public class ActivityCreationPage : Bannister.Views.ModeThemedPage
             int exp = (isNegativeCategory || isNegativeValue) ? -(absMeaningful * 2) : (absMeaningful * 2);
             string sign = exp >= 0 ? "+" : "";
             lblExpPreview.Text = $"→ This activity will give: {sign}{exp} EXP";
-            lblExpPreview.TextColor = exp < 0 ? Color.FromArgb("#F44336") : Color.FromArgb("#4CAF50");
+            lblExpPreview.ThemeColor(Label.TextColorProperty, exp < 0 ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessLightText, ThemeKey.PageText1);
         }
         else
         {
             lblExpPreview.Text = "→ This activity will give: +0 EXP";
-            lblExpPreview.TextColor = Color.FromArgb("#4CAF50");
+            lblExpPreview.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1);
         }
     }
 

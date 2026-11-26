@@ -307,12 +307,12 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
     {
         var mainStack = new VerticalStackLayout { Padding = 16, Spacing = 2 };
 
-        mainStack.Children.Add(new Label { Text = $"{_config.PageIcon} {_config.PageTitle}", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FF6F00"), Margin = new Thickness(4, 0, 0, 4) });
-        mainStack.Children.Add(new Label { Text = $"Project: {_project.Name}", FontSize = 13, TextColor = Color.FromArgb("#666"), Margin = new Thickness(4, 0, 0, 2) });
+        mainStack.Children.Add((new Label { Text = $"{_config.PageIcon} {_config.PageTitle}", FontSize = 22, FontAttributes = FontAttributes.Bold, Margin = new Thickness(4, 0, 0, 4) }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText1));
+        mainStack.Children.Add((new Label { Text = $"Project: {_project.Name}", FontSize = 13, Margin = new Thickness(4, 0, 0, 2) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         string preview = _project.StoryDescription.Length > 150 ? _project.StoryDescription.Substring(0, 150) + "..." : _project.StoryDescription;
-        var storyFrame = new Frame { BackgroundColor = Color.FromArgb("#FFF8E1"), BorderColor = Color.FromArgb("#FFB74D"), Padding = 10, CornerRadius = 8, HasShadow = false, Margin = new Thickness(0, 0, 0, 8) };
-        storyFrame.Content = new Label { Text = $"📝 {preview}", FontSize = 11, TextColor = Color.FromArgb("#666") };
+        var storyFrame = (new Frame { Padding = 10, CornerRadius = 8, HasShadow = false, Margin = new Thickness(0, 0, 0, 8) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningLightButtonBackground);
+        storyFrame.Content = (new Label { Text = $"📝 {preview}", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
         mainStack.Children.Add(storyFrame);
 
         // Scene context (only for configs that need it)
@@ -327,7 +327,7 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
         if (_chosenIdea != null)
         {
             _chosenLabel.Text = $"✅ Locked: {(_chosenIdea.Length > 100 ? _chosenIdea.Substring(0, 97) + "..." : _chosenIdea)}";
-            _chosenLabel.TextColor = Color.FromArgb("#2E7D32");
+            _chosenLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1);
             _step1Content.IsVisible = false; _step1Arrow.Text = "▶";
             _step2Content.IsVisible = false; _step2Arrow.Text = "▶";
             _step3Content.IsVisible = true; _step3Arrow.Text = "▼";
@@ -340,13 +340,13 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
 
     private View BuildSceneContext()
     {
-        _sceneFrame = new Frame { BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#CE93D8"), CornerRadius = 0, Padding = 16, HasShadow = false, Margin = new Thickness(0, 0, 0, 2) };
+        _sceneFrame = (new Frame { CornerRadius = 0, Padding = 16, HasShadow = false, Margin = new Thickness(0, 0, 0, 2) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleBorder);
         var stack = new VerticalStackLayout { Spacing = 8 };
-        stack.Children.Add(new Label { Text = "SCENE CONTEXT", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#7B1FA2"), CharacterSpacing = 1 });
-        stack.Children.Add(new Label { Text = "Describe the specific scene/clip you need the first frame for:", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        _sceneContextEditor = new Editor { Text = _project.SceneContext ?? "", Placeholder = "e.g. The wizard trapped under a fallen tree, lion approaching from above...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 80, FontSize = 13 };
+        stack.Children.Add((new Label { Text = "SCENE CONTEXT", FontSize = 12, FontAttributes = FontAttributes.Bold, CharacterSpacing = 1 }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText3));
+        stack.Children.Add((new Label { Text = "Describe the specific scene/clip you need the first frame for:", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        _sceneContextEditor = (new Editor { Text = _project.SceneContext ?? "", Placeholder = "e.g. The wizard trapped under a fallen tree, lion approaching from above...", HeightRequest = 80, FontSize = 13 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(_sceneContextEditor);
-        var saveBtn = new Button { Text = "💾 Save Scene", FontSize = 12, HeightRequest = 34, BackgroundColor = Color.FromArgb("#7B1FA2"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0), HorizontalOptions = LayoutOptions.Start };
+        var saveBtn = (new Button { Text = "💾 Save Scene", FontSize = 12, HeightRequest = 34, CornerRadius = 6, Padding = new Thickness(12, 0), HorizontalOptions = LayoutOptions.Start }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         saveBtn.Clicked += async (s, e) =>
         {
             _project.SceneContext = _sceneContextEditor.Text?.Trim();
@@ -363,14 +363,14 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
     private View BuildStep1()
     {
         var container = new VerticalStackLayout { Spacing = 0 };
-        var header = BuildStepHeader("STEP 1: GET IDEAS", "Generate prompt → paste LLM response → import", Color.FromArgb("#FF6F00"), out _step1Arrow);
-        _step1Content = new Frame { BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), CornerRadius = 0, Padding = 16, HasShadow = false, IsVisible = _chosenIdea == null };
+        var header = BuildStepHeader("STEP 1: GET IDEAS", "Generate prompt → paste LLM response → import", ThemeKey.WarningAmber, out _step1Arrow);
+        _step1Content = (new Frame { CornerRadius = 0, Padding = 16, HasShadow = false, IsVisible = _chosenIdea == null }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
         header.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => { _step1Content.IsVisible = !_step1Content.IsVisible; _step1Arrow.Text = _step1Content.IsVisible ? "▼" : "▶"; }) });
         if (_chosenIdea == null) _step1Arrow.Text = "▼";
 
         var stack = new VerticalStackLayout { Spacing = 10 };
 
-        var generateBtn = new Button { Text = "⚡ Generate Prompt", FontSize = 13, HeightRequest = 40, BackgroundColor = Color.FromArgb("#FF6F00"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+        var generateBtn = (new Button { Text = "⚡ Generate Prompt", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         generateBtn.Clicked += (s, e) =>
         {
             string scene = _config.NeedsSceneContext ? (_sceneContextEditor?.Text?.Trim() ?? "") : "";
@@ -378,20 +378,20 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
         };
         stack.Children.Add(generateBtn);
 
-        _promptEditor = new Editor { Placeholder = "Prompt will appear here...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 160, FontSize = 11, FontFamily = "Consolas", IsReadOnly = true };
+        _promptEditor = (new Editor { Placeholder = "Prompt will appear here...", HeightRequest = 160, FontSize = 11, FontFamily = "Consolas", IsReadOnly = true }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(_promptEditor);
         stack.Children.Add(CreateCopyButton(_promptEditor));
 
-        stack.Children.Add(new BoxView { HeightRequest = 1, BackgroundColor = Color.FromArgb("#E0E0E0"), Margin = new Thickness(0, 6) });
-        stack.Children.Add(new Label { Text = "Paste LLM response:", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666") });
-        _responsePasteEditor = new Editor { Placeholder = "Paste the ideas.Add(\"...\") lines here...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 160, FontSize = 12 };
+        stack.Children.Add((new BoxView { HeightRequest = 1, Margin = new Thickness(0, 6) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator));
+        stack.Children.Add((new Label { Text = "Paste LLM response:", FontSize = 12, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        _responsePasteEditor = (new Editor { Placeholder = "Paste the ideas.Add(\"...\") lines here...", HeightRequest = 160, FontSize = 12 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(_responsePasteEditor);
 
         var btnRow = new HorizontalStackLayout { Spacing = 8 };
-        var importBtn = new Button { Text = "📥 Import to Ideas", FontSize = 13, HeightRequest = 40, BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+        var importBtn = (new Button { Text = "📥 Import to Ideas", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         importBtn.Clicked += OnImportClicked;
         btnRow.Children.Add(importBtn);
-        var skipBtn = new Button { Text = "Skip →", FontSize = 12, HeightRequest = 40, BackgroundColor = Color.FromArgb("#9E9E9E"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var skipBtn = (new Button { Text = "Skip →", FontSize = 12, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         skipBtn.Clicked += (s, e) => { _step1Content.IsVisible = false; _step1Arrow.Text = "▶"; _step2Content.IsVisible = true; _step2Arrow.Text = "▼"; };
         btnRow.Children.Add(skipBtn);
         stack.Children.Add(btnRow);
@@ -406,28 +406,28 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
     private View BuildStep2()
     {
         var container = new VerticalStackLayout { Spacing = 0 };
-        var header = BuildStepHeader("STEP 2: CHOOSE IDEA", "Pick which idea to develop", Color.FromArgb("#1565C0"), out _step2Arrow);
-        _step2Content = new Frame { BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), CornerRadius = 0, Padding = 16, HasShadow = false, IsVisible = false };
+        var header = BuildStepHeader("STEP 2: CHOOSE IDEA", "Pick which idea to develop", ThemeKey.InfoText, out _step2Arrow);
+        _step2Content = (new Frame { CornerRadius = 0, Padding = 16, HasShadow = false, IsVisible = false }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
         header.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => { _step2Content.IsVisible = !_step2Content.IsVisible; _step2Arrow.Text = _step2Content.IsVisible ? "▼" : "▶"; if (_step2Content.IsVisible) await LoadIdeasAsync(); }) });
 
         var stack = new VerticalStackLayout { Spacing = 10 };
 
-        var loadBtn = new Button { Text = "🔄 Load Ideas", FontSize = 12, HeightRequest = 34, BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0"), CornerRadius = 6, Padding = new Thickness(12, 0), HorizontalOptions = LayoutOptions.Start };
+        var loadBtn = (new Button { Text = "🔄 Load Ideas", FontSize = 12, HeightRequest = 34, CornerRadius = 6, Padding = new Thickness(12, 0), HorizontalOptions = LayoutOptions.Start }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         loadBtn.Clicked += async (s, e) => await LoadIdeasAsync();
         stack.Children.Add(loadBtn);
 
         _ideasListStack = new VerticalStackLayout { Spacing = 6 };
-        _ideasListStack.Children.Add(new Label { Text = "No ideas loaded yet.", FontSize = 12, TextColor = Color.FromArgb("#999") });
+        _ideasListStack.Children.Add((new Label { Text = "No ideas loaded yet.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
         stack.Children.Add(_ideasListStack);
 
-        stack.Children.Add(new BoxView { HeightRequest = 1, BackgroundColor = Color.FromArgb("#E0E0E0"), Margin = new Thickness(0, 4) });
-        stack.Children.Add(new Label { Text = "Or write your own:", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666") });
+        stack.Children.Add((new BoxView { HeightRequest = 1, Margin = new Thickness(0, 4) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator));
+        stack.Children.Add((new Label { Text = "Or write your own:", FontSize = 12, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
-        _manualIdeaEntry = new Editor { Placeholder = "Write a custom idea here...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 60, FontSize = 13 };
+        _manualIdeaEntry = (new Editor { Placeholder = "Write a custom idea here...", HeightRequest = 60, FontSize = 13 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(_manualIdeaEntry);
 
         var manualRow = new HorizontalStackLayout { Spacing = 8 };
-        var lockBtn = new Button { Text = "✅ Lock Custom Idea", FontSize = 12, HeightRequest = 34, BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var lockBtn = (new Button { Text = "✅ Lock Custom Idea", FontSize = 12, HeightRequest = 34, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         lockBtn.Clicked += async (s, e) =>
         {
             var t = _manualIdeaEntry.Text?.Trim() ?? "";
@@ -447,22 +447,22 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
             await LockIdeaAsync(t);
         };
         manualRow.Children.Add(lockBtn);
-        var skipBtn2 = new Button { Text = "Skip →", FontSize = 12, HeightRequest = 34, BackgroundColor = Color.FromArgb("#9E9E9E"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var skipBtn2 = (new Button { Text = "Skip →", FontSize = 12, HeightRequest = 34, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         skipBtn2.Clicked += (s, e) => { _step2Content.IsVisible = false; _step2Arrow.Text = "▶"; _step3Content.IsVisible = true; _step3Arrow.Text = "▼"; };
         manualRow.Children.Add(skipBtn2);
         stack.Children.Add(manualRow);
 
-        _chosenLabel = new Label { Text = "No idea chosen yet.", FontSize = 12, TextColor = Color.FromArgb("#999"), Margin = new Thickness(0, 4, 0, 0) };
+        _chosenLabel = (new Label { Text = "No idea chosen yet.", FontSize = 12, Margin = new Thickness(0, 4, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
         stack.Children.Add(_chosenLabel);
 
         // Unlock button
-        var unlockBtn = new Button { Text = "🔓 Unlock Current Idea", FontSize = 11, HeightRequest = 30, BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828"), CornerRadius = 6, Padding = new Thickness(10, 0), HorizontalOptions = LayoutOptions.Start };
+        var unlockBtn = (new Button { Text = "🔓 Unlock Current Idea", FontSize = 11, HeightRequest = 30, CornerRadius = 6, Padding = new Thickness(10, 0), HorizontalOptions = LayoutOptions.Start }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         unlockBtn.Clicked += async (s, e) =>
         {
             _chosenIdea = null;
             _project.LockedIdea = null; _project.LockedWorkflow = null;
             if (_imageService != null) await _imageService.UpdateProjectAsync(_project);
-            _chosenLabel.Text = "No idea chosen yet."; _chosenLabel.TextColor = Color.FromArgb("#999");
+            _chosenLabel.Text = "No idea chosen yet."; _chosenLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1);
             _step3Content.IsVisible = false; _step3Arrow.Text = "▶";
         };
         stack.Children.Add(unlockBtn);
@@ -477,57 +477,57 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
     private View BuildStep3()
     {
         var container = new VerticalStackLayout { Spacing = 0 };
-        var header = BuildStepHeader("STEP 3: GENERATE IMAGE", "Direct attempt first, then blockout on failure", Color.FromArgb("#2E7D32"), out _step3Arrow);
-        _step3Content = new Frame { BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), CornerRadius = 0, Padding = 16, HasShadow = false, IsVisible = false };
+        var header = BuildStepHeader("STEP 3: GENERATE IMAGE", "Direct attempt first, then blockout on failure", ThemeKey.SuccessText, out _step3Arrow);
+        _step3Content = (new Frame { CornerRadius = 0, Padding = 16, HasShadow = false, IsVisible = false }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
         header.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => { _step3Content.IsVisible = !_step3Content.IsVisible; _step3Arrow.Text = _step3Content.IsVisible ? "▼" : "▶"; }) });
 
         var mainStack = new VerticalStackLayout { Spacing = 12 };
 
         // Stage A
-        mainStack.Children.Add(StageLabel("STAGE A: DIRECT ATTEMPT", "Generate a detailed image prompt.", Color.FromArgb("#2E7D32")));
-        var directBtn = new Button { Text = "⚡ Build Direct Image Prompt", FontSize = 13, HeightRequest = 40, BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+        mainStack.Children.Add(StageLabel("STAGE A: DIRECT ATTEMPT", "Generate a detailed image prompt.", ThemeKey.SuccessText));
+        var directBtn = (new Button { Text = "⚡ Build Direct Image Prompt", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         directBtn.Clicked += (s, e) => { var (i, t) = SplitIdea(); _directPromptEditor.Text = _config.BuildDirectPrompt(i, t); };
         mainStack.Children.Add(directBtn);
-        _directPromptEditor = new Editor { Placeholder = "Image prompt...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 180, FontSize = 12, FontFamily = "Consolas" };
+        _directPromptEditor = (new Editor { Placeholder = "Image prompt...", HeightRequest = 180, FontSize = 12, FontFamily = "Consolas" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         mainStack.Children.Add(_directPromptEditor);
         mainStack.Children.Add(CreateCopyButton(_directPromptEditor));
 
-        mainStack.Children.Add(new Label { Text = "Did it work?", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666"), Margin = new Thickness(0, 6, 0, 0) });
+        mainStack.Children.Add((new Label { Text = "Did it work?", FontSize = 12, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 6, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         var resultRow = new HorizontalStackLayout { Spacing = 10 };
-        var successBtn = new Button { Text = "✅ Success!", FontSize = 13, HeightRequest = 40, BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+        var successBtn = (new Button { Text = "✅ Success!", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         successBtn.Clicked += async (s, e) => await DisplayAlert("Done!", "Your image is ready for production.", "OK");
         resultRow.Children.Add(successBtn);
-        var failBtn = new Button { Text = "❌ Failed — Try Blockout", FontSize = 13, HeightRequest = 40, BackgroundColor = Color.FromArgb("#C62828"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+        var failBtn = (new Button { Text = "❌ Failed — Try Blockout", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         failBtn.Clicked += (s, e) => _stageBContainer.IsVisible = true;
         resultRow.Children.Add(failBtn);
         mainStack.Children.Add(resultRow);
 
         // Stage B
         _stageBContainer = new VerticalStackLayout { Spacing = 10, IsVisible = false };
-        _stageBContainer.Children.Add(new BoxView { HeightRequest = 2, BackgroundColor = Color.FromArgb("#C62828"), Margin = new Thickness(0, 8) });
-        _stageBContainer.Children.Add(StageLabel("STAGE B: STRUCTURAL BLOCKOUT", "Start simple, nail composition, then build up.", Color.FromArgb("#E65100")));
+        _stageBContainer.Children.Add((new BoxView { HeightRequest = 2, Margin = new Thickness(0, 8) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorText));
+        _stageBContainer.Children.Add(StageLabel("STAGE B: STRUCTURAL BLOCKOUT", "Start simple, nail composition, then build up.", ThemeKey.WarningText));
 
-        _stageBContainer.Children.Add(new Label { Text = "B1: BLOCKOUT PROMPT", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#E65100") });
-        var blockBtn = new Button { Text = "🔲 Build Blockout Prompt", FontSize = 13, HeightRequest = 40, BackgroundColor = Color.FromArgb("#E65100"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+        _stageBContainer.Children.Add((new Label { Text = "B1: BLOCKOUT PROMPT", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3));
+        var blockBtn = (new Button { Text = "🔲 Build Blockout Prompt", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         blockBtn.Clicked += (s, e) => { var (i, t) = SplitIdea(); _blockoutPromptEditor.Text = _config.BuildBlockoutPrompt(i, t); };
         _stageBContainer.Children.Add(blockBtn);
-        _blockoutPromptEditor = new Editor { Placeholder = "Blockout prompt...", BackgroundColor = Color.FromArgb("#FFF3E0"), HeightRequest = 140, FontSize = 12, FontFamily = "Consolas" };
+        _blockoutPromptEditor = (new Editor { Placeholder = "Blockout prompt...", HeightRequest = 140, FontSize = 12, FontFamily = "Consolas" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground);
         _stageBContainer.Children.Add(_blockoutPromptEditor);
         _stageBContainer.Children.Add(CreateCopyButton(_blockoutPromptEditor));
 
         // Blockout result buttons
-        _stageBContainer.Children.Add(new Label { Text = "How did the blockout turn out?", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666"), Margin = new Thickness(0, 6, 0, 0) });
+        _stageBContainer.Children.Add((new Label { Text = "How did the blockout turn out?", FontSize = 12, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 6, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         var blockoutResultRow = new HorizontalStackLayout { Spacing = 8 };
-        var blockoutOkBtn = new Button { Text = "✅ Composition is right → B2", FontSize = 12, HeightRequest = 36, BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var blockoutOkBtn = (new Button { Text = "✅ Composition is right → B2", FontSize = 12, HeightRequest = 36, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         blockoutOkBtn.Clicked += (s, e) => { _b2Container.IsVisible = true; };
         blockoutResultRow.Children.Add(blockoutOkBtn);
 
-        var blockoutFixBtn = new Button { Text = "🔄 Close but needs fixes", FontSize = 12, HeightRequest = 36, BackgroundColor = Color.FromArgb("#FF6F00"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var blockoutFixBtn = (new Button { Text = "🔄 Close but needs fixes", FontSize = 12, HeightRequest = 36, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         blockoutFixBtn.Clicked += (s, e) => { _iterationContainer.IsVisible = true; };
         blockoutResultRow.Children.Add(blockoutFixBtn);
 
-        var blockoutRetryBtn = new Button { Text = "❌ Totally wrong → Retry", FontSize = 12, HeightRequest = 36, BackgroundColor = Color.FromArgb("#C62828"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var blockoutRetryBtn = (new Button { Text = "❌ Totally wrong → Retry", FontSize = 12, HeightRequest = 36, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         blockoutRetryBtn.Clicked += (s, e) => { var (i, t) = SplitIdea(); _blockoutPromptEditor.Text = _config.BuildBlockoutPrompt(i, t); _iterationCount = 0; _iterationCountLabel.Text = ""; };
         blockoutResultRow.Children.Add(blockoutRetryBtn);
         _stageBContainer.Children.Add(blockoutResultRow);
@@ -535,45 +535,45 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
         // ====== ITERATION LOOP (hidden until "needs fixes") ======
         _iterationContainer = new VerticalStackLayout { Spacing = 10, IsVisible = false };
 
-        _iterationContainer.Children.Add(new BoxView { HeightRequest = 1, BackgroundColor = Color.FromArgb("#FF6F00"), Margin = new Thickness(0, 6) });
-        _iterationContainer.Children.Add(new Label { Text = "🔄 FIX BLOCKOUT", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#FF6F00") });
+        _iterationContainer.Children.Add((new BoxView { HeightRequest = 1, Margin = new Thickness(0, 6) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber));
+        _iterationContainer.Children.Add((new Label { Text = "🔄 FIX BLOCKOUT", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText3));
 
-        _iterationCountLabel = new Label { Text = "", FontSize = 11, TextColor = Color.FromArgb("#999") };
+        _iterationCountLabel = (new Label { Text = "", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
         _iterationContainer.Children.Add(_iterationCountLabel);
 
-        _iterationContainer.Children.Add(new Label { Text = "Describe what's wrong with the blockout:", FontSize = 12, TextColor = Color.FromArgb("#666") });
+        _iterationContainer.Children.Add((new Label { Text = "Describe what's wrong with the blockout:", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
-        _fixDescriptionEditor = new Editor { Placeholder = "e.g. Robot is too far away, should fill more of the upper frame. Man needs to be slightly larger. Road is too wide — narrow it so machinery is closer. Machinery on left side is too short.", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 80, FontSize = 13 };
+        _fixDescriptionEditor = (new Editor { Placeholder = "e.g. Robot is too far away, should fill more of the upper frame. Man needs to be slightly larger. Road is too wide — narrow it so machinery is closer. Machinery on left side is too short.", HeightRequest = 80, FontSize = 13 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _iterationContainer.Children.Add(_fixDescriptionEditor);
 
         // Two options: with reference image or without
-        _iterationContainer.Children.Add(new Label { Text = "Generate correction prompt:", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666"), Margin = new Thickness(0, 4, 0, 0) });
+        _iterationContainer.Children.Add((new Label { Text = "Generate correction prompt:", FontSize = 12, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 4, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         var iterBtnRow = new HorizontalStackLayout { Spacing = 8 };
 
-        var iterWithRefBtn = new Button { Text = "🖼️ With Reference Image", FontSize = 12, HeightRequest = 36, BackgroundColor = Color.FromArgb("#FF6F00"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var iterWithRefBtn = (new Button { Text = "🖼️ With Reference Image", FontSize = 12, HeightRequest = 36, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         iterWithRefBtn.Clicked += (s, e) => BuildIterationPrompt(withReference: true);
         iterBtnRow.Children.Add(iterWithRefBtn);
 
-        var iterNoRefBtn = new Button { Text = "📝 Without Reference", FontSize = 12, HeightRequest = 36, BackgroundColor = Color.FromArgb("#795548"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var iterNoRefBtn = (new Button { Text = "📝 Without Reference", FontSize = 12, HeightRequest = 36, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrownLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         iterNoRefBtn.Clicked += (s, e) => BuildIterationPrompt(withReference: false);
         iterBtnRow.Children.Add(iterNoRefBtn);
 
         _iterationContainer.Children.Add(iterBtnRow);
 
-        _iterationPromptEditor = new Editor { Placeholder = "Correction prompt will appear here...", BackgroundColor = Color.FromArgb("#FFF3E0"), HeightRequest = 180, FontSize = 12, FontFamily = "Consolas" };
+        _iterationPromptEditor = (new Editor { Placeholder = "Correction prompt will appear here...", HeightRequest = 180, FontSize = 12, FontFamily = "Consolas" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground);
         _iterationContainer.Children.Add(_iterationPromptEditor);
         _iterationContainer.Children.Add(CreateCopyButton(_iterationPromptEditor));
 
-        _iterationContainer.Children.Add(new Label { Text = "Copy this → paste to LLM → get corrected blockout prompt → feed to image generator → check again.", FontSize = 11, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
+        _iterationContainer.Children.Add((new Label { Text = "Copy this → paste to LLM → get corrected blockout prompt → feed to image generator → check again.", FontSize = 11, FontAttributes = FontAttributes.Italic }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
 
         // After iteration, same three choices
         var iterResultRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 4, 0, 0) };
-        var iterOkBtn = new Button { Text = "✅ Now it's right → B2", FontSize = 12, HeightRequest = 36, BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var iterOkBtn = (new Button { Text = "✅ Now it's right → B2", FontSize = 12, HeightRequest = 36, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         iterOkBtn.Clicked += (s, e) => { _b2Container.IsVisible = true; };
         iterResultRow.Children.Add(iterOkBtn);
 
-        var iterAgainBtn = new Button { Text = "🔄 Still needs fixes", FontSize = 12, HeightRequest = 36, BackgroundColor = Color.FromArgb("#FF6F00"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(12, 0) };
+        var iterAgainBtn = (new Button { Text = "🔄 Still needs fixes", FontSize = 12, HeightRequest = 36, CornerRadius = 6, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         iterAgainBtn.Clicked += (s, e) => { _fixDescriptionEditor.Text = ""; _iterationPromptEditor.Text = ""; };
         iterResultRow.Children.Add(iterAgainBtn);
         _iterationContainer.Children.Add(iterResultRow);
@@ -583,13 +583,13 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
         // ====== B2: FULL PROMPT (hidden until composition approved) ======
         _b2Container = new VerticalStackLayout { Spacing = 10, IsVisible = false };
 
-        _b2Container.Children.Add(new BoxView { HeightRequest = 1, BackgroundColor = Color.FromArgb("#E0E0E0"), Margin = new Thickness(0, 6) });
-        _b2Container.Children.Add(new Label { Text = "B2: FULL PROMPT (from blockout)", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#E65100") });
-        _b2Container.Children.Add(new Label { Text = "Feed the blockout image as reference alongside this prompt.", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        var refBtn = new Button { Text = "🎨 Build Full Prompt from Blockout", FontSize = 13, HeightRequest = 40, BackgroundColor = Color.FromArgb("#BF360C"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(16, 0) };
+        _b2Container.Children.Add((new BoxView { HeightRequest = 1, Margin = new Thickness(0, 6) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator));
+        _b2Container.Children.Add((new Label { Text = "B2: FULL PROMPT (from blockout)", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3));
+        _b2Container.Children.Add((new Label { Text = "Feed the blockout image as reference alongside this prompt.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        var refBtn = (new Button { Text = "🎨 Build Full Prompt from Blockout", FontSize = 13, HeightRequest = 40, CornerRadius = 6, Padding = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBurntText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         refBtn.Clicked += (s, e) => { var (i, t) = SplitIdea(); _refinedPromptEditor.Text = _config.BuildRefinedPrompt(i, t); };
         _b2Container.Children.Add(refBtn);
-        _refinedPromptEditor = new Editor { Placeholder = "Refined prompt...", BackgroundColor = Color.FromArgb("#FAFAFA"), HeightRequest = 180, FontSize = 12, FontFamily = "Consolas" };
+        _refinedPromptEditor = (new Editor { Placeholder = "Refined prompt...", HeightRequest = 180, FontSize = 12, FontFamily = "Consolas" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _b2Container.Children.Add(_refinedPromptEditor);
         _b2Container.Children.Add(CreateCopyButton(_refinedPromptEditor));
 
@@ -685,7 +685,7 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
     {
         _chosenIdea = text;
         _chosenLabel.Text = $"✅ Locked: {(text.Length > 100 ? text.Substring(0, 97) + "..." : text)}";
-        _chosenLabel.TextColor = Color.FromArgb("#2E7D32");
+        _chosenLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1);
 
         // Persist
         _project.LockedIdea = text;
@@ -695,9 +695,9 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
         _step3Content.IsVisible = true; _step3Arrow.Text = "▼";
     }
 
-    private View StageLabel(string t, string s, Color c) { var st = new VerticalStackLayout { Spacing = 2, Margin = new Thickness(0, 2, 0, 4) }; st.Children.Add(new Label { Text = t, FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = c, CharacterSpacing = 1 }); st.Children.Add(new Label { Text = s, FontSize = 11, TextColor = Color.FromArgb("#888") }); return st; }
-    private Button CreateCopyButton(Editor ed) { var b = new Button { Text = "📋 Copy", FontSize = 12, HeightRequest = 34, BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#455A64"), CornerRadius = 6, Padding = new Thickness(12, 0), HorizontalOptions = LayoutOptions.Start }; b.Clicked += async (s, e) => { if (!string.IsNullOrEmpty(ed.Text)) { await Clipboard.SetTextAsync(ed.Text); b.Text = "✓"; await Task.Delay(1500); b.Text = "📋 Copy"; } }; return b; }
-    private Grid BuildStepHeader(string t, string s, Color c, out Label arrow) { var g = new Grid { BackgroundColor = c, Padding = new Thickness(14, 10), ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 10 }; arrow = new Label { Text = "▶", FontSize = 13, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center }; g.Add(arrow, 0, 0); var ts = new VerticalStackLayout { Spacing = 1 }; ts.Children.Add(new Label { Text = t, FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, CharacterSpacing = 1 }); ts.Children.Add(new Label { Text = s, FontSize = 10, TextColor = Colors.White.WithAlpha(0.7f) }); g.Add(ts, 1, 0); return g; }
+    private View StageLabel(string t, string s, ThemeKey c) { var st = new VerticalStackLayout { Spacing = 2, Margin = new Thickness(0, 2, 0, 4) }; st.Children.Add((new Label { Text = t, FontSize = 13, FontAttributes = FontAttributes.Bold, CharacterSpacing = 1 }).ThemeColor(Label.TextColorProperty, c, ThemeKey.PageText1)); st.Children.Add((new Label { Text = s, FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3)); return st; }
+    private Button CreateCopyButton(Editor ed) { var b = (new Button { Text = "📋 Copy", FontSize = 12, HeightRequest = 34, CornerRadius = 6, Padding = new Thickness(12, 0), HorizontalOptions = LayoutOptions.Start }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SlateText); b.Clicked += async (s, e) => { if (!string.IsNullOrEmpty(ed.Text)) { await Clipboard.SetTextAsync(ed.Text); b.Text = "✓"; await Task.Delay(1500); b.Text = "📋 Copy"; } }; return b; }
+    private Grid BuildStepHeader(string t, string s, ThemeKey c, out Label arrow) { var g = (new Grid { Padding = new Thickness(14, 10), ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 10 }).ThemeColor(VisualElement.BackgroundColorProperty, c); arrow = (new Label { Text = "▶", FontSize = 13, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1); g.Add(arrow, 0, 0); var ts = new VerticalStackLayout { Spacing = 1 }; ts.Children.Add((new Label { Text = t, FontSize = 13, FontAttributes = FontAttributes.Bold, CharacterSpacing = 1 }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1)); ts.Children.Add(new Label { Text = s, FontSize = 10, TextColor = AppColors.Get(ThemeKey.OnColorText).WithAlpha(0.7f) }); g.Add(ts, 1, 0); return g; }
 
     // ===================== IMPORT =====================
 
@@ -742,22 +742,22 @@ public class ImageWorkflowPage : Bannister.Views.ModeThemedPage
         _ideasListStack.Children.Clear();
         IdeasService? svc = null;
         try { svc = Application.Current?.Handler?.MauiContext?.Services?.GetService<IdeasService>(); } catch { }
-        if (svc == null) { _ideasListStack.Children.Add(new Label { Text = "Could not load.", FontSize = 12, TextColor = Color.FromArgb("#C62828") }); return; }
+        if (svc == null) { _ideasListStack.Children.Add((new Label { Text = "Could not load.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3)); return; }
         var ideas = await svc.GetIdeasByCategoryAsync(_project.Username, GetCategory());
-        if (ideas.Count == 0) { _ideasListStack.Children.Add(new Label { Text = "No ideas found. Import in Step 1.", FontSize = 12, TextColor = Color.FromArgb("#999") }); return; }
-        _ideasListStack.Children.Add(new Label { Text = $"{ideas.Count} ideas:", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
+        if (ideas.Count == 0) { _ideasListStack.Children.Add((new Label { Text = "No ideas found. Import in Step 1.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3)); return; }
+        _ideasListStack.Children.Add((new Label { Text = $"{ideas.Count} ideas:", FontSize = 12, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3));
         for (int i = 0; i < ideas.Count; i++)
         {
             var idea = ideas[i]; int num = i + 1;
-            var card = new Frame { BackgroundColor = Color.FromArgb("#F5F5F5"), BorderColor = Color.FromArgb("#E0E0E0"), CornerRadius = 8, Padding = 10, HasShadow = false };
+            var card = (new Frame { CornerRadius = 8, Padding = 10, HasShadow = false }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
             var cg = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
-            var badge = new Frame { BackgroundColor = Color.FromArgb("#1565C0"), CornerRadius = 12, Padding = new Thickness(8, 4), HasShadow = false, VerticalOptions = LayoutOptions.Start };
-            badge.Content = new Label { Text = num.ToString(), FontSize = 11, TextColor = Colors.White, FontAttributes = FontAttributes.Bold };
+            var badge = (new Frame { CornerRadius = 12, Padding = new Thickness(8, 4), HasShadow = false, VerticalOptions = LayoutOptions.Start }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoText);
+            badge.Content = (new Label { Text = num.ToString(), FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3);
             cg.Add(badge, 0, 0);
             string dt = idea.Title.Length > 120 ? idea.Title.Substring(0, 117) + "..." : idea.Title;
-            cg.Add(new Label { Text = dt, FontSize = 12, TextColor = Color.FromArgb("#333"), LineBreakMode = LineBreakMode.WordWrap, VerticalOptions = LayoutOptions.Center }, 1, 0);
+            cg.Add((new Label { Text = dt, FontSize = 12, LineBreakMode = LineBreakMode.WordWrap, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3), 1, 0);
             string ft = !string.IsNullOrWhiteSpace(idea.FullIdea) ? idea.FullIdea.Trim() : idea.Title;
-            var sb = new Button { Text = "Select", FontSize = 11, HeightRequest = 30, BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(10, 0), VerticalOptions = LayoutOptions.Center };
+            var sb = (new Button { Text = "Select", FontSize = 11, HeightRequest = 30, CornerRadius = 6, Padding = new Thickness(10, 0), VerticalOptions = LayoutOptions.Center }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             sb.Clicked += async (s, e) => await LockIdeaAsync(ft);
             cg.Add(sb, 2, 0);
             card.Content = cg;

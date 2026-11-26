@@ -135,6 +135,21 @@ public static class ModeTheme
         new(ThemeKey.ErrorDeepText,"Status","#B71C1C"),
         new(ThemeKey.HighlightIndigoStrong,"Highlights","#C5CAE9"),
         new(ThemeKey.BrownText,"Cards","#5D4037"), new(ThemeKey.WarningAccentText,"Status","#FF9800"),
+        new(ThemeKey.HighlightMintStrong,"Highlights","#B2DFDB"),
+        new(ThemeKey.BrownStrongText,"Cards","#3D2B1F"),
+        new(ThemeKey.BrownMutedText,"Cards","#6D5A4A"),
+        new(ThemeKey.BrownMutedButton,"Buttons","#8D6E63"),
+        new(ThemeKey.WarmSurface,"Cards","#EFE1CF"),
+        new(ThemeKey.WarmSelectedSurface,"Cards","#DDD0C0"),
+        new(ThemeKey.TimelineSalmon,"Highlights","#F78166"),
+        new(ThemeKey.TimelineLavender,"Highlights","#D2A8FF"),
+        new(ThemeKey.TimelineViolet,"Highlights","#BC8CFF"),
+        new(ThemeKey.TimelineBrightGreen,"Highlights","#56D364"),
+        new(ThemeKey.TimelineMint,"Highlights","#63E6BE"),
+        new(ThemeKey.DarkSuccessBackground,"Status","#2D3A2E"),
+        new(ThemeKey.IndigoMutedButton,"Buttons","#5C6BC0"),
+        new(ThemeKey.HighlightAmberStrong,"Highlights","#FFE082"),
+        new(ThemeKey.NeutralStrongButtonBackground,"Buttons","#333333"),
         new(ThemeKey.BrandFacebook,"Brand","#1877F2",true), new(ThemeKey.BrandTikTok,"Brand","#FE2C55",true), new(ThemeKey.BrandYouTube,"Brand","#FF0000",true),
         new(ThemeKey.BrandMediaBackground,"Brand","#1E1E1E",true), new(ThemeKey.BrandMediaPanel,"Brand","#2D2D30",true),
         new(ThemeKey.BrandMediaBorder,"Brand","#3E3E42",true), new(ThemeKey.BrandMediaButton,"Brand","#4A4A4A",true),
@@ -176,6 +191,8 @@ public static class ModeTheme
 
     public static string ToHex(Color color) => "#" + (color.Alpha < 1 ? $"{(int)Math.Round(color.Alpha * 255):X2}" : "") +
         $"{(int)Math.Round(color.Red * 255):X2}{(int)Math.Round(color.Green * 255):X2}{(int)Math.Round(color.Blue * 255):X2}";
+
+    internal static Color ParseStoredHex(string hex) => Color.FromArgb(hex);
 
     public static async Task<ModeThemeColors> GetAsync(ActivityDisplayMode mode, string username, AppSettingsService settings)
     {

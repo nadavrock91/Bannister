@@ -64,24 +64,21 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        headerRow.Children.Add(new Label
+        headerRow.Children.Add((new Label
         {
             Text = "📊 Production Stats",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1));
 
-        var exportBtn = new Button
+        var exportBtn = (new Button
         {
             Text = "📤 Export",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             FontSize = 13,
             HeightRequest = 36,
             CornerRadius = 8,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         exportBtn.Clicked += OnExportClicked;
         Grid.SetColumn(exportBtn, 1);
         headerRow.Children.Add(exportBtn);
@@ -97,20 +94,18 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 10
         };
-        categoryRow.Children.Add(new Label
+        categoryRow.Children.Add((new Label
         {
             Text = "Category:",
             FontSize = 13,
-            TextColor = Color.FromArgb("#555"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
-        _categoryPicker = new Picker
+        _categoryPicker = (new Picker
         {
             Title = "Category",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _categoryPicker.SelectedIndexChanged += OnCategoryFilterChanged;
         Grid.SetColumn(_categoryPicker, 1);
         categoryRow.Children.Add(_categoryPicker);
@@ -125,20 +120,18 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 10
         };
-        processRow.Children.Add(new Label
+        processRow.Children.Add((new Label
         {
             Text = "Process:",
             FontSize = 13,
-            TextColor = Color.FromArgb("#555"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
-        _writingProcessPicker = new Picker
+        _writingProcessPicker = (new Picker
         {
             Title = "Writing Process",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _writingProcessPicker.SelectedIndexChanged += OnWritingProcessFilterChanged;
         Grid.SetColumn(_writingProcessPicker, 1);
         processRow.Children.Add(_writingProcessPicker);
@@ -151,20 +144,18 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
         mainGrid.Children.Add(scrollView);
 
         // Loading overlay
-        _loadingOverlay = new Grid
+        _loadingOverlay = (new Grid
         {
-            IsVisible = false,
-            BackgroundColor = Color.FromArgb("#80000000")
-        };
-        _loadingOverlay.Children.Add(new ActivityIndicator
+            IsVisible = false
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
+        _loadingOverlay.Children.Add((new ActivityIndicator
         {
             IsRunning = true,
-            Color = Colors.White,
             WidthRequest = 50,
             HeightRequest = 50,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
         mainGrid.Children.Add(_loadingOverlay);
 
         Content = mainGrid;
@@ -189,13 +180,12 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
 
             if (originalProjects.Count == 0)
             {
-                _statsStack.Children.Add(new Label
+                _statsStack.Children.Add((new Label
                 {
                     Text = "No projects yet",
-                    TextColor = Color.FromArgb("#999"),
                     HorizontalTextAlignment = TextAlignment.Center,
                     Margin = new Thickness(0, 40)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2));
                 return;
             }
 
@@ -231,11 +221,10 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
         }
         catch (Exception ex)
         {
-            _statsStack.Children.Add(new Label
+            _statsStack.Children.Add((new Label
             {
-                Text = $"Error: {ex.Message}",
-                TextColor = Colors.Red
-            });
+                Text = $"Error: {ex.Message}"
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorPureText, ThemeKey.PageText1));
         }
         finally
         {
@@ -245,14 +234,13 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
 
     private Label CreateSectionHeader(string text)
     {
-        return new Label
+        return (new Label
         {
             Text = text,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             Margin = new Thickness(0, 8, 0, 4)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
     }
 
     private View CreateNotProducedSectionHeader(int count)
@@ -267,24 +255,21 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 8, 0, 4)
         };
 
-        grid.Children.Add(new Label
+        grid.Children.Add((new Label
         {
             Text = $"🚧 Not Produced ({count})",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
-        var exportBtn = new Button
+        var exportBtn = (new Button
         {
             Text = "📤 Export for LLM",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             FontSize = 12,
             Padding = new Thickness(10, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         exportBtn.Clicked += async (s, e) => await ExportNotProducedCandidatesAsync();
         Grid.SetColumn(exportBtn, 1);
         grid.Children.Add(exportBtn);
@@ -294,14 +279,13 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
 
     private Label CreateEmptyFilterLabel()
     {
-        return new Label
+        return (new Label
         {
             Text = _selectedCategory == "All" ? "(none)" : "(none in this category)",
             FontSize = 12,
             FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#777"),
             Margin = new Thickness(4, 0, 0, 8)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
     }
 
     private async Task LoadSelectedCategoryAsync()
@@ -452,14 +436,12 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
 
     private Task<Frame> BuildProjectCardAsync(StoryProject project)
     {
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 14,
             CornerRadius = 10,
-            BackgroundColor = project.IsProduced ? Color.FromArgb("#E8F5E9") : Colors.White,
-            BorderColor = project.IsProduced ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E0E0E0"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, project.IsProduced ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, project.IsProduced ? ThemeKey.SuccessLightText : ThemeKey.Separator);
 
         var tapGesture = new TapGestureRecognizer();
         tapGesture.Tapped += async (s, e) =>
@@ -479,32 +461,29 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        titleRow.Children.Add(new Label
+        titleRow.Children.Add((new Label
         {
             Text = project.Name,
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
-        var chevron = new Label
+        var chevron = (new Label
         {
             Text = ">",
             FontSize = 18,
-            TextColor = Color.FromArgb("#999"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2);
         Grid.SetColumn(chevron, 1);
         titleRow.Children.Add(chevron);
 
         stack.Children.Add(titleRow);
 
-        var datesRow = new Label
+        var datesRow = (new Label
         {
             Text = $"Started {project.CreatedAt:MMM d, yyyy}  •  Published {(project.IsPublished && project.PublishedAt.HasValue ? project.PublishedAt.Value.ToString("MMM d, yyyy") : "—")}",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
         stack.Children.Add(datesRow);
 
         if (project.IsPublished)
@@ -512,21 +491,20 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             var platformRow = new HorizontalStackLayout { Spacing = 8 };
             bool hasAnyStats = project.YouTubeStatsCapturedAt.HasValue || project.FacebookStatsCapturedAt.HasValue || project.TikTokStatsCapturedAt.HasValue;
             int totalViews = project.YouTubeViews + project.FacebookViews + project.TikTokViews;
-            platformRow.Children.Add(CreatePlatformPill("Total", hasAnyStats ? ProjectStatsRendering.FormatLargeNumber(totalViews) : "—", "#ECEFF1", "#263238"));
-            platformRow.Children.Add(CreatePlatformPill("YT", project.YouTubeStatsCapturedAt.HasValue ? ProjectStatsRendering.FormatLargeNumber(project.YouTubeViews) : "—", "#FFEBEE", "#C62828"));
-            platformRow.Children.Add(CreatePlatformPill("FB", project.FacebookStatsCapturedAt.HasValue ? ProjectStatsRendering.FormatLargeNumber(project.FacebookViews) : "—", "#E7F3FF", "#1877F2"));
-            platformRow.Children.Add(CreatePlatformPill("TT", project.TikTokStatsCapturedAt.HasValue ? ProjectStatsRendering.FormatLargeNumber(project.TikTokViews) : "—", "#FFE6EA", "#FE2C55"));
+            platformRow.Children.Add(CreatePlatformPill("Total", hasAnyStats ? ProjectStatsRendering.FormatLargeNumber(totalViews) : "—", ThemeKey.SecondarySurface, ThemeKey.CardText1));
+            platformRow.Children.Add(CreatePlatformPill("YT", project.YouTubeStatsCapturedAt.HasValue ? ProjectStatsRendering.FormatLargeNumber(project.YouTubeViews) : "—", ThemeKey.ErrorBackground, ThemeKey.ErrorText));
+            platformRow.Children.Add(CreatePlatformPill("FB", project.FacebookStatsCapturedAt.HasValue ? ProjectStatsRendering.FormatLargeNumber(project.FacebookViews) : "—", ThemeKey.InfoBackground, ThemeKey.BrandFacebook));
+            platformRow.Children.Add(CreatePlatformPill("TT", project.TikTokStatsCapturedAt.HasValue ? ProjectStatsRendering.FormatLargeNumber(project.TikTokViews) : "—", ThemeKey.HighlightPink, ThemeKey.BrandTikTok));
             stack.Children.Add(platformRow);
         }
         else
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = "Not yet published",
                 FontSize = 12,
-                FontAttributes = FontAttributes.Italic,
-                TextColor = Color.FromArgb("#666")
-            });
+                FontAttributes = FontAttributes.Italic
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         }
 
         card.Content = stack;
@@ -697,23 +675,21 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
         return $"Draft {resolvedProject.DraftVersion}: \"{resolvedProject.Name}\"";
     }
 
-    private View CreatePlatformPill(string label, string value, string background, string foreground)
+    private View CreatePlatformPill(string label, string value, ThemeKey background, ThemeKey foreground)
     {
-        return new Frame
+        return (new Frame
         {
             Padding = new Thickness(8, 3),
             CornerRadius = 10,
-            BackgroundColor = Color.FromArgb(background),
             BorderColor = Colors.Transparent,
             HasShadow = false,
-            Content = new Label
+            Content = (new Label
             {
                 Text = $"{label} {value}",
                 FontSize = 11,
-                TextColor = Color.FromArgb(foreground),
                 FontAttributes = FontAttributes.Bold
-            }
-        };
+            }).ThemeColor(Label.TextColorProperty, foreground, ThemeKey.PageText3)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, background);
     }
 
     private async Task ShowReadOnlyAlertAsync()
@@ -723,38 +699,34 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
 
     private Task ShowEditYouTubeStatsAsync(StoryProject project)
     {
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent,
             WidthRequest = 520,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Edit YouTube Stats",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#C62828")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1));
+        stack.Children.Add((new Label
         {
             Text = project.Name,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         bool hasStats = project.YouTubeStatsCapturedAt.HasValue;
         var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.YouTubeViews.ToString(CultureInfo.InvariantCulture) : "0", "Views", Keyboard.Numeric);
@@ -783,36 +755,31 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        var clearBtn = new Button
+        var clearBtn = (new Button
         {
             Text = "Clear stats",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 12,
             Padding = new Thickness(8, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         Grid.SetColumn(clearBtn, 0);
         footer.Children.Add(clearBtn);
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             Padding = new Thickness(18, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         Grid.SetColumn(cancelBtn, 2);
         footer.Children.Add(cancelBtn);
 
-        var saveBtn = new Button
+        var saveBtn = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#C62828"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(22, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         Grid.SetColumn(saveBtn, 3);
         footer.Children.Add(saveBtn);
 
@@ -882,38 +849,34 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
 
     private Task ShowEditFacebookStatsAsync(StoryProject project)
     {
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent,
             WidthRequest = 520,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Edit Facebook Stats",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1877F2")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandFacebook, ThemeKey.PageText1));
+        stack.Children.Add((new Label
         {
             Text = project.Name,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         bool hasStats = project.FacebookStatsCapturedAt.HasValue;
         var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.FacebookViews.ToString(CultureInfo.InvariantCulture) : "0", "Views", Keyboard.Numeric);
@@ -946,36 +909,31 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        var clearBtn = new Button
+        var clearBtn = (new Button
         {
             Text = "Clear stats",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#1877F2"),
             FontSize = 12,
             Padding = new Thickness(8, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.BrandFacebook);
         Grid.SetColumn(clearBtn, 0);
         footer.Children.Add(clearBtn);
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             Padding = new Thickness(18, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         Grid.SetColumn(cancelBtn, 2);
         footer.Children.Add(cancelBtn);
 
-        var saveBtn = new Button
+        var saveBtn = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#1877F2"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(22, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandFacebook).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         Grid.SetColumn(saveBtn, 3);
         footer.Children.Add(saveBtn);
 
@@ -1047,38 +1005,34 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
 
     private Task ShowEditTikTokStatsAsync(StoryProject project)
     {
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent,
             WidthRequest = 520,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Edit TikTok Stats",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#FE2C55")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandTikTok, ThemeKey.PageText1));
+        stack.Children.Add((new Label
         {
             Text = project.Name,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         bool hasStats = project.TikTokStatsCapturedAt.HasValue;
         var viewsEntry = CreateYouTubeStatsEntry(hasStats ? project.TikTokViews.ToString(CultureInfo.InvariantCulture) : "0", "Views", Keyboard.Numeric);
@@ -1109,36 +1063,31 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        var clearBtn = new Button
+        var clearBtn = (new Button
         {
             Text = "Clear stats",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#FE2C55"),
             FontSize = 12,
             Padding = new Thickness(8, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.BrandTikTok);
         Grid.SetColumn(clearBtn, 0);
         footer.Children.Add(clearBtn);
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             Padding = new Thickness(18, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         Grid.SetColumn(cancelBtn, 2);
         footer.Children.Add(cancelBtn);
 
-        var saveBtn = new Button
+        var saveBtn = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#FE2C55"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(22, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandTikTok).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         Grid.SetColumn(saveBtn, 3);
         footer.Children.Add(saveBtn);
 
@@ -1245,13 +1194,12 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 12
         };
 
-        row.Children.Add(new Label
+        row.Children.Add((new Label
         {
             Text = label,
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         Grid.SetColumn(entry, 1);
         row.Children.Add(entry);
@@ -1287,14 +1235,13 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             Children =
             {
                 minutesEntry,
-                new Label
+                (new Label
                 {
                     Text = ":",
                     FontSize = 16,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333"),
                     VerticalOptions = LayoutOptions.Center
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 secondsEntry
             }
         };
@@ -1309,13 +1256,12 @@ public class ProductionStatsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 12
         };
 
-        row.Children.Add(new Label
+        row.Children.Add((new Label
         {
             Text = label,
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         Grid.SetColumn(inputRow, 1);
         row.Children.Add(inputRow);

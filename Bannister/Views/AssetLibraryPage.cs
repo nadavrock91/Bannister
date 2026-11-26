@@ -108,55 +108,47 @@ Include every filename from the list above. Each filename gets at least one cate
             Spacing = 16
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "📁 Asset Library",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Index image and video files from a parent folder for reuse across productions.",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         stack.Children.Add(BuildLookupSection());
         stack.Children.Add(BuildStoryDiscoveryButton());
         stack.Children.Add(BuildBulkCategorizeButton());
         stack.Children.Add(BuildBulkCategorizeTemplateExpander());
 
-        _rootFolderLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#555"), LineBreakMode = LineBreakMode.WordWrap };
-        _lastScanLabel = new Label { FontSize = 11, TextColor = Color.FromArgb("#777") };
-        _progressLabel = new Label { FontSize = 11, TextColor = Color.FromArgb("#00838F"), IsVisible = false };
-        _filesCountLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#555") };
+        _rootFolderLabel = (new Label { FontSize = 12, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
+        _lastScanLabel = (new Label { FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
+        _progressLabel = (new Label { FontSize = 11, IsVisible = false }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightTealText, ThemeKey.PageText3);
+        _filesCountLabel = (new Label { FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
 
-        var changeFolderButton = new Button
+        var changeFolderButton = (new Button
         {
             Text = "Change folder",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 40
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         changeFolderButton.Clicked += OnChangeFolderClicked;
 
-        _rescanButton = new Button
+        _rescanButton = (new Button
         {
             Text = "Rescan",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _rescanButton.Clicked += OnRescanClicked;
 
-        stack.Children.Add(new Frame
+        stack.Children.Add((new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 14,
             Content = new VerticalStackLayout
@@ -172,7 +164,7 @@ Include every filename from the list above. Each filename gets at least one cate
                     _filesCountLabel
                 }
             }
-        });
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator));
 
         _categoryFilterPicker = new Picker
         {
@@ -186,10 +178,8 @@ Include every filename from the list above. Each filename gets at least one cate
             await LoadAsync();
         };
 
-        stack.Children.Add(new Frame
+        stack.Children.Add((new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 14,
             Content = new VerticalStackLayout
@@ -201,38 +191,33 @@ Include every filename from the list above. Each filename gets at least one cate
                     _categoryFilterPicker
                 }
             }
-        });
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator));
 
-        _selectionCountLabel = new Label
+        _selectionCountLabel = (new Label
         {
-            TextColor = Color.FromArgb("#263238"),
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
-        var categorizeSelectedButton = new Button
+        var categorizeSelectedButton = (new Button
         {
             Text = "Add category to selected",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         categorizeSelectedButton.Clicked += async (_, _) => await CategorizeSelectedAsync();
 
-        var cancelSelectionButton = new Button
+        var cancelSelectionButton = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         cancelSelectionButton.Clicked += (_, _) =>
         {
             _selectedIds.Clear();
             RenderList();
         };
 
-        _bulkBar = new Grid
+        _bulkBar = (new Grid
         {
             IsVisible = false,
             ColumnDefinitions =
@@ -242,9 +227,8 @@ Include every filename from the list above. Each filename gets at least one cate
                 new ColumnDefinition { Width = GridLength.Auto }
             },
             ColumnSpacing = 8,
-            Padding = 10,
-            BackgroundColor = Color.FromArgb("#E0F2F1")
-        };
+            Padding = 10
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightMint);
         _bulkBar.Add(_selectionCountLabel, 0, 0);
         _bulkBar.Add(categorizeSelectedButton, 1, 0);
         _bulkBar.Add(cancelSelectionButton, 2, 0);
@@ -260,26 +244,21 @@ Include every filename from the list above. Each filename gets at least one cate
 
     private Frame BuildLookupSection()
     {
-        _scriptEditor = new Editor
+        _scriptEditor = (new Editor
         {
             Placeholder = "Paste your script or description here...",
             HeightRequest = 200,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        _lookupTemplateEditor = new Editor
+        _lookupTemplateEditor = (new Editor
         {
             HeightRequest = 220,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
             FontSize = 12,
             Text = DefaultLookupPrompt
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         _lookupTemplateEditor.TextChanged += async (_, _) =>
         {
             if (_isLoadingLookupTemplate)
@@ -298,44 +277,37 @@ Include every filename from the list above. Each filename gets at least one cate
             }
         };
 
-        var copyButton = new Button
+        var copyButton = (new Button
         {
             Text = " Copy lookup prompt to clipboard",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         copyButton.Clicked += OnCopyLookupPromptClicked;
 
-        var pasteResponseButton = new Button
+        var pasteResponseButton = (new Button
         {
             Text = "Paste LLM response",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         pasteResponseButton.Clicked += async (_, _) => await ShowLookupResponseModalAsync();
 
-        _lookupTemplateToggle = new Button
+        _lookupTemplateToggle = (new Button
         {
             Text = "Show prompt template",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
 
-        var resetTemplateButton = new Button
+        var resetTemplateButton = (new Button
         {
             Text = "Reset to default",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 12,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         resetTemplateButton.Clicked += async (_, _) =>
         {
             var reset = await DisplayAlert(
@@ -364,21 +336,19 @@ Include every filename from the list above. Each filename gets at least one cate
             Spacing = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Prompt template (edit to customize):",
                     FontSize = 12,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3),
                 _lookupTemplateEditor,
-                new Label
+                (new Label
                 {
                     Text = "Use {SCRIPT} and {ASSETS} as placeholders for the pasted content and full asset inventory.",
                     FontSize = 11,
-                    FontAttributes = FontAttributes.Italic,
-                    TextColor = Color.FromArgb("#666")
-                },
+                    FontAttributes = FontAttributes.Italic
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                 resetTemplateButton
             }
         };
@@ -409,12 +379,11 @@ Include every filename from the list above. Each filename gets at least one cate
             Spacing = 10,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Paste a script or description of what you need. The page will assemble a prompt combining your text with the entire asset library inventory. Copy the prompt to ChatGPT, then paste the response below to view suggestions.",
-                    FontSize = 12,
-                    TextColor = Color.FromArgb("#666")
-                },
+                    FontSize = 12
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                 _scriptEditor,
                 buttonsGrid,
                 _lookupTemplateToggle,
@@ -422,15 +391,13 @@ Include every filename from the list above. Each filename gets at least one cate
             }
         };
 
-        _lookupSectionToggle = new Button
+        _lookupSectionToggle = (new Button
         {
             Text = " Find reusable assets (LLM lookup)",
-            BackgroundColor = Color.FromArgb("#E0F2F1"),
-            TextColor = Color.FromArgb("#00695C"),
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightMint).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightMintText);
         _lookupSectionToggle.Clicked += (_, _) =>
         {
             _lookupSectionContent.IsVisible = !_lookupSectionContent.IsVisible;
@@ -439,10 +406,8 @@ Include every filename from the list above. Each filename gets at least one cate
                 : " Find reusable assets (LLM lookup)";
         };
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#B2DFDB"),
             CornerRadius = 10,
             Padding = 14,
             HasShadow = false,
@@ -455,20 +420,18 @@ Include every filename from the list above. Each filename gets at least one cate
                     _lookupSectionContent
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightMintStrong);
     }
 
     private Button BuildStoryDiscoveryButton()
     {
-        var button = new Button
+        var button = (new Button
         {
             Text = " Story-based asset discovery →",
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
-            TextColor = Color.FromArgb("#F57C00"),
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningStrongText);
 
         button.Clicked += async (_, _) =>
             await Navigation.PushAsync(new StoryBasedAssetDiscoveryPage(_auth, _assetService, _thumbnailService));
@@ -478,15 +441,13 @@ Include every filename from the list above. Each filename gets at least one cate
 
     private Button BuildBulkCategorizeButton()
     {
-        var button = new Button
+        var button = (new Button
         {
             Text = " Auto-categorize uncategorized",
-            BackgroundColor = Color.FromArgb("#F3E5F5"),
-            TextColor = Color.FromArgb("#6A1B9A"),
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
 
         button.Clicked += async (_, _) => await ShowBulkCategorizeModalAsync();
         return button;
@@ -494,15 +455,13 @@ Include every filename from the list above. Each filename gets at least one cate
 
     private VerticalStackLayout BuildBulkCategorizeTemplateExpander()
     {
-        _bulkCategorizeTemplateEditor = new Editor
+        _bulkCategorizeTemplateEditor = (new Editor
         {
             HeightRequest = 220,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
             FontSize = 12,
             Text = DefaultBulkCategorizePrompt
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         _bulkCategorizeTemplateEditor.TextChanged += async (_, _) =>
         {
             if (_isLoadingBulkCategorizeTemplate)
@@ -520,14 +479,13 @@ Include every filename from the list above. Each filename gets at least one cate
             catch { }
         };
 
-        var resetButton = new Button
+        var resetButton = (new Button
         {
             Text = "Reset to default",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 12,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         resetButton.Clicked += async (_, _) =>
         {
             var reset = await DisplayAlert("Reset to default?", "Discard your custom prompt and restore the default.", "Reset", "Cancel");
@@ -544,34 +502,30 @@ Include every filename from the list above. Each filename gets at least one cate
             Spacing = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Prompt template (edit to customize):",
                     FontSize = 12,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3),
                 _bulkCategorizeTemplateEditor,
-                new Label
+                (new Label
                 {
                     Text = "Use {CATEGORIES} and {FILENAMES} as placeholders.",
                     FontSize = 11,
-                    FontAttributes = FontAttributes.Italic,
-                    TextColor = Color.FromArgb("#666")
-                },
+                    FontAttributes = FontAttributes.Italic
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                 resetButton
             }
         };
 
-        var toggle = new Button
+        var toggle = (new Button
         {
             Text = "Show bulk-categorize prompt template",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         toggle.Clicked += (_, _) =>
         {
             container.IsVisible = !container.IsVisible;
@@ -711,24 +665,21 @@ Include every filename from the list above. Each filename gets at least one cate
         if (Content is not Grid root)
             return;
 
-        var modalEditor = new Editor
+        var modalEditor = (new Editor
         {
             Placeholder = "Paste the LLM's response here...",
             HeightRequest = 360,
             AutoSize = EditorAutoSizeOption.Disabled,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
 
-        var responseLabel = new Label
+        var responseLabel = (new Label
         {
             Text = "",
             FontSize = 13,
             IsVisible = false,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
 
         var responseScroll = new ScrollView
         {
@@ -737,23 +688,19 @@ Include every filename from the list above. Each filename gets at least one cate
             Content = responseLabel
         };
 
-        var applyButton = new Button
+        var applyButton = (new Button
         {
             Text = "Show response",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var closeButton = new Button
+        var closeButton = (new Button
         {
             Text = "Close",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
 
         var buttonsRow = new Grid
         {
@@ -767,9 +714,8 @@ Include every filename from the list above. Each filename gets at least one cate
         buttonsRow.Add(closeButton, 0, 0);
         buttonsRow.Add(applyButton, 1, 0);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 20,
             CornerRadius = 12,
             WidthRequest = 560,
@@ -787,25 +733,23 @@ Include every filename from the list above. Each filename gets at least one cate
                         FontSize = 16,
                         FontAttributes = FontAttributes.Bold
                     },
-                    new Label
+                    (new Label
                     {
                         Text = "Paste the response from ChatGPT and tap Show response.",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#666")
-                    },
+                        FontSize = 12
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                     modalEditor,
                     responseScroll,
                     buttonsRow
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false,
             Children = { card }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         var tcs = new TaskCompletionSource<bool>();
 
@@ -994,51 +938,42 @@ Include every filename from the list above. Each filename gets at least one cate
         if (Content is not Grid root)
             return;
 
-        var copyButton = new Button
+        var copyButton = (new Button
         {
             Text = "Copy prompt to clipboard",
-            BackgroundColor = Color.FromArgb("#6A1B9A"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         copyButton.Clicked += OnCopyBulkCategorizePromptClicked;
 
-        var pasteEditor = new Editor
+        var pasteEditor = (new Editor
         {
             Placeholder = "Paste the LLM's C# dictionary response here...",
             HeightRequest = 300,
             AutoSize = EditorAutoSizeOption.Disabled,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
 
-        var statusLabel = new Label
+        var statusLabel = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#2E7D32"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3);
 
-        var applyButton = new Button
+        var applyButton = (new Button
         {
             Text = "Apply categorization",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var closeButton = new Button
+        var closeButton = (new Button
         {
             Text = "Close",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
 
         var actionsRow = new Grid
         {
@@ -1052,9 +987,8 @@ Include every filename from the list above. Each filename gets at least one cate
         actionsRow.Add(closeButton, 0, 0);
         actionsRow.Add(applyButton, 1, 0);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 20,
             CornerRadius = 12,
             WidthRequest = 560,
@@ -1073,26 +1007,24 @@ Include every filename from the list above. Each filename gets at least one cate
                         FontSize = 16,
                         FontAttributes = FontAttributes.Bold
                     },
-                    new Label
+                    (new Label
                     {
                         Text = "Send filenames of uncategorized items + your existing categories to the LLM. Paste the returned C# dictionary and tap Apply to categorize directly.",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#666")
-                    },
+                        FontSize = 12
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                     copyButton,
                     pasteEditor,
                     statusLabel,
                     actionsRow
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false,
             Children = { card }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         var tcs = new TaskCompletionSource<bool>();
 
@@ -1203,26 +1135,24 @@ Include every filename from the list above. Each filename gets at least one cate
 
         if (_currentItems.Count == 0)
         {
-            _listStack.Children.Add(new Label
+            _listStack.Children.Add((new Label
             {
                 Text = "(no assets in this filter)",
                 FontSize = 13,
-                FontAttributes = FontAttributes.Italic,
-                TextColor = Color.FromArgb("#777")
-            });
+                FontAttributes = FontAttributes.Italic
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
             return;
         }
 
         var itemsToRender = _currentItems.Take(500).ToList();
         if (_currentItems.Count > 500)
         {
-            _listStack.Children.Add(new Label
+            _listStack.Children.Add((new Label
             {
                 Text = $"Showing 500 of {_currentItems.Count}. Use category filter to narrow.",
                 FontSize = 12,
-                FontAttributes = FontAttributes.Italic,
-                TextColor = Color.FromArgb("#C62828")
-            });
+                FontAttributes = FontAttributes.Italic
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3));
         }
 
         foreach (var item in itemsToRender)
@@ -1262,53 +1192,47 @@ Include every filename from the list above. Each filename gets at least one cate
 
             if (categoriesList.Count > 3)
             {
-                badges.Children.Add(new Label
+                badges.Children.Add((new Label
                 {
                     Text = $"+{categoriesList.Count - 3}",
                     FontSize = 11,
-                    TextColor = Color.FromArgb("#666"),
                     VerticalOptions = LayoutOptions.Center
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
             }
         }
 
         if (item.MissingSince != null)
         {
-            badges.Children.Add(new Frame
+            badges.Children.Add((new Frame
             {
-                BackgroundColor = Color.FromArgb("#FFCDD2"),
                 BorderColor = Colors.Transparent,
                 Padding = new Thickness(8, 3),
                 CornerRadius = 8,
-                Content = new Label
+                Content = (new Label
                 {
                     Text = "MISSING",
                     FontSize = 10,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#B71C1C")
-                }
-            });
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorDeepText, ThemeKey.PageText3)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorSelectedBackground));
         }
 
-        var openButton = new Button
+        var openButton = (new Button
         {
             Text = "Open",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         openButton.Clicked += async (_, _) => await OpenAssetAsync(item);
 
-        var menuButton = new Button
+        var menuButton = (new Button
         {
             Text = "⋮",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#333"),
             FontSize = 20,
             WidthRequest = 44,
             HeightRequest = 36
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         menuButton.Clicked += async (_, _) => await ShowAssetMenuAsync(item);
 
         var middleColumn = new VerticalStackLayout
@@ -1316,28 +1240,25 @@ Include every filename from the list above. Each filename gets at least one cate
             Spacing = 5,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = name,
                     FontSize = 14,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222"),
                     LineBreakMode = LineBreakMode.TailTruncation
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
                 badges,
-                new Label
+                (new Label
                 {
                     Text = $"{(item.FileType == "image" ? "🖼️ image" : "🎞️ video")} • {FormatBytes(item.FileSizeBytes)}",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#666")
-                },
-                new Label
+                    FontSize = 11
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
+                (new Label
                 {
                     Text = item.FilePath,
                     FontSize = 10,
-                    TextColor = Color.FromArgb("#999"),
                     LineBreakMode = LineBreakMode.MiddleTruncation
-                }
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3)
             }
         };
 
@@ -1370,43 +1291,38 @@ Include every filename from the list above. Each filename gets at least one cate
         contentGrid.Add(middleColumn, 2, 0);
         contentGrid.Add(rightActions, 3, 0);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = item.MissingSince == null ? Colors.White : Color.FromArgb("#FFEBEE"),
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 12,
             HasShadow = false,
             Content = contentGrid
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, item.MissingSince == null ? ThemeKey.CardBackground : ThemeKey.ErrorBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private View BuildCategoryBadge(string text, bool uncategorized)
     {
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = uncategorized ? Color.FromArgb("#ECEFF1") : Color.FromArgb("#E0F2F1"),
             BorderColor = Colors.Transparent,
             Padding = new Thickness(8, 3),
             CornerRadius = 8,
-            Content = new Label
+            Content = (new Label
             {
                 Text = text,
                 FontSize = 11,
-                TextColor = uncategorized ? Color.FromArgb("#777") : Color.FromArgb("#00695C"),
                 FontAttributes = uncategorized ? FontAttributes.Italic : FontAttributes.None
-            }
-        };
+            }).ThemeColor(Label.TextColorProperty, uncategorized ? ThemeKey.CardText2 : ThemeKey.HighlightMintText, ThemeKey.PageText3)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, uncategorized ? ThemeKey.SecondarySurface : ThemeKey.HighlightMint);
     }
 
     private View BuildThumbnail(AssetLibraryItem item)
     {
-        var slot = new Grid
+        var slot = (new Grid
         {
             WidthRequest = 80,
-            HeightRequest = 80,
-            BackgroundColor = item.MissingSince != null ? Color.FromArgb("#EEEEEE") : Color.FromArgb("#F5F5F5")
-        };
+            HeightRequest = 80
+        }).ThemeColor(VisualElement.BackgroundColorProperty, item.MissingSince != null ? ThemeKey.SecondarySurface : ThemeKey.SecondarySurface);
 
         slot.Children.Add(new Label
         {
@@ -1431,16 +1347,15 @@ Include every filename from the list above. Each filename gets at least one cate
             }
         }
 
-        var thumbFrame = new Frame
+        var thumbFrame = (new Frame
         {
             Padding = 0,
             CornerRadius = 8,
             BackgroundColor = Colors.Transparent,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false,
             IsClippedToBounds = true,
             Content = slot
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         thumbFrame.GestureRecognizers.Add(new TapGestureRecognizer
         {
@@ -1484,13 +1399,12 @@ Include every filename from the list above. Each filename gets at least one cate
 
             if (keys.Count == 0)
             {
-                categoryListStack.Children.Add(new Label
+                categoryListStack.Children.Add((new Label
                 {
                     Text = "No categories match.",
                     FontSize = 12,
-                    FontAttributes = FontAttributes.Italic,
-                    TextColor = Color.FromArgb("#999")
-                });
+                    FontAttributes = FontAttributes.Italic
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
                 return;
             }
 
@@ -1530,15 +1444,13 @@ Include every filename from the list above. Each filename gets at least one cate
             HorizontalOptions = LayoutOptions.Fill
         };
 
-        var addNewButton = new Button
+        var addNewButton = (new Button
         {
             Text = "Add",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 36,
             WidthRequest = 80
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addNewButton.Clicked += (_, _) =>
         {
             var name = newCategoryEntry.Text?.Trim() ?? "";
@@ -1562,23 +1474,19 @@ Include every filename from the list above. Each filename gets at least one cate
         addRow.Add(newCategoryEntry, 0, 0);
         addRow.Add(addNewButton, 1, 0);
 
-        var cancelButton = new Button
+        var cancelButton = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
 
-        var updateButton = new Button
+        var updateButton = (new Button
         {
             Text = "Update",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
         var actionsRow = new Grid
         {
@@ -1595,9 +1503,8 @@ Include every filename from the list above. Each filename gets at least one cate
         RenderCategoryList();
 
         var displayName = string.IsNullOrWhiteSpace(item.DescriptiveName) ? item.FileName : item.DescriptiveName;
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 18,
             CornerRadius = 12,
             WidthRequest = 480,
@@ -1617,12 +1524,11 @@ Include every filename from the list above. Each filename gets at least one cate
                         FontAttributes = FontAttributes.Bold,
                         LineBreakMode = LineBreakMode.TailTruncation
                     },
-                    new Label
+                    (new Label
                     {
                         Text = "Tick the categories this asset belongs to. Untick to remove.",
-                        FontSize = 11,
-                        TextColor = Color.FromArgb("#666")
-                    },
+                        FontSize = 11
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                     searchEntry,
                     new ScrollView
                     {
@@ -1633,14 +1539,13 @@ Include every filename from the list above. Each filename gets at least one cate
                     actionsRow
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false,
             Children = { card }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         var tcs = new TaskCompletionSource<bool>();
 
@@ -1687,20 +1592,18 @@ Include every filename from the list above. Each filename gets at least one cate
 
         var name = string.IsNullOrWhiteSpace(item.DescriptiveName) ? item.FileName : item.DescriptiveName;
         var category = string.IsNullOrWhiteSpace(item.Category) ? "(uncategorized)" : item.Category;
-        var categoryBadge = new Frame
+        var categoryBadge = (new Frame
         {
-            BackgroundColor = string.IsNullOrWhiteSpace(item.Category) ? Color.FromArgb("#ECEFF1") : Color.FromArgb("#E0F2F1"),
             BorderColor = Colors.Transparent,
             Padding = new Thickness(8, 3),
             CornerRadius = 8,
-            Content = new Label
+            Content = (new Label
             {
                 Text = category,
                 FontSize = 11,
-                TextColor = string.IsNullOrWhiteSpace(item.Category) ? Color.FromArgb("#777") : Color.FromArgb("#00695C"),
                 FontAttributes = string.IsNullOrWhiteSpace(item.Category) ? FontAttributes.Italic : FontAttributes.None
-            }
-        };
+            }).ThemeColor(Label.TextColorProperty, string.IsNullOrWhiteSpace(item.Category) ? ThemeKey.CardText2 : ThemeKey.HighlightMintText, ThemeKey.PageText3)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, string.IsNullOrWhiteSpace(item.Category) ? ThemeKey.SecondarySurface : ThemeKey.HighlightMint);
 
         var badges = new HorizontalStackLayout
         {
@@ -1708,53 +1611,47 @@ Include every filename from the list above. Each filename gets at least one cate
             Children =
             {
                 categoryBadge,
-                new Label
+                (new Label
                 {
                     Text = $"{(item.FileType == "image" ? "🖼️ image" : "🎞️ video")} • {FormatBytes(item.FileSizeBytes)}",
                     FontSize = 11,
-                    TextColor = Color.FromArgb("#666"),
                     VerticalOptions = LayoutOptions.Center
-                }
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3)
             }
         };
 
         if (item.MissingSince != null)
         {
-            badges.Children.Add(new Frame
+            badges.Children.Add((new Frame
             {
-                BackgroundColor = Color.FromArgb("#FFCDD2"),
                 BorderColor = Colors.Transparent,
                 Padding = new Thickness(8, 3),
                 CornerRadius = 8,
-                Content = new Label
+                Content = (new Label
                 {
                     Text = "MISSING",
                     FontSize = 10,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#B71C1C")
-                }
-            });
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorDeepText, ThemeKey.PageText3)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorSelectedBackground));
         }
 
-        var openButton = new Button
+        var openButton = (new Button
         {
             Text = "Open",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         openButton.Clicked += async (_, _) => await OpenAssetAsync(item);
 
-        var menuButton = new Button
+        var menuButton = (new Button
         {
             Text = "⋮",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#333"),
             FontSize = 20,
             WidthRequest = 44,
             HeightRequest = 36
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         menuButton.Clicked += async (_, _) => await ShowAssetMenuAsync(item);
 
         var contentGrid = new Grid
@@ -1775,36 +1672,32 @@ Include every filename from the list above. Each filename gets at least one cate
             Spacing = 5,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = name,
                     FontSize = 14,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222"),
                     LineBreakMode = LineBreakMode.TailTruncation
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
                 badges,
-                new Label
+                (new Label
                 {
                     Text = item.FilePath,
                     FontSize = 10,
-                    TextColor = Color.FromArgb("#999"),
                     LineBreakMode = LineBreakMode.MiddleTruncation
-                }
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3)
             }
         }, 1, 0);
         contentGrid.Add(openButton, 2, 0);
         contentGrid.Add(menuButton, 3, 0);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = item.MissingSince == null ? Colors.White : Color.FromArgb("#FFEBEE"),
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 12,
             HasShadow = false,
             Content = contentGrid
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, item.MissingSince == null ? ThemeKey.CardBackground : ThemeKey.ErrorBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private async void OnChangeFolderClicked(object? sender, EventArgs e)

@@ -42,9 +42,9 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
     private async Task BuildListAsync()
     {
         _content.Children.Add(PageHeading("Companions", 24));
-        _content.Children.Add(new Label { Text = "LLM companions that learn durable context about you through interviews.", FontSize = 13, TextColor = Colors.White });
+        _content.Children.Add((new Label { Text = "LLM companions that learn durable context about you through interviews.", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
-        var add = Button("+ Add Companion", "#5B63EE", Colors.White);
+        var add = Button("+ Add Companion", ThemeKey.SecondaryButtonBackground, ThemeKey.OnColorText);
         add.Clicked += async (_, _) =>
         {
             var games = GamesForDisplayMode(await GetAllGamesAsync(), displayMode);
@@ -65,9 +65,9 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             string scope = ScopeLabel(companion, gamesById);
             var stack = new VerticalStackLayout { Spacing = 4 };
             stack.Children.Add(Heading(companion.Nickname, 17));
-            stack.Children.Add(new Label { Text = $"{scope} · {points.Count} active data point{(points.Count == 1 ? "" : "s")}", FontSize = 12, TextColor = Color.FromArgb("#666") });
+            stack.Children.Add((new Label { Text = $"{scope} · {points.Count} active data point{(points.Count == 1 ? "" : "s")}", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
             var actions = new HorizontalStackLayout { Spacing = 6 };
-            var edit = Button("Edit", "#FFF3E0", Color.FromArgb("#E65100"));
+            var edit = Button("Edit", ThemeKey.WarningBackground, ThemeKey.WarningText);
             edit.Clicked += async (_, _) =>
             {
                 var editGames = GamesForDisplayMode(games, displayMode, companion.GameId);
@@ -77,7 +77,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             actions.Children.Add(edit);
             if (companion.Scope != "meta")
             {
-                var delete = Button("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
+                var delete = Button("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
                 delete.Clicked += async (_, _) =>
                 {
                     if (!await DisplayAlert("Delete Companion", $"Delete {companion.Nickname} and all of its data points and interviews?", "Delete", "Cancel")) return;
@@ -105,7 +105,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
     private async Task BuildDetailAsync()
     {
         var companion = _selected!;
-        var back = Button("← All Companions", "#ECEFF1", Color.FromArgb("#37474F"));
+        var back = Button("← All Companions", ThemeKey.NeutralButtonBackground, ThemeKey.NeutralButtonText);
         back.Clicked += async (_, _) => { _selected = null; _selectedInterview = null; await RefreshAsync(); };
         _content.Children.Add(back);
         _content.Children.Add(PageHeading(companion.Nickname, 24));
@@ -114,16 +114,16 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
         var games = GamesForDisplayMode(allGames, displayMode);
         string scopeLabel = ScopeLabel(companion, gamesById);
-        _content.Children.Add(new Label { Text = scopeLabel, FontSize = 13, TextColor = Colors.White });
+        _content.Children.Add((new Label { Text = scopeLabel, FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
 
         var interviews = await _service.GetInterviewsAsync(_auth.CurrentUsername, companion.Id);
         if (_selectedInterview != null)
             _selectedInterview = interviews.FirstOrDefault(x => x.Id == _selectedInterview.Id);
         var interviewActions = new HorizontalStackLayout { Spacing = 8 };
-        var start = Button("Start Interview", "#5B63EE", Colors.White);
+        var start = Button("Start Interview", ThemeKey.SecondaryButtonBackground, ThemeKey.OnColorText);
         start.Clicked += async (_, _) => await StartInterviewAsync(companion, allGames, gamesById);
         interviewActions.Children.Add(start);
-        var history = Button($"Interview History ({interviews.Count})", "#ECEFF1", Color.FromArgb("#37474F"));
+        var history = Button($"Interview History ({interviews.Count})", ThemeKey.NeutralButtonBackground, ThemeKey.NeutralButtonText);
         history.Clicked += async (_, _) => await Navigation.PushAsync(new CompanionInterviewHistoryPage(
             _auth.CurrentUsername,
             companion,
@@ -137,38 +137,37 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         interviewActions.Children.Add(history);
         if (_selectedInterview != null)
         {
-            var resume = Button(CompanionInterviewPresentation.StepText(_selectedInterview), "#E8EAF6", Color.FromArgb("#3949AB"));
+            var resume = Button(CompanionInterviewPresentation.StepText(_selectedInterview), ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoButton);
             resume.Clicked += async (_, _) => await ContinueInterviewAsync(companion, _selectedInterview, scopeLabel, allGames);
             interviewActions.Children.Add(resume);
             if (!string.IsNullOrWhiteSpace(_selectedInterview.Transcript))
             {
-                var replace = Button("Paste Conversation Again", "#FFF3E0", Color.FromArgb("#E65100"));
+                var replace = Button("Paste Conversation Again", ThemeKey.WarningBackground, ThemeKey.WarningText);
                 replace.Clicked += async (_, _) => await SaveConversationAsync(companion, _selectedInterview, scopeLabel, allGames);
                 interviewActions.Children.Add(replace);
             }
         }
         _content.Children.Add(interviewActions);
         if (_selectedInterview != null)
-            _content.Children.Add(new Label { Text = $"Current interview: {CompanionInterviewPresentation.StepText(_selectedInterview)}", FontAttributes = FontAttributes.Bold, TextColor = Colors.White });
+            _content.Children.Add((new Label { Text = $"Current interview: {CompanionInterviewPresentation.StepText(_selectedInterview)}", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
 
         _content.Children.Add(PageHeading(_showArchived ? "Data Points (including archived)" : "Active Data Points", 18));
         var pointActions = new HorizontalStackLayout { Spacing = 8 };
-        var addPoint = Button("+ Add Data Point", "#2E7D32", Colors.White);
+        var addPoint = Button("+ Add Data Point", ThemeKey.SuccessDarkButtonBackground, ThemeKey.OnColorText);
         var allPoints = await _service.GetPointsAsync(_auth.CurrentUsername, companion.Id, _showArchived);
         var allCategories = await _service.GetPointCategoriesAsync(_auth.CurrentUsername);
         addPoint.Clicked += async (_, _) => await AddPointAsync(companion, scopeLabel, games, allCategories);
-        var archived = Button(_showArchived ? "Hide Archived" : "Show Archived", "#ECEFF1", Color.FromArgb("#555"));
+        var archived = Button(_showArchived ? "Hide Archived" : "Show Archived", ThemeKey.NeutralButtonBackground, ThemeKey.CardText2);
         archived.Clicked += async (_, _) => { _showArchived = !_showArchived; await RefreshAsync(); };
         pointActions.Children.Add(addPoint); pointActions.Children.Add(archived); _content.Children.Add(pointActions);
         var modeVisiblePoints = allPoints.Where(x => CompanionService.IsVisibleInDisplayMode(x, gamesById, displayMode)).ToList();
         if (modeVisiblePoints.Count != allPoints.Count)
-            _content.Children.Add(new Label
+            _content.Children.Add((new Label
             {
                 Text = $"{modeVisiblePoints.Count} / {allPoints.Count} shown",
                 FontSize = 13,
-                TextColor = Colors.White,
                 FontAttributes = FontAttributes.Bold
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
 
         var gameOptions = new List<CompanionPointFilterOption>
         {
@@ -176,13 +175,11 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             new("No game", null, true)
         };
         gameOptions.AddRange(games.Select(x => new CompanionPointFilterOption(x.DisplayName, x.GameId, false)));
-        var gameFilter = new Picker
+        var gameFilter = (new Picker
         {
             ItemsSource = gameOptions,
-            ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label)),
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222")
-        };
+            ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label))
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
         var selectedGameOption = gameOptions.FirstOrDefault(x => x.IsNone == _pointGameFilterIsNoGame &&
             string.Equals(x.Value, _pointGameFilter, StringComparison.OrdinalIgnoreCase));
         if (selectedGameOption == null)
@@ -206,13 +203,11 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             new("No category", null, true)
         };
         categoryOptions.AddRange(visibleCategories.Select(x => new CompanionPointFilterOption(x, x, false)));
-        var categoryFilter = new Picker
+        var categoryFilter = (new Picker
         {
             ItemsSource = categoryOptions,
-            ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label)),
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222")
-        };
+            ItemDisplayBinding = new Binding(nameof(CompanionPointFilterOption.Label))
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
         var selectedCategoryOption = categoryOptions.FirstOrDefault(x => x.IsNone == _pointCategoryFilterIsNoCategory &&
             string.Equals(x.Value, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase));
         if (selectedCategoryOption == null)
@@ -232,7 +227,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             Spacing = 3,
             Children =
             {
-                new Label { Text = "Game", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Colors.White },
+                (new Label { Text = "Game", FontSize = 12, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3),
                 gameFilter
             }
         };
@@ -241,7 +236,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             Spacing = 3,
             Children =
             {
-                new Label { Text = "Category", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Colors.White },
+                (new Label { Text = "Category", FontSize = 12, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3),
                 categoryFilter
             }
         };
@@ -259,7 +254,7 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
                 (_pointCategoryFilterIsNoCategory ? string.IsNullOrWhiteSpace(x.Category) :
                     _pointCategoryFilter == null || string.Equals(x.Category, _pointCategoryFilter, StringComparison.OrdinalIgnoreCase)))
             .ToList();
-        if (points.Count == 0) _content.Children.Add(new Label { Text = "No data points yet.", TextColor = Colors.White });
+        if (points.Count == 0) _content.Children.Add((new Label { Text = "No data points yet." }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
         foreach (var point in points)
         {
             var pointGames = GamesForDisplayMode(allGames, displayMode, point.GameId);
@@ -272,20 +267,18 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         List<Game> games, IReadOnlyDictionary<string, Game> gamesById, List<string> categories)
     {
         var stack = new VerticalStackLayout { Spacing = 5 };
-        stack.Children.Add(new Label { Text = point.Text, FontSize = 14, TextColor = point.Status == "archived" ? Color.FromArgb("#888") : Color.FromArgb("#222") });
+        stack.Children.Add((new Label { Text = point.Text, FontSize = 14 }).ThemeColor(Label.TextColorProperty, point.Status == "archived" ? ThemeKey.CardText3 : ThemeKey.CardTextStrong, ThemeKey.PageText2));
 
         var categoryChoices = CompanionDataPointEditorOptions.BuildClassifications(games, categories, point.Category);
-        var categoryPicker = new Picker
+        var categoryPicker = (new Picker
         {
             ItemsSource = categoryChoices,
             ItemDisplayBinding = new Binding(nameof(CompanionPointClassificationOption.Label)),
             FontSize = 12,
-            TextColor = Color.FromArgb("#222222"),
-            TitleColor = Color.FromArgb("#666666"),
             MinimumHeightRequest = 44,
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 175
-        };
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(Picker.TitleColorProperty, ThemeKey.CardText2);
         categoryPicker.SelectedItem = CompanionDataPointEditorOptions.CurrentClassification(
             categoryChoices, point.GameId, point.Category);
         TraceInlinePicker(categoryPicker, point.Id, "category");
@@ -338,27 +331,24 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             await RefreshAsync();
         };
 
-        var visibilityPicker = new Picker
+        var visibilityPicker = (new Picker
         {
             ItemsSource = CompanionDataPointEditorOptions.Visibility,
             FontSize = 12,
-            TextColor = Color.FromArgb("#222222"),
-            TitleColor = Color.FromArgb("#666666"),
             MinimumHeightRequest = 44,
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 165
-        };
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(Picker.TitleColorProperty, ThemeKey.CardText2);
         visibilityPicker.SelectedItem = CompanionDataPointEditorOptions.Visibility[
             CompanionDataPointEditorOptions.VisibilityIndex(point.VisibilityOverride)];
         TraceInlinePicker(visibilityPicker, point.Id, "visibility");
-        var autoResult = new Label
+        var autoResult = (new Label
         {
             Text = AutoVisibilityText(point, gamesById),
             FontSize = 11,
-            TextColor = Color.FromArgb("#555"),
             VerticalOptions = LayoutOptions.Center,
             IsVisible = !point.VisibilityOverride.HasValue
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
         visibilityPicker.SelectedIndexChanged += async (_, _) =>
         {
             int? newOverride = CompanionDataPointEditorOptions.VisibilityOverride(visibilityPicker.SelectedIndex);
@@ -386,10 +376,10 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             : string.IsNullOrWhiteSpace(point.GameId) ? "No game" : point.GameId;
         string category = string.IsNullOrWhiteSpace(point.Category) ? "No category" : point.Category;
         string visibility = VisibilityName(CompanionService.GetEffectiveVisibility(point, gamesById)) + (point.VisibilityOverride.HasValue ? " (manual)" : "");
-        stack.Children.Add(new Label { Text = $"Game: {gameName} · Category: {category} · {visibility}", FontSize = 11, TextColor = Color.FromArgb("#555") });
-        stack.Children.Add(new Label { Text = $"Priority {point.Priority} · {point.Source} · {point.Status} · {point.UpdatedAt.ToLocalTime():dd MMM yyyy}", FontSize = 11, TextColor = Color.FromArgb("#777") });
+        stack.Children.Add((new Label { Text = $"Game: {gameName} · Category: {category} · {visibility}", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        stack.Children.Add((new Label { Text = $"Priority {point.Priority} · {point.Source} · {point.Status} · {point.UpdatedAt.ToLocalTime():dd MMM yyyy}", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         var actions = new HorizontalStackLayout { Spacing = 5 };
-        var edit = Button("Edit", "#FFF3E0", Color.FromArgb("#E65100"));
+        var edit = Button("Edit", ThemeKey.WarningBackground, ThemeKey.WarningText);
         edit.Clicked += async (_, _) =>
         {
             var edited = await CompanionDataPointEditPage.ShowAsync(Navigation, point, games, categories);
@@ -398,9 +388,9 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
             await _service.SavePointAsync(point, companion, scopeLabel);
             await RefreshAsync();
         };
-        var archive = Button(point.Status == "active" ? "Archive" : "Restore", "#ECEFF1", Color.FromArgb("#555"));
+        var archive = Button(point.Status == "active" ? "Archive" : "Restore", ThemeKey.NeutralButtonBackground, ThemeKey.CardText2);
         archive.Clicked += async (_, _) => { point.Status = point.Status == "active" ? "archived" : "active"; await _service.SavePointAsync(point); await RefreshAsync(); };
-        var delete = Button("Delete", "#FFEBEE", Color.FromArgb("#C62828"));
+        var delete = Button("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         delete.Clicked += async (_, _) => { if (!await DisplayAlert("Delete Data Point", "Delete this data point?", "Delete", "Cancel")) return; await _service.DeletePointAsync(point); await RefreshAsync(); };
         actions.Children.Add(edit); actions.Children.Add(archive); actions.Children.Add(delete); stack.Children.Add(actions);
         return Card(stack);
@@ -600,10 +590,10 @@ public class CompanionsPage : Bannister.Views.ModeThemedPage
         .OrderBy(game => game.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
-    private Label PageHeading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Colors.White };
-    private static Label Heading(string text, double size) => new() { Text = text, FontSize = size, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") };
-    private static Button Button(string text, string background, Color foreground) => new() { Text = text, BackgroundColor = Color.FromArgb(background), TextColor = foreground, CornerRadius = 7, FontSize = 12, HeightRequest = 38, Padding = new Thickness(10, 0) };
-    private static Frame Card(View content) => new() { Content = content, Padding = 12, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };
+    private Label PageHeading(string text, double size) => (new Label(){ Text = text, FontSize = size, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
+    private static Label Heading(string text, double size) => (new Label(){ Text = text, FontSize = size, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+    private static Button Button(string text, ThemeKey background, ThemeKey foreground) => (new Button(){ Text = text, CornerRadius = 7, FontSize = 12, HeightRequest = 38, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, foreground);
+    private static Frame Card(View content) => (new Frame(){ Content = content, Padding = 12, CornerRadius = 9, HasShadow = false }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 }
 
 internal static class CompanionDataPointEditorOptions
@@ -773,7 +763,7 @@ internal sealed class CompanionDataPointEditPage : ContentPage
         visibility.SelectedItem = CompanionDataPointEditorOptions.Visibility[
             CompanionDataPointEditorOptions.VisibilityIndex(point?.VisibilityOverride)];
 
-        var save = new Button { Text = "Save", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White };
+        var save = (new Button { Text = "Save" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
         save.Clicked += async (_, _) =>
         {
             if (string.IsNullOrWhiteSpace(text.Text))
@@ -847,7 +837,7 @@ internal sealed class CompanionEditPage : ContentPage
         var questionCount = new Entry { Placeholder = "Number of questions", Text = item.DefaultQuestionCount.ToString(), Keyboard = Keyboard.Numeric };
         void UpdateScope() { bool meta = item.Scope == "meta"; string selected = meta ? "meta" : scope.SelectedItem?.ToString() ?? "custom"; game.IsVisible = selected == "game"; topic.IsVisible = selected == "custom"; }
         scope.SelectedIndexChanged += (_, _) => UpdateScope(); UpdateScope();
-        var save = new Button { Text = "Save", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White };
+        var save = (new Button { Text = "Save" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
         save.Clicked += async (_, _) =>
         {
             if (string.IsNullOrWhiteSpace(nickname.Text)) { await DisplayAlert("Nickname Required", "Enter a nickname.", "OK"); return; }
@@ -872,10 +862,10 @@ internal sealed class CompanionTextInputPage : ContentPage
     private CompanionTextInputPage(string title, string initial, string placeholder)
     {
         Title = title;
-        var editor = new Editor { Text = initial, Placeholder = placeholder, HeightRequest = 320, AutoSize = EditorAutoSizeOption.Disabled, BackgroundColor = Color.FromArgb("#FAFAFA") };
-        var paste = new Button { Text = "Paste", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White };
+        var editor = (new Editor { Text = initial, Placeholder = placeholder, HeightRequest = 320, AutoSize = EditorAutoSizeOption.Disabled }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
+        var paste = (new Button { Text = "Paste" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
         paste.Clicked += async (_, _) => { try { if (!Clipboard.HasText) return; var text = await Clipboard.GetTextAsync(); if (string.IsNullOrEmpty(text)) return; string current = editor.Text ?? ""; int start = Math.Clamp(editor.CursorPosition, 0, current.Length); int length = Math.Clamp(editor.SelectionLength, 0, current.Length - start); editor.Text = current.Remove(start, length).Insert(start, text); editor.CursorPosition = start + text.Length; editor.SelectionLength = 0; } finally { editor.Focus(); } };
-        var ok = new Button { Text = "OK", BackgroundColor = Color.FromArgb("#5B63EE"), TextColor = Colors.White }; ok.Clicked += async (_, _) => await CloseAsync(editor.Text);
+        var ok = (new Button { Text = "OK" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText); ok.Clicked += async (_, _) => await CloseAsync(editor.Text);
         var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync(null);
         Content = new Grid { Padding = 16, RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) }, Children = { editor } };
         var buttons = new FlexLayout { Direction = Microsoft.Maui.Layouts.FlexDirection.Row, Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start, Children = { paste, ok, cancel } }; Grid.SetRow(buttons, 1); ((Grid)Content).Children.Add(buttons);
@@ -897,9 +887,9 @@ internal sealed class CompanionExtractionReviewPage : ContentPage
         var priorities = AddRows(stack, "Priority changes", result.Priorities, x => $"Point {x.PointId} → priority {x.Priority}");
         var archives = AddRows(stack, "Archives", result.Archives, x => $"Point {x.PointId}: {x.Reason}");
         var updates = AddRows(stack, "Text updates", result.Updates, x => $"Point {x.PointId}: {x.Text}");
-        if (result.Warnings.Count > 0) { stack.Children.Add(new Label { Text = $"Warnings ({result.Warnings.Count})", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#E65100") }); foreach (var warning in result.Warnings) stack.Children.Add(new Label { Text = warning, FontSize = 11, TextColor = Color.FromArgb("#777") }); }
-        if (result.SkippedLines.Count > 0) { stack.Children.Add(new Label { Text = $"Skipped invalid lines ({result.SkippedLines.Count})", FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#E65100") }); foreach (var line in result.SkippedLines) stack.Children.Add(new Label { Text = line, FontSize = 11, TextColor = Color.FromArgb("#777") }); }
-        var applyButton = new Button { Text = "Apply Selected", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White };
+        if (result.Warnings.Count > 0) { stack.Children.Add((new Label { Text = $"Warnings ({result.Warnings.Count})", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1)); foreach (var warning in result.Warnings) stack.Children.Add((new Label { Text = warning, FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3)); }
+        if (result.SkippedLines.Count > 0) { stack.Children.Add((new Label { Text = $"Skipped invalid lines ({result.SkippedLines.Count})", FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1)); foreach (var line in result.SkippedLines) stack.Children.Add((new Label { Text = line, FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3)); }
+        var applyButton = (new Button { Text = "Apply Selected" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
         applyButton.Clicked += async (_, _) =>
         {
             try

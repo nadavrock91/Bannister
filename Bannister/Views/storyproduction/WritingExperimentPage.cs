@@ -42,15 +42,14 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         _mainContent = new VerticalStackLayout { Padding = 20, Spacing = 14 };
-        _mainContent.Children.Add(new Label { Text = "\U0001F9EA Writing Experiment", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#6A1B9A") });
-        _mainContent.Children.Add(new Label
+        _mainContent.Children.Add((new Label { Text = "\U0001F9EA Writing Experiment", FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1));
+        _mainContent.Children.Add((new Label
         {
             Text = "Test which writing process produces the best retention. Week 1 establishes a baseline with one process daily. Then challenge it.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
-        _phaseLabel = new Label { FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") };
-        _statusLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#888") };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
+        _phaseLabel = (new Label { FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
+        _statusLabel = (new Label { FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
         _todaySection = new VerticalStackLayout { Spacing = 10 };
         _comparisonSection = new VerticalStackLayout { Spacing = 8 };
         _mainContent.Children.Add(_phaseLabel);
@@ -116,12 +115,12 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
 
         if (experiment.Phase == "baseline" && baselineCount >= 7)
         {
-            var button = new Button { Text = "⚔️ Start Challenger Phase", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 44, FontSize = 14, FontAttributes = FontAttributes.Bold };
+            var button = (new Button { Text = "⚔️ Start Challenger Phase", CornerRadius = 8, HeightRequest = 44, FontSize = 14, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             button.Clicked += async (_, _) => await StartChallengerAsync(experiment);
             _todaySection.Children.Add(button);
         }
 
-        var archiveButton = new Button { Text = "Archive Experiment", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#666"), CornerRadius = 8, HeightRequest = 36, FontSize = 12 };
+        var archiveButton = (new Button { Text = "Archive Experiment", CornerRadius = 8, HeightRequest = 36, FontSize = 12 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         archiveButton.Clicked += async (_, _) =>
         {
             if (!await DisplayAlert("Archive?", "Archive this experiment and start fresh?", "Archive", "Cancel")) return;
@@ -138,13 +137,13 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
         var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
         if (processes.Count == 0)
         {
-            _todaySection.Children.Add(new Label { Text = "No writing processes defined. Create one in Writing Processes first.", FontSize = 13, TextColor = Color.FromArgb("#C62828"), FontAttributes = FontAttributes.Italic });
+            _todaySection.Children.Add((new Label { Text = "No writing processes defined. Create one in Writing Processes first.", FontSize = 13, FontAttributes = FontAttributes.Italic }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1));
             return;
         }
-        _todaySection.Children.Add(new Label { Text = "Start a new experiment by picking your baseline process.\nThis process will be assigned every day for Week 1 to establish retention data.", FontSize = 13, TextColor = Color.FromArgb("#555") });
+        _todaySection.Children.Add((new Label { Text = "Start a new experiment by picking your baseline process.\nThis process will be assigned every day for Week 1 to establish retention data.", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
         foreach (var process in processes)
         {
-            var button = new Button { Text = process.Name, BackgroundColor = Color.FromArgb("#F3E5F5"), TextColor = Color.FromArgb("#6A1B9A"), CornerRadius = 8, HeightRequest = 40, FontSize = 13 };
+            var button = (new Button { Text = process.Name, CornerRadius = 8, HeightRequest = 40, FontSize = 13 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
             var captured = process;
             button.Clicked += async (_, _) => { await _experimentService.StartExperimentAsync(_auth.CurrentUsername, captured.Name); await RefreshAsync(); };
             _todaySection.Children.Add(button);
@@ -206,14 +205,13 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
         if (_selectedWeekIndex >= 0 && _selectedWeekIndex < _weekRanges.Count)
             currentWeekIndex = _selectedWeekIndex;
 
-        _weekPicker = new Picker
+        _weekPicker = (new Picker
         {
             Title = "Select week...",
             FontSize = 13,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             HorizontalOptions = LayoutOptions.Start,
             WidthRequest = 220
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         for (int i = 0; i < _weekRanges.Count; i++)
         {
             var (start, end) = _weekRanges[i];
@@ -235,28 +233,24 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
 
         var (windowStart, windowEnd) = _weekRanges[currentWeekIndex];
 
-        var changeProcessButton = new Button
+        var changeProcessButton = (new Button
         {
             Text = "\U0001F504 Change Week Process",
-            BackgroundColor = Color.FromArgb("#F3E5F5"),
-            TextColor = Color.FromArgb("#6A1B9A"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
         changeProcessButton.Clicked += async (_, _) => await ChangeWeekProcessAsync(experiment);
 
-        var queueButton = new Button
+        var queueButton = (new Button
         {
             Text = "\U0001F4C5 Queue Future Weeks",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         queueButton.Clicked += async (_, _) => await ManageProcessQueueAsync(experiment);
 
         _todaySection.Children.Add(new HorizontalStackLayout
@@ -268,32 +262,29 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
         var processQueue = ParseProcessQueue(experiment.ProcessQueueJson);
         if (processQueue.Count > 0)
         {
-            _todaySection.Children.Add(new Label
+            _todaySection.Children.Add((new Label
             {
                 Text = $"\U0001F4C5 Queued Weeks ({processQueue.Count})",
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#1565C0"),
                 Margin = new Thickness(0, 8, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1));
 
             foreach (var item in processQueue.OrderBy(item => item.WeekNumber))
             {
-                var queueFrame = new Frame
+                var queueFrame = (new Frame
                 {
                     Padding = 10,
                     CornerRadius = 8,
-                    BackgroundColor = Color.FromArgb("#E3F2FD"),
                     BorderColor = Colors.Transparent,
                     HasShadow = false,
-                    Content = new Label
+                    Content = (new Label
                     {
                         Text = $"Week {item.WeekNumber}: {item.ProcessName}",
                         FontSize = 12,
-                        TextColor = Color.FromArgb("#1565C0"),
                         LineBreakMode = LineBreakMode.WordWrap
-                    }
-                };
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3)
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground);
                 _todaySection.Children.Add(queueFrame);
             }
         }
@@ -317,13 +308,12 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
                 Spacing = 4,
                 Margin = new Thickness(0, 4, 0, 8)
             };
-            summaryStack.Children.Add(new Label
+            summaryStack.Children.Add((new Label
             {
                 Text = $"Week {selectedIndex + 1} Average Retention ({selectedWeekEntries.Count} recordings)",
                 FontSize = 14,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#6A1B9A")
-            });
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1));
 
             var intervalsRow = new HorizontalStackLayout { Spacing = 16 };
 
@@ -332,39 +322,32 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
                 if (values.Count < 3) return;
 
                 int average = (int)values.Average();
-                Color color = average >= 70
-                    ? Color.FromArgb("#2E7D32")
-                    : average >= 40
-                        ? Color.FromArgb("#F57F17")
-                        : Color.FromArgb("#C62828");
+                ThemeKey color = average >= 70 ? ThemeKey.SuccessText : average >= 40 ? ThemeKey.HighlightYellowText : ThemeKey.ErrorText;
 
                 intervalsRow.Children.Add(new VerticalStackLayout
                 {
                     Spacing = 2,
                     Children =
                     {
-                        new Label
+                        (new Label
                         {
                             Text = $"{average}%",
                             FontSize = 22,
                             FontAttributes = FontAttributes.Bold,
-                            TextColor = color,
                             HorizontalTextAlignment = TextAlignment.Center
-                        },
-                        new Label
+                        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1),
+                        (new Label
                         {
                             Text = name,
                             FontSize = 10,
-                            TextColor = Color.FromArgb("#888"),
                             HorizontalTextAlignment = TextAlignment.Center
-                        },
-                        new Label
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3),
+                        (new Label
                         {
                             Text = $"({values.Count} rec)",
                             FontSize = 8,
-                            TextColor = Color.FromArgb("#BBB"),
                             HorizontalTextAlignment = TextAlignment.Center
-                        }
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3)
                     }
                 });
             }
@@ -382,7 +365,7 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
             }
         }
 
-        _todaySection.Children.Add(new Label { Text = "Mark Days Completed", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+        _todaySection.Children.Add((new Label { Text = "Mark Days Completed", FontSize = 15, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         int selectedWeekNumber = currentWeekIndex + 1;
         var selectedQueuedItem = queuedWeeks.FirstOrDefault(item => item.WeekNumber == selectedWeekNumber);
@@ -428,37 +411,35 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
                 },
                 ColumnSpacing = 8
             };
-            var dateLabel = new Label { Text = date.ToString("ddd M/d"), FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center };
+            var dateLabel = (new Label { Text = date.ToString("ddd M/d"), FontSize = 12, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3);
             Grid.SetColumn(dateLabel, 0);
             dayGrid.Children.Add(dateLabel);
             var processStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
-            processStack.Children.Add(new Label { Text = assignedProcess, FontSize = 11, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
+            processStack.Children.Add((new Label { Text = assignedProcess, FontSize = 11, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
             if (!string.IsNullOrWhiteSpace(existingEntry?.StoryTitle))
             {
-                processStack.Children.Add(new Label
+                processStack.Children.Add((new Label
                 {
                     Text = $"\U0001F4D6 {existingEntry.StoryTitle}",
                     FontSize = 10,
-                    TextColor = Color.FromArgb("#6A1B9A"),
                     LineBreakMode = LineBreakMode.TailTruncation
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText3));
             }
             Grid.SetColumn(processStack, 1);
             dayGrid.Children.Add(processStack);
 
             if (existingEntry?.IsCompleted == true)
             {
-                var summary = new Label { Text = BuildRetentionSummary(existingEntry), FontSize = 9, TextColor = Color.FromArgb("#2E7D32"), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap };
-                var editButton = new Button
+                var summary = (new Label { Text = BuildRetentionSummary(existingEntry), FontSize = 9, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3);
+                var editButton = (new Button
                 {
                     Text = "\u270F",
                     BackgroundColor = Colors.Transparent,
-                    TextColor = Color.FromArgb("#6A1B9A"),
                     WidthRequest = 28,
                     HeightRequest = 28,
                     Padding = 0,
                     FontSize = 10
-                };
+                }).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
                 var capturedEditEntry = existingEntry;
                 editButton.Clicked += async (_, _) =>
                 {
@@ -486,7 +467,7 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
             }
             else
             {
-                var recordButton = new Button { Text = "\U0001F4DD Record", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 4, HeightRequest = 28, FontSize = 11, Padding = new Thickness(8, 0) };
+                var recordButton = (new Button { Text = "\U0001F4DD Record", CornerRadius = 4, HeightRequest = 28, FontSize = 11, Padding = new Thickness(8, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
                 var capturedDate = date;
                 var capturedProcess = assignedProcess;
                 var capturedIsBaseline = isBaseline;
@@ -500,15 +481,16 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
                 dayGrid.Children.Add(recordButton);
             }
 
-            var dayFrame = new Frame
+            var dayFrame = (new Frame
             {
                 Padding = 10,
                 CornerRadius = 8,
-                BackgroundColor = existingEntry?.IsCompleted == true ? Color.FromArgb("#E8F5E9") : date == today ? (isBaseline ? Color.FromArgb("#E8EAF6") : Color.FromArgb("#FFF3E0")) : Color.FromArgb("#FAFAFA"),
-                BorderColor = date == today ? Color.FromArgb("#6A1B9A") : Colors.Transparent,
+                BorderColor = Colors.Transparent,
                 HasShadow = false,
                 Content = dayGrid
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, existingEntry?.IsCompleted == true ? ThemeKey.SuccessBackground : date == today ? (isBaseline ? ThemeKey.HighlightIndigo : ThemeKey.WarningBackground) : ThemeKey.SecondarySurface);
+            if (date == today)
+                dayFrame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleStrongText);
             _todaySection.Children.Add(dayFrame);
         }
     }
@@ -530,49 +512,45 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
             entry.StoryTitle = storyTitle.Trim();
 
         var tcs = new TaskCompletionSource<bool>();
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         var inputFields = new Dictionary<string, Entry>();
         var intervals = new[] { (Key: "10s", Label: "10 seconds"), (Key: "30s", Label: "30 seconds"), (Key: "1m", Label: "1 minute"), (Key: "2m", Label: "2 minutes"), (Key: "3m", Label: "3 minutes") };
         var formStack = new VerticalStackLayout { Spacing = 12 };
-        formStack.Children.Add(new Label { Text = "Retention Test", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#6A1B9A") });
-        formStack.Children.Add(new Label { Text = "What percentage of the story do you retain at each interval?", FontSize = 12, TextColor = Color.FromArgb("#666") });
+        formStack.Children.Add((new Label { Text = "Retention Test", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1));
+        formStack.Children.Add((new Label { Text = "What percentage of the story do you retain at each interval?", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         foreach (var interval in intervals)
         {
-            var input = new Entry
+            var input = (new Entry
             {
                 Placeholder = "0-100",
                 Keyboard = Keyboard.Numeric,
                 FontSize = 13,
-                TextColor = Color.FromArgb("#333"),
-                BackgroundColor = Color.FromArgb("#FAFAFA"),
                 HeightRequest = 36,
                 WidthRequest = 80,
                 HorizontalTextAlignment = TextAlignment.Center
-            };
+            }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
-            var percentLabel = new Label
+            var percentLabel = (new Label
             {
                 Text = "%",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#666"),
                 VerticalOptions = LayoutOptions.Center
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
 
             var inputRow = new HorizontalStackLayout
             {
                 Spacing = 4,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = interval.Label + ":",
                         FontSize = 13,
                         FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333"),
                         VerticalOptions = LayoutOptions.Center,
                         WidthRequest = 90
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     input,
                     percentLabel
                 }
@@ -588,7 +566,7 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
             tcs.TrySetResult(saved);
         }
 
-        var saveButton = new Button { Text = "Save Retention", BackgroundColor = Color.FromArgb("#6A1B9A"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 44 };
+        var saveButton = (new Button { Text = "Save Retention", CornerRadius = 8, HeightRequest = 44 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         saveButton.Clicked += (_, _) =>
         {
             foreach (var (key, input) in inputFields)
@@ -610,22 +588,21 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
             entry.CompletedAt = DateTime.UtcNow;
             CloseOverlay(true);
         };
-        var skipButton = new Button { Text = "Skip (mark done without retention)", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#666"), CornerRadius = 8, HeightRequest = 36, FontSize = 12 };
+        var skipButton = (new Button { Text = "Skip (mark done without retention)", CornerRadius = 8, HeightRequest = 36, FontSize = 12 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         skipButton.Clicked += (_, _) =>
         {
             entry.IsCompleted = true;
             entry.CompletedAt = DateTime.UtcNow;
             CloseOverlay(true);
         };
-        var cancelButton = new Button { Text = "Cancel", BackgroundColor = Colors.Transparent, TextColor = Color.FromArgb("#999"), HeightRequest = 36, FontSize = 12 };
+        var cancelButton = (new Button { Text = "Cancel", BackgroundColor = Colors.Transparent, HeightRequest = 36, FontSize = 12 }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         cancelButton.Clicked += (_, _) => CloseOverlay(false);
         formStack.Children.Add(saveButton);
         formStack.Children.Add(skipButton);
         formStack.Children.Add(cancelButton);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             MaximumWidthRequest = 500,
@@ -634,7 +611,7 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center,
             Margin = new Thickness(16, 20),
             Content = new ScrollView { Content = formStack }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         overlay.Children.Add(card);
         if (Content is not Grid mainGrid) return;
         mainGrid.Children.Add(overlay);
@@ -675,23 +652,21 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
     {
         var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
         var tcs = new TaskCompletionSource<string?>();
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         var formStack = new VerticalStackLayout { Spacing = 10 };
-        formStack.Children.Add(new Label
+        formStack.Children.Add((new Label
         {
             Text = title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#6A1B9A")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1));
 
-        var searchEntry = new Entry
+        var searchEntry = (new Entry
         {
             Placeholder = "Search processes...",
             FontSize = 12,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             HeightRequest = 34
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         formStack.Children.Add(searchEntry);
 
         var listStack = new VerticalStackLayout { Spacing = 4 };
@@ -710,22 +685,20 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
 
             foreach (var process in filtered)
             {
-                var processFrame = new Frame
+                var processFrame = (new Frame
                 {
                     Padding = 10,
                     CornerRadius = 6,
-                    BackgroundColor = Color.FromArgb("#F3E5F5"),
                     BorderColor = Colors.Transparent,
                     HasShadow = false,
                     HorizontalOptions = LayoutOptions.Fill
-                };
-                processFrame.Content = new Label
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground);
+                processFrame.Content = (new Label
                 {
                     Text = process.Name == experiment.BaselineProcessName ? $"\u2B50 {process.Name}" : process.Name,
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#6A1B9A"),
                     LineBreakMode = LineBreakMode.WordWrap
-                };
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText3);
                 var capturedName = process.Name;
                 var tap = new TapGestureRecognizer();
                 tap.Tapped += (_, _) => CloseOverlay(capturedName);
@@ -733,16 +706,14 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
                 listStack.Children.Add(processFrame);
             }
 
-            var newProcessButton = new Button
+            var newProcessButton = (new Button
             {
                 Text = "+ New Process",
-                BackgroundColor = Color.FromArgb("#FFF3E0"),
-                TextColor = Color.FromArgb("#E65100"),
                 CornerRadius = 6,
                 HeightRequest = 36,
                 FontSize = 12,
                 HorizontalOptions = LayoutOptions.Fill
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
             newProcessButton.Clicked += async (_, _) =>
             {
                 string? name = await DisplayPromptAsync("New Process", "Process name:", "Create", "Cancel", maxLength: 200);
@@ -797,20 +768,18 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
         RebuildList("");
         formStack.Children.Add(new ScrollView { MaximumHeightRequest = 300, Content = listStack });
 
-        var cancelButton = new Button
+        var cancelButton = (new Button
         {
             Text = "Cancel",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#999"),
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         cancelButton.Clicked += (_, _) => CloseOverlay(null);
         formStack.Children.Add(cancelButton);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             MaximumWidthRequest = 500,
@@ -819,7 +788,7 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center,
             Margin = new Thickness(16, 20),
             Content = new ScrollView { Content = formStack }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         overlay.Children.Add(card);
         if (Content is not Grid mainGrid) return null;
         mainGrid.Children.Add(overlay);
@@ -832,16 +801,15 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
     {
         var queue = ParseProcessQueue(experiment.ProcessQueueJson);
         var tcs = new TaskCompletionSource<bool>();
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         var formStack = new VerticalStackLayout { Spacing = 10 };
-        formStack.Children.Add(new Label
+        formStack.Children.Add((new Label
         {
             Text = "Queue Future Weeks",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
-        var countLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#666") };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1));
+        var countLabel = (new Label { FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
         formStack.Children.Add(countLabel);
 
         var queueList = new VerticalStackLayout { Spacing = 6 };
@@ -852,13 +820,12 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
 
             if (queue.Count == 0)
             {
-                queueList.Children.Add(new Label
+                queueList.Children.Add((new Label
                 {
                     Text = "No future weeks queued.",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#999"),
                     FontAttributes = FontAttributes.Italic
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
                 return;
             }
 
@@ -874,26 +841,24 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
                     },
                     ColumnSpacing = 4
                 };
-                var label = new Label
+                var label = (new Label
                 {
                     Text = $"Week {item.WeekNumber}: {item.ProcessName}",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#1565C0"),
                     LineBreakMode = LineBreakMode.WordWrap,
                     VerticalOptions = LayoutOptions.Center
-                };
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3);
                 Grid.SetColumn(label, 0);
                 row.Children.Add(label);
 
-                var changeButton = new Button
+                var changeButton = (new Button
                 {
                     Text = "Change",
                     BackgroundColor = Colors.Transparent,
-                    TextColor = Color.FromArgb("#6A1B9A"),
                     HeightRequest = 30,
                     FontSize = 10,
                     Padding = new Thickness(6, 0)
-                };
+                }).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
                 var capturedItem = item;
                 changeButton.Clicked += async (_, _) =>
                 {
@@ -909,15 +874,14 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
                 Grid.SetColumn(changeButton, 1);
                 row.Children.Add(changeButton);
 
-                var removeButton = new Button
+                var removeButton = (new Button
                 {
                     Text = "Remove",
                     BackgroundColor = Colors.Transparent,
-                    TextColor = Color.FromArgb("#C62828"),
                     HeightRequest = 30,
                     FontSize = 10,
                     Padding = new Thickness(6, 0)
-                };
+                }).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
                 removeButton.Clicked += (_, _) =>
                 {
                     queue.Remove(capturedItem);
@@ -926,30 +890,27 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
                 Grid.SetColumn(removeButton, 2);
                 row.Children.Add(removeButton);
 
-                queueList.Children.Add(new Frame
+                queueList.Children.Add((new Frame
                 {
                     Padding = 10,
                     CornerRadius = 8,
-                    BackgroundColor = Color.FromArgb("#E3F2FD"),
                     BorderColor = Colors.Transparent,
                     HasShadow = false,
                     Content = row
-                });
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground));
             }
         }
 
         RebuildQueueList();
         formStack.Children.Add(new ScrollView { MaximumHeightRequest = 320, Content = queueList });
 
-        var addButton = new Button
+        var addButton = (new Button
         {
             Text = "+ Add Week",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addButton.Clicked += async (_, _) =>
         {
             int nextWeek = queue.Count > 0
@@ -963,44 +924,39 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        var clearButton = new Button
+        var clearButton = (new Button
         {
             Text = "Clear All",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 6,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         clearButton.Clicked += (_, _) =>
         {
             queue.Clear();
             RebuildQueueList();
         };
 
-        var doneButton = new Button
+        var doneButton = (new Button
         {
             Text = "Done",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         doneButton.Clicked += (_, _) =>
         {
             if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
             tcs.TrySetResult(true);
         };
 
-        var cancelButton = new Button
+        var cancelButton = (new Button
         {
             Text = "Cancel",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#999"),
             HeightRequest = 34,
             FontSize = 11
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         cancelButton.Clicked += (_, _) =>
         {
             if (Content is Grid rootGrid) rootGrid.Children.Remove(overlay);
@@ -1014,9 +970,8 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
         });
         formStack.Children.Add(cancelButton);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             MaximumWidthRequest = 600,
@@ -1025,7 +980,7 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center,
             Margin = new Thickness(16, 20),
             Content = new ScrollView { Content = formStack }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         overlay.Children.Add(card);
         if (Content is not Grid mainGrid) return;
         mainGrid.Children.Add(overlay);
@@ -1051,28 +1006,28 @@ public class WritingExperimentPage : Bannister.Views.ModeThemedPage
     private async Task ShowComparisonAsync(WritingExperiment experiment)
     {
         var (baselineAvg, challengerAvg, baselineCount, challengerCount) = await _experimentService.GetComparisonAsync(experiment.Id);
-        _comparisonSection.Children.Add(new Label { Text = "\U0001F4CA Comparison", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+        _comparisonSection.Children.Add((new Label { Text = "\U0001F4CA Comparison", FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, RowDefinitions = { new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Auto) }, RowSpacing = 6, ColumnSpacing = 12 };
-        AddComparisonCell(grid, $"\U0001F4CA {experiment.BaselineProcessName}", 0, 0, 13, "#3F51B5", true);
-        AddComparisonCell(grid, $"⚔️ {experiment.ChallengerProcessName}", 1, 0, 13, "#E65100", true);
-        AddComparisonCell(grid, $"{baselineAvg:F1}%", 0, 1, 24, "#3F51B5", true);
-        AddComparisonCell(grid, $"{challengerAvg:F1}%", 1, 1, 24, "#E65100", true);
-        AddComparisonCell(grid, $"{baselineCount} entries", 0, 2, 11, "#888", false);
-        AddComparisonCell(grid, $"{challengerCount} entries", 1, 2, 11, "#888", false);
-        _comparisonSection.Children.Add(new Frame { Padding = 14, CornerRadius = 10, BackgroundColor = Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false, Content = grid });
+        AddComparisonCell(grid, $"\U0001F4CA {experiment.BaselineProcessName}", 0, 0, 13, ThemeKey.HighlightIndigoStrongText, true);
+        AddComparisonCell(grid, $"⚔️ {experiment.ChallengerProcessName}", 1, 0, 13, ThemeKey.WarningText, true);
+        AddComparisonCell(grid, $"{baselineAvg:F1}%", 0, 1, 24, ThemeKey.HighlightIndigoStrongText, true);
+        AddComparisonCell(grid, $"{challengerAvg:F1}%", 1, 1, 24, ThemeKey.WarningText, true);
+        AddComparisonCell(grid, $"{baselineCount} entries", 0, 2, 11, ThemeKey.CardText3, false);
+        AddComparisonCell(grid, $"{challengerCount} entries", 1, 2, 11, ThemeKey.CardText3, false);
+        _comparisonSection.Children.Add((new Frame { Padding = 14, CornerRadius = 10, HasShadow = false, Content = grid }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator));
 
         if (baselineCount >= 7 && challengerCount >= 7)
         {
             string recommendation = baselineAvg > challengerAvg + .5 ? $"\U0001F3C6 Baseline ({experiment.BaselineProcessName}) wins by {baselineAvg - challengerAvg:F1} percentage points. Consider keeping it as your default."
                 : challengerAvg > baselineAvg + .5 ? $"\U0001F3C6 Challenger ({experiment.ChallengerProcessName}) wins by {challengerAvg - baselineAvg:F1} percentage points. Consider switching your default."
                 : "\U0001F91D Too close to call. Consider running more days or testing a different challenger.";
-            _comparisonSection.Children.Add(new Label { Text = recommendation, FontSize = 13, TextColor = Color.FromArgb("#6A1B9A"), FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap });
+            _comparisonSection.Children.Add((new Label { Text = recommendation, FontSize = 13, FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1));
         }
     }
 
-    private static void AddComparisonCell(Grid grid, string text, int column, int row, double size, string color, bool bold)
+    private static void AddComparisonCell(Grid grid, string text, int column, int row, double size, ThemeKey color, bool bold)
     {
-        var label = new Label { Text = text, FontSize = size, FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None, TextColor = Color.FromArgb(color), HorizontalTextAlignment = TextAlignment.Center };
+        var label = (new Label { Text = text, FontSize = size, FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None, HorizontalTextAlignment = TextAlignment.Center }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1);
         Grid.SetColumn(label, column);
         Grid.SetRow(label, row);
         grid.Children.Add(label);
