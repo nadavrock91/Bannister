@@ -128,6 +128,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<HomeQuickAccessService>();
         builder.Services.AddSingleton<HomeButtonVisibilityService>();
         builder.Services.AddSingleton<PrivacyModeService>();
+        builder.Services.AddSingleton<IThemeContext, UserThemeContext>();
         builder.Services.AddSingleton<DailyReminderService>();
         builder.Services.AddSingleton<JournalService>();
         builder.Services.AddSingleton<LifePathService>();

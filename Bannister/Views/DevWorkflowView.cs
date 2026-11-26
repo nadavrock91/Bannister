@@ -34,7 +34,7 @@ public class DevWorkflowView : ContentView
         bool compact = false, Func<string, string, Task>? showAlert = null)
     {
         _getUsername = getUsername; _service = service; _compact = compact; _showAlert = showAlert;
-        BackgroundColor = compact ? Color.FromArgb("#F5F5F5") : Colors.Transparent;
+        this.ThemeColor(VisualElement.BackgroundColorProperty, compact ? ThemeKey.SecondarySurface : (ThemeKey?)null);
         _runScroll = new ScrollView { Content = _content };
         Content = _runScroll;
     }
@@ -79,15 +79,15 @@ public class DevWorkflowView : ContentView
     private void BuildRunUI()
     {
         _content.Children.Clear(); _content.Padding = _compact ? 8 : 16;
-        _content.Children.Add(new Label { Text = "Dev Workflow", FontSize = _compact ? 21 : 26, FontAttributes = FontAttributes.Bold, TextColor = _compact ? Color.FromArgb("#2D1B6B") : Color.FromArgb("#222") });
+        _content.Children.Add((new Label { Text = "Dev Workflow", FontSize = _compact ? 21 : 26, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, _compact ? ThemeKey.DeepVioletText : ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
         BuildHeader();
         if (_selected != null)
         {
             _content.Children.Add(BuildRunControls());
-            if (_steps.Count == 0) _content.Children.Add(new Label { Text = "This workflow has no steps. Use Edit to add some.", TextColor = Color.FromArgb("#777") });
+            if (_steps.Count == 0) _content.Children.Add((new Label { Text = "This workflow has no steps. Use Edit to add some." }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
             foreach (var step in _steps) _content.Children.Add(BuildRunStep(step));
             if (_steps.Count > 0 && _steps.All(IsFinished))
-                _content.Children.Add(new Label { Text = "Workflow complete", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32") });
+                _content.Children.Add((new Label { Text = "Workflow complete", FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true));
         }
         BuildSettingsArea();
     }
@@ -103,12 +103,12 @@ public class DevWorkflowView : ContentView
             },
             ColumnSpacing = 7
         };
-        var reset = Button("Reset", "#607D8B");
+        var reset = Button("Reset", ThemeKey.NeutralMutedButton);
         reset.Clicked += (_, _) => { ResetRunState(); BuildRunUI(); };
         row.Add(reset, 0, 0);
         if (_projects.Count == 0)
         {
-            var add = Button("Add a project", "#5B63EE");
+            var add = Button("Add a project", ThemeKey.SecondaryButtonBackground);
             add.Clicked += async (_, _) => await AddProjectAsync();
             row.Add(add, 1, 0);
         }
@@ -140,7 +140,7 @@ public class DevWorkflowView : ContentView
     private void BuildHeader()
     {
         var stack = new VerticalStackLayout { Spacing = 7 };
-        stack.Children.Add(new Label { Text = _selected?.Name ?? "Select a workflow", FontSize = 20, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+        stack.Children.Add((new Label { Text = _selected?.Name ?? "Select a workflow", FontSize = 20, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         var picker = new Picker { Title = "Workflow", ItemsSource = _workflows, ItemDisplayBinding = new Binding(nameof(DevWorkflow.Name)), SelectedItem = _selected };
         picker.SelectedIndexChanged += async (_, _) =>
         {
@@ -150,8 +150,8 @@ public class DevWorkflowView : ContentView
         };
         stack.Children.Add(picker);
         var actions = new HorizontalStackLayout { Spacing = 6 };
-        if (_selected != null) { var edit = Button("Edit", "#1565C0"); edit.Clicked += async (_, _) => await ShowEditorAsync(_selected); actions.Children.Add(edit); }
-        var create = Button(_workflows.Count == 0 ? "Create Workflow" : "New Workflow", "#2E7D32"); create.Clicked += async (_, _) => await ShowEditorAsync(null); actions.Children.Add(create);
+        if (_selected != null) { var edit = Button("Edit", ThemeKey.ButtonPrimaryBackground); edit.Clicked += async (_, _) => await ShowEditorAsync(_selected); actions.Children.Add(edit); }
+        var create = Button(_workflows.Count == 0 ? "Create Workflow" : "New Workflow", ThemeKey.SuccessDarkButtonBackground); create.Clicked += async (_, _) => await ShowEditorAsync(null); actions.Children.Add(create);
         stack.Children.Add(actions); _content.Children.Add(Card(stack));
     }
 
@@ -179,7 +179,7 @@ public class DevWorkflowView : ContentView
                 new ColumnDefinition(GridLength.Auto)
             }
         };
-        var checkBox = new CheckBox { IsChecked = state.Done, Color = Color.FromArgb("#2E7D32"), VerticalOptions = LayoutOptions.Center };
+        var checkBox = (new CheckBox { IsChecked = state.Done, VerticalOptions = LayoutOptions.Center }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessText);
         checkBox.CheckedChanged += async (_, e) => await SetDoneAsync(step, e.Value);
         heading.Add(checkBox, 0, 0);
         heading.Add(new Label
@@ -191,7 +191,7 @@ public class DevWorkflowView : ContentView
         var headingActions = new HorizontalStackLayout { Spacing = 4 };
         if (step.StepType is "Check" or "Wrap & Copy")
         {
-            var run = Small(string.IsNullOrWhiteSpace(state.Message) ? "Run" : "Re-run", "#6A1B9A");
+            var run = Small(string.IsNullOrWhiteSpace(state.Message) ? "Run" : "Re-run", ThemeKey.AccentPurpleDarkButtonBackground);
             run.IsEnabled = !state.Skipped;
             run.Clicked += async (_, _) =>
             {
@@ -207,33 +207,31 @@ public class DevWorkflowView : ContentView
         heading.Add(headingActions, 2, 0); stack.Children.Add(heading);
 
         if (state.Skipped)
-            stack.Children.Add(new Label { Text = "skipped", FontSize = 12, TextColor = Color.FromArgb("#777777") });
+            stack.Children.Add((new Label { Text = "skipped", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         else if (!string.IsNullOrWhiteSpace(state.Message))
-            stack.Children.Add(new Label { Text = state.Message, FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = state.Done ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828") });
+            stack.Children.Add((new Label { Text = state.Message, FontSize = 12, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, state.Done ? ThemeKey.SuccessText : ThemeKey.ErrorText, ThemeKey.PageText3, classifyPageText: true));
 
         var actions = new HorizontalStackLayout { Spacing = 5 };
         if (step.StepType == "Copy" && !state.Done && !state.Skipped)
         {
-            var copy = Small("Copy", "#1565C0"); copy.Clicked += async (_, _) => await CopyAndCompleteAsync(step); actions.Children.Add(copy);
+            var copy = Small("Copy", ThemeKey.ButtonPrimaryBackground); copy.Clicked += async (_, _) => await CopyAndCompleteAsync(step); actions.Children.Add(copy);
         }
         if (step.StepType == "Check" && !state.Done && !state.Skipped && !string.IsNullOrWhiteSpace(state.Message))
         {
-            if (state.Behind) { var pull = Small("Pull", "#1565C0"); pull.Clicked += async (_, _) => await PullAndRecheckAsync(step); actions.Children.Add(pull); }
-            if (NeedsProjectFolder(state.Message)) { var folder = Small("Set Folder", "#5B63EE"); folder.Clicked += async (_, _) => await SetProjectFolderAndRecheckAsync(step); actions.Children.Add(folder); }
+            if (state.Behind) { var pull = Small("Pull", ThemeKey.ButtonPrimaryBackground); pull.Clicked += async (_, _) => await PullAndRecheckAsync(step); actions.Children.Add(pull); }
+            if (NeedsProjectFolder(state.Message)) { var folder = Small("Set Folder", ThemeKey.SecondaryButtonBackground); folder.Clicked += async (_, _) => await SetProjectFolderAndRecheckAsync(step); actions.Children.Add(folder); }
         }
         if (actions.Children.Count > 0) stack.Children.Add(actions);
-        return new Border
+        return (new Border
         {
             Content = stack, Padding = 10,
-            Stroke = current ? Color.FromArgb("#6A1B9A") : Color.FromArgb("#DDDDDD"),
-            StrokeThickness = current ? 2 : 1,
-            BackgroundColor = current ? Color.FromArgb("#F3E5F5") : Colors.White
-        };
+            StrokeThickness = current ? 2 : 1
+        }).ThemeColor(Border.StrokeProperty, current ? ThemeKey.AccentPurpleStrongText : ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, current ? ThemeKey.AccentPurpleBackground : ThemeKey.CardBackground);
     }
 
     private void BuildSettingsArea()
     {
-        var toggle = Button("⋮ Settings / Constraints", "#607D8B");
+        var toggle = Button("⋮ Settings / Constraints", ThemeKey.NeutralMutedButton);
         var panel = new VerticalStackLayout { Spacing = 10, IsVisible = false }; toggle.Clicked += (_, _) => panel.IsVisible = !panel.IsVisible;
         panel.Children.Add(BuildProjects()); panel.Children.Add(BuildConstraints()); panel.Children.Add(BuildOverrideLog());
         _content.Children.Add(toggle); _content.Children.Add(panel);
@@ -248,20 +246,20 @@ public class DevWorkflowView : ContentView
             string path = _projectFolders.TryGetValue(project.Id, out var saved) ? saved : "";
             var item = new VerticalStackLayout { Spacing = 4 };
             item.Children.Add(new Label { Text = project.Name, FontSize = 14, FontAttributes = FontAttributes.Bold });
-            item.Children.Add(new Label
+            item.Children.Add((new Label
             {
                 Text = string.IsNullOrWhiteSpace(path) ? "Not set on this machine" : path,
-                FontSize = 11, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap
-            });
+                FontSize = 11, LineBreakMode = LineBreakMode.WordWrap
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
             var actions = new HorizontalStackLayout { Spacing = 4 };
-            var folder = Small(string.IsNullOrWhiteSpace(path) ? "Set Folder" : "Change Folder", "#5B63EE");
+            var folder = Small(string.IsNullOrWhiteSpace(path) ? "Set Folder" : "Change Folder", ThemeKey.SecondaryButtonBackground);
             folder.Clicked += async (_, _) => await SetProjectFolderAndRefreshAsync(project);
             var rename = Small("Rename"); rename.Clicked += async (_, _) => await RenameProjectAsync(project);
-            var delete = Small("Delete", "#C62828"); delete.Clicked += async (_, _) => await DeleteProjectAsync(project);
+            var delete = Small("Delete", ThemeKey.ErrorDarkButtonBackground); delete.Clicked += async (_, _) => await DeleteProjectAsync(project);
             actions.Children.Add(folder); actions.Children.Add(rename); actions.Children.Add(delete);
             item.Children.Add(actions); stack.Children.Add(item);
         }
-        var add = Button("Add Project", "#2E7D32"); add.Clicked += async (_, _) => await AddProjectAsync(); stack.Children.Add(add);
+        var add = Button("Add Project", ThemeKey.SuccessDarkButtonBackground); add.Clicked += async (_, _) => await AddProjectAsync(); stack.Children.Add(add);
         return Card(stack);
     }
 
@@ -275,17 +273,17 @@ public class DevWorkflowView : ContentView
             var controls = new HorizontalStackLayout { Spacing = 2 }; int index = _constraints.IndexOf(item);
             var edit = Small("Edit"); edit.Clicked += async (_, _) => { var text = await PromptAsync("Edit Constraint", "One-line constraint", item.Text); if (string.IsNullOrWhiteSpace(text)) return; item.Text = text.Trim(); await _service.SaveConstraintAsync(item); await RefreshAsync(); };
             var up = Small("↑"); var down = Small("↓"); up.IsEnabled = index > 0; down.IsEnabled = index < _constraints.Count - 1; up.Clicked += async (_, _) => await SwapConstraintsAsync(index, index - 1); down.Clicked += async (_, _) => await SwapConstraintsAsync(index, index + 1);
-            var delete = Small("×", "#C62828"); delete.Clicked += async (_, _) => { await _service.DeleteConstraintAsync(item); await RefreshAsync(); };
+            var delete = Small("×", ThemeKey.ErrorDarkButtonBackground); delete.Clicked += async (_, _) => { await _service.DeleteConstraintAsync(item); await RefreshAsync(); };
             controls.Children.Add(edit); controls.Children.Add(up); controls.Children.Add(down); controls.Children.Add(delete); row.Add(controls, 1, 0); stack.Children.Add(row);
         }
-        var entry = new Entry { Placeholder = "One programming constraint" }; var add = Button("Add", "#2E7D32"); add.Clicked += async (_, _) => { if (string.IsNullOrWhiteSpace(entry.Text)) return; await _service.SaveConstraintAsync(new DevProgrammingConstraint { Username = Username, Text = entry.Text.Trim(), SortOrder = _constraints.Count }); await RefreshAsync(); };
-        var copy = Button("Copy all", "#1565C0"); copy.Clicked += async (_, _) => await Clipboard.SetTextAsync(ConstraintBlock());
+        var entry = new Entry { Placeholder = "One programming constraint" }; var add = Button("Add", ThemeKey.SuccessDarkButtonBackground); add.Clicked += async (_, _) => { if (string.IsNullOrWhiteSpace(entry.Text)) return; await _service.SaveConstraintAsync(new DevProgrammingConstraint { Username = Username, Text = entry.Text.Trim(), SortOrder = _constraints.Count }); await RefreshAsync(); };
+        var copy = Button("Copy all", ThemeKey.ButtonPrimaryBackground); copy.Clicked += async (_, _) => await Clipboard.SetTextAsync(ConstraintBlock());
         stack.Children.Add(entry); stack.Children.Add(new HorizontalStackLayout { Spacing = 5, Children = { add, copy } }); return Card(stack);
     }
 
     private View BuildOverrideLog()
     {
-        var stack = new VerticalStackLayout { Spacing = 5 }; var toggle = Button("View Override Log", "#78909C"); var list = new VerticalStackLayout { Spacing = 4, IsVisible = false };
+        var stack = new VerticalStackLayout { Spacing = 5 }; var toggle = Button("View Override Log", ThemeKey.NeutralMutedButton); var list = new VerticalStackLayout { Spacing = 4, IsVisible = false };
         toggle.Clicked += async (_, _) => { list.IsVisible = !list.IsVisible; if (!list.IsVisible) return; list.Children.Clear(); foreach (var item in await _service.GetOverridesAsync(Username)) list.Children.Add(new Label { Text = $"{item.OverriddenAt.ToLocalTime():dd MMM yyyy HH:mm} — {item.WorkflowName} / {item.StepName}", FontSize = 11 }); };
         stack.Children.Add(toggle); stack.Children.Add(list); return Card(stack);
     }
@@ -465,9 +463,9 @@ public class DevWorkflowView : ContentView
     private Page? HostPage() => Application.Current?.Windows.FirstOrDefault()?.Page;
     private async Task<string?> PromptAsync(string title, string message, string initial) => HostPage() == null ? null : await HostPage()!.DisplayPromptAsync(title, message, "Save", "Cancel", initialValue: initial);
     private async Task AlertAsync(string title, string message) { if (_showAlert != null) await _showAlert(title, message); else if (HostPage() != null) await HostPage()!.DisplayAlert(title, message, "OK"); }
-    private static Frame Card(View content) => new() { Content = content, Padding = 10, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };
-    private static Button Button(string text, string color) => new() { Text = text, BackgroundColor = Color.FromArgb(color), TextColor = Colors.White, FontSize = 12, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0) };
-    private static Button Small(string text, string color = "#607D8B") => new() { Text = text, BackgroundColor = Color.FromArgb(color), TextColor = Colors.White, FontSize = 10, CornerRadius = 5, HeightRequest = 30, Padding = new Thickness(7, 0) };
+    private static Frame Card(View content) => (new Frame(){ Content = content, Padding = 10, CornerRadius = 9, HasShadow = false }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
+    private static Button Button(string text, ThemeKey color) => (new Button(){ Text = text, FontSize = 12, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
+    private static Button Small(string text, ThemeKey color = ThemeKey.NeutralMutedButton) => (new Button(){ Text = text, FontSize = 10, CornerRadius = 5, HeightRequest = 30, Padding = new Thickness(7, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
 
     private sealed class DevWorkflowTextInputPage : ContentPage
     {
@@ -475,18 +473,17 @@ public class DevWorkflowView : ContentView
 
         public DevWorkflowTextInputPage(string title, string initialValue)
         {
-            BackgroundColor = Color.FromArgb("#80000000");
-            var editor = new Editor
+            this.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
+            var editor = (new Editor
             {
                 Placeholder = "Paste your task",
                 Text = initialValue,
                 HeightRequest = 260,
-                AutoSize = EditorAutoSizeOption.Disabled,
-                BackgroundColor = Color.FromArgb("#FAFAFA")
-            };
-            var paste = new Button { Text = "Paste", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White };
-            var ok = new Button { Text = "OK", BackgroundColor = Color.FromArgb("#5B63EE"), TextColor = Colors.White };
-            var cancel = new Button { Text = "Cancel", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#333") };
+                AutoSize = EditorAutoSizeOption.Disabled
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
+            var paste = (new Button { Text = "Paste" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
+            var ok = (new Button { Text = "OK" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
+            var cancel = (new Button { Text = "Cancel" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.CardText1);
             paste.Clicked += async (_, _) =>
             {
                 try

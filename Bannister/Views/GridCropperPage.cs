@@ -109,20 +109,19 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 16 };
         stack.Children.Add(BuildSectionCard("Prefix Tracking", BuildPrefixSettingsContent()));
-        stack.Children.Add(new Label { Text = " Grid Cropper", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
-        _descLabel = new Label
+        stack.Children.Add((new Label { Text = " Grid Cropper", FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        _descLabel = (new Label
         {
             Text = "Pick a 4×5 grid image. Set cell size with the sliders, then tap the grid preview to fine-tune each line. Tap Crop to save selected panels.",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         stack.Children.Add(_descLabel);
         stack.Children.Add(BuildGridSizeRow());
         stack.Children.Add(BuildSectionCard("Step 1 — Pick the grid image", BuildStep1Content()));
         stack.Children.Add(BuildSectionCard("Step 2 — Set cell size", BuildStep2Content()));
         stack.Children.Add(BuildSectionCard("Step 3 — Preview & Crop", BuildStep3Content()));
-        _statusLabel = new Label { Text = "", FontSize = 13, TextColor = Color.FromArgb("#2E7D32"), LineBreakMode = LineBreakMode.WordWrap, IsVisible = false };
+        _statusLabel = (new Label { Text = "", FontSize = 13, LineBreakMode = LineBreakMode.WordWrap, IsVisible = false }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true);
         stack.Children.Add(_statusLabel);
         Content = new ScrollView { Content = stack };
     }
@@ -130,9 +129,9 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
     private static Frame BuildSectionCard(string title, View content)
     {
         var inner = new VerticalStackLayout { Spacing = 10 };
-        inner.Children.Add(new Label { Text = title, FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
+        inner.Children.Add((new Label { Text = title, FontSize = 15, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
         inner.Children.Add(content);
-        return new Frame { BackgroundColor = Colors.White, Padding = 16, CornerRadius = 12, HasShadow = true, Content = inner };
+        return (new Frame { Padding = 16, CornerRadius = 12, HasShadow = true, Content = inner }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private View BuildGridSizeRow()
@@ -208,13 +207,12 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 12
         };
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = "Require prefix before crop",
             FontSize = 14,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
         grid.Add(_requirePrefixSwitch, 1, 0);
         return grid;
     }
@@ -222,10 +220,10 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
     private View BuildStep1Content()
     {
         var v = new VerticalStackLayout { Spacing = 8 };
-        _pickButton = new Button { Text = " Choose Image File", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44 };
+        _pickButton = (new Button { Text = " Choose Image File", CornerRadius = 8, FontSize = 14, HeightRequest = 44 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _pickButton.Clicked += async (_, _) => await PickImageAsync();
         v.Children.Add(_pickButton);
-        _imageInfoLabel = new Label { Text = "No image selected.", FontSize = 12, TextColor = Color.FromArgb("#666") };
+        _imageInfoLabel = (new Label { Text = "No image selected.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         v.Children.Add(_imageInfoLabel);
         return v;
     }
@@ -245,8 +243,8 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 8
         };
-        wRow.Add(new Label { Text = "Width", FontSize = 13, TextColor = Color.FromArgb("#444"), VerticalOptions = LayoutOptions.Center }, 0, 0);
-        var widthMinusBtn = new Button
+        wRow.Add((new Label { Text = "Width", FontSize = 13, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        var widthMinusBtn = (new Button
         {
             Text = "−",
             FontSize = 16,
@@ -254,10 +252,8 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             HeightRequest = 36,
             WidthRequest = 36,
             CornerRadius = 6,
-            Padding = 0,
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F")
-        };
+            Padding = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         widthMinusBtn.Clicked += (_, _) =>
         {
             _widthSlider.Value = Math.Max(
@@ -268,7 +264,7 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         _widthSlider = new Slider { Minimum = 10, Maximum = 1000, Value = 100, IsEnabled = false };
         _widthSlider.ValueChanged += OnSliderChanged;
         wRow.Add(_widthSlider, 2, 0);
-        var widthPlusBtn = new Button
+        var widthPlusBtn = (new Button
         {
             Text = "+",
             FontSize = 16,
@@ -276,10 +272,8 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             HeightRequest = 36,
             WidthRequest = 36,
             CornerRadius = 6,
-            Padding = 0,
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F")
-        };
+            Padding = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         widthPlusBtn.Clicked += (_, _) =>
         {
             _widthSlider.Value = Math.Min(
@@ -287,7 +281,7 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
                 _widthSlider.Value + 5);
         };
         wRow.Add(widthPlusBtn, 3, 0);
-        _widthValueLabel = new Label { Text = "100 px", FontSize = 12, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End };
+        _widthValueLabel = (new Label { Text = "100 px", FontSize = 12, VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText3, classifyPageText: true);
         wRow.Add(_widthValueLabel, 4, 0);
         v.Children.Add(wRow);
         var hRow = new Grid
@@ -302,8 +296,8 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 8
         };
-        hRow.Add(new Label { Text = "Height", FontSize = 13, TextColor = Color.FromArgb("#444"), VerticalOptions = LayoutOptions.Center }, 0, 0);
-        var heightMinusBtn = new Button
+        hRow.Add((new Label { Text = "Height", FontSize = 13, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        var heightMinusBtn = (new Button
         {
             Text = "−",
             FontSize = 16,
@@ -311,10 +305,8 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             HeightRequest = 36,
             WidthRequest = 36,
             CornerRadius = 6,
-            Padding = 0,
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F")
-        };
+            Padding = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         heightMinusBtn.Clicked += (_, _) =>
         {
             _heightSlider.Value = Math.Max(
@@ -325,7 +317,7 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         _heightSlider = new Slider { Minimum = 10, Maximum = 1000, Value = 100, IsEnabled = false };
         _heightSlider.ValueChanged += OnSliderChanged;
         hRow.Add(_heightSlider, 2, 0);
-        var heightPlusBtn = new Button
+        var heightPlusBtn = (new Button
         {
             Text = "+",
             FontSize = 16,
@@ -333,10 +325,8 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             HeightRequest = 36,
             WidthRequest = 36,
             CornerRadius = 6,
-            Padding = 0,
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F")
-        };
+            Padding = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         heightPlusBtn.Clicked += (_, _) =>
         {
             _heightSlider.Value = Math.Min(
@@ -344,19 +334,18 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
                 _heightSlider.Value + 5);
         };
         hRow.Add(heightPlusBtn, 3, 0);
-        _heightValueLabel = new Label { Text = "100 px", FontSize = 12, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End };
+        _heightValueLabel = (new Label { Text = "100 px", FontSize = 12, VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText3, classifyPageText: true);
         hRow.Add(_heightValueLabel, 4, 0);
         v.Children.Add(hRow);
 
         // Preset row
         var presetRow = new HorizontalStackLayout { Spacing = 8 };
 
-        _presetPicker = new Picker
+        _presetPicker = (new Picker
         {
             Title = "No presets saved",
-            HorizontalOptions = LayoutOptions.FillAndExpand,
-            BackgroundColor = Colors.White
-        };
+            HorizontalOptions = LayoutOptions.FillAndExpand
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _presetPicker.SelectedIndexChanged += (_, _) =>
         {
             ResetEdges();
@@ -375,16 +364,14 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         };
         presetRow.Children.Add(_presetPicker);
 
-        var savePresetBtn = new Button
+        var savePresetBtn = (new Button
         {
             Text = " Save Preset",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 38,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         savePresetBtn.Clicked += async (_, _) =>
         {
             string? name = await DisplayPromptAsync(
@@ -399,17 +386,15 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         };
         presetRow.Children.Add(savePresetBtn);
 
-        var deletePresetBtn = new Button
+        var deletePresetBtn = (new Button
         {
             Text = "✕",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 38,
             WidthRequest = 38,
             Padding = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deletePresetBtn.Clicked += async (_, _) =>
         {
             if (_presetPicker.SelectedIndex < 0 ||
@@ -430,7 +415,7 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
 
         v.Children.Add(presetRow);
 
-        v.Children.Add(new Label { Text = "Sliders activate after an image is picked.", FontSize = 11, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
+        v.Children.Add((new Label { Text = "Sliders activate after an image is picked.", FontSize = 11, FontAttributes = FontAttributes.Italic }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         return v;
     }
 
@@ -443,20 +428,18 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             Spacing = 6,
             HorizontalOptions = LayoutOptions.Center
         };
-        cellCol.Children.Add(new Label
+        cellCol.Children.Add((new Label
         {
             Text = "Cell preview (top-left panel):",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#444")
-        });
-        _previewLabel = new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        _previewLabel = (new Label
         {
             Text = "Pick an image and adjust sliders to see the crop preview.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         cellCol.Children.Add(_previewLabel);
         _previewImage = new Image
         {
@@ -473,36 +456,33 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         };
         _previewImage.GestureRecognizers.Add(cropTap);
         cellCol.Children.Add(_previewImage);
-        _cropPreviewHint = new Label
+        _cropPreviewHint = (new Label
         {
             Text = "Tap to fullscreen",
             FontSize = 11,
-            TextColor = Color.FromArgb("#999"),
             FontAttributes = FontAttributes.Italic,
             HorizontalOptions = LayoutOptions.Center,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         cellCol.Children.Add(_cropPreviewHint);
         v.Children.Add(cellCol);
 
         // ── GRID PREVIEW (full width, as before) ──────────────────────
-        _gridHeaderLabel = new Label
+        _gridHeaderLabel = (new Label
         {
             Text = "Grid preview (full image with numbered cells):",
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#444"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         v.Children.Add(_gridHeaderLabel);
 
-        _gridPreviewLabel = new Label
+        _gridPreviewLabel = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         v.Children.Add(_gridPreviewLabel);
 
         _gridPreviewImage = new Image
@@ -547,26 +527,24 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         };
         _gridPreviewImage.GestureRecognizers.Add(gridTap);
         v.Children.Add(_gridPreviewImage);
-        _gridPreviewHint = new Label
+        _gridPreviewHint = (new Label
         {
             Text = "Tap to fullscreen",
             FontSize = 11,
-            TextColor = Color.FromArgb("#999"),
             FontAttributes = FontAttributes.Italic,
             HorizontalOptions = LayoutOptions.Center,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         v.Children.Add(_gridPreviewHint);
 
         // ── SELECTION GRID ────────────────────────────────────────────
-        _selectionHeader = new Label
+        _selectionHeader = (new Label
         {
             Text = "Select panels to crop:",
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#444"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         v.Children.Add(_selectionHeader);
 
         _selectionGrid = new Grid { ColumnSpacing = 4, RowSpacing = 4, IsVisible = false };
@@ -575,16 +553,14 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
 
         _selectAllRow = new HorizontalStackLayout { Spacing = 8, IsVisible = false };
 
-        var selectAllBtn = new Button
+        var selectAllBtn = (new Button
         {
             Text = "Select All",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 36,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         selectAllBtn.Clicked += (_, _) =>
         {
             for (int r = 0; r < _selected.GetLength(0); r++)
@@ -598,16 +574,14 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         };
         _selectAllRow.Children.Add(selectAllBtn);
 
-        var deselectAllBtn = new Button
+        var deselectAllBtn = (new Button
         {
             Text = "Deselect All",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 36,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         deselectAllBtn.Clicked += (_, _) =>
         {
             for (int r = 0; r < _selected.GetLength(0); r++)
@@ -622,26 +596,23 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         _selectAllRow.Children.Add(deselectAllBtn);
         v.Children.Add(_selectAllRow);
 
-        _selectionHintLabel = new Label
+        _selectionHintLabel = (new Label
         {
             Text = "No panels selected.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#999"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         v.Children.Add(_selectionHintLabel);
 
-        _cropButton = new Button
+        _cropButton = (new Button
         {
             Text = "✂️ Crop & Save Selected Panels",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _cropButton.Clicked += async (_, _) => await CropAndSaveAsync();
         v.Children.Add(_cropButton);
 
@@ -673,7 +644,7 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             {
                 int panelNumber = r * _cols + c + 1;
                 int capturedR = r, capturedC = c;
-                var btn = new Button
+                var btn = (new Button
                 {
                     Text = panelNumber.ToString(),
                     FontSize = 16,
@@ -681,10 +652,8 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
                     HeightRequest = 64,
                     CornerRadius = 8,
                     Padding = 0,
-                    HorizontalOptions = LayoutOptions.Fill,
-                    BackgroundColor = Color.FromArgb("#E0E0E0"),
-                    TextColor = Color.FromArgb("#444")
-                };
+                    HorizontalOptions = LayoutOptions.Fill
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
                 btn.Clicked += (_, _) =>
                 {
                     _selected[capturedR, capturedC] = !_selected[capturedR, capturedC];
@@ -703,15 +672,13 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             {
                 int panelNumber = stripOffset + c + 1;
                 int capturedC = c;
-                var btn = new Button
+                var btn = (new Button
                 {
                     Text = $"B{panelNumber}",
                     FontSize = 14, FontAttributes = FontAttributes.Bold,
                     HeightRequest = 64, CornerRadius = 8, Padding = 0,
-                    HorizontalOptions = LayoutOptions.Fill,
-                    BackgroundColor = Color.FromArgb("#E3F2FD"),
-                    TextColor = Color.FromArgb("#1565C0")
-                };
+                    HorizontalOptions = LayoutOptions.Fill
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
                 btn.Clicked += (_, _) =>
                 {
                     _selected[mainRows, capturedC] = !_selected[mainRows, capturedC];
@@ -803,12 +770,12 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             gridCanvas.DrawBitmap(_sourceBitmap, 0, 0);
             using var linePaint = new SKPaint
             {
-                Color = new SKColor(255, 255, 255, 200),
+                Color = new SKColor(AppColors.Get(ThemeKey.OnColorText).ToUint()).WithAlpha(200),
                 StrokeWidth = 2, IsAntialias = true, Style = SKPaintStyle.Stroke
             };
             using var yellowPaint = new SKPaint
             {
-                Color = new SKColor(255, 220, 50, 230),
+                Color = new SKColor(AppColors.Get(ThemeKey.HighlightGoldButton).ToUint()).WithAlpha(230),
                 StrokeWidth = 3, IsAntialias = true, Style = SKPaintStyle.Stroke
             };
             for (int c = 1; c <= g.Cols; c++)
@@ -827,13 +794,13 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
 
             using var textPaint = new SKPaint
             {
-                Color = SKColors.White,
+                Color = new SKColor(AppColors.Get(ThemeKey.OnColorText).ToUint()),
                 TextSize = Math.Max(20, (g.ColEdges[1] - g.ColEdges[0]) / 8f),
                 IsAntialias = true, FakeBoldText = true
             };
             using var shadowPaint = new SKPaint
             {
-                Color = new SKColor(0, 0, 0, 180),
+                Color = new SKColor(AppColors.Get(ThemeKey.OverlayDark).ToUint()).WithAlpha(180),
                 TextSize = textPaint.TextSize, IsAntialias = true, FakeBoldText = true
             };
             for (int r = 0; r < g.MainRows; r++)
@@ -986,7 +953,7 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
             string savedLocation = await _panelSaver.SavePanelsAsync(panels, outputDir);
 
             _statusLabel.Text = $"✓ {panels.Count} panels saved to:\n{savedLocation}";
-            _statusLabel.TextColor = Color.FromArgb("#2E7D32");
+            _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true);
             _statusLabel.IsVisible = true;
 
             await DisplayAlert("Done",
@@ -1007,7 +974,7 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         catch (Exception ex)
         {
             _statusLabel.Text = $"Error: {ex.Message}";
-            _statusLabel.TextColor = Color.FromArgb("#C62828");
+            _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
             _statusLabel.IsVisible = true;
             await DisplayAlert("Error", ex.Message, "OK");
         }
@@ -1049,10 +1016,8 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
 
     private static void ApplyButtonStyle(Button btn, bool selected)
     {
-        btn.BackgroundColor = selected
-            ? Color.FromArgb("#1565C0")
-            : Color.FromArgb("#E0E0E0");
-        btn.TextColor = selected ? Colors.White : Color.FromArgb("#444");
+        btn.ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.ButtonPrimaryBackground : ThemeKey.Separator);
+        btn.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.CardText1);
     }
 
     private void UpdateSelectionHint()
@@ -1067,9 +1032,7 @@ public class GridCropperPage : Bannister.Views.ModeThemedPage
         _selectionHintLabel.Text = count == 0
             ? "No panels selected."
             : $"{count} panel{(count == 1 ? "" : "s")} selected.";
-        _selectionHintLabel.TextColor = count == 0
-            ? Color.FromArgb("#999")
-            : Color.FromArgb("#1565C0");
+        _selectionHintLabel.ThemeColor(Label.TextColorProperty, count == 0 ? ThemeKey.CardText3 : ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true);
         _cropButton.IsVisible = count > 0;
     }
 

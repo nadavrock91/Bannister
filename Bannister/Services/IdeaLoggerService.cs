@@ -409,26 +409,26 @@ public class IdeaLoggerService
         void StylePhoneEntry(Entry entry)
         {
             if (!isPhone) return;
-            entry.TextColor = Color.FromArgb("#222");
-            entry.PlaceholderColor = Color.FromArgb("#999");
-            entry.BackgroundColor = Colors.White;
+            entry.ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+            entry.ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
+            entry.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
             entry.HorizontalOptions = LayoutOptions.Fill;
         }
 
         void StylePhoneEditor(Editor editor)
         {
             if (!isPhone) return;
-            editor.TextColor = Color.FromArgb("#222");
-            editor.PlaceholderColor = Color.FromArgb("#999");
-            editor.BackgroundColor = Colors.White;
+            editor.ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+            editor.ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
+            editor.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         }
 
         void StylePhonePicker(Picker picker)
         {
             if (!isPhone) return;
-            picker.TextColor = Color.FromArgb("#222");
-            picker.TitleColor = Color.FromArgb("#999");
-            picker.BackgroundColor = Colors.White;
+            picker.ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
+            picker.ThemeColor(Picker.TitleColorProperty, ThemeKey.CardText3);
+            picker.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
             picker.HorizontalOptions = LayoutOptions.Fill;
         }
 
@@ -445,19 +445,18 @@ public class IdeaLoggerService
             holder[0] = initialCategory;
 
         // ====== BUILD POPUP ======
-        var popup = new Grid
+        var popup = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White, CornerRadius = 12, Padding = 20,
+CornerRadius = 12, Padding = 20,
             WidthRequest = 480, HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center, HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         if (isPhone)
         {
             card.WidthRequest = -1;
@@ -470,27 +469,26 @@ public class IdeaLoggerService
         var mainStack = new VerticalStackLayout { Spacing = 12 };
 
         // Title
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
-            Text = "💡 Log Idea", FontSize = 20, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333")
-        });
+            Text = "💡 Log Idea", FontSize = 20, FontAttributes = FontAttributes.Bold         }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // Idea title and full text
-        mainStack.Children.Add(new Label { Text = "Title:", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        var titleEntry = new Editor
+        mainStack.Children.Add((new Label { Text = "Title:", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        var titleEntry = (new Editor
         {
             Text = request.Title ?? request.Body ?? "", Placeholder = "Idea title",
-            BackgroundColor = Color.FromArgb("#F5F5F5"), HeightRequest = 100, FontSize = 14
-        };
+HeightRequest = 100, FontSize = 14
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         StylePhoneEditor(titleEntry);
         mainStack.Children.Add(titleEntry);
 
-        mainStack.Children.Add(new Label { Text = "Full Idea:", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        var fullIdeaEditor = new Editor
+        mainStack.Children.Add((new Label { Text = "Full Idea:", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        var fullIdeaEditor = (new Editor
         {
             Text = request.Body ?? request.Title ?? "", Placeholder = "Write the full idea...",
-            BackgroundColor = Color.FromArgb("#F5F5F5"), HeightRequest = 100, FontSize = 14
-        };
+HeightRequest = 100, FontSize = 14
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         StylePhoneEditor(fullIdeaEditor);
         mainStack.Children.Add(fullIdeaEditor);
 
@@ -498,13 +496,12 @@ public class IdeaLoggerService
         Picker? favPicker = null;
         if (_favoriteCategories.Count > 0)
         {
-            mainStack.Children.Add(new Label { Text = "⭐ Favorites:", FontSize = 12, TextColor = Color.FromArgb("#666") });
+            mainStack.Children.Add((new Label { Text = "⭐ Favorites:", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
-            favPicker = new Picker
+            favPicker = (new Picker
             {
-                Title = "Quick select favorite...", FontSize = 13,
-                BackgroundColor = Color.FromArgb("#FFF8E1")
-            };
+                Title = "Quick select favorite...", FontSize = 13
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow);
             StylePhonePicker(favPicker);
 
             foreach (var fav in _favoriteCategories)
@@ -520,7 +517,7 @@ public class IdeaLoggerService
         }
 
         // ====== MAIN CATEGORY DROPDOWN ======
-        mainStack.Children.Add(new Label { Text = "Category:", FontSize = 12, TextColor = Color.FromArgb("#666") });
+        mainStack.Children.Add((new Label { Text = "Category:", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         var categorySection = new VerticalStackLayout { Spacing = 8 };
 
@@ -561,27 +558,21 @@ public class IdeaLoggerService
             .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var normalCategoryPicker = new Picker
+        var normalCategoryPicker = (new Picker
         {
             Title = "Normal category",
             FontSize = 13,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
-            TitleColor = Color.FromArgb("#1565C0"),
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.InfoText).ThemeColor(Picker.TitleColorProperty, ThemeKey.InfoText);
         if (isPhone) normalCategoryPicker.WidthRequest = -1;
         StylePhonePicker(normalCategoryPicker);
 
-        var llmCategoryPicker = new Picker
+        var llmCategoryPicker = (new Picker
         {
             Title = "LLM category",
             FontSize = 13,
-            BackgroundColor = Color.FromArgb("#F3E5F5"),
-            TextColor = Color.FromArgb("#6A1B9A"),
-            TitleColor = Color.FromArgb("#6A1B9A"),
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.AccentPurpleStrongText).ThemeColor(Picker.TitleColorProperty, ThemeKey.AccentPurpleStrongText);
         if (isPhone) llmCategoryPicker.WidthRequest = -1;
         StylePhonePicker(llmCategoryPicker);
 
@@ -602,11 +593,10 @@ public class IdeaLoggerService
         categorySection.Children.Add(pickerRow);
 
         // + New button
-        var customEntry = new Entry
+        var customEntry = (new Entry
         {
-            Placeholder = "New category name", BackgroundColor = Color.FromArgb("#F5F5F5"),
-            IsVisible = false, WidthRequest = 160
-        };
+            Placeholder = "New category name",             IsVisible = false, WidthRequest = 160
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         if (isPhone) customEntry.WidthRequest = -1;
         StylePhoneEntry(customEntry);
 
@@ -635,11 +625,10 @@ public class IdeaLoggerService
 
         bool suppressPickerSync = false;
 
-        var newBtn = new Button
+        var newBtn = (new Button
         {
-            Text = "+ New", BackgroundColor = Color.FromArgb("#4CAF50"), TextColor = Colors.White,
-            CornerRadius = 6, Padding = new Thickness(10, 6), FontSize = 12, HeightRequest = 32
-        };
+            Text = "+ New",             CornerRadius = 6, Padding = new Thickness(10, 6), FontSize = 12, HeightRequest = 32
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         newBtn.Clicked += (s, e) =>
         {
             customEntry.IsVisible = !customEntry.IsVisible;
@@ -654,12 +643,11 @@ public class IdeaLoggerService
         categoryActionsRow.Children.Add(newBtn);
 
         // ★ Add to favorites button
-        var favBtn = new Button
+        var favBtn = (new Button
         {
-            Text = "★", BackgroundColor = Color.FromArgb("#FFC107"), TextColor = Colors.White,
-            CornerRadius = 6, Padding = new Thickness(8, 6), FontSize = 14,
+            Text = "★",             CornerRadius = 6, Padding = new Thickness(8, 6), FontSize = 14,
             HeightRequest = 32, WidthRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightAmberButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         favBtn.Clicked += async (s, e) =>
         {
             string? catToFav = GetCurrentCategory();
@@ -676,12 +664,11 @@ public class IdeaLoggerService
         categoryActionsRow.Children.Add(favBtn);
 
         // 🔗 Link categories button
-        var linkBtn = new Button
+        var linkBtn = (new Button
         {
-            Text = "🔗", BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0"),
-            CornerRadius = 6, Padding = new Thickness(8, 6), FontSize = 14,
+            Text = "🔗",             CornerRadius = 6, Padding = new Thickness(8, 6), FontSize = 14,
             HeightRequest = 32, WidthRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         linkBtn.Clicked += async (s, e) =>
         {
             // Get current category
@@ -699,16 +686,14 @@ public class IdeaLoggerService
         };
         categoryActionsRow.Children.Add(linkBtn);
 
-        var reclassifyBtn = new Button
+        var reclassifyBtn = (new Button
         {
             Text = "⇄ Reclassify",
-            BackgroundColor = Color.FromArgb("#FFE0B2"),
-            TextColor = Color.FromArgb("#E65100"),
             CornerRadius = 6,
             Padding = new Thickness(10, 6),
             FontSize = 12,
             HeightRequest = 32
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightOrange).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         reclassifyBtn.Clicked += async (_, _) =>
         {
             string? selectedCategory = null;
@@ -799,12 +784,12 @@ public class IdeaLoggerService
         var subHolder = new[] { "" };
 
         var subSection = new VerticalStackLayout { Spacing = 6, IsVisible = false };
-        subSection.Children.Add(new Label { Text = "Subcategory (optional):", FontSize = 12, TextColor = Color.FromArgb("#666") });
+        subSection.Children.Add((new Label { Text = "Subcategory (optional):", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         Layout subRow = isPhone
             ? new VerticalStackLayout { Spacing = 8 }
             : new HorizontalStackLayout { Spacing = 8 };
-        var subPicker = new Picker { Title = "(none)", FontSize = 13, BackgroundColor = Color.FromArgb("#F5F5F5"), WidthRequest = 180 };
+        var subPicker = (new Picker { Title = "(none)", FontSize = 13, WidthRequest = 180 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         if (isPhone) subPicker.WidthRequest = -1;
         StylePhonePicker(subPicker);
         subPicker.SelectedIndexChanged += (s, e) =>
@@ -816,11 +801,11 @@ public class IdeaLoggerService
         };
         subRow.Children.Add(subPicker);
 
-        var newSubBtn = new Button { Text = "+ Sub", BackgroundColor = Color.FromArgb("#78909C"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(10, 6), FontSize = 12, HeightRequest = 32 };
+        var newSubBtn = (new Button { Text = "+ Sub", CornerRadius = 6, Padding = new Thickness(10, 6), FontSize = 12, HeightRequest = 32 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralMutedButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         subRow.Children.Add(newSubBtn);
         subSection.Children.Add(subRow);
 
-        var newSubEntry = new Entry { Placeholder = "New subcategory name", BackgroundColor = Color.FromArgb("#F5F5F5"), IsVisible = false, WidthRequest = 180 };
+        var newSubEntry = (new Entry { Placeholder = "New subcategory name", IsVisible = false, WidthRequest = 180 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         if (isPhone) newSubEntry.WidthRequest = -1;
         StylePhoneEntry(newSubEntry);
         subSection.Children.Add(newSubEntry);
@@ -967,7 +952,7 @@ public class IdeaLoggerService
         }
 
         // ====== RATING ======
-        mainStack.Children.Add(new Label { Text = "Rating:", FontSize = 12, TextColor = Color.FromArgb("#666"), Margin = new Thickness(0, 4, 0, 0) });
+        mainStack.Children.Add((new Label { Text = "Rating:", FontSize = 12, Margin = new Thickness(0, 4, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         int selectedRating = Math.Clamp(request.Rating ?? 50, 0, 100);
         Button? selectedRatingBtn = null;
@@ -976,32 +961,31 @@ public class IdeaLoggerService
             : new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start };
         var ratingButtons = new List<Button>();
 
-        Color GetRatingColor(int r, bool sel) => !sel ? Color.FromArgb("#E0E0E0") : r >= 70 ? Color.FromArgb("#4CAF50") : r >= 40 ? Color.FromArgb("#FF9800") : Color.FromArgb("#9E9E9E");
+        ThemeKey GetRatingColor(int r, bool sel) => !sel ? ThemeKey.Separator : r >= 70 ? ThemeKey.SuccessButtonBackground : r >= 40 ? ThemeKey.WarningButtonBackground : ThemeKey.DisabledButtonBackground;
 
         void UpdateRatingSelection(Button btn, int r)
         {
             selectedRating = r;
-            foreach (var b in ratingButtons) { b.BackgroundColor = Color.FromArgb("#E0E0E0"); b.TextColor = Color.FromArgb("#333"); }
-            btn.BackgroundColor = GetRatingColor(r, true); btn.TextColor = Colors.White; selectedRatingBtn = btn;
+            foreach (var b in ratingButtons) { b.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator); b.ThemeColor(Button.TextColorProperty, ThemeKey.CardText1); }
+            btn.ThemeColor(VisualElement.BackgroundColorProperty, GetRatingColor(r, true)); btn.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText); selectedRatingBtn = btn;
         }
 
         foreach (var r in new[] { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 })
         {
-            var rb = new Button
+            var rb = (new Button
             {
                 Text = r.ToString(),
-                BackgroundColor = r == selectedRating ? GetRatingColor(r, true) : Color.FromArgb("#E0E0E0"),
-                TextColor = r == selectedRating ? Colors.White : Color.FromArgb("#333"),
                 CornerRadius = 6, Margin = new Thickness(0, 0, 4, 4), Padding = new Thickness(8, 4),
                 FontSize = 12, WidthRequest = 40, HeightRequest = 32
-            };
+            }).ThemeColor(Button.TextColorProperty, r == selectedRating ? ThemeKey.OnColorText : ThemeKey.CardText1)
+                .ThemeColor(VisualElement.BackgroundColorProperty, r == selectedRating ? GetRatingColor(r, true) : ThemeKey.Separator);
             var cr = r;
             rb.Clicked += (s, e) => UpdateRatingSelection(rb, cr);
             ratingButtons.Add(rb); ratingFlow.Children.Add(rb);
             if (r == selectedRating) selectedRatingBtn = rb;
         }
 
-        var customRating = new Entry { Placeholder = "Custom", Keyboard = Keyboard.Numeric, BackgroundColor = Color.FromArgb("#F5F5F5"), WidthRequest = 60, HeightRequest = 32 };
+        var customRating = (new Entry { Placeholder = "Custom", Keyboard = Keyboard.Numeric, WidthRequest = 60, HeightRequest = 32 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         StylePhoneEntry(customRating);
         if (!new[] { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 }.Contains(selectedRating))
             customRating.Text = selectedRating.ToString();
@@ -1010,7 +994,7 @@ public class IdeaLoggerService
             if (int.TryParse(e.NewTextValue, out int c) && c >= 0 && c <= 100)
             {
                 selectedRating = c;
-                foreach (var b in ratingButtons) { b.BackgroundColor = Color.FromArgb("#E0E0E0"); b.TextColor = Color.FromArgb("#333"); }
+                foreach (var b in ratingButtons) { b.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator); b.ThemeColor(Button.TextColorProperty, ThemeKey.CardText1); }
                 selectedRatingBtn = null;
             }
         };
@@ -1030,8 +1014,8 @@ public class IdeaLoggerService
         }
 
         // ====== ACTION BUTTONS ======
-        var cancelBtn = new Button { Text = "Cancel", BackgroundColor = Color.FromArgb("#9E9E9E"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(20, 10) };
-        var saveBtn = new Button { Text = "💾 Save Idea", BackgroundColor = Color.FromArgb("#4CAF50"), TextColor = Colors.White, CornerRadius = 6, Padding = new Thickness(20, 10), FontAttributes = FontAttributes.Bold };
+        var cancelBtn = (new Button { Text = "Cancel", CornerRadius = 6, Padding = new Thickness(20, 10) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var saveBtn = (new Button { Text = "💾 Save Idea", CornerRadius = 6, Padding = new Thickness(20, 10), FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
         if (isPhone)
         {

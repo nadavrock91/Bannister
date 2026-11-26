@@ -101,23 +101,21 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        main.Children.Add(new Label
+        main.Children.Add((new Label
         {
             Text = "🔄 Sync & Devices",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        main.Children.Add(new Label
+        main.Children.Add((new Label
         {
             Text = "Run Bannister on multiple devices with one device as master (read/write) " +
                    "and others as secondary (read-only). The database is SQLCipher-encrypted before " +
                    "leaving your device.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineHeight = 1.4
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // ===== Mode section =====
         main.Children.Add(BuildModeFrame());
@@ -137,13 +135,12 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         var frame = NewSectionFrame();
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Device Mode",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         _rbMaster = new RadioButton
         {
@@ -163,12 +160,11 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         _rbSecondary.CheckedChanged += OnModeChanged;
         stack.Children.Add(_rbSecondary);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Only one device should be master. Secondary devices show data but block edits.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#888")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
         frame.Content = stack;
         return frame;
@@ -179,73 +175,59 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         var frame = NewSectionFrame();
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Sync Server",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Server URL",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#555")
-        });
-        _txtServerUrl = new Entry
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true));
+        _txtServerUrl = (new Entry
         {
             Placeholder = "https://yourdomain.com/bannister/sync.php",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Colors.White
-        };
+            FontSize = 14
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _txtServerUrl.Unfocused += (s, e) => SaveServerUrl();
         stack.Children.Add(_txtServerUrl);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Username",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#555")
-        });
-        _txtUsername = new Entry
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true));
+        _txtUsername = (new Entry
         {
             Placeholder = "sync username",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Colors.White
-        };
+            FontSize = 14
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(_txtUsername);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Password (stored as a hash)",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#555")
-        });
-        _txtPassword = new Entry
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true));
+        _txtPassword = (new Entry
         {
             Placeholder = "sync password",
             IsPassword = true,
-            FontSize = 14,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Colors.White
-        };
+            FontSize = 14
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(_txtPassword);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "First time? Tap Register. Already have an account? Tap Save Credentials.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#777")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         var buttonRow = new Grid
         {
@@ -257,25 +239,21 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 10
         };
 
-        _btnRegister = new Button
+        _btnRegister = (new Button
         {
             Text = "Register New Account",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnRegister.Clicked += OnRegisterClicked;
         buttonRow.Add(_btnRegister, 0, 0);
 
-        _btnSaveCreds = new Button
+        _btnSaveCreds = (new Button
         {
             Text = "💾 Save Credentials",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnSaveCreds.Text = "Save Credentials";
         _btnSaveCreds.Clicked += OnSaveCredentialsClicked;
         buttonRow.Add(_btnSaveCreds, 1, 0);
@@ -297,99 +275,84 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center
         };
 
-        headingRow.Children.Add(new Label
+        headingRow.Children.Add((new Label
         {
             Text = "Sync Now",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        _lblSyncCounter = new Label
+        _lblSyncCounter = (new Label
         {
             Text = "Sync #0",
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE"),
-            BackgroundColor = Color.FromArgb("#EEF0FF"),
             Padding = new Thickness(10, 4),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo);
         headingRow.Children.Add(_lblSyncCounter);
 
-        _lblLastOperation = new Label
+        _lblLastOperation = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         headingRow.Children.Add(_lblLastOperation);
         stack.Children.Add(headingRow);
 
-        _lblLastSync = new Label
+        _lblLastSync = (new Label
         {
             Text = "Last sync: never",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         stack.Children.Add(_lblLastSync);
 
-        _btnUpload = new Button
+        _btnUpload = (new Button
         {
             Text = "⬆️ Upload to Server  (master only)",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnUpload.Clicked += OnUploadClicked;
         stack.Children.Add(_btnUpload);
 
-        _btnDownload = new Button
+        _btnDownload = (new Button
         {
             Text = "⬇️ Download from Server",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnDownload.Clicked += OnDownloadClicked;
         stack.Children.Add(_btnDownload);
 
-        _btnRevert = new Button
+        _btnRevert = (new Button
         {
             Text = "↩ Revert to Backup",
-            BackgroundColor = Color.FromArgb("#B71C1C"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48,
             IsEnabled = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDeepText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnRevert.Clicked += OnRevertClicked;
         stack.Children.Add(_btnRevert);
 
-        _btnApplyQueuedOps = new Button
+        _btnApplyQueuedOps = (new Button
         {
             Text = "Apply Queued Operations from Secondaries",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnApplyQueuedOps.Clicked += OnApplyQueuedOperationsClicked;
         stack.Children.Add(_btnApplyQueuedOps);
 
-        var queueAuditButton = new Button
+        var queueAuditButton = (new Button
         {
             Text = "Queue Audit",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         queueAuditButton.Clicked += async (_, _) =>
             await Navigation.PushAsync(new QueueAuditPage(
                 _auth,
@@ -398,17 +361,15 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
                 _db));
         stack.Children.Add(queueAuditButton);
 
-        var sharedBtn = new Button
+        var sharedBtn = (new Button
         {
             Text = " Shared Activities",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
         sharedBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(new SharedActivitiesPage(
                 _sharedActivityService,
@@ -421,24 +382,21 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
                 _streakService));
         stack.Children.Add(sharedBtn);
 
-        _lblQueueReminder = new Label
+        _lblQueueReminder = (new Label
         {
             Text = "",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
-        _btnResetQueueReminder = new Button
+        _btnResetQueueReminder = (new Button
         {
             Text = "Reset",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 38,
             Padding = new Thickness(14, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _btnResetQueueReminder.Clicked += OnResetQueueReminderClicked;
 
         _queueReminderRow = new HorizontalStackLayout
@@ -449,24 +407,22 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         };
         stack.Children.Add(_queueReminderRow);
 
-        _busyIndicator = new ActivityIndicator
+        _busyIndicator = (new ActivityIndicator
         {
             IsVisible = false,
             IsRunning = false,
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 24,
-            HeightRequest = 24,
-            Color = Color.FromArgb("#5B63EE")
-        };
+            HeightRequest = 24
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText);
 
-        _lblStatus = new Label
+        _lblStatus = (new Label
         {
             Text = "",
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         stack.Children.Add(new HorizontalStackLayout
         {
             Spacing = 8,
@@ -477,14 +433,13 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         return frame;
     }
 
-    private Frame NewSectionFrame() => new Frame
+    private Frame NewSectionFrame() => (new Frame
     {
         Padding = 20,
         CornerRadius = 12,
-        BackgroundColor = Colors.White,
         HasShadow = true,
         BorderColor = Colors.Transparent
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
     // ===== Behaviour =====
 
@@ -616,7 +571,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         if (!string.IsNullOrWhiteSpace(statusText))
         {
             _lblStatus.Text = statusText;
-            _lblStatus.TextColor = Color.FromArgb("#5B63EE");
+            _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         }
 
         UpdateButtonsForMode();
@@ -739,13 +694,13 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
             {
                 _txtPassword.Text = "";
                 _lblStatus.Text = result.Message;
-                _lblStatus.TextColor = Color.FromArgb("#2E7D32");
+                _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true);
                 await DisplayAlert("Registered", result.Message, "OK");
                 return;
             }
 
             _lblStatus.Text = result.Message;
-            _lblStatus.TextColor = Color.FromArgb("#C62828");
+            _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
             await DisplayAlert("Registration Failed", result.Message, "OK");
         }
         finally
@@ -760,13 +715,13 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         try
         {
         _lblStatus.Text = "Uploading…";
-        _lblStatus.TextColor = Color.FromArgb("#5B63EE");
+        _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         // Increment before upload so the new counter value is included in the uploaded DB
         var counter = await _syncCounter.IncrementAsync(await GetSyncUsernameAsync());
         _lblSyncCounter.Text = $"Sync #{counter}";
         var result = await _sync.UploadAsync();
         _lblStatus.Text = result.Message;
-        _lblStatus.TextColor = result.Success ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
+        _lblStatus.ThemeColor(Label.TextColorProperty, result.Success ? ThemeKey.SuccessText : ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
         if (result.Success)
         {
             // Counter was already incremented before upload — just refresh display
@@ -868,7 +823,7 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
                     return Task.CompletedTask;
                 });
             _lblStatus.Text = result.Message;
-            _lblStatus.TextColor = result.Success ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
+            _lblStatus.ThemeColor(Label.TextColorProperty, result.Success ? ThemeKey.SuccessText : ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
             UpdateLastSyncLabel();
 
             if (result.Success)
@@ -998,10 +953,10 @@ public class SyncSettingsPage : Bannister.Views.ModeThemedPage
         if (!confirm) return;
 
         _lblStatus.Text = "Downloading…";
-        _lblStatus.TextColor = Color.FromArgb("#5B63EE");
+        _lblStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         var result = await _sync.DownloadAsync();
         _lblStatus.Text = result.Message;
-        _lblStatus.TextColor = result.Success ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828");
+        _lblStatus.ThemeColor(Label.TextColorProperty, result.Success ? ThemeKey.SuccessText : ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
         UpdateLastSyncLabel();
 
         if (result.Success)

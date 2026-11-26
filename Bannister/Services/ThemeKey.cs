@@ -41,6 +41,7 @@ public enum ThemeKey
     TimelineViolet, TimelineBrightGreen, TimelineMint, DarkSuccessBackground,
     IndigoMutedButton, HighlightAmberStrong,
     NeutralStrongButtonBackground,
+    PeriwinkleButtonBackground, PublicCardBackground, PrivateCardBackground, DeepVioletText,
     BrandFacebook, BrandTikTok, BrandYouTube, BrandMediaBackground, BrandMediaPanel,
     BrandMediaBorder, BrandMediaConsoleBorder, BrandMediaButton, BrandMediaSelection, BrandMediaText,
     BrandMediaMutedText, BrandMediaHintText, BrandMediaDetailText,

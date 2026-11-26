@@ -53,48 +53,44 @@ public class StoryProjectSelector
 
     private void BuildUIElements()
     {
-        ProjectSelectLabel = new Label
+        ProjectSelectLabel = (new Label
         {
-            Text = "Choose a project...", FontSize = 14, TextColor = Color.FromArgb("#999"),
-            VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.FillAndExpand,
+            Text = "Choose a project...", FontSize = 14,             VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.FillAndExpand,
             Padding = new Thickness(12, 8), LineBreakMode = LineBreakMode.TailTruncation
-        };
-        ProjectSelectFrame = new Frame
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
+        ProjectSelectFrame = (new Frame
         {
-            Padding = 0, CornerRadius = 8, BackgroundColor = Color.FromArgb("#F5F5F5"),
-            BorderColor = Color.FromArgb("#DDD"), HorizontalOptions = LayoutOptions.FillAndExpand,
+            Padding = 0, CornerRadius = 8, HorizontalOptions = LayoutOptions.FillAndExpand,
             Content = ProjectSelectLabel
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
         var projectTap = new TapGestureRecognizer();
         projectTap.Tapped += async (_, _) => await ShowProjectPickerModalAsync();
         ProjectSelectFrame.GestureRecognizers.Add(projectTap);
 
-        ProjectCategoryPicker = new Picker { Title = "Category", WidthRequest = 180, BackgroundColor = Color.FromArgb("#F5F5F5") };
+        ProjectCategoryPicker = (new Picker { Title = "Category", WidthRequest = 180 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         ProjectCategoryPicker.SelectedIndexChanged += OnProjectCategoryFilterChanged;
-        ProjectCategoryBtn = MakeButton("Set Category", "#E0F7FA", "#00838F", false);
-        SeriesBtn = MakeButton("Set Series", "#FFF3E0", "#E65100", false);
-        WritingProcessFilterBtn = MakeButton("Process: All", "#F3E5F5", "#7B1FA2", true);
+        ProjectCategoryBtn = MakeButton("Set Category", ThemeKey.HighlightTeal, ThemeKey.HighlightTealText, false);
+        SeriesBtn = MakeButton("Set Series", ThemeKey.WarningBackground, ThemeKey.WarningText, false);
+        WritingProcessFilterBtn = MakeButton("Process: All", ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleText, true);
         WritingProcessFilterBtn.FontSize = 13;
         WritingProcessFilterBtn.Clicked += OnWritingProcessFilterClicked;
-        WritingProcessBtn = MakeButton("Set Process", "#F3E5F5", "#7B1FA2", false);
+        WritingProcessBtn = MakeButton("Set Process", ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleText, false);
 
-        DraftLabel = new Label { Text = "Draft Version", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#666"), IsVisible = false };
-        DraftPicker = new Picker { Title = "Select draft...", HorizontalOptions = LayoutOptions.Start, WidthRequest = 150, BackgroundColor = Color.FromArgb("#F5F5F5"), IsVisible = false };
+        DraftLabel = (new Label { Text = "Draft Version", FontSize = 14, FontAttributes = FontAttributes.Bold, IsVisible = false }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true);
+        DraftPicker = (new Picker { Title = "Select draft...", HorizontalOptions = LayoutOptions.Start, WidthRequest = 150, IsVisible = false }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         DraftPicker.SelectedIndexChanged += OnDraftSelected;
-        RenameDraftBtn = MakeButton("\u270F\uFE0F", "#FFF3E0", "#E65100", false);
-        SetLatestBtn = MakeButton("\u2B50 Set Latest", "#FFF8E1", "#F57F17", false);
-        DeleteDraftBtn = MakeButton("\U0001F5D1\uFE0F", "#FFEBEE", "#C62828", false);
-        CompareToBtn = MakeButton("Compare To...", "#E8EAF6", "#3F51B5", false);
-        CurrentDraftLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#666"), IsVisible = false };
-        ProjectMetaLabel = new Label { FontSize = 12, TextColor = Color.FromArgb("#888"), IsVisible = false };
+        RenameDraftBtn = MakeButton("\u270F\uFE0F", ThemeKey.WarningBackground, ThemeKey.WarningText, false);
+        SetLatestBtn = MakeButton("\u2B50 Set Latest", ThemeKey.HighlightYellow, ThemeKey.HighlightYellowText, false);
+        DeleteDraftBtn = MakeButton("\U0001F5D1\uFE0F", ThemeKey.ErrorBackground, ThemeKey.ErrorText, false);
+        CompareToBtn = MakeButton("Compare To...", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoStrongText, false);
+        CurrentDraftLabel = (new Label { FontSize = 12, IsVisible = false }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
+        ProjectMetaLabel = (new Label { FontSize = 12, IsVisible = false }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
     }
 
-    private static Button MakeButton(string text, string background, string foreground, bool visible) => new()
-    {
-        Text = text, BackgroundColor = Color.FromArgb(background), TextColor = Color.FromArgb(foreground),
-        CornerRadius = 8, Padding = new Thickness(12, 8), FontSize = 12,
+    private static Button MakeButton(string text, ThemeKey background, ThemeKey foreground, bool visible) => (new Button(){
+        Text = text,         CornerRadius = 8, Padding = new Thickness(12, 8), FontSize = 12,
         IsVisible = visible, HorizontalOptions = LayoutOptions.Start
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
 
     public async Task LoadProjectsAsync()
     {
@@ -121,7 +117,7 @@ public class StoryProjectSelector
 
             CurrentProject = null;
             ProjectSelectLabel.Text = "Choose a project...";
-            ProjectSelectLabel.TextColor = Color.FromArgb("#999");
+            ProjectSelectLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1, classifyPageText: true);
             HideControls?.Invoke();
         }
         catch (Exception ex)
@@ -135,7 +131,7 @@ public class StoryProjectSelector
         try
         {
             ProjectSelectLabel.Text = project.Name + (project.IsPublished ? " \u2713" : project.Status == "completed" ? " (done)" : "");
-            ProjectSelectLabel.TextColor = Color.FromArgb("#333");
+            ProjectSelectLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
             await LoadDraftsAsync(project.Id);
             ShowControls?.Invoke();
             if (CurrentProject != null)
@@ -240,7 +236,7 @@ public class StoryProjectSelector
     {
         CurrentProject = null;
         ProjectSelectLabel.Text = "Choose a project...";
-        ProjectSelectLabel.TextColor = Color.FromArgb("#999");
+        ProjectSelectLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1, classifyPageText: true);
         HideControls?.Invoke();
     }
 
@@ -279,12 +275,12 @@ public class StoryProjectSelector
         string search = "", category = "All", series = "All", sort = "alpha_asc";
         var categories = source.Select(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
         var seriesList = source.Select(p => string.IsNullOrWhiteSpace(p.Series) ? "No Series" : p.Series.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
-        var card = new Frame { CornerRadius = 12, Padding = 0, BackgroundColor = Colors.White, HasShadow = true, MaximumWidthRequest = 520, MaximumHeightRequest = 650, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(16, 0) };
+        var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
+        var card = (new Frame { CornerRadius = 12, Padding = 0, HasShadow = true, MaximumWidthRequest = 520, MaximumHeightRequest = 650, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(16, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         var stack = new VerticalStackLayout();
-        var header = new Frame { Padding = 16, CornerRadius = 0, BackgroundColor = Color.FromArgb("#7B1FA2"), BorderColor = Colors.Transparent, Content = new Label { Text = "Select Project", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Colors.White } };
+        var header = (new Frame { Padding = 16, CornerRadius = 0, BorderColor = Colors.Transparent, Content = (new Label { Text = "Select Project", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface);
         stack.Children.Add(header);
-        var searchEntry = new Entry { Placeholder = "Search projects...", FontSize = 13, BackgroundColor = Color.FromArgb("#FAFAFA"), TextColor = Color.FromArgb("#333"), PlaceholderColor = Color.FromArgb("#999"), Margin = new Thickness(12, 8, 12, 0), HeightRequest = 38 };
+        var searchEntry = (new Entry { Placeholder = "Search projects...", FontSize = 13, Margin = new Thickness(12, 8, 12, 0), HeightRequest = 38 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
         stack.Children.Add(searchEntry);
         var filterRow = new FlexLayout
         {
@@ -293,13 +289,13 @@ public class StoryProjectSelector
             JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
             Margin = new Thickness(12, 4, 12, 4)
         };
-        var categoryBtn = SmallButton("Category: All", "#E0F7FA", "#00838F");
-        var seriesBtn = SmallButton("Series: All", "#FFF3E0", "#E65100");
-        var sortBtn = SmallButton("A-Z \u25B2", "#7B1FA2", "#FFFFFF");
+        var categoryBtn = SmallButton("Category: All", ThemeKey.HighlightTeal, ThemeKey.HighlightTealText);
+        var seriesBtn = SmallButton("Series: All", ThemeKey.WarningBackground, ThemeKey.WarningText);
+        var sortBtn = SmallButton("A-Z \u25B2", ThemeKey.AccentPurpleSurface, ThemeKey.OnColorText);
         categoryBtn.Margin = new Thickness(0, 0, 4, 4);
         seriesBtn.Margin = new Thickness(0, 0, 4, 4);
         sortBtn.Margin = new Thickness(0, 0, 4, 4);
-        var countLabel = new Label { Text = $"{source.Count} projects", FontSize = 10, TextColor = Color.FromArgb("#999"), VerticalOptions = LayoutOptions.Center };
+        var countLabel = (new Label { Text = $"{source.Count} projects", FontSize = 10, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         filterRow.Children.Add(categoryBtn); filterRow.Children.Add(seriesBtn); filterRow.Children.Add(sortBtn); filterRow.Children.Add(countLabel);
         stack.Children.Add(filterRow);
         var list = new VerticalStackLayout { Padding = 8, Spacing = 4 };
@@ -318,12 +314,12 @@ public class StoryProjectSelector
         {
             int? rootId = CurrentProject?.ParentProjectId ?? CurrentProject?.Id;
             bool selected = rootId == project.Id;
-            var frame = new Frame { Padding = 12, CornerRadius = 8, BackgroundColor = selected ? Color.FromArgb("#E8EAF6") : Color.FromArgb("#F5F5F5"), BorderColor = selected ? Color.FromArgb("#7B1FA2") : Colors.Transparent, HasShadow = false };
+            var frame = (new Frame { Padding = 12, CornerRadius = 8, HasShadow = false }).ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.HighlightIndigo : ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, selected ? ThemeKey.AccentPurpleText : (ThemeKey?)null);
             var body = new VerticalStackLayout { Spacing = 2 };
-            body.Children.Add(new Label { Text = project.Name + (project.IsPublished ? " \u2713" : project.Status == "completed" ? " (done)" : ""), FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+            body.Children.Add((new Label { Text = project.Name + (project.IsPublished ? " \u2713" : project.Status == "completed" ? " (done)" : ""), FontSize = 14, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
             var meta = new List<string>(); if (!string.IsNullOrWhiteSpace(project.Series)) meta.Add($"\U0001F4DA {project.Series}"); if (!string.IsNullOrWhiteSpace(project.WritingProcess)) meta.Add(project.WritingProcess); if (!string.IsNullOrWhiteSpace(project.ProjectCategory)) meta.Add(project.ProjectCategory); meta.Add(project.CreatedAt.ToString("MMM yyyy"));
-            body.Children.Add(new Label { Text = string.Join(" \u2022 ", meta), FontSize = 11, TextColor = Color.FromArgb("#888") });
-            if (!string.IsNullOrWhiteSpace(project.Description)) body.Children.Add(new Label { Text = project.Description.Length > 80 ? project.Description[..80] + "..." : project.Description, FontSize = 11, TextColor = Color.FromArgb("#AAA"), LineBreakMode = LineBreakMode.TailTruncation });
+            body.Children.Add((new Label { Text = string.Join(" \u2022 ", meta), FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
+            if (!string.IsNullOrWhiteSpace(project.Description)) body.Children.Add((new Label { Text = project.Description.Length > 80 ? project.Description[..80] + "..." : project.Description, FontSize = 11, LineBreakMode = LineBreakMode.TailTruncation }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
             frame.Content = body;
             var tap = new TapGestureRecognizer(); tap.Tapped += (_, _) => { if (_page.Content is Grid grid) grid.Children.Remove(overlay); tcs.TrySetResult(project); }; frame.GestureRecognizers.Add(tap);
             return frame;
@@ -332,31 +328,31 @@ public class StoryProjectSelector
         void Rebuild()
         {
             list.Children.Clear();
-            if (filtered.Count == 0) { list.Children.Add(new Label { Text = search.Length == 0 ? "No projects in this category." : "No projects match your search.", TextColor = Color.FromArgb("#999"), HorizontalOptions = LayoutOptions.Center }); return; }
+            if (filtered.Count == 0) { list.Children.Add((new Label { Text = search.Length == 0 ? "No projects in this category." : "No projects match your search.", HorizontalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true)); return; }
             bool byCategory = category == "All" && series == "All" && categories.Count > 1;
             bool bySeries = series == "All" && seriesList.Count > 1 && !byCategory;
-            if (byCategory) AddGroups(filtered.GroupBy(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim(), StringComparer.OrdinalIgnoreCase), "#00838F", "");
-            else if (bySeries) AddGroups(filtered.GroupBy(p => string.IsNullOrWhiteSpace(p.Series) ? "No Series" : p.Series.Trim(), StringComparer.OrdinalIgnoreCase), "#E65100", "\U0001F4DA ");
+            if (byCategory) AddGroups(filtered.GroupBy(p => string.IsNullOrWhiteSpace(p.ProjectCategory) ? "Uncategorized" : p.ProjectCategory.Trim(), StringComparer.OrdinalIgnoreCase), ThemeKey.HighlightTealText, "");
+            else if (bySeries) AddGroups(filtered.GroupBy(p => string.IsNullOrWhiteSpace(p.Series) ? "No Series" : p.Series.Trim(), StringComparer.OrdinalIgnoreCase), ThemeKey.WarningText, "\U0001F4DA ");
             else foreach (var project in filtered) list.Children.Add(Card(project));
         }
 
-        void AddGroups(IEnumerable<IGrouping<string, StoryProject>> groups, string color, string prefix)
+        void AddGroups(IEnumerable<IGrouping<string, StoryProject>> groups, ThemeKey color, string prefix)
         {
-            foreach (var group in groups.OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)) { list.Children.Add(new Label { Text = $"{prefix}{group.Key} ({group.Count()})", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb(color), Margin = new Thickness(4, 8, 0, 2) }); foreach (var project in group) list.Children.Add(Card(project)); }
+            foreach (var group in groups.OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)) { list.Children.Add((new Label { Text = $"{prefix}{group.Key} ({group.Count()})", FontSize = 12, FontAttributes = FontAttributes.Bold, Margin = new Thickness(4, 8, 0, 2) }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText3, classifyPageText: true)); foreach (var project in group) list.Children.Add(Card(project)); }
         }
 
         searchEntry.TextChanged += (_, e) => { search = e.NewTextValue ?? ""; Apply(); Rebuild(); };
         categoryBtn.Clicked += async (_, _) => { var options = new List<string> { "All" }; options.AddRange(categories); var value = await _page.DisplayActionSheet("Filter by Category", "Cancel", null, options.ToArray()); if (string.IsNullOrEmpty(value) || value == "Cancel") return; category = value; categoryBtn.Text = $"Category: {category}"; Apply(); Rebuild(); };
         seriesBtn.Clicked += async (_, _) => { var options = new List<string> { "All" }; options.AddRange(seriesList); var value = await _page.DisplayActionSheet("Filter by Series", "Cancel", null, options.ToArray()); if (string.IsNullOrEmpty(value) || value == "Cancel") return; series = value; seriesBtn.Text = $"Series: {series}"; Apply(); Rebuild(); };
         sortBtn.Clicked += (_, _) => { sort = sort switch { "alpha_asc" => "alpha_desc", "alpha_desc" => "date_desc", "date_desc" => "date_asc", _ => "alpha_asc" }; sortBtn.Text = sort switch { "alpha_desc" => "Z-A \u25BC", "date_desc" => "Newest \u25BC", "date_asc" => "Oldest \u25B2", _ => "A-Z \u25B2" }; Apply(); Rebuild(); };
-        var cancel = new Button { Text = "Cancel", BackgroundColor = Colors.Transparent, TextColor = Color.FromArgb("#7B1FA2"), Margin = new Thickness(12, 4, 12, 12) };
+        var cancel = (new Button { Text = "Cancel", BackgroundColor = Colors.Transparent, Margin = new Thickness(12, 4, 12, 12) }).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
         cancel.Clicked += (_, _) => { if (_page.Content is Grid grid) grid.Children.Remove(overlay); tcs.TrySetResult(null); }; stack.Children.Add(cancel);
         card.Content = stack; overlay.Children.Add(card); Apply(); Rebuild();
         if (_page.Content is Grid root) root.Children.Add(overlay); else { var old = _page.Content; var rootGrid = new Grid(); rootGrid.Children.Add(old); rootGrid.Children.Add(overlay); _page.Content = rootGrid; }
         var result = await tcs.Task; if (result != null) await SelectProjectAsync(result);
     }
 
-    private static Button SmallButton(string text, string background, string foreground) => new() { Text = text, FontSize = 10, HeightRequest = 28, Padding = new Thickness(8, 0), CornerRadius = 4, BackgroundColor = Color.FromArgb(background), TextColor = Color.FromArgb(foreground) };
+    private static Button SmallButton(string text, ThemeKey background, ThemeKey foreground) => (new Button(){ Text = text, FontSize = 10, HeightRequest = 28, Padding = new Thickness(8, 0), CornerRadius = 4 }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
 
     public void ShowDraftControls() { bool show = Drafts.Count > 1; DraftLabel.IsVisible = show; DraftPicker.IsVisible = show; }
     public void HideDraftControls() { DraftLabel.IsVisible = false; DraftPicker.IsVisible = false; RenameDraftBtn.IsVisible = false; SetLatestBtn.IsVisible = false; DeleteDraftBtn.IsVisible = false; CompareToBtn.IsVisible = false; CurrentDraftLabel.IsVisible = false; ProjectMetaLabel.IsVisible = false; }

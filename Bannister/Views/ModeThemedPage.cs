@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace Bannister.Views;
 
 /// <summary>Shared page canvas and surface-aware foreground resources for signed-in pages.</summary>
-public class ModeThemedPage : ContentPage
+public class ModeThemedPage : ContentPage, IModeThemePage
 {
     /// <summary>Media viewers can retain a black viewing surface inside the themed page.</summary>
     protected virtual bool PreserveCanvasBackground => false;

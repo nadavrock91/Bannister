@@ -51,22 +51,20 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 20 };
-        stack.Children.Add(new Label { Text = "Targeted Hooks", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
-        stack.Children.Add(new Label { Text = "Choose a prefix and append the suffix below automatically before copying.", FontSize = 14, TextColor = Color.FromArgb("#666") });
+        stack.Children.Add((new Label { Text = "Targeted Hooks", FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label { Text = "Choose a prefix and append the suffix below automatically before copying.", FontSize = 14 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         stack.Children.Add(BuildStage1Section());
         stack.Children.Add(BuildSuffixSection());
         stack.Children.Add(BuildOutputSection());
 
-        var cropperBtn = new Button
+        var cropperBtn = (new Button
         {
             Text = "Open Grid Cropper",
-            BackgroundColor = Color.FromArgb("#37474F"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         cropperBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(
                 new GridCropperPage(_auth, _cropPresets, _panelSaver, _hookPrefixes));
@@ -78,56 +76,56 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
     private Frame BuildStage1Section()
     {
         var sectionStack = new VerticalStackLayout { Spacing = 10 };
-        sectionStack.Children.Add(new Label { Text = "Stage 1 - Starting Prompt", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
-        sectionStack.Children.Add(new Label { Text = "Build Full Prompt randomly asks for a new, existing, or combined prefix.", FontSize = 12, TextColor = Color.FromArgb("#666") });
+        sectionStack.Children.Add((new Label { Text = "Stage 1 - Starting Prompt", FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
+        sectionStack.Children.Add((new Label { Text = "Build Full Prompt randomly asks for a new, existing, or combined prefix.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
-        var ideasBtn = new Button { Text = "Get Prefix Ideas", BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F"), CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) };
+        var ideasBtn = (new Button { Text = "Get Prefix Ideas", CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         ideasBtn.Clicked += async (_, _) => await CopyPrefixIdeasPromptAsync();
         sectionStack.Children.Add(ideasBtn);
 
-        var addPrefixBtn = new Button { Text = "+ Add Prefix to Library", BackgroundColor = Color.FromArgb("#FFF8E1"), TextColor = Color.FromArgb("#F57F17"), CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) };
+        var addPrefixBtn = (new Button { Text = "+ Add Prefix to Library", CornerRadius = 8, FontSize = 13, HeightRequest = 40, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
         addPrefixBtn.Clicked += async (_, _) => await AddPrefixToLibraryAsync();
         sectionStack.Children.Add(addPrefixBtn);
 
-        var buildBtn = new Button { Text = "Build Full Prompt (Random Method)", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        var buildBtn = (new Button { Text = "Build Full Prompt (Random Method)", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         buildBtn.Clicked += async (_, _) => await BuildPromptAsync();
         sectionStack.Children.Add(buildBtn);
 
-        var manualBuildBtn = new Button { Text = "Build With Specific Prefix", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        var manualBuildBtn = (new Button { Text = "Build With Specific Prefix", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         manualBuildBtn.Clicked += async (_, _) => await BuildWithSpecificPrefixAsync();
         sectionStack.Children.Add(manualBuildBtn);
 
-        var statsBtn = new Button { Text = "View Prefix Stats", BackgroundColor = Color.FromArgb("#37474F"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        var statsBtn = (new Button { Text = "View Prefix Stats", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         statsBtn.Clicked += async (_, _) => await ShowPrefixStatsAsync();
         sectionStack.Children.Add(statsBtn);
 
-        return new Frame { BackgroundColor = Colors.White, Padding = 16, CornerRadius = 12, HasShadow = true, Content = sectionStack };
+        return (new Frame { Padding = 16, CornerRadius = 12, HasShadow = true, Content = sectionStack }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private Frame BuildSuffixSection()
     {
         var sectionStack = new VerticalStackLayout { Spacing = 10 };
-        sectionStack.Children.Add(new Label { Text = "Appended Suffix (editable, saved automatically)", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
-        sectionStack.Children.Add(new Label { Text = "This text is appended to every prompt. Edit it here to change the output format for all future uses.", FontSize = 12, TextColor = Color.FromArgb("#666") });
-        _suffixEditor = new Editor { HeightRequest = 160, AutoSize = EditorAutoSizeOption.TextChanges, BackgroundColor = Color.FromArgb("#FAFAFA"), TextColor = Color.FromArgb("#222"), FontSize = 12, Placeholder = "Appended suffix will load here...", PlaceholderColor = Color.FromArgb("#999") };
+        sectionStack.Children.Add((new Label { Text = "Appended Suffix (editable, saved automatically)", FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
+        sectionStack.Children.Add((new Label { Text = "This text is appended to every prompt. Edit it here to change the output format for all future uses.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        _suffixEditor = (new Editor { HeightRequest = 160, AutoSize = EditorAutoSizeOption.TextChanges, FontSize = 12, Placeholder = "Appended suffix will load here..." }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
         _suffixEditor.TextChanged += async (_, e) => { if (!_isLoadingSuffix) await SaveSuffixAsync(e.NewTextValue ?? ""); };
         sectionStack.Children.Add(_suffixEditor);
-        var resetBtn = new Button { Text = "Reset to Default", BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F"), CornerRadius = 8, FontSize = 12, HeightRequest = 36, HorizontalOptions = LayoutOptions.Start, Padding = new Thickness(12, 0) };
+        var resetBtn = (new Button { Text = "Reset to Default", CornerRadius = 8, FontSize = 12, HeightRequest = 36, HorizontalOptions = LayoutOptions.Start, Padding = new Thickness(12, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         resetBtn.Clicked += async (_, _) => { _suffixEditor.Text = DefaultSuffix; await SaveSuffixAsync(DefaultSuffix); };
         sectionStack.Children.Add(resetBtn);
-        return new Frame { BackgroundColor = Colors.White, Padding = 16, CornerRadius = 12, HasShadow = true, Content = sectionStack };
+        return (new Frame { Padding = 16, CornerRadius = 12, HasShadow = true, Content = sectionStack }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private Frame BuildOutputSection()
     {
         var sectionStack = new VerticalStackLayout { Spacing = 10 };
-        sectionStack.Children.Add(new Label { Text = "Full Prompt Output", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") });
-        _outputLabel = new Label { Text = "Tap 'Build Full Prompt' above to preview and copy.", FontSize = 13, TextColor = Color.FromArgb("#444"), LineBreakMode = LineBreakMode.WordWrap };
+        sectionStack.Children.Add((new Label { Text = "Full Prompt Output", FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
+        _outputLabel = (new Label { Text = "Tap 'Build Full Prompt' above to preview and copy.", FontSize = 13, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         sectionStack.Children.Add(_outputLabel);
-        _copyOutputButton = new Button { Text = "Copy Full Prompt", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold, IsVisible = false };
+        _copyOutputButton = (new Button { Text = "Copy Full Prompt", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold, IsVisible = false }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _copyOutputButton.Clicked += async (_, _) => await CopyFullPromptAsync();
         sectionStack.Children.Add(_copyOutputButton);
-        return new Frame { BackgroundColor = Colors.White, Padding = 16, CornerRadius = 12, HasShadow = true, Content = sectionStack };
+        return (new Frame { Padding = 16, CornerRadius = 12, HasShadow = true, Content = sectionStack }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private async Task BuildPromptAsync()
@@ -137,7 +135,7 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
             return;
 
         _outputLabel.Text = BuildFullPromptText(prefixChoice.PrefixText);
-        _outputLabel.TextColor = Color.FromArgb("#222");
+        _outputLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
         _copyOutputButton.IsVisible = true;
 
         await _hookPrefixes.SaveSessionAsync(new HookPrefixSession
@@ -169,7 +167,7 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
         prefixText = prefixText.Trim();
         var fullPrompt = BuildFullPromptText(prefixText);
         _outputLabel.Text = fullPrompt;
-        _outputLabel.TextColor = Color.FromArgb("#222");
+        _outputLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
         _copyOutputButton.IsVisible = true;
 
         await Clipboard.SetTextAsync(fullPrompt);
@@ -222,8 +220,8 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
         }).ToList();
 
         var dataGrid = DataGridView.Create(headers, rows)
-            .WithHeaderStyle(Color.FromArgb("#37474F"), Colors.White)
-            .WithAlternateRowColor(Color.FromArgb("#ECEFF1"))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.NeutralButtonText), AppColors.Get(ThemeKey.OnColorText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.RowAltBackground))
             .WithColumnWidths(90, 320)
             .WithCellPadding(6)
             .WithFontSize(12, 12)
@@ -245,12 +243,11 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        await Navigation.PushAsync(new ContentPage
+        await Navigation.PushAsync((new ContentPage
         {
             Title = "Prefix Stats",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             Content = stack
-        });
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface));
     }
 
     private async Task<bool> UpdatePrefixStatsCellAsync(
@@ -411,15 +408,12 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
             _hookPrefixes = hookPrefixes;
             _username = username;
             Title = "Choose Prefix";
-            BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
+            this.ThemeColor(BackgroundColorProperty, ThemeKey.OverlayLight);
 
-            _newPrefixEntry = new Entry
+            _newPrefixEntry = (new Entry
             {
-                Placeholder = "Type a new prefix",
-                BackgroundColor = Colors.White,
-                TextColor = Color.FromArgb("#222"),
-                PlaceholderColor = Color.FromArgb("#999")
-            };
+                Placeholder = "Type a new prefix"
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
             _prefixPicker1 = CreatePrefixPicker();
             _prefixPicker2 = CreatePrefixPicker();
 
@@ -428,16 +422,15 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
                 Padding = 24,
                 Children =
                 {
-                    new Frame
+                    (new Frame
                     {
-                        BackgroundColor = Colors.White,
                         CornerRadius = 12,
                         Padding = 20,
                         HasShadow = true,
                         VerticalOptions = LayoutOptions.Center,
                         HorizontalOptions = LayoutOptions.Fill,
                         Content = BuildContent()
-                    }
+                    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground)
                 }
             };
         }
@@ -445,7 +438,7 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
         private View BuildContent()
         {
             var stack = new VerticalStackLayout { Spacing = 12 };
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = _mode switch
                 {
@@ -454,9 +447,8 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
                     _ => "Create a new prefix"
                 },
                 FontSize = 20,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#222")
-            });
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
             if (_mode == "existing")
             {
@@ -472,35 +464,29 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
                 stack.Children.Add(_newPrefixEntry);
             }
 
-            var addPrefixButton = new Button
+            var addPrefixButton = (new Button
             {
                 Text = "+ Add Prefix to Library",
-                BackgroundColor = Color.FromArgb("#FFF8E1"),
-                TextColor = Color.FromArgb("#F57F17"),
                 CornerRadius = 8,
                 HeightRequest = 40
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
             addPrefixButton.Clicked += async (_, _) => await AddCurrentPrefixToLibraryAsync();
             stack.Children.Add(addPrefixButton);
 
-            var cancelButton = new Button
+            var cancelButton = (new Button
             {
                 Text = "Cancel",
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#333"),
                 CornerRadius = 8,
                 HeightRequest = 42
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
             cancelButton.Clicked += async (_, _) => await CloseAsync(null);
 
-            var confirmButton = new Button
+            var confirmButton = (new Button
             {
                 Text = "Use Prefix",
-                BackgroundColor = Color.FromArgb("#1565C0"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 HeightRequest = 42
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             confirmButton.Clicked += async (_, _) => await ConfirmAsync();
 
             var buttonGrid = new Grid
@@ -521,12 +507,10 @@ public class TargetedHooksPage : Bannister.Views.ModeThemedPage
 
         private Picker CreatePrefixPicker()
         {
-            var picker = new Picker
+            var picker = (new Picker
             {
-                Title = _prefixes.Count == 0 ? "No saved prefixes" : "Choose prefix",
-                BackgroundColor = Colors.White,
-                TextColor = Color.FromArgb("#222")
-            };
+                Title = _prefixes.Count == 0 ? "No saved prefixes" : "Choose prefix"
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
             foreach (var prefix in _prefixes)
                 picker.Items.Add(prefix.PrefixText);
             return picker;

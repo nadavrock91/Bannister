@@ -132,66 +132,59 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "⚙️ Settings",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         _themeColors = new ThemeColorsView(_auth, _appSettings, _privacyMode);
         mainStack.Children.Add(_themeColors);
 
         // Account section
-        var accountFrame = new Frame
+        var accountFrame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var accountStack = new VerticalStackLayout { Spacing = 16 };
 
-        accountStack.Children.Add(new Label
+        accountStack.Children.Add((new Label
         {
             Text = "Account",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // Username display
         var userRow = new HorizontalStackLayout { Spacing = 8 };
-        userRow.Children.Add(new Label
+        userRow.Children.Add((new Label
         {
             Text = "👤 Username:",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        });
-        userRow.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
+        userRow.Children.Add((new Label
         {
             Text = _auth.CurrentUsername,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         accountStack.Children.Add(userRow);
 
         // Change password button
-        var btnChangePassword = new Button
+        var btnChangePassword = (new Button
         {
             Text = "🔑 Change Password",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48,
             FontSize = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnChangePassword.Clicked += OnChangePasswordClicked;
         accountStack.Children.Add(btnChangePassword);
 
@@ -199,24 +192,22 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(accountFrame);
 
         // Home section
-        var homeFrame = new Frame
+        var homeFrame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var homeStack = new VerticalStackLayout { Spacing = 12 };
 
-        homeStack.Children.Add(new Label
+        homeStack.Children.Add((new Label
         {
             Text = "Home",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var calendarGateRow = new Grid
         {
@@ -229,19 +220,17 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         };
 
         var calendarGateText = new VerticalStackLayout { Spacing = 4 };
-        calendarGateText.Children.Add(new Label
+        calendarGateText.Children.Add((new Label
         {
             Text = "Require Calendar Before Games",
             FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        calendarGateText.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        calendarGateText.Children.Add((new Label
         {
             Text = "Blocks Games from Home once per day until Calendar is opened.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(calendarGateText, 0);
         calendarGateRow.Children.Add(calendarGateText);
 
@@ -256,24 +245,21 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
 
         homeStack.Children.Add(calendarGateRow);
 
-        _calendarBeforeGamesStatus = new Label
+        _calendarBeforeGamesStatus = (new Label
         {
             Text = "",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         homeStack.Children.Add(_calendarBeforeGamesStatus);
 
-        var btnHomePopups = new Button
+        var btnHomePopups = (new Button
         {
             Text = " HomePage Popups",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 44,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         btnHomePopups.Clicked += OnHomePopupsSettingsClicked;
         homeStack.Children.Add(btnHomePopups);
 
@@ -281,24 +267,22 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(homeFrame);
 
         // Games first-entry interrupts section
-        var gamesInterruptFrame = new Frame
+        var gamesInterruptFrame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var gamesInterruptStack = new VerticalStackLayout { Spacing = 12 };
 
-        gamesInterruptStack.Children.Add(new Label
+        gamesInterruptStack.Children.Add((new Label
         {
             Text = "Games First Entry Interrupts",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var websiteBuilderInterruptRow = new Grid
         {
@@ -311,19 +295,17 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         };
 
         var websiteBuilderInterruptText = new VerticalStackLayout { Spacing = 4 };
-        websiteBuilderInterruptText.Children.Add(new Label
+        websiteBuilderInterruptText.Children.Add((new Label
         {
             Text = "Website Builder daily interrupt",
             FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        websiteBuilderInterruptText.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        websiteBuilderInterruptText.Children.Add((new Label
         {
             Text = "When entering Games, remind you to do your Website Builder task first.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(websiteBuilderInterruptText, 0);
         websiteBuilderInterruptRow.Children.Add(websiteBuilderInterruptText);
 
@@ -338,12 +320,11 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
 
         gamesInterruptStack.Children.Add(websiteBuilderInterruptRow);
 
-        _websiteBuilderInterruptStatus = new Label
+        _websiteBuilderInterruptStatus = (new Label
         {
             Text = "",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         gamesInterruptStack.Children.Add(_websiteBuilderInterruptStatus);
 
         gamesInterruptFrame.Content = gamesInterruptStack;
@@ -353,43 +334,38 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(BuildDiceModeSection());
 
         // Sync & Devices section
-        _syncDevicesSection = new Frame
+        _syncDevicesSection = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var syncStack = new VerticalStackLayout { Spacing = 12 };
 
-        syncStack.Children.Add(new Label
+        syncStack.Children.Add((new Label
         {
             Text = "Sync & Devices",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        syncStack.Children.Add(new Label
+        syncStack.Children.Add((new Label
         {
             Text = "Run Bannister on multiple devices with one as master (read/write) and others " +
                    "as secondary (read-only). The database is uploaded as an encrypted file.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineHeight = 1.4
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var btnSyncSettings = new Button
+        var btnSyncSettings = (new Button
         {
             Text = "🔄 Sync & Devices",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48,
             FontSize = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSyncSettings.Clicked += OnSyncSettingsClicked;
         syncStack.Children.Add(btnSyncSettings);
 
@@ -397,35 +373,32 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(_syncDevicesSection);
 
         // Security section
-        var securityFrame = new Frame
+        var securityFrame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var securityStack = new VerticalStackLayout { Spacing = 12 };
 
-        securityStack.Children.Add(new Label
+        securityStack.Children.Add((new Label
         {
             Text = "Security",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        securityStack.Children.Add(new Label
+        securityStack.Children.Add((new Label
         {
             Text = "🔒 Your database is encrypted with your login password.\n\n" +
                    "If you change your password, the database will be re-encrypted with the new password.\n\n" +
                    "Backups are also encrypted. To restore a backup on another device, " +
                    "log in with the same password that was active when the backup was created.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineHeight = 1.4
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         securityFrame.Content = securityStack;
         mainStack.Children.Add(securityFrame);
@@ -437,34 +410,30 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 0, 0, 16)
         };
 
-        var menuOrderBtn = new Button
+        var menuOrderBtn = (new Button
         {
             Text = "☰ Customize Context Menu Order",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
         menuOrderBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(
                 new ContextMenuOrderPage(
                     _contextMenuOrder, _auth));
         privateModeSection.Children.Add(menuOrderBtn);
 
-        var privacyLogBtn = new Button
+        var privacyLogBtn = (new Button
         {
             Text = " Privacy Log",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
         privacyLogBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(new PrivacyLogPage(
                 _activityService, _gameService, _auth));
@@ -472,28 +441,25 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
 
         mainStack.Children.Add(privateModeSection);
 
-        var resetSection = new Frame
+        var resetSection = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         var resetStack = new VerticalStackLayout { Spacing = 10 };
-        resetStack.Children.Add(new Label
+        resetStack.Children.Add((new Label
         {
             Text = "Daily reset time",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        resetStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        resetStack.Children.Add((new Label
         {
             Text = "Choose when each daily deadline period resets.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         _dailyResetPicker = new Picker
         {
             Title = "Daily reset hour",
@@ -509,20 +475,18 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         };
         resetStack.Children.Add(_dailyResetPicker);
 
-        resetStack.Children.Add(new Label
+        resetStack.Children.Add((new Label
         {
             Text = "Sleep Time",
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             Margin = new Thickness(0, 8, 0, 0)
-        });
-        resetStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        resetStack.Children.Add((new Label
         {
             Text = "Used as the fixed reference time for scheduled reminders.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         _sleepTimePicker = new TimePicker
         {
             Format = "HH:mm",
@@ -542,34 +506,30 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         resetSection.Content = resetStack;
         mainStack.Children.Add(resetSection);
 
-        var pageVisibilityBtn = new Button
+        var pageVisibilityBtn = (new Button
         {
             Text = " Page Visibility",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
         pageVisibilityBtn.Clicked += async (_, _) =>
             await Navigation.PushAsync(
                 new PageVisibilityPage(
                     _buttonVisibility, _auth));
         mainStack.Children.Add(pageVisibilityBtn);
 
-        var resetIntroBtn = new Button
+        var resetIntroBtn = (new Button
         {
             Text = "⟳ Reset Welcome Screen",
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         resetIntroBtn.Clicked += async (_, _) =>
         {
             try
@@ -587,23 +547,21 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildHabitScoldingSection()
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 14 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Habit Scolding",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var toggleRow = new Grid
         {
@@ -616,19 +574,17 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         };
 
         var toggleText = new VerticalStackLayout { Spacing = 4 };
-        toggleText.Children.Add(new Label
+        toggleText.Children.Add((new Label
         {
             Text = "Enable scolding popups",
             FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        toggleText.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        toggleText.Children.Add((new Label
         {
             Text = "Show a popup when a habit allowance is stuck at 1 too long.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         toggleRow.Add(toggleText, 0, 0);
 
         _habitScoldingSwitch = new Switch
@@ -640,12 +596,11 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         toggleRow.Add(_habitScoldingSwitch, 1, 0);
         stack.Children.Add(toggleRow);
 
-        _habitScoldingStatus = new Label
+        _habitScoldingStatus = (new Label
         {
             Text = "",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         stack.Children.Add(_habitScoldingStatus);
 
         var defaultRow = new Grid
@@ -668,46 +623,40 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         };
         defaultRow.Add(_defaultScoldImage, 0, 0);
 
-        defaultRow.Add(new Label
+        defaultRow.Add((new Label
         {
             Text = "Default scold image",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        }, 1, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
-        var changeButton = new Button
+        var changeButton = (new Button
         {
             Text = "Change",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             CornerRadius = 8,
             Padding = new Thickness(10, 6)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         changeButton.Clicked += OnChangeDefaultScoldImageClicked;
         defaultRow.Add(changeButton, 2, 0);
 
-        _resetDefaultScoldImageButton = new Button
+        _resetDefaultScoldImageButton = (new Button
         {
             Text = "Reset",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             Padding = new Thickness(10, 6)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _resetDefaultScoldImageButton.Clicked += OnResetDefaultScoldImageClicked;
         defaultRow.Add(_resetDefaultScoldImageButton, 3, 0);
         stack.Children.Add(defaultRow);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Per-frequency overrides",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             Margin = new Thickness(0, 8, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         _frequencyOverridesStack = new VerticalStackLayout { Spacing = 8 };
         stack.Children.Add(_frequencyOverridesStack);
@@ -718,23 +667,21 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildDiceModeSection()
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 14 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Habit Week Concluded: Dice Mode",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var toggleRow = new Grid
         {
@@ -747,20 +694,18 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         };
 
         var toggleText = new VerticalStackLayout { Spacing = 4 };
-        toggleText.Children.Add(new Label
+        toggleText.Children.Add((new Label
         {
             Text = "Enable dice mode for forgot-to-apply",
             FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        toggleText.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        toggleText.Children.Add((new Label
         {
             Text = "When enabled, forgetting to apply rolls a dice instead of automatic allowance loss. More missed days = higher chance of losing.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         toggleRow.Add(toggleText, 0, 0);
 
         _diceModeSwitch = new Switch
@@ -772,12 +717,11 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
         toggleRow.Add(_diceModeSwitch, 1, 0);
         stack.Children.Add(toggleRow);
 
-        _diceModeStatus = new Label
+        _diceModeStatus = (new Label
         {
             Text = "Strict mode: forgot to apply = automatic loss",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         stack.Children.Add(_diceModeStatus);
 
         frame.Content = stack;
@@ -911,12 +855,11 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             }
             catch
             {
-                _frequencyOverridesStack.Children.Add(new Label
+                _frequencyOverridesStack.Children.Add((new Label
                 {
                     Text = $"{frequency}: unavailable",
-                    FontSize = 13,
-                    TextColor = Color.FromArgb("#666")
-                });
+                    FontSize = 13
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
             }
         }
     }
@@ -934,14 +877,13 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 12
         };
 
-        row.Add(new Label
+        row.Add((new Label
         {
             Text = allowance.Frequency,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
 
         string status = allowance.ScoldingDisabled
             ? "Disabled"
@@ -949,13 +891,12 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
                 ? "Custom image"
                 : "(default)";
 
-        row.Add(new Label
+        row.Add((new Label
         {
             Text = status,
             FontSize = 12,
-            TextColor = allowance.ScoldingDisabled ? Color.FromArgb("#C62828") : Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        }, 1, 0);
+        }).ThemeColor(Label.TextColorProperty, allowance.ScoldingDisabled ? ThemeKey.ErrorText : ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true), 1, 0);
 
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (s, e) => await ShowFrequencyScoldingOptionsAsync(habitService, allowance);

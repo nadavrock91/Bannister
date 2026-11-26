@@ -39,27 +39,24 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
     {
         await _service.InitAsync();
         _content.Children.Clear();
-        _content.Children.Add(new Label
+        _content.Children.Add((new Label
         {
             Text = "Motivation Sources",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        var export = MakeButton("Export Strength Questionnaire", "#E3F2FD", "#1565C0");
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        var export = MakeButton("Export Strength Questionnaire", ThemeKey.InfoBackground, ThemeKey.InfoText);
         export.Clicked += async (_, _) => await ExportStrengthQuestionnaireAsync();
         _content.Children.Add(export);
-        var import = MakeButton("Import Results", "#E8F5E9", "#2E7D32");
+        var import = MakeButton("Import Results", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         import.Clicked += async (_, _) => await ImportStrengthResultsAsync();
         _content.Children.Add(import);
-        var toggle = new Button
+        var toggle = (new Button
         {
             Text = _showArchived ? "Hide Archived" : "Show Archived",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 6,
             HeightRequest = 38
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         toggle.Clicked += async (_, _) => { _showArchived = !_showArchived; await RefreshAsync(); };
         _content.Children.Add(toggle);
 
@@ -79,44 +76,40 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
     private View BuildSourceCard(MotivationSource source)
     {
         var body = new VerticalStackLayout { Spacing = 6 };
-        body.Children.Add(new Label
+        body.Children.Add((new Label
         {
             Text = source.Title,
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
         if (source.StrengthScore.HasValue)
         {
             int score = source.StrengthScore.Value;
-            string badgeColor = score <= 20 ? "#D32F2F"
-                : score <= 40 ? "#EF6C00"
-                : score <= 60 ? "#F9A825"
-                : score <= 80 ? "#2E7D32" : "#7B1FA2";
-            body.Children.Add(new Border
+            ThemeKey badgeColor = score <= 20 ? ThemeKey.ErrorStrongText
+                : score <= 40 ? ThemeKey.WarningAmber
+                : score <= 60 ? ThemeKey.WarningGoldenButton
+                : score <= 80 ? ThemeKey.SuccessText : ThemeKey.AccentPurpleText;
+            body.Children.Add((new Border
             {
-                Content = new Label
+                Content = (new Label
                 {
                     Text = $"Strength: {score}/100",
-                    TextColor = Colors.White,
                     FontSize = 12,
                     HorizontalTextAlignment = TextAlignment.Center
-                },
-                BackgroundColor = Color.FromArgb(badgeColor),
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true),
                 StrokeThickness = 0,
                 Padding = new Thickness(8, 4),
                 HorizontalOptions = LayoutOptions.Start
-            });
+            }).ThemeColor(VisualElement.BackgroundColorProperty, badgeColor));
         }
         if (!string.IsNullOrWhiteSpace(source.Description))
-            body.Children.Add(new Label
+            body.Children.Add((new Label
             {
                 Text = source.Description,
-                FontSize = 13,
-                TextColor = Color.FromArgb("#777")
-            });
+                FontSize = 13
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         var actions = new HorizontalStackLayout { Spacing = 8 };
-        var edit = MakeButton("Edit", "#E8EAF6", "#3949AB");
+        var edit = MakeButton("Edit", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoButton);
         edit.Clicked += async (_, _) =>
         {
             var title = await DisplayPromptAsync(
@@ -132,7 +125,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
         actions.Children.Add(edit);
         if (source.StrengthScore.HasValue)
         {
-            var adjust = MakeButton("Adjust", "#FFF3E0", "#E65100");
+            var adjust = MakeButton("Adjust", ThemeKey.WarningBackground, ThemeKey.WarningText);
             adjust.Clicked += async (_, _) =>
             {
                 var value = await DisplayPromptAsync(
@@ -148,7 +141,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
             };
             actions.Children.Add(adjust);
 
-            var clear = MakeButton("Clear Score", "#FFEBEE", "#C62828");
+            var clear = MakeButton("Clear Score", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
             clear.Clicked += async (_, _) =>
             {
                 bool confirm = await DisplayAlert(
@@ -163,7 +156,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
         }
         if (source.IsArchived)
         {
-            var restore = MakeButton("Restore", "#E8F5E9", "#2E7D32");
+            var restore = MakeButton("Restore", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
             restore.Clicked += async (_, _) =>
             {
                 source.IsArchived = false;
@@ -174,11 +167,11 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
         }
         else
         {
-            var archive = MakeButton("Archive", "#FFF3E0", "#E65100");
+            var archive = MakeButton("Archive", ThemeKey.WarningBackground, ThemeKey.WarningText);
             archive.Clicked += async (_, _) => { await _service.ArchiveSourceAsync(source.Id); await RefreshAsync(); };
             actions.Children.Add(archive);
         }
-        var delete = MakeButton("Delete", "#FFEBEE", "#C62828");
+        var delete = MakeButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         delete.Clicked += async (_, _) =>
         {
             if (await DisplayAlert("Delete Source", "Delete this motivation source?", "Delete", "Cancel"))
@@ -189,14 +182,12 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
         };
         actions.Children.Add(delete);
         body.Children.Add(actions);
-        var card = new Border
+        var card = (new Border
         {
             Content = body,
-            Stroke = Color.FromArgb("#DDDDDD"),
             StrokeThickness = 1,
-            BackgroundColor = source.IsArchived ? Color.FromArgb("#F2F2F2") : Colors.White,
             Padding = 12
-        };
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, source.IsArchived ? ThemeKey.SecondarySurface : ThemeKey.CardBackground);
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (_, _) =>
             await Navigation.PushAsync(
@@ -214,28 +205,24 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
         {
             int score = Math.Clamp(source.StrengthScore!.Value, 1, 100);
             double fillHeight = score / 100.0 * 180;
-            var tankGrid = new Grid
+            var tankGrid = (new Grid
             {
                 HeightRequest = 180,
-                WidthRequest = 48,
-                BackgroundColor = Color.FromArgb("#ECEFF1")
-            };
-            tankGrid.Children.Add(new BoxView
+                WidthRequest = 48
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+            tankGrid.Children.Add((new BoxView
             {
                 HeightRequest = fillHeight,
                 VerticalOptions = LayoutOptions.End,
-                HorizontalOptions = LayoutOptions.Fill,
-                Color = StrengthColor(score)
-            });
-            var tank = new Border
+                HorizontalOptions = LayoutOptions.Fill
+            }).ThemeColor(BoxView.ColorProperty, StrengthColor(score)));
+            var tank = (new Border
             {
                 Content = tankGrid,
                 WidthRequest = 48,
                 HeightRequest = 180,
-                Stroke = Color.FromArgb("#B0BEC5"),
-                StrokeThickness = 1,
-                BackgroundColor = Color.FromArgb("#ECEFF1")
-            };
+                StrokeThickness = 1
+            }).ThemeColor(Border.StrokeProperty, ThemeKey.DisabledBlueGrey).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
             var bar = new VerticalStackLayout
             {
                 Spacing = 3,
@@ -243,26 +230,24 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
                 HorizontalOptions = LayoutOptions.Center
             };
             bar.Children.Add(tank);
-            bar.Children.Add(new Label
+            bar.Children.Add((new Label
             {
                 Text = score.ToString(),
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                TextColor = StrengthColor(score)
-            });
+                HorizontalTextAlignment = TextAlignment.Center
+            }).ThemeColor(Label.TextColorProperty, StrengthColor(score), ThemeKey.PageText1, classifyPageText: true));
             string shortTitle = source.Title.Length > 8
                 ? source.Title[..8] + "…"
                 : source.Title;
-            bar.Children.Add(new Label
+            bar.Children.Add((new Label
             {
                 Text = shortTitle,
                 FontSize = 10,
                 LineBreakMode = LineBreakMode.TailTruncation,
                 MaxLines = 1,
-                HorizontalTextAlignment = TextAlignment.Center,
-                TextColor = Color.FromArgb("#555")
-            });
+                HorizontalTextAlignment = TextAlignment.Center
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
             var tap = new TapGestureRecognizer();
             tap.Tapped += async (_, _) =>
                 await DisplayAlert(
@@ -273,13 +258,12 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
             bars.Children.Add(bar);
         }
         var section = new VerticalStackLayout { Spacing = 6 };
-        section.Children.Add(new Label
+        section.Children.Add((new Label
         {
             Text = "Motivation Fuel",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
         section.Children.Add(new ScrollView
         {
             Orientation = ScrollOrientation.Horizontal,
@@ -289,22 +273,17 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
         return section;
     }
 
-    private static Color StrengthColor(int score) => score <= 20
-        ? Color.FromArgb("#D32F2F")
-        : score <= 40 ? Color.FromArgb("#EF6C00")
-        : score <= 60 ? Color.FromArgb("#F9A825")
-        : score <= 80 ? Color.FromArgb("#2E7D32")
-        : Color.FromArgb("#7B1FA2");
+    private static ThemeKey StrengthColor(int score) => score <= 20 ? ThemeKey.ErrorStrongText : score <= 40 ? ThemeKey.WarningAmber : score <= 60 ? ThemeKey.WarningGoldenButton : score <= 80 ? ThemeKey.SuccessText : ThemeKey.AccentPurpleText;
 
     private View BuildAddForm()
     {
         var form = new VerticalStackLayout { Spacing = 8 };
-        form.Children.Add(new Label { Text = "Add Source", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
-        _titleEntry = new Entry { Placeholder = "Title", BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
-        _descriptionEditor = new Editor { Placeholder = "Description (optional)", HeightRequest = 110, AutoSize = EditorAutoSizeOption.Disabled, BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
+        form.Children.Add((new Label { Text = "Add Source", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        _titleEntry = (new Entry { Placeholder = "Title" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        _descriptionEditor = (new Editor { Placeholder = "Description (optional)", HeightRequest = 110, AutoSize = EditorAutoSizeOption.Disabled }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         form.Children.Add(_titleEntry);
         form.Children.Add(_descriptionEditor);
-        var save = MakeButton("Save", "#E8F5E9", "#2E7D32");
+        var save = MakeButton("Save", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         save.Clicked += async (_, _) =>
         {
             if (string.IsNullOrWhiteSpace(_titleEntry.Text)) return;
@@ -318,7 +297,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
             await RefreshAsync();
         };
         form.Children.Add(save);
-        return new Border { Content = form, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#FAFAFA"), Padding = 12 };
+        return (new Border { Content = form, StrokeThickness = 1, Padding = 12 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
     }
 
     private async Task ExportStrengthQuestionnaireAsync()
@@ -393,31 +372,28 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
     private async Task<string?> ShowImportEditorAsync()
     {
         var tcs = new TaskCompletionSource<string?>();
-        var editor = new Editor
+        var editor = (new Editor
         {
             Placeholder = "Paste sourceStrength[N] = score; lines here...",
             HeightRequest = 260,
-            AutoSize = EditorAutoSizeOption.Disabled,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222")
-        };
-        var save = MakeButton("Import", "#E8F5E9", "#2E7D32");
-        var page = new ContentPage
+            AutoSize = EditorAutoSizeOption.Disabled
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        var save = MakeButton("Import", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
+        var page = (new ContentPage
         {
             Title = "Import Strength Results",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             Content = new VerticalStackLayout
             {
                 Padding = 16,
                 Spacing = 12,
                 Children =
                 {
-                    new Label { Text = "Paste the LLM results:", FontSize = 16, TextColor = Color.FromArgb("#222") },
+                    (new Label { Text = "Paste the LLM results:", FontSize = 16 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
                     editor,
                     save
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
         save.Clicked += async (_, _) =>
         {
             tcs.TrySetResult(editor.Text ?? "");
@@ -428,8 +404,7 @@ public class MotivationSourcesPage : Bannister.Views.ModeThemedPage
         return await tcs.Task;
     }
 
-    private static Button MakeButton(string text, string background, string foreground) => new()
-    {
-        Text = text, BackgroundColor = Color.FromArgb(background), TextColor = Color.FromArgb(foreground), CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0), FontSize = 12
-    };
+    private static Button MakeButton(string text, ThemeKey background, ThemeKey foreground) => (new Button(){
+        Text = text, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0), FontSize = 12
+    }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
 }

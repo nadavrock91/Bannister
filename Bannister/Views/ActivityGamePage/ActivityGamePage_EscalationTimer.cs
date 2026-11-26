@@ -23,28 +23,25 @@ public partial class ActivityGamePage
     /// </summary>
     private Frame BuildLevelCapsPanel()
     {
-        _levelCapsFrame = new Frame
+        _levelCapsFrame = (new Frame
         {
             Padding = 12,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#FFF3E0"), // Light orange background
             HasShadow = true,
-            BorderColor = Color.FromArgb("#FF9800"),
             Margin = new Thickness(0, 0, 0, 12),
             IsVisible = false // Hidden by default, shown when there are level caps
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
         // Title
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = "🔒 Level Caps",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            HorizontalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#E65100")
-        };
+            HorizontalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true);
         stack.Children.Add(titleLabel);
 
         // Container for level cap items
@@ -85,14 +82,13 @@ public partial class ActivityGamePage
                 int daysNeeded = activity.LevelCapStreakRequired;
                 int currentStreak = activity.DisplayDayStreak;
                 
-                var itemFrame = new Frame
+                var itemFrame = (new Frame
                 {
                     Padding = 8,
                     CornerRadius = 8,
-                    BackgroundColor = isBlocking ? Color.FromArgb("#FFCDD2") : Color.FromArgb("#C8E6C9"),
                     HasShadow = false,
                     BorderColor = Colors.Transparent
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, isBlocking ? ThemeKey.ErrorSelectedBackground : ThemeKey.SuccessBackground);
 
                 var itemGrid = new Grid
                 {
@@ -107,22 +103,20 @@ public partial class ActivityGamePage
                 // Activity info
                 var infoStack = new VerticalStackLayout { Spacing = 2 };
                 
-                var nameLabel = new Label
+                var nameLabel = (new Label
                 {
                     Text = activity.Name,
                     FontSize = 12,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333"),
                     LineBreakMode = LineBreakMode.TailTruncation
-                };
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3, classifyPageText: true);
                 infoStack.Children.Add(nameLabel);
 
-                var detailLabel = new Label
+                var detailLabel = (new Label
                 {
                     Text = $"Cap at Lv{activity.LevelCapAt} • Need {activity.LevelCapStreakRequired}d streak",
-                    FontSize = 10,
-                    TextColor = Color.FromArgb("#666")
-                };
+                    FontSize = 10
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
                 infoStack.Children.Add(detailLabel);
 
                 Grid.SetColumn(infoStack, 0);
@@ -165,37 +159,34 @@ public partial class ActivityGamePage
                     fireRow.Children.Add(fireLabel);
                     
                     // BIG blocking days number
-                    var bigDaysLabel = new Label
+                    var bigDaysLabel = (new Label
                     {
                         Text = $"{daysBlocking}d",
                         FontSize = 28,
                         FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#D32F2F"),
                         VerticalOptions = LayoutOptions.Center
-                    };
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorStrongText, ThemeKey.PageText1, classifyPageText: true);
                     fireRow.Children.Add(bigDaysLabel);
                     
                     blockingStack.Children.Add(fireRow);
                     
                     // Progress toward unlock
-                    var progressLabel = new Label
+                    var progressLabel = (new Label
                     {
                         Text = $"{currentStreak}d / {daysNeeded}d streak",
                         FontSize = 10,
-                        TextColor = Color.FromArgb("#666"),
                         HorizontalOptions = LayoutOptions.End
-                    };
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
                     blockingStack.Children.Add(progressLabel);
 
                     // Status label
-                    var statusLabel = new Label
+                    var statusLabel = (new Label
                     {
                         Text = "⛔ BLOCKING",
                         FontSize = 9,
                         FontAttributes = FontAttributes.Bold,
-                        HorizontalOptions = LayoutOptions.End,
-                        TextColor = Color.FromArgb("#D32F2F")
-                    };
+                        HorizontalOptions = LayoutOptions.End
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorStrongText, ThemeKey.PageText3, classifyPageText: true);
                     blockingStack.Children.Add(statusLabel);
                     
                     Grid.SetColumn(blockingStack, 1);
@@ -210,24 +201,22 @@ public partial class ActivityGamePage
                         VerticalOptions = LayoutOptions.Center
                     };
                     
-                    var streakLabel = new Label
+                    var streakLabel = (new Label
                     {
                         Text = $"🔥 {activity.DisplayDayStreak}d",
                         FontSize = 11,
                         FontAttributes = FontAttributes.Bold,
-                        HorizontalOptions = LayoutOptions.End,
-                        TextColor = Color.FromArgb("#4CAF50")
-                    };
+                        HorizontalOptions = LayoutOptions.End
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3, classifyPageText: true);
                     unlockedStack.Children.Add(streakLabel);
 
-                    var statusLabel = new Label
+                    var statusLabel = (new Label
                     {
                         Text = "✅ UNLOCKED",
                         FontSize = 9,
                         FontAttributes = FontAttributes.Bold,
-                        HorizontalOptions = LayoutOptions.End,
-                        TextColor = Color.FromArgb("#388E3C")
-                    };
+                        HorizontalOptions = LayoutOptions.End
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessBrightText, ThemeKey.PageText3, classifyPageText: true);
                     unlockedStack.Children.Add(statusLabel);
                     
                     Grid.SetColumn(unlockedStack, 1);
@@ -251,15 +240,14 @@ public partial class ActivityGamePage
     {
         System.Diagnostics.Debug.WriteLine(">>> BuildEscalationTimerPanel() called");
         
-        _escalationTimerFrame = new Frame
+        _escalationTimerFrame = (new Frame
         {
             Padding = 10,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent,
             Margin = new Thickness(0, 0, 0, 12)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 6 };
 
@@ -276,60 +264,53 @@ public partial class ActivityGamePage
             ColumnSpacing = 4
         };
 
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = "Meaningful Escalation",
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
-            VerticalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#333")
-        };
+            VerticalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3, classifyPageText: true);
         Grid.SetColumn(titleLabel, 0);
         headerGrid.Children.Add(titleLabel);
 
         // Reset button (small)
-        _escalationResetButton = new Button
+        _escalationResetButton = (new Button
         {
             Text = "✓",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 4,
             FontSize = 10,
             Padding = new Thickness(6, 2),
             WidthRequest = 28,
             HeightRequest = 24
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _escalationResetButton.Clicked += OnEscalationResetClicked;
         Grid.SetColumn(_escalationResetButton, 1);
         headerGrid.Children.Add(_escalationResetButton);
 
         // Toggle button (small)
-        _escalationToggleButton = new Button
+        _escalationToggleButton = (new Button
         {
             Text = "⏸",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 4,
             FontSize = 10,
             Padding = new Thickness(6, 2),
             WidthRequest = 28,
             HeightRequest = 24
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _escalationToggleButton.Clicked += OnEscalationToggleClicked;
         Grid.SetColumn(_escalationToggleButton, 2);
         headerGrid.Children.Add(_escalationToggleButton);
 
-        var setDurationBtn = new Button
+        var setDurationBtn = (new Button
         {
             Text = "⏱",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             HeightRequest = 30,
             WidthRequest = 30,
             Padding = 0,
             FontSize = 14
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         ToolTipProperties.SetText(setDurationBtn, "Set custom duration");
         setDurationBtn.Clicked += OnSetEscalationDurationClicked;
         Grid.SetColumn(setDurationBtn, 3);
@@ -338,34 +319,31 @@ public partial class ActivityGamePage
         stack.Children.Add(headerGrid);
 
         // Days remaining label
-        _escalationDaysLabel = new Label
+        _escalationDaysLabel = (new Label
         {
             Text = "30 days",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            HorizontalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#4CAF50")
-        };
+            HorizontalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true);
         stack.Children.Add(_escalationDaysLabel);
 
         // Vertical progress bar container (REDUCED HEIGHT)
-        var progressContainer = new Frame
+        var progressContainer = (new Frame
         {
             Padding = 0,
             CornerRadius = 6,
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false,
             HeightRequest = 120, // Reduced from 300
             WidthRequest = 30,   // Reduced from 40
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 4, 0, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
 
         // Vertical progress bar (rotated horizontal bar)
         _escalationProgressBar = new ProgressBar
         {
             Progress = 1.0,
-            ProgressColor = Color.FromArgb("#4CAF50"),
             BackgroundColor = Colors.Transparent,
             Rotation = -90,
             WidthRequest = 120, // Match container height
@@ -373,19 +351,19 @@ public partial class ActivityGamePage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
         };
+        _escalationProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText);
 
         progressContainer.Content = _escalationProgressBar;
         stack.Children.Add(progressContainer);
 
         // Info label (smaller)
-        var infoLabel = new Label
+        var infoLabel = (new Label
         {
             Text = "Days to escalate",
             FontSize = 9,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         stack.Children.Add(infoLabel);
 
         _escalationTimerFrame.Content = stack;
@@ -397,14 +375,13 @@ public partial class ActivityGamePage
     /// </summary>
     private Frame BuildEscalationTimerPanelMobile()
     {
-        _escalationTimerFrame = new Frame
+        _escalationTimerFrame = (new Frame
         {
             Padding = 12,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var grid = new Grid
         {
@@ -425,14 +402,13 @@ public partial class ActivityGamePage
         };
 
         // Days remaining label (left)
-        _escalationDaysLabel = new Label
+        _escalationDaysLabel = (new Label
         {
             Text = "30 days",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            VerticalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#4CAF50")
-        };
+            VerticalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(_escalationDaysLabel, 0);
         Grid.SetRowSpan(_escalationDaysLabel, 2);
         grid.Children.Add(_escalationDaysLabel);
@@ -440,31 +416,27 @@ public partial class ActivityGamePage
         // Progress info (middle)
         var middleStack = new VerticalStackLayout { Spacing = 4 };
 
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = "Meaningful Escalation",
             FontSize = 12,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3, classifyPageText: true);
         middleStack.Children.Add(titleLabel);
 
         // Horizontal progress bar for mobile
-        _escalationProgressBar = new ProgressBar
+        _escalationProgressBar = (new ProgressBar
         {
             Progress = 1.0,
-            ProgressColor = Color.FromArgb("#4CAF50"),
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
             HeightRequest = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText);
         middleStack.Children.Add(_escalationProgressBar);
 
-        var infoLabel = new Label
+        var infoLabel = (new Label
         {
             Text = "Days until you must meaningfully escalate",
-            FontSize = 9,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 9
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         middleStack.Children.Add(infoLabel);
 
         Grid.SetColumn(middleStack, 1);
@@ -472,50 +444,44 @@ public partial class ActivityGamePage
         grid.Children.Add(middleStack);
 
         // Reset button (right top)
-        _escalationResetButton = new Button
+        _escalationResetButton = (new Button
         {
             Text = "✓",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 20,
             FontSize = 16,
             WidthRequest = 40,
             HeightRequest = 40,
             Padding = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _escalationResetButton.Clicked += OnEscalationResetClicked;
         Grid.SetColumn(_escalationResetButton, 2);
         Grid.SetRow(_escalationResetButton, 0);
         grid.Children.Add(_escalationResetButton);
 
         // Toggle button (right bottom)
-        _escalationToggleButton = new Button
+        _escalationToggleButton = (new Button
         {
             Text = "⏸",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 20,
             FontSize = 16,
             WidthRequest = 40,
             HeightRequest = 40,
             Padding = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _escalationToggleButton.Clicked += OnEscalationToggleClicked;
         Grid.SetColumn(_escalationToggleButton, 2);
         Grid.SetRow(_escalationToggleButton, 1);
         grid.Children.Add(_escalationToggleButton);
 
-        var setDurationBtn = new Button
+        var setDurationBtn = (new Button
         {
             Text = "⏱",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             HeightRequest = 30,
             WidthRequest = 30,
             Padding = 0,
             FontSize = 14
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         ToolTipProperties.SetText(setDurationBtn, "Set custom duration");
         setDurationBtn.Clicked += OnSetEscalationDurationClicked;
         Grid.SetColumn(setDurationBtn, 2);
@@ -552,8 +518,7 @@ public partial class ActivityGamePage
         if (_escalationToggleButton != null)
         {
             _escalationToggleButton.Text = isDisabled ? "▶" : "⏸";
-            _escalationToggleButton.BackgroundColor = isDisabled ? 
-                Color.FromArgb("#4CAF50") : Color.FromArgb("#FF9800");
+            _escalationToggleButton.ThemeColor(VisualElement.BackgroundColorProperty, isDisabled ? ThemeKey.SuccessButtonBackground : ThemeKey.WarningButtonBackground);
         }
 
         // Update labels
@@ -561,8 +526,8 @@ public partial class ActivityGamePage
         {
             _escalationDaysLabel.Text = "PAUSED";
             _escalationProgressBar.Progress = 1.0;
-            _escalationDaysLabel.TextColor = Color.FromArgb("#999");
-            _escalationProgressBar.ProgressColor = Color.FromArgb("#999");
+            _escalationDaysLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1, classifyPageText: true);
+            _escalationProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.CardText3);
         }
         else
         {
@@ -570,34 +535,34 @@ public partial class ActivityGamePage
             _escalationProgressBar.Progress = progress;
 
             // Change colors based on days remaining
-            Color textColor;
-            Color barColor;
+            ThemeKey textColor;
+            ThemeKey barColor;
 
             int halfDuration = _game?.EscalationDurationDays / 2 ?? 15;
             int quarterDuration = _game?.EscalationDurationDays / 4 ?? 7;
             if (daysRemaining > halfDuration)
             {
-                textColor = Color.FromArgb("#4CAF50");
-                barColor = Color.FromArgb("#4CAF50");
+                textColor = ThemeKey.SuccessLightText;
+                barColor = ThemeKey.SuccessLightText;
             }
             else if (daysRemaining > quarterDuration)
             {
-                textColor = Color.FromArgb("#FF9800");
-                barColor = Color.FromArgb("#FF9800");
+                textColor = ThemeKey.WarningAccentText;
+                barColor = ThemeKey.WarningAccentText;
             }
             else if (daysRemaining > 0) // Red: 1-7 days
             {
-                textColor = Color.FromArgb("#F44336");
-                barColor = Color.FromArgb("#F44336");
+                textColor = ThemeKey.ErrorButtonBackground;
+                barColor = ThemeKey.ErrorButtonBackground;
             }
             else // Black/Dark: 0 days (expired)
             {
-                textColor = Color.FromArgb("#212121");
-                barColor = Color.FromArgb("#212121");
+                textColor = ThemeKey.CardTextStrong;
+                barColor = ThemeKey.CardTextStrong;
             }
 
-            _escalationDaysLabel.TextColor = textColor;
-            _escalationProgressBar.ProgressColor = barColor;
+            _escalationDaysLabel.ThemeColor(Label.TextColorProperty, textColor, ThemeKey.PageText1, classifyPageText: true);
+            _escalationProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, barColor);
         }
         
         // Also refresh level caps panel

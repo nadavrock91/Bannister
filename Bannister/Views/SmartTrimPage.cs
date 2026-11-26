@@ -56,13 +56,12 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
             Spacing = 14,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Smart Trim",
                     FontSize = 22,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#00695C")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightMintText, ThemeKey.PageText1, classifyPageText: true),
                 BuildCard("Smart Trim Suggestions", new View[]
                 {
                     CreateActionButton("Copy Smart Trim Prompt", OnCopySmartTrimPromptClicked),
@@ -144,27 +143,25 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
             .ToList();
 
         var suggestionButtons = new List<(CutSuggestion suggestion, Button button)>();
-        var suggestionsFlex = new FlexLayout
+        var suggestionsFlex = (new FlexLayout
         {
             Direction = FlexDirection.Row,
             Wrap = FlexWrap.Wrap,
             AlignItems = FlexAlignItems.Center,
             JustifyContent = FlexJustify.Start,
-            Padding = new Thickness(12, 8),
-            BackgroundColor = Colors.White
-        };
-        var grid = new Grid
+            Padding = new Thickness(12, 8)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
+        var grid = (new Grid
         {
             RowSpacing = 1,
             ColumnSpacing = 1,
-            BackgroundColor = Color.FromArgb("#CFD8DC"),
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = 34 },
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
 
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         AddHeaderCell(grid, "", 0);
@@ -173,7 +170,7 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
 
         var statsLabel = CreateStatsLabel();
         var progressLabel = CreateMutedLabel("");
-        var compileButton = CreateButton("Compile Video", Color.FromArgb("#00695C"));
+        var compileButton = CreateButton("Compile Video", ThemeKey.HighlightMintText);
 
         Action refreshState = () =>
         {
@@ -218,23 +215,21 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
 
         foreach (var suggestion in _suggestions)
         {
-            var infoButton = new Button
+            var infoButton = (new Button
             {
                 Text = "\u24d8",
                 WidthRequest = 28,
                 HeightRequest = 28,
                 CornerRadius = 14,
                 FontSize = 12,
-                Padding = 0,
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#263238")
-            };
+                Padding = 0
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
             infoButton.Clicked += async (_, _) =>
             {
                 await DisplayAlert("Cut Reason", suggestion.Reason, "OK");
             };
 
-            var button = CreateButton(FormatSuggestionSaveText(suggestion), Color.FromArgb("#2E7D32"));
+            var button = CreateButton(FormatSuggestionSaveText(suggestion), ThemeKey.SuccessDarkButtonBackground);
             button.WidthRequest = 78;
             button.HeightRequest = 34;
             button.Padding = new Thickness(8, 4);
@@ -318,10 +313,8 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
             refreshState();
         };
 
-        var statsFrame = new Frame
+        var statsFrame = (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#CFD8DC"),
             CornerRadius = 0,
             HasShadow = false,
             Padding = new Thickness(16, 10),
@@ -331,15 +324,14 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
                 Children =
                 {
                     statsLabel,
-                    new Label
+                    (new Label
                     {
                         Text = "⚠️ Recommended workflow: compile first, then truncate silence on the result.",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#F57C00")
-                    }
+                        FontSize = 12
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText3, classifyPageText: true)
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var comparisonScroll = new ScrollView
         {
@@ -349,20 +341,19 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Smart Trim Review",
                         FontSize = 22,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#263238")
-                    },
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     new HorizontalStackLayout
                     {
                         Spacing = 12,
                         Children =
                         {
-                            CreateLegendItem("Enabled", Color.FromArgb("#E8F5E9")),
-                            CreateLegendItem("Disabled", Color.FromArgb("#ECEFF1"))
+                            CreateLegendItem("Enabled", ThemeKey.SuccessBackground),
+                            CreateLegendItem("Disabled", ThemeKey.RowAltBackground)
                         }
                     },
                     grid,
@@ -388,12 +379,11 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
         contentGrid.Children.Add(suggestionsFlex);
         contentGrid.Children.Add(comparisonScroll);
 
-        return new ContentPage
+        return (new ContentPage
         {
             Title = "Smart Trim Review",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             Content = contentGrid
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
     }
 
     private List<SentenceItem> BuildOriginalSentenceItems()
@@ -490,9 +480,7 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
                 .Where(row => row != null)
                 .All(row => row!.IsEnabled == false);
 
-            item.button.BackgroundColor = allDisabled
-                ? Color.FromArgb("#78909C")
-                : Color.FromArgb("#2E7D32");
+            item.button.ThemeColor(VisualElement.BackgroundColorProperty, allDisabled ? ThemeKey.NeutralMutedButton : ThemeKey.SuccessDarkButtonBackground);
         }
     }
 
@@ -521,15 +509,15 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
         return Regex.Replace(new string(chars), "_+", "_").Trim('_');
     }
 
-    private static Color GetRowBackground(SmartTrimRow row)
+    private static ThemeKey GetRowBackground(SmartTrimRow row)
     {
         if (row.IsEnabled)
-            return Color.FromArgb("#E8F5E9");
+            return ThemeKey.SuccessBackground;
         if (row.IsLastApplied)
-            return Color.FromArgb("#FF5252");
+            return ThemeKey.ErrorBrightText;
         if (row.DisabledBySuggestion)
-            return Color.FromArgb("#F8BBD0");
-        return Color.FromArgb("#ECEFF1");
+            return ThemeKey.HighlightPinkStrong;
+        return ThemeKey.RowAltBackground;
     }
 
     private static List<(double start, double end)> BuildKeepSegmentsFromRows(
@@ -668,24 +656,22 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center
         };
-        row.NumberLabel = new Label
+        row.NumberLabel = (new Label
         {
             Text = row.Number.ToString(CultureInfo.InvariantCulture),
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238"),
             VerticalTextAlignment = TextAlignment.Center
-        };
-        row.RatingLabel = new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
+        row.RatingLabel = (new Label
         {
             Text = row.Rating > 0 ? $"\u2605{row.Rating}" : "\u2605-",
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             Padding = new Thickness(7, 2),
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
         row.OriginalLabel = CreateComparisonTextLabel(BuildOriginalDisplay(row));
         row.RevisedLabel = CreateComparisonTextLabel(BuildRevisedDisplay(row));
 
@@ -727,37 +713,31 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
     }
 
     private static Label CreateComparisonTextLabel(string text) =>
-        new()
-        {
+        (new Label(){
             Text = text,
             FontSize = 14,
-            TextColor = Color.FromArgb("#1F2933"),
             Padding = new Thickness(10),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
     private static Frame CreateComparisonFrame(View content) =>
-        new()
-        {
-            BackgroundColor = Colors.White,
+        (new Frame(){
             BorderColor = Colors.Transparent,
             CornerRadius = 0,
             HasShadow = false,
             Padding = 0,
             Content = content
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
     private static Frame CreateRatingFrame(View content, int rating) =>
-        new()
-        {
-            BackgroundColor = GetRatingColor(rating),
+        (new Frame(){
             BorderColor = Colors.Transparent,
             CornerRadius = 8,
             HasShadow = false,
             Padding = 0,
             Content = content,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, GetRatingColor(rating));
 
     private static void AddTap(Frame frame, SmartTrimRow row, Action refreshState, Action<int> clearLastApplied)
     {
@@ -775,13 +755,11 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
     private static void ApplyRowState(SmartTrimRow row)
     {
         var background = GetRowBackground(row);
-        row.IndicatorFrame.BackgroundColor = background;
-        row.OriginalFrame.BackgroundColor = background;
-        row.RevisedFrame.BackgroundColor = background;
+        row.IndicatorFrame.ThemeColor(VisualElement.BackgroundColorProperty, background);
+        row.OriginalFrame.ThemeColor(VisualElement.BackgroundColorProperty, background);
+        row.RevisedFrame.ThemeColor(VisualElement.BackgroundColorProperty, background);
         row.IndicatorLabel.Text = row.IsEnabled ? "\u2713" : "\u2717";
-        row.IndicatorLabel.TextColor = row.IsEnabled
-            ? Color.FromArgb("#1B5E20")
-            : Color.FromArgb("#B71C1C");
+        row.IndicatorLabel.ThemeColor(Label.TextColorProperty, row.IsEnabled ? ThemeKey.SuccessStrongText : ThemeKey.ErrorDeepText, ThemeKey.PageText1, classifyPageText: true);
 
         var textDecorations = row.IsEnabled
             ? TextDecorations.None
@@ -789,65 +767,55 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
         row.OriginalLabel.TextDecorations = textDecorations;
         row.RevisedLabel.TextDecorations = textDecorations;
         row.RevisedLabel.Text = BuildRevisedDisplay(row);
-        row.NumberLabel.TextColor = row.IsEnabled
-            ? Color.FromArgb("#263238")
-            : Color.FromArgb("#607D8B");
-        row.OriginalLabel.TextColor = row.IsEnabled
-            ? Color.FromArgb("#1F2933")
-            : Color.FromArgb("#607D8B");
-        row.RevisedLabel.TextColor = row.IsEnabled
-            ? Color.FromArgb("#1F2933")
-            : Color.FromArgb("#607D8B");
+        row.NumberLabel.ThemeColor(Label.TextColorProperty, row.IsEnabled ? ThemeKey.CardText1 : ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true);
+        row.OriginalLabel.ThemeColor(Label.TextColorProperty, row.IsEnabled ? ThemeKey.CardText1 : ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true);
+        row.RevisedLabel.ThemeColor(Label.TextColorProperty, row.IsEnabled ? ThemeKey.CardText1 : ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true);
     }
 
-    private static Color GetRatingColor(int rating)
+    private static ThemeKey GetRatingColor(int rating)
     {
         if (rating >= 7)
-            return Color.FromArgb("#2E7D32");
+            return ThemeKey.SuccessText;
         if (rating >= 4)
-            return Color.FromArgb("#EF6C00");
+            return ThemeKey.WarningAmber;
         if (rating >= 1)
-            return Color.FromArgb("#C62828");
-        return Color.FromArgb("#78909C");
+            return ThemeKey.ErrorText;
+        return ThemeKey.NeutralMutedButton;
     }
 
     private static void AddHeaderCell(Grid grid, string text, int column)
     {
-        var label = new Label
+        var label = (new Label
         {
             Text = text,
             FontAttributes = FontAttributes.Bold,
             FontSize = 16,
-            TextColor = Colors.White,
-            Padding = new Thickness(12, 10),
-            BackgroundColor = Color.FromArgb("#263238")
-        };
+            Padding = new Thickness(12, 10)
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralStrongButtonBackground);
 
         Grid.SetRow(label, 0);
         Grid.SetColumn(label, column);
         grid.Children.Add(label);
     }
 
-    private static View CreateLegendItem(string text, Color color) =>
+    private static View CreateLegendItem(string text, ThemeKey color) =>
         new HorizontalStackLayout
         {
             Spacing = 6,
             Children =
             {
-                new BoxView
+                (new BoxView
                 {
-                    Color = color,
                     WidthRequest = 14,
                     HeightRequest = 14,
                     VerticalOptions = LayoutOptions.Center
-                },
-                new Label
+                }).ThemeColor(BoxView.ColorProperty, color),
+                (new Label
                 {
                     Text = text,
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#455A64"),
                     VerticalOptions = LayoutOptions.Center
-                }
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.SlateText, ThemeKey.PageText1, classifyPageText: true)
             }
         };
 
@@ -858,28 +826,25 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
             Spacing = 10,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = title,
                     FontSize = 18,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#263238")
-                }
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true)
             }
         };
 
         foreach (var child in children)
             stack.Children.Add(child);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#CFD8DC"),
             CornerRadius = 10,
             HasShadow = false,
             Padding = 14,
             Content = stack
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private View CreateLabeledEditor(string label, Editor editor) =>
@@ -888,61 +853,49 @@ public class SmartTrimPage : Bannister.Views.ModeThemedPage
             Spacing = 4,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = label,
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#546E7A"),
                     LineBreakMode = LineBreakMode.WordWrap
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true),
                 editor
             }
         };
 
     private Editor CreateEditor(string placeholder, double height) =>
-        new()
-        {
+        (new Editor(){
             Placeholder = placeholder,
             HeightRequest = height,
-            AutoSize = EditorAutoSizeOption.Disabled,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#777")
-        };
+            AutoSize = EditorAutoSizeOption.Disabled
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText2);
 
     private Button CreateActionButton(string text, EventHandler clicked)
     {
-        var button = CreateButton(text, Color.FromArgb("#1565C0"));
+        var button = CreateButton(text, ThemeKey.ButtonPrimaryBackground);
         button.Clicked += clicked;
         return button;
     }
 
-    private static Button CreateButton(string text, Color color) =>
-        new()
-        {
+    private static Button CreateButton(string text, ThemeKey color) =>
+        (new Button(){
             Text = text,
-            BackgroundColor = color,
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(12, 10)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
     private static Label CreateMutedLabel(string text) =>
-        new()
-        {
+        (new Label(){
             Text = text,
             FontSize = 13,
-            TextColor = Color.FromArgb("#607D8B"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true);
 
     private static Label CreateStatsLabel() =>
-        new()
-        {
+        (new Label(){
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
     private sealed record SentenceItem(string Text, TimeSpan? Timestamp, TimeSpan? LastWordTimestamp, TimeSpan? EndTimestamp);
 

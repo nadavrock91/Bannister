@@ -58,26 +58,24 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
             Spacing = 12
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = " Sort Activities",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Tap  Public,  Private, or  Both per activity. " +
                    "Highlighted button = current setting.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Filter row
         var filterRow = new HorizontalStackLayout { Spacing = 6 };
 
-        _filterAllBtn = MakeFilterBtn("Show All", true, "#555555");
+        _filterAllBtn = MakeFilterBtn("Show All", true, ThemeKey.CardText2);
         _filterAllBtn.Clicked += (_, _) =>
         {
             _viewFilter = null;
@@ -88,7 +86,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_filterAllBtn);
 
-        _filterPublicBtn = MakeFilterBtn(" Public", false, "#1565C0");
+        _filterPublicBtn = MakeFilterBtn(" Public", false, ThemeKey.InfoText);
         _filterPublicBtn.Clicked += (_, _) =>
         {
             _viewFilter = 1;
@@ -99,7 +97,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_filterPublicBtn);
 
-        _filterPrivateBtn = MakeFilterBtn(" Private", false, "#6A0DAD");
+        _filterPrivateBtn = MakeFilterBtn(" Private", false, ThemeKey.AccentPurpleDarkButtonBackground);
         _filterPrivateBtn.Clicked += (_, _) =>
         {
             _viewFilter = 0;
@@ -110,7 +108,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_filterPrivateBtn);
 
-        _filterBothBtn = MakeFilterBtn(" Both", false, "#2E7D32");
+        _filterBothBtn = MakeFilterBtn(" Both", false, ThemeKey.SuccessText);
         _filterBothBtn.Clicked += (_, _) =>
         {
             _viewFilter = 2;
@@ -135,16 +133,14 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 4, 0, 0)
         };
 
-        _prevBtn = new Button
+        _prevBtn = (new Button
         {
             Text = "◀",
             FontSize = 14,
             HeightRequest = 36,
             CornerRadius = 6,
-            Padding = 0,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0")
-        };
+            Padding = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _prevBtn.Clicked += (_, _) =>
         {
             if (_currentPage > 0)
@@ -155,26 +151,23 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         };
         navRow.Add(_prevBtn, 0, 0);
 
-        _pageLabel = new Label
+        _pageLabel = (new Label
         {
             Text = "",
             FontSize = 13,
-            TextColor = Color.FromArgb("#444"),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         navRow.Add(_pageLabel, 1, 0);
 
-        _nextBtn = new Button
+        _nextBtn = (new Button
         {
             Text = "▶",
             FontSize = 14,
             HeightRequest = 36,
             CornerRadius = 6,
-            Padding = 0,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0")
-        };
+            Padding = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _nextBtn.Clicked += (_, _) =>
         {
             if (_currentPage < _pagedGroups.Count - 1)
@@ -194,43 +187,33 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
     }
 
     private static Button MakeFilterBtn(
-        string text, bool active, string activeHex)
-        => new Button
+        string text, bool active, ThemeKey activeHex)
+        => (new Button
         {
             Text = text,
             FontSize = 11,
             HeightRequest = 30,
             CornerRadius = 6,
-            Padding = new Thickness(8, 0),
-            BackgroundColor = active
-                ? Color.FromArgb(activeHex)
-                : Color.FromArgb("#ECEFF1"),
-            TextColor = active
-                ? Colors.White
-                : Color.FromArgb("#37474F")
-        };
+            Padding = new Thickness(8, 0)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
 
     private void UpdateFilterButtons()
     {
         StyleBtn(_filterAllBtn,
-            _viewFilter == null, "#555555");
+            _viewFilter == null, ThemeKey.CardText2);
         StyleBtn(_filterPublicBtn,
-            _viewFilter == 1, "#1565C0");
+            _viewFilter == 1, ThemeKey.InfoText);
         StyleBtn(_filterPrivateBtn,
-            _viewFilter == 0, "#6A0DAD");
+            _viewFilter == 0, ThemeKey.AccentPurpleDarkButtonBackground);
         StyleBtn(_filterBothBtn,
-            _viewFilter == 2, "#2E7D32");
+            _viewFilter == 2, ThemeKey.SuccessText);
     }
 
     private static void StyleBtn(
-        Button btn, bool active, string activeHex)
+        Button btn, bool active, ThemeKey activeHex)
     {
-        btn.BackgroundColor = active
-            ? Color.FromArgb(activeHex)
-            : Color.FromArgb("#ECEFF1");
-        btn.TextColor = active
-            ? Colors.White
-            : Color.FromArgb("#37474F");
+        btn.ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground);
+        btn.ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
     }
 
     private async Task LoadDataAsync()
@@ -302,13 +285,12 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
             _pageLabel.Text = "No activities";
             _prevBtn.IsEnabled = false;
             _nextBtn.IsEnabled = false;
-            _contentContainer.Children.Add(new Label
+            _contentContainer.Children.Add((new Label
             {
                 Text = "No activities match the current filter.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -322,7 +304,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
             _currentPage < _pagedGroups.Count - 1;
 
         // Set All row
-        var setAllRow = new Grid
+        var setAllRow = (new Grid
         {
             ColumnDefinitions =
             {
@@ -332,21 +314,19 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition(new GridLength(40))
             },
             ColumnSpacing = 4,
-            Padding = new Thickness(10, 6),
-            BackgroundColor = Color.FromArgb("#ECEFF1")
-        };
+            Padding = new Thickness(10, 6)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-        setAllRow.Add(new Label
+        setAllRow.Add((new Label
         {
             Text = "Set all to →",
             FontSize = 12,
-            TextColor = Color.FromArgb("#555"),
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true), 0, 0);
 
         var setAllPubBtn = VisBtn("", false,
-            "#1565C0", "#E3F2FD", "#1565C0");
+            ThemeKey.InfoText, ThemeKey.RowSelected, ThemeKey.InfoText);
         setAllPubBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -367,7 +347,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         setAllRow.Add(setAllPubBtn, 1, 0);
 
         var setAllPrivBtn = VisBtn("", false,
-            "#6A0DAD", "#F3E5F5", "#6A0DAD");
+            ThemeKey.AccentPurpleDarkButtonBackground, ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleDarkButtonBackground);
         setAllPrivBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -388,7 +368,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         setAllRow.Add(setAllPrivBtn, 2, 0);
 
         var setAllBothBtn = VisBtn("", false,
-            "#2E7D32", "#E8F5E9", "#2E7D32");
+            ThemeKey.SuccessText, ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         setAllBothBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -408,16 +388,14 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         };
         setAllRow.Add(setAllBothBtn, 3, 0);
 
-        _contentContainer.Children.Add(new Frame
+        _contentContainer.Children.Add((new Frame
         {
             Content = setAllRow,
             Padding = 0,
             CornerRadius = 6,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#BDBDBD"),
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
             Margin = new Thickness(0, 0, 0, 6)
-        });
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface));
 
         foreach (var act in acts)
             _contentContainer.Children.Add(
@@ -426,7 +404,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
 
     private View BuildActivityRow(Activity activity)
     {
-        var row = new Grid
+        var row = (new Grid
         {
             ColumnDefinitions =
             {
@@ -436,32 +414,29 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition(new GridLength(40))
             },
             ColumnSpacing = 4,
-            Padding = new Thickness(10, 8),
-            BackgroundColor = Colors.White
-        };
+            Padding = new Thickness(10, 8)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var nameStack = new VerticalStackLayout { Spacing = 1 };
-        nameStack.Children.Add(new Label
+        nameStack.Children.Add((new Label
         {
             Text = activity.Name,
             FontSize = 13,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.TailTruncation
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
         if (activity.VisibilityChangedAt.HasValue)
-            nameStack.Children.Add(new Label
+            nameStack.Children.Add((new Label
             {
                 Text = activity.VisibilityChangedAt.Value
                     .ToLocalTime().ToString("dd MMM yyyy"),
-                FontSize = 10,
-                TextColor = Color.FromArgb("#999")
-            });
+                FontSize = 10
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         row.Add(nameStack, 0, 0);
 
         //  Public
         var pubBtn = VisBtn("",
             activity.ActivityVisibility == 1,
-            "#1565C0", "#E3F2FD", "#1565C0");
+            ThemeKey.InfoText, ThemeKey.RowSelected, ThemeKey.InfoText);
         pubBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -482,7 +457,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         //  Private
         var privBtn = VisBtn("",
             activity.ActivityVisibility == 0,
-            "#6A0DAD", "#F3E5F5", "#6A0DAD");
+            ThemeKey.AccentPurpleDarkButtonBackground, ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleDarkButtonBackground);
         privBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -503,7 +478,7 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         //  Both
         var bothBtn = VisBtn("",
             activity.ActivityVisibility == 2,
-            "#2E7D32", "#E8F5E9", "#2E7D32");
+            ThemeKey.SuccessText, ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         bothBtn.Clicked += async (_, _) =>
         {
             if (_isSaving) return;
@@ -521,33 +496,25 @@ public class SortActivitiesPage : Bannister.Views.ModeThemedPage
         };
         row.Add(bothBtn, 3, 0);
 
-        return new Frame
+        return (new Frame
         {
             Content = row,
             Padding = 0,
             CornerRadius = 6,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Colors.White,
             Margin = new Thickness(0, 1)
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private static Button VisBtn(string text, bool active,
-        string activeBg, string inactiveBg, string inactiveFg)
-        => new Button
+        ThemeKey activeBg, ThemeKey inactiveBg, ThemeKey inactiveFg)
+        => (new Button
         {
             Text = text,
             FontSize = 14,
             HeightRequest = 36,
             WidthRequest = 36,
             CornerRadius = 6,
-            Padding = 0,
-            BackgroundColor = active
-                ? Color.FromArgb(activeBg)
-                : Color.FromArgb(inactiveBg),
-            TextColor = active
-                ? Colors.White
-                : Color.FromArgb(inactiveFg)
-        };
+            Padding = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeBg : inactiveBg).ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : inactiveFg);
 }

@@ -13,9 +13,9 @@ public class GameListViewModel
     public string LevelDisplay => $"Level {Level}";
     
     // NOT visited = highlighted (white with colored border), Visited = greyed out
-    public Color BackgroundColor => VisitedToday ? Color.FromArgb("#F5F5F5") : Colors.White;
-    public Color BorderColor => VisitedToday ? Color.FromArgb("#E0E0E0") : Color.FromArgb("#5B63EE");
-    public Color TextColor => VisitedToday ? Color.FromArgb("#999") : Color.FromArgb("#5B63EE");
+    public Color BackgroundColor => VisitedToday ? AppColors.Get(ThemeKey.SecondarySurface) : AppColors.Get(ThemeKey.OnColorText);
+    public Color BorderColor => VisitedToday ? AppColors.Get(ThemeKey.Separator) : AppColors.Get(ThemeKey.SecondaryAccentText);
+    public Color TextColor => VisitedToday ? AppColors.Get(ThemeKey.CardText3) : AppColors.Get(ThemeKey.SecondaryAccentText);
     public double CardOpacity => VisitedToday ? 0.6 : 1.0;
 }
 
@@ -85,51 +85,45 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
         };
 
         var titleStack = new VerticalStackLayout { Spacing = 2 };
-        titleStack.Children.Add(new Label
+        titleStack.Children.Add((new Label
         {
             Text = "Games",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
-        titleStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        titleStack.Children.Add((new Label
         {
             Text = "Select a game to play",
-            TextColor = Colors.White,
             Opacity = 0.9
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         headerGrid.Add(titleStack, 0, 0);
 
-        _privateModeToggleBtn = new Button
+        _privateModeToggleBtn = (new Button
         {
             Text = "🌐 Public",
             FontSize = 12,
             BackgroundColor = Colors.Transparent,
-            BorderColor = Colors.White,
             BorderWidth = 1,
             CornerRadius = 8,
             HeightRequest = 44,
             WidthRequest = 90,
             Padding = new Thickness(6, 0),
-            VerticalOptions = LayoutOptions.Center,
-            TextColor = Colors.White
-        };
+            VerticalOptions = LayoutOptions.Center
+        }).ThemeColor(Button.BorderColorProperty, ThemeKey.OnColorText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _privateModeToggleBtn.Clicked += async (_, _) =>
             await CycleDisplayModeAsync();
         headerGrid.Add(_privateModeToggleBtn, 1, 0);
 
         mainStack.Children.Add(headerGrid);
 
-        _lastCalculatedButton = new Button
+        _lastCalculatedButton = (new Button
         {
             IsVisible = false,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#5B63EE"),
             CornerRadius = 8,
             HeightRequest = 48,
             Margin = new Thickness(0, 16, 0, 0),
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
         _lastCalculatedButton.Clicked += async (_, _) => await GoToLastCalculatedAsync();
 
         // Games grid container using FlexLayout for wrapping
@@ -146,83 +140,72 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(_lastCalculatedButton);
 
         // Add Game button
-        var btnAddGame = new Button
+        var btnAddGame = (new Button
         {
             Text = "+ Add Game",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#5B63EE"),
             CornerRadius = 8,
             HeightRequest = 48,
             Margin = new Thickness(0, 16, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
         btnAddGame.Clicked += OnAddGameClicked;
         mainStack.Children.Add(btnAddGame);
 
-        var btnTransfer = new Button
+        var btnTransfer = (new Button
         {
             Text = " Export / Import Activities",
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
-            TextColor = Color.FromArgb("#F57F17"),
             CornerRadius = 8,
             HeightRequest = 44,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
         btnTransfer.Clicked += async (_, _) =>
             await Navigation.PushAsync(
                 new AllGamesTransferPage(_games, _activities, _auth));
         mainStack.Children.Add(btnTransfer);
 
-        var btnSort = new Button
+        var btnSort = (new Button
         {
             Text = " Sort Activities",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
             CornerRadius = 8,
             HeightRequest = 44,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
         btnSort.Clicked += async (_, _) =>
             await Navigation.PushAsync(
                 new SortActivitiesPage(
                     _activities, _games, _auth));
         mainStack.Children.Add(btnSort);
 
-        var btnBatchImage = new Button
+        var btnBatchImage = (new Button
         {
             Text = " Batch Image Assign",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
             CornerRadius = 8,
             HeightRequest = 44,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
         btnBatchImage.Clicked += async (_, _) =>
             await Navigation.PushAsync(
                 new BatchImageAssignPage(
                     _activities, _games, _auth));
         mainStack.Children.Add(btnBatchImage);
 
-        var btnSortGames = new Button
+        var btnSortGames = (new Button
         {
             Text = " Sort Games",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
             CornerRadius = 8,
             HeightRequest = 44,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
         btnSortGames.Clicked += async (_, _) =>
             await Navigation.PushAsync(
                 new SortGamesPage(_games, _activities, _auth));
         mainStack.Children.Add(btnSortGames);
 
         // ===== GROUPINGS SECTION =====
-        mainStack.Children.Add(new BoxView
+        mainStack.Children.Add((new BoxView
         {
             HeightRequest = 1,
-            Color = Color.FromArgb("#8B8FFF"),
             Margin = new Thickness(0, 20, 0, 8)
-        });
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.PeriwinkleButtonBackground));
 
         var groupingsHeader = new Grid
         {
@@ -233,25 +216,22 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        groupingsHeader.Children.Add(new Label
+        groupingsHeader.Children.Add((new Label
         {
             Text = "📂 Groupings",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
-        var btnAddGrouping = new Button
+        var btnAddGrouping = (new Button
         {
             Text = "+ New",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#283593"),
             CornerRadius = 6,
             HeightRequest = 34,
             FontSize = 13,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         btnAddGrouping.Clicked += OnAddGroupingClicked;
         Grid.SetColumn(btnAddGrouping, 1);
         groupingsHeader.Children.Add(btnAddGrouping);
@@ -262,16 +242,14 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(_groupingsContainer);
 
         // Restore Game button
-        _restoreBtn = new Button
+        _restoreBtn = (new Button
         {
             Text = "🔄 Restore Game",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#666"),
             CornerRadius = 8,
             HeightRequest = 44,
             Margin = new Thickness(0, 8, 0, 0),
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         _restoreBtn.Clicked += OnRestoreGameClicked;
         mainStack.Children.Add(_restoreBtn);
 
@@ -279,12 +257,11 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
         mainGrid.Children.Add(scrollView);
 
         // Loading overlay
-        _loadingOverlay = new Grid
+        _loadingOverlay = (new Grid
         {
             IsVisible = false,
-            BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         var loadingStack = new VerticalStackLayout
         {
@@ -293,21 +270,19 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        loadingStack.Children.Add(new ActivityIndicator
+        loadingStack.Children.Add((new ActivityIndicator
         {
             IsRunning = true,
-            Color = Colors.White,
             WidthRequest = 50,
             HeightRequest = 50
-        });
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
 
-        loadingStack.Children.Add(new Label
+        loadingStack.Children.Add((new Label
         {
             Text = "Loading game...",
-            TextColor = Colors.White,
             FontSize = 16,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
         _loadingOverlay.Children.Add(loadingStack);
         mainGrid.Children.Add(_loadingOverlay);
@@ -472,33 +447,30 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
         });
 
         // Level display with checkmark if visited today
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = vm.VisitedToday ? $"Level {vm.Level} ✓" : $"Level {vm.Level}",
-            TextColor = vm.VisitedToday ? Color.FromArgb("#999") : Color.FromArgb("#666"),
             FontSize = 12,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, vm.VisitedToday ? ThemeKey.CardText3 : ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Level progress indicator
         var levelColor = GetLevelColor(vm.Level);
-        stack.Children.Add(new BoxView
+        stack.Children.Add((new BoxView
         {
-            Color = levelColor,
             HeightRequest = 4,
             CornerRadius = 2,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(10, 4, 10, 0)
-        });
+        }).ThemeColor(BoxView.ColorProperty, levelColor));
 
         grid.Children.Add(stack);
 
         // Menu button (3 dots) in top-right corner
-        var menuBtn = new Button
+        var menuBtn = (new Button
         {
             Text = "⋮",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#999"),
             FontSize = 16,
             WidthRequest = 28,
             HeightRequest = 28,
@@ -506,7 +478,7 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Start,
             Margin = new Thickness(0, -8, -8, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         var capturedVm = vm;
         menuBtn.Clicked += async (s, e) => await ShowGameMenuAsync(capturedVm);
         grid.Children.Add(menuBtn);
@@ -517,20 +489,16 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
             _auth.CurrentUsername);
         if (cardMode != ActivityDisplayMode.All)
         {
-            frame.BackgroundColor = cardMode ==
-                ActivityDisplayMode.PublicOnly
-                ? Color.FromArgb("#1E2D4E")
-                : Color.FromArgb("#2D1A4E");
-            frame.BorderColor = cardMode ==
-                ActivityDisplayMode.PublicOnly
-                ? Color.FromArgb("#00E5FF")
-                : Color.FromArgb("#9C27B0");
+            frame.ThemeColor(VisualElement.BackgroundColorProperty, cardMode ==
+                ActivityDisplayMode.PublicOnly ? ThemeKey.PublicCardBackground : ThemeKey.PrivateCardBackground);
+            frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, cardMode ==
+                ActivityDisplayMode.PublicOnly ? ThemeKey.Accent : ThemeKey.AccentPurpleButtonBackground);
             foreach (var child in grid.Children)
             {
                 if (child is VerticalStackLayout vsl)
                     foreach (var c in vsl.Children)
                         if (c is Label lbl)
-                            lbl.TextColor = Colors.White;
+                            lbl.ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
             }
         }
 
@@ -589,14 +557,14 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
         }
     }
 
-    private Color GetLevelColor(int level)
+    private ThemeKey GetLevelColor(int level)
     {
         // Color gradient based on level
-        if (level >= 50) return Color.FromArgb("#9C27B0"); // Purple - high level
-        if (level >= 30) return Color.FromArgb("#2196F3"); // Blue
-        if (level >= 15) return Color.FromArgb("#4CAF50"); // Green
-        if (level >= 5) return Color.FromArgb("#FF9800");  // Orange
-        return Color.FromArgb("#9E9E9E"); // Gray - low level
+        if (level >= 50) return ThemeKey.AccentPurpleButtonBackground; // Purple - high level
+        if (level >= 30) return ThemeKey.InfoLinkText; // Blue
+        if (level >= 15) return ThemeKey.SuccessLightText; // Green
+        if (level >= 5) return ThemeKey.WarningAccentText;  // Orange
+        return ThemeKey.DisabledButtonBackground; // Gray - low level
     }
 
     private async Task OnGameTapped(GameListViewModel vm)
@@ -742,13 +710,12 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
 
         if (groupings.Count == 0)
         {
-            _groupingsContainer.Children.Add(new Label
+            _groupingsContainer.Children.Add((new Label
             {
                 Text = "No groupings yet. Create one to view activities across games.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#C0C0FF"),
                 Margin = new Thickness(0, 4, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineLavender, ThemeKey.PageText1, classifyPageText: true));
             return;
         }
 
@@ -760,14 +727,13 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildGroupingCard(ActivityGrouping grouping)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = new Thickness(16, 12),
             CornerRadius = 10,
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo);
 
         var grid = new Grid
         {
@@ -780,29 +746,27 @@ public class GamesListPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        var nameLabel = new Label
+        var nameLabel = (new Label
         {
             Text = $"{grouping.Name} ({grouping.ActivityCount})",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#283593"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(nameLabel, 0);
         grid.Children.Add(nameLabel);
 
         // 3-dot menu
-        var btnMenu = new Button
+        var btnMenu = (new Button
         {
             Text = "⋮",
             FontSize = 20,
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#666"),
             WidthRequest = 36,
             HeightRequest = 36,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         int capturedId = grouping.Id;
         string capturedName = grouping.Name;
         btnMenu.Clicked += async (s, e) => await ShowGroupingMenuAsync(capturedId, capturedName);

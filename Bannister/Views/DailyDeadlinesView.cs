@@ -49,7 +49,7 @@ public class DailyDeadlinesView : ContentView
         _games = games;
         _compact = compact;
         _showAlert = showAlert;
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+        this.ThemeColor(BackgroundColorProperty, ThemeKey.SecondarySurface);
         _rootGrid.Children.Add(new ScrollView { Content = _content });
         Content = _rootGrid;
     }
@@ -98,32 +98,31 @@ public class DailyDeadlinesView : ContentView
         var completedIds = ParseIds(log?.CompletedItemIds);
 
         _content.Children.Clear();
-        _content.Children.Add(new Label { Text = "Daily Deadlines", FontSize = 26, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
-        _content.Children.Add(new Label { Text = $"Allowance: {state.Allowance} slots    Streak: {state.ConsecutiveStreak} / 3 days", FontSize = 15, TextColor = Color.FromArgb("#555") });
+        _content.Children.Add((new Label { Text = "Daily Deadlines", FontSize = 26, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        _content.Children.Add((new Label { Text = $"Allowance: {state.Allowance} slots    Streak: {state.ConsecutiveStreak} / 3 days", FontSize = 15 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         if (displayMode != ActivityDisplayMode.All)
         {
             int visibleCompleted = completedIds.Count(id =>
                 visibleActive.Any(item => item.Id == id));
             int totalCompleted = completedIds.Count(id =>
                 active.Any(item => item.Id == id));
-            _content.Children.Add(new Label
+            _content.Children.Add((new Label
             {
                 Text = $"{visibleCompleted} / {visibleActive.Count} shown   ({totalCompleted} / {active.Count} total)",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#E65100"),
                 FontAttributes = FontAttributes.Bold
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
         }
 
         if (active.Count > state.Allowance)
         {
-            _content.Children.Add(new Label { Text = "Too many active deadlines. Move one to Possible.", TextColor = Color.FromArgb("#C62828"), FontAttributes = FontAttributes.Bold, BackgroundColor = Color.FromArgb("#FFEBEE"), Padding = 10 });
+            _content.Children.Add((new Label { Text = "Too many active deadlines. Move one to Possible.", FontAttributes = FontAttributes.Bold, Padding = 10 }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground));
             if (showAlerts)
                 await ShowAlertAsync("Daily Deadlines", "Your active deadlines exceed the current allowance. Move one to Possible.");
         }
 
         var activeStack = new VerticalStackLayout { Spacing = 6 };
-        activeStack.Children.Add(new Label { Text = "Today's Deadlines", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+        activeStack.Children.Add((new Label { Text = "Today's Deadlines", FontSize = 19, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         var activeHeader = new Grid
         {
             ColumnDefinitions =
@@ -136,20 +135,20 @@ public class DailyDeadlinesView : ContentView
             ColumnSpacing = 8,
             Padding = new Thickness(8, 4)
         };
-        activeHeader.Add(new Label { Text = "Done", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#555"), WidthRequest = 60 }, 0, 0);
-        activeHeader.Add(new Label { Text = "Deadline", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#555") }, 1, 0);
+        activeHeader.Add((new Label { Text = "Done", FontSize = 12, FontAttributes = FontAttributes.Bold, WidthRequest = 60 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true), 0, 0);
+        activeHeader.Add((new Label { Text = "Deadline", FontSize = 12, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true), 1, 0);
         activeStack.Children.Add(activeHeader);
         foreach (var item in visibleActive.OrderBy(i => completedIds.Contains(i.Id) ? 1 : 0).ThenBy(i => i.SortOrder))
             activeStack.Children.Add(await BuildActiveRowAsync(item, completedIds));
         if (visibleActive.Count > 0 && visibleActive.All(i => completedIds.Contains(i.Id)))
-            activeStack.Children.Add(new Label { Text = "✓ All done!", FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32"), BackgroundColor = Color.FromArgb("#E8F5E9"), Padding = 10 });
+            activeStack.Children.Add((new Label { Text = "✓ All done!", FontSize = 15, FontAttributes = FontAttributes.Bold, Padding = 10 }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground));
         _content.Children.Add(Card(activeStack));
 
         _content.Children.Add(BuildAddSection(
             active.Count >= state.Allowance));
 
         var possibleStack = new VerticalStackLayout { Spacing = 6 };
-        possibleStack.Children.Add(new Label { Text = "Possible", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+        possibleStack.Children.Add((new Label { Text = "Possible", FontSize = 19, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         foreach (var item in visiblePossible)
             possibleStack.Children.Add(await BuildPossibleRowAsync(item, active.Count >= state.Allowance));
         _content.Children.Add(Card(possibleStack));
@@ -183,35 +182,35 @@ public class DailyDeadlinesView : ContentView
         {
             var stack = new VerticalStackLayout { Spacing = 6, Padding = 8 };
             stack.Children.Add(activity == null
-                ? new Label { Text = "Activity not found", TextColor = Color.FromArgb("#888") }
+                ? (new Label { Text = "Activity not found" }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true)
                 : DailyDeadlineViewHelper.BuildActivityVisual(activity));
             var buttons = new HorizontalStackLayout { Spacing = 6 };
             if (activity != null)
             {
-                var compactMove = new Button { Text = "Move to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0") };
+                var compactMove = (new Button { Text = "Move to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
                 compactMove.Clicked += async (_, _) => { item.IsActive = true; await _service.SaveItemAsync(item); await LoadAsync(false); };
                 buttons.Children.Add(compactMove);
             }
             buttons.Children.Add(MakeDeleteButton(item));
             stack.Children.Add(buttons);
-            return new Border { Content = stack, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = activity == null ? Color.FromArgb("#F0F0F0") : Colors.White };
+            return (new Border { Content = stack, StrokeThickness = 1 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, activity == null ? ThemeKey.SecondarySurface : ThemeKey.CardBackground);
         }
         var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 6, Padding = 8 };
         if (activity == null)
         {
-            row.BackgroundColor = Color.FromArgb("#F0F0F0");
-            row.Add(new Label { Text = "Activity not found", TextColor = Color.FromArgb("#888"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+            row.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+            row.Add((new Label { Text = "Activity not found", VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true), 0, 0);
             row.Add(MakeDeleteButton(item), 1, 0);
-            return new Border { Content = row, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#F0F0F0") };
+            return (new Border { Content = row, StrokeThickness = 1 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
         }
         row.Add(DailyDeadlineViewHelper.BuildActivityVisual(activity), 0, 0);
-        var move = new Button { Text = "Move to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E3F2FD"), TextColor = Color.FromArgb("#1565C0") };
+        var move = (new Button { Text = "Move to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         move.Clicked += async (_, _) => { item.IsActive = true; await _service.SaveItemAsync(item); await LoadAsync(false); };
         row.Add(move, 1, 0);
-        var del = new Button { Text = "Delete", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828") };
+        var del = (new Button { Text = "Delete", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         del.Clicked += async (_, _) => { await _service.DeleteItemAsync(item.Id); await LoadAsync(false); };
         row.Add(del, 2, 0);
-        return new Border { Content = row, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = Colors.White };
+        return (new Border { Content = row, StrokeThickness = 1 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private async Task<Activity?> ResolveActivityAsync(DailyDeadlineItem item)
@@ -248,7 +247,7 @@ public class DailyDeadlinesView : ContentView
 
     private Button MakeDeleteButton(DailyDeadlineItem item)
     {
-        var del = new Button { Text = "Delete", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828") };
+        var del = (new Button { Text = "Delete", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         del.Clicked += async (_, _) => { await _service.DeleteItemAsync(item.Id); await LoadAsync(false); };
         return del;
     }
@@ -262,13 +261,11 @@ public class DailyDeadlinesView : ContentView
     private View BuildAddSection(bool full)
     {
         var outer = new VerticalStackLayout { Spacing = 8 };
-        var toggle = new Button
+        var toggle = (new Button
         {
             Text = "＋ Add Deadline From Activity",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         var stack = new VerticalStackLayout { Spacing = 8, IsVisible = false };
         var sectionHeader = new Grid
         {
@@ -278,8 +275,8 @@ public class DailyDeadlinesView : ContentView
                 new ColumnDefinition(GridLength.Auto)
             }
         };
-        sectionHeader.Add(new Label { Text = "Add Deadline From Activity", FontSize = 19, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center }, 0, 0);
-        var refresh = new Button { Text = "↺ Refresh list", FontSize = 11, HeightRequest = 32, Padding = new Thickness(8, 0), BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F") };
+        sectionHeader.Add((new Label { Text = "Add Deadline From Activity", FontSize = 19, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        var refresh = (new Button { Text = "↺ Refresh list", FontSize = 11, HeightRequest = 32, Padding = new Thickness(8, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         sectionHeader.Add(refresh, 1, 0);
         stack.Children.Add(sectionHeader);
         _gamePicker = new Picker { Title = "Game", ItemsSource = new[] { "All Games" }, SelectedIndex = 0 };
@@ -298,13 +295,13 @@ public class DailyDeadlinesView : ContentView
         Layout row = _compact
             ? new VerticalStackLayout { Spacing = 8 }
             : new HorizontalStackLayout { Spacing = 8 };
-        var active = new Button { Text = "Add to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#E8F5E9"), TextColor = Color.FromArgb("#2E7D32") };
+        var active = (new Button { Text = "Add to Active", IsEnabled = !full, FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         active.Clicked += async (_, _) =>
         {
             var selected = _selectedPickerActivity;
             if (selected != null) await AddActivityAsync(selected, true);
         };
-        var possible = new Button { Text = "Add to Possible", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34, BackgroundColor = Color.FromArgb("#ECEFF1"), TextColor = Color.FromArgb("#37474F") };
+        var possible = (new Button { Text = "Add to Possible", FontSize = 11, Padding = new Thickness(8, 0), HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         possible.Clicked += async (_, _) =>
         {
             var selected = _selectedPickerActivity;
@@ -362,21 +359,19 @@ public class DailyDeadlinesView : ContentView
             RefreshActivityResults();
             return;
         }
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill,
             ZIndex = 100
-        };
-        var remainingLabel = new Label
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
+        var remainingLabel = (new Label
         {
             Text = "0 games remaining",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center
-        };
-        var loadingCard = new Frame
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
+        var loadingCard = (new Frame
         {
             Content = new VerticalStackLayout
             {
@@ -384,23 +379,21 @@ public class DailyDeadlinesView : ContentView
                 HorizontalOptions = LayoutOptions.Center,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Loading activities...",
                         FontSize = 18,
                         FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222"),
                         HorizontalTextAlignment = TextAlignment.Center
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
                     remainingLabel
                 }
             },
             Padding = 24,
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         overlay.Children.Add(loadingCard);
         _rootGrid.Children.Add(overlay);
         _activityLoadingOverlay = overlay;
@@ -460,12 +453,11 @@ public class DailyDeadlinesView : ContentView
         {
             _selectedPickerActivity = null;
             _activityResultStack.Children.Clear();
-            _activityResultStack.Children.Add(new Label
+            _activityResultStack.Children.Add((new Label
             {
                 Text = "Select a game or type to search",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#777")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
             return;
         }
         var filtered = _availableActivities.Where(a =>
@@ -476,15 +468,15 @@ public class DailyDeadlinesView : ContentView
             _selectedPickerActivity = filtered.FirstOrDefault();
         foreach (var activity in filtered)
         {
-            var card = new Border { Content = DailyDeadlineViewHelper.BuildActivityVisual(activity), Padding = 6, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = ReferenceEquals(activity, _selectedPickerActivity) ? Color.FromArgb("#E3F2FD") : Colors.White };
+            var card = (new Border { Content = DailyDeadlineViewHelper.BuildActivityVisual(activity), Padding = 6, StrokeThickness = 1 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ReferenceEquals(activity, _selectedPickerActivity) ? ThemeKey.InfoBackground : ThemeKey.CardBackground);
             var captured = activity;
             var tap = new TapGestureRecognizer();
             tap.Tapped += (_, _) =>
             {
                 _selectedPickerActivity = captured;
                 foreach (var child in _activityResultStack.Children)
-                    if (child is Border other) other.BackgroundColor = Colors.White;
-                card.BackgroundColor = Color.FromArgb("#E3F2FD");
+                    if (child is Border other) other.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
+                card.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground);
             };
             card.GestureRecognizers.Add(tap);
             _activityResultStack.Children.Add(card);
@@ -519,7 +511,7 @@ public class DailyDeadlinesView : ContentView
     private static HashSet<int> ParseIds(string? value) =>
         (value ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => int.TryParse(s, out var id) ? id : 0).Where(id => id > 0).ToHashSet();
 
-    private static Border Card(View view) => new() { Content = view, Padding = 12, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Colors.White };
+    private static Border Card(View view) => (new Border(){ Content = view, Padding = 12, StrokeThickness = 1 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
     private Task ShowAlertAsync(string title, string message) =>
         _showAlert?.Invoke(title, message) ?? Task.CompletedTask;

@@ -42,33 +42,29 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
         var headerRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
         
         var headerStack = new VerticalStackLayout();
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "🔢 SubActivities",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#00838F")
-        });
-        headerStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightTealText, ThemeKey.PageText1, classifyPageText: true));
+        headerStack.Children.Add((new Label
         {
             Text = "Break down processes into steps",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         Grid.SetColumn(headerStack, 0);
         headerRow.Children.Add(headerStack);
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ New Process",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(16, 8),
             FontSize = 14,
             HeightRequest = 40,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += OnAddProcessClicked;
         Grid.SetColumn(addBtn, 1);
         headerRow.Children.Add(addBtn);
@@ -83,20 +79,18 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
         mainGrid.Children.Add(scrollView);
 
         // Loading overlay
-        _loadingOverlay = new Grid
+        _loadingOverlay = (new Grid
         {
-            IsVisible = false,
-            BackgroundColor = Color.FromArgb("#80000000")
-        };
-        _loadingOverlay.Children.Add(new ActivityIndicator
+            IsVisible = false
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
+        _loadingOverlay.Children.Add((new ActivityIndicator
         {
             IsRunning = true,
-            Color = Colors.White,
             WidthRequest = 50,
             HeightRequest = 50,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
         mainGrid.Children.Add(_loadingOverlay);
 
         Content = mainGrid;
@@ -132,43 +126,39 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
                         if (removable.Count == 0) break;
 
                         var tcs = new TaskCompletionSource<SubActivityStep?>();
-                        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+                        var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
                         var cardStack = new VerticalStackLayout { Spacing = 8 };
 
-                        cardStack.Children.Add(new Label
+                        cardStack.Children.Add((new Label
                         {
                             Text = $"Move {excess - removed} more to pending",
                             FontSize = 16,
-                            FontAttributes = FontAttributes.Bold,
-                            TextColor = Color.FromArgb("#C62828")
-                        });
+                            FontAttributes = FontAttributes.Bold
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true));
 
-                        cardStack.Children.Add(new Label
+                        cardStack.Children.Add((new Label
                         {
                             Text = $"Active: {removable.Count} | Allowance: {item.Allowance}",
-                            FontSize = 12,
-                            TextColor = Color.FromArgb("#888")
-                        });
+                            FontSize = 12
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
                         foreach (var step in removable)
                         {
-                            var stepFrame = new Frame
+                            var stepFrame = (new Frame
                             {
                                 Padding = 12,
                                 CornerRadius = 8,
-                                BackgroundColor = step.Done ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#FFEBEE"),
                                 BorderColor = Colors.Transparent,
                                 HasShadow = false
-                            };
+                            }).ThemeColor(VisualElement.BackgroundColorProperty, step.Done ? ThemeKey.SuccessBackground : ThemeKey.ErrorBackground);
 
-                            stepFrame.Content = new Label
+                            stepFrame.Content = (new Label
                             {
                                 Text = step.Done ? $"\u2705 {step.Name}" : $"\U0001F534 {step.Name}",
                                 FontSize = 14,
-                                TextColor = Color.FromArgb("#333"),
                                 LineBreakMode = LineBreakMode.WordWrap
-                            };
+                            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
                             var capturedStep = step;
                             var tap = new TapGestureRecognizer();
@@ -182,9 +172,8 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
                             cardStack.Children.Add(stepFrame);
                         }
 
-                        var card = new Frame
+                        var card = (new Frame
                         {
-                            BackgroundColor = Colors.White,
                             CornerRadius = 12,
                             Padding = 20,
                             MaximumWidthRequest = 500,
@@ -192,7 +181,7 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
                             VerticalOptions = LayoutOptions.Center,
                             Margin = new Thickness(16, 0),
                             Content = new ScrollView { MaximumHeightRequest = 400, Content = cardStack }
-                        };
+                        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
                         overlay.Children.Add(card);
 
@@ -235,13 +224,12 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
 
             if (items.Count == 0)
             {
-                _listStack.Children.Add(new Label
+                _listStack.Children.Add((new Label
                 {
                     Text = "No processes yet. Tap '+ New Process' to create one.",
-                    TextColor = Color.FromArgb("#999"),
                     HorizontalTextAlignment = TextAlignment.Center,
                     Margin = new Thickness(0, 40)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             }
             else
             {
@@ -255,14 +243,13 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
             var archived = await _subActivityService.GetArchivedAsync(_auth.CurrentUsername);
             if (archived.Count > 0)
             {
-                _listStack.Children.Add(new Label
+                _listStack.Children.Add((new Label
                 {
                     Text = $"Archived ({archived.Count})",
                     FontSize = 14,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#999"),
                     Margin = new Thickness(0, 20, 0, 8)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1, classifyPageText: true));
 
                 foreach (var item in archived)
                 {
@@ -283,14 +270,12 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
         int doneCount = steps.Count(s => s.Done);
         bool allDone = steps.Count > 0 && doneCount == steps.Count;
 
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = allDone ? Color.FromArgb("#E8F5E9") : Colors.White,
-            BorderColor = allDone ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E0E0E0"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, allDone ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, allDone ? ThemeKey.SuccessLightText : ThemeKey.Separator);
 
         var cardStack = new VerticalStackLayout { Spacing = 12 };
 
@@ -298,102 +283,87 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
         var headerRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
         
         var titleStack = new VerticalStackLayout();
-        titleStack.Children.Add(new Label
+        titleStack.Children.Add((new Label
         {
             Text = item.Name,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // Status badges
         var badgeRow = new HorizontalStackLayout { Spacing = 8 };
         
         // Progress
-        badgeRow.Children.Add(new Frame
+        badgeRow.Children.Add((new Frame
         {
             Padding = new Thickness(8, 2),
             CornerRadius = 10,
-            BackgroundColor = allDone ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E3F2FD"),
             BorderColor = Colors.Transparent,
-            Content = new Label
+            Content = (new Label
             {
                 Text = $"{doneCount}/{steps.Count}",
-                FontSize = 11,
-                TextColor = allDone ? Colors.White : Color.FromArgb("#1565C0")
-            }
-        });
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, allDone ? ThemeKey.OnColorText : ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, allDone ? ThemeKey.SuccessButtonBackground : ThemeKey.InfoBackground));
 
         // Streak (ConsecutiveAllDoneDays toward 3-day milestone)
         if (item.ConsecutiveAllDoneDays > 0 || item.LastSubmissionDate.HasValue)
         {
-            var streakBadge = new Frame
+            var streakBadge = (new Frame
             {
                 Padding = new Thickness(8, 2),
                 CornerRadius = 10,
-                BackgroundColor = item.ConsecutiveAllDoneDays >= 3
-                    ? Color.FromArgb("#7B1FA2")
-                    : Color.FromArgb("#E1BEE7"),
                 BorderColor = Colors.Transparent,
-                Content = new Label
+                Content = (new Label
                 {
                     Text = $"🔥 {item.ConsecutiveAllDoneDays}/3 streak",
                     FontSize = 11,
-                    TextColor = item.ConsecutiveAllDoneDays >= 3
-                        ? Colors.White
-                        : Color.FromArgb("#4A148C"),
                     FontAttributes = FontAttributes.Bold
-                }
-            };
+                }).ThemeColor(Label.TextColorProperty, item.ConsecutiveAllDoneDays >= 3 ? ThemeKey.OnColorText : ThemeKey.HighlightVioletText, ThemeKey.PageText3, classifyPageText: true)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, item.ConsecutiveAllDoneDays >= 3 ? ThemeKey.AccentPurpleSurface : ThemeKey.AccentPurpleSelected);
             badgeRow.Children.Add(streakBadge);
         }
 
         // Reset mode badge
-        badgeRow.Children.Add(new Frame
+        badgeRow.Children.Add((new Frame
         {
             Padding = new Thickness(8, 2),
             CornerRadius = 10,
-            BackgroundColor = item.ResetMode == "daily" ? Color.FromArgb("#FFF3E0") : Color.FromArgb("#F5F5F5"),
             BorderColor = Colors.Transparent,
-            Content = new Label
+            Content = (new Label
             {
                 Text = item.ResetMode == "daily" ? "☀️ Daily" : "🔄 Manual",
-                FontSize = 11,
-                TextColor = item.ResetMode == "daily" ? Color.FromArgb("#E65100") : Color.FromArgb("#666")
-            }
-        });
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, item.ResetMode == "daily" ? ThemeKey.WarningText : ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, item.ResetMode == "daily" ? ThemeKey.WarningBackground : ThemeKey.SecondarySurface));
 
         // Completions
         if (item.TotalCompletions > 0)
         {
-            badgeRow.Children.Add(new Frame
+            badgeRow.Children.Add((new Frame
             {
                 Padding = new Thickness(8, 2),
                 CornerRadius = 10,
-                BackgroundColor = Color.FromArgb("#E8F5E9"),
                 BorderColor = Colors.Transparent,
-                Content = new Label
+                Content = (new Label
                 {
                     Text = $"✓ {item.TotalCompletions}x",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#2E7D32")
-                }
-            });
+                    FontSize = 11
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground));
         }
 
-        var allowanceFrame = new Frame
+        var allowanceFrame = (new Frame
         {
             Padding = new Thickness(8, 2),
             CornerRadius = 10,
-            BackgroundColor = steps.Count >= item.Allowance ? Color.FromArgb("#FFF3E0") : Color.FromArgb("#E8F5E9"),
             BorderColor = Colors.Transparent,
-            Content = new Label
+            Content = (new Label
             {
                 Text = $"Allowance: {item.Allowance} / Steps: {steps.Count}",
-                FontSize = 11,
-                TextColor = steps.Count >= item.Allowance ? Color.FromArgb("#E65100") : Color.FromArgb("#2E7D32")
-            }
-        };
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, steps.Count >= item.Allowance ? ThemeKey.WarningText : ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, steps.Count >= item.Allowance ? ThemeKey.WarningBackground : ThemeKey.SuccessBackground);
         allowanceFrame.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await EditAllowanceAsync(item))
@@ -460,14 +430,13 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
                 Grid.SetColumn(checkbox, 0);
                 stepRow.Children.Add(checkbox);
 
-                var stepLabel = new Label
+                var stepLabel = (new Label
                 {
                     Text = step.Name,
                     FontSize = 15,
-                    TextColor = step.Done ? Color.FromArgb("#999") : Color.FromArgb("#333"),
                     TextDecorations = step.Done ? TextDecorations.Strikethrough : TextDecorations.None,
                     VerticalOptions = LayoutOptions.Center
-                };
+                }).ThemeColor(Label.TextColorProperty, step.Done ? ThemeKey.CardText3 : ThemeKey.CardText1, ThemeKey.PageText2, classifyPageText: true);
                 Grid.SetColumn(stepLabel, 1);
                 stepRow.Children.Add(stepLabel);
 
@@ -502,20 +471,18 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
         bool canAdd = _subActivityService.CanAddStep(item);
         int neededToAdd = _subActivityService.CompletionsNeededToAdd(item);
 
-        var addStepBtn = new Button
+        var addStepBtn = (new Button
         {
             Text = canAdd
                 ? "+ Add Step"
                 : atAllowanceLimit
                     ? "Allowance reached"
                     : $"🔒 {neededToAdd} more completion(s) to unlock",
-            BackgroundColor = canAdd ? Color.FromArgb("#E0F7FA") : Color.FromArgb("#F5F5F5"),
-            TextColor = canAdd ? Color.FromArgb("#00838F") : Color.FromArgb("#999"),
             CornerRadius = 6,
             FontSize = 13,
             HeightRequest = 36,
             IsEnabled = canAdd
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, canAdd ? ThemeKey.HighlightTeal : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, canAdd ? ThemeKey.HighlightTealText : ThemeKey.CardText3);
         if (canAdd)
         {
             addStepBtn.Clicked += async (s, e) => await AddStepAsync(item, false);
@@ -523,26 +490,24 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
         cardStack.Children.Add(addStepBtn);
         if (atAllowanceLimit)
         {
-            cardStack.Children.Add(new Label
+            cardStack.Children.Add((new Label
             {
                 Text = "Allowance reached. Earn more via 3-day streak or edit Allowance.",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#E65100")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
         }
 
         // Pending Steps Section
         if (pendingSteps.Count > 0)
         {
-            cardStack.Children.Add(new BoxView { HeightRequest = 1, Color = Color.FromArgb("#E0E0E0"), Margin = new Thickness(0, 8) });
+            cardStack.Children.Add((new BoxView { HeightRequest = 1, Margin = new Thickness(0, 8) }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
             
-            cardStack.Children.Add(new Label
+            cardStack.Children.Add((new Label
             {
                 Text = $"📋 Pending Steps ({pendingSteps.Count})",
                 FontSize = 13,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#666")
-            });
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true));
 
             for (int i = 0; i < pendingSteps.Count; i++)
             {
@@ -560,13 +525,12 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
                     Padding = new Thickness(0, 2)
                 };
 
-                var pendingLabel = new Label
+                var pendingLabel = (new Label
                 {
                     Text = $"• {pending.Name}",
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#888"),
                     VerticalOptions = LayoutOptions.Center
-                };
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
                 Grid.SetColumn(pendingLabel, 0);
                 pendingRow.Children.Add(pendingLabel);
 
@@ -616,31 +580,27 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
         }
 
         // Add to pending button
-        var addPendingBtn = new Button
+        var addPendingBtn = (new Button
         {
             Text = "+ Add to Pending",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            TextColor = Color.FromArgb("#666"),
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         addPendingBtn.Clicked += async (s, e) => await AddStepAsync(item, true);
         cardStack.Children.Add(addPendingBtn);
 
         // Reset button (for manual mode or to force reset)
         if (item.ResetMode == "manual" || steps.Any(s => s.Done))
         {
-            var resetBtn = new Button
+            var resetBtn = (new Button
             {
                 Text = "🔄 Reset All Steps",
-                BackgroundColor = Color.FromArgb("#FFF3E0"),
-                TextColor = Color.FromArgb("#E65100"),
                 CornerRadius = 6,
                 FontSize = 12,
                 HeightRequest = 32,
                 Margin = new Thickness(0, 4, 0, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
             resetBtn.Clicked += async (s, e) =>
             {
                 bool confirm = await DisplayAlert("Reset", "Reset all steps to unchecked?", "Yes", "No");
@@ -659,34 +619,29 @@ public class SubActivitiesPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildArchivedCard(SubActivity item)
     {
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 12,
-            CornerRadius = 8,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            BorderColor = Color.FromArgb("#E0E0E0")
-        };
+            CornerRadius = 8
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
 
-        row.Children.Add(new Label
+        row.Children.Add((new Label
         {
             Text = item.Name,
             FontSize = 14,
-            TextColor = Color.FromArgb("#999"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
 
-        var restoreBtn = new Button
+        var restoreBtn = (new Button
         {
             Text = "Restore",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         restoreBtn.Clicked += async (s, e) =>
         {
             await _subActivityService.RestoreAsync(item.Id);

@@ -49,47 +49,42 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#5B63EE"),
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 4 };
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "🐉 Active Dragons",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "Track your attempts to slay each dragon (reach Level 100)",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#FFFFFFCC")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
 
         // Add Dragon button
-        var btnAddDragon = new Button
+        var btnAddDragon = (new Button
         {
             Text = "➕ Add Dragon",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 44,
             HorizontalOptions = LayoutOptions.Center,
             Padding = new Thickness(20, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddDragon.Clicked += OnAddDragonClicked;
         mainStack.Children.Add(btnAddDragon);
 
@@ -100,14 +95,13 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 8, 0, 0)
         };
-        sortStack.Children.Add(new Label
+        sortStack.Children.Add((new Label
         {
             Text = "Sort by:",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        });
-        _sortPicker = new Picker
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
+        _sortPicker = (new Picker
         {
             ItemsSource = new List<string>
             {
@@ -118,9 +112,8 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
                 "Recently Started"
             },
             SelectedIndex = 0,
-            WidthRequest = 180,
-            TextColor = Colors.Black
-        };
+            WidthRequest = 180
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardTextStrong);
         _sortPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_sortPicker.SelectedItem != null)
@@ -133,13 +126,12 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(sortStack);
 
         // Info
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "💡 Click ▶ to expand attempt history for each dragon",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Dragons list container
         _dragonsList = new VerticalStackLayout { Spacing = 16 };
@@ -157,15 +149,14 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
 
         if (dragons.Count == 0)
         {
-            _dragonsList.Children.Add(new Label
+            _dragonsList.Children.Add((new Label
             {
                 Text = "No active dragons.\n\nClick 'Add Dragon' to create one!",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -253,14 +244,12 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
         bool isExpanded = _expandedDragons[dragonKey];
 
         // Dragon header card
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = hasActiveAttempt ? Color.FromArgb("#E8EAF6") : Colors.White,
-            BorderColor = hasActiveAttempt ? Color.FromArgb("#5B63EE") : Color.FromArgb("#E0E0E0"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, hasActiveAttempt ? ThemeKey.HighlightIndigo : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, hasActiveAttempt ? ThemeKey.SecondaryAccentText : ThemeKey.Separator);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -268,16 +257,15 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
         var titleRow = new HorizontalStackLayout { Spacing = 12 };
 
         // Expand/Collapse button
-        var btnExpand = new Button
+        var btnExpand = (new Button
         {
             Text = isExpanded ? $"▼ ({sortedAttempts.Count})" : $"▶ ({sortedAttempts.Count})",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#5B63EE"),
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 30,
             Padding = new Thickness(4, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
         btnExpand.Clicked += (s, e) =>
         {
             _expandedDragons[dragonKey] = !_expandedDragons[dragonKey];
@@ -296,96 +284,88 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
         dragonImage.Source = !string.IsNullOrEmpty(imagePath) ? imagePath : "diet_dragon_default.png";
         titleRow.Children.Add(dragonImage);
 
-        titleRow.Children.Add(new Label
+        titleRow.Children.Add((new Label
         {
             Text = dragon.Title ?? "Unnamed Dragon",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         if (hasActiveAttempt)
         {
-            titleRow.Children.Add(new Label
+            titleRow.Children.Add((new Label
             {
                 Text = "⚔️ Battling",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#5B63EE"),
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
         }
 
         headerStack.Children.Add(titleRow);
 
         // Game name
         string gameDisplay = dragon.Game == "_standalone_" ? "Standalone Dragon" : dragon.Game;
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = $"📁 {gameDisplay}",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(40, 0, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Current attempt summary - use displayDays instead of activeAttempt.DurationDays
         if (hasActiveAttempt)
         {
             var attemptRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(40, 4, 0, 0) };
 
-            attemptRow.Children.Add(new Label
+            attemptRow.Children.Add((new Label
             {
                 Text = displayDays.ToString(),
                 FontSize = 28,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#5B63EE"),
                 VerticalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
 
-            attemptRow.Children.Add(new Label
+            attemptRow.Children.Add((new Label
             {
                 Text = displayDays == 1 ? "day battling" : "days battling",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#666"),
                 VerticalOptions = LayoutOptions.End,
                 Margin = new Thickness(0, 0, 0, 4)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-            attemptRow.Children.Add(new Label
+            attemptRow.Children.Add((new Label
             {
                 Text = $"(Attempt #{activeAttempt!.AttemptNumber})",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#999"),
                 VerticalOptions = LayoutOptions.End,
                 Margin = new Thickness(8, 0, 0, 4)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
             headerStack.Children.Add(attemptRow);
 
             // Started date
             if (activeAttempt.StartedAt.HasValue)
             {
-                headerStack.Children.Add(new Label
+                headerStack.Children.Add((new Label
                 {
                     Text = $"Started {activeAttempt.StartedAt.Value.ToLocalTime():MMM d, yyyy}",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#999"),
                     Margin = new Thickness(40, 0, 0, 0)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
             }
         }
         else
         {
-            headerStack.Children.Add(new Label
+            headerStack.Children.Add((new Label
             {
                 Text = sortedAttempts.Count == 0 ? "No attempts yet" : "No active attempt",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic,
                 Margin = new Thickness(40, 0, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         }
 
         // Buttons row
@@ -394,91 +374,79 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
         // Start New Attempt button (only show if no active attempt)
         if (!hasActiveAttempt)
         {
-            var btnStartAttempt = new Button
+            var btnStartAttempt = (new Button
             {
                 Text = "⚔️ Start New Attempt",
-                BackgroundColor = Color.FromArgb("#4CAF50"),
-                TextColor = Colors.White,
                 CornerRadius = 6,
                 FontSize = 12,
                 HeightRequest = 32,
                 HorizontalOptions = LayoutOptions.Start
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnStartAttempt.Clicked += async (s, e) => await StartNewAttemptAsync(dragon, sortedAttempts);
             buttonsRow.Children.Add(btnStartAttempt);
         }
         else
         {
             // Edit Days button for active attempt
-            var btnEditDays = new Button
+            var btnEditDays = (new Button
             {
                 Text = "✏️ Edit Days",
-                BackgroundColor = Color.FromArgb("#5B63EE"),
-                TextColor = Colors.White,
                 CornerRadius = 6,
                 FontSize = 12,
                 HeightRequest = 32,
                 HorizontalOptions = LayoutOptions.Start
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnEditDays.Clicked += async (s, e) => await EditActiveAttemptAsync(activeAttempt!, dragon, displayDays);
             buttonsRow.Children.Add(btnEditDays);
 
             // Mark Failed button
-            var btnFailed = new Button
+            var btnFailed = (new Button
             {
                 Text = "💀 Mark Failed",
-                BackgroundColor = Color.FromArgb("#F44336"),
-                TextColor = Colors.White,
                 CornerRadius = 6,
                 FontSize = 12,
                 HeightRequest = 32,
                 HorizontalOptions = LayoutOptions.Start
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnFailed.Clicked += async (s, e) => await MarkAttemptFailedAsync(dragon);
             buttonsRow.Children.Add(btnFailed);
         }
 
         // Add Past Attempt button
-        var btnAddPast = new Button
+        var btnAddPast = (new Button
         {
             Text = "+ Past Attempt",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddPast.Clicked += async (s, e) => await AddPastAttemptAsync(dragon);
         buttonsRow.Children.Add(btnAddPast);
 
         // Mark Irrelevant button
-        var btnIrrelevant = new Button
+        var btnIrrelevant = (new Button
         {
             Text = "💤",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             WidthRequest = 40,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnIrrelevant.Clicked += async (s, e) => await MarkDragonIrrelevantAsync(dragon);
         buttonsRow.Children.Add(btnIrrelevant);
 
         // Mark Slain button
-        var btnSlain = new Button
+        var btnSlain = (new Button
         {
             Text = "🏆",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             WidthRequest = 40,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSlain.Clicked += async (s, e) => await MarkDragonSlainAsync(dragon);
         buttonsRow.Children.Add(btnSlain);
 
@@ -490,36 +458,32 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
             var buttonsRow2 = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(40, 4, 0, 0) };
 
             // History button
-            var btnHistory = new Button
+            var btnHistory = (new Button
             {
                 Text = "📊 History",
-                BackgroundColor = Color.FromArgb("#9C27B0"),
-                TextColor = Colors.White,
                 CornerRadius = 6,
                 FontSize = 12,
                 HeightRequest = 32,
                 HorizontalOptions = LayoutOptions.Start
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnHistory.Clicked += async (s, e) => await ShowHistoryAsync(dragon, activeAttempt!);
             buttonsRow2.Children.Add(btnHistory);
 
             // Auto-Increment toggle
             var autoToggleStack = new HorizontalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
-            var chkAuto = new CheckBox
+            var chkAuto = (new CheckBox
             {
                 IsChecked = dragon.IsAutoIncrement,
-                Color = Color.FromArgb("#4CAF50"),
                 VerticalOptions = LayoutOptions.Center
-            };
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
             chkAuto.CheckedChanged += async (s, e) => await ToggleAutoIncrementAsync(dragon, e.Value);
             autoToggleStack.Children.Add(chkAuto);
-            autoToggleStack.Children.Add(new Label
+            autoToggleStack.Children.Add((new Label
             {
                 Text = "Auto +1 Daily",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#666"),
                 VerticalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
             buttonsRow2.Children.Add(autoToggleStack);
 
             headerStack.Children.Add(buttonsRow2);
@@ -557,24 +521,18 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
         var isActive = attempt.IsActive;
         var isFailed = attempt.FailedAt.HasValue;
         
-        var borderColor = isActive ? Color.FromArgb("#5B63EE") : 
-                          isFailed ? Color.FromArgb("#F44336") : 
-                          Color.FromArgb("#4CAF50"); // Success (completed without fail)
+        var borderColor = isActive ? ThemeKey.SecondaryAccentText : isFailed ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessLightText; // Success (completed without fail)
         
-        var bgColor = isActive ? Color.FromArgb("#E8EAF6") : 
-                      isFailed ? Color.FromArgb("#FFEBEE") : 
-                      Color.FromArgb("#E8F5E9");
+        var bgColor = isActive ? ThemeKey.HighlightIndigo : isFailed ? ThemeKey.ErrorBackground : ThemeKey.SuccessBackground;
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = bgColor,
-            BorderColor = borderColor,
             HasShadow = false,
             WidthRequest = 120,
             Margin = new Thickness(0, 4, 8, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bgColor).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, borderColor);
 
         // Make non-active cards tappable to edit
         if (!isActive)
@@ -587,71 +545,63 @@ public class ActiveDragonsPage : Bannister.Views.ModeThemedPage
         var stack = new VerticalStackLayout { Spacing = 4 };
 
         // Attempt number header
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Attempt #{attempt.AttemptNumber}",
             FontSize = 11,
             FontAttributes = FontAttributes.Bold,
-            TextColor = isActive ? Color.FromArgb("#3949AB") : 
-                        isFailed ? Color.FromArgb("#C62828") : 
-                        Color.FromArgb("#2E7D32"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.HighlightIndigoButton : isFailed ? ThemeKey.ErrorText : ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true));
 
         // Days (big number) - use displayDays
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = displayDays.ToString(),
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
-            TextColor = isActive ? Color.FromArgb("#5B63EE") : Color.FromArgb("#333"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, isActive ? ThemeKey.SecondaryAccentText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // "days" label
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = displayDays == 1 ? "day" : "days",
             FontSize = 11,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Status
         if (isActive)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = "⚔️ Active",
                 FontSize = 10,
-                TextColor = Color.FromArgb("#5B63EE"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true));
         }
         else if (isFailed)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = "💀 Failed",
                 FontSize = 10,
-                TextColor = Color.FromArgb("#F44336"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorButtonBackground, ThemeKey.PageText3, classifyPageText: true));
         }
         else
         {
             // Show "tap to edit" for past attempts
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = "tap to edit",
                 FontSize = 9,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
 
         frame.Content = stack;

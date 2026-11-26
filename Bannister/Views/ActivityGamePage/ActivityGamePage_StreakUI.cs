@@ -23,15 +23,13 @@ public partial class ActivityGamePage
         List<StreakAttempt> attempts,
         bool imageFileExists = false)
     {
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = new Thickness(12, 8),
             CornerRadius = 8,
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            BorderColor = Color.FromArgb("#FF9800"),
             HasShadow = false,
             Margin = new Thickness(0, 8, 0, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
 
         var headerGrid = new Grid
         {
@@ -70,13 +68,12 @@ public partial class ActivityGamePage
             Spacing = 2
         };
         
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = streakActivity.Name.ToUpper(),
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = capReached ? Colors.White : Color.FromArgb("#E65100")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, capReached ? ThemeKey.OnColorText : ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true);
         infoStack.Children.Add(titleLabel);
 
         bool imageOnly = streakActivity.IsImageOnly;
@@ -120,12 +117,11 @@ public partial class ActivityGamePage
             ? $"Attempt #{activeAttempt.AttemptNumber} active • {attempts.Count} total"
             : $"{attempts.Count} total attempts";
         
-        var infoLabel = new Label
+        var infoLabel = (new Label
         {
             Text = attemptInfo,
-            FontSize = 11,
-            TextColor = capReached ? Colors.White : Color.FromArgb("#BF360C")
-        };
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, capReached ? ThemeKey.OnColorText : ThemeKey.WarningBurntText, ThemeKey.PageText3, classifyPageText: true);
         infoStack.Children.Add(infoLabel);
 
         // Total time since first attempt
@@ -138,68 +134,61 @@ public partial class ActivityGamePage
         if (firstStartedAt != default)
         {
             int totalCalendarDays = (int)(DateTime.UtcNow.Date - firstStartedAt.ToUniversalTime().Date).TotalDays;
-            var totalTimeLabel = new Label
+            var totalTimeLabel = (new Label
             {
                 Text = $"⏱ Running {totalCalendarDays}d total since first attempt",
                 FontSize = 13,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = capReached ? Colors.White : Color.FromArgb("#BF360C")
-            };
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, capReached ? ThemeKey.OnColorText : ThemeKey.WarningBurntText, ThemeKey.PageText1, classifyPageText: true);
             infoStack.Children.Add(totalTimeLabel);
         }
 
         // "Enough is enough" cap reached note
         if (capReached && !string.IsNullOrWhiteSpace(streakActivity.StreakCapReachedNote))
         {
-            var capNoteLabel = new Label
+            var capNoteLabel = (new Label
             {
                 Text = $" Enough is enough — {streakActivity.StreakCapReachedNote}",
                 FontSize = 11,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White,
-                BackgroundColor = Color.FromArgb("#C62828"),
                 Padding = new Thickness(6, 2)
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorText);
             infoStack.Children.Add(capNoteLabel);
         }
 
         if (capReached)
         {
-            headerFrame.BorderColor = Color.FromArgb("#C62828");
-            headerFrame.BackgroundColor = Color.FromArgb("#C62828");
+            headerFrame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorText);
+            headerFrame.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorText);
         }
         
         Grid.SetColumn(infoStack, 1);
         headerGrid.Children.Add(infoStack);
 
         // Settings/Convert button
-        var settingsButton = new Button
+        var settingsButton = (new Button
         {
             Text = "⚙️",
-            BackgroundColor = Color.FromArgb("#FFE0B2"),
-            TextColor = Color.FromArgb("#E65100"),
             FontSize = 16,
             CornerRadius = 8,
             WidthRequest = 40,
             HeightRequest = 36,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightOrange).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         settingsButton.Clicked += async (s, e) => await ShowStreakContainerMenu(streakActivity);
         Grid.SetColumn(settingsButton, 2);
         headerGrid.Children.Add(settingsButton);
 
-        var startButton = new Button
+        var startButton = (new Button
         {
             Text = activeAttempt != null ? "🔄 Restart" : "▶️ Start Attempt",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             FontSize = 12,
             CornerRadius = 8,
             HeightRequest = 36,
             Padding = new Thickness(12, 0),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         startButton.Clicked += async (s, e) => await OnStartNewStreakAttemptClicked(streakActivity);
         Grid.SetColumn(startButton, 3);
         headerGrid.Children.Add(startButton);
@@ -345,25 +334,20 @@ public partial class ActivityGamePage
     /// </summary>
     private Frame BuildStreakAttemptCard(StreakAttemptViewModel attemptVM, bool capReached = false)
     {
-        var outerFrame = new Frame
+        var outerFrame = (new Frame
         {
             WidthRequest = 180,
             HeightRequest = 200,
             Padding = 0,
             CornerRadius = 12,
-            HasShadow = true,
-            BackgroundColor = capReached ? Color.FromArgb("#FFEBEE") : Colors.White,
-            BorderColor = capReached ? Color.FromArgb("#C62828") : (attemptVM.IsActive ? Color.FromArgb("#FF9800") : Color.FromArgb("#E0E0E0"))
-        };
+            HasShadow = true
+        }).ThemeColor(VisualElement.BackgroundColorProperty, capReached ? ThemeKey.ErrorBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, capReached ? ThemeKey.ErrorText : (attemptVM.IsActive ? ThemeKey.WarningAccentText : ThemeKey.Separator));
 
         var grid = new Grid();
 
-        var backgroundBox = new BoxView
+        var backgroundBox = (new BoxView
         {
-            Color = capReached
-                ? Color.FromArgb("#FFEBEE")
-                : (attemptVM.IsActive ? Color.FromArgb("#FFF8E1") : Color.FromArgb("#F5F5F5"))
-        };
+        }).ThemeColor(BoxView.ColorProperty, capReached ? ThemeKey.ErrorBackground : (attemptVM.IsActive ? ThemeKey.HighlightYellow : ThemeKey.SecondarySurface));
         grid.Children.Add(backgroundBox);
 
         var contentStack = new VerticalStackLayout
@@ -374,21 +358,20 @@ public partial class ActivityGamePage
             HorizontalOptions = LayoutOptions.Center
         };
 
-        var attemptLabel = new Label
+        var attemptLabel = (new Label
         {
             Text = attemptVM.Name,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            HorizontalOptions = LayoutOptions.Center,
-            TextColor = attemptVM.IsActive ? Color.FromArgb("#E65100") : Color.FromArgb("#757575")
-        };
+            HorizontalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, attemptVM.IsActive ? ThemeKey.WarningText : ThemeKey.NeutralHoverButton, ThemeKey.PageText1, classifyPageText: true);
         if (attemptVM.GetActivity().IsImageOnly)
             attemptLabel.IsVisible = false;
         contentStack.Children.Add(attemptLabel);
 
         const double defaultDaysFontSize = 34;
         string daysText = attemptVM.DaysWithTargetDisplay;
-        var daysLabel = new Label
+        var daysLabel = (new Label
         {
             Text = daysText,
             FontSize = GetStreakAttemptDaysFontSize(daysText, defaultDaysFontSize),
@@ -396,96 +379,86 @@ public partial class ActivityGamePage
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             LineBreakMode = LineBreakMode.NoWrap,
-            MaxLines = 1,
-            TextColor = attemptVM.IsActive ? Color.FromArgb("#FF6D00") : Color.FromArgb("#9E9E9E")
-        };
+            MaxLines = 1
+        }).ThemeColor(Label.TextColorProperty, attemptVM.IsActive ? ThemeKey.WarningAmber : ThemeKey.DisabledButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         contentStack.Children.Add(daysLabel);
 
-        var daysTextLabel = new Label
+        var daysTextLabel = (new Label
         {
             Text = "days in a row",
             FontSize = 16,
             HorizontalOptions = LayoutOptions.Center,
-            TextColor = attemptVM.IsActive ? Color.FromArgb("#FF9800") : Color.FromArgb("#BDBDBD"),
             Margin = new Thickness(0, -2, 0, 0)
-        };
+        }).ThemeColor(Label.TextColorProperty, attemptVM.IsActive ? ThemeKey.WarningAccentText : ThemeKey.DisabledButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         contentStack.Children.Add(daysTextLabel);
 
-        var statusLabel = new Label
+        var statusLabel = (new Label
         {
             Text = attemptVM.Status,
             FontSize = 12,
-            HorizontalOptions = LayoutOptions.Center,
-            TextColor = attemptVM.IsActive ? Color.FromArgb("#4CAF50") : Color.FromArgb("#F44336")
-        };
+            HorizontalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, attemptVM.IsActive ? ThemeKey.SuccessLightText : ThemeKey.ErrorButtonBackground, ThemeKey.PageText3, classifyPageText: true);
         contentStack.Children.Add(statusLabel);
 
         if (!string.IsNullOrEmpty(attemptVM.DateRange))
         {
-            var dateLabel = new Label
+            var dateLabel = (new Label
             {
                 Text = attemptVM.DateRange,
                 FontSize = 10,
-                HorizontalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb("#9E9E9E")
-            };
+                HorizontalOptions = LayoutOptions.Center
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledButtonBackground, ThemeKey.PageText3, classifyPageText: true);
             contentStack.Children.Add(dateLabel);
         }
 
         grid.Children.Add(contentStack);
 
         // EXP badge
-        var expFrame = new Frame
+        var expFrame = (new Frame
         {
             VerticalOptions = LayoutOptions.Start,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(6, 2),
             CornerRadius = 8,
-            BackgroundColor = Color.FromArgb("#4CAF50"),
             BorderColor = Colors.Transparent,
             Margin = new Thickness(4)
-        };
-        var expLabel = new Label
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground);
+        var expLabel = (new Label
         {
             Text = attemptVM.ExpGainDisplay,
-            TextColor = Colors.White,
             FontSize = 11,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
         expFrame.Content = expLabel;
         grid.Children.Add(expFrame);
 
         if (attemptVM.ShowMultiplier)
         {
-            var multFrame = new Frame
+            var multFrame = (new Frame
             {
                 VerticalOptions = LayoutOptions.Start,
                 HorizontalOptions = LayoutOptions.End,
                 Padding = new Thickness(6, 2),
                 CornerRadius = 8,
-                BackgroundColor = Color.FromArgb("#FF5722"),
                 BorderColor = Colors.Transparent,
                 Margin = new Thickness(4, 4, 40, 4)
-            };
-            var multLabel = new Label
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DeepOrangeButtonBackground);
+            var multLabel = (new Label
             {
                 Text = $"×{attemptVM.Multiplier}",
-                TextColor = Colors.White,
                 FontSize = 11,
                 FontAttributes = FontAttributes.Bold
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
             multFrame.Content = multLabel;
             grid.Children.Add(multFrame);
         }
 
         // 3-DOT MENU BUTTON - uses ShowUnifiedContextMenu (shared logic)
-        var menuButton = new Button
+        var menuButton = (new Button
         {
             Text = "⋮",
             VerticalOptions = LayoutOptions.Start,
             HorizontalOptions = LayoutOptions.End,
-            BackgroundColor = Color.FromArgb("#80000000"),
-            TextColor = Colors.White,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             WidthRequest = 30,
@@ -493,7 +466,7 @@ public partial class ActivityGamePage
             CornerRadius = 15,
             Padding = 0,
             Margin = new Thickness(4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         menuButton.Clicked += async (s, e) => 
             await ShowUnifiedContextMenu(attemptVM.GetActivity(), isStreakAttempt: true, attemptVM: attemptVM);
         grid.Children.Add(menuButton);
@@ -846,15 +819,13 @@ public partial class ActivityGamePage
         
         if (attempts.Count == 0)
         {
-            var noAttemptsFrame = new Frame
+            var noAttemptsFrame = (new Frame
             {
                 Padding = 20,
                 CornerRadius = 12,
-                BackgroundColor = Color.FromArgb("#FFF8E1"),
-                BorderColor = Color.FromArgb("#FFE082"),
                 HasShadow = false,
                 Margin = new Thickness(0, 16)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightAmberStrong);
             
             var noAttemptsStack = new VerticalStackLayout
             {
@@ -869,22 +840,20 @@ public partial class ActivityGamePage
                 HorizontalOptions = LayoutOptions.Center
             });
             
-            noAttemptsStack.Children.Add(new Label
+            noAttemptsStack.Children.Add((new Label
             {
                 Text = "No streak attempts yet",
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
-                HorizontalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb("#E65100")
-            });
+                HorizontalOptions = LayoutOptions.Center
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
             
-            noAttemptsStack.Children.Add(new Label
+            noAttemptsStack.Children.Add((new Label
             {
                 Text = "Click \"Start Attempt\" to begin tracking.",
                 FontSize = 14,
-                HorizontalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb("#BF360C")
-            });
+                HorizontalOptions = LayoutOptions.Center
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningBurntText, ThemeKey.PageText1, classifyPageText: true));
             
             noAttemptsFrame.Content = noAttemptsStack;
             mainStack.Children.Add(noAttemptsFrame);
@@ -961,22 +930,19 @@ public partial class ActivityGamePage
 
         if (goals.Count == 0)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = "No streak goals yet.",
                 FontSize = 16,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#5D4037")
-            });
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownText, ThemeKey.PageText1, classifyPageText: true));
 
-            var setFirstButton = new Button
+            var setFirstButton = (new Button
             {
                 Text = "Set First Goal",
-                BackgroundColor = Color.FromArgb("#FFB300"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 HeightRequest = 42
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellowButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             setFirstButton.Clicked += async (_, _) => await PromptAddStreakGoalAsync(streakContainer, null);
             stack.Children.Add(setFirstButton);
 
@@ -987,19 +953,17 @@ public partial class ActivityGamePage
         var latestGoal = goals.Last();
         int daysSinceStart = Math.Max(0, (DateTime.Today - firstGoal.SetDate.ToLocalTime().Date).Days);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Started: {firstGoal.SetDate.ToLocalTime():MMM d, yyyy}",
             FontSize = 17,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#3E2723")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownStrongText, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = $"Days since: {daysSinceStart}",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#795548")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownLightButtonBackground, ThemeKey.PageText1, classifyPageText: true));
 
         for (int i = 0; i < goals.Count; i++)
         {
@@ -1008,14 +972,12 @@ public partial class ActivityGamePage
 
         if (latestGoal.AchievedDate.HasValue)
         {
-            var addGoalButton = new Button
+            var addGoalButton = (new Button
             {
                 Text = "+ Add New Goal",
-                BackgroundColor = Color.FromArgb("#6D4C41"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 HeightRequest = 42
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrownText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             addGoalButton.Clicked += async (_, _) => await PromptAddStreakGoalAsync(streakContainer, latestGoal);
             stack.Children.Add(addGoalButton);
         }
@@ -1040,64 +1002,56 @@ public partial class ActivityGamePage
             Spacing = 4
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Goal {goalNumber}: {goal.TargetDays} days",
             FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = $"Set: {goal.SetDate.ToLocalTime():MMM d, yyyy}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         if (goal.AchievedDate.HasValue)
         {
             int daysTaken = Math.Max(0, (goal.AchievedDate.Value.Date - goal.SetDate.ToLocalTime().Date).Days);
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"Achieved: {goal.AchievedDate.Value:MMM d, yyyy} (took {daysTaken} days)",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#2E7D32")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true));
         }
         else
         {
             int daysToGo = goal.TargetDays - currentStreakDays;
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = daysToGo <= 0 ? "Goal reached!" : $"In progress - {daysToGo} days to go",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#795548")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownLightButtonBackground, ThemeKey.PageText3, classifyPageText: true));
         }
 
-        return new Frame
+        return (new Frame
         {
             Padding = 10,
             CornerRadius = 8,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#FFE082"),
-            BackgroundColor = Color.FromArgb("#FFFDF5"),
             Content = stack
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightAmberStrong).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellowSoft);
     }
 
     private static Frame WrapStreakGoalsFrame(View content)
     {
-        return new Frame
+        return (new Frame
         {
             Padding = 14,
             CornerRadius = 10,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#FFCC80"),
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
             Margin = new Thickness(0, 12, 0, 8),
             Content = content
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightAmberStrong).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow);
     }
 
     private async Task PromptAddStreakGoalAsync(Activity streakContainer, StreakGoal? previousGoal)

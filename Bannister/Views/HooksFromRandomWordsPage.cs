@@ -148,19 +148,17 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             Spacing = 16,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "🪝 Hooks from Random Words",
                     FontSize = 22,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222")
-                },
-                new Label
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                (new Label
                 {
                     Text = "Generate scroll-stopping hook image prompts through a 4-stage variety amplifier. Stage 1 now samples from your persistent local word pool.",
-                    FontSize = 14,
-                    TextColor = Color.FromArgb("#666")
-                }
+                    FontSize = 14
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true)
             }
         };
 
@@ -211,14 +209,13 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             "Use {WORDS} and {CONCEPTUAL_HOOKS} as placeholders for Stage 1 and Stage 3 content.",
             CreateStage4TrailingBlock()));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Tip: re-press Copy Stage 4 prompt for a fresh set of 20. Then paste the LLM result, and use Copy 20 prompts + grid suffix to send everything to an image generator that renders a 4x5 numbered concept sheet.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#777"),
             FontAttributes = FontAttributes.Italic,
             Margin = new Thickness(0, 4, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         var rootGrid = new Grid();
         rootGrid.Children.Add(new ScrollView { Content = stack });
@@ -227,36 +224,31 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
 
     private Frame BuildWordPoolSection()
     {
-        var getWordsButton = new Button
+        var getWordsButton = (new Button
         {
             Text = " Get 1000 more words",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         getWordsButton.Clicked += OnGet1000WordsClicked;
 
-        var manageWordsButton = new Button
+        var manageWordsButton = (new Button
         {
             Text = "⚙️ Manage word pool",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         manageWordsButton.Clicked += async (_, _) =>
         {
             await Navigation.PushAsync(new HookWordManagementPage(_auth, _hookWordService));
         };
 
-        _poolStatusLabel = new Label
+        _poolStatusLabel = (new Label
         {
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             FontAttributes = FontAttributes.Italic
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
 
         var getWordsExpander = CreatePromptTemplateExpander(
             _getWordsTemplateEditor,
@@ -265,10 +257,8 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             null,
             out var getWordsToggle);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#C8E6C9"),
             CornerRadius = 10,
             Padding = 16,
             HasShadow = false,
@@ -277,19 +267,17 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                 Spacing = 10,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Word pool",
                         FontSize = 16,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#2E7D32")
-                    },
-                    new Label
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label
                     {
                         Text = "Populate a persistent pool once, then Stage 1 samples locally instead of asking the LLM to generate fresh words.",
-                        FontSize = 13,
-                        TextColor = Color.FromArgb("#666")
-                    },
+                        FontSize = 13
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                     new HorizontalStackLayout
                     {
                         Spacing = 10,
@@ -300,30 +288,27 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                     getWordsExpander
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessBackground);
     }
 
     private Frame BuildOneShotSection()
     {
-        var oneShotButton = new Button
+        var oneShotButton = (new Button
         {
             Text = " One-shot: all 4 stages in a single LLM call",
-            BackgroundColor = Color.FromArgb("#FF6F00"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         oneShotButton.Clicked += OnCopyOneShotPromptClicked;
 
-        var subtitle = new Label
+        var subtitle = (new Label
         {
             Text = "Copies a single prompt that samples 100 words from your pool, then asks the LLM to run the remaining stages internally.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
 
         var expander = CreatePromptTemplateExpander(
             _oneShotTemplateEditor,
@@ -332,10 +317,8 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             "Use {WORDS} as the placeholder for a local 100-word sample.",
             out var toggleButton);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
-            BorderColor = Color.FromArgb("#FF6F00"),
             CornerRadius = 10,
             Padding = 16,
             HasShadow = false,
@@ -344,26 +327,22 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                 Spacing = 10,
                 Children = { oneShotButton, subtitle, toggleButton, expander }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAmber);
     }
 
     private Frame CreateStage1Section()
     {
-        var sampleButton = new Button
+        var sampleButton = (new Button
         {
             Text = " Sample 100 words from pool",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         sampleButton.Clicked += OnSampleWordsClicked;
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 16,
             HasShadow = false,
@@ -372,24 +351,22 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                 Spacing = 10,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Stage 1 — 100 Random Words",
                         FontSize = 16,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
-                    new Label
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label
                     {
                         Text = "Sample 100 words locally from the active pool. This box feeds Stage 2 through {WORDS}.",
-                        FontSize = 13,
-                        TextColor = Color.FromArgb("#666")
-                    },
+                        FontSize = 13
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                     sampleButton,
                     _stage1Editor
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private Frame CreateStageSection(
@@ -404,15 +381,13 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         string? placeholderHint,
         View? trailingView = null)
     {
-        var copyButton = new Button
+        var copyButton = (new Button
         {
             Text = buttonText,
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         copyButton.Clicked += clicked;
 
         var templateContainer = CreatePromptTemplateExpander(
@@ -427,19 +402,17 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             Spacing = 10,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = title,
                     FontSize = 16,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222")
-                },
-                new Label
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                (new Label
                 {
                     Text = subtitle,
-                    FontSize = 13,
-                    TextColor = Color.FromArgb("#666")
-                },
+                    FontSize = 13
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                 copyButton,
                 toggleButton,
                 templateContainer,
@@ -450,15 +423,13 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         if (trailingView != null)
             sectionStack.Children.Add(trailingView);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 16,
             HasShadow = false,
             Content = sectionStack
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private VerticalStackLayout CreatePromptTemplateExpander(
@@ -469,36 +440,33 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         out Button toggleButton)
     {
         var container = new VerticalStackLayout { Spacing = 8, IsVisible = false };
-        container.Children.Add(new Label
+        container.Children.Add((new Label
         {
             Text = "Prompt template (edit to customize):",
             FontSize = 12,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#555")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         container.Children.Add(templateEditor);
 
         if (!string.IsNullOrWhiteSpace(placeholderHint))
         {
-            container.Children.Add(new Label
+            container.Children.Add((new Label
             {
                 Text = placeholderHint,
                 FontSize = 11,
-                FontAttributes = FontAttributes.Italic,
-                TextColor = Color.FromArgb("#777")
-            });
+                FontAttributes = FontAttributes.Italic
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         }
 
-        var resetButton = new Button
+        var resetButton = (new Button
         {
             Text = "Reset to default",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 12,
             HeightRequest = 32,
             Padding = new Thickness(0),
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         resetButton.Clicked += async (_, _) =>
         {
             var reset = await DisplayAlert("Reset to default?", "This will discard your custom prompt and restore the built-in default.", "Reset", "Cancel");
@@ -511,16 +479,14 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         };
         container.Children.Add(resetButton);
 
-        var localToggleButton = new Button
+        var localToggleButton = (new Button
         {
             Text = "Show prompt template",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             FontSize = 12,
             HeightRequest = 36,
             CornerRadius = 8,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         localToggleButton.Clicked += (_, _) =>
         {
             container.IsVisible = !container.IsVisible;
@@ -541,13 +507,12 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
             Children =
             {
                 CreateImageGeneratorCopyButton(),
-                new Label
+                (new Label
                 {
                     Text = "Grid suffix template (customize)",
                     FontSize = 13,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#00838F")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightTealText, ThemeKey.PageText1, classifyPageText: true),
                 gridToggle,
                 gridSuffixExpander
             }
@@ -556,31 +521,26 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
 
     private Button CreateImageGeneratorCopyButton()
     {
-        var button = new Button
+        var button = (new Button
         {
             Text = "Copy 20 prompts + grid suffix for image generator",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         button.Clicked += OnCopyImageGeneratorPromptClicked;
         return button;
     }
 
     private Editor CreatePromptTemplateEditor(string storageSuffix)
     {
-        var editor = new Editor
+        var editor = (new Editor
         {
             HeightRequest = 220,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
             FontSize = 12,
             FontFamily = "Consolas"
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
         editor.TextChanged += async (_, e) =>
         {
             if (_isLoadingTemplates) return;
@@ -589,16 +549,12 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         return editor;
     }
 
-    private static Editor CreateResponseEditor(string placeholder) => new()
-    {
+    private static Editor CreateResponseEditor(string placeholder) => (new Editor(){
         Placeholder = placeholder,
         HeightRequest = 44,
         AutoSize = EditorAutoSizeOption.Disabled,
-        BackgroundColor = Color.FromArgb("#FAFAFA"),
-        TextColor = Color.FromArgb("#222"),
-        PlaceholderColor = Color.FromArgb("#999"),
         FontSize = 13
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
     private async Task LoadPromptTemplatesAsync()
     {
@@ -815,35 +771,29 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     {
         if (Content is not Grid root) return null;
 
-        var modalEditor = new Editor
+        var modalEditor = (new Editor
         {
             Placeholder = subtitle,
             HeightRequest = 280,
             AutoSize = EditorAutoSizeOption.Disabled,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
 
-        var applyButton = new Button
+        var applyButton = (new Button
         {
             Text = "Apply",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var closeButton = new Button
+        var closeButton = (new Button
         {
             Text = "Close",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
 
         var tcs = new TaskCompletionSource<string?>();
         var overlay = BuildPasteOverlay(title, subtitle, modalEditor, closeButton, applyButton);
@@ -867,35 +817,29 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
     {
         if (Content is not Grid root) return;
 
-        var modalEditor = new Editor
+        var modalEditor = (new Editor
         {
             Placeholder = $"Paste the LLM's {stageLabel} result here...",
             HeightRequest = 280,
             AutoSize = EditorAutoSizeOption.Disabled,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
 
-        var applyButton = new Button
+        var applyButton = (new Button
         {
             Text = "Apply",
-            BackgroundColor = Color.FromArgb("#00838F"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightTealText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var closeButton = new Button
+        var closeButton = (new Button
         {
             Text = "Close",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 42,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
 
         var overlay = BuildPasteOverlay(
             $"Paste the {stageLabel} result",
@@ -935,9 +879,8 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
         buttonsRow.Add(closeButton, 0, 0);
         buttonsRow.Add(applyButton, 1, 0);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 20,
             CornerRadius = 12,
             WidthRequest = 480,
@@ -950,18 +893,17 @@ Continue through 20. No preamble, no commentary, no closing remark — just the 
                 Children =
                 {
                     new Label { Text = title, FontSize = 16, FontAttributes = FontAttributes.Bold },
-                    new Label { Text = subtitle, FontSize = 12, TextColor = Color.FromArgb("#666") },
+                    (new Label { Text = subtitle, FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
                     modalEditor,
                     buttonsRow
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        return new Grid
+        return (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false,
             Children = { card }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
     }
 }
