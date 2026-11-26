@@ -98,6 +98,9 @@ public class ModeThemedPage : ContentPage
         var resources = Application.Current?.Resources;
         if (resources == null) return;
         foreach (var token in colors.Tokens) resources["Mode" + token.Key] = token.Value;
+        resources["ModePageText1"] = colors.Text1;
+        resources["ModePageText2"] = colors.Text2;
+        resources["ModePageText3"] = colors.Text3;
         resources["ModeForeground"] = colors.Foreground;
         resources["ModeMutedForeground"] = colors.MutedForeground;
         resources["ModeAccent"] = colors.Accent;
@@ -125,6 +128,7 @@ public class ModeThemedPage : ContentPage
             VisualElement? canvas = Content;
             while (!PreserveCanvasBackground && (canvas is Layout || canvas is ScrollView || canvas is ContentView))
             {
+                if (canvas.HasThemeColor(BackgroundColorProperty)) break;
                 canvas.BackgroundColor = Colors.Transparent;
                 canvas = canvas is ScrollView scroll ? scroll.Content :
                     canvas is ContentView contentView ? contentView.Content :
@@ -145,31 +149,36 @@ public class ModeThemedPage : ContentPage
     {
         if (element is Page || (bool)element.GetValue(PreserveColorsProperty) || !visited.Add(element)) return;
         if (_observed.Add(element)) element.PropertyChanged += OnElementChanged;
-        if (element is VisualElement visual) ThemeSurface(visual);
+        ThemeColorExtensions.RefreshThemeColors(element);
+        if (element is VisualElement visual && !element.HasThemeColor(BackgroundColorProperty)) ThemeSurface(visual);
         string? textSurface = TextSurface(element);
 
         if (element is Label label)
         {
-            ApplyTextTheme(label, Label.TextColorProperty, label.TextColor, label.FontSize, label.FontAttributes, textSurface);
+            if (!label.HasThemeColor(Label.TextColorProperty))
+                ApplyTextTheme(label, Label.TextColorProperty, label.TextColor, label.FontSize, label.FontAttributes, textSurface);
             if (label.FormattedText != null)
                 foreach (var span in label.FormattedText.Spans)
                 {
                     if (visited.Add(span) && _observed.Add(span)) span.PropertyChanged += OnElementChanged;
-                    ApplyTextTheme(span, Span.TextColorProperty, span.TextColor,
+                    ThemeColorExtensions.RefreshThemeColors(span);
+                    if (!span.HasThemeColor(Span.TextColorProperty)) ApplyTextTheme(span, Span.TextColorProperty, span.TextColor,
                         span.IsSet(Span.FontSizeProperty) ? span.FontSize : label.FontSize,
                         span.IsSet(Span.FontAttributesProperty) ? span.FontAttributes : label.FontAttributes,
                         !HasBackground(span.BackgroundColor) ? textSurface : null);
                 }
         }
-        else if (element is InputView input && _surfaces.TryGetValue(input, out var inputSurface) && inputSurface.ResourceKey == "ModeInputBackground")
+        else if (element is InputView input && (input.UsesThemeColor(BackgroundColorProperty, ThemeKey.InputBackground) ||
+            _surfaces.TryGetValue(input, out var inputSurface) && inputSurface.ResourceKey == "ModeInputBackground"))
         {
-            BindColor(input, InputView.TextColorProperty, "ModeInputText");
-            BindColor(input, InputView.PlaceholderColorProperty, "ModeInputText");
+            if (!input.HasThemeColor(InputView.TextColorProperty)) BindColor(input, InputView.TextColorProperty, "ModeInputText");
+            if (!input.HasThemeColor(InputView.PlaceholderColorProperty)) BindColor(input, InputView.PlaceholderColorProperty, "ModeInputText");
         }
-        else if (element is Picker picker && _surfaces.TryGetValue(picker, out var pickerSurface) && pickerSurface.ResourceKey == "ModeInputBackground")
+        else if (element is Picker picker && (picker.UsesThemeColor(BackgroundColorProperty, ThemeKey.InputBackground) ||
+            _surfaces.TryGetValue(picker, out var pickerSurface) && pickerSurface.ResourceKey == "ModeInputBackground"))
         {
-            BindColor(picker, Picker.TextColorProperty, "ModeInputText");
-            BindColor(picker, Picker.TitleColorProperty, "ModeInputText");
+            if (!picker.HasThemeColor(Picker.TextColorProperty)) BindColor(picker, Picker.TextColorProperty, "ModeInputText");
+            if (!picker.HasThemeColor(Picker.TitleColorProperty)) BindColor(picker, Picker.TitleColorProperty, "ModeInputText");
             // Windows renders Title as a header inside the requested height.
             if (!string.IsNullOrWhiteSpace(picker.Title) && picker.HeightRequest >= 0)
                 picker.HeightRequest = Math.Max(picker.HeightRequest, 72);
@@ -207,9 +216,9 @@ public class ModeThemedPage : ContentPage
         surface.ResourceKey = key;
         if (key == "ModeButtonPrimaryBackground") surface.WasPrimaryButton = true;
         BindColor(element, VisualElement.BackgroundColorProperty, key);
-        if (element is Button primary) BindColor(primary, Button.TextColorProperty, "ModeButtonPrimaryText");
-        if (element is DatePicker date) BindColor(date, DatePicker.TextColorProperty, "ModeInputText");
-        if (element is TimePicker time) BindColor(time, TimePicker.TextColorProperty, "ModeInputText");
+        if (element is Button primary && !primary.HasThemeColor(Button.TextColorProperty)) BindColor(primary, Button.TextColorProperty, "ModeButtonPrimaryText");
+        if (element is DatePicker date && !date.HasThemeColor(DatePicker.TextColorProperty)) BindColor(date, DatePicker.TextColorProperty, "ModeInputText");
+        if (element is TimePicker time && !time.HasThemeColor(TimePicker.TextColorProperty)) BindColor(time, TimePicker.TextColorProperty, "ModeInputText");
     }
 
     private string? TextSurface(Element element)
@@ -220,6 +229,7 @@ public class ModeThemedPage : ContentPage
             if (ancestor is Page || ancestor is Button) return null;
             if (ancestor is VisualElement visual)
             {
+                if (visual.UsesThemeColor(BackgroundColorProperty, ThemeKey.CardBackground)) return "Card";
                 if (_surfaces.TryGetValue(visual, out var surface) && surface.ResourceKey == "ModeCardBackground") return "Card";
                 if (HasBackground(visual.BackgroundColor) || HasBackground(visual.Background)) return null;
             }

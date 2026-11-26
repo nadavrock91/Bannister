@@ -15,6 +15,7 @@ internal sealed class ThemeColorsView : ContentView
     private readonly SemaphoreSlim _writes = new(1, 1);
     private readonly Dictionary<string, Color> _colors = new();
     private int _loadVersion;
+    private readonly HashSet<string> _collapsed = new(new[] { "Cards", "Inputs", "Rows", "Status", "Buttons", "Highlights", "Brand" });
 
     private ActivityDisplayMode SelectedMode => _mode.SelectedIndex switch
     {
@@ -42,7 +43,7 @@ internal sealed class ThemeColorsView : ContentView
                 Children =
                 {
                     new Label { Text = "Colors", FontSize = 20, FontAttributes = FontAttributes.Bold },
-                    new Label { Text = "Choose a mode, then enter #RRGGBB or tap a preset. Valid changes save immediately.", FontSize = 12 },
+                    new Label { Text = "Choose a mode, then enter #RRGGBB (or #AARRGGBB for opacity) or tap a preset. Changes save immediately.", FontSize = 12 },
                     _mode, _status, _preview, _rows,
                     new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, Children = { resetMode, resetAll } }
                 }
@@ -76,21 +77,36 @@ internal sealed class ThemeColorsView : ContentView
             foreach (var token in colors.Tokens) _colors[token.Key] = token.Value;
             UpdatePreview();
             _rows.Children.Clear();
-            foreach (var token in colors.Tokens) _rows.Children.Add(BuildRow(token.Key, token.Value, mode));
+            foreach (var group in ModeTheme.Catalog.GroupBy(x => x.Group))
+            {
+                var body = new VerticalStackLayout { Spacing = 10, IsVisible = !_collapsed.Contains(group.Key) };
+                foreach (var definition in group) body.Children.Add(BuildRow(definition, colors.Tokens[definition.Name], mode));
+                var toggle = new Button { Text = $"{group.Key} ({group.Count()}) {(_collapsed.Contains(group.Key) ? "▸" : "▾")}", HorizontalOptions = LayoutOptions.Fill };
+                string groupName = group.Key;
+                int count = group.Count();
+                toggle.Clicked += (_, _) =>
+                {
+                    if (!_collapsed.Add(groupName)) _collapsed.Remove(groupName);
+                    body.IsVisible = !_collapsed.Contains(groupName);
+                    toggle.Text = $"{groupName} ({count}) {(body.IsVisible ? "▾" : "▸")}";
+                };
+                _rows.Children.Add(toggle); _rows.Children.Add(body);
+            }
             _status.Text = _settings.IsReadOnly ? "Colors can be changed on the master device." : "";
         }
         catch (Exception ex) { _status.Text = ex.Message; }
     }
 
-    private View BuildRow(string token, Color color, ActivityDisplayMode mode)
+    private View BuildRow(ThemeColorDefinition definition, Color color, ActivityDisplayMode mode)
     {
+        string token = definition.Name;
         var swatch = new BoxView { Color = color, WidthRequest = 26, HeightRequest = 26, VerticalOptions = LayoutOptions.Center };
         ModeThemedPage.SetPreserveColors(swatch, true);
         var entry = new Entry
         {
-            Text = ModeTheme.ToHex(color), MaxLength = 7, WidthRequest = 110,
+            Text = ModeTheme.ToHex(color), MaxLength = 9, WidthRequest = 130,
             BackgroundColor = Colors.White, TextColor = Colors.Black,
-            IsEnabled = !_settings.IsReadOnly,
+            IsEnabled = !_settings.IsReadOnly && !definition.Fixed,
             AutomationId = $"Theme_{token}"
         };
         var validation = new Label { FontSize = 11, TextColor = Color.FromArgb("#C62828"), IsVisible = false };
@@ -98,7 +114,7 @@ internal sealed class ThemeColorsView : ContentView
         {
             if (!ModeTheme.TryNormalizeHex(args.NewTextValue, out string hex))
             {
-                validation.Text = "Use #RRGGBB (six hex digits)."; validation.IsVisible = true;
+                validation.Text = "Use #RRGGBB or #AARRGGBB."; validation.IsVisible = true;
                 return;
             }
             validation.IsVisible = false;
@@ -118,6 +134,7 @@ internal sealed class ThemeColorsView : ContentView
             finally { _writes.Release(); }
         };
         var palette = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
+        palette.IsVisible = !definition.Fixed;
         foreach (string hex in new[] { "#FFFFFF", "#FAFAFA", "#222222", "#666666", "#1A1A2E", "#2D0A4E", "#6B73FF", "#1565C0", "#00E5FF", "#FFD700" })
         {
             string choice = hex;
@@ -137,7 +154,7 @@ internal sealed class ThemeColorsView : ContentView
             Spacing = 3,
             Children =
             {
-                new Label { Text = token, FontSize = 14, FontAttributes = FontAttributes.Bold },
+                new Label { Text = definition.Label + (definition.Fixed ? " (fixed)" : ""), FontSize = 14, FontAttributes = FontAttributes.Bold },
                 new HorizontalStackLayout { Spacing = 8, Children = { swatch, entry } }, palette, validation
             }
         };

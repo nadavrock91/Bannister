@@ -304,14 +304,13 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var headerLabel = new Label
+        var headerLabel = (new Label
         {
             Text = "📚 Learning Center",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         mainStack.Children.Add(headerLabel);
 
         // Tab buttons
@@ -325,56 +324,49 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 12
         };
 
-        _btnBooks = new Button
+        _btnBooks = (new Button
         {
             Text = "📖 Books",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnBooks.Clicked += (s, e) => SwitchTab("Books");
         Grid.SetColumn(_btnBooks, 0);
         tabGrid.Children.Add(_btnBooks);
 
-        _btnVideos = new Button
+        _btnVideos = (new Button
         {
             Text = "🎬 Videos",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#666"),
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         _btnVideos.Clicked += (s, e) => SwitchTab("Videos");
         Grid.SetColumn(_btnVideos, 1);
         tabGrid.Children.Add(_btnVideos);
 
         mainStack.Children.Add(tabGrid);
 
-        var speakersBtn = new Button
+        var speakersBtn = (new Button
         {
             Text = "Speakers",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#283593"),
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoText);
         speakersBtn.Clicked += async (s, e) => await Navigation.PushAsync(new LearningSpeakersPage(_auth, _learning));
         mainStack.Children.Add(speakersBtn);
 
         // Books Section
-        _booksFrame = new Frame
+        _booksFrame = (new Frame
         {
             Padding = 0,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent,
             IsVisible = true
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var booksContainer = new VerticalStackLayout { Spacing = 0 };
         
@@ -390,25 +382,21 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(12, 12, 12, 8)
         };
         
-        var addBookBtn = new Button
+        var addBookBtn = (new Button
         {
             Text = "+ Add Book",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBookBtn.Clicked += OnAddBookClicked;
         Grid.SetColumn(addBookBtn, 0);
         bookButtonRow.Children.Add(addBookBtn);
         
-        var bookSettingsBtn = new Button
+        var bookSettingsBtn = (new Button
         {
             Text = "⚙️",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             WidthRequest = 50,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         bookSettingsBtn.Clicked += OnBookSettingsClicked;
         Grid.SetColumn(bookSettingsBtn, 1);
         bookButtonRow.Children.Add(bookSettingsBtn);
@@ -416,77 +404,66 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         booksContainer.Children.Add(bookButtonRow);
 
         // Book Focus Panel
-        _bookFocusFrame = new Frame
+        _bookFocusFrame = (new Frame
         {
             Padding = 10,
             Margin = new Thickness(12, 0, 12, 8),
             CornerRadius = 8,
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            BorderColor = Color.FromArgb("#4CAF50"),
             HasShadow = false,
             IsVisible = false
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessButtonBackground);
         
         var bookFocusStack = new VerticalStackLayout { Spacing = 6 };
         
-        _bookFocusStatusLabel = new Label
+        _bookFocusStatusLabel = (new Label
         {
-            FontSize = 13,
-            TextColor = Color.FromArgb("#388E3C")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessBrightText, ThemeKey.PageText1);
         bookFocusStack.Children.Add(_bookFocusStatusLabel);
         
         var bookFocusBtnRow = new HorizontalStackLayout { Spacing = 8 };
         
-        var editBookFocusBtn = new Button
+        var editBookFocusBtn = (new Button
         {
             Text = "✏️ Edit",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         editBookFocusBtn.Clicked += async (s, e) => await SetupBookFocusAsync();
         bookFocusBtnRow.Children.Add(editBookFocusBtn);
         
-        var editBookNumbersBtn = new Button
+        var editBookNumbersBtn = (new Button
         {
             Text = "🔢 Numbers",
-            BackgroundColor = Color.FromArgb("#9C27B0"),
-            TextColor = Colors.White,
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         editBookNumbersBtn.Clicked += async (s, e) => await EditBookFocusNumbersAsync();
         bookFocusBtnRow.Children.Add(editBookNumbersBtn);
         
-        var resetBookStreakBtn = new Button
+        var resetBookStreakBtn = (new Button
         {
             Text = "🔄 Reset Streak",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         resetBookStreakBtn.Clicked += async (s, e) => await ResetBookFocusStreakAsync();
         bookFocusBtnRow.Children.Add(resetBookStreakBtn);
         
-        var clearBookFocusBtn = new Button
+        var clearBookFocusBtn = (new Button
         {
             Text = "❌ Clear Focus",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         clearBookFocusBtn.Clicked += async (s, e) => await ClearBookFocusAsync();
         bookFocusBtnRow.Children.Add(clearBookFocusBtn);
         
@@ -503,15 +480,14 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(_booksFrame);
 
         // Videos Section
-        _videosFrame = new Frame
+        _videosFrame = (new Frame
         {
             Padding = 0,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent,
             IsVisible = false
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var videosContainer = new VerticalStackLayout { Spacing = 0 };
         
@@ -527,24 +503,20 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(12, 12, 12, 8)
         };
 
-        var addVideoBtn = new Button
+        var addVideoBtn = (new Button
         {
             Text = "+ Add Video",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addVideoBtn.Clicked += OnAddVideoClicked;
         Grid.SetColumn(addVideoBtn, 0);
         buttonRow.Children.Add(addVideoBtn);
 
-        var importBtn = new Button
+        var importBtn = (new Button
         {
             Text = "📋 Import Links",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         importBtn.Clicked += OnImportLinksClicked;
         Grid.SetColumn(importBtn, 1);
         buttonRow.Children.Add(importBtn);
@@ -559,20 +531,18 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         };
 
         // Category filter
-        filterRow1.Children.Add(new Label
+        filterRow1.Children.Add((new Label
         {
             Text = "Category:",
             VerticalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#666"),
             FontSize = 12
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
-        _categoryPicker = new Picker
+        _categoryPicker = (new Picker
         {
             Title = "All",
-            WidthRequest = 120,
-            BackgroundColor = Colors.White
-        };
+            WidthRequest = 120
+        }).ThemeColor(Picker.BackgroundColorProperty, ThemeKey.InputBackground);
         _categoryPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_isUpdatingPicker) return;
@@ -586,20 +556,18 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         filterRow1.Children.Add(_categoryPicker);
 
         // Channel filter
-        filterRow1.Children.Add(new Label
+        filterRow1.Children.Add((new Label
         {
             Text = "Channel:",
             VerticalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#666"),
             FontSize = 12
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
-        _channelPicker = new Picker
+        _channelPicker = (new Picker
         {
             Title = "All",
-            WidthRequest = 150,
-            BackgroundColor = Colors.White
-        };
+            WidthRequest = 150
+        }).ThemeColor(Picker.BackgroundColorProperty, ThemeKey.InputBackground);
         _channelPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_isUpdatingPicker) return;
@@ -618,73 +586,64 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(12, 4, 12, 4)
         };
 
-        _shortcut1Btn = new Button
+        _shortcut1Btn = (new Button
         {
             Text = "...",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _shortcut1Btn.Clicked += async (_, _) => await ApplyShortcutAsync(1);
-        var shortcut1Dots = new Button
+        var shortcut1Dots = (new Button
         {
             Text = "⋮",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#999"),
             WidthRequest = 30,
             HeightRequest = 36,
             FontSize = 16,
             Padding = new Thickness(0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         shortcut1Dots.Clicked += async (_, _) => await EditShortcutAsync(1);
 
-        _shortcut2Btn = new Button
+        _shortcut2Btn = (new Button
         {
             Text = "...",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         _shortcut2Btn.Clicked += async (_, _) => await ApplyShortcutAsync(2);
-        var shortcut2Dots = new Button
+        var shortcut2Dots = (new Button
         {
             Text = "⋮",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#999"),
             WidthRequest = 30,
             HeightRequest = 36,
             FontSize = 16,
             Padding = new Thickness(0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         shortcut2Dots.Clicked += async (_, _) => await EditShortcutAsync(2);
 
-        _shortcut3Btn = new Button
+        _shortcut3Btn = (new Button
         {
             Text = "...",
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         _shortcut3Btn.Clicked += async (_, _) => await ApplyShortcutAsync(3);
-        var shortcut3Dots = new Button
+        var shortcut3Dots = (new Button
         {
             Text = "⋮",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#999"),
             WidthRequest = 30,
             HeightRequest = 36,
             FontSize = 16,
             Padding = new Thickness(0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         shortcut3Dots.Clicked += async (_, _) => await EditShortcutAsync(3);
 
         shortcutRow.Children.Add(_shortcut1Btn);
@@ -705,20 +664,18 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         };
 
         // Status filter
-        filterRow2.Children.Add(new Label
+        filterRow2.Children.Add((new Label
         {
             Text = "Status:",
             VerticalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#666"),
             FontSize = 12
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
-        _statusPicker = new Picker
+        _statusPicker = (new Picker
         {
             Title = "Pending",
-            WidthRequest = 120,
-            BackgroundColor = Colors.White
-        };
+            WidthRequest = 120
+        }).ThemeColor(Picker.BackgroundColorProperty, ThemeKey.InputBackground);
         _statusPicker.Items.Add("All");
         _statusPicker.Items.Add("To Watch");
         _statusPicker.Items.Add("Locked");
@@ -741,119 +698,102 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         filterRow2.Children.Add(_statusPicker);
 
         // Settings button
-        var settingsBtn = new Button
+        var settingsBtn = (new Button
         {
             Text = "⚙️ Settings",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             HeightRequest = 35,
             CornerRadius = 6,
             Padding = new Thickness(10, 0),
             FontSize = 12
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         settingsBtn.Clicked += OnVideoSettingsClicked;
         filterRow2.Children.Add(settingsBtn);
 
-        var creatorCountsBtn = new Button
+        var creatorCountsBtn = (new Button
         {
             Text = "Creator Counts",
-            BackgroundColor = Color.FromArgb("#607D8B"),
-            TextColor = Colors.White,
             HeightRequest = 35,
             CornerRadius = 6,
             Padding = new Thickness(10, 0),
             FontSize = 12
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralMutedButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         creatorCountsBtn.Clicked += async (s, e) => await ShowCreatorMonthlyStatsAsync();
         filterRow2.Children.Add(creatorCountsBtn);
 
-        var setDefaultsBtn = new Button
+        var setDefaultsBtn = (new Button
         {
             Text = "Set current as defaults",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             HeightRequest = 32,
             CornerRadius = 6,
             Padding = new Thickness(10, 0),
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         setDefaultsBtn.Clicked += OnSetFilterDefaultsClicked;
         filterRow2.Children.Add(setDefaultsBtn);
 
         videosContainer.Children.Add(filterRow2);
 
         // Video Focus Panel
-        _videoFocusFrame = new Frame
+        _videoFocusFrame = (new Frame
         {
             Padding = 10,
             Margin = new Thickness(12, 0, 12, 8),
             CornerRadius = 8,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            BorderColor = Color.FromArgb("#2196F3"),
             HasShadow = false,
             IsVisible = false
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoButtonBackground);
         
         var focusStack = new VerticalStackLayout { Spacing = 6 };
         
-        _videoFocusStatusLabel = new Label
+        _videoFocusStatusLabel = (new Label
         {
-            FontSize = 13,
-            TextColor = Color.FromArgb("#1976D2")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText1);
         focusStack.Children.Add(_videoFocusStatusLabel);
         
         var focusBtnRow = new HorizontalStackLayout { Spacing = 8 };
         
-        var editFocusBtn = new Button
+        var editFocusBtn = (new Button
         {
             Text = "✏️ Edit",
-            BackgroundColor = Color.FromArgb("#2196F3"),
-            TextColor = Colors.White,
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         editFocusBtn.Clicked += async (s, e) => await SetupVideoFocusAsync();
         focusBtnRow.Children.Add(editFocusBtn);
         
-        var editNumbersBtn = new Button
+        var editNumbersBtn = (new Button
         {
             Text = "🔢 Numbers",
-            BackgroundColor = Color.FromArgb("#9C27B0"),
-            TextColor = Colors.White,
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         editNumbersBtn.Clicked += async (s, e) => await EditVideoFocusNumbersAsync();
         focusBtnRow.Children.Add(editNumbersBtn);
         
-        var resetStreakBtn = new Button
+        var resetStreakBtn = (new Button
         {
             Text = "🔄 Reset Streak",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         resetStreakBtn.Clicked += async (s, e) => await ResetVideoFocusStreakAsync();
         focusBtnRow.Children.Add(resetStreakBtn);
         
-        var clearFocusBtn = new Button
+        var clearFocusBtn = (new Button
         {
             Text = "❌ Clear Focus",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             HeightRequest = 30,
             CornerRadius = 4,
             Padding = new Thickness(8, 0),
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         clearFocusBtn.Clicked += async (s, e) => await ClearVideoFocusAsync();
         focusBtnRow.Children.Add(clearFocusBtn);
         
@@ -873,43 +813,38 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(12, 8, 12, 4)
         };
 
-        _prevPageBtn = new Button
+        _prevPageBtn = (new Button
         {
             Text = "◀ Prev",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             HeightRequest = 32,
             CornerRadius = 6,
             FontSize = 12,
             Padding = new Thickness(12, 0),
             IsEnabled = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _prevPageBtn.Clicked += OnPrevPageClicked;
         Grid.SetColumn(_prevPageBtn, 0);
         paginationRow.Children.Add(_prevPageBtn);
 
-        _pageInfoLabel = new Label
+        _pageInfoLabel = (new Label
         {
             Text = "Page 1 of 1",
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
         Grid.SetColumn(_pageInfoLabel, 1);
         paginationRow.Children.Add(_pageInfoLabel);
 
-        _nextPageBtn = new Button
+        _nextPageBtn = (new Button
         {
             Text = "Next ▶",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             HeightRequest = 32,
             CornerRadius = 6,
             FontSize = 12,
             Padding = new Thickness(12, 0),
             IsEnabled = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _nextPageBtn.Clicked += OnNextPageClicked;
         Grid.SetColumn(_nextPageBtn, 2);
         paginationRow.Children.Add(_nextPageBtn);
@@ -934,19 +869,19 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         
         if (tab == "Books")
         {
-            _btnBooks.BackgroundColor = Color.FromArgb("#5B63EE");
-            _btnBooks.TextColor = Colors.White;
-            _btnVideos.BackgroundColor = Color.FromArgb("#E0E0E0");
-            _btnVideos.TextColor = Color.FromArgb("#666");
+            _btnBooks.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
+            _btnBooks.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            _btnVideos.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
+            _btnVideos.ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
             _booksFrame.IsVisible = true;
             _videosFrame.IsVisible = false;
         }
         else
         {
-            _btnVideos.BackgroundColor = Color.FromArgb("#5B63EE");
-            _btnVideos.TextColor = Colors.White;
-            _btnBooks.BackgroundColor = Color.FromArgb("#E0E0E0");
-            _btnBooks.TextColor = Color.FromArgb("#666");
+            _btnVideos.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
+            _btnVideos.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            _btnBooks.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
+            _btnBooks.ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
             _booksFrame.IsVisible = false;
             _videosFrame.IsVisible = true;
         }
@@ -969,14 +904,13 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         
         if (books.Count == 0)
         {
-            _booksStack.Children.Add(new Label
+            _booksStack.Children.Add((new Label
             {
                 Text = "No books added yet.\nTap '+ Add Book' to start your reading list!",
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2));
             return;
         }
 
@@ -990,18 +924,12 @@ public class LearningPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildBookCard(LearningBook book, int order)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = book.Status == "Completed" 
-                ? Color.FromArgb("#E8F5E9") 
-                : book.Status == "InProgress" 
-                    ? Color.FromArgb("#FFF3E0") 
-                    : Colors.White,
-            HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0")
-        };
+            HasShadow = false
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, book.Status == "Completed" ? ThemeKey.SuccessBackground : book.Status == "InProgress" ? ThemeKey.WarningBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var grid = new Grid
         {
@@ -1015,52 +943,46 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         };
 
         // Order number
-        var orderLabel = new Label
+        var orderLabel = (new Label
         {
             Text = $"#{order}",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE"),
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1);
         Grid.SetColumn(orderLabel, 0);
         grid.Children.Add(orderLabel);
 
         // Book info
         var infoStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
         
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = book.Title,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.TailTruncation
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         infoStack.Children.Add(titleLabel);
 
         if (!string.IsNullOrEmpty(book.Author))
         {
-            var authorLabel = new Label
+            var authorLabel = (new Label
             {
                 Text = $"by {book.Author}",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#666")
-            };
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
             infoStack.Children.Add(authorLabel);
         }
 
-        var statusLabel = new Label
+        var statusLabel = (new Label
         {
             Text = book.Status == "Completed" ? "✅ Completed" 
                  : book.Status == "InProgress" ? "📖 Reading" 
                  : "📚 To Read",
-            FontSize = 11,
-            TextColor = book.Status == "Completed" ? Color.FromArgb("#4CAF50")
-                      : book.Status == "InProgress" ? Color.FromArgb("#FF9800")
-                      : Color.FromArgb("#999")
-        };
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, book.Status == "Completed" ? ThemeKey.SuccessButtonBackground : book.Status == "InProgress" ? ThemeKey.WarningButtonBackground : ThemeKey.CardText3, ThemeKey.PageText3);
         infoStack.Children.Add(statusLabel);
 
         Grid.SetColumn(infoStack, 1);
@@ -1069,16 +991,15 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         // Action buttons
         var buttonStack = new HorizontalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
 
-        var menuBtn = new Button
+        var menuBtn = (new Button
         {
             Text = "⋮",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#666"),
             FontSize = 18,
             WidthRequest = 36,
             HeightRequest = 36,
             Padding = 0
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         menuBtn.Clicked += async (s, e) => await ShowBookMenuAsync(book);
         buttonStack.Children.Add(menuBtn);
 
@@ -1315,35 +1236,31 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                     ? "No locked creators.\nCreators get locked when any creator rotation limit is reached."
                     : "No videos match the current filters.";
                 
-            _videosStack.Children.Add(new Label
+            _videosStack.Children.Add((new Label
             {
                 Text = message,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2));
             return;
         }
 
         // Show locked count header if viewing focus category (only on first page)
         if (_currentVideoPage == 0 && _currentFocus.IsActive && _selectedCategory == _currentFocus.Category && _lockedCreators.Count > 0 && _selectedStatus != "Locked")
         {
-            var lockedHeader = new Frame
+            var lockedHeader = (new Frame
             {
                 Padding = 8,
                 CornerRadius = 6,
-                BackgroundColor = Color.FromArgb("#FFEBEE"),
-                BorderColor = Color.FromArgb("#EF5350"),
                 HasShadow = false,
                 Margin = new Thickness(0, 0, 0, 8),
-                Content = new Label
+                Content = (new Label
                 {
                     Text = $"🔒 {_lockedCreators.Count} creator(s) locked by rotation limits (select 'Locked' filter to view)",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#C62828")
-                }
-            };
+                    FontSize = 11
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3)
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorBrightText);
             _videosStack.Children.Add(lockedHeader);
         }
 
@@ -1455,26 +1372,15 @@ public class LearningPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildVideoCard(LearningVideo video, int creatorMonthlyCount = 0, int creatorMonthlyLimit = 10, bool isCreatorLocked = false)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 0,
             CornerRadius = 10,
-            BackgroundColor = isCreatorLocked && video.Status == "NotStarted"
-                ? Color.FromArgb("#FFEBEE")  // Red tint - locked
-                : video.Status == "Completed" 
-                    ? Color.FromArgb("#E8F5E9")  // Green - watched
-                    : video.Status == "TopPicks"
-                        ? Color.FromArgb("#FFF8E1")  // Gold - top picks
-                        : video.Status == "ReadSummary"
-                            ? Color.FromArgb("#E3F2FD")  // Blue - read summary
-                            : video.Status == "PendingWatched"
-                                ? Color.FromArgb("#F3E5F5")  // Purple - pending watched
-                                : Colors.White,
             HasShadow = true,
-            BorderColor = isCreatorLocked && video.Status == "NotStarted" 
-                ? Color.FromArgb("#EF5350") 
-                : Colors.Transparent
-        };
+            BorderColor = Colors.Transparent
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, isCreatorLocked && video.Status == "NotStarted" ? ThemeKey.ErrorBackground : video.Status == "Completed" ? ThemeKey.SuccessBackground : video.Status == "TopPicks" ? ThemeKey.HighlightYellow : video.Status == "ReadSummary" ? ThemeKey.InfoBackground : video.Status == "PendingWatched" ? ThemeKey.AccentPurpleBackground : ThemeKey.CardBackground);
+        if (isCreatorLocked && video.Status == "NotStarted")
+            frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorBrightText);
 
         var mainGrid = new Grid
         {
@@ -1518,20 +1424,19 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             thumbnailGrid.Children.Add(thumbnail);
             
             // Play overlay
-            var playOverlay = new Label
+            var playOverlay = (new Label
             {
                 Text = "▶",
                 FontSize = 24,
-                TextColor = Colors.White,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 Shadow = new Shadow
                 {
-                    Brush = Colors.Black,
+                    Brush = AppColors.Get(ThemeKey.Shadow),
                     Offset = new Point(1, 1),
                     Radius = 3
                 }
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
             thumbnailGrid.Children.Add(playOverlay);
             
             thumbnailFrame.Content = thumbnailGrid;
@@ -1539,7 +1444,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         else
         {
             // Placeholder for non-YouTube videos
-            thumbnailFrame.BackgroundColor = Color.FromArgb("#E0E0E0");
+            thumbnailFrame.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
             thumbnailFrame.Content = new Label
             {
                 Text = "🎬",
@@ -1565,39 +1470,35 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         infoStack.GestureRecognizers.Add(infoTap);
         
         // Title
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = video.Title,
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.TailTruncation,
             MaxLines = 2
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         infoStack.Children.Add(titleLabel);
 
         int daysSinceAdded = Math.Max(0, (int)(DateTime.Today - video.CreatedAt.Date).TotalDays);
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = $"Added: {video.CreatedAt:MMM d, yyyy} ({daysSinceAdded} days ago)",
-            FontSize = 10,
-            TextColor = Color.FromArgb("#777")
-        });
-        infoStack.Children.Add(new Label
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        infoStack.Children.Add((new Label
         {
             Text = $"Watched: {video.TimesWatched} time(s)",
-            FontSize = 10,
-            TextColor = Color.FromArgb("#777")
-        });
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         if (video.Status == "Completed" && video.CompletedAt.HasValue)
         {
-            infoStack.Children.Add(new Label
+            infoStack.Children.Add((new Label
             {
                 Text = $"Last watched: {video.CompletedAt.Value:MMM d, yyyy}",
-                FontSize = 10,
-                TextColor = Color.FromArgb("#777")
-            });
+                FontSize = 10
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         }
 
         // Channel name with monthly watch count
@@ -1616,13 +1517,12 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                 });
             }
             
-            var creatorLabel = new Label
+            var creatorLabel = (new Label
             {
                 Text = video.Creator,
                 FontSize = 11,
-                TextColor = isCreatorLocked ? Color.FromArgb("#C62828") : Color.FromArgb("#666"),
                 LineBreakMode = LineBreakMode.TailTruncation
-            };
+            }).ThemeColor(Label.TextColorProperty, isCreatorLocked ? ThemeKey.ErrorText : ThemeKey.CardText2, ThemeKey.PageText3);
             creatorRow.Children.Add(creatorLabel);
             
             // Show creator monthly count badge (only in focus category context)
@@ -1631,24 +1531,18 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                 bool atLimit = creatorMonthlyCount >= creatorMonthlyLimit;
                 bool nearLimit = creatorMonthlyCount >= creatorMonthlyLimit - 2;
                 
-                var countBadge = new Frame
+                var countBadge = (new Frame
                 {
                     Padding = new Thickness(4, 1),
                     CornerRadius = 8,
-                    BackgroundColor = atLimit ? Color.FromArgb("#FFCDD2") 
-                                    : nearLimit ? Color.FromArgb("#FFF9C4")
-                                    : Color.FromArgb("#E0E0E0"),
                     BorderColor = Colors.Transparent,
                     HasShadow = false,
-                    Content = new Label
+                    Content = (new Label
                     {
                         Text = $"{creatorMonthlyCount}/{creatorMonthlyLimit}",
-                        FontSize = 9,
-                        TextColor = atLimit ? Color.FromArgb("#C62828")
-                                  : nearLimit ? Color.FromArgb("#F9A825")
-                                  : Color.FromArgb("#666")
-                    }
-                };
+                        FontSize = 9
+                    }).ThemeColor(Label.TextColorProperty, atLimit ? ThemeKey.ErrorText : nearLimit ? ThemeKey.WarningGoldenButton : ThemeKey.CardText2, ThemeKey.PageText3)
+                }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, atLimit ? ThemeKey.ErrorSelectedBackground : nearLimit ? ThemeKey.HighlightYellowStrong : ThemeKey.Separator);
                 creatorRow.Children.Add(countBadge);
             }
             
@@ -1658,7 +1552,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         // Status row
         var statusRow = new HorizontalStackLayout { Spacing = 8 };
         
-        var statusLabel = new Label
+        var statusLabel = (new Label
         {
             Text = video.Status == "Completed" ? "✅ Watched" 
                  : video.Status == "TopPicks" ? "⭐ Top Picks"
@@ -1666,38 +1560,29 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                  : video.Status == "PendingWatched" ? "👀 Pending"
                  : video.Status == "InProgress" ? "▶️ Watching" 
                  : "🎬 To Watch",
-            FontSize = 10,
-            TextColor = video.Status == "Completed" ? Color.FromArgb("#4CAF50")
-                      : video.Status == "TopPicks" ? Color.FromArgb("#F9A825")
-                      : video.Status == "ReadSummary" ? Color.FromArgb("#2196F3")
-                      : video.Status == "PendingWatched" ? Color.FromArgb("#9C27B0")
-                      : video.Status == "InProgress" ? Color.FromArgb("#FF9800")
-                      : Color.FromArgb("#999")
-        };
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, video.Status == "Completed" ? ThemeKey.SuccessButtonBackground : video.Status == "TopPicks" ? ThemeKey.WarningGoldenButton : video.Status == "ReadSummary" ? ThemeKey.InfoButtonBackground : video.Status == "PendingWatched" ? ThemeKey.AccentPurpleButtonBackground : video.Status == "InProgress" ? ThemeKey.WarningButtonBackground : ThemeKey.CardText3, ThemeKey.PageText3);
         statusRow.Children.Add(statusLabel);
 
         var durationText = FormatDurationFromSeconds(video.DurationSeconds);
         if (!string.IsNullOrEmpty(durationText))
         {
-            statusRow.Children.Add(new Label
+            statusRow.Children.Add((new Label
             {
                 Text = durationText,
                 FontSize = 10,
-                TextColor = Color.FromArgb("#666"),
                 VerticalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         }
 
         // Category badge
         var categoryText = video.Category ?? "Unsorted";
-        var categoryLabel = new Label
+        var categoryLabel = (new Label
         {
             Text = $"📁 {categoryText}",
             FontSize = 9,
-            TextColor = Color.FromArgb("#666"),
-            BackgroundColor = Color.FromArgb("#F0F0F0"),
-            Padding = new Thickness(4, 2),
-        };
+            Padding = new Thickness(4, 2)
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3).ThemeColor(Label.BackgroundColorProperty, ThemeKey.SecondarySurface);
         statusRow.Children.Add(categoryLabel);
 
         infoStack.Children.Add(statusRow);
@@ -1717,14 +1602,14 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         var row1 = new HorizontalStackLayout { Spacing = 4 };
         
         // Watch button
-        var watchBtn = CreateHoverButton("▶", "#2196F3", "#1976D2", 12, "Watch Video");
+        var watchBtn = CreateHoverButton("▶", ThemeKey.InfoButtonBackground, ThemeKey.InfoHoverButtonBackground, 12, "Watch Video");
         watchBtn.Clicked += async (s, e) => await OpenVideoAsync(video);
         row1.Children.Add(watchBtn);
 
         // Transcript button (only for YouTube videos)
         if (!string.IsNullOrEmpty(video.VideoId))
         {
-            var transcriptBtn = CreateHoverButton("📝", "#FF9800", "#F57C00", 11, "Get Transcript");
+            var transcriptBtn = CreateHoverButton("📝", ThemeKey.WarningButtonBackground, ThemeKey.WarningHoverButtonBackground, 11, "Get Transcript");
             transcriptBtn.Clicked += async (s, e) => await HandleTranscriptAsync(video);
             row1.Children.Add(transcriptBtn);
         }
@@ -1732,7 +1617,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         // Mark as watched button (only if not already watched)
         if (video.Status != "Completed")
         {
-            var watchedBtn = CreateHoverButton("✓", "#4CAF50", "#388E3C", 14, "Mark as Watched");
+            var watchedBtn = CreateHoverButton("✓", ThemeKey.SuccessButtonBackground, ThemeKey.SuccessHoverButtonBackground, 14, "Mark as Watched");
             watchedBtn.Clicked += async (s, e) =>
             {
                 await _learning.CompleteVideoAsync(video.Id);
@@ -1745,7 +1630,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         // Mark as pending button (only if not already pending or watched)
         if (video.Status != "PendingWatched" && video.Status != "Completed" && video.Status != "ReadSummary")
         {
-            var pendingBtn = CreateHoverButton("👀", "#9C27B0", "#7B1FA2", 11, "Mark as Pending Watched");
+            var pendingBtn = CreateHoverButton("👀", ThemeKey.AccentPurpleButtonBackground, ThemeKey.AccentPurpleSurface, 11, "Mark as Pending Watched");
             pendingBtn.Clicked += async (s, e) =>
             {
                 if (!await EnsureCanSetVideoPendingAsync(video))
@@ -1761,7 +1646,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         // Mark as top pick button (only if not already top pick or watched)
         if (video.Status != "TopPicks" && video.Status != "Completed")
         {
-            var topPicksBtn = CreateHoverButton("⭐", "#F9A825", "#F57F17", 11, "Mark as Top Picks");
+            var topPicksBtn = CreateHoverButton("⭐", ThemeKey.WarningGoldenButton, ThemeKey.HighlightYellowDarkButton, 11, "Mark as Top Picks");
             topPicksBtn.Clicked += async (s, e) =>
             {
                 video.Status = "TopPicks";
@@ -1778,14 +1663,14 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         var row2 = new HorizontalStackLayout { Spacing = 4 };
 
         // Category button
-        var categoryBtn = CreateHoverButton("📁", "#607D8B", "#455A64", 11, "Change Category");
+        var categoryBtn = CreateHoverButton("📁", ThemeKey.NeutralMutedButton, ThemeKey.NeutralDarkButton, 11, "Change Category");
         categoryBtn.Clicked += async (s, e) => await ChangeCategoryAsync(video);
         row2.Children.Add(categoryBtn);
 
         // Read Summary button (only if not already read summary)
         if (video.Status != "ReadSummary" && video.Status != "Completed")
         {
-            var readSummaryBtn = CreateHoverButton("📖", "#2196F3", "#1976D2", 11, "Mark as Read Summary");
+            var readSummaryBtn = CreateHoverButton("📖", ThemeKey.InfoButtonBackground, ThemeKey.InfoHoverButtonBackground, 11, "Mark as Read Summary");
             readSummaryBtn.Clicked += async (s, e) =>
             {
                 video.Status = "ReadSummary";
@@ -1796,7 +1681,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         }
 
         // Delete button
-        var deleteBtn = CreateHoverButton("🗑", "#F44336", "#D32F2F", 11, "Delete Video");
+        var deleteBtn = CreateHoverButton("🗑", ThemeKey.ErrorButtonBackground, ThemeKey.ErrorStrongButtonBackground, 11, "Delete Video");
         deleteBtn.Clicked += async (s, e) =>
         {
             bool confirm = await DisplayAlert("Delete Video", $"Delete '{video.Title}'?", "Delete", "Cancel");
@@ -1809,7 +1694,7 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         row2.Children.Add(deleteBtn);
 
         // More menu button
-        var menuBtn = CreateHoverButton("⋮", "#9E9E9E", "#757575", 14, "More Options");
+        var menuBtn = CreateHoverButton("⋮", ThemeKey.DisabledButtonBackground, ThemeKey.NeutralHoverButton, 14, "More Options");
         menuBtn.Clicked += async (s, e) => await ShowVideoMenuAsync(video);
         row2.Children.Add(menuBtn);
 
@@ -1828,22 +1713,18 @@ public class LearningPage : Bannister.Views.ModeThemedPage
     /// <summary>
     /// Create a button with hover effect and tooltip for desktop
     /// </summary>
-    private Button CreateHoverButton(string text, string normalColor, string hoverColor, int fontSize, string? tooltip = null)
+    private Button CreateHoverButton(string text, ThemeKey normalColor, ThemeKey hoverColor, int fontSize, string? tooltip = null)
     {
-        var normalBg = Color.FromArgb(normalColor);
-        var hoverBg = Color.FromArgb(hoverColor);
-        
-        var btn = new Button
+        var btn = (new Button
         {
             Text = text,
-            BackgroundColor = normalBg,
-            TextColor = Colors.White,
             FontSize = fontSize,
             WidthRequest = 36,
             HeightRequest = 32,
             Padding = 0,
             CornerRadius = 6
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText)
+            .ThemeColor(Button.BackgroundColorProperty, normalColor);
         
         // Set tooltip if provided
         if (!string.IsNullOrEmpty(tooltip))
@@ -1853,8 +1734,8 @@ public class LearningPage : Bannister.Views.ModeThemedPage
 
         // Add hover effect using PointerGestureRecognizer (works on desktop)
         var pointerGesture = new PointerGestureRecognizer();
-        pointerGesture.PointerEntered += (s, e) => btn.BackgroundColor = hoverBg;
-        pointerGesture.PointerExited += (s, e) => btn.BackgroundColor = normalBg;
+        pointerGesture.PointerEntered += (s, e) => btn.ThemeColor(Button.BackgroundColorProperty, hoverColor);
+        pointerGesture.PointerExited += (s, e) => btn.ThemeColor(Button.BackgroundColorProperty, normalColor);
         btn.GestureRecognizers.Add(pointerGesture);
 
         return btn;
@@ -2076,13 +1957,12 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         }
 
         // Show loading indicator
-        var loadingLabel = new Label
+        var loadingLabel = (new Label
         {
             Text = "⏳ Fetching video info...",
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 20)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
         _videosStack.Children.Add(loadingLabel);
 
         // Fetch video info from YouTube
@@ -2176,147 +2056,127 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         
         var categories = GetCategories().Where(c => c != "Unsorted").OrderBy(c => c).ToList();
         
-        var contentStack = new VerticalStackLayout
+        var contentStack = (new VerticalStackLayout
         {
             Spacing = 16,
-            Padding = 24,
-            BackgroundColor = Colors.White
-        };
+            Padding = 24
+        }).ThemeColor(VerticalStackLayout.BackgroundColorProperty, ThemeKey.CardBackground);
         
         // Header
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Categorize Video",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
         // Channel info
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = $"No mapping exists for channel:\n👤 {channelName}",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
-            HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0")
-        });
+            HeightRequest = 1
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // Option 1: Choose existing category
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Choose Category:",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
-        var categoryPicker = new Picker
+        var categoryPicker = (new Picker
         {
-            Title = "Select category...",
-            TextColor = Color.FromArgb("#333"),
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
+            Title = "Select category..."
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(Picker.BackgroundColorProperty, ThemeKey.InputBackground);
         foreach (var cat in categories)
         {
             categoryPicker.Items.Add(cat);
         }
         contentStack.Children.Add(categoryPicker);
         
-        var btnUseSelected = new Button
+        var btnUseSelected = (new Button
         {
             Text = "Use Selected Category",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         categoryPicker.SelectedIndexChanged += (s, e) =>
         {
             btnUseSelected.IsEnabled = categoryPicker.SelectedIndex >= 0;
         };
         contentStack.Children.Add(btnUseSelected);
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
             HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0"),
             Margin = new Thickness(0, 8)
-        });
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // Option 2: Type new category
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Or Create New Category:",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
-        var newCategoryEntry = new Entry
+        var newCategoryEntry = (new Entry
         {
-            Placeholder = "Type new category name...",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            TextColor = Color.FromArgb("#333")
-        };
+            Placeholder = "Type new category name..."
+        }).ThemeColor(Entry.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Entry.TextColorProperty, ThemeKey.InputText);
         contentStack.Children.Add(newCategoryEntry);
         
-        var btnCreateNew = new Button
+        var btnCreateNew = (new Button
         {
             Text = "Create & Use New Category",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         newCategoryEntry.TextChanged += (s, e) =>
         {
             btnCreateNew.IsEnabled = !string.IsNullOrWhiteSpace(newCategoryEntry.Text);
         };
         contentStack.Children.Add(btnCreateNew);
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
             HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0"),
             Margin = new Thickness(0, 8)
-        });
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // Option 3: Create channel mapping
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Or Map This Channel:",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
-        var btnMapChannel = new Button
+        var btnMapChannel = (new Button
         {
             Text = $"🔗 Create Channel Mapping for '{channelName}'",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             LineBreakMode = LineBreakMode.TailTruncation
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         contentStack.Children.Add(btnMapChannel);
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
             HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0"),
             Margin = new Thickness(0, 8)
-        });
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // Bottom buttons
         var bottomRow = new HorizontalStackLayout
@@ -2325,26 +2185,22 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center
         };
         
-        var btnUnsorted = new Button
+        var btnUnsorted = (new Button
         {
             Text = "Leave Unsorted",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             WidthRequest = 130,
             HeightRequest = 44
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         bottomRow.Children.Add(btnUnsorted);
         
-        var btnCancel = new Button
+        var btnCancel = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#EEE"),
-            TextColor = Color.FromArgb("#666"),
             CornerRadius = 8,
             WidthRequest = 100,
             HeightRequest = 44
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         bottomRow.Children.Add(btnCancel);
         
         contentStack.Children.Add(bottomRow);
@@ -2391,23 +2247,21 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             tcs.TrySetResult(null);
         };
         
-        var popup = new Frame
+        var popup = (new Frame
         {
             CornerRadius = 16,
-            BackgroundColor = Colors.White,
             Padding = 0,
             HasShadow = true,
             WidthRequest = 380,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Content = new ScrollView { Content = contentStack, MaximumHeightRequest = 600 }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
         
-        var overlayPage = new ContentPage
+        var overlayPage = (new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Content = popup
-        };
+        }).ThemeColor(ContentPage.BackgroundColorProperty, ThemeKey.Overlay);
         
         await Navigation.PushModalAsync(overlayPage, false);
         
@@ -2423,138 +2277,119 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         
         var categories = GetCategories().Where(c => c != "Unsorted").OrderBy(c => c).ToList();
         
-        var contentStack = new VerticalStackLayout
+        var contentStack = (new VerticalStackLayout
         {
             Spacing = 16,
-            Padding = 24,
-            BackgroundColor = Colors.White
-        };
+            Padding = 24
+        }).ThemeColor(VerticalStackLayout.BackgroundColorProperty, ThemeKey.CardBackground);
         
         // Header
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Map Channel to Category",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = $"👤 {channelName}",
             FontSize = 16,
-            TextColor = Color.FromArgb("#5B63EE"),
             HorizontalOptions = LayoutOptions.Center,
             FontAttributes = FontAttributes.Bold
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1));
         
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "All future videos from this channel will be auto-categorized.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#999"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
-            HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0")
-        });
+            HeightRequest = 1
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // Choose category
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Map to Existing Category:",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
-        var categoryPicker = new Picker
+        var categoryPicker = (new Picker
         {
-            Title = "Select category...",
-            TextColor = Color.FromArgb("#333"),
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
+            Title = "Select category..."
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(Picker.BackgroundColorProperty, ThemeKey.InputBackground);
         foreach (var cat in categories)
         {
             categoryPicker.Items.Add(cat);
         }
         contentStack.Children.Add(categoryPicker);
         
-        var btnMapToExisting = new Button
+        var btnMapToExisting = (new Button
         {
             Text = "Map to Selected",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         categoryPicker.SelectedIndexChanged += (s, e) =>
         {
             btnMapToExisting.IsEnabled = categoryPicker.SelectedIndex >= 0;
         };
         contentStack.Children.Add(btnMapToExisting);
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
             HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0"),
             Margin = new Thickness(0, 8)
-        });
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // Or create new
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Or Create New Category & Map:",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
-        var newCategoryEntry = new Entry
+        var newCategoryEntry = (new Entry
         {
-            Placeholder = "Type new category name...",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            TextColor = Color.FromArgb("#333")
-        };
+            Placeholder = "Type new category name..."
+        }).ThemeColor(Entry.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Entry.TextColorProperty, ThemeKey.InputText);
         contentStack.Children.Add(newCategoryEntry);
         
-        var btnMapToNew = new Button
+        var btnMapToNew = (new Button
         {
             Text = "Create & Map",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         newCategoryEntry.TextChanged += (s, e) =>
         {
             btnMapToNew.IsEnabled = !string.IsNullOrWhiteSpace(newCategoryEntry.Text);
         };
         contentStack.Children.Add(btnMapToNew);
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
             HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0"),
             Margin = new Thickness(0, 8)
-        });
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // Cancel
-        var btnCancel = new Button
+        var btnCancel = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#EEE"),
-            TextColor = Color.FromArgb("#666"),
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         contentStack.Children.Add(btnCancel);
         
         // Wire up buttons
@@ -2603,23 +2438,21 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             tcs.TrySetResult(category);
         };
         
-        var popup = new Frame
+        var popup = (new Frame
         {
             CornerRadius = 16,
-            BackgroundColor = Colors.White,
             Padding = 0,
             HasShadow = true,
             WidthRequest = 380,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Content = new ScrollView { Content = contentStack, MaximumHeightRequest = 500 }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
         
-        var overlayPage = new ContentPage
+        var overlayPage = (new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Content = popup
-        };
+        }).ThemeColor(ContentPage.BackgroundColorProperty, ThemeKey.Overlay);
         
         await Navigation.PushModalAsync(overlayPage, false);
         
@@ -2635,96 +2468,83 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         
         var categories = GetCategories().Where(c => c != "Unsorted").OrderBy(c => c).ToList();
         
-        var contentStack = new VerticalStackLayout
+        var contentStack = (new VerticalStackLayout
         {
             Spacing = 16,
-            Padding = 24,
-            BackgroundColor = Colors.White
-        };
+            Padding = 24
+        }).ThemeColor(VerticalStackLayout.BackgroundColorProperty, ThemeKey.CardBackground);
         
         // Header
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "✅ Channel Mapped!",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#4CAF50"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1));
         
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = $"'{channelName}' → '{mappedCategory}'",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
-            HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0")
-        });
+            HeightRequest = 1
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "For THIS video, do you want to:",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         
         // Use the mapping
-        var btnUseMapping = new Button
+        var btnUseMapping = (new Button
         {
             Text = $"✓ Use '{mappedCategory}'",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         contentStack.Children.Add(btnUseMapping);
         
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "— or —",
             FontSize = 12,
-            TextColor = Color.FromArgb("#999"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
         
         // Choose different category
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Choose Different Category:",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
         
-        var categoryPicker = new Picker
+        var categoryPicker = (new Picker
         {
-            Title = "Select category...",
-            TextColor = Color.FromArgb("#333"),
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
+            Title = "Select category..."
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(Picker.BackgroundColorProperty, ThemeKey.InputBackground);
         foreach (var cat in categories)
         {
             categoryPicker.Items.Add(cat);
         }
         contentStack.Children.Add(categoryPicker);
         
-        var btnUseDifferent = new Button
+        var btnUseDifferent = (new Button
         {
             Text = "Use Selected Instead",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             IsEnabled = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         categoryPicker.SelectedIndexChanged += (s, e) =>
         {
             btnUseDifferent.IsEnabled = categoryPicker.SelectedIndex >= 0;
@@ -2745,23 +2565,21 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             tcs.TrySetResult(selectedCategory);
         };
         
-        var popup = new Frame
+        var popup = (new Frame
         {
             CornerRadius = 16,
-            BackgroundColor = Colors.White,
             Padding = 0,
             HasShadow = true,
             WidthRequest = 360,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Content = new ScrollView { Content = contentStack, MaximumHeightRequest = 500 }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
         
-        var overlayPage = new ContentPage
+        var overlayPage = (new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Content = popup
-        };
+        }).ThemeColor(ContentPage.BackgroundColorProperty, ThemeKey.Overlay);
         
         await Navigation.PushModalAsync(overlayPage, false);
         
@@ -3812,24 +3630,22 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         
         var contentStack = new VerticalStackLayout { Spacing = 8, Padding = 16 };
         
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Creator Counts (Focus Category)",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
         
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = $"Focus: {focus.Category} - Limits: {focus.CreatorMonthlyLimit}/{focus.CreatorThreeMonthLimit}/{focus.CreatorSixMonthLimit}/{focus.CreatorYearlyLimit}",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         
-        contentStack.Children.Add(new BoxView { HeightRequest = 1, Color = Color.FromArgb("#DDD") });
+        contentStack.Children.Add((new BoxView { HeightRequest = 1 }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         var scroll = new ScrollView { HeightRequest = 400 };
         var statsStack = new VerticalStackLayout { Spacing = 6 };
@@ -3843,10 +3659,10 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                  item.Status.SixMonthCount >= Math.Ceiling(focus.CreatorSixMonthLimit * 0.8) ||
                  item.Status.YearlyCount >= Math.Ceiling(focus.CreatorYearlyLimit * 0.8));
             var rowColor = atLimit
-                ? Color.FromArgb("#D32F2F")
+                ? ThemeKey.ErrorStrongText
                 : nearLimit
-                    ? Color.FromArgb("#F57C00")
-                    : Color.FromArgb("#222");
+                    ? ThemeKey.WarningStrongText
+                    : ThemeKey.CardTextStrong;
             
             var row = new HorizontalStackLayout { Spacing = 8 };
             
@@ -3857,32 +3673,29 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                 VerticalOptions = LayoutOptions.Center
             });
             
-            row.Children.Add(new Label
+            row.Children.Add((new Label
             {
                 Text = $"{item.Creator}:",
                 FontSize = 14,
-                VerticalOptions = LayoutOptions.Center,
-                TextColor = rowColor
-            });
+                VerticalOptions = LayoutOptions.Center
+            }).ThemeColor(Label.TextColorProperty, rowColor));
             
-            row.Children.Add(new Label
+            row.Children.Add((new Label
             {
                 Text = $"M {item.Status.MonthlyCount}/{focus.CreatorMonthlyLimit} | 3M {item.Status.ThreeMonthCount}/{focus.CreatorThreeMonthLimit} | 6M {item.Status.SixMonthCount}/{focus.CreatorSixMonthLimit} | 1Y {item.Status.YearlyCount}/{focus.CreatorYearlyLimit}",
                 FontSize = 12,
-                VerticalOptions = LayoutOptions.Center,
-                TextColor = rowColor
-            });
+                VerticalOptions = LayoutOptions.Center
+            }).ThemeColor(Label.TextColorProperty, rowColor));
             
             if (atLimit)
             {
-                row.Children.Add(new Label
+                row.Children.Add((new Label
                 {
                     Text = "LOCKED",
                     FontSize = 10,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#D32F2F"),
                     VerticalOptions = LayoutOptions.Center
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorStrongText, ThemeKey.PageText3));
             }
             
             statsStack.Children.Add(row);
@@ -3891,23 +3704,20 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         scroll.Content = statsStack;
         contentStack.Children.Add(scroll);
         
-        var closeBtn = new Button
+        var closeBtn = (new Button
         {
             Text = "Close",
-            BackgroundColor = Color.FromArgb("#2196F3"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Margin = new Thickness(0, 12, 0, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         closeBtn.Clicked += (s, e) => tcs.TrySetResult(true);
         contentStack.Children.Add(closeBtn);
         
-        var overlayPage = new ContentPage
+        var overlayPage = (new ContentPage
         {
             Title = "Creator Counts",
-            BackgroundColor = Colors.White,
             Content = contentStack
-        };
+        }).ThemeColor(ContentPage.BackgroundColorProperty, ThemeKey.CardBackground);
         
         await Navigation.PushModalAsync(overlayPage, false);
         await tcs.Task;
@@ -4116,13 +3926,12 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         // Create custom popup with multi-line Editor
         var tcs = new TaskCompletionSource<string?>();
         
-        var editor = new Editor
+        var editor = (new Editor
         {
             Placeholder = "Paste text with YouTube URLs...",
             HeightRequest = 200,
-            BackgroundColor = Colors.White,
             FontSize = 12
-        };
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground);
         
         // Remove line breaks as user types/pastes
         editor.TextChanged += (s, args) =>
@@ -4133,28 +3942,23 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        var importBtn = new Button
+        var importBtn = (new Button
         {
             Text = "Import",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             WidthRequest = 100
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             WidthRequest = 100
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var popup = new Frame
+        var popup = (new Frame
         {
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             Padding = 20,
             HasShadow = true,
             WidthRequest = 500,
@@ -4165,27 +3969,24 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Import YouTube Links",
                         FontSize = 18,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333")
-                    },
-                    new Label
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
+                    (new Label
                     {
                         Text = "Paste any text containing YouTube links:",
-                        FontSize = 13,
-                        TextColor = Color.FromArgb("#666")
-                    },
-                    new Frame
+                        FontSize = 13
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2),
+                    (new Frame
                     {
                         Padding = 2,
-                        BorderColor = Color.FromArgb("#DDD"),
                         CornerRadius = 6,
                         HasShadow = false,
                         Content = editor
-                    },
+                    }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator),
                     new HorizontalStackLayout
                     {
                         Spacing = 12,
@@ -4194,17 +3995,16 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                     }
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         // Create overlay with tap to dismiss background
         var backgroundTap = new TapGestureRecognizer();
         backgroundTap.Tapped += (s, args) => tcs.TrySetResult(null);
         
-        var overlay = new ContentView
+        var overlay = (new ContentView
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Content = popup
-        };
+        }).ThemeColor(ContentView.BackgroundColorProperty, ThemeKey.Overlay);
         overlay.GestureRecognizers.Add(backgroundTap);
 
         // Prevent popup tap from dismissing
@@ -4216,11 +4016,10 @@ public class LearningPage : Bannister.Views.ModeThemedPage
         cancelBtn.Clicked += (s, args) => tcs.TrySetResult(null);
 
         // Show overlay using Navigation
-        var overlayPage = new ContentPage
+        var overlayPage = (new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Content = popup
-        };
+        }).ThemeColor(ContentPage.BackgroundColorProperty, ThemeKey.Overlay);
 
         await Navigation.PushModalAsync(overlayPage, false);
         
@@ -4280,13 +4079,12 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             .ToList();
 
         // Show loading
-        var loadingLabel = new Label
+        var loadingLabel = (new Label
         {
             Text = $"⏳ Importing {videoIds.Count} videos...",
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 20)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
         _videosStack.Children.Add(loadingLabel);
 
         var duplicateVideos = new List<LearningVideo>();
@@ -4480,25 +4278,23 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                 VerticalOptions = LayoutOptions.Center
             };
 
-            var titleLabel = new Label
+            var titleLabel = (new Label
             {
                 Text = $"{(string.IsNullOrWhiteSpace(video.Title) ? "Imported video" : video.Title)}{(string.IsNullOrWhiteSpace(video.Creator) ? "" : $" — {video.Creator}")}",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#263238"),
                 LineBreakMode = LineBreakMode.WordWrap,
                 VerticalOptions = LayoutOptions.Center
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
-            var row = new Grid
+            var row = (new Grid
             {
                 ColumnDefinitions =
                 {
                     new ColumnDefinition { Width = GridLength.Auto },
                     new ColumnDefinition { Width = GridLength.Star }
                 },
-                Padding = new Thickness(8),
-                BackgroundColor = Color.FromArgb("#F7F8FA")
-            };
+                Padding = new Thickness(8)
+            }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.RowAltBackground);
 
             row.Children.Add(checkBox);
             Grid.SetColumn(titleLabel, 1);
@@ -4513,28 +4309,23 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             rows.Children.Add(row);
         }
 
-        var markButton = new Button
+        var markButton = (new Button
         {
             Text = "Mark Selected as Top Picks",
-            BackgroundColor = Color.FromArgb("#F9A825"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningGoldenButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var skipButton = new Button
+        var skipButton = (new Button
         {
             Text = "Skip",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var card = new Frame
+        var card = (new Frame
         {
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             Padding = 20,
             HasShadow = true,
             WidthRequest = 560,
@@ -4545,20 +4336,18 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Top Picks from Import?",
                         FontSize = 20,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333")
-                    },
-                    new Label
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
+                    (new Label
                     {
                         Text = "Select any videos you want to mark as Top Picks.",
                         FontSize = 13,
-                        TextColor = Color.FromArgb("#666"),
                         LineBreakMode = LineBreakMode.WordWrap
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2),
                     new ScrollView
                     {
                         HeightRequest = 420,
@@ -4572,17 +4361,16 @@ public class LearningPage : Bannister.Views.ModeThemedPage
                     }
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        var overlayPage = new ContentPage
+        var overlayPage = (new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Content = new Grid
             {
                 Padding = 24,
                 Children = { card }
             }
-        };
+        }).ThemeColor(ContentPage.BackgroundColorProperty, ThemeKey.Overlay);
 
         async Task CloseAsync(List<LearningVideo>? result)
         {
@@ -4708,59 +4496,52 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             // Use custom modal to show full title
             var tcs = new TaskCompletionSource<string?>();
             
-            var contentStack = new VerticalStackLayout 
+            var contentStack = (new VerticalStackLayout
             { 
                 Spacing = 12, 
-                Padding = 20,
-                BackgroundColor = Colors.White
-            };
+                Padding = 20
+            }).ThemeColor(VerticalStackLayout.BackgroundColorProperty, ThemeKey.CardBackground);
             
             // Progress header
-            contentStack.Children.Add(new Label
+            contentStack.Children.Add((new Label
             {
                 Text = $"Categorize Videos ({current}/{total})",
                 FontSize = 16,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333"),
                 HorizontalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
             
             // Full video title - wrapped
-            contentStack.Children.Add(new Frame
+            contentStack.Children.Add((new Frame
             {
                 Padding = 12,
                 CornerRadius = 8,
-                BackgroundColor = Color.FromArgb("#F5F5F5"),
-                BorderColor = Color.FromArgb("#E0E0E0"),
                 HasShadow = false,
-                Content = new Label
+                Content = (new Label
                 {
                     Text = video.Title,
                     FontSize = 14,
-                    TextColor = Color.FromArgb("#333"),
                     LineBreakMode = LineBreakMode.WordWrap,
                     MaxLines = 5
-                }
-            });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1)
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator));
             
             // Creator info
             if (!string.IsNullOrEmpty(video.Creator))
             {
-                contentStack.Children.Add(new Label
+                contentStack.Children.Add((new Label
                 {
                     Text = $"👤 {video.Creator}",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#666"),
                     HorizontalOptions = LayoutOptions.Center
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
             }
             
-            contentStack.Children.Add(new BoxView 
+            contentStack.Children.Add((new BoxView
             { 
                 HeightRequest = 1, 
-                Color = Color.FromArgb("#E0E0E0"),
                 Margin = new Thickness(0, 4)
-            });
+            }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
             
             // Category buttons in a scrollable area
             var categoryScroll = new ScrollView { HeightRequest = 250 };
@@ -4770,19 +4551,13 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             {
                 bool isAction = option.StartsWith("➕") || option.StartsWith("⏭️") || option.StartsWith("⏹️");
                 
-                var btn = new Button
+                var btn = (new Button
                 {
                     Text = option,
-                    BackgroundColor = isAction 
-                        ? (option.StartsWith("⏹️") ? Color.FromArgb("#F44336") 
-                           : option.StartsWith("⏭️") ? Color.FromArgb("#9E9E9E")
-                           : Color.FromArgb("#4CAF50"))
-                        : Color.FromArgb("#5B63EE"),
-                    TextColor = Colors.White,
                     CornerRadius = 8,
                     HeightRequest = 44,
                     FontSize = 14
-                };
+                }).ThemeColor(Button.BackgroundColorProperty, isAction ? (option.StartsWith("⏹️") ? ThemeKey.ErrorButtonBackground : option.StartsWith("⏭️") ? ThemeKey.DisabledButtonBackground : ThemeKey.SuccessButtonBackground) : ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
                 btn.Clicked += (s, e) => tcs.TrySetResult(option);
                 categoryStack.Children.Add(btn);
             }
@@ -4790,23 +4565,21 @@ public class LearningPage : Bannister.Views.ModeThemedPage
             categoryScroll.Content = categoryStack;
             contentStack.Children.Add(categoryScroll);
             
-            var popup = new Frame
+            var popup = (new Frame
             {
                 CornerRadius = 16,
-                BackgroundColor = Colors.White,
                 Padding = 0,
                 HasShadow = true,
                 WidthRequest = 450,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 Content = contentStack
-            };
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
-            var overlayPage = new ContentPage
+            var overlayPage = (new ContentPage
             {
-                BackgroundColor = Color.FromArgb("#80000000"),
                 Content = popup
-            };
+            }).ThemeColor(ContentPage.BackgroundColorProperty, ThemeKey.Overlay);
 
             await Navigation.PushModalAsync(overlayPage, false);
             
@@ -5627,36 +5400,31 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        headerRow.Add(new Label
+        headerRow.Add((new Label
         {
             Text = "Speakers",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (s, e) => await AddSpeakerAsync();
         headerRow.Add(addBtn, 1, 0);
 
-        var importBtn = new Button
+        var importBtn = (new Button
         {
             Text = "Import",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         importBtn.Clicked += async (s, e) => await ImportSpeakersAsync();
         headerRow.Add(importBtn, 2, 0);
         mainStack.Children.Add(headerRow);
@@ -5674,14 +5442,13 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
 
         if (speakers.Count == 0)
         {
-            _speakersStack.Children.Add(new Label
+            _speakersStack.Children.Add((new Label
             {
                 Text = "No speakers added yet.",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#888"),
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(0, 20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2));
             return;
         }
 
@@ -5691,14 +5458,12 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
 
     private View BuildSpeakerCard(LearningSpeaker speaker)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var grid = new Grid
         {
@@ -5711,61 +5476,54 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
         };
 
         var textStack = new VerticalStackLayout { Spacing = 4 };
-        textStack.Children.Add(new Label
+        textStack.Children.Add((new Label
         {
             Text = speaker.Name,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#283593"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        textStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1));
+        textStack.Children.Add((new Label
         {
             Text = GetSearchStatusText(speaker),
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
 
         if (!string.IsNullOrWhiteSpace(speaker.Notes))
         {
-            textStack.Children.Add(new Label
+            textStack.Children.Add((new Label
             {
                 Text = speaker.Notes,
                 FontSize = 12,
-                TextColor = Color.FromArgb("#777"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         }
 
         grid.Add(textStack, 0, 0);
 
         var buttonStack = new VerticalStackLayout { Spacing = 4 };
 
-        var searchBtn = new Button
+        var searchBtn = (new Button
         {
             Text = "Search",
-            BackgroundColor = Color.FromArgb("#D32F2F"),
-            TextColor = Colors.White,
             FontSize = 12,
             WidthRequest = 76,
             HeightRequest = 32,
             CornerRadius = 6,
             Padding = 0
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         searchBtn.Clicked += async (s, e) => await SearchSpeakerAsync(speaker);
         buttonStack.Children.Add(searchBtn);
 
-        var menuBtn = new Button
+        var menuBtn = (new Button
         {
             Text = "...",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             FontSize = 12,
             WidthRequest = 76,
             HeightRequest = 30,
             CornerRadius = 6,
             Padding = 0
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         menuBtn.Clicked += async (s, e) => await ShowSpeakerMenuAsync(speaker);
         buttonStack.Children.Add(menuBtn);
 
@@ -5820,46 +5578,41 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
         Content = wrapper;
         wrapper.Children.Add(originalContent);
 
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Padding = 20
-        };
+        }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             BorderColor = Colors.Transparent,
             CornerRadius = 12,
             Padding = 16,
             WidthRequest = 520,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 10 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Import Speakers",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
+        stack.Children.Add((new Label
         {
             Text = "Paste a list of speaker names separated by commas.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
-        var editor = new Editor
+        var editor = (new Editor
         {
             Placeholder = "Jordan Peterson, Andrew Huberman, Lex Fridman",
             AutoSize = EditorAutoSizeOption.TextChanges,
             MinimumHeightRequest = 160,
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             FontSize = 14
-        };
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(editor);
 
         var buttons = new HorizontalStackLayout
@@ -5868,22 +5621,18 @@ public class LearningSpeakersPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        };
-        var importBtn = new Button
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var importBtn = (new Button
         {
             Text = "Import",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
         buttons.Children.Add(cancelBtn);
         buttons.Children.Add(importBtn);

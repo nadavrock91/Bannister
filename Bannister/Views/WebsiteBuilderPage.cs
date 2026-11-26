@@ -377,51 +377,42 @@ Output ONLY the C# code block.
         var newProjectButton = CreateSecondaryButton("New Project");
         newProjectButton.Clicked += async (_, _) => await ClearProjectStateAsync();
 
-        var copyIdeasButton = CreatePrimaryButton("Copy Ideas Prompt to Clipboard", Color.FromArgb("#01579B"));
+        var copyIdeasButton = CreatePrimaryButton("Copy Ideas Prompt to Clipboard", ThemeKey.HighlightSkyText);
         copyIdeasButton.Clicked += async (_, _) => await CopyIdeasPromptAsync();
 
-        _ideaTitleEntry = new Entry
+        _ideaTitleEntry = (new Entry
         {
-            Placeholder = "Short idea title",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888")
-        };
+            Placeholder = "Short idea title"
+        }).ThemeColor(Entry.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Entry.TextColorProperty, ThemeKey.InputText).ThemeColor(Entry.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        _ideaEditor = new Editor
+        _ideaEditor = (new Editor
         {
             Placeholder = "Paste the selected website idea or notes here...",
             AutoSize = EditorAutoSizeOption.TextChanges,
-            MinimumHeightRequest = 200,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888")
-        };
+            MinimumHeightRequest = 200
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.InputText).ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var saveIdeaButton = CreatePrimaryButton("Save Idea", Color.FromArgb("#2E7D32"));
+        var saveIdeaButton = CreatePrimaryButton("Save Idea", ThemeKey.SuccessDarkButtonBackground);
         saveIdeaButton.Clicked += async (_, _) => await SaveIdeaAsync();
 
         _deleteIdeaButton = CreateDangerButton("Delete Idea");
         _deleteIdeaButton.IsVisible = false;
         _deleteIdeaButton.Clicked += async (_, _) => await DeleteIdeaAsync();
 
-        var copyDomainPromptButton = CreatePrimaryButton("Copy Domain Names Prompt to Clipboard", Color.FromArgb("#01579B"));
+        var copyDomainPromptButton = CreatePrimaryButton("Copy Domain Names Prompt to Clipboard", ThemeKey.HighlightSkyText);
         copyDomainPromptButton.Clicked += async (_, _) => await CopyDomainNamesPromptAsync();
 
-        var goToGoDaddyButton = CreatePrimaryButton("Go to GoDaddy", Color.FromArgb("#01579B"));
-        goToGoDaddyButton.TextColor = Colors.White;
+        var goToGoDaddyButton = CreatePrimaryButton("Go to GoDaddy", ThemeKey.HighlightSkyText);
+        goToGoDaddyButton.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         goToGoDaddyButton.FontAttributes = FontAttributes.Bold;
         goToGoDaddyButton.Clicked += async (_, _) => await Launcher.OpenAsync("https://www.godaddy.com/en");
 
-        _purchasedDomainEntry = new Entry
+        _purchasedDomainEntry = (new Entry
         {
-            Placeholder = "e.g. hookbrain.com",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888")
-        };
+            Placeholder = "e.g. hookbrain.com"
+        }).ThemeColor(Entry.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Entry.TextColorProperty, ThemeKey.InputText).ThemeColor(Entry.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var saveProjectFromDomainButton = CreatePrimaryButton("Save as Project", Color.FromArgb("#2E7D32"));
+        var saveProjectFromDomainButton = CreatePrimaryButton("Save as Project", ThemeKey.SuccessDarkButtonBackground);
         saveProjectFromDomainButton.Clicked += async (_, _) => await SaveProjectFromPurchasedDomainAsync();
 
         _domainSection = new VerticalStackLayout
@@ -433,7 +424,7 @@ Output ONLY the C# code block.
                 CreateSectionHeader("Step 2: Pick and Purchase Domain"),
                 copyDomainPromptButton,
                 goToGoDaddyButton,
-                new Label { Text = "Purchased Domain", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
+                (new Label { Text = "Purchased Domain", FontSize = 14, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 _purchasedDomainEntry,
                 saveProjectFromDomainButton
             }
@@ -446,9 +437,9 @@ Output ONLY the C# code block.
             {
                 CreateSectionHeader("Step 1: Ideas for Website"),
                 copyIdeasButton,
-                new Label { Text = "Idea Title", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
+                (new Label { Text = "Idea Title", FontSize = 14, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 _ideaTitleEntry,
-                new Label { Text = "Selected Idea / Notes", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
+                (new Label { Text = "Selected Idea / Notes", FontSize = 14, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 _ideaEditor,
                 saveIdeaButton,
                 _deleteIdeaButton
@@ -462,52 +453,44 @@ Output ONLY the C# code block.
             WidthRequest = 34
         };
 
-        _workflowStatusTitle = new Label
+        _workflowStatusTitle = (new Label
         {
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#555")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
 
-        _workflowStatusSubtitle = new Label
+        _workflowStatusSubtitle = (new Label
         {
             FontSize = 12,
             FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#555"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
 
-        _workflowCopyNextTaskPromptButton = new Button
+        _workflowCopyNextTaskPromptButton = (new Button
         {
             Text = "Copy Next Task Prompt",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         _workflowCopyNextTaskPromptButton.Clicked += async (_, _) => await CopyNextTaskPromptAsync();
 
-        _pasteQaReportWorkflowButton = new Button
+        _pasteQaReportWorkflowButton = (new Button
         {
             Text = " Paste QA Report",
-            BackgroundColor = Color.FromArgb("#E1F5FE"),
-            TextColor = Color.FromArgb("#0277BD"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightSky).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyAccentText);
         _pasteQaReportWorkflowButton.Clicked += OnPasteQaReportClicked;
 
-        _copyQaTemplateBtn = new Button
+        _copyQaTemplateBtn = (new Button
         {
             Text = " Copy QA Prompt Template",
-            BackgroundColor = Color.FromArgb("#F1F8E9"),
-            TextColor = Color.FromArgb("#33691E"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightLime).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightLimeText);
         _copyQaTemplateBtn.Clicked += async (_, _) =>
         {
             string constraints = "";
@@ -543,130 +526,108 @@ Output ONLY the C# code block.
                 "OK");
         };
 
-        _pickFromQaBtn = new Button
+        _pickFromQaBtn = (new Button
         {
             Text = " Pick 5 from QA report",
-            BackgroundColor = Color.FromArgb("#FFF9C4"),
-            TextColor = Color.FromArgb("#F57F17"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellowStrong).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
         _pickFromQaBtn.Clicked += OnPickFromQaClicked;
 
-        _investigateBtn = new Button
+        _investigateBtn = (new Button
         {
             Text = " Investigate stuck symptom",
-            BackgroundColor = Color.FromArgb("#FFE0B2"),
-            TextColor = Color.FromArgb("#E65100"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightOrange).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         _investigateBtn.Clicked += OnInvestigateStuckClicked;
 
-        _copyBatchPromptButton = new Button
+        _copyBatchPromptButton = (new Button
         {
             Text = " Copy Batch Prompt (5 random from QA)",
-            BackgroundColor = Color.FromArgb("#F3E5F5"),
-            TextColor = Color.FromArgb("#6A1B9A"),
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
         _copyBatchPromptButton.Clicked += OnCopyBatchPromptClicked;
 
-        _pasteTaskPlanButton = new Button
+        _pasteTaskPlanButton = (new Button
         {
             Text = "Paste Task Plan",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _pasteTaskPlanButton.Clicked += async (_, _) => await PasteTaskPlanAsync();
 
-        _cleanTaskPlanButton = new Button
+        _cleanTaskPlanButton = (new Button
         {
             Text = "Clean Task Plan",
-            BackgroundColor = Color.FromArgb("#F3E5F5"),
-            TextColor = Color.FromArgb("#7B1FA2"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13,
             IsVisible = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleText);
         _cleanTaskPlanButton.Clicked += async (_, _) => await ShowCleanTaskPlanAsync();
 
-        _pasteCleanedPlanButton = new Button
+        _pasteCleanedPlanButton = (new Button
         {
             Text = "Paste Cleaned Plan",
-            BackgroundColor = Color.FromArgb("#EDE7F6"),
-            TextColor = Color.FromArgb("#4A148C"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13,
             IsVisible = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightVioletText);
         _pasteCleanedPlanButton.Clicked += async (_, _) => await PasteCleanedPlanAsync();
 
-        _skipStepButton = new Button
+        _skipStepButton = (new Button
         {
             Text = "Skip Step ▶",
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13,
             IsVisible = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         _skipStepButton.Clicked += async (_, _) => await SkipCurrentStepAsync();
 
-        _manualTaskButton = new Button
+        _manualTaskButton = (new Button
         {
             Text = "Manual Task",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
             IsVisible = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         _manualTaskButton.Clicked += async (_, _) => await CreateManualTaskAsync();
 
-        _cancelWorkflowButton = new Button
+        _cancelWorkflowButton = (new Button
         {
             Text = "Cancel (Back to Start)",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _cancelWorkflowButton.Clicked += async (_, _) => await CancelWorkflowAsync();
 
-        _copyCodexPromptButton = new Button
+        _copyCodexPromptButton = (new Button
         {
             Text = "Copy Codex Prompt",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         _copyCodexPromptButton.Clicked += async (_, _) => await CopyCodexPromptAsync();
 
-        _pasteCodexResultButton = new Button
+        _pasteCodexResultButton = (new Button
         {
             Text = "Paste Codex Result",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _pasteCodexResultButton.Clicked += async (_, _) => await PasteCodexResultAsync();
 
         _editTaskTitleButton = CreateWorkflowSmallButton("Edit Task Title");
@@ -678,24 +639,22 @@ Output ONLY the C# code block.
         _editCommitMessageButton = CreateWorkflowSmallButton("Edit Commit Message");
         _editCommitMessageButton.Clicked += async (_, _) => await EditPendingCommitMessageAsync();
 
-        _commitAndPushButton = new Button
+        _commitAndPushButton = (new Button
         {
             Text = "Commit and Push",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _commitAndPushButton.Clicked += async (_, _) => await CommitAndPushAsync();
 
-        _verifyDeploymentButton = CreatePrimaryButton("Deployment Verified", Color.FromArgb("#2E7D32"));
+        _verifyDeploymentButton = CreatePrimaryButton("Deployment Verified", ThemeKey.SuccessDarkButtonBackground);
         _verifyDeploymentButton.Clicked += async (_, _) => await DeploymentVerifiedAsync();
 
         _deploymentFailedButton = CreateDangerButton("Deployment Failed (Revert)");
         _deploymentFailedButton.Clicked += async (_, _) => await DeploymentFailedAsync();
 
-        _checkDeploymentButton = CreatePrimaryButton("Check Deployment", Color.FromArgb("#1565C0"));
+        _checkDeploymentButton = CreatePrimaryButton("Check Deployment", ThemeKey.ButtonPrimaryBackground);
         _checkDeploymentButton.Clicked += async (_, _) => await CheckDeploymentAsync();
 
         _editDeploymentUrlButton = CreateSecondaryButton("Edit Deployment URL");
@@ -704,7 +663,7 @@ Output ONLY the C# code block.
         _deploymentErrorButton = CreateSecondaryButton("Deployment Error");
         _deploymentErrorButton.Clicked += async (_, _) => await HandleDeploymentErrorAsync();
 
-        _verifyCodexOutputButton = CreatePrimaryButton("Verify Codex Output Against QA", Color.FromArgb("#6A1B9A"));
+        _verifyCodexOutputButton = CreatePrimaryButton("Verify Codex Output Against QA", ThemeKey.AccentPurpleDarkButtonBackground);
         _verifyCodexOutputButton.Clicked += async (_, _) => await VerifyCodexOutputAsync();
 
         _viewBatchHistoryButton = CreateSecondaryButton("View Batch History");
@@ -713,7 +672,7 @@ Output ONLY the C# code block.
         _manageBlockedItemsButton = CreateSecondaryButton("Manage Blocked Items");
         _manageBlockedItemsButton.Clicked += async (_, _) => await ManageBlockedItemsAsync();
 
-        _addMissingButton = CreatePrimaryButton("Add Missing Feature", Color.FromArgb("#E65100"));
+        _addMissingButton = CreatePrimaryButton("Add Missing Feature", ThemeKey.WarningDarkButtonBackground);
         _addMissingButton.Clicked += async (_, _) => await StartAddMissingFlowAsync();
 
         _missingFocusQAButton = CreateSecondaryButton("Copy Missing Progress QA");
@@ -722,42 +681,40 @@ Output ONLY the C# code block.
         _missingFocusQAPasteButton = CreateSecondaryButton("Paste Progress QA Result");
         _missingFocusQAPasteButton.Clicked += async (_, _) => await PasteMissingProgressQAAsync();
 
-        _missingFocusNextTaskButton = CreatePrimaryButton("Copy Next Missing Task", Color.FromArgb("#E65100"));
+        _missingFocusNextTaskButton = CreatePrimaryButton("Copy Next Missing Task", ThemeKey.WarningDarkButtonBackground);
         _missingFocusNextTaskButton.Clicked += async (_, _) => await CopyNextMissingTaskAsync();
 
-        _markMissingDoneButton = CreatePrimaryButton("Mark Missing Done", Color.FromArgb("#2E7D32"));
+        _markMissingDoneButton = CreatePrimaryButton("Mark Missing Done", ThemeKey.SuccessDarkButtonBackground);
         _markMissingDoneButton.Clicked += async (_, _) => await MarkMissingDoneAsync();
 
         _abandonMissingButton = CreateSecondaryButton("Abandon Missing Focus");
         _abandonMissingButton.Clicked += async (_, _) => await AbandonMissingFocusAsync();
 
-        _missingFocusInfoLabel = new Label
+        _missingFocusInfoLabel = (new Label
         {
             Text = "",
             FontSize = 13,
-            TextColor = Color.FromArgb("#E65100"),
             FontAttributes = FontAttributes.Bold,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1);
 
         // === BATCH WORKFLOW SECTION ===
         _batchSectionStack = new VerticalStackLayout { Spacing = 8 };
 
-        var batchHeader = new Label
+        var batchHeader = (new Label
         {
             Text = " Batch Workflow (fix broken/rough + progress missing)",
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1);
 
         var batchStep1Row = new HorizontalStackLayout { Spacing = 8 };
-        batchStep1Row.Children.Add(new Label { Text = "Step 1:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        batchStep1Row.Children.Add((new Label { Text = "Step 1:", FontSize = 13, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         batchStep1Row.Children.Add(_copyQaTemplateBtn);
         batchStep1Row.Children.Add(_pasteQaReportWorkflowButton);
 
         var batchStep2Row = new HorizontalStackLayout { Spacing = 8 };
-        batchStep2Row.Children.Add(new Label { Text = "Step 2:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        batchStep2Row.Children.Add((new Label { Text = "Step 2:", FontSize = 13, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         batchStep2Row.Children.Add(_pickFromQaBtn);
 
         _batchSizePicker = CreatePicker("Batch size");
@@ -771,11 +728,11 @@ Output ONLY the C# code block.
         };
 
         var batchStep3Row = new HorizontalStackLayout { Spacing = 8 };
-        batchStep3Row.Children.Add(new Label { Text = "Step 3:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        batchStep3Row.Children.Add((new Label { Text = "Step 3:", FontSize = 13, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         batchStep3Row.Children.Add(_batchSizePicker);
         batchStep3Row.Children.Add(_copyBatchPromptButton);
 
-        var batchStep4Label = new Label { Text = "Step 4: Paste Task Plan → Codex → Commit → Verify (guided)", FontSize = 12, TextColor = Color.FromArgb("#888") };
+        var batchStep4Label = (new Label { Text = "Step 4: Paste Task Plan → Codex → Commit → Verify (guided)", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
 
         var batchExtrasRow = new HorizontalStackLayout { Spacing = 8 };
         batchExtrasRow.Children.Add(_investigateBtn);
@@ -788,41 +745,38 @@ Output ONLY the C# code block.
         _batchSectionStack.Children.Add(batchStep4Label);
         _batchSectionStack.Children.Add(batchExtrasRow);
 
-        _batchSectionFrame = new Frame
+        _batchSectionFrame = (new Frame
         {
             Padding = 12,
             CornerRadius = 10,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            BorderColor = Color.FromArgb("#1565C0"),
             HasShadow = false,
             Content = _batchSectionStack
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoText);
 
         // === MISSING FOCUS SECTION ===
         _missingSectionStack = new VerticalStackLayout { Spacing = 8 };
 
-        var missingHeader = new Label
+        var missingHeader = (new Label
         {
             Text = " Add Missing Feature (focused iteration)",
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#E65100")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1);
 
         _missingSectionStack.Children.Add(missingHeader);
         _missingSectionStack.Children.Add(_missingFocusInfoLabel);
         _missingSectionStack.Children.Add(_addMissingButton);
 
         var missingStep1Row = new HorizontalStackLayout { Spacing = 8 };
-        missingStep1Row.Children.Add(new Label { Text = "Step 1:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        missingStep1Row.Children.Add((new Label { Text = "Step 1:", FontSize = 13, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         missingStep1Row.Children.Add(_missingFocusQAButton);
         missingStep1Row.Children.Add(_missingFocusQAPasteButton);
 
         var missingStep2Row = new HorizontalStackLayout { Spacing = 8 };
-        missingStep2Row.Children.Add(new Label { Text = "Step 2:", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center });
+        missingStep2Row.Children.Add((new Label { Text = "Step 2:", FontSize = 13, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         missingStep2Row.Children.Add(_missingFocusNextTaskButton);
 
-        var missingStep3Label = new Label { Text = "Step 3: Paste Task Plan → Codex → Commit → Verify (guided)", FontSize = 12, TextColor = Color.FromArgb("#888") };
+        var missingStep3Label = (new Label { Text = "Step 3: Paste Task Plan → Codex → Commit → Verify (guided)", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
 
         var missingActionsRow = new HorizontalStackLayout { Spacing = 8 };
         missingActionsRow.Children.Add(_markMissingDoneButton);
@@ -833,38 +787,32 @@ Output ONLY the C# code block.
         _missingSectionStack.Children.Add(missingStep3Label);
         _missingSectionStack.Children.Add(missingActionsRow);
 
-        _missingSectionFrame = new Frame
+        _missingSectionFrame = (new Frame
         {
             Padding = 12,
             CornerRadius = 10,
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            BorderColor = Color.FromArgb("#E65100"),
             HasShadow = false,
             Content = _missingSectionStack
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningText);
 
-        _workflowExportStuckBtn = new Button
+        _workflowExportStuckBtn = (new Button
         {
             Text = "Export Stuck Analysis",
-            BackgroundColor = Color.FromArgb("#AB47BC"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _workflowExportStuckBtn.Clicked += async (_, _) => await ExportStuckAnalysisAsync();
 
-        _workflowPasteStuckBtn = new Button
+        _workflowPasteStuckBtn = (new Button
         {
             Text = "Paste Analysis Result",
-            BackgroundColor = Color.FromArgb("#CE93D8"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBorder).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _workflowPasteStuckBtn.Clicked += async (_, _) => await PasteStuckAnalysisAsync();
 
         _stuckAnalysisStepRow = new HorizontalStackLayout
@@ -873,14 +821,13 @@ Output ONLY the C# code block.
             IsVisible = false,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Final Step:",
                     FontSize = 12,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#6A1B9A"),
                     VerticalOptions = LayoutOptions.Center
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText3),
                 _workflowExportStuckBtn,
                 _workflowPasteStuckBtn
             }
@@ -898,48 +845,40 @@ Output ONLY the C# code block.
         };
 
         // Owner Mode: Dev Commit Log section
-        _pasteCommitStatementButton = new Button
+        _pasteCommitStatementButton = (new Button
         {
             Text = "Paste Commit Statement",
-            BackgroundColor = Color.FromArgb("#CE93D8"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBorder).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _pasteCommitStatementButton.Clicked += async (_, _) => await PasteCommitStatementAsync();
 
-        _viewCommitLogButton = new Button
+        _viewCommitLogButton = (new Button
         {
             Text = "View Commit Log",
-            BackgroundColor = Color.FromArgb("#CE93D8"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleBorder).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _viewCommitLogButton.Clicked += async (_, _) => await ViewCommitLogAsync();
 
-        _exportStuckAnalysisButton = new Button
+        _exportStuckAnalysisButton = (new Button
         {
             Text = "Export Stuck Analysis",
-            BackgroundColor = Color.FromArgb("#AB47BC"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _exportStuckAnalysisButton.Clicked += async (_, _) => await ExportStuckAnalysisAsync();
 
-        _pasteStuckAnalysisButton = new Button
+        _pasteStuckAnalysisButton = (new Button
         {
             Text = "Paste Analysis Result",
-            BackgroundColor = Color.FromArgb("#AB47BC"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _pasteStuckAnalysisButton.Clicked += async (_, _) => await PasteStuckAnalysisAsync();
 
         _stuckRatingLabel = new Label
@@ -950,38 +889,34 @@ Output ONLY the C# code block.
             IsVisible = false
         };
 
-        _stuckSummaryLabel = new Label
+        _stuckSummaryLabel = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#555"),
             LineBreakMode = LineBreakMode.WordWrap,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
 
         _stuckPatternsStack = new VerticalStackLayout { Spacing = 4, IsVisible = false };
 
-        _stuckStatusFrame = new Frame
+        _stuckStatusFrame = (new Frame
         {
             Padding = new Thickness(12),
             CornerRadius = 10,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             IsVisible = false,
             Content = new VerticalStackLayout
             {
                 Spacing = 6,
                 Children = { _stuckRatingLabel, _stuckSummaryLabel, _stuckPatternsStack }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-        var ownerDevHeader = new Label
+        var ownerDevHeader = (new Label
         {
             Text = "Dev Commit Log (Owner Mode)",
             FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#6A1B9A")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1);
 
         var commitButtonRow = new HorizontalStackLayout
         {
@@ -995,7 +930,7 @@ Output ONLY the C# code block.
             IsVisible = false,
             Children =
             {
-                new BoxView { HeightRequest = 1, Color = Color.FromArgb("#CE93D8"), Margin = new Thickness(0, 8, 0, 0) },
+                (new BoxView { HeightRequest = 1, Margin = new Thickness(0, 8, 0, 0) }).ThemeColor(BoxView.ColorProperty, ThemeKey.AccentPurpleBorder),
                 ownerDevHeader,
                 commitButtonRow,
                 _exportStuckAnalysisButton,
@@ -1058,65 +993,55 @@ Output ONLY the C# code block.
             }
         };
 
-        _projectTitleHeaderLabel = new Label
+        _projectTitleHeaderLabel = (new Label
         {
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        };
-        _projectIdeaReferenceLabel = new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+        _projectIdeaReferenceLabel = (new Label
         {
             FontSize = 13,
             FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
 
-        _visionStatusLabel = new Label
+        _visionStatusLabel = (new Label
         {
             FontSize = 12,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#888")
-        };
+            FontAttributes = FontAttributes.Italic
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
 
-        _visionPreviewLabel = new Label
+        _visionPreviewLabel = (new Label
         {
             FontSize = 13,
-            TextColor = Color.FromArgb("#444"),
             MaxLines = 3,
             LineBreakMode = LineBreakMode.TailTruncation,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
-        _editVisionRawButton = new Button
+        _editVisionRawButton = (new Button
         {
             Text = "Edit Vision (Your Words)",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _editVisionRawButton.Clicked += async (_, _) => await EditVisionRawAsync();
 
-        _copyVisionRefinementPromptButton = new Button
+        _copyVisionRefinementPromptButton = (new Button
         {
             Text = "Copy Vision Refinement Prompt",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         _copyVisionRefinementPromptButton.Clicked += async (_, _) => await CopyVisionRefinementPromptAsync();
 
-        _pasteVisionRefinedButton = new Button
+        _pasteVisionRefinedButton = (new Button
         {
             Text = "Paste Refined Vision",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _pasteVisionRefinedButton.Clicked += async (_, _) => await PasteVisionRefinedAsync();
 
         var visionSection = new VerticalStackLayout
@@ -1124,13 +1049,12 @@ Output ONLY the C# code block.
             Spacing = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Vision",
                     FontSize = 14,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 _visionStatusLabel,
                 _visionPreviewLabel,
                 _editVisionRawButton,
@@ -1139,14 +1063,13 @@ Output ONLY the C# code block.
             }
         };
 
-        _taskCountLabel = new Label
+        _taskCountLabel = (new Label
         {
             FontSize = 48,
             FontAttributes = FontAttributes.Bold,
-            HorizontalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#222")
-        };
-        _incrementButton = CreatePrimaryButton("+1 Task", Color.FromArgb("#2E7D32"));
+            HorizontalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
+        _incrementButton = CreatePrimaryButton("+1 Task", ThemeKey.SuccessDarkButtonBackground);
         _incrementButton.FontSize = 20;
         _incrementButton.HeightRequest = 58;
         _incrementButton.Clicked += async (_, _) => await OnIncrementClickedAsync();
@@ -1160,15 +1083,13 @@ Output ONLY the C# code block.
         _setTargetButton = CreateSecondaryButton("Set Target");
         _setTargetButton.Clicked += async (_, _) => await OnSetTargetClickedAsync();
 
-        _viewTaskLogButton = new Button
+        _viewTaskLogButton = (new Button
         {
             Text = "View Task Log",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _viewTaskLogButton.Clicked += async (_, _) => await ViewTaskLogAsync();
 
         var nextTaskSection = new VerticalStackLayout
@@ -1176,33 +1097,29 @@ Output ONLY the C# code block.
             Spacing = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Task Log",
                     FontSize = 14,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333")
-                },
-                new Label
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
+                (new Label
                 {
                     Text = "View or edit the list of completed tasks.",
                     FontSize = 12,
-                    FontAttributes = FontAttributes.Italic,
-                    TextColor = Color.FromArgb("#888")
-                },
+                    FontAttributes = FontAttributes.Italic
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3),
                 _viewTaskLogButton
             }
         };
 
-        _setNewTargetButton = CreatePrimaryButton("Set New Target", Color.FromArgb("#2E7D32"));
+        _setNewTargetButton = CreatePrimaryButton("Set New Target", ThemeKey.SuccessDarkButtonBackground);
         _setNewTargetButton.Clicked += async (_, _) => await OnSetNewTargetClickedAsync();
 
-        _celebrationFrame = new Frame
+        _celebrationFrame = (new Frame
         {
             Padding = 14,
             CornerRadius = 8,
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            BorderColor = Color.FromArgb("#2E7D32"),
             HasShadow = false,
             IsVisible = false,
             Content = new VerticalStackLayout
@@ -1210,127 +1127,109 @@ Output ONLY the C# code block.
                 Spacing = 10,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "🎉 Target reached!",
                         FontSize = 18,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#1B5E20")
-                    },
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1),
                     _setNewTargetButton
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessText);
 
-        _codebasePathLabel = new Label
+        _codebasePathLabel = (new Label
         {
             FontSize = 13,
             FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.TailTruncation
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
 
-        _editCodebasePathButton = new Button
+        _editCodebasePathButton = (new Button
         {
             Text = "Edit Code Folder Path",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _editCodebasePathButton.Clicked += async (_, _) => await EditCodebasePathAsync();
 
-        _siteUrlLabel = new Label
+        _siteUrlLabel = (new Label
         {
             Text = "Site URL: (none)",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.TailTruncation
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
 
-        _editSiteUrlButton = new Button
+        _editSiteUrlButton = (new Button
         {
             Text = "Set Site URL",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 32,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         _editSiteUrlButton.Clicked += async (_, _) => await EditSiteUrlAsync();
 
-        _deployDashboardLabel = new Label
+        _deployDashboardLabel = (new Label
         {
             Text = "Deploy dashboard: (none)",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.TailTruncation
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
 
-        _editDeployDashboardButton = new Button
+        _editDeployDashboardButton = (new Button
         {
             Text = "Set Deploy Dashboard URL",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 32,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         _editDeployDashboardButton.Clicked += async (_, _) => await EditDeployDashboardAsync();
 
-        _deployCommandLabel = new Label
+        _deployCommandLabel = (new Label
         {
             Text = "Deploy command: (none)",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.TailTruncation
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
 
-        _editDeployCommandButton = new Button
+        _editDeployCommandButton = (new Button
         {
             Text = "Set Deploy Command",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 32,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         _editDeployCommandButton.Clicked += async (_, _) => await EditDeployCommandAsync();
 
-        _promptConstraintsLabel = new Label
+        _promptConstraintsLabel = (new Label
         {
             Text = "Prompt constraints: (none)",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3);
 
-        _editPromptConstraintsButton = new Button
+        _editPromptConstraintsButton = (new Button
         {
             Text = "Edit Prompt Constraints",
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100"),
             CornerRadius = 8,
             HeightRequest = 32,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         _editPromptConstraintsButton.Clicked += async (_, _) => await EditPromptConstraintsAsync();
 
-        var restoreDefaultConstraintsButton = new Button
+        var restoreDefaultConstraintsButton = (new Button
         {
             Text = "Restore Default Constraints",
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100"),
             CornerRadius = 8,
             HeightRequest = 32,
             FontSize = 12,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         restoreDefaultConstraintsButton.Clicked += async (_, _) =>
         {
             var project = await GetCurrentProjectOrAlertAsync();
@@ -1351,114 +1250,97 @@ Output ONLY the C# code block.
         };
 
         // Deploy log panel — hidden by default, shown during deploy
-        _deployLogEditor = new Editor
+        _deployLogEditor = (new Editor
         {
             IsReadOnly = true,
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 200,
-            BackgroundColor = Color.FromArgb("#1E1E1E"),
-            TextColor = Color.FromArgb("#D4D4D4"),
             FontFamily = "Consolas",
             FontSize = 11,
             IsVisible = false
-        };
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.BrandMediaBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.BrandMediaText);
 
-        _cancelDeployButton = new Button
+        _cancelDeployButton = (new Button
         {
             Text = "Cancel Deploy",
-            BackgroundColor = Color.FromArgb("#C62828"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             IsVisible = false
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _cancelDeployButton.Clicked += (_, _) =>
         {
             _deployCts?.Cancel();
         };
 
-        _deployLogFrame = new Frame
+        _deployLogFrame = (new Frame
         {
             Padding = 8,
             CornerRadius = 8,
-            BorderColor = Color.FromArgb("#333"),
-            BackgroundColor = Color.FromArgb("#1E1E1E"),
             IsVisible = false,
             Content = new VerticalStackLayout
             {
                 Spacing = 6,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Deploy Output",
                         FontSize = 13,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#D4D4D4")
-                    },
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaText, ThemeKey.PageText1),
                     _deployLogEditor,
                     _cancelDeployButton
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaConsoleBorder).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.BrandMediaBackground);
 
-        _copyCodexCommandButton = new Button
+        _copyCodexCommandButton = (new Button
         {
             Text = "Copy CD + Codex Command",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 42,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         _copyCodexCommandButton.Clicked += async (_, _) => await CopyCodexCommandAsync();
 
-        _openTerminalButton = new Button
+        _openTerminalButton = (new Button
         {
             Text = "Open Terminal",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _openTerminalButton.Clicked += async (_, _) => await OpenTerminalAsync();
 
-        _summaryStalenessLabel = new Label
+        _summaryStalenessLabel = (new Label
         {
             FontSize = 12,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#888")
-        };
+            FontAttributes = FontAttributes.Italic
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
 
-        _summaryPreviewLabel = new Label
+        _summaryPreviewLabel = (new Label
         {
             FontSize = 13,
-            TextColor = Color.FromArgb("#444"),
             MaxLines = 3,
             LineBreakMode = LineBreakMode.TailTruncation,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
-        _copySummaryPromptButton = new Button
+        _copySummaryPromptButton = (new Button
         {
             Text = "Copy Update Summary Prompt",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         _copySummaryPromptButton.Clicked += async (_, _) => await CopyUpdateSummaryPromptAsync();
 
-        _pasteSummaryResultButton = new Button
+        _pasteSummaryResultButton = (new Button
         {
             Text = "Paste Summary Result",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _pasteSummaryResultButton.Clicked += async (_, _) => await PasteSummaryResultAsync();
 
         var projectSummarySection = new VerticalStackLayout
@@ -1466,13 +1348,12 @@ Output ONLY the C# code block.
             Spacing = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Project Summary",
                     FontSize = 14,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 _summaryStalenessLabel,
                 _summaryPreviewLabel,
                 _copySummaryPromptButton,
@@ -1485,13 +1366,12 @@ Output ONLY the C# code block.
             Spacing = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Project Files",
                     FontSize = 14,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 _codebasePathLabel,
                 _editCodebasePathButton,
                 _copyCodexCommandButton,
@@ -1549,18 +1429,16 @@ Output ONLY the C# code block.
             }
         };
 
-        var setupGuideButton = new Button
+        var setupGuideButton = (new Button
         {
             Text = "Setup Guide",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 6,
             HeightRequest = 32,
             FontSize = 13,
             Padding = new Thickness(12, 0),
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         setupGuideButton.Clicked += async (_, _) => await Navigation.PushAsync(new WebsiteBuilderSetupGuidePage(_auth, _projectService));
 
         var mainScroll = new ScrollView
@@ -1572,13 +1450,12 @@ Output ONLY the C# code block.
                 Children =
                 {
                     CreateTitleRow(setupGuideButton),
-                    new Label
+                    (new Label
                     {
                         Text = "Generate website ideas via LLM, save selected ones as projects.",
                         FontSize = 15,
-                        TextColor = Color.FromArgb("#666"),
                         Margin = new Thickness(0, -6, 0, 8)
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2),
                     CreatePickerGrid(newIdeaButton, newProjectButton),
                     _taskCounterSection,
                     _ideaSection,
@@ -1608,14 +1485,13 @@ Output ONLY the C# code block.
             ColumnSpacing = 12
         };
 
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = "Website Builder",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1), 0, 0);
         grid.Add(setupGuideButton, 1, 0);
         return grid;
     }
@@ -1726,74 +1602,64 @@ Output ONLY the C# code block.
 
     private static Picker CreatePicker(string title)
     {
-        return new Picker
+        return (new Picker
         {
-            Title = title,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222")
-        };
+            Title = title
+        }).ThemeColor(Picker.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
     }
 
     private static Label CreateSectionHeader(string text)
     {
-        return new Label
+        return (new Label
         {
             Text = text,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             Margin = new Thickness(0, 12, 0, 0)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
     }
 
-    private static Button CreatePrimaryButton(string text, Color backgroundColor)
+    private static Button CreatePrimaryButton(string text, ThemeKey backgroundColor)
     {
-        return new Button
+        return (new Button
         {
             Text = text,
-            BackgroundColor = backgroundColor,
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ButtonPrimaryText)
+            .ThemeColor(Button.BackgroundColorProperty, backgroundColor);
     }
 
     private static Button CreateSecondaryButton(string text)
     {
-        return new Button
+        return (new Button
         {
             Text = text,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
     }
 
     private static Button CreateWorkflowSmallButton(string text)
     {
-        return new Button
+        return (new Button
         {
             Text = text,
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 32,
             FontSize = 11
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
     }
 
     private static Button CreateDangerButton(string text)
     {
-        return new Button
+        return (new Button
         {
             Text = text,
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
     }
 
     private async Task CopyIdeasPromptAsync()
@@ -2275,7 +2141,7 @@ Output ONLY the C# code block.
         switch (state)
         {
             case WebsiteWorkflowState.WaitingForLLM:
-                ApplyWorkflowBanner("#FFEBEE", "#C62828", "#C62828", "🔴", "Waiting for LLM response",
+                ApplyWorkflowBanner(ThemeKey.ErrorBackground, ThemeKey.ErrorText, ThemeKey.ErrorText, "🔴", "Waiting for LLM response",
                     "Paste the prompt into Claude/ChatGPT, then tap Paste Task Plan with the response.");
                 _pasteTaskPlanButton.IsVisible = true;
                 _cancelWorkflowButton.IsVisible = true;
@@ -2283,7 +2149,7 @@ Output ONLY the C# code block.
                 break;
 
             case WebsiteWorkflowState.ReadyToExecute:
-                ApplyWorkflowBanner("#FFF8E1", "#F57C00", "#E65100", "🟠", "Ready to execute in Codex",
+                ApplyWorkflowBanner(ThemeKey.HighlightYellow, ThemeKey.WarningStrongText, ThemeKey.WarningText, "🟠", "Ready to execute in Codex",
                     $"Task: {project.PendingTaskTitle}. Copy the Codex prompt, run it in Codex, then paste the result.");
                 _cleanTaskPlanButton.IsVisible = true;
                 _pasteCleanedPlanButton.IsVisible = true;
@@ -2296,7 +2162,7 @@ Output ONLY the C# code block.
                 break;
 
             case WebsiteWorkflowState.ReadyToCommit:
-                ApplyWorkflowBanner("#E8F5E9", "#2E7D32", "#1B5E20", "🟢", "Ready to commit",
+                ApplyWorkflowBanner(ThemeKey.SuccessBackground, ThemeKey.SuccessText, ThemeKey.SuccessStrongText, "🟢", "Ready to commit",
                     $"Commit: {project.PendingCommitMessage}. Tap Commit and Push to finish.");
                 // Reset retry mode when entering ReadyToCommit fresh
                 if (!_deployRetryMode)
@@ -2310,7 +2176,7 @@ Output ONLY the C# code block.
                 break;
 
             case WebsiteWorkflowState.VerifyDeployment:
-                ApplyWorkflowBanner("#E3F2FD", "#1565C0", "#0D47A1", "🔵", "Verify Vercel deployment",
+                ApplyWorkflowBanner(ThemeKey.InfoBackground, ThemeKey.InfoText, ThemeKey.InfoDeepText, "🔵", "Verify Vercel deployment",
                     $"Task '{project.PendingTaskTitle}' was committed and pushed. Check the Vercel dashboard to confirm successful deployment before continuing.");
                 bool hasDeployUrl = !string.IsNullOrWhiteSpace(project.DeploymentUrl);
                 _checkDeploymentButton.IsVisible = hasDeployUrl;
@@ -2325,7 +2191,7 @@ Output ONLY the C# code block.
                 break;
 
             default:
-                ApplyWorkflowBanner("#F5F5F5", "#BBBBBB", "#555555", "⚪", "Ready for next task",
+                ApplyWorkflowBanner(ThemeKey.SecondarySurface, ThemeKey.CardText3, ThemeKey.CardText2, "⚪", "Ready for next task",
                     "Choose a workflow below. Steps 1-3 are in the section, then the guided task cycle runs above.");
                 _manualTaskButton.IsVisible = true;
                 _batchSectionFrame.IsVisible = true;
@@ -2360,13 +2226,13 @@ Output ONLY the C# code block.
         }
     }
 
-    private void ApplyWorkflowBanner(string background, string border, string titleColor, string icon, string title, string subtitle)
+    private void ApplyWorkflowBanner(ThemeKey background, ThemeKey border, ThemeKey titleColor, string icon, string title, string subtitle)
     {
-        _workflowStatusBanner.BackgroundColor = Color.FromArgb(background);
-        _workflowStatusBanner.BorderColor = Color.FromArgb(border);
+        _workflowStatusBanner.ThemeColor(VisualElement.BackgroundColorProperty, background);
+        _workflowStatusBanner.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, border);
         _workflowStatusIcon.Text = icon;
         _workflowStatusTitle.Text = title;
-        _workflowStatusTitle.TextColor = Color.FromArgb(titleColor);
+        _workflowStatusTitle.ThemeColor(Label.TextColorProperty, titleColor, ThemeKey.PageText1);
         _workflowStatusSubtitle.Text = subtitle;
     }
 
@@ -2906,48 +2772,40 @@ Output ONLY the C# code block.
         if (Content is not Grid parent)
             return null;
 
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var editor = new Editor
+        var editor = (new Editor
         {
             Text = initialText,
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 400,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888"),
             Placeholder = "Paste the strict C# qaReport code block here."
-        };
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.InputText).ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var saveBtn = new Button
+        var saveBtn = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         saveBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
             tcs.TrySetResult(editor.Text ?? "");
         };
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         cancelBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
             tcs.TrySetResult(null);
         };
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             WidthRequest = 700,
@@ -2959,14 +2817,13 @@ Output ONLY the C# code block.
                 Spacing = 12,
                 Children =
                 {
-                    new Label { Text = " Paste QA Report", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
-                    new Label
+                    (new Label { Text = " Paste QA Report", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label
                     {
                         Text = "Saves per-project. Batch Prompt uses this stored report to pick 5 random items across BROKEN, ROUGH, MISSING with equal probability.",
                         FontSize = 12,
-                        TextColor = Color.FromArgb("#666"),
                         FontAttributes = FontAttributes.Italic
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                     editor,
                     new HorizontalStackLayout
                     {
@@ -2976,7 +2833,7 @@ Output ONLY the C# code block.
                     }
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         overlay.Children.Add(card);
         parent.Children.Add(overlay);
@@ -3050,33 +2907,25 @@ Output ONLY the C# code block.
             return;
         }
 
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var symptomEditor = new Editor
+        var symptomEditor = (new Editor
         {
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 200,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888"),
             Placeholder = "Example: 'Price history has been broken and re-attempted daily for 6 consecutive days. Chart appears empty, sometimes partial. Related: pages/collections/[slug]/history.tsx.'"
-        };
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.InputText).ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var pathsEntry = new Entry
+        var pathsEntry = (new Entry
         {
-            Placeholder = "e.g. pages/collections/[slug]/history.tsx, lib/atomicmarket.ts",
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888")
-        };
+            Placeholder = "e.g. pages/collections/[slug]/history.tsx, lib/atomicmarket.ts"
+        }).ThemeColor(Entry.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Entry.TextColorProperty, ThemeKey.InputText).ThemeColor(Entry.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var copyBtn = new Button
+        var copyBtn = (new Button
         {
             Text = " Copy investigation prompt",
-            BackgroundColor = Color.FromArgb("#E65100"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.WarningDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
         copyBtn.Clicked += async (_, _) =>
         {
@@ -3131,13 +2980,11 @@ Output ONLY the C# code block.
             }
         };
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
         cancelBtn.Clicked += (_, _) =>
         {
@@ -3145,15 +2992,13 @@ Output ONLY the C# code block.
             tcs.TrySetResult(false);
         };
 
-        var editTemplateBtn = new Button
+        var editTemplateBtn = (new Button
         {
             Text = "Edit template",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 32
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         editTemplateBtn.Clicked += async (_, _) => await ShowInvestigationTemplateEditorAsync();
 
         var buttonRow = new HorizontalStackLayout
@@ -3163,9 +3008,8 @@ Output ONLY the C# code block.
             Children = { editTemplateBtn, cancelBtn, copyBtn }
         };
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             WidthRequest = 640,
@@ -3177,22 +3021,21 @@ Output ONLY the C# code block.
                 Spacing = 10,
                 Children =
                 {
-                    new Label { Text = " Investigate Stuck Symptom", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
-                    new Label
+                    (new Label { Text = " Investigate Stuck Symptom", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label
                     {
                         Text = "Break out of the fix-loop. Ask Codex to diagnose a recurring issue without making changes.",
                         FontSize = 12,
-                        TextColor = Color.FromArgb("#666"),
                         FontAttributes = FontAttributes.Italic
-                    },
-                    new Label { Text = "Describe the stuck symptom and its history:", FontSize = 13, TextColor = Color.FromArgb("#333") },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
+                    (new Label { Text = "Describe the stuck symptom and its history:", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     symptomEditor,
-                    new Label { Text = "Related files or code paths (optional):", FontSize = 13, TextColor = Color.FromArgb("#333") },
+                    (new Label { Text = "Related files or code paths (optional):", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                     pathsEntry,
                     buttonRow
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         overlay.Children.Add(card);
         parent.Children.Add(overlay);
@@ -3209,7 +3052,7 @@ Output ONLY the C# code block.
             return;
         }
 
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#90000000") };
+        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.OverlayMedium);
         var templateKey = GetInvestigationPromptStorageKey();
         string currentTemplate;
         try
@@ -3221,24 +3064,19 @@ Output ONLY the C# code block.
             currentTemplate = DefaultInvestigationPrompt;
         }
 
-        var editor = new Editor
+        var editor = (new Editor
         {
             Text = currentTemplate,
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 420,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888"),
             Placeholder = "Investigation prompt template..."
-        };
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.InputText).ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var saveBtn = new Button
+        var saveBtn = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         saveBtn.Clicked += async (_, _) =>
         {
             var value = editor.Text ?? "";
@@ -3265,13 +3103,11 @@ Output ONLY the C# code block.
             }
         };
 
-        var resetBtn = new Button
+        var resetBtn = (new Button
         {
             Text = "Reset to Default",
-            BackgroundColor = Color.FromArgb("#FFE0B2"),
-            TextColor = Color.FromArgb("#E65100"),
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightOrange).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         resetBtn.Clicked += async (_, _) =>
         {
             var confirm = await DisplayAlert(
@@ -3293,13 +3129,11 @@ Output ONLY the C# code block.
             editor.Text = DefaultInvestigationPrompt;
         };
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         cancelBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
@@ -3313,9 +3147,8 @@ Output ONLY the C# code block.
             Children = { resetBtn, cancelBtn, saveBtn }
         };
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             WidthRequest = 720,
@@ -3327,19 +3160,18 @@ Output ONLY the C# code block.
                 Spacing = 10,
                 Children =
                 {
-                    new Label { Text = "Edit Investigation Template", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
-                    new Label
+                    (new Label { Text = "Edit Investigation Template", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label
                     {
                         Text = "Keep both placeholders: {SYMPTOM_DESCRIPTION} and {RELATED_PATHS}.",
                         FontSize = 12,
-                        TextColor = Color.FromArgb("#666"),
                         FontAttributes = FontAttributes.Italic
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                     editor,
                     buttonRow
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         overlay.Children.Add(card);
         parent.Children.Add(overlay);
@@ -3385,36 +3217,29 @@ Output ONLY the C# code block.
             return;
         }
 
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var qaEditor = new Editor
+        var qaEditor = (new Editor
         {
             Text = project.LatestQAReport,
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 300,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888"),
             Placeholder = "Paste the strict C# qaReport code block here."
-        };
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.InputText).ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var parseBtn = new Button
+        var parseBtn = (new Button
         {
             Text = "Parse and pick",
-            BackgroundColor = Color.FromArgb("#F57F17"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellowDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
         Button BuildCancelButton()
         {
-            var button = new Button
+            var button = (new Button
             {
                 Text = "Cancel",
-                BackgroundColor = Color.FromArgb("#9E9E9E"),
-                TextColor = Colors.White,
                 CornerRadius = 8
-            };
+            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             button.Clicked += (_, _) =>
             {
                 parent.Children.Remove(overlay);
@@ -3435,23 +3260,21 @@ Output ONLY the C# code block.
             Spacing = 10,
             Children =
             {
-                new Label { Text = " Pick 5 from QA report", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
-                new Label
+                (new Label { Text = " Pick 5 from QA report", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                (new Label
                 {
                     Text = "Paste the QA report below. Bannister will parse it, extract every BROKEN, ROUGH, and MISSING item, and pick 5 at random with equal probability across categories.",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#666"),
                     FontAttributes = FontAttributes.Italic
-                },
-                new Label { Text = "QA report:", FontSize = 13, TextColor = Color.FromArgb("#333") },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
+                (new Label { Text = "QA report:", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
                 qaEditor,
                 pasteButtonRow
             }
         };
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             WidthRequest = 700,
@@ -3459,7 +3282,7 @@ Output ONLY the C# code block.
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Content = pasteContent
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
         overlay.Children.Add(card);
         parent.Children.Add(overlay);
 
@@ -3479,26 +3302,22 @@ Output ONLY the C# code block.
                 Content = picksStack
             };
 
-            var repickBtn = new Button
+            var repickBtn = (new Button
             {
                 Text = "Re-pick",
-                BackgroundColor = Color.FromArgb("#FFF9C4"),
-                TextColor = Color.FromArgb("#F57F17"),
                 CornerRadius = 8
-            };
+            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.HighlightYellowStrong).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
             repickBtn.Clicked += (_, _) =>
             {
                 _pickedItems = PickFive(_parsedItems);
                 RenderPreview();
             };
 
-            var copyBtn = new Button
+            var copyBtn = (new Button
             {
                 Text = "Copy arc prompt",
-                BackgroundColor = Color.FromArgb("#2E7D32"),
-                TextColor = Colors.White,
                 CornerRadius = 8
-            };
+            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             copyBtn.Clicked += async (_, _) =>
             {
                 var prompt = AssembleArcPromptWithPicks(_pickedItems, BuildConstraintsBlock(project));
@@ -3518,13 +3337,11 @@ Output ONLY the C# code block.
                 }
             };
 
-            var backBtn = new Button
+            var backBtn = (new Button
             {
                 Text = "Back to paste",
-                BackgroundColor = Color.FromArgb("#9E9E9E"),
-                TextColor = Colors.White,
                 CornerRadius = 8
-            };
+            }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             backBtn.Clicked += (_, _) =>
             {
                 card.Content = pasteContent;
@@ -3542,14 +3359,13 @@ Output ONLY the C# code block.
                 Spacing = 10,
                 Children =
                 {
-                    new Label { Text = " Picked 5 items", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") },
-                    new Label
+                    (new Label { Text = " Picked 5 items", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
+                    (new Label
                     {
                         Text = $"Found {_parsedItems.Count} items total: {brokenCount} BROKEN, {roughCount} ROUGH, {missingCount} MISSING",
                         FontSize = 12,
-                        TextColor = Color.FromArgb("#666"),
                         FontAttributes = FontAttributes.Italic
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                     picksScroll,
                     previewButtonRow
                 }
@@ -3761,40 +3577,35 @@ Output ONLY the C# code block.
     {
         var badgeColor = item.Category switch
         {
-            "BROKEN" => Color.FromArgb("#EF5350"),
-            "ROUGH" => Color.FromArgb("#FFA726"),
-            "MISSING" => Color.FromArgb("#42A5F5"),
-            _ => Color.FromArgb("#9E9E9E")
+            "BROKEN" => ThemeKey.ErrorBrightText,
+            "ROUGH" => ThemeKey.WarningSoftText,
+            "MISSING" => ThemeKey.InfoBrightText,
+            _ => ThemeKey.DisabledButtonBackground
         };
 
-        var badge = new Frame
+        var badge = (new Frame
         {
-            BackgroundColor = badgeColor,
             CornerRadius = 4,
             Padding = new Thickness(6, 2),
             HasShadow = false,
             HorizontalOptions = LayoutOptions.Start,
-            Content = new Label
+            Content = (new Label
             {
                 Text = item.Category,
                 FontSize = 10,
-                TextColor = Colors.White,
                 FontAttributes = FontAttributes.Bold
-            }
-        };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3)
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, badgeColor);
 
-        var bodyLabel = new Label
+        var bodyLabel = (new Label
         {
             Text = item.Body,
             FontSize = 12,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 8,
             Padding = 10,
             HasShadow = false,
@@ -3803,7 +3614,7 @@ Output ONLY the C# code block.
                 Spacing = 6,
                 Children = { badge, bodyLabel }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private async Task CopyNextTaskPromptAsync()
@@ -4164,34 +3975,27 @@ Output ONLY the C# code block.
         if (project == null) return;
 
         var tcs = new TaskCompletionSource<string?>();
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var editor = new Editor
+        var editor = (new Editor
         {
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 200,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888"),
             Placeholder = "Describe what you want to build or fix...",
             FontSize = 13
-        };
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.InputText).ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var submitBtn = new Button
+        var submitBtn = (new Button
         {
             Text = "Generate Task Prompt",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
         submitBtn.Clicked += (_, _) =>
         {
@@ -4205,9 +4009,8 @@ Output ONLY the C# code block.
             tcs.TrySetResult(null);
         };
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             MaximumWidthRequest = 600,
@@ -4219,13 +4022,13 @@ Output ONLY the C# code block.
                 Spacing = 10,
                 Children =
                 {
-                    new Label { Text = "Manual Task", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") },
-                    new Label { Text = "Describe what you want done. This will be wrapped in a prompt for the LLM to generate a Codex-ready task.", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                    (new Label { Text = "Manual Task", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1),
+                    (new Label { Text = "Describe what you want done. This will be wrapped in a prompt for the LLM to generate a Codex-ready task.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                     editor,
                     new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.End, Children = { cancelBtn, submitBtn } }
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         overlay.Children.Add(card);
         if (Content is Grid mainGrid)
@@ -5365,37 +5168,35 @@ Output ONLY the C# code block.
         var parent = Content as Grid;
         if (parent == null) return;
 
-        var fromDate = new DatePicker
+        var fromDate = (new DatePicker
         {
             Date = DateTime.Today.AddDays(-30),
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             MinimumDate = DateTime.Today.AddYears(-2),
             MaximumDate = DateTime.Today,
             FontSize = 13
-        };
+        }).ThemeColor(DatePicker.BackgroundColorProperty, ThemeKey.InputBackground);
 
-        var toDate = new DatePicker
+        var toDate = (new DatePicker
         {
             Date = DateTime.Today,
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             MinimumDate = DateTime.Today.AddYears(-2),
             MaximumDate = DateTime.Today,
             FontSize = 13
-        };
+        }).ThemeColor(DatePicker.BackgroundColorProperty, ThemeKey.InputBackground);
 
         var dateFilterRow = new HorizontalStackLayout
         {
             Spacing = 8,
             Children =
             {
-                new Label { Text = "From:", FontSize = 12, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center },
+                (new Label { Text = "From:", FontSize = 12, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                 fromDate,
-                new Label { Text = "To:", FontSize = 12, TextColor = Color.FromArgb("#666"), VerticalOptions = LayoutOptions.Center },
+                (new Label { Text = "To:", FontSize = 12, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                 toDate
             }
         };
 
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.Overlay);
 
         var listStack = new VerticalStackLayout { Spacing = 12 };
 
@@ -5425,41 +5226,37 @@ Output ONLY the C# code block.
                 var doneCount = root.TryGetProperty("DoneCount", out var doneProp) ? doneProp.GetInt32() : 0;
                 var totalCount = root.TryGetProperty("TotalCount", out var totalProp) ? totalProp.GetInt32() : 0;
 
-                var batchFrame = new Frame
+                var batchFrame = (new Frame
                 {
-                    BackgroundColor = Color.FromArgb("#FAFAFA"),
                     Padding = 12,
                     CornerRadius = 8,
                     HasShadow = false
-                };
+                }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
                 var batchStack = new VerticalStackLayout { Spacing = 6 };
-                batchStack.Children.Add(new Label
+                batchStack.Children.Add((new Label
                 {
                     Text = $"Batch: {dateStr}",
                     FontSize = 15,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333")
-                });
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
                 if (!string.IsNullOrWhiteSpace(taskTitle))
                 {
-                    batchStack.Children.Add(new Label
+                    batchStack.Children.Add((new Label
                     {
                         Text = taskTitle,
                         FontSize = 13,
-                        TextColor = Color.FromArgb("#555"),
                         LineBreakMode = LineBreakMode.WordWrap
-                    });
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
                 }
 
-                batchStack.Children.Add(new Label
+                batchStack.Children.Add((new Label
                 {
                     Text = $"{doneCount}/{totalCount} items addressed",
                     FontSize = 13,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = doneCount == totalCount ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828")
-                });
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, doneCount == totalCount ? ThemeKey.SuccessText : ThemeKey.ErrorText, ThemeKey.PageText1));
 
                 if (root.TryGetProperty("Items", out var itemsArray))
                 {
@@ -5473,13 +5270,12 @@ Output ONLY the C# code block.
                         string icon = done ? "✅" : "❌";
                         string notesSuffix = !string.IsNullOrWhiteSpace(notes) ? $" — {notes}" : "";
 
-                        batchStack.Children.Add(new Label
+                        batchStack.Children.Add((new Label
                         {
                             Text = $"  {icon} [{cat}] {title}{notesSuffix}",
                             FontSize = 12,
-                            TextColor = Color.FromArgb("#444"),
                             LineBreakMode = LineBreakMode.WordWrap
-                        });
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3));
                     }
                 }
 
@@ -5494,15 +5290,14 @@ Output ONLY the C# code block.
 
             if (visibleCount == 0)
             {
-                listStack.Children.Add(new Label
+                listStack.Children.Add((new Label
                 {
                     Text = "No batches in selected date range.",
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#999"),
                     FontAttributes = FontAttributes.Italic,
                     HorizontalOptions = LayoutOptions.Center,
                     Margin = new Thickness(0, 20)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2));
             }
         }
 
@@ -5511,27 +5306,23 @@ Output ONLY the C# code block.
         fromDate.DateSelected += (_, _) => RebuildFilteredList();
         toDate.DateSelected += (_, _) => RebuildFilteredList();
 
-        var closeBtn = new Button
+        var closeBtn = (new Button
         {
             Text = "Close",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         closeBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
             tcs.TrySetResult(true);
         };
 
-        var exportBtn = new Button
+        var exportBtn = (new Button
         {
             Text = " Export",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         exportBtn.Clicked += async (_, _) =>
         {
             var sb = new System.Text.StringBuilder();
@@ -5620,9 +5411,8 @@ Output ONLY the C# code block.
             Children = { exportBtn, closeBtn }
         };
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             WidthRequest = 600,
@@ -5639,7 +5429,7 @@ Output ONLY the C# code block.
                     buttonRow
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         overlay.Children.Add(card);
         parent.Children.Add(overlay);
@@ -5666,7 +5456,7 @@ Output ONLY the C# code block.
         var parent = Content as Grid;
         if (parent == null) return;
 
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.Overlay);
         var listStack = new VerticalStackLayout { Spacing = 8 };
 
         void RebuildList()
@@ -5674,36 +5464,32 @@ Output ONLY the C# code block.
             listStack.Children.Clear();
             foreach (var item in blocked.OrderBy(b => b))
             {
-                var row = new Grid
+                var row = (new Grid
                 {
                     ColumnDefinitions =
                     {
                         new ColumnDefinition { Width = GridLength.Star },
                         new ColumnDefinition { Width = GridLength.Auto }
                     },
-                    Padding = new Thickness(8, 6),
-                    BackgroundColor = Color.FromArgb("#FAFAFA")
-                };
+                    Padding = new Thickness(8, 6)
+                }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-                row.Add(new Label
+                row.Add((new Label
                 {
                     Text = item,
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#333"),
                     VerticalOptions = LayoutOptions.Center,
                     LineBreakMode = LineBreakMode.WordWrap
-                }, 0, 0);
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
 
-                var unblockBtn = new Button
+                var unblockBtn = (new Button
                 {
                     Text = "Unblock",
-                    BackgroundColor = Color.FromArgb("#E8F5E9"),
-                    TextColor = Color.FromArgb("#2E7D32"),
                     CornerRadius = 8,
                     HeightRequest = 32,
                     FontSize = 12,
                     Padding = new Thickness(10, 0)
-                };
+                }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
                 var capturedItem = item;
                 unblockBtn.Clicked += async (_, _) =>
                 {
@@ -5718,36 +5504,32 @@ Output ONLY the C# code block.
 
             if (blocked.Count == 0)
             {
-                listStack.Children.Add(new Label
+                listStack.Children.Add((new Label
                 {
                     Text = "All items unblocked.",
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#999"),
                     FontAttributes = FontAttributes.Italic,
                     HorizontalOptions = LayoutOptions.Center,
                     Margin = new Thickness(0, 20)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2));
             }
         }
 
         RebuildList();
 
-        var closeBtn = new Button
+        var closeBtn = (new Button
         {
             Text = "Close",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         closeBtn.Clicked += (_, _) =>
         {
             parent.Children.Remove(overlay);
             tcs.TrySetResult(true);
         };
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             WidthRequest = 560,
@@ -5759,12 +5541,12 @@ Output ONLY the C# code block.
                 Children =
                 {
                     new Label { Text = " Blocked QA Items", FontSize = 20, FontAttributes = FontAttributes.Bold },
-                    new Label { Text = "These items are excluded from batch picks. Unblock to include them again.", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                    (new Label { Text = "These items are excluded from batch picks. Unblock to include them again.", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3),
                     new ScrollView { HeightRequest = 400, Content = listStack },
                     closeBtn
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
 
         overlay.Children.Add(card);
         parent.Children.Add(overlay);
@@ -6366,31 +6148,24 @@ Output ONLY the C# code block.
         if (project == null) return;
 
         var tcs = new TaskCompletionSource<string?>();
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
-        var editor = new Editor
+        var overlay = (new Grid { }).ThemeColor(Grid.BackgroundColorProperty, ThemeKey.Overlay);
+        var editor = (new Editor
         {
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 250,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888"),
             Placeholder = "Paste the LLM stuck analysis response here...",
             FontSize = 13
-        };
-        var applyBtn = new Button
+        }).ThemeColor(Editor.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Editor.TextColorProperty, ThemeKey.InputText).ThemeColor(Editor.PlaceholderColorProperty, ThemeKey.CardText3);
+        var applyBtn = (new Button
         {
             Text = "Apply Analysis",
-            BackgroundColor = Color.FromArgb("#AB47BC"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
-        var cancelBtn = new Button
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.AccentPurpleLightButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(Button.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         applyBtn.Clicked += (_, _) =>
         {
             if (Content is Grid grid) grid.Children.Remove(overlay);
@@ -6406,25 +6181,22 @@ Output ONLY the C# code block.
         buttonRow.Children.Add(cancelBtn);
         buttonRow.Children.Add(applyBtn);
         var cardContent = new VerticalStackLayout { Spacing = 10 };
-        cardContent.Children.Add(new Label
+        cardContent.Children.Add((new Label
         {
             Text = "Paste Stuck Analysis Result",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#6A1B9A")
-        });
-        cardContent.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1));
+        cardContent.Children.Add((new Label
         {
             Text = "Paste the full LLM response. Bannister will parse the JSON block and update the stuck risk display.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
         cardContent.Children.Add(editor);
         cardContent.Children.Add(buttonRow);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             MaximumWidthRequest = 600,
@@ -6432,7 +6204,7 @@ Output ONLY the C# code block.
             VerticalOptions = LayoutOptions.Center,
             Margin = new Thickness(16, 0),
             Content = cardContent
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ThemeKey.CardBackground);
         overlay.Children.Add(card);
         if (Content is Grid mainGrid)
             mainGrid.Children.Add(overlay);
@@ -6537,37 +6309,37 @@ Output ONLY the C# code block.
                 dateDisplay = $" (updated {dt.ToLocalTime():MMM dd})";
 
             // Color coding
-            Color ratingBg, ratingFg;
+            ThemeKey ratingBg, ratingFg;
             string icon;
             switch (rating)
             {
                 case "LOW":
-                    ratingBg = Color.FromArgb("#E8F5E9");
-                    ratingFg = Color.FromArgb("#2E7D32");
+                    ratingBg = ThemeKey.SuccessBackground;
+                    ratingFg = ThemeKey.SuccessText;
                     icon = "\U0001F7E2";
                     break;
                 case "MEDIUM":
-                    ratingBg = Color.FromArgb("#FFF8E1");
-                    ratingFg = Color.FromArgb("#F57F17");
+                    ratingBg = ThemeKey.HighlightYellow;
+                    ratingFg = ThemeKey.HighlightYellowText;
                     icon = "\U0001F7E1";
                     break;
                 case "HIGH":
-                    ratingBg = Color.FromArgb("#FFEBEE");
-                    ratingFg = Color.FromArgb("#C62828");
+                    ratingBg = ThemeKey.ErrorBackground;
+                    ratingFg = ThemeKey.ErrorText;
                     icon = "\U0001F534";
                     break;
                 default:
-                    ratingBg = Color.FromArgb("#ECEFF1");
-                    ratingFg = Color.FromArgb("#333");
+                    ratingBg = ThemeKey.SecondarySurface;
+                    ratingFg = ThemeKey.CardText1;
                     icon = "⚪";
                     break;
             }
 
-            _stuckStatusFrame.BackgroundColor = ratingBg;
-            _stuckStatusFrame.BorderColor = ratingFg;
+            _stuckStatusFrame.ThemeColor(Microsoft.Maui.Controls.Frame.BackgroundColorProperty, ratingBg);
+            _stuckStatusFrame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ratingFg);
 
             _stuckRatingLabel.Text = $"{icon} Stuck Risk: {rating}{dateDisplay}";
-            _stuckRatingLabel.TextColor = ratingFg;
+            _stuckRatingLabel.ThemeColor(Label.TextColorProperty, ratingFg);
             _stuckRatingLabel.IsVisible = true;
 
             _stuckSummaryLabel.Text = summary;
@@ -6592,21 +6364,20 @@ Output ONLY the C# code block.
                         _ => "⚪"
                     };
 
-                    Color statusColor = status switch
+                    ThemeKey statusColor = status switch
                     {
-                        "RESOLVED" => Color.FromArgb("#2E7D32"),
-                        "ACTIVE" => Color.FromArgb("#C62828"),
-                        "EMERGING" => Color.FromArgb("#F57F17"),
-                        _ => Color.FromArgb("#555")
+                        "RESOLVED" => ThemeKey.SuccessText,
+                        "ACTIVE" => ThemeKey.ErrorText,
+                        "EMERGING" => ThemeKey.HighlightYellowText,
+                        _ => ThemeKey.CardText2
                     };
 
-                    var patternLabel = new Label
+                    var patternLabel = (new Label
                     {
                         Text = $"  {statusIcon} {name}: {detail}",
                         FontSize = 11,
-                        TextColor = statusColor,
                         LineBreakMode = LineBreakMode.WordWrap
-                    };
+                    }).ThemeColor(Label.TextColorProperty, statusColor);
 
                     _stuckPatternsStack.Children.Add(patternLabel);
                 }
