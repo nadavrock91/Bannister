@@ -61,6 +61,30 @@ public class AppSettingsService
         }
     }
 
+    public async Task<Dictionary<string, string>> GetByPrefixAsync(string username, string prefix)
+    {
+        await InitAsync();
+        var rows = await (await _db.GetConnectionAsync()).Table<AppSetting>()
+            .Where(x => x.Username == username).ToListAsync();
+        return rows.Where(x => x.Key.StartsWith(prefix, StringComparison.Ordinal))
+            .GroupBy(x => x.Key).ToDictionary(x => x.Key, x => x.Last().Value);
+    }
+
+    public bool IsReadOnly => _db.IsReadOnly;
+
+    public async Task DeleteByPrefixAsync(string username, string prefix)
+    {
+        await InitAsync();
+        if (_db.IsReadOnly) throw new InvalidOperationException("Colors cannot be saved on a read-only device.");
+        var conn = await _db.GetConnectionAsync();
+        var rows = await conn.Table<AppSetting>().Where(x => x.Username == username).ToListAsync();
+        await conn.RunInTransactionAsync(db =>
+        {
+            foreach (var row in rows.Where(x => x.Key.StartsWith(prefix, StringComparison.Ordinal)))
+                db.Delete(row);
+        });
+    }
+
     public async Task DeleteAsync(string username, string key)
     {
         await InitAsync();

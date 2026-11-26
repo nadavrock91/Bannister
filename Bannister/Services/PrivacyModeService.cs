@@ -41,8 +41,11 @@ public class PrivacyModeService
                 KeyPrefix + username, (int)mode);
         }
         catch { }
-        ModeChanged?.Invoke(this, new DisplayModeChangedEventArgs(username, mode));
+        NotifyThemeChanged(username);
     }
+
+    public void NotifyThemeChanged(string username) =>
+        ModeChanged?.Invoke(this, new DisplayModeChangedEventArgs(username, GetDisplayMode(username)));
 
     public ActivityDisplayMode CycleMode(string username)
     {

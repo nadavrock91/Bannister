@@ -14,6 +14,20 @@ public class ModeThemedPage : ContentPage
     private bool _applying;
     private readonly HashSet<Element> _observed = new();
     private readonly ConditionalWeakTable<Element, TextAppearance> _textAppearance = new();
+    private readonly ConditionalWeakTable<VisualElement, SurfaceAppearance> _surfaces = new();
+    private int _themeRequest;
+
+    // Theme editor previews/swatches own their colors and must not be reclassified by the page.
+    public static readonly BindableProperty PreserveColorsProperty = BindableProperty.CreateAttached(
+        "PreserveColors", typeof(bool), typeof(ModeThemedPage), false);
+    public static void SetPreserveColors(BindableObject element, bool value) => element.SetValue(PreserveColorsProperty, value);
+
+    private sealed class SurfaceAppearance(Color? original)
+    {
+        public Color? Original { get; set; } = original;
+        public string? ResourceKey { get; set; }
+        public bool WasPrimaryButton { get; set; }
+    }
 
     private sealed class TextAppearance(Color? color)
     {
@@ -35,7 +49,7 @@ public class ModeThemedPage : ContentPage
         base.OnAppearing();
         if (!_visible) PrivacyModeService.ModeChanged += OnModeChanged;
         _visible = true;
-        ApplyCurrentMode();
+        _ = ApplyCurrentModeAsync();
         ScheduleSurfaceRefresh();
     }
 
@@ -51,27 +65,39 @@ public class ModeThemedPage : ContentPage
     private IServiceProvider? Services => Handler?.MauiContext?.Services ??
         Application.Current?.Handler?.MauiContext?.Services;
 
-    private void ApplyCurrentMode()
+    private async Task ApplyCurrentModeAsync()
     {
+        int request = ++_themeRequest;
         var auth = Services?.GetService<AuthService>();
         var privacy = Services?.GetService<PrivacyModeService>();
         if (auth?.IsLoggedIn != true || privacy == null) return;
-        ApplyMode(privacy.GetDisplayMode(auth.CurrentUsername));
+        var mode = privacy.GetDisplayMode(auth.CurrentUsername);
+        try
+        {
+            var settings = Services?.GetService<AppSettingsService>();
+            var colors = settings == null ? ModeTheme.Get(mode) : await ModeTheme.GetAsync(mode, auth.CurrentUsername, settings);
+            if (request == _themeRequest && _visible && auth.IsLoggedIn && privacy.GetDisplayMode(auth.CurrentUsername) == mode)
+                ApplyMode(colors);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[THEME] Could not load colors: {ex}");
+            if (request == _themeRequest && _visible) ApplyMode(ModeTheme.Get(mode));
+        }
     }
 
     private void OnModeChanged(object? sender, DisplayModeChangedEventArgs args)
     {
         var username = Services?.GetService<AuthService>()?.CurrentUsername;
         if (!string.Equals(username, args.Username, StringComparison.OrdinalIgnoreCase)) return;
-        Dispatcher.Dispatch(() => ApplyMode(args.Mode));
+        Dispatcher.Dispatch(() => _ = ApplyCurrentModeAsync());
     }
 
-    private void ApplyMode(ActivityDisplayMode mode)
+    private void ApplyMode(ModeThemeColors colors)
     {
         var resources = Application.Current?.Resources;
         if (resources == null) return;
-        var colors = ModeTheme.Get(mode);
-        resources["ModePageBackground"] = colors.Background;
+        foreach (var token in colors.Tokens) resources["Mode" + token.Key] = token.Value;
         resources["ModeForeground"] = colors.Foreground;
         resources["ModeMutedForeground"] = colors.MutedForeground;
         resources["ModeAccent"] = colors.Accent;
@@ -117,13 +143,14 @@ public class ModeThemedPage : ContentPage
 
     private void StyleTree(Element element, HashSet<Element> visited)
     {
-        if (element is Page || !visited.Add(element)) return;
+        if (element is Page || (bool)element.GetValue(PreserveColorsProperty) || !visited.Add(element)) return;
         if (_observed.Add(element)) element.PropertyChanged += OnElementChanged;
-        bool onPage = IsOnPageBackground(element);
+        if (element is VisualElement visual) ThemeSurface(visual);
+        string? textSurface = TextSurface(element);
 
         if (element is Label label)
         {
-            ApplyTextTheme(label, Label.TextColorProperty, label.TextColor, label.FontSize, label.FontAttributes, onPage);
+            ApplyTextTheme(label, Label.TextColorProperty, label.TextColor, label.FontSize, label.FontAttributes, textSurface);
             if (label.FormattedText != null)
                 foreach (var span in label.FormattedText.Spans)
                 {
@@ -131,28 +158,18 @@ public class ModeThemedPage : ContentPage
                     ApplyTextTheme(span, Span.TextColorProperty, span.TextColor,
                         span.IsSet(Span.FontSizeProperty) ? span.FontSize : label.FontSize,
                         span.IsSet(Span.FontAttributesProperty) ? span.FontAttributes : label.FontAttributes,
-                        onPage && !HasBackground(span.BackgroundColor));
+                        !HasBackground(span.BackgroundColor) ? textSurface : null);
                 }
         }
-        else if (element is InputView input && onPage)
+        else if (element is InputView input && _surfaces.TryGetValue(input, out var inputSurface) && inputSurface.ResourceKey == "ModeInputBackground")
         {
-            if (input.BackgroundColor == null || input.BackgroundColor.Alpha < 0.1f)
-                input.BackgroundColor = Color.FromArgb("#FAFAFA");
-            if (IsLight(input.BackgroundColor))
-            {
-                input.TextColor = Color.FromArgb("#222222");
-                input.PlaceholderColor = Color.FromArgb("#666666");
-            }
+            BindColor(input, InputView.TextColorProperty, "ModeInputText");
+            BindColor(input, InputView.PlaceholderColorProperty, "ModeInputText");
         }
-        else if (element is Picker picker && onPage)
+        else if (element is Picker picker && _surfaces.TryGetValue(picker, out var pickerSurface) && pickerSurface.ResourceKey == "ModeInputBackground")
         {
-            if (picker.BackgroundColor == null || picker.BackgroundColor.Alpha < 0.1f)
-                picker.BackgroundColor = Color.FromArgb("#FAFAFA");
-            if (IsLight(picker.BackgroundColor))
-            {
-                picker.TextColor = Color.FromArgb("#222222");
-                picker.TitleColor = Color.FromArgb("#666666");
-            }
+            BindColor(picker, Picker.TextColorProperty, "ModeInputText");
+            BindColor(picker, Picker.TitleColorProperty, "ModeInputText");
             // Windows renders Title as a header inside the requested height.
             if (!string.IsNullOrWhiteSpace(picker.Title) && picker.HeightRequest >= 0)
                 picker.HeightRequest = Math.Max(picker.HeightRequest, 72);
@@ -163,17 +180,51 @@ public class ModeThemedPage : ContentPage
                 StyleTree(child, visited);
     }
 
-    private bool IsOnPageBackground(Element element)
+    private static void BindColor(Element element, BindableProperty property, string key)
+    {
+        element.ClearValue(property);
+        element.SetDynamicResource(property, key);
+    }
+
+    private static bool IsNeutralNearWhite(Color? color) => color != null && color.Alpha >= 0.99 &&
+        Math.Min(color.Red, Math.Min(color.Green, color.Blue)) >= 0.94 &&
+        Math.Max(color.Red, Math.Max(color.Green, color.Blue)) - Math.Min(color.Red, Math.Min(color.Green, color.Blue)) <= 0.02;
+
+    private void ThemeSurface(VisualElement element)
+    {
+        var surface = _surfaces.GetValue(element, view => new SurfaceAppearance(view.BackgroundColor));
+        string? key = surface.ResourceKey;
+        if (key == null && (element.Background == null || element.Background.IsEmpty))
+        {
+            if ((element is Frame || element is Border) && IsNeutralNearWhite(surface.Original)) key = "ModeCardBackground";
+            else if ((element is InputView || element is Picker || element is DatePicker || element is TimePicker) &&
+                (!HasBackground(surface.Original) || IsNeutralNearWhite(surface.Original))) key = "ModeInputBackground";
+            else if (element is Button button && Equals(surface.Original, Color.FromArgb("#1565C0")) &&
+                (Equals(button.TextColor, Colors.White) || surface.WasPrimaryButton))
+                key = "ModeButtonPrimaryBackground";
+        }
+        if (key == null) return;
+        surface.ResourceKey = key;
+        if (key == "ModeButtonPrimaryBackground") surface.WasPrimaryButton = true;
+        BindColor(element, VisualElement.BackgroundColorProperty, key);
+        if (element is Button primary) BindColor(primary, Button.TextColorProperty, "ModeButtonPrimaryText");
+        if (element is DatePicker date) BindColor(date, DatePicker.TextColorProperty, "ModeInputText");
+        if (element is TimePicker time) BindColor(time, TimePicker.TextColorProperty, "ModeInputText");
+    }
+
+    private string? TextSurface(Element element)
     {
         for (Element? ancestor = element; ancestor != null; ancestor = ancestor.Parent)
         {
-            if (ReferenceEquals(ancestor, this)) return true;
-            if (ancestor is Page) return false;
-            if (ancestor is Button) return false;
-            if (ancestor is VisualElement visual &&
-                (HasBackground(visual.BackgroundColor) || HasBackground(visual.Background))) return false;
+            if (ReferenceEquals(ancestor, this)) return "Page";
+            if (ancestor is Page || ancestor is Button) return null;
+            if (ancestor is VisualElement visual)
+            {
+                if (_surfaces.TryGetValue(visual, out var surface) && surface.ResourceKey == "ModeCardBackground") return "Card";
+                if (HasBackground(visual.BackgroundColor) || HasBackground(visual.Background)) return null;
+            }
         }
-        return false; // Detached elements are reconsidered after insertion.
+        return null;
     }
 
     private static bool HasBackground(Color? color) => color?.Alpha > 0;
@@ -187,10 +238,10 @@ public class ModeThemedPage : ContentPage
     };
 
     private void ApplyTextTheme(Element text, BindableProperty property, Color? currentColor,
-        double size, FontAttributes attributes, bool onPage)
+        double size, FontAttributes attributes, string? surface)
     {
         var appearance = _textAppearance.GetValue(text, _ => new TextAppearance(currentColor));
-        if (onPage)
+        if (surface != null)
         {
             bool heading = size >= 18 || (size >= 13 && attributes.HasFlag(FontAttributes.Bold));
             var original = appearance.OriginalColor;
@@ -198,7 +249,22 @@ public class ModeThemedPage : ContentPage
                 Math.Max(original.Red, Math.Max(original.Green, original.Blue)) -
                 Math.Min(original.Red, Math.Min(original.Green, original.Blue)) <= 0.10 &&
                 original.Red >= 0.25 && original.Red <= 0.85;
-            string resource = !heading && (size < 13 || grey) ? "ModeMutedForeground" : "ModeForeground";
+            bool secondary = !heading && (size < 13 || grey);
+            // Preserve deliberate status/action colors inside otherwise plain cards.
+            if (surface == "Card" && original != null &&
+                Math.Max(original.Red, Math.Max(original.Green, original.Blue)) - Math.Min(original.Red, Math.Min(original.Green, original.Blue)) > 0.12)
+            {
+                if (appearance.IsThemed)
+                {
+                    text.RemoveDynamicResource(property);
+                    text.SetValue(property, original);
+                    appearance.IsThemed = false;
+                    appearance.ResourceKey = null;
+                }
+                return;
+            }
+            string resource = surface == "Card" ? (secondary ? "ModeCardText2" : "ModeCardText1") :
+                size < 13 && !heading ? "ModeText3" : secondary ? "ModeText2" : "ModeText1";
             // MAUI 8 manual setters outrank dynamic resources. Release the local value first.
             text.ClearValue(property);
             text.SetDynamicResource(property, resource);
@@ -217,6 +283,14 @@ public class ModeThemedPage : ContentPage
     private void OnElementChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (_applying || !_visible || sender is not Element element) return;
+        if (args.PropertyName == "BackgroundColor" && element is VisualElement visual &&
+            _surfaces.TryGetValue(visual, out var surface))
+        {
+            if (surface.ResourceKey != null && Application.Current?.Resources.TryGetValue(surface.ResourceKey, out var themedBackground) == true &&
+                Equals(visual.BackgroundColor, themedBackground)) return;
+            surface.Original = visual.BackgroundColor;
+            surface.ResourceKey = null;
+        }
         if (args.PropertyName == "TextColor" && _textAppearance.TryGetValue(element, out var appearance))
         {
             Color? color = element switch { Label label => label.TextColor, Span span => span.TextColor, _ => appearance.OriginalColor };
@@ -230,6 +304,4 @@ public class ModeThemedPage : ContentPage
             ScheduleSurfaceRefresh();
     }
 
-    private static bool IsLight(Color? color) => color != null &&
-        color.Alpha > 0.1f && color.Red * 0.2126 + color.Green * 0.7152 + color.Blue * 0.0722 > 0.6;
 }

@@ -36,6 +36,7 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
     private Picker _dailyResetPicker = null!;
     private TimePicker _sleepTimePicker = null!;
     private Frame _syncDevicesSection = null!;
+    private ThemeColorsView _themeColors = null!;
 
     public SettingsPage(AuthService auth, DatabaseService db, BackupService backup,
         HomeButtonVisibilityService buttonVisibility,
@@ -103,6 +104,7 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await _themeColors.ActivateAsync();
         _syncDevicesSection.IsVisible = await _ownerMode.IsUnlockedAsync();
         await LoadHomeSettingsAsync();
         if (_dailyResetPicker != null)
@@ -137,6 +139,9 @@ public class SettingsPage : Bannister.Views.ModeThemedPage
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#333")
         });
+
+        _themeColors = new ThemeColorsView(_auth, _appSettings, _privacyMode);
+        mainStack.Children.Add(_themeColors);
 
         // Account section
         var accountFrame = new Frame
