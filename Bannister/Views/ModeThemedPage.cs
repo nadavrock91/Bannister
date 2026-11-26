@@ -1,4 +1,6 @@
 using Bannister.Services;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace Bannister.Views;
 
@@ -10,11 +12,21 @@ public class ModeThemedPage : ContentPage
     private bool _visible;
     private bool _refreshScheduled;
     private bool _applying;
+    private readonly HashSet<Element> _observed = new();
+    private readonly ConditionalWeakTable<Element, TextAppearance> _textAppearance = new();
+
+    private sealed class TextAppearance(Color? color)
+    {
+        public Color? OriginalColor { get; set; } = color;
+        public bool IsThemed { get; set; }
+        public string? ResourceKey { get; set; }
+    }
 
     public ModeThemedPage()
     {
         SetDynamicResource(BackgroundColorProperty, "ModePageBackground");
         DescendantAdded += (_, _) => ScheduleSurfaceRefresh();
+        DescendantRemoved += (_, _) => ScheduleSurfaceRefresh();
         Loaded += (_, _) => ScheduleSurfaceRefresh();
     }
 
@@ -31,6 +43,8 @@ public class ModeThemedPage : ContentPage
     {
         _visible = false;
         PrivacyModeService.ModeChanged -= OnModeChanged;
+        foreach (var element in _observed) element.PropertyChanged -= OnElementChanged;
+        _observed.Clear();
         base.OnDisappearing();
     }
 
@@ -90,25 +104,37 @@ public class ModeThemedPage : ContentPage
                     canvas is ContentView contentView ? contentView.Content :
                     canvas is Layout layout && layout.Children.Count == 1 ? layout.Children[0] as VisualElement : null;
             }
-            StyleTree(Content, false);
+            var visited = new HashSet<Element>();
+            StyleTree(Content, visited);
+            foreach (var detached in _observed.Except(visited).ToArray())
+            {
+                detached.PropertyChanged -= OnElementChanged;
+                _observed.Remove(detached);
+            }
         }
         finally { _applying = false; }
     }
 
-    private static void StyleTree(Element element, bool onSurface)
+    private void StyleTree(Element element, HashSet<Element> visited)
     {
-        if (element is Page) return; // Nested/modal pages own their styling.
-        bool surface = onSurface;
-        if (element is VisualElement visual &&
-            (visual.BackgroundColor?.Alpha > 0.1f || visual.Background is SolidColorBrush { Color.Alpha: > 0.1f }))
-            surface = true;
+        if (element is Page || !visited.Add(element)) return;
+        if (_observed.Add(element)) element.PropertyChanged += OnElementChanged;
+        bool onPage = IsOnPageBackground(element);
 
-        if (element is Label label && !surface)
+        if (element is Label label)
         {
-            label.SetDynamicResource(Label.TextColorProperty,
-                label.FontAttributes.HasFlag(FontAttributes.Bold) ? "ModeForeground" : "ModeMutedForeground");
+            ApplyTextTheme(label, Label.TextColorProperty, label.TextColor, label.FontSize, label.FontAttributes, onPage);
+            if (label.FormattedText != null)
+                foreach (var span in label.FormattedText.Spans)
+                {
+                    if (visited.Add(span) && _observed.Add(span)) span.PropertyChanged += OnElementChanged;
+                    ApplyTextTheme(span, Span.TextColorProperty, span.TextColor,
+                        span.IsSet(Span.FontSizeProperty) ? span.FontSize : label.FontSize,
+                        span.IsSet(Span.FontAttributesProperty) ? span.FontAttributes : label.FontAttributes,
+                        onPage && !HasBackground(span.BackgroundColor));
+                }
         }
-        else if (element is InputView input && !onSurface)
+        else if (element is InputView input && onPage)
         {
             if (input.BackgroundColor == null || input.BackgroundColor.Alpha < 0.1f)
                 input.BackgroundColor = Color.FromArgb("#FAFAFA");
@@ -118,7 +144,7 @@ public class ModeThemedPage : ContentPage
                 input.PlaceholderColor = Color.FromArgb("#666666");
             }
         }
-        else if (element is Picker picker && !onSurface)
+        else if (element is Picker picker && onPage)
         {
             if (picker.BackgroundColor == null || picker.BackgroundColor.Alpha < 0.1f)
                 picker.BackgroundColor = Color.FromArgb("#FAFAFA");
@@ -134,7 +160,74 @@ public class ModeThemedPage : ContentPage
 
         if (element is IVisualTreeElement tree)
             foreach (var child in tree.GetVisualChildren().OfType<Element>())
-                StyleTree(child, surface);
+                StyleTree(child, visited);
+    }
+
+    private bool IsOnPageBackground(Element element)
+    {
+        for (Element? ancestor = element; ancestor != null; ancestor = ancestor.Parent)
+        {
+            if (ReferenceEquals(ancestor, this)) return true;
+            if (ancestor is Page) return false;
+            if (ancestor is Button) return false;
+            if (ancestor is VisualElement visual &&
+                (HasBackground(visual.BackgroundColor) || HasBackground(visual.Background))) return false;
+        }
+        return false; // Detached elements are reconsidered after insertion.
+    }
+
+    private static bool HasBackground(Color? color) => color?.Alpha > 0;
+
+    private static bool HasBackground(Brush? brush) => brush switch
+    {
+        null => false,
+        SolidColorBrush solid => HasBackground(solid.Color),
+        GradientBrush gradient => gradient.GradientStops.Any(stop => HasBackground(stop.Color)),
+        _ => !brush.IsEmpty
+    };
+
+    private void ApplyTextTheme(Element text, BindableProperty property, Color? currentColor,
+        double size, FontAttributes attributes, bool onPage)
+    {
+        var appearance = _textAppearance.GetValue(text, _ => new TextAppearance(currentColor));
+        if (onPage)
+        {
+            bool heading = size >= 18 || (size >= 13 && attributes.HasFlag(FontAttributes.Bold));
+            var original = appearance.OriginalColor;
+            bool grey = original != null &&
+                Math.Max(original.Red, Math.Max(original.Green, original.Blue)) -
+                Math.Min(original.Red, Math.Min(original.Green, original.Blue)) <= 0.10 &&
+                original.Red >= 0.25 && original.Red <= 0.85;
+            string resource = !heading && (size < 13 || grey) ? "ModeMutedForeground" : "ModeForeground";
+            // MAUI 8 manual setters outrank dynamic resources. Release the local value first.
+            text.ClearValue(property);
+            text.SetDynamicResource(property, resource);
+            appearance.IsThemed = true;
+            appearance.ResourceKey = resource;
+        }
+        else if (appearance.IsThemed)
+        {
+            // A label moved into a card must regain its original surface-specific color.
+            text.RemoveDynamicResource(property);
+            text.SetValue(property, appearance.OriginalColor);
+            appearance.IsThemed = false;
+        }
+    }
+
+    private void OnElementChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (_applying || !_visible || sender is not Element element) return;
+        if (args.PropertyName == "TextColor" && _textAppearance.TryGetValue(element, out var appearance))
+        {
+            Color? color = element switch { Label label => label.TextColor, Span span => span.TextColor, _ => appearance.OriginalColor };
+            // Resource notifications are not new author-specified colors. Preserve the initial hint classification.
+            if (appearance.ResourceKey != null && Application.Current?.Resources.TryGetValue(appearance.ResourceKey, out var themedColor) == true &&
+                Equals(color, themedColor)) return;
+            appearance.OriginalColor = color;
+        }
+        if (args.PropertyName is "TextColor" or "FontSize" or "FontAttributes" or "FormattedText" or
+            "BackgroundColor" or "Background" or "Parent" or "Content")
+            ScheduleSurfaceRefresh();
     }
 
     private static bool IsLight(Color? color) => color != null &&

@@ -23,7 +23,7 @@ public static class ModeTheme
         _ => new(
             Color.FromArgb("#6B73FF"),
             Colors.White,
-            Color.FromArgb("#ECEEFF"),
+            Color.FromArgb("#101026"),
             Colors.White)
     };
 
