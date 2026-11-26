@@ -50,6 +50,24 @@ public static class ThemeColorExtensions
     public static bool HasThemeColor(this Element element, BindableProperty? property = null) =>
         Bindings.TryGetValue(element, out var bindings) && (property == null || bindings.ContainsKey(property));
 
+    // Cloned navigation controls must retain their source's live color bindings.
+    public static T CopyThemeColorsFrom<T>(this T target, Element source, params BindableProperty[] properties) where T : Element
+    {
+        foreach (var property in properties)
+        {
+            if (Bindings.TryGetValue(source, out var sourceBindings) && sourceBindings.TryGetValue(property, out var binding))
+                target.ThemeColor(property, binding.Key, binding.PageKey);
+            else
+            {
+                if (Bindings.TryGetValue(target, out var targetBindings)) targetBindings.Remove(property);
+                target.RemoveDynamicResource(property);
+                target.ClearValue(property);
+                target.SetValue(property, source.GetValue(property));
+            }
+        }
+        return target;
+    }
+
     internal static bool UsesThemeColor(this Element element, BindableProperty property, ThemeKey key) =>
         Bindings.TryGetValue(element, out var bindings) && bindings.TryGetValue(property, out var binding) && binding.Key == key;
 

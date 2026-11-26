@@ -54,14 +54,14 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         if (_busy) return;
         await _service.InitAsync();
         _content.Children.Clear();
-        _content.Children.Add(new Label { Text = "Sequence Tasks", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
+        _content.Children.Add((new Label { Text = "Sequence Tasks", FontSize = 24, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
         if (_openGroup != null)
         {
             var current = (await _service.GetAllGroupsAsync()).FirstOrDefault(g => g.Id == _openGroup.Id && !g.IsArchived);
             if (current != null) { _openGroup = current; _content.Children.Add(await BuildOpenGroupAsync(current)); return; }
             _openGroup = null;
         }
-        _content.Children.Add(new Label { Text = "Active Groups", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") });
+        _content.Children.Add((new Label { Text = "Active Groups", FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
         foreach (var group in await _service.GetActiveGroupsAsync()) _content.Children.Add(await BuildGroupCardAsync(group));
         _content.Children.Add(BuildCreateForm());
     }
@@ -79,9 +79,9 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         var links = await _service.GetLinksAsync(group.Id);
         var tasks = await LoadLinkedTasksAsync(links);
         var body = new VerticalStackLayout { Spacing = 6 };
-        body.Children.Add(new Label { Text = group.Name, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
-        body.Children.Add(new Label { Text = $"{links.Count} task{(links.Count == 1 ? "" : "s")} · {tasks.Values.Count(t => t.IsCompleted)} completed", FontSize = 12, TextColor = Color.FromArgb("#777") });
-        var open = MakeButton("Open", "#E3F2FD", "#1565C0");
+        body.Children.Add((new Label { Text = group.Name, FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
+        body.Children.Add((new Label { Text = $"{links.Count} task{(links.Count == 1 ? "" : "s")} · {tasks.Values.Count(t => t.IsCompleted)} completed", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+        var open = MakeButton("Open", ThemeKey.InfoBackground, ThemeKey.InfoText);
         open.Clicked += async (_, _) => { _openGroup = group; await RefreshAsync(); };
         body.Children.Add(open);
         var card = Card(body);
@@ -100,12 +100,11 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         }
 
         var completion = new TaskCompletionSource<TaskItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Margin = new Thickness(-20),
             ZIndex = 100
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         Grid.SetRow(overlay, 0);
         Grid.SetRowSpan(overlay, 4);
 
@@ -133,14 +132,11 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
 
         string selectedCategory = "";  // "" means All
 
-        var searchEntry = new Entry
+        var searchEntry = (new Entry
         {
             Placeholder = "Search tasks…",
-            BackgroundColor = Color.FromArgb("#F0F0F0"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
             Margin = new Thickness(0, 0, 0, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
         void RebuildButtons(string query)
         {
@@ -156,13 +152,12 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
 
             if (matches.Count == 0)
             {
-                items.Children.Add(new Label
+                items.Children.Add((new Label
                 {
                     Text = "No results",
-                    TextColor = Color.FromArgb("#999"),
                     FontSize = 13,
                     Margin = new Thickness(4, 8)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2));
                 return;
             }
 
@@ -178,27 +173,24 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                     Margin = new Thickness(0, 2)
                 };
 
-                var btn = new Button
+                var btn = (new Button
                 {
                     Text = $"{task.Title}  [{task.Category}]",
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#222"),
-                    BackgroundColor = Color.FromArgb("#F5F5F5"),
                     CornerRadius = 7,
                     Padding = new Thickness(12, 8),
                     HorizontalOptions = LayoutOptions.Fill,
                     LineBreakMode = LineBreakMode.WordWrap
-                };
+                }).ThemeColor(Button.TextColorProperty, ThemeKey.CardTextStrong).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground);
                 btn.Clicked += (_, _) => Complete(task);
 
-                var dateLabel = new Label
+                var dateLabel = (new Label
                 {
                     Text = task.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy"),
                     FontSize = 10,
-                    TextColor = Color.FromArgb("#999"),
                     VerticalOptions = LayoutOptions.Center,
                     Margin = new Thickness(6, 0, 4, 0)
-                };
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
 
                 Grid.SetColumn(btn, 0);
                 Grid.SetColumn(dateLabel, 1);
@@ -208,14 +200,12 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             }
         }
 
-        var categoryPicker = new Picker
+        var categoryPicker = (new Picker
         {
             Title = "All Categories",
             FontSize = 13,
-            TextColor = Color.FromArgb("#222"),
-            BackgroundColor = Color.FromArgb("#F0F0F0"),
             Margin = new Thickness(0, 0, 0, 6)
-        };
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         categoryPicker.Items.Add("All");
         foreach (var cat in allCategories)
             categoryPicker.Items.Add(cat);
@@ -230,16 +220,14 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
 
         RebuildButtons("");
 
-        var cancel = new Button
+        var cancel = (new Button
         {
             Text = "Cancel",
             FontSize = 14,
-            TextColor = Color.FromArgb("#555"),
-            BackgroundColor = Color.FromArgb("#EEEEEE"),
             CornerRadius = 7,
             Padding = new Thickness(12, 8),
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground);
         cancel.Clicked += (_, _) => Complete(null);
 
         var cardContent = new VerticalStackLayout
@@ -247,13 +235,12 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             Spacing = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Add Existing Task",
                     FontSize = 18,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1),
                 categoryPicker,
                 searchEntry,
                 new ScrollView
@@ -265,19 +252,18 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        overlay.Children.Add(new Frame
+        overlay.Children.Add((new Frame
         {
             Content = cardContent,
             Padding = 18,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             MaximumWidthRequest = 520,
             MaximumHeightRequest = 600,
             Margin = new Thickness(20),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Center,
             HasShadow = true
-        });
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground));
 
         _root.Children.Add(overlay);
         return await completion.Task;
@@ -319,20 +305,18 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         }
         var body = new VerticalStackLayout { Spacing = 10 };
         var headingRow = new HorizontalStackLayout { Spacing = 8 };
-        headingRow.Children.Add(new Label { Text = group.Name, FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center });
-        var editTemplate = MakeButton("Edit Template", "#E8EAF6", "#3949AB");
+        headingRow.Children.Add((new Label { Text = group.Name, FontSize = 22, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
+        var editTemplate = MakeButton("Edit Template", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoButton);
         headingRow.Children.Add(editTemplate);
-        var editCap = MakeButton(group.TaskCap > 0 ? $"Cap: {group.TaskCap}" : "Set Cap", "#FFF3E0", "#E65100");
+        var editCap = MakeButton(group.TaskCap > 0 ? $"Cap: {group.TaskCap}" : "Set Cap", ThemeKey.WarningBackground, ThemeKey.WarningText);
         var capPanel = new VerticalStackLayout { Spacing = 6, IsVisible = false };
-        var capEditEntry = new Entry
+        var capEditEntry = (new Entry
         {
             Text = group.TaskCap > 0 ? group.TaskCap.ToString() : "",
             Placeholder = "Task cap (0 = no cap)",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
             Keyboard = Keyboard.Numeric
-        };
-        var saveCap = MakeButton("Save Cap", "#E8F5E9", "#2E7D32");
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        var saveCap = MakeButton("Save Cap", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         saveCap.Clicked += async (_, _) =>
         {
             int newCap = int.TryParse(capEditEntry.Text, out var c) ? c : 0;
@@ -347,8 +331,8 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         headingRow.Children.Add(editCap);
         body.Children.Add(headingRow);
         var templatePanel = new VerticalStackLayout { Spacing = 6, IsVisible = false };
-        var templateEditor = new Editor { Text = group.ExportPromptTemplate, HeightRequest = 140, AutoSize = EditorAutoSizeOption.Disabled, BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
-        var saveTemplate = MakeButton("Save Template", "#E8F5E9", "#2E7D32");
+        var templateEditor = (new Editor { Text = group.ExportPromptTemplate, HeightRequest = 140, AutoSize = EditorAutoSizeOption.Disabled }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        var saveTemplate = MakeButton("Save Template", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         saveTemplate.Clicked += async (_, _) =>
         {
             await _service.UpdateGroupTemplateAsync(group.Id, templateEditor.Text ?? "");
@@ -361,9 +345,9 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         body.Children.Add(templatePanel);
         body.Children.Add(capPanel);
 
-        body.Children.Add(new Label { Text = $"{tasks.Values.Count(t => t.IsCompleted)} of {links.Count} completed", FontSize = 13, TextColor = Color.FromArgb("#666") });
+        body.Children.Add((new Label { Text = $"{tasks.Values.Count(t => t.IsCompleted)} of {links.Count} completed", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
         var selectionActions = new HorizontalStackLayout { Spacing = 6 };
-        var selectAll = MakeButton("Select All", "#E3F2FD", "#1565C0");
+        var selectAll = MakeButton("Select All", ThemeKey.InfoBackground, ThemeKey.InfoText);
         selectAll.Clicked += async (_, _) =>
         {
             foreach (var link in links)
@@ -371,7 +355,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                     _selectedTaskIds.Add(task.Id);
             await RefreshAsync();
         };
-        _doneSelectedButton = MakeButton($"Done Selected ({_selectedTaskIds.Count})", "#E8F5E9", "#2E7D32");
+        _doneSelectedButton = MakeButton($"Done Selected ({_selectedTaskIds.Count})", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         _doneSelectedButton.IsEnabled = _selectedTaskIds.Count > 0;
         _doneSelectedButton.Clicked += async (_, _) => await CompleteSelectedAsync(group, links, tasks);
         selectionActions.Children.Add(selectAll);
@@ -390,7 +374,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         foreach (var link in pendingLinks)
             if (tasks.TryGetValue(link.TaskItemId, out var task))
                 pendingSection.Children.Add(BuildItemRow(group, link, task, true));
-        var pendingToggle = MakeButton($"⏳ Pending Test ({pendingLinks.Count})", "#FFF3E0", "#E65100");
+        var pendingToggle = MakeButton($"⏳ Pending Test ({pendingLinks.Count})", ThemeKey.WarningBackground, ThemeKey.WarningText);
         pendingToggle.IsVisible = pendingLinks.Count > 0;
         pendingToggle.Clicked += (_, _) => pendingSection.IsVisible = !pendingSection.IsVisible;
         body.Children.Add(pendingToggle);
@@ -416,8 +400,8 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         }
         var pendingTemplateToggle = MakeButton(
             $"Pending Template ({pendingTemplateLinks.Count})",
-            "#E8EAF6",
-            "#3949AB");
+            ThemeKey.HighlightIndigo,
+            ThemeKey.HighlightIndigoButton);
         pendingTemplateToggle.IsVisible = pendingTemplateLinks.Count > 0;
         pendingTemplateToggle.Clicked += (_, _) =>
             pendingTemplateSection.IsVisible =
@@ -443,8 +427,8 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         }
         var completedToggle = MakeButton(
             $"✓ Completed ({completedLinks.Count})",
-            "#ECEFF1",
-            "#616161");
+            ThemeKey.NeutralButtonBackground,
+            ThemeKey.CardText2);
         completedToggle.IsVisible = completedLinks.Count > 0;
         completedToggle.Clicked += (_, _) =>
             completedSection.IsVisible =
@@ -469,13 +453,12 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                     new ColumnDefinition(GridLength.Auto)
                 }
             };
-            exceptionRow.Add(new Label
+            exceptionRow.Add((new Label
             {
                 Text = exception.Label,
-                VerticalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb("#333")
-            }, 0, 0);
-            var deleteException = MakeButton("Delete", "#FFEBEE", "#C62828");
+                VerticalOptions = LayoutOptions.Center
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1), 0, 0);
+            var deleteException = MakeButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
             deleteException.Clicked += async (_, _) =>
             {
                 await _service.DeleteExceptionAsync(exception.Id);
@@ -485,13 +468,11 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             exceptionList.Children.Add(exceptionRow);
         }
         exceptionPanel.Children.Add(exceptionList);
-        var exceptionInput = new Entry
+        var exceptionInput = (new Entry
         {
-            Placeholder = "Exception type label",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222")
-        };
-        var addException = MakeButton("Add", "#E8EAF6", "#3949AB");
+            Placeholder = "Exception type label"
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        var addException = MakeButton("Add", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoButton);
         addException.Clicked += async (_, _) =>
         {
             if (string.IsNullOrWhiteSpace(exceptionInput.Text)) return;
@@ -513,7 +494,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         exceptionAddRow.Add(exceptionInput, 0, 0);
         exceptionAddRow.Add(addException, 1, 0);
         exceptionPanel.Children.Add(exceptionAddRow);
-        var exceptionToggle = MakeButton("Exception Types", "#ECEFF1", "#37474F");
+        var exceptionToggle = MakeButton("Exception Types", ThemeKey.NeutralButtonBackground, ThemeKey.NeutralButtonText);
         exceptionToggle.Clicked += (_, _) =>
             exceptionPanel.IsVisible = !exceptionPanel.IsVisible;
         body.Children.Add(exceptionToggle);
@@ -523,7 +504,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         foreach (var exception in exceptions)
         {
             var exceptionButton = MakeButton(
-                exception.Label, "#FFF3E0", "#E65100");
+                exception.Label, ThemeKey.WarningBackground, ThemeKey.WarningText);
             exceptionButton.Clicked += async (_, _) =>
             {
                 var incomplete = links
@@ -562,7 +543,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         if (exceptions.Count > 0)
             body.Children.Add(exceptionButtons);
 
-        var add = MakeButton("+ Add Task", "#E8F5E9", "#2E7D32");
+        var add = MakeButton("+ Add Task", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         add.Clicked += async (_, _) =>
         {
             bool fromExisting = await DisplayAlert("Add Task", "Add a new task or pick from existing?", "From Existing", "New Task");
@@ -615,7 +596,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        var addExisting = MakeButton("+ From Existing", "#E3F2FD", "#1565C0");
+        var addExisting = MakeButton("+ From Existing", ThemeKey.InfoBackground, ThemeKey.InfoText);
         addExisting.Clicked += async (_, _) =>
         {
             var allTasks = await _tasks.GetActiveTasksAsync(_auth.CurrentUsername);
@@ -659,7 +640,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         addRow.Children.Add(addExisting);
         body.Children.Add(addRow);
 
-        var export = MakeButton("Export & Archive", "#FFF3E0", "#E65100");
+        var export = MakeButton("Export & Archive", ThemeKey.WarningBackground, ThemeKey.WarningText);
         export.Clicked += async (_, _) =>
         {
             var taskLines = links.Where(l => tasks.ContainsKey(l.TaskItemId)).Select((l, i) => $"{i + 1}. {tasks[l.TaskItemId].Title}");
@@ -669,17 +650,17 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             await DisplayAlert("Exported", "Prompt copied and group archived.", "OK"); await RefreshAsync();
         };
         body.Children.Add(export);
-        var close = MakeButton("Close Group", "#ECEFF1", "#37474F");
+        var close = MakeButton("Close Group", ThemeKey.NeutralButtonBackground, ThemeKey.NeutralButtonText);
         close.Clicked += async (_, _) => { _openGroup = null; await RefreshAsync(); };
         body.Children.Add(close);
-        var archive = MakeButton("Archive Group", "#FFEBEE", "#C62828");
+        var archive = MakeButton("Archive Group", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         archive.Clicked += async (_, _) =>
         {
             if (!await DisplayAlert("Archive Group", $"Archive \"{group.Name}\"?", "Archive", "Cancel")) return;
             await _service.ArchiveGroupAsync(group.Id); _openGroup = null; await RefreshAsync();
         };
         body.Children.Add(archive);
-        var deleteGroup = MakeButton("Delete Group", "#FFEBEE", "#B71C1C");
+        var deleteGroup = MakeButton("Delete Group", ThemeKey.ErrorBackground, ThemeKey.ErrorDeepText);
         deleteGroup.Clicked += async (_, _) =>
         {
             bool confirm = await DisplayAlert(
@@ -717,16 +698,15 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                 Spacing = 6,
                 IsVisible = _topCandidatesExpanded
             };
-            var tcHeaderLabel = new Label
+            var tcHeaderLabel = (new Label
             {
                 Text = _topCandidatesExpanded
                     ? $"▼ ⭐ Top Candidates ({candidateTasks.Count})"
                     : $"▶ ⭐ Top Candidates ({candidateTasks.Count})",
                 FontSize = 13,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#FF9800"),
                 Margin = new Thickness(0, 8, 0, 2)
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1);
             var tcHeaderTap = new TapGestureRecognizer();
             tcHeaderTap.Tapped += (_, _) =>
             {
@@ -750,28 +730,26 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                 },
                 Margin = new Thickness(0, 0, 0, 2)
             };
-            tcColumns.Children.Add(new Label
+            tcColumns.Children.Add((new Label
             {
                 Text = "Task",
                 FontSize = 11,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#777"),
                 VerticalOptions = LayoutOptions.Center
-            });
-            var ratingHeader = new Button
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3));
+            var ratingHeader = (new Button
             {
                 Text = _sortTopCandidatesByDate ? "Rating" : "Rating ▼",
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#777"),
-                BackgroundColor = _sortTopCandidatesByDate
-                    ? Color.FromArgb("#EEEEEE")
-                    : Colors.Transparent,
+                BackgroundColor = Colors.Transparent,
                 Padding = 0,
                 HeightRequest = 28,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center
-            };
+            }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
+            if (_sortTopCandidatesByDate)
+                ratingHeader.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground);
             ratingHeader.Clicked += async (_, _) =>
             {
                 if (!_sortTopCandidatesByDate) return;
@@ -780,18 +758,17 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             };
             Grid.SetColumn(ratingHeader, 1);
             tcColumns.Children.Add(ratingHeader);
-            var dateHeader = new Button
+            var dateHeader = (new Button
             {
                 Text = _sortTopCandidatesByDate ? "Date ▼" : "Date",
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#777"),
-                BackgroundColor = _sortTopCandidatesByDate
-                    ? Colors.Transparent
-                    : Color.FromArgb("#EEEEEE"),
+                BackgroundColor = Colors.Transparent,
                 Padding = 0,
                 HeightRequest = 28
-            };
+            }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
+            if (!_sortTopCandidatesByDate)
+                dateHeader.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground);
             dateHeader.Clicked += async (_, _) =>
             {
                 if (_sortTopCandidatesByDate) return;
@@ -817,37 +794,34 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                     },
                     Margin = new Thickness(0, 2)
                 };
-                tcRow.Children.Add(new Label
+                tcRow.Children.Add((new Label
                 {
                     Text = $"{capturedCandidate.Title}  [{capturedCandidate.Category}]",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#444"),
                     VerticalOptions = LayoutOptions.Center
-                });
-                var priorityLabel = new Label
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3));
+                var priorityLabel = (new Label
                 {
                     Text = capturedCandidate.Priority > 0
                         ? capturedCandidate.Priority.ToString()
                         : "—",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#888"),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center
-                };
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
                 Grid.SetColumn(priorityLabel, 1);
                 tcRow.Children.Add(priorityLabel);
-                var dateLabel = new Label
+                var dateLabel = (new Label
                 {
                     Text = capturedCandidate.CreatedAt.ToLocalTime()
                         .ToString("dd/MM/yyyy"),
                     FontSize = 10,
-                    TextColor = Color.FromArgb("#888"),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center
-                };
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
                 Grid.SetColumn(dateLabel, 2);
                 tcRow.Children.Add(dateLabel);
-                var addBtn = MakeButton("+ Add", "#E8F5E9", "#2E7D32");
+                var addBtn = MakeButton("+ Add", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
                 addBtn.Clicked += async (_, _) =>
                 {
                     var duplicate = (await _service.GetLinksAsync(group.Id))
@@ -883,7 +857,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                     await _service.RemoveCandidateAsync(group.Id, capturedCandidate.Id);
                     await RefreshAsync();
                 };
-                var removeBtn = MakeButton("✕", "#FFEBEE", "#C62828");
+                var removeBtn = MakeButton("✕", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
                 removeBtn.Clicked += async (_, _) =>
                 {
                     await _service.RemoveCandidateAsync(group.Id, capturedCandidate.Id);
@@ -906,25 +880,23 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         List<TaskItem> incompleteTasks)
     {
         var tcs = new TaskCompletionSource<int?>();
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000")
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var title = new Label
+        var title = (new Label
         {
             Text = "Insert before which task?",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1);
 
         Grid rootGrid = null!;
         View? originalContent = null;
         var list = new VerticalStackLayout { Spacing = 8 };
         var topButton = MakeButton(
-            "⬆ Insert at Top", "#E3F2FD", "#1565C0");
+            "⬆ Insert at Top", ThemeKey.InfoBackground, ThemeKey.InfoText);
         topButton.Clicked += (_, _) => Close(0);
         list.Children.Add(topButton);
 
@@ -936,7 +908,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                 ? (string.IsNullOrWhiteSpace(capturedTask.Impact) ? "(private)" : capturedTask.Impact)
                 : capturedTask.Title;
             var taskButton = MakeButton(
-                buttonLabel, "#F5F5F5", "#222222");
+                buttonLabel, ThemeKey.NeutralButtonBackground, ThemeKey.CardTextStrong);
             taskButton.HorizontalOptions = LayoutOptions.Fill;
             taskButton.LineBreakMode = LineBreakMode.WordWrap;
             taskButton.MinimumHeightRequest = 44;
@@ -946,12 +918,11 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         }
 
         var cancelButton = MakeButton(
-            "Cancel", "#ECEFF1", "#616161");
+            "Cancel", ThemeKey.NeutralButtonBackground, ThemeKey.CardText2);
         cancelButton.Clicked += (_, _) => Close(null);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 16,
             WidthRequest = 360,
@@ -972,7 +943,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                     cancelButton
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         if (Content is Grid existingGrid)
         {
@@ -1065,23 +1036,21 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             Spacing = 2,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = displayText,
-                    FontSize = 14,
-                    TextColor = Color.FromArgb("#333")
-                },
-                new Label
+                    FontSize = 14
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1),
+                (new Label
                 {
                     Text = link.PendingTemplateAt.HasValue
                         ? $"Completed {link.PendingTemplateAt.Value.ToLocalTime():dd MMM yyyy HH:mm}"
                         : "Completed",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#888")
-                }
+                    FontSize = 11
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3)
             }
         }, 0, 0);
-        var copy = MakeButton("Copy", "#E3F2FD", "#1565C0");
+        var copy = MakeButton("Copy", ThemeKey.InfoBackground, ThemeKey.InfoText);
         copy.Clicked += async (_, _) =>
         {
             await Clipboard.SetTextAsync(link.PendingTemplatePrompt ?? "");
@@ -1089,14 +1058,12 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             await RefreshAsync();
         };
         row.Add(copy, 1, 0);
-        return new Border
+        return (new Border
         {
             Content = row,
-            Stroke = Color.FromArgb("#C5CAE9"),
             StrokeThickness = 1,
-            BackgroundColor = Color.FromArgb("#F8F9FF"),
             Padding = 2
-        };
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.HighlightIndigoStrong).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
     }
 
     private View BuildItemRow(SequenceTaskGroup group, SequenceTaskItem link, TaskItem task, bool pendingTest = false)
@@ -1116,7 +1083,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                 }
             };
             selectRow.Children.Add(check);
-            selectRow.Children.Add(new Label { Text = "Select this task", VerticalOptions = LayoutOptions.Center, TextColor = Color.FromArgb("#555") });
+            selectRow.Children.Add((new Label { Text = "Select this task", VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
             body.Children.Add(selectRow);
         }
         var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }, Padding = new Thickness(8, 6) };
@@ -1124,8 +1091,8 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         var displayText = (publicMode && task.IsPrivate)
             ? (string.IsNullOrWhiteSpace(task.Impact) ? "(private)" : task.Impact)
             : task.Title;
-        row.Add(new Label { Text = task.IsCompleted ? $"✓ {displayText}" : displayText, FontSize = 14, TextColor = task.IsCompleted ? Color.FromArgb("#8A8A8A") : Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center }, 0, 0);
-        var copy = MakeButton("Copy", "#E3F2FD", "#1565C0");
+        row.Add((new Label { Text = task.IsCompleted ? $"✓ {displayText}" : displayText, FontSize = 14, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, task.IsCompleted ? ThemeKey.CardText3 : ThemeKey.CardTextStrong, ThemeKey.PageText2), 0, 0);
+        var copy = MakeButton("Copy", ThemeKey.InfoBackground, ThemeKey.InfoText);
         copy.Clicked += async (_, _) =>
         {
             var publicMode = IsPublicMode();
@@ -1137,16 +1104,16 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         row.Add(copy, 1, 0);
         if (!task.IsCompleted && pendingTest)
         {
-            var moveBack = MakeButton("↩ Move Back", "#ECEFF1", "#37474F");
+            var moveBack = MakeButton("↩ Move Back", ThemeKey.NeutralButtonBackground, ThemeKey.NeutralButtonText);
             moveBack.Clicked += async (_, _) => { await _service.UpdateItemPendingTestAsync(link.Id, false); await RefreshAsync(); };
             row.Add(moveBack, 2, 0);
-            var pendingDone = MakeButton("✓ Done", "#E8F5E9", "#2E7D32");
+            var pendingDone = MakeButton("✓ Done", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
             pendingDone.Clicked += async (_, _) => { await _tasks.CompleteTaskAsync(task); await RefreshAsync(); };
             row.Add(pendingDone, 3, 0);
         }
         else if (!task.IsCompleted)
         {
-            var done = MakeButton("Done", "#E8F5E9", "#2E7D32");
+            var done = MakeButton("Done", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
             done.Clicked += async (_, _) =>
             {
                 if (_busy) return; _busy = true;
@@ -1161,7 +1128,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                 await RefreshAsync();
             };
             row.Add(done, 2, 0);
-            var pending = MakeButton("Done (Pending Test)", "#FFF3E0", "#E65100");
+            var pending = MakeButton("Done (Pending Test)", ThemeKey.WarningBackground, ThemeKey.WarningText);
             pending.Clicked += async (_, _) =>
             {
                 var prompt = (group.ExportPromptTemplate ?? "{task}").Replace("{task}", task.Title);
@@ -1173,8 +1140,8 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             row.Add(pending, 3, 0);
             var pendingTemplate = MakeButton(
                 "Done (pending template)",
-                "#E8EAF6",
-                "#3949AB");
+                ThemeKey.HighlightIndigo,
+                ThemeKey.HighlightIndigoButton);
             pendingTemplate.Clicked += async (_, _) =>
             {
                 if (_busy) return;
@@ -1196,11 +1163,11 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
                 await RefreshAsync();
             };
             row.Add(pendingTemplate, 4, 0);
-            var exception = MakeButton("＋", "#FFF3E0", "#E65100");
+            var exception = MakeButton("＋", ThemeKey.WarningBackground, ThemeKey.WarningText);
             exception.Clicked += async (_, _) => await InsertTaskBeforeAsync(group, task.Id);
             row.Add(exception, 5, 0);
         }
-        var edit = MakeButton("Edit", "#FFF3E0", "#E65100");
+        var edit = MakeButton("Edit", ThemeKey.WarningBackground, ThemeKey.WarningText);
         edit.Clicked += async (_, _) =>
         {
             var newTitle = await DisplayPromptAsync("Edit Task", "Task title:", "Save", "Cancel", initialValue: task.Title);
@@ -1212,7 +1179,7 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         row.Add(edit, pendingTest ? 4 : 6, 0);
         if (!task.IsCompleted)
         {
-            var toCandidate = MakeButton("→ Cand", "#FFF8E1", "#F57F17");
+            var toCandidate = MakeButton("→ Cand", ThemeKey.HighlightYellow, ThemeKey.HighlightYellowText);
             toCandidate.Clicked += async (_, _) =>
             {
                 await _service.AddCandidateAsync(group.Id, task.Id);
@@ -1221,29 +1188,29 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
             };
             row.Add(toCandidate, pendingTest ? 5 : 7, 0);
         }
-        var delete = MakeButton("Delete", "#FFEBEE", "#C62828");
+        var delete = MakeButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         delete.Clicked += async (_, _) => { await _service.DeleteItemAsync(link.Id); await RefreshAsync(); };
         row.Add(delete, pendingTest ? 6 : 8, 0);
         body.Children.Add(row);
-        if (task.IsCompleted) body.Children.Add(new Label { Text = $"Completed {task.CompletedAt:dd MMM yyyy}", FontSize = 11, TextColor = Color.FromArgb("#999"), Margin = new Thickness(8, -4, 0, 0) });
-        return new Border { Content = body, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = task.IsCompleted ? Color.FromArgb("#F2F2F2") : Colors.White, Padding = 2 };
+        if (task.IsCompleted) body.Children.Add((new Label { Text = $"Completed {task.CompletedAt:dd MMM yyyy}", FontSize = 11, Margin = new Thickness(8, -4, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3));
+        return (new Border { Content = body, StrokeThickness = 1, Padding = 2 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, task.IsCompleted ? ThemeKey.SecondarySurface : ThemeKey.CardBackground);
     }
 
     private View BuildCreateForm()
     {
         var form = new VerticalStackLayout { Spacing = 8 };
-        form.Children.Add(new Label { Text = "Create New Group", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222"), Margin = new Thickness(0, 8, 0, 0) });
-        _nameEntry = new Entry { Placeholder = "Group name", BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
-        _templateEditor = new Editor { Placeholder = "Wrap around each completed task. Use {task} where the task description should appear.", HeightRequest = 140, AutoSize = EditorAutoSizeOption.Disabled, BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
-        _tasksEditor = new Editor { Placeholder = "Paste tasks, one per line...", HeightRequest = 180, AutoSize = EditorAutoSizeOption.Disabled, BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222") };
-        _capEntry = new Entry { Placeholder = "Task cap (0 = no cap)", BackgroundColor = Colors.White, TextColor = Color.FromArgb("#222"), Keyboard = Keyboard.Numeric };
+        form.Children.Add((new Label { Text = "Create New Group", FontSize = 18, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 8, 0, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1));
+        _nameEntry = (new Entry { Placeholder = "Group name" }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        _templateEditor = (new Editor { Placeholder = "Wrap around each completed task. Use {task} where the task description should appear.", HeightRequest = 140, AutoSize = EditorAutoSizeOption.Disabled }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        _tasksEditor = (new Editor { Placeholder = "Paste tasks, one per line...", HeightRequest = 180, AutoSize = EditorAutoSizeOption.Disabled }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        _capEntry = (new Entry { Placeholder = "Task cap (0 = no cap)", Keyboard = Keyboard.Numeric }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         form.Children.Add(_nameEntry);
         form.Children.Add(_capEntry);
         form.Children.Add(_templateEditor);
-        var tutorial = MakeButton("Use Tutorial Check Template", "#E8EAF6", "#3949AB");
+        var tutorial = MakeButton("Use Tutorial Check Template", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoButton);
         tutorial.Clicked += (_, _) => _templateEditor.Text = TutorialTemplate;
         form.Children.Add(tutorial); form.Children.Add(_tasksEditor);
-        var save = MakeButton("Save & Start", "#E8F5E9", "#2E7D32"); save.Clicked += async (_, _) => await SaveGroupAsync(); form.Children.Add(save);
+        var save = MakeButton("Save & Start", ThemeKey.SuccessBackground, ThemeKey.SuccessText); save.Clicked += async (_, _) => await SaveGroupAsync(); form.Children.Add(save);
         return Card(form);
     }
 
@@ -1267,6 +1234,6 @@ public class SequenceTaskPage : Bannister.Views.ModeThemedPage
         await RefreshAsync();
     }
 
-    private static Frame Card(View content) => new() { Content = content, Padding = 12, CornerRadius = 8, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Color.FromArgb("#FAFAFA") };
-    private static Button MakeButton(string text, string background, string foreground) => new() { Text = text, BackgroundColor = Color.FromArgb(background), TextColor = Color.FromArgb(foreground), CornerRadius = 6, FontSize = 12, HeightRequest = 36, Padding = new Thickness(10, 0) };
+    private static Frame Card(View content) => (new Frame(){ Content = content, Padding = 12, CornerRadius = 8, HasShadow = false }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+    private static Button MakeButton(string text, ThemeKey background, ThemeKey foreground) => (new Button(){ Text = text, CornerRadius = 6, FontSize = 12, HeightRequest = 36, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
 }

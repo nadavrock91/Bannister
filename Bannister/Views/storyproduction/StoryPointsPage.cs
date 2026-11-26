@@ -94,31 +94,27 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         };
 
         var headerStack = new VerticalStackLayout();
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "📝 Story Points",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        headerStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
+        headerStack.Children.Add((new Label
         {
             Text = _project.Name,
-            FontSize = 14,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
         headerRow.Children.Add(headerStack);
 
-        var exportBtn = new Button
+        var exportBtn = (new Button
         {
             Text = "📤 Export",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             FontSize = 13,
             HeightRequest = 36,
             CornerRadius = 8,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         exportBtn.Clicked += OnExportClicked;
         Grid.SetColumn(exportBtn, 1);
         headerRow.Children.Add(exportBtn);
@@ -139,20 +135,18 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 0, 0, 8)
         };
 
-        versionRow.Children.Add(new Label
+        versionRow.Children.Add((new Label
         {
             Text = "Version:",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
-        _versionPicker = new Picker
+        _versionPicker = (new Picker
         {
             FontSize = 14,
-            BackgroundColor = Colors.White,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _versionPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_versionPicker.SelectedIndex >= 0 && _versionPicker.SelectedIndex < _versions.Count)
@@ -164,26 +158,23 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         Grid.SetColumn(_versionPicker, 1);
         versionRow.Children.Add(_versionPicker);
 
-        _versionInfoLabel = new Label
+        _versionInfoLabel = (new Label
         {
             FontSize = 12,
-            TextColor = Color.FromArgb("#999"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
         Grid.SetColumn(_versionInfoLabel, 2);
         versionRow.Children.Add(_versionInfoLabel);
 
-        var versionMenuBtn = new Button
+        var versionMenuBtn = (new Button
         {
             Text = "⚙️",
             FontSize = 14,
-            BackgroundColor = Color.FromArgb("#EEEEEE"),
-            TextColor = Color.FromArgb("#666"),
             WidthRequest = 36,
             HeightRequest = 36,
             Padding = 0,
             CornerRadius = 6
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         ToolTipProperties.SetText(versionMenuBtn, "Version options");
         versionMenuBtn.Clicked += OnVersionMenuClicked;
         Grid.SetColumn(versionMenuBtn, 3);
@@ -192,32 +183,32 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(versionRow);
 
         // Active Points - Chronological Section (story order, start to end)
-        mainStack.Children.Add(CreateSubSectionHeader("📖 Active: Chronological", "chronological", Color.FromArgb("#4CAF50")));
+        mainStack.Children.Add(CreateSubSectionHeader("📖 Active: Chronological", "chronological", ThemeKey.SuccessLightText));
         _activeChronologicalStack = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_activeChronologicalStack);
 
         // Active Points - Misc Section (importance order)
-        mainStack.Children.Add(CreateSubSectionHeader("📌 Active: Misc", "misc", Color.FromArgb("#8BC34A")));
+        mainStack.Children.Add(CreateSubSectionHeader("📌 Active: Misc", "misc", ThemeKey.LimeButtonBackground));
         _activeMiscStack = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_activeMiscStack);
 
         // Partial Points Section (partially covered in draft)
-        mainStack.Children.Add(CreateSectionHeader("🔶 Partial Points", "partial", Color.FromArgb("#E91E63")));
+        mainStack.Children.Add(CreateSectionHeader("🔶 Partial Points", "partial", ThemeKey.PinkButtonBackground));
         _partialStack = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_partialStack);
 
         // Pending Points Section (want to include, not done yet)
-        mainStack.Children.Add(CreateSectionHeader("⏳ Pending Points", "pending", Color.FromArgb("#9C27B0")));
+        mainStack.Children.Add(CreateSectionHeader("⏳ Pending Points", "pending", ThemeKey.AccentPurpleButtonBackground));
         _pendingStack = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_pendingStack);
 
         // Possible Points Section (considering including)
-        mainStack.Children.Add(CreateSectionHeader("💡 Possible Points", "possible", Color.FromArgb("#FF9800")));
+        mainStack.Children.Add(CreateSectionHeader("💡 Possible Points", "possible", ThemeKey.WarningButtonBackground));
         _possibleStack = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_possibleStack);
 
         // Archived Points Section (collapsible, collapsed by default)
-        var archivedHeader = CreateCollapsibleSectionHeader("📦 Archived Points", "archived", Color.FromArgb("#9E9E9E"));
+        var archivedHeader = CreateCollapsibleSectionHeader("📦 Archived Points", "archived", ThemeKey.DisabledButtonBackground);
         mainStack.Children.Add(archivedHeader);
         _archivedStack = new VerticalStackLayout { Spacing = 8, IsVisible = false };
         mainStack.Children.Add(_archivedStack);
@@ -226,26 +217,24 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         mainGrid.Children.Add(scrollView);
 
         // Loading overlay
-        _loadingOverlay = new Grid
+        _loadingOverlay = (new Grid
         {
-            IsVisible = false,
-            BackgroundColor = Color.FromArgb("#80000000")
-        };
-        _loadingOverlay.Children.Add(new ActivityIndicator
+            IsVisible = false
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
+        _loadingOverlay.Children.Add((new ActivityIndicator
         {
             IsRunning = true,
-            Color = Colors.White,
             WidthRequest = 40,
             HeightRequest = 40,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.OnColorText));
         mainGrid.Children.Add(_loadingOverlay);
 
         Content = mainGrid;
     }
 
-    private View CreateSectionHeader(string title, string category, Color color)
+    private View CreateSectionHeader(string title, string category, ThemeKey color)
     {
         var headerRow = new Grid
         {
@@ -259,40 +248,36 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 12, 0, 4)
         };
 
-        headerRow.Children.Add(new Label
+        headerRow.Children.Add((new Label
         {
             Text = title,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = color,
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add",
-            BackgroundColor = color.WithAlpha(0.15f),
-            TextColor = color,
+            BackgroundColor = AppColors.Get(color).WithAlpha(0.15f),
             FontSize = 12,
             HeightRequest = 30,
             CornerRadius = 6,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, color);
         addBtn.Clicked += async (s, e) => await AddPointAsync(category);
         Grid.SetColumn(addBtn, 1);
         headerRow.Children.Add(addBtn);
 
-        var logIdeaBtn = new Button
+        var logIdeaBtn = (new Button
         {
             Text = "💡",
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
-            TextColor = Color.FromArgb("#F57C00"),
             FontSize = 14,
             HeightRequest = 30,
             WidthRequest = 36,
             CornerRadius = 6,
             Padding = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningStrongText);
         logIdeaBtn.Clicked += async (s, e) => await LogIdeaAsync();
         Grid.SetColumn(logIdeaBtn, 2);
         headerRow.Children.Add(logIdeaBtn);
@@ -300,7 +285,7 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         return headerRow;
     }
 
-    private View CreateSubSectionHeader(string title, string subcategory, Color color)
+    private View CreateSubSectionHeader(string title, string subcategory, ThemeKey color)
     {
         var headerRow = new Grid
         {
@@ -314,40 +299,36 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 12, 0, 4)
         };
 
-        headerRow.Children.Add(new Label
+        headerRow.Children.Add((new Label
         {
             Text = title,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = color,
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add",
-            BackgroundColor = color.WithAlpha(0.15f),
-            TextColor = color,
+            BackgroundColor = AppColors.Get(color).WithAlpha(0.15f),
             FontSize = 12,
             HeightRequest = 30,
             CornerRadius = 6,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, color);
         addBtn.Clicked += async (s, e) => await ShowAddPointOptionsAsync(subcategory);
         Grid.SetColumn(addBtn, 1);
         headerRow.Children.Add(addBtn);
 
-        var logIdeaBtn = new Button
+        var logIdeaBtn = (new Button
         {
             Text = "💡",
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
-            TextColor = Color.FromArgb("#F57C00"),
             FontSize = 14,
             HeightRequest = 30,
             WidthRequest = 36,
             CornerRadius = 6,
             Padding = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.WarningStrongText);
         logIdeaBtn.Clicked += async (s, e) => await LogIdeaAsync();
         Grid.SetColumn(logIdeaBtn, 2);
         headerRow.Children.Add(logIdeaBtn);
@@ -391,16 +372,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         // Use a custom overlay to show full point text
         var tcs = new TaskCompletionSource<StoryPoint?>();
 
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             ZIndex = 1000
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D30"),
-            BorderColor = Color.FromArgb("#3E3E42"),
             CornerRadius = 12,
             Padding = new Thickness(20),
             MaximumWidthRequest = 900,
@@ -408,25 +386,23 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaPanel).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaBorder);
 
         var mainLayout = new VerticalStackLayout { Spacing = 16 };
 
         // Header
-        mainLayout.Children.Add(new Label
+        mainLayout.Children.Add((new Label
         {
             Text = "📍 Add Before Which Point?",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
 
-        mainLayout.Children.Add(new Label
+        mainLayout.Children.Add((new Label
         {
             Text = "Select a point. New point will be inserted above it.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#AAAAAA")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaMutedText, ThemeKey.PageText1));
 
         // Scrollable list of points
         var scrollView = new ScrollView
@@ -442,14 +418,12 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             var point = pointsInSubcategory[i];
             int index = i;
 
-            var pointCard = new Frame
+            var pointCard = (new Frame
             {
-                BackgroundColor = Color.FromArgb("#3E3E42"),
-                BorderColor = Color.FromArgb("#4CAF50"),
                 CornerRadius = 8,
                 Padding = new Thickness(12, 10),
                 HasShadow = false
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBorder).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessLightText);
 
             var pointLayout = new Grid
             {
@@ -462,24 +436,22 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             };
 
             // Index number
-            pointLayout.Children.Add(new Label
+            pointLayout.Children.Add((new Label
             {
                 Text = $"{i + 1}.",
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#4CAF50"),
                 VerticalOptions = LayoutOptions.Start,
                 WidthRequest = 30
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1));
 
             // Full point text
-            var textLabel = new Label
+            var textLabel = (new Label
             {
                 Text = point.Text,
                 FontSize = 13,
-                TextColor = Colors.White,
                 LineBreakMode = LineBreakMode.WordWrap
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
             Grid.SetColumn(textLabel, 1);
             pointLayout.Children.Add(textLabel);
 
@@ -501,15 +473,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         mainLayout.Children.Add(scrollView);
 
         // Cancel button
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#4A4A4A"),
-            TextColor = Colors.White,
             WidthRequest = 100,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.End
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         cancelBtn.Clicked += (s, e) =>
         {
             CloseOverlay(overlay);
@@ -551,7 +521,7 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         }
     }
 
-    private View CreateCollapsibleSectionHeader(string title, string category, Color color)
+    private View CreateCollapsibleSectionHeader(string title, string category, ThemeKey color)
     {
         var headerRow = new Grid
         {
@@ -565,38 +535,35 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         };
 
         // Collapse/expand indicator
-        var collapseLabel = new Label
+        var collapseLabel = (new Label
         {
             Text = "▶",
             FontSize = 14,
-            TextColor = color,
             VerticalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 0, 8, 0)
-        };
+        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1);
         headerRow.Children.Add(collapseLabel);
 
         // Title with count placeholder
-        _archivedHeaderLabel = new Label
+        _archivedHeaderLabel = (new Label
         {
             Text = title,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = color,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1);
         Grid.SetColumn(_archivedHeaderLabel, 1);
         headerRow.Children.Add(_archivedHeaderLabel);
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add",
-            BackgroundColor = color.WithAlpha(0.15f),
-            TextColor = color,
+            BackgroundColor = AppColors.Get(color).WithAlpha(0.15f),
             FontSize = 12,
             HeightRequest = 30,
             CornerRadius = 6,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, color);
         addBtn.Clicked += async (s, e) => await AddPointAsync(category);
         Grid.SetColumn(addBtn, 2);
         headerRow.Children.Add(addBtn);
@@ -836,58 +803,49 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
 
     private Label CreateEmptyLabel(string text)
     {
-        return new Label
+        return (new Label
         {
             Text = text,
             FontSize = 12,
-            TextColor = Color.FromArgb("#999"),
             FontAttributes = FontAttributes.Italic,
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 8)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
     }
 
     private Frame CreatePointCard(StoryPoint point, int index, int total)
     {
-        Color categoryColor = point.Category switch
+        ThemeKey categoryColor = point.Category switch
         {
-            "active" => Color.FromArgb("#4CAF50"),
-            "partial" => Color.FromArgb("#E91E63"),
-            "pending" => Color.FromArgb("#9C27B0"),
-            "possible" => Color.FromArgb("#FF9800"),
-            "archived" => Color.FromArgb("#9E9E9E"),
-            "irrelevant" => Color.FromArgb("#9E9E9E"), // Legacy support
-            _ => Color.FromArgb("#666")
-        };
+            "active" => ThemeKey.SuccessLightText,            "partial" => ThemeKey.PinkButtonBackground,            "pending" => ThemeKey.AccentPurpleButtonBackground,            "possible" => ThemeKey.WarningButtonBackground,            "archived" => ThemeKey.DisabledButtonBackground,            "irrelevant" => ThemeKey.DisabledButtonBackground,            _ => ThemeKey.CardText2        };
 
         // Determine background color based on lock status
-        Color bgColor = Colors.White;
-        Color borderColor = categoryColor.WithAlpha(0.3f);
+        ThemeKey bgColor = ThemeKey.CardBackground;
+        Color borderColor = AppColors.Get(categoryColor).WithAlpha(0.3f);
         
         if (point.IsCategoryLocked && point.IsSubcategoryLocked)
         {
-            bgColor = Color.FromArgb("#FFF3E0"); // Light orange - both locked
-            borderColor = Color.FromArgb("#FF5722");
+            bgColor = ThemeKey.WarningBackground; // Light orange - both locked
+            borderColor = AppColors.Get(ThemeKey.DeepOrangeButtonBackground);
         }
         else if (point.IsCategoryLocked)
         {
-            bgColor = Color.FromArgb("#FFEBEE"); // Light red - category locked
-            borderColor = Color.FromArgb("#E91E63");
+            bgColor = ThemeKey.ErrorBackground; // Light red - category locked
+            borderColor = AppColors.Get(ThemeKey.PinkButtonBackground);
         }
         else if (point.IsSubcategoryLocked)
         {
-            bgColor = Color.FromArgb("#FFFDE7"); // Light yellow - subcategory locked
-            borderColor = Color.FromArgb("#FFC107");
+            bgColor = ThemeKey.HighlightYellowSoft; // Light yellow - subcategory locked
+            borderColor = AppColors.Get(ThemeKey.HighlightAmberButton);
         }
 
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 10,
             CornerRadius = 8,
-            BackgroundColor = bgColor,
             BorderColor = borderColor,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bgColor);
 
         var mainRow = new Grid
         {
@@ -938,17 +896,15 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         // Up/Down arrows
         var arrowStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
         
-        var upBtn = new Button
+        var upBtn = (new Button
         {
             Text = "▲",
             FontSize = 10,
-            BackgroundColor = index > 0 ? Color.FromArgb("#E0E0E0") : Color.FromArgb("#F5F5F5"),
-            TextColor = index > 0 ? Color.FromArgb("#333") : Color.FromArgb("#CCC"),
             WidthRequest = 28,
             HeightRequest = 24,
             Padding = 0,
             CornerRadius = 4
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, index > 0 ? ThemeKey.Separator : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, index > 0 ? ThemeKey.CardText1 : ThemeKey.CardText3);
         ToolTipProperties.SetText(upBtn, "Move up");
         if (index > 0)
         {
@@ -960,17 +916,15 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         }
         arrowStack.Children.Add(upBtn);
 
-        var downBtn = new Button
+        var downBtn = (new Button
         {
             Text = "▼",
             FontSize = 10,
-            BackgroundColor = index < total - 1 ? Color.FromArgb("#E0E0E0") : Color.FromArgb("#F5F5F5"),
-            TextColor = index < total - 1 ? Color.FromArgb("#333") : Color.FromArgb("#CCC"),
             WidthRequest = 28,
             HeightRequest = 24,
             Padding = 0,
             CornerRadius = 4
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, index < total - 1 ? ThemeKey.Separator : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, index < total - 1 ? ThemeKey.CardText1 : ThemeKey.CardText3);
         ToolTipProperties.SetText(downBtn, "Move down");
         if (index < total - 1)
         {
@@ -987,14 +941,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         mainRow.Children.Add(leftStack);
 
         // Text
-        var textLabel = new Label
+        var textLabel = (new Label
         {
             Text = point.Text,
             FontSize = 14,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center,
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         Grid.SetColumn(textLabel, 1);
         mainRow.Children.Add(textLabel);
 
@@ -1005,16 +958,15 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         if (point.Category == "active")
         {
             bool isChronological = point.Subcategory != "misc";
-            var toggleSubBtn = new Button
+            var toggleSubBtn = (new Button
             {
                 Text = isChronological ? "📌" : "📖",
                 FontSize = 12,
-                BackgroundColor = isChronological ? Color.FromArgb("#F1F8E9") : Color.FromArgb("#E8F5E9"),
                 WidthRequest = 32,
                 HeightRequest = 32,
                 Padding = 0,
                 CornerRadius = 6
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, isChronological ? ThemeKey.HighlightLime : ThemeKey.SuccessBackground);
             ToolTipProperties.SetText(toggleSubBtn, isChronological ? "Move to Misc" : "Move to Chronological");
             toggleSubBtn.Clicked += async (s, e) =>
             {
@@ -1025,16 +977,15 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             rightStack.Children.Add(toggleSubBtn);
 
             // Subcategory lock toggle button (only for active)
-            var subLockBtn = new Button
+            var subLockBtn = (new Button
             {
                 Text = point.IsSubcategoryLocked ? "🔓" : "🔒",
                 FontSize = 12,
-                BackgroundColor = point.IsSubcategoryLocked ? Color.FromArgb("#FFF8E1") : Color.FromArgb("#F5F5F5"),
                 WidthRequest = 32,
                 HeightRequest = 32,
                 Padding = 0,
                 CornerRadius = 6
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, point.IsSubcategoryLocked ? ThemeKey.HighlightYellow : ThemeKey.NeutralButtonBackground);
             ToolTipProperties.SetText(subLockBtn, point.IsSubcategoryLocked ? "Unlock subcategory" : "Lock subcategory (prevent LLM moving between Chrono/Misc)");
             subLockBtn.Clicked += async (s, e) =>
             {
@@ -1046,16 +997,15 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         }
 
         // Category lock toggle button (for all points)
-        var catLockBtn = new Button
+        var catLockBtn = (new Button
         {
             Text = point.IsCategoryLocked ? "🔐" : "📍",
             FontSize = 12,
-            BackgroundColor = point.IsCategoryLocked ? Color.FromArgb("#FFEBEE") : Color.FromArgb("#F5F5F5"),
             WidthRequest = 32,
             HeightRequest = 32,
             Padding = 0,
             CornerRadius = 6
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, point.IsCategoryLocked ? ThemeKey.ErrorBackground : ThemeKey.NeutralButtonBackground);
         ToolTipProperties.SetText(catLockBtn, point.IsCategoryLocked 
             ? "Unlock category (allow moving between Active/Pending/etc)" 
             : "Lock category (prevent moving between Active/Pending/etc)");
@@ -1068,18 +1018,16 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         rightStack.Children.Add(catLockBtn);
 
         // 3-dot menu button
-        var menuBtn = new Button
+        var menuBtn = (new Button
         {
             Text = "⋮",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            BackgroundColor = Color.FromArgb("#EEEEEE"),
-            TextColor = Color.FromArgb("#666"),
             WidthRequest = 32,
             HeightRequest = 32,
             Padding = 0,
             CornerRadius = 6
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         ToolTipProperties.SetText(menuBtn, "More options");
         menuBtn.Clicked += async (s, e) =>
         {
@@ -1342,42 +1290,38 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
     {
         var tcs = new TaskCompletionSource<string?>();
 
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             InputTransparent = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             Padding = 20,
             WidthRequest = 400,
             MaximumHeightRequest = 400,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var mainStack = new VerticalStackLayout { Spacing = 12 };
 
         // Title
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         // Message
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = message,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         // Multi-line editor
         var editor = new Editor
@@ -1389,15 +1333,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             AutoSize = EditorAutoSizeOption.Disabled
         };
         
-        var editorFrame = new Frame
+        var editorFrame = (new Frame
         {
             Padding = 8,
             CornerRadius = 8,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             HasShadow = false,
             Content = editor
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
         mainStack.Children.Add(editorFrame);
 
         // Buttons
@@ -1407,16 +1349,14 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            TextColor = Color.FromArgb("#666"),
             FontSize = 14,
             HeightRequest = 40,
             CornerRadius = 8,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         cancelBtn.Clicked += (s, e) =>
         {
             CloseOverlay(overlay);
@@ -1424,16 +1364,14 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         };
         btnRow.Children.Add(cancelBtn);
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             FontSize = 14,
             HeightRequest = 40,
             CornerRadius = 8,
             Padding = new Thickness(20, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += (s, e) =>
         {
             CloseOverlay(overlay);
@@ -2097,16 +2035,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             partialActions[n] = "split"; // Default: split into covered/uncovered
 
         // Create overlay
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             ZIndex = 1000
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D30"),
-            BorderColor = Color.FromArgb("#3E3E42"),
             CornerRadius = 12,
             Padding = new Thickness(20),
             MaximumWidthRequest = 900,
@@ -2114,27 +2049,25 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaPanel).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaBorder);
 
         var mainLayout = new VerticalStackLayout { Spacing = 16 };
 
         // Header
-        mainLayout.Children.Add(new Label
+        mainLayout.Children.Add((new Label
         {
             Text = "🔍 Review Missing & Partial Points",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
 
         // Stats
         int coveredCount = activePoints.Count - missingNumbers.Count - partialBreakdowns.Count;
-        mainLayout.Children.Add(new Label
+        mainLayout.Children.Add((new Label
         {
             Text = $"📊 {coveredCount} fully covered • {partialBreakdowns.Count} partial • {missingNumbers.Count} missing",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#AAAAAA")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaMutedText, ThemeKey.PageText1));
 
         // Scrollable content
         var scrollView = new ScrollView { MaximumHeightRequest = 480 };
@@ -2143,14 +2076,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         // === PARTIAL POINTS SECTION (with breakdown details) ===
         if (partialBreakdowns.Count > 0)
         {
-            itemsList.Children.Add(new Label
+            itemsList.Children.Add((new Label
             {
                 Text = "🔶 PARTIAL POINTS",
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#E91E63"),
                 Margin = new Thickness(0, 8, 0, 4)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.PinkButtonBackground, ThemeKey.PageText1));
 
             foreach (var kvp in partialBreakdowns.OrderBy(k => k.Key))
             {
@@ -2159,86 +2091,77 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
                 var point = activePoints[n - 1];
                 var breakdown = kvp.Value;
 
-                var itemCard = new Frame
+                var itemCard = (new Frame
                 {
-                    BackgroundColor = Color.FromArgb("#1E1E1E"),
-                    BorderColor = Color.FromArgb("#E91E63"),
                     CornerRadius = 8,
                     Padding = new Thickness(12),
                     HasShadow = false
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.PinkButtonBackground);
 
                 var itemLayout = new VerticalStackLayout { Spacing = 8 };
 
                 // Original point
-                itemLayout.Children.Add(new Label
+                itemLayout.Children.Add((new Label
                 {
                     Text = $"#{n} ORIGINAL:",
                     FontSize = 11,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#E91E63")
-                });
-                itemLayout.Children.Add(new Label
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.PinkButtonBackground, ThemeKey.PageText3));
+                itemLayout.Children.Add((new Label
                 {
                     Text = point.Text,
                     FontSize = 11,
-                    TextColor = Color.FromArgb("#888888"),
                     LineBreakMode = LineBreakMode.WordWrap,
                     TextDecorations = TextDecorations.Strikethrough
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaHintText, ThemeKey.PageText3));
 
                 // Covered part (green)
                 if (!string.IsNullOrEmpty(breakdown.Covered))
                 {
-                    itemLayout.Children.Add(new Label
+                    itemLayout.Children.Add((new Label
                     {
                         Text = "✅ IN DRAFT:",
                         FontSize = 11,
                         FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#27AE60"),
                         Margin = new Thickness(0, 6, 0, 0)
-                    });
-                    itemLayout.Children.Add(new Label
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineSuccess, ThemeKey.PageText3));
+                    itemLayout.Children.Add((new Label
                     {
                         Text = breakdown.Covered,
                         FontSize = 12,
-                        TextColor = Color.FromArgb("#27AE60"),
                         LineBreakMode = LineBreakMode.WordWrap
-                    });
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineSuccess, ThemeKey.PageText3));
                 }
 
                 // Uncovered part (orange)
                 if (!string.IsNullOrEmpty(breakdown.Uncovered))
                 {
-                    itemLayout.Children.Add(new Label
+                    itemLayout.Children.Add((new Label
                     {
                         Text = "❌ NOT IN DRAFT:",
                         FontSize = 11,
                         FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#FF9800"),
                         Margin = new Thickness(0, 6, 0, 0)
-                    });
-                    itemLayout.Children.Add(new Label
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3));
+                    itemLayout.Children.Add((new Label
                     {
                         Text = breakdown.Uncovered,
                         FontSize = 12,
-                        TextColor = Color.FromArgb("#FF9800"),
                         LineBreakMode = LineBreakMode.WordWrap
-                    });
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3));
                 }
 
                 // Action picker
                 var actionRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 10, 0, 0) };
                 
-                actionRow.Children.Add(new Label
+                actionRow.Children.Add((new Label
                 {
                     Text = "Action:",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#AAAAAA"),
                     VerticalOptions = LayoutOptions.Center
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaMutedText, ThemeKey.PageText3));
 
-                var actionPicker = new Picker
+                var actionPicker = (new Picker
                 {
                     ItemsSource = new[] 
                     { 
@@ -2247,10 +2170,8 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
                         "📦 Archive original"
                     },
                     SelectedIndex = 0,
-                    BackgroundColor = Color.FromArgb("#3E3E42"),
-                    TextColor = Colors.White,
                     WidthRequest = 300
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBorder).ThemeColor(Picker.TextColorProperty, ThemeKey.OnColorText);
                 actionPicker.SelectedIndexChanged += (s, e) =>
                 {
                     partialActions[index] = actionPicker.SelectedIndex switch
@@ -2272,60 +2193,54 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         // === MISSING POINTS SECTION ===
         if (missingNumbers.Count > 0)
         {
-            itemsList.Children.Add(new Label
+            itemsList.Children.Add((new Label
             {
                 Text = "❌ MISSING POINTS (not in draft at all)",
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#E74C3C"),
                 Margin = new Thickness(0, 16, 0, 4)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineError, ThemeKey.PageText1));
 
             foreach (var n in missingNumbers)
             {
                 int index = n; // Capture
                 var point = activePoints[n - 1];
 
-                var itemCard = new Frame
+                var itemCard = (new Frame
                 {
-                    BackgroundColor = Color.FromArgb("#1E1E1E"),
-                    BorderColor = Color.FromArgb("#E74C3C"),
                     CornerRadius = 8,
                     Padding = new Thickness(12),
                     HasShadow = false
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.TimelineError);
 
                 var itemLayout = new VerticalStackLayout { Spacing = 8 };
 
                 // Point number and text
-                itemLayout.Children.Add(new Label
+                itemLayout.Children.Add((new Label
                 {
                     Text = $"#{n}",
                     FontSize = 11,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#E74C3C")
-                });
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineError, ThemeKey.PageText3));
 
-                itemLayout.Children.Add(new Label
+                itemLayout.Children.Add((new Label
                 {
                     Text = point.Text,
                     FontSize = 12,
-                    TextColor = Colors.White,
                     LineBreakMode = LineBreakMode.WordWrap
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3));
 
                 // Action picker
                 var actionRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 8, 0, 0) };
                 
-                actionRow.Children.Add(new Label
+                actionRow.Children.Add((new Label
                 {
                     Text = "Action:",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#AAAAAA"),
                     VerticalOptions = LayoutOptions.Center
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaMutedText, ThemeKey.PageText3));
 
-                var actionPicker = new Picker
+                var actionPicker = (new Picker
                 {
                     ItemsSource = new[] 
                     { 
@@ -2335,10 +2250,8 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
                         "📦 Archive"
                     },
                     SelectedIndex = 0,
-                    BackgroundColor = Color.FromArgb("#3E3E42"),
-                    TextColor = Colors.White,
                     WidthRequest = 220
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBorder).ThemeColor(Picker.TextColorProperty, ThemeKey.OnColorText);
                 actionPicker.SelectedIndexChanged += (s, e) =>
                 {
                     missingActions[index] = actionPicker.SelectedIndex switch
@@ -2368,14 +2281,12 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#4A4A4A"),
-            TextColor = Colors.White,
             WidthRequest = 100,
             HeightRequest = 40
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         cancelBtn.Clicked += (s, e) =>
         {
             CloseOverlay(overlay);
@@ -2383,15 +2294,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         };
         buttonRow.Children.Add(cancelBtn);
 
-        var applyBtn = new Button
+        var applyBtn = (new Button
         {
             Text = "✅ Apply Changes",
-            BackgroundColor = Color.FromArgb("#27AE60"),
-            TextColor = Colors.White,
             WidthRequest = 140,
             HeightRequest = 40,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TimelineSuccess).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         applyBtn.Clicked += async (s, e) =>
         {
             CloseOverlay(overlay);
@@ -2924,16 +2833,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         }
 
         // Create overlay
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             ZIndex = 1000
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D30"),
-            BorderColor = Color.FromArgb("#3E3E42"),
             CornerRadius = 12,
             Padding = new Thickness(20),
             MaximumWidthRequest = 800,
@@ -2941,18 +2847,17 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaPanel).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaBorder);
 
         var mainLayout = new VerticalStackLayout { Spacing = 16 };
 
         // Header
-        mainLayout.Children.Add(new Label
+        mainLayout.Children.Add((new Label
         {
             Text = "🧹 Cleanup Preview",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
 
         // Stats
         int keepCount = 0, breakCount = 0, archiveCount = 0, clarifyCount = 0;
@@ -2969,12 +2874,11 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
                 keepCount++;
         }
 
-        mainLayout.Children.Add(new Label
+        mainLayout.Children.Add((new Label
         {
             Text = $"📊 {keepCount} keep • {breakCount} break down • {clarifyCount} clarify • {archiveCount} archive",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#AAAAAA")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaMutedText, ThemeKey.PageText1));
 
         // Scrollable list
         var scrollView = new ScrollView { MaximumHeightRequest = 420 };
@@ -2989,85 +2893,79 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
 
             // Determine action type
             string actionType;
-            Color actionColor;
+            ThemeKey actionColor;
             string actionIcon;
 
             if (isExplicitEmpty || newPoints.Count == 0)
             {
                 actionType = "ARCHIVE";
-                actionColor = Color.FromArgb("#9E9E9E");
+                actionColor = ThemeKey.DisabledButtonBackground;
                 actionIcon = "📦";
             }
             else if (newPoints.Count > 1)
             {
                 actionType = $"BREAK INTO {newPoints.Count}";
-                actionColor = Color.FromArgb("#9B59B6");
+                actionColor = ThemeKey.TimelinePurple;
                 actionIcon = "✂️";
             }
             else if (newPoints[0] != original.Text)
             {
                 actionType = "CLARIFY";
-                actionColor = Color.FromArgb("#3498DB");
+                actionColor = ThemeKey.TimelineInfo;
                 actionIcon = "✏️";
             }
             else
             {
                 actionType = "KEEP";
-                actionColor = Color.FromArgb("#27AE60");
+                actionColor = ThemeKey.TimelineSuccess;
                 actionIcon = "✓";
             }
 
             // Item card
-            var itemCard = new Frame
+            var itemCard = (new Frame
             {
-                BackgroundColor = Color.FromArgb("#1E1E1E"),
-                BorderColor = actionColor,
                 CornerRadius = 8,
                 Padding = new Thickness(12),
                 HasShadow = false
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, actionColor);
 
             var itemLayout = new VerticalStackLayout { Spacing = 8 };
 
             // Header row with checkbox and action type
             var headerRow = new HorizontalStackLayout { Spacing = 10 };
             
-            var checkBox = new CheckBox
+            var checkBox = (new CheckBox
             {
                 IsChecked = true,
-                Color = actionColor,
                 VerticalOptions = LayoutOptions.Center
-            };
+            }).ThemeColor(CheckBox.ColorProperty, actionColor);
             checkBox.CheckedChanged += (s, e) => applyCleanup[index] = e.Value;
             headerRow.Children.Add(checkBox);
 
-            headerRow.Children.Add(new Label
+            headerRow.Children.Add((new Label
             {
                 Text = $"{actionIcon} {actionType}",
                 FontSize = 12,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = actionColor,
                 VerticalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, actionColor, ThemeKey.PageText3));
 
-            headerRow.Children.Add(new Label
+            headerRow.Children.Add((new Label
             {
                 Text = $"[{original.Category.ToUpper()}]",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#888888"),
                 VerticalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaHintText, ThemeKey.PageText3));
 
             itemLayout.Children.Add(headerRow);
 
             // Original point (with strikethrough if being changed)
-            var originalLabel = new Label
+            var originalLabel = (new Label
             {
                 Text = $"📝 {original.Text}",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#999999"),
                 LineBreakMode = LineBreakMode.WordWrap
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3);
             if (actionType != "KEEP")
                 originalLabel.TextDecorations = TextDecorations.Strikethrough;
             itemLayout.Children.Add(originalLabel);
@@ -3077,13 +2975,12 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             {
                 foreach (var np in newPoints)
                 {
-                    itemLayout.Children.Add(new Label
+                    itemLayout.Children.Add((new Label
                     {
                         Text = $"   → {np}",
                         FontSize = 12,
-                        TextColor = Color.FromArgb("#27AE60"),
                         LineBreakMode = LineBreakMode.WordWrap
-                    });
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineSuccess, ThemeKey.PageText3));
                 }
             }
 
@@ -3101,14 +2998,12 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#4A4A4A"),
-            TextColor = Colors.White,
             WidthRequest = 100,
             HeightRequest = 40
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         cancelBtn.Clicked += (s, e) =>
         {
             CloseOverlay(overlay);
@@ -3116,15 +3011,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         };
         buttonRow.Children.Add(cancelBtn);
 
-        var applyBtn = new Button
+        var applyBtn = (new Button
         {
             Text = "✅ Apply Cleanup",
-            BackgroundColor = Color.FromArgb("#27AE60"),
-            TextColor = Colors.White,
             WidthRequest = 140,
             HeightRequest = 40,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TimelineSuccess).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         applyBtn.Clicked += async (s, e) =>
         {
             CloseOverlay(overlay);
@@ -3458,16 +3351,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             moveToActive[n] = true; // Default: move to active
 
         // Create overlay
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             ZIndex = 1000
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D30"),
-            BorderColor = Color.FromArgb("#3E3E42"),
             CornerRadius = 12,
             Padding = new Thickness(20),
             MaximumWidthRequest = 800,
@@ -3475,34 +3365,31 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaPanel).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaBorder);
 
         var mainLayout = new VerticalStackLayout { Spacing = 16 };
 
         // Header
-        mainLayout.Children.Add(new Label
+        mainLayout.Children.Add((new Label
         {
             Text = "✅ Pending Points Now Covered",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
 
         // Stats
         int stillPending = pendingPoints.Count - coveredNumbers.Count;
-        mainLayout.Children.Add(new Label
+        mainLayout.Children.Add((new Label
         {
             Text = $"📊 {coveredNumbers.Count} now covered • {stillPending} still pending",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#AAAAAA")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaMutedText, ThemeKey.PageText1));
 
-        mainLayout.Children.Add(new Label
+        mainLayout.Children.Add((new Label
         {
             Text = "Select which points to move to Active:",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#CCCCCC")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaDetailText, ThemeKey.PageText1));
 
         // Scrollable content
         var scrollView = new ScrollView { MaximumHeightRequest = 380 };
@@ -3513,41 +3400,36 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             int index = n; // Capture
             var point = pendingPoints[n - 1];
 
-            var itemCard = new Frame
+            var itemCard = (new Frame
             {
-                BackgroundColor = Color.FromArgb("#1E1E1E"),
-                BorderColor = Color.FromArgb("#27AE60"),
                 CornerRadius = 8,
                 Padding = new Thickness(12),
                 HasShadow = false
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.TimelineSuccess);
 
             var itemLayout = new HorizontalStackLayout { Spacing = 12 };
 
-            var checkBox = new CheckBox
+            var checkBox = (new CheckBox
             {
                 IsChecked = true,
-                Color = Color.FromArgb("#27AE60"),
                 VerticalOptions = LayoutOptions.Center
-            };
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.TimelineSuccess);
             checkBox.CheckedChanged += (s, e) => moveToActive[index] = e.Value;
             itemLayout.Children.Add(checkBox);
 
             var textLayout = new VerticalStackLayout { Spacing = 4 };
-            textLayout.Children.Add(new Label
+            textLayout.Children.Add((new Label
             {
                 Text = $"#{n}",
                 FontSize = 11,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#27AE60")
-            });
-            textLayout.Children.Add(new Label
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineSuccess, ThemeKey.PageText3));
+            textLayout.Children.Add((new Label
             {
                 Text = point.Text,
                 FontSize = 12,
-                TextColor = Colors.White,
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3));
 
             itemLayout.Children.Add(textLayout);
             itemCard.Content = itemLayout;
@@ -3564,14 +3446,12 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#4A4A4A"),
-            TextColor = Colors.White,
             WidthRequest = 100,
             HeightRequest = 40
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         cancelBtn.Clicked += (s, e) =>
         {
             CloseOverlay(overlay);
@@ -3579,15 +3459,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         };
         buttonRow.Children.Add(cancelBtn);
 
-        var applyBtn = new Button
+        var applyBtn = (new Button
         {
             Text = "✅ Move to Active",
-            BackgroundColor = Color.FromArgb("#27AE60"),
-            TextColor = Colors.White,
             WidthRequest = 150,
             HeightRequest = 40,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TimelineSuccess).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         applyBtn.Clicked += async (s, e) =>
         {
             CloseOverlay(overlay);
@@ -4627,16 +4505,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         // Build point index map to show original text
         var pointIndexMap = BuildPointIndexMap(_points);
 
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             ZIndex = 1000
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D30"),
-            BorderColor = Color.FromArgb("#3E3E42"),
             CornerRadius = 12,
             Padding = new Thickness(20),
             MaximumWidthRequest = 800,
@@ -4644,7 +4519,7 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaPanel).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaBorder);
 
         var mainGrid = new Grid
         {
@@ -4660,13 +4535,12 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var header = new Label
+        var header = (new Label
         {
             Text = "🔧 Confirm Surgical Edit",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1);
         Grid.SetRow(header, 0);
         mainGrid.Children.Add(header);
 
@@ -4677,12 +4551,11 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         if (moves.Count > 0) summaryParts.Add($"{moves.Count} move(s)");
         if (inserts.Count > 0) summaryParts.Add($"{inserts.Count} insert(s)");
 
-        var summaryLabel = new Label
+        var summaryLabel = (new Label
         {
             Text = $"Changes: {string.Join(", ", summaryParts)}",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#AAAAAA")
-        };
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaMutedText, ThemeKey.PageText1);
         Grid.SetRow(summaryLabel, 1);
         mainGrid.Children.Add(summaryLabel);
 
@@ -4699,7 +4572,7 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             commandsList.Children.Add(CreateExpandableCommandCard(
                 "DELETE", 
                 $"Point #{idx}", 
-                Color.FromArgb("#F44336"),
+                ThemeKey.ErrorButtonBackground,
                 new Dictionary<string, string>
                 {
                     { "Current text", originalText },
@@ -4715,7 +4588,7 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             commandsList.Children.Add(CreateExpandableCommandCard(
                 "UPDATE", 
                 $"Point #{idx}", 
-                Color.FromArgb("#FF9800"),
+                ThemeKey.WarningButtonBackground,
                 new Dictionary<string, string>
                 {
                     { "Current", originalText },
@@ -4733,7 +4606,7 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             commandsList.Children.Add(CreateExpandableCommandCard(
                 "MOVE", 
                 $"Point #{idx} → {targetCategory}", 
-                Color.FromArgb("#9C27B0"),
+                ThemeKey.AccentPurpleButtonBackground,
                 new Dictionary<string, string>
                 {
                     { "Text", originalText },
@@ -4751,7 +4624,7 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             commandsList.Children.Add(CreateExpandableCommandCard(
                 "INSERT", 
                 $"After #{afterIdx} in {targetCategory}", 
-                Color.FromArgb("#4CAF50"),
+                ThemeKey.SuccessLightText,
                 new Dictionary<string, string>
                 {
                     { "New text", text },
@@ -4766,19 +4639,16 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
 
         // Version name input
         var nameRow = new HorizontalStackLayout { Spacing = 10 };
-        nameRow.Children.Add(new Label
+        nameRow.Children.Add((new Label
         {
             Text = "New version name:",
-            TextColor = Colors.White,
             VerticalOptions = LayoutOptions.Center
-        });
-        var nameEntry = new Entry
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1));
+        var nameEntry = (new Entry
         {
             Text = "Surgical Edit",
-            TextColor = Colors.White,
-            BackgroundColor = Color.FromArgb("#3E3E42"),
             WidthRequest = 300
-        };
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.OnColorText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBorder);
         nameRow.Children.Add(nameEntry);
         Grid.SetRow(nameRow, 3);
         mainGrid.Children.Add(nameRow);
@@ -4790,14 +4660,12 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#4A4A4A"),
-            TextColor = Colors.White,
             WidthRequest = 100,
             HeightRequest = 40
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         cancelBtn.Clicked += (s, e) =>
         {
             CloseOverlay(overlay);
@@ -4805,15 +4673,13 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         };
         buttonRow.Children.Add(cancelBtn);
 
-        var applyBtn = new Button
+        var applyBtn = (new Button
         {
             Text = "🚀 Create New Version",
-            BackgroundColor = Color.FromArgb("#0E639C"),
-            TextColor = Colors.White,
             WidthRequest = 180,
             HeightRequest = 40,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaSelection).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         applyBtn.Clicked += (s, e) =>
         {
             string versionName = nameEntry.Text?.Trim() ?? "Surgical Edit";
@@ -4837,16 +4703,14 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         return await tcs.Task;
     }
 
-    private Frame CreateExpandableCommandCard(string type, string summary, Color color, Dictionary<string, string> details)
+    private Frame CreateExpandableCommandCard(string type, string summary, ThemeKey color, Dictionary<string, string> details)
     {
-        var cmdCard = new Frame
+        var cmdCard = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#1E1E1E"),
-            BorderColor = color,
             CornerRadius = 8,
             Padding = new Thickness(12),
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, color);
 
         var cmdLayout = new VerticalStackLayout { Spacing = 8 };
 
@@ -4854,36 +4718,33 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
         var headerRow = new HorizontalStackLayout { Spacing = 12 };
 
         // Type label
-        headerRow.Children.Add(new Label
+        headerRow.Children.Add((new Label
         {
             Text = type,
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
-            TextColor = color,
             WidthRequest = 70,
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1));
 
         // Summary
-        headerRow.Children.Add(new Label
+        headerRow.Children.Add((new Label
         {
             Text = summary,
             FontSize = 12,
-            TextColor = Color.FromArgb("#AAAAAA"),
             VerticalOptions = LayoutOptions.Center,
             LineBreakMode = LineBreakMode.TailTruncation,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaMutedText, ThemeKey.PageText3));
 
         // Expand indicator
-        var expandLabel = new Label
+        var expandLabel = (new Label
         {
             Text = "▼",
             FontSize = 12,
-            TextColor = Color.FromArgb("#888888"),
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.End
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaHintText, ThemeKey.PageText3);
         headerRow.Children.Add(expandLabel);
 
         cmdLayout.Children.Add(headerRow);
@@ -4908,21 +4769,19 @@ public class StoryPointsPage : Bannister.Views.ModeThemedPage
                 ColumnSpacing = 8
             };
 
-            detailRow.Children.Add(new Label
+            detailRow.Children.Add((new Label
             {
                 Text = kvp.Key + ":",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#888888"),
                 FontAttributes = FontAttributes.Bold
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandMediaHintText, ThemeKey.PageText3));
 
-            var valueLabel = new Label
+            var valueLabel = (new Label
             {
                 Text = kvp.Value,
                 FontSize = 11,
-                TextColor = Colors.White,
                 LineBreakMode = LineBreakMode.WordWrap
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3);
             Grid.SetColumn(valueLabel, 1);
             detailRow.Children.Add(valueLabel);
 

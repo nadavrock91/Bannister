@@ -106,108 +106,99 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Padding = 16
         };
 
-        var topFrame = new Frame
+        var topFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var topStack = new VerticalStackLayout { Spacing = 12 };
-        topStack.Children.Add(new Label
+        topStack.Children.Add((new Label
         {
             Text = "Music for Stories",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#3949AB")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText1));
 
-        _statusLabel = new Label
+        _statusLabel = (new Label
         {
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
         topStack.Children.Add(_statusLabel);
 
-        topStack.Children.Add(new Label
+        topStack.Children.Add((new Label
         {
             Text = "Project",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#555")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1));
 
         var projectRow = new HorizontalStackLayout { Spacing = 8 };
-        _projectPicker = new Picker
+        _projectPicker = (new Picker
         {
             Title = "Choose a project...",
-            HorizontalOptions = LayoutOptions.FillAndExpand,
-            TextColor = Color.FromArgb("#222"),
-            BackgroundColor = Color.FromArgb("#FFFFFF")
-        };
+            HorizontalOptions = LayoutOptions.FillAndExpand
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _projectPicker.SelectedIndexChanged += OnProjectSelected;
         projectRow.Children.Add(_projectPicker);
 
-        _newProjectButton = ActionButton("+ New Project", Color.FromArgb("#3949AB"), Colors.White);
+        _newProjectButton = ActionButton("+ New Project", ThemeKey.HighlightIndigoButton, ThemeKey.OnColorText);
         _newProjectButton.IsVisible = IsMaster;
         _newProjectButton.Clicked += OnNewProjectClicked;
         projectRow.Children.Add(_newProjectButton);
 
-        _projectSettingsButton = ActionButton("Settings", Color.FromArgb("#E0F7FA"), Color.FromArgb("#006064"));
+        _projectSettingsButton = ActionButton("Settings", ThemeKey.HighlightTeal, ThemeKey.HighlightTealStrongText);
         _projectSettingsButton.IsVisible = false;
         _projectSettingsButton.Clicked += OnProjectSettingsClicked;
         projectRow.Children.Add(_projectSettingsButton);
 
-        _deleteProjectButton = ActionButton("Delete Project", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+        _deleteProjectButton = ActionButton("Delete Project", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         _deleteProjectButton.IsVisible = false;
         _deleteProjectButton.Clicked += OnDeleteProjectClicked;
         projectRow.Children.Add(_deleteProjectButton);
 
         topStack.Children.Add(projectRow);
 
-        topStack.Children.Add(new Label
+        topStack.Children.Add((new Label
         {
             Text = "Draft Version",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#555")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1));
 
         var draftRow = new HorizontalStackLayout { Spacing = 8 };
-        _draftPicker = new Picker
+        _draftPicker = (new Picker
         {
             Title = "Select draft...",
             WidthRequest = 210,
-            TextColor = Color.FromArgb("#222"),
-            BackgroundColor = Color.FromArgb("#FFFFFF"),
             IsVisible = false
-        };
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _draftPicker.SelectedIndexChanged += OnDraftSelected;
         draftRow.Children.Add(_draftPicker);
 
-        _newDraftButton = ActionButton("+ New Draft", Color.FromArgb("#3949AB"), Colors.White);
+        _newDraftButton = ActionButton("+ New Draft", ThemeKey.HighlightIndigoButton, ThemeKey.OnColorText);
         _newDraftButton.IsVisible = false;
         _newDraftButton.Clicked += OnNewDraftClicked;
         draftRow.Children.Add(_newDraftButton);
 
-        _setLatestButton = ActionButton("Set Latest", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57F17"));
+        _setLatestButton = ActionButton("Set Latest", ThemeKey.HighlightYellow, ThemeKey.HighlightYellowText);
         _setLatestButton.IsVisible = false;
         _setLatestButton.Clicked += OnSetLatestClicked;
         draftRow.Children.Add(_setLatestButton);
 
-        _compareButton = ActionButton("Compare", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3F51B5"));
+        _compareButton = ActionButton("Compare", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoStrongText);
         _compareButton.IsVisible = false;
         _compareButton.Clicked += OnCompareClicked;
         draftRow.Children.Add(_compareButton);
 
-        _renameDraftButton = ActionButton("Rename", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
+        _renameDraftButton = ActionButton("Rename", ThemeKey.WarningBackground, ThemeKey.WarningText);
         _renameDraftButton.IsVisible = false;
         _renameDraftButton.Clicked += OnRenameDraftClicked;
         draftRow.Children.Add(_renameDraftButton);
 
-        _deleteDraftButton = ActionButton("Delete Draft", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+        _deleteDraftButton = ActionButton("Delete Draft", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         _deleteDraftButton.IsVisible = false;
         _deleteDraftButton.Clicked += OnDeleteDraftClicked;
         draftRow.Children.Add(_deleteDraftButton);
@@ -215,22 +206,22 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         topStack.Children.Add(draftRow);
 
         var importExportRow = new HorizontalStackLayout { Spacing = 8 };
-        _exportPromptButton = ActionButton("Export Prompt", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+        _exportPromptButton = ActionButton("Export Prompt", ThemeKey.InfoBackground, ThemeKey.InfoText);
         _exportPromptButton.IsVisible = false;
         _exportPromptButton.Clicked += OnExportPromptClicked;
         importExportRow.Children.Add(_exportPromptButton);
 
-        _customPromptsButton = ActionButton("Custom Prompts", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57F17"));
+        _customPromptsButton = ActionButton("Custom Prompts", ThemeKey.HighlightYellow, ThemeKey.HighlightYellowText);
         _customPromptsButton.IsVisible = false;
         _customPromptsButton.Clicked += OnCustomPromptsClicked;
         importExportRow.Children.Add(_customPromptsButton);
 
-        _exportMusicStateButton = ActionButton("Export Music State", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
+        _exportMusicStateButton = ActionButton("Export Music State", ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleStrongText);
         _exportMusicStateButton.IsVisible = false;
         _exportMusicStateButton.Clicked += OnExportMusicStateClicked;
         importExportRow.Children.Add(_exportMusicStateButton);
 
-        _importButton = ActionButton("Import", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _importButton = ActionButton("Import", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         _importButton.IsVisible = false;
         _importButton.Clicked += OnImportClicked;
         importExportRow.Children.Add(_importButton);
@@ -239,31 +230,29 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         _musicPlanningFrame = BuildMusicPlanningSection();
         topStack.Children.Add(_musicPlanningFrame);
 
-        _currentDraftLabel = new Label
+        _currentDraftLabel = (new Label
         {
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#3949AB"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText1);
         topStack.Children.Add(_currentDraftLabel);
 
         var cardHeaderRow = new HorizontalStackLayout { Spacing = 8 };
-        cardHeaderRow.Children.Add(new Label
+        cardHeaderRow.Children.Add((new Label
         {
             Text = "Cards",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.StartAndExpand
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
-        _addCardButton = ActionButton("+ Add Card", Color.FromArgb("#3949AB"), Colors.White);
+        _addCardButton = ActionButton("+ Add Card", ThemeKey.HighlightIndigoButton, ThemeKey.OnColorText);
         _addCardButton.IsVisible = false;
         _addCardButton.Clicked += OnAddCardClicked;
 
-        _cardsToggleButton = ActionButton("Expand Cards (0)", Color.FromArgb("#ECEFF1"), Color.FromArgb("#333"));
+        _cardsToggleButton = ActionButton("Expand Cards (0)", ThemeKey.NeutralButtonBackground, ThemeKey.CardText1);
         _cardsToggleButton.IsVisible = false;
         _cardsToggleButton.Clicked += OnCardsToggleClicked;
         cardHeaderRow.Children.Add(_cardsToggleButton);
@@ -278,14 +267,13 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         pageStack.Children.Add(_linesContainer);
 
         var scroll = new ScrollView { Content = pageStack };
-        _loadingOverlayLabel = new Label
+        _loadingOverlayLabel = (new Label
         {
             Text = "",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333333"),
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
 
         _loadingOverlay = new Grid
         {
@@ -293,14 +281,12 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             InputTransparent = false,
             Children =
             {
-                new BoxView
+                (new BoxView
                 {
-                    Color = Colors.Black,
                     Opacity = 0.6
-                },
-                new Frame
+                }).ThemeColor(BoxView.ColorProperty, ThemeKey.CardTextStrong),
+                (new Frame
                 {
-                    BackgroundColor = Colors.White,
                     CornerRadius = 12,
                     Padding = 24,
                     HasShadow = true,
@@ -312,18 +298,17 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
                         Spacing = 14,
                         Children =
                         {
-                            new ActivityIndicator
+                            (new ActivityIndicator
                             {
                                 IsRunning = true,
-                                Color = Color.FromArgb("#5B63EE"),
                                 WidthRequest = 36,
                                 HeightRequest = 36,
                                 HorizontalOptions = LayoutOptions.Center
-                            },
+                            }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText),
                             _loadingOverlayLabel
                         }
                     }
-                }
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground)
             }
         };
 
@@ -340,46 +325,41 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
     private Frame BuildMusicPlanningSection()
     {
         var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Music Planning",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Stage 1 - General Music Description",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#3949AB")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText1));
 
-        _generalMusicDescriptionLabel = new Label
+        _generalMusicDescriptionLabel = (new Label
         {
             Text = "No general music description yet.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
-        stack.Children.Add(new Border
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
+        stack.Children.Add((new Border
         {
-            Stroke = Color.FromArgb("#DDD"),
             StrokeThickness = 1,
             StrokeShape = new RoundRectangle { CornerRadius = 6 },
             Padding = 10,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             Content = _generalMusicDescriptionLabel
-        });
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface));
 
         var stageOneButtons = new HorizontalStackLayout { Spacing = 8 };
 
-        _askDescriptionButton = ActionButton("Ask AI for Description", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+        _askDescriptionButton = ActionButton("Ask AI for Description", ThemeKey.InfoBackground, ThemeKey.InfoText);
         _askDescriptionButton.Clicked += OnAskAiForDescriptionClicked;
-        _writeOwnDescriptionButton = ActionButton("Write My Own", Color.FromArgb("#E8EAF6"), Color.FromArgb("#3F51B5"));
+        _writeOwnDescriptionButton = ActionButton("Write My Own", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoStrongText);
         _writeOwnDescriptionButton.Clicked += OnWriteOwnDescriptionClicked;
-        _pasteDescriptionButton = ActionButton("Paste Description", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _pasteDescriptionButton = ActionButton("Paste Description", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         _pasteDescriptionButton.Clicked += OnPasteDescriptionClicked;
 
         foreach (var button in new[] { _askDescriptionButton, _writeOwnDescriptionButton, _pasteDescriptionButton })
@@ -388,34 +368,31 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         }
         stack.Children.Add(stageOneButtons);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Stage 2 - How to Prompt for the Music",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#3949AB")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText1));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Timestamps",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#555")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1));
 
-        _timestampStatusLabel = new Label
+        _timestampStatusLabel = (new Label
         {
             Text = "Timestamps: none yet",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
         stack.Children.Add(_timestampStatusLabel);
 
         var timestampButtons = new HorizontalStackLayout { Spacing = 8 };
-        _getTranscriptionPromptButton = ActionButton("Get Transcription Prompt", Color.FromArgb("#E0F7FA"), Color.FromArgb("#006064"));
+        _getTranscriptionPromptButton = ActionButton("Get Transcription Prompt", ThemeKey.HighlightTeal, ThemeKey.HighlightTealStrongText);
         _getTranscriptionPromptButton.Clicked += OnGetTranscriptionPromptClicked;
-        _pasteTimestampsButton = ActionButton("Paste Timestamps", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _pasteTimestampsButton = ActionButton("Paste Timestamps", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         _pasteTimestampsButton.Clicked += OnPasteTimestampsClicked;
         timestampButtons.Children.Add(_getTranscriptionPromptButton);
         timestampButtons.Children.Add(_pasteTimestampsButton);
@@ -423,11 +400,11 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
         var stageTwoButtons = new HorizontalStackLayout { Spacing = 8 };
 
-        _askPromptOptionsButton = ActionButton("Ask AI for 10 Prompt Options", Color.FromArgb("#FFF8E1"), Color.FromArgb("#F57F17"));
+        _askPromptOptionsButton = ActionButton("Ask AI for 10 Prompt Options", ThemeKey.HighlightYellow, ThemeKey.HighlightYellowText);
         _askPromptOptionsButton.Clicked += OnAskPromptOptionsClicked;
-        _askMotifBlockPromptsButton = ActionButton("Main Motif", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
+        _askMotifBlockPromptsButton = ActionButton("Main Motif", ThemeKey.WarningBackground, ThemeKey.WarningText);
         _askMotifBlockPromptsButton.Clicked += OnAskMotifBlockPromptsClicked;
-        _writeOwnPromptButton = ActionButton("Write My Own Music Prompt", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
+        _writeOwnPromptButton = ActionButton("Write My Own Music Prompt", ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleStrongText);
         _writeOwnPromptButton.Clicked += OnWriteOwnPromptClicked;
 
         foreach (var button in new[] { _askPromptOptionsButton, _askMotifBlockPromptsButton, _writeOwnPromptButton })
@@ -436,22 +413,21 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         }
         stack.Children.Add(stageTwoButtons);
 
-        _motifDescriptionStatusLabel = new Label
+        _motifDescriptionStatusLabel = (new Label
         {
             Text = "Motif description: none yet",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
         stack.Children.Add(_motifDescriptionStatusLabel);
 
         var motifDescriptionButtons = new HorizontalStackLayout { Spacing = 8 };
-        _describeMotifBlockButton = ActionButton("Describe Motif Block", Color.FromArgb("#E0F7FA"), Color.FromArgb("#006064"));
+        _describeMotifBlockButton = ActionButton("Describe Motif Block", ThemeKey.HighlightTeal, ThemeKey.HighlightTealStrongText);
         _describeMotifBlockButton.Clicked += OnDescribeMotifBlockClicked;
-        _pasteMotifDescriptionButton = ActionButton("Paste Motif Description", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _pasteMotifDescriptionButton = ActionButton("Paste Motif Description", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         _pasteMotifDescriptionButton.Clicked += OnPasteMotifDescriptionClicked;
-        _buildFullSoundtrackPromptButton = ActionButton("Build Full Soundtrack Prompt", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
+        _buildFullSoundtrackPromptButton = ActionButton("Build Full Soundtrack Prompt", ThemeKey.HighlightViolet, ThemeKey.AccentVioletStrongText);
         _buildFullSoundtrackPromptButton.Clicked += OnBuildFullSoundtrackPromptClicked;
-        _planRemixStitchButton = ActionButton("Plan Remix and Stitch", Color.FromArgb("#E8EAF6"), Color.FromArgb("#303F9F"));
+        _planRemixStitchButton = ActionButton("Plan Remix and Stitch", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoDeepText);
         _planRemixStitchButton.Clicked += OnPlanRemixStitchClicked;
         motifDescriptionButtons.Children.Add(_describeMotifBlockButton);
         motifDescriptionButtons.Children.Add(_pasteMotifDescriptionButton);
@@ -460,13 +436,13 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(motifDescriptionButtons);
 
         var templateSaveButtons = new HorizontalStackLayout { Spacing = 8 };
-        _saveWorkingPromptTemplateButton = ActionButton("Save a Working Prompt as Template", Color.FromArgb("#E0F2F1"), Color.FromArgb("#00695C"));
+        _saveWorkingPromptTemplateButton = ActionButton("Save a Working Prompt as Template", ThemeKey.HighlightMint, ThemeKey.HighlightMintText);
         _saveWorkingPromptTemplateButton.Clicked += OnSaveWorkingPromptTemplateClicked;
-        _pasteNewTemplateButton = ActionButton("Paste New Template", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _pasteNewTemplateButton = ActionButton("Paste New Template", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         _pasteNewTemplateButton.Clicked += OnPasteNewTemplateClicked;
-        _suggestTemplatesButton = ActionButton("Suggest Templates to Try", Color.FromArgb("#FFF3E0"), Color.FromArgb("#E65100"));
+        _suggestTemplatesButton = ActionButton("Suggest Templates to Try", ThemeKey.WarningBackground, ThemeKey.WarningText);
         _suggestTemplatesButton.Clicked += OnSuggestTemplatesClicked;
-        _getTemplateIdeasButton = ActionButton("Get 100 Template Ideas", Color.FromArgb("#F3E5F5"), Color.FromArgb("#6A1B9A"));
+        _getTemplateIdeasButton = ActionButton("Get 100 Template Ideas", ThemeKey.AccentPurpleBackground, ThemeKey.AccentPurpleStrongText);
         _getTemplateIdeasButton.Clicked += OnGetTemplateIdeasClicked;
         templateSaveButtons.Children.Add(_saveWorkingPromptTemplateButton);
         templateSaveButtons.Children.Add(_pasteNewTemplateButton);
@@ -475,65 +451,60 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(templateSaveButtons);
 
         var guidingInstructionButtons = new HorizontalStackLayout { Spacing = 8 };
-        _manageGuidingInstructionsButton = ActionButton("Manage Guiding Instructions", Color.FromArgb("#E0F7FA"), Color.FromArgb("#006064"));
+        _manageGuidingInstructionsButton = ActionButton("Manage Guiding Instructions", ThemeKey.HighlightTeal, ThemeKey.HighlightTealStrongText);
         _manageGuidingInstructionsButton.Clicked += OnManageGuidingInstructionsClicked;
-        _expandIdeaToPromptButton = ActionButton("Expand Idea to Prompt", Color.FromArgb("#EDE7F6"), Color.FromArgb("#4527A0"));
+        _expandIdeaToPromptButton = ActionButton("Expand Idea to Prompt", ThemeKey.HighlightViolet, ThemeKey.AccentVioletStrongText);
         _expandIdeaToPromptButton.Clicked += OnExpandIdeaToPromptClicked;
         guidingInstructionButtons.Children.Add(_manageGuidingInstructionsButton);
         guidingInstructionButtons.Children.Add(_expandIdeaToPromptButton);
         stack.Children.Add(guidingInstructionButtons);
 
         var templateUseRow = new HorizontalStackLayout { Spacing = 8 };
-        _templatePicker = new Picker
+        _templatePicker = (new Picker
         {
             Title = "Use saved template...",
-            WidthRequest = 260,
-            TextColor = Color.FromArgb("#222"),
-            BackgroundColor = Colors.White
-        };
+            WidthRequest = 260
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _templatePicker.SelectedIndexChanged += (s, e) => UpdateSelectedTemplateScoreDisplay();
         templateUseRow.Children.Add(_templatePicker);
 
-        _buildTemplatePromptButton = ActionButton("Build Prompt from Template", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+        _buildTemplatePromptButton = ActionButton("Build Prompt from Template", ThemeKey.InfoBackground, ThemeKey.InfoText);
         _buildTemplatePromptButton.Clicked += OnBuildTemplatePromptClicked;
         templateUseRow.Children.Add(_buildTemplatePromptButton);
 
-        _manageTemplatesButton = ActionButton("Manage Templates", Color.FromArgb("#ECEFF1"), Color.FromArgb("#333"));
+        _manageTemplatesButton = ActionButton("Manage Templates", ThemeKey.NeutralButtonBackground, ThemeKey.CardText1);
         _manageTemplatesButton.Clicked += OnManageTemplatesClicked;
         templateUseRow.Children.Add(_manageTemplatesButton);
         stack.Children.Add(templateUseRow);
 
         var templateScoreRow = new HorizontalStackLayout { Spacing = 8 };
-        _templateScoreLabel = new Label
+        _templateScoreLabel = (new Label
         {
-            TextColor = Color.FromArgb("#444"),
             VerticalOptions = LayoutOptions.Center,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
         templateScoreRow.Children.Add(_templateScoreLabel);
 
-        _markTemplateSuccessButton = SmallButton("✓ Success", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        _markTemplateSuccessButton = SmallButton("✓ Success", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         _markTemplateSuccessButton.Clicked += OnMarkSelectedTemplateSuccessClicked;
         _markTemplateSuccessButton.IsVisible = false;
         templateScoreRow.Children.Add(_markTemplateSuccessButton);
 
-        _markTemplateFailButton = SmallButton("✗ Fail", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+        _markTemplateFailButton = SmallButton("✗ Fail", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         _markTemplateFailButton.Clicked += OnMarkSelectedTemplateFailClicked;
         _markTemplateFailButton.IsVisible = false;
         templateScoreRow.Children.Add(_markTemplateFailButton);
 
         stack.Children.Add(templateScoreRow);
 
-        return new Frame
+        return (new Frame
         {
             Padding = 12,
             CornerRadius = 10,
-            BackgroundColor = Color.FromArgb("#F8F9FF"),
-            BorderColor = Color.FromArgb("#DDE2FF"),
             HasShadow = false,
             IsVisible = false,
             Content = stack
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightIndigoSelected);
     }
 
     private async Task LoadProjectsAsync(int? selectProjectId = null)
@@ -855,14 +826,12 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
     private View CreateLineCard(MusicLine line, int totalLines, bool isChanged)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 14,
             CornerRadius = 10,
-            BackgroundColor = isChanged ? Color.FromArgb("#FFF8E1") : Colors.White,
-            BorderColor = isChanged ? Color.FromArgb("#FFB300") : Color.FromArgb("#E0E0E0"),
             HasShadow = !isChanged
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isChanged ? ThemeKey.HighlightYellow : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isChanged ? ThemeKey.HighlightYellowButton : ThemeKey.Separator);
 
         var stack = new VerticalStackLayout { Spacing = 10 };
         var headerGrid = new Grid
@@ -875,19 +844,18 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         };
 
         var title = $"Card {line.LineOrder}" + (isChanged ? " - changed" : "");
-        headerGrid.Children.Add(new Label
+        headerGrid.Children.Add((new Label
         {
             Text = title,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#3949AB"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText1));
 
         if (IsMaster)
         {
             var actionRow = new HorizontalStackLayout { Spacing = 6 };
-            var upButton = SmallButton("Up", Color.FromArgb("#ECEFF1"), Color.FromArgb("#333"));
+            var upButton = SmallButton("Up", ThemeKey.NeutralButtonBackground, ThemeKey.CardText1);
             upButton.IsEnabled = line.LineOrder > 1;
             upButton.Clicked += async (s, e) =>
             {
@@ -896,7 +864,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             };
             actionRow.Children.Add(upButton);
 
-            var downButton = SmallButton("Down", Color.FromArgb("#ECEFF1"), Color.FromArgb("#333"));
+            var downButton = SmallButton("Down", ThemeKey.NeutralButtonBackground, ThemeKey.CardText1);
             downButton.IsEnabled = line.LineOrder < totalLines;
             downButton.Clicked += async (s, e) =>
             {
@@ -905,7 +873,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             };
             actionRow.Children.Add(downButton);
 
-            var deleteButton = SmallButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+            var deleteButton = SmallButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
             deleteButton.Clicked += async (s, e) => await DeleteLineAsync(line);
             actionRow.Children.Add(deleteButton);
 
@@ -940,7 +908,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
         if (IsMaster)
         {
-            var saveButton = SmallButton("Save Card", Color.FromArgb("#3949AB"), Colors.White);
+            var saveButton = SmallButton("Save Card", ThemeKey.HighlightIndigoButton, ThemeKey.OnColorText);
             saveButton.HorizontalOptions = LayoutOptions.End;
             saveButton.Clicked += async (s, e) =>
             {
@@ -960,35 +928,29 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
     private View CreateColumnEditor(string title, string text)
     {
         var stack = new VerticalStackLayout { Spacing = 6 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = title,
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
-        var editor = new Editor
+        var editor = (new Editor
         {
             Text = text ?? "",
             Placeholder = title,
             HeightRequest = 140,
             AutoSize = EditorAutoSizeOption.Disabled,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Colors.White,
             IsReadOnly = !IsMaster
-        };
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
-        stack.Children.Add(new Border
+        stack.Children.Add((new Border
         {
-            Stroke = Color.FromArgb("#DDD"),
             StrokeThickness = 1,
             StrokeShape = new RoundRectangle { CornerRadius = 6 },
             Padding = 4,
-            BackgroundColor = Colors.White,
             Content = editor
-        });
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground));
 
         return stack;
     }
@@ -1320,9 +1282,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             _timestampStatusLabel.Text = string.IsNullOrWhiteSpace(timestampedNarration)
                 ? "Timestamps: none yet"
                 : "Timestamps: saved";
-            _timestampStatusLabel.TextColor = string.IsNullOrWhiteSpace(timestampedNarration)
-                ? Color.FromArgb("#666")
-                : Color.FromArgb("#2E7D32");
+            _timestampStatusLabel.ThemeColor(Label.TextColorProperty, string.IsNullOrWhiteSpace(timestampedNarration) ? ThemeKey.CardText2 : ThemeKey.SuccessText, ThemeKey.PageText1);
         }
 
         if (_motifDescriptionStatusLabel != null)
@@ -1331,9 +1291,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             _motifDescriptionStatusLabel.Text = string.IsNullOrWhiteSpace(motifDescription)
                 ? "Motif description: none yet"
                 : "Motif description: saved";
-            _motifDescriptionStatusLabel.TextColor = string.IsNullOrWhiteSpace(motifDescription)
-                ? Color.FromArgb("#666")
-                : Color.FromArgb("#2E7D32");
+            _motifDescriptionStatusLabel.ThemeColor(Label.TextColorProperty, string.IsNullOrWhiteSpace(motifDescription) ? ThemeKey.CardText2 : ThemeKey.SuccessText, ThemeKey.PageText1);
         }
     }
 
@@ -1847,13 +1805,12 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         var card = CreateOverlayCard(width: 640, height: 560);
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Manage Guiding Instructions",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         var listStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -1863,7 +1820,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             BuildGuidingInstructionRows(listStack, instructions, RebuildAsync);
         }
 
-        var addButton = ActionButton("+ Add Instruction", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+        var addButton = ActionButton("+ Add Instruction", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         addButton.Clicked += async (s, e) =>
         {
             string? text = await ShowMultiLineInputAsync(
@@ -1886,7 +1843,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Content = listStack
         });
 
-        var closeButton = ActionButton("Close", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
+        var closeButton = ActionButton("Close", ThemeKey.Separator, ThemeKey.CardText1);
         closeButton.HorizontalOptions = LayoutOptions.End;
         closeButton.Clicked += (s, e) => RemoveOverlay(overlay);
         stack.Children.Add(closeButton);
@@ -1911,7 +1868,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
         foreach (var instruction in instructions)
         {
-            var row = new Grid
+            var row = (new Grid
             {
                 ColumnDefinitions =
                 {
@@ -1921,23 +1878,21 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
                     new ColumnDefinition(GridLength.Auto)
                 },
                 ColumnSpacing = 8,
-                Padding = 8,
-                BackgroundColor = Color.FromArgb("#FAFAFA")
-            };
+                Padding = 8
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-            var text = new Label
+            var text = (new Label
             {
                 Text = instruction.Text,
-                TextColor = Color.FromArgb("#333"),
                 VerticalOptions = LayoutOptions.Center,
                 LineBreakMode = LineBreakMode.TailTruncation
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
             row.Children.Add(text);
 
             var defaultToggle = SmallButton(
                 instruction.IsDefaultOn ? "Default On" : "Default Off",
-                instruction.IsDefaultOn ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#ECEFF1"),
-                instruction.IsDefaultOn ? Color.FromArgb("#2E7D32") : Color.FromArgb("#333"));
+                instruction.IsDefaultOn ? ThemeKey.SuccessBackground : ThemeKey.NeutralButtonBackground,
+                instruction.IsDefaultOn ? ThemeKey.SuccessText : ThemeKey.CardText1);
             defaultToggle.Clicked += async (s, e) =>
             {
                 instruction.IsDefaultOn = !instruction.IsDefaultOn;
@@ -1947,7 +1902,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Grid.SetColumn(defaultToggle, 1);
             row.Children.Add(defaultToggle);
 
-            var edit = SmallButton("Edit", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+            var edit = SmallButton("Edit", ThemeKey.InfoBackground, ThemeKey.InfoText);
             edit.Clicked += async (s, e) =>
             {
                 string? newText = await ShowMultiLineInputAsync(
@@ -1964,7 +1919,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Grid.SetColumn(edit, 2);
             row.Children.Add(edit);
 
-            var delete = SmallButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+            var delete = SmallButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
             delete.Clicked += async (s, e) =>
             {
                 bool confirm = await DisplayAlert(
@@ -2023,20 +1978,18 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         var card = CreateOverlayCard(width: 640, height: 620);
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Choose Guiding Instructions",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Tick the reusable constraints to apply. Add one-off instructions below if needed.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
         var checkboxes = new List<(GuidingInstruction Instruction, CheckBox CheckBox)>();
         var instructionStack = new VerticalStackLayout { Spacing = 6 };
@@ -2057,13 +2010,12 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
                 };
                 checkboxes.Add((instruction, checkbox));
                 row.Children.Add(checkbox);
-                row.Children.Add(new Label
+                row.Children.Add((new Label
                 {
                     Text = instruction.Text,
-                    TextColor = Color.FromArgb("#333"),
                     VerticalOptions = LayoutOptions.Center,
                     LineBreakMode = LineBreakMode.WordWrap
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
                 instructionStack.Children.Add(row);
             }
         }
@@ -2074,23 +2026,19 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Content = instructionStack
         });
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "One-off instructions",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
-        var oneOffEditor = new Editor
+        var oneOffEditor = (new Editor
         {
             Placeholder = "Optional constraints for this prompt only...",
             HeightRequest = 110,
             FontSize = 14,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             AutoSize = EditorAutoSizeOption.Disabled
-        };
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(oneOffEditor);
 
         var btnRow = new HorizontalStackLayout
@@ -2099,14 +2047,14 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var cancelButton = ActionButton("Cancel", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
+        var cancelButton = ActionButton("Cancel", ThemeKey.Separator, ThemeKey.CardText1);
         cancelButton.Clicked += (s, e) =>
         {
             RemoveOverlay(overlay);
             tcs.TrySetResult(null);
         };
 
-        var buildButton = ActionButton("Build Prompt", Color.FromArgb("#3949AB"), Colors.White);
+        var buildButton = ActionButton("Build Prompt", ThemeKey.HighlightIndigoButton, ThemeKey.OnColorText);
         buildButton.Clicked += (s, e) =>
         {
             var selected = checkboxes
@@ -2526,13 +2474,12 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         bool updatingCategoryPicker = false;
         bool updatingSortPicker = false;
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Manage Music Prompt Templates",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
         var controlsRow = new HorizontalStackLayout
         {
@@ -2540,22 +2487,18 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center
         };
 
-        var categoryPicker = new Picker
+        var categoryPicker = (new Picker
         {
             Title = "Category",
-            TextColor = Color.FromArgb("#222"),
-            BackgroundColor = Colors.White,
             WidthRequest = 260
-        };
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         controlsRow.Children.Add(categoryPicker);
 
-        var sortPicker = new Picker
+        var sortPicker = (new Picker
         {
             Title = "Sort",
-            TextColor = Color.FromArgb("#222"),
-            BackgroundColor = Colors.White,
             WidthRequest = 180
-        };
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         sortPicker.Items.Add("Name");
         sortPicker.Items.Add("Success %");
         sortPicker.Items.Add("Most Successes");
@@ -2599,7 +2542,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Content = listStack
         });
 
-        var closeButton = ActionButton("Close", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
+        var closeButton = ActionButton("Close", ThemeKey.Separator, ThemeKey.CardText1);
         closeButton.HorizontalOptions = LayoutOptions.End;
         closeButton.Clicked += (s, e) => RemoveOverlay(overlay);
         stack.Children.Add(closeButton);
@@ -2653,7 +2596,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
         foreach (var template in visibleTemplates)
         {
-            var row = new Grid
+            var row = (new Grid
             {
                 ColumnDefinitions =
                 {
@@ -2668,24 +2611,22 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
                     new ColumnDefinition(GridLength.Auto)
                 },
                 ColumnSpacing = 8,
-                Padding = 8,
-                BackgroundColor = Color.FromArgb("#FAFAFA")
-            };
+                Padding = 8
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-            var name = new Label
+            var name = (new Label
             {
                 Text = template.IsTimestamped
                     ? $"[{GetTemplateCategoryDisplay(template)}] {template.Name} (timestamped)"
                     : $"[{GetTemplateCategoryDisplay(template)}] {template.Name}",
-                TextColor = Color.FromArgb("#333"),
                 LineBreakMode = LineBreakMode.TailTruncation
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1);
             row.Children.Add(name);
-            row.Add(BuildTemplateScoreCell(template.SuccessCount.ToString(), Color.FromArgb("#2E7D32")), 1, 0);
-            row.Add(BuildTemplateScoreCell(template.FailCount.ToString(), Color.FromArgb("#C62828")), 2, 0);
-            row.Add(BuildTemplateScoreCell(FormatTemplateSuccessPercent(template), Color.FromArgb("#333")), 3, 0);
+            row.Add(BuildTemplateScoreCell(template.SuccessCount.ToString(), ThemeKey.SuccessText), 1, 0);
+            row.Add(BuildTemplateScoreCell(template.FailCount.ToString(), ThemeKey.ErrorText), 2, 0);
+            row.Add(BuildTemplateScoreCell(FormatTemplateSuccessPercent(template), ThemeKey.CardText1), 3, 0);
 
-            var markSuccess = SmallButton("Mark ✓", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+            var markSuccess = SmallButton("Mark ✓", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
             markSuccess.Clicked += async (s, e) =>
             {
                 var updated = await _musicService.MarkTemplateSuccessAsync(template.Id);
@@ -2696,7 +2637,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Grid.SetColumn(markSuccess, 4);
             row.Children.Add(markSuccess);
 
-            var markFail = SmallButton("Mark ✗", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+            var markFail = SmallButton("Mark ✗", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
             markFail.Clicked += async (s, e) =>
             {
                 var updated = await _musicService.MarkTemplateFailAsync(template.Id);
@@ -2707,7 +2648,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Grid.SetColumn(markFail, 5);
             row.Children.Add(markFail);
 
-            var rename = SmallButton("Rename", Color.FromArgb("#E3F2FD"), Color.FromArgb("#1565C0"));
+            var rename = SmallButton("Rename", ThemeKey.InfoBackground, ThemeKey.InfoText);
             rename.Clicked += async (s, e) =>
             {
                 string? newName = await DisplayPromptAsync(
@@ -2726,7 +2667,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Grid.SetColumn(rename, 6);
             row.Children.Add(rename);
 
-            var category = SmallButton("Change Category", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+            var category = SmallButton("Change Category", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
             category.Clicked += async (s, e) =>
             {
                 await ChangeTemplateCategoryAsync(template);
@@ -2735,7 +2676,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             Grid.SetColumn(category, 7);
             row.Children.Add(category);
 
-            var delete = SmallButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+            var delete = SmallButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
             delete.Clicked += async (s, e) =>
             {
                 bool confirm = await DisplayAlert(
@@ -2790,7 +2731,7 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
     private static Grid BuildTemplateManagementHeaderRow()
     {
-        var header = new Grid
+        var header = (new Grid
         {
             ColumnDefinitions =
             {
@@ -2805,9 +2746,8 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition(GridLength.Auto)
             },
             ColumnSpacing = 8,
-            Padding = new Thickness(8, 4),
-            BackgroundColor = Color.FromArgb("#FFF3E0")
-        };
+            Padding = new Thickness(8, 4)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground);
 
         header.Add(BuildTemplateHeaderCell("Name", TextAlignment.Start), 0, 0);
         header.Add(BuildTemplateHeaderCell("\u2713", TextAlignment.Center), 1, 0);
@@ -2818,28 +2758,26 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
     private static Label BuildTemplateHeaderCell(string text, TextAlignment alignment)
     {
-        return new Label
+        return (new Label
         {
             Text = text,
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5D4037"),
             HorizontalTextAlignment = alignment,
             VerticalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownText, ThemeKey.PageText3);
     }
 
-    private static Label BuildTemplateScoreCell(string text, Color color)
+    private static Label BuildTemplateScoreCell(string text, ThemeKey color)
     {
-        return new Label
+        return (new Label
         {
             Text = text,
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
-            TextColor = color,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText3);
     }
 
     private async Task ChangeTemplateCategoryAsync(MusicPromptTemplate template)
@@ -3139,32 +3077,27 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         var card = CreateOverlayCard(width: 520);
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = message,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
-        var editor = new Editor
+        var editor = (new Editor
         {
             Text = initialValue ?? "",
             Placeholder = placeholder,
             HeightRequest = 180,
             FontSize = 14,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             AutoSize = EditorAutoSizeOption.Disabled
-        };
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(editor);
 
         var btnRow = new HorizontalStackLayout
@@ -3173,8 +3106,8 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var cancelBtn = ActionButton("Cancel", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
-        var okBtn = ActionButton("OK", Color.FromArgb("#3949AB"), Colors.White);
+        var cancelBtn = ActionButton("Cancel", ThemeKey.Separator, ThemeKey.CardText1);
+        var okBtn = ActionButton("OK", ThemeKey.HighlightIndigoButton, ThemeKey.OnColorText);
 
         cancelBtn.Clicked += (s, e) =>
         {
@@ -3212,32 +3145,27 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
         var card = CreateOverlayCard(width: 600, height: 500);
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = message,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2));
 
-        var editor = new Editor
+        var editor = (new Editor
         {
             Placeholder = placeholder,
             HeightRequest = 320,
             FontSize = 13,
             FontFamily = "Consolas",
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             AutoSize = EditorAutoSizeOption.Disabled
-        };
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(editor);
 
         var btnRow = new HorizontalStackLayout
@@ -3246,8 +3174,8 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var cancelBtn = ActionButton("Cancel", Color.FromArgb("#E0E0E0"), Color.FromArgb("#333"));
-        var importBtn = ActionButton(acceptText, Color.FromArgb("#4CAF50"), Colors.White);
+        var cancelBtn = ActionButton("Cancel", ThemeKey.Separator, ThemeKey.CardText1);
+        var importBtn = ActionButton(acceptText, ThemeKey.SuccessButtonBackground, ThemeKey.OnColorText);
 
         cancelBtn.Clicked += (s, e) =>
         {
@@ -3275,28 +3203,26 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
     private static Grid CreateOverlay()
     {
-        return new Grid
+        return (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             VerticalOptions = LayoutOptions.Fill,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
     }
 
     private static Frame CreateOverlayCard(double width, double? height = null)
     {
-        return new Frame
+        return (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent,
             WidthRequest = width,
             HeightRequest = height ?? -1,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private void AddOverlay(Grid overlay)
@@ -3328,27 +3254,24 @@ public class MusicForStoriesPage : Bannister.Views.ModeThemedPage
 
     private static Label InfoLabel(string text)
     {
-        return new Label
+        return (new Label
         {
             Text = text,
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(4, 12)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2);
     }
 
-    private static Button ActionButton(string text, Color background, Color textColor)
+    private static Button ActionButton(string text, ThemeKey background, ThemeKey textColor)
     {
-        return new Button
+        return (new Button
         {
             Text = text,
-            BackgroundColor = background,
-            TextColor = textColor,
             CornerRadius = 8,
             Padding = new Thickness(12, 7),
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, textColor);
     }
 
-    private static Button SmallButton(string text, Color background, Color textColor) => ActionButton(text, background, textColor);
+    private static Button SmallButton(string text, ThemeKey background, ThemeKey textColor) => ActionButton(text, background, textColor);
 }
