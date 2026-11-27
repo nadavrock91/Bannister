@@ -7,39 +7,34 @@ public partial class ActivityGamePage
 {
     private void AddPendingActivityIdeaControls(VerticalStackLayout stack)
     {
-        btnAddPendingActivityIdea = new Button
+        btnAddPendingActivityIdea = (new Button
         {
             Text = "+ Add Pending Activity Idea",
-            BackgroundColor = _db.IsReadOnly ? Color.FromArgb("#FF9800") : Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13,
             IsVisible = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, _db.IsReadOnly ? ThemeKey.WarningButtonBackground : ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddPendingActivityIdea.Clicked += OnAddPendingActivityIdeaClicked;
         stack.Children.Add(btnAddPendingActivityIdea);
 
-        btnProcessPendingIdeas = new Button
+        btnProcessPendingIdeas = (new Button
         {
             Text = "Process Pending Ideas",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnProcessPendingIdeas.Clicked += OnProcessPendingIdeasClicked;
         stack.Children.Add(btnProcessPendingIdeas);
 
-        lblPendingActivityIdeas = new Label
+        lblPendingActivityIdeas = (new Label
         {
             Text = "",
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#F57C00"),
             HorizontalTextAlignment = TextAlignment.Center,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText3, classifyPageText: true);
         stack.Children.Add(lblPendingActivityIdeas);
     }
 
@@ -51,9 +46,7 @@ public partial class ActivityGamePage
         bool hasGame = _game != null;
         bool isMaster = !_db.IsReadOnly;
         btnAddPendingActivityIdea.IsVisible = hasGame;
-        btnAddPendingActivityIdea.BackgroundColor = isMaster
-            ? Color.FromArgb("#4CAF50")
-            : Color.FromArgb("#FF9800");
+        btnAddPendingActivityIdea.ThemeColor(VisualElement.BackgroundColorProperty, isMaster ? ThemeKey.SuccessButtonBackground : ThemeKey.WarningButtonBackground);
 
         if (!hasGame || !isMaster)
         {
@@ -200,25 +193,19 @@ public partial class ActivityGamePage
         private PendingActivityIdeaModalPage(List<string> categories)
         {
             Title = "Add Pending Idea";
-            BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
+            this.ThemeColor(BackgroundColorProperty, ThemeKey.OverlayLight);
 
-            _activityNameEntry = new Entry
+            _activityNameEntry = (new Entry
             {
                 Placeholder = "Activity name",
-                TextColor = Color.FromArgb("#222"),
-                PlaceholderColor = Color.FromArgb("#999"),
-                BackgroundColor = Colors.White,
                 HorizontalOptions = LayoutOptions.Fill
-            };
+            }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
-            _categoryPicker = new Picker
+            _categoryPicker = (new Picker
             {
                 Title = "Category",
-                TextColor = Color.FromArgb("#222"),
-                TitleColor = Color.FromArgb("#999"),
-                BackgroundColor = Colors.White,
                 HorizontalOptions = LayoutOptions.Fill
-            };
+            }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(Picker.TitleColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
             foreach (var category in categories.Where(c => !string.IsNullOrWhiteSpace(c)))
                 _categoryPicker.Items.Add(category);
@@ -226,47 +213,39 @@ public partial class ActivityGamePage
             if (_categoryPicker.Items.Count > 1)
                 _categoryPicker.SelectedIndex = 0;
 
-            _newCategoryEntry = new Entry
+            _newCategoryEntry = (new Entry
             {
                 Placeholder = "New category",
-                TextColor = Color.FromArgb("#222"),
-                PlaceholderColor = Color.FromArgb("#999"),
-                BackgroundColor = Colors.White,
                 HorizontalOptions = LayoutOptions.Fill,
                 IsVisible = false
-            };
+            }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
             _categoryPicker.SelectedIndexChanged += (_, _) =>
             {
                 _newCategoryEntry.IsVisible = _categoryPicker.SelectedItem?.ToString() == NewCategoryOption;
             };
 
-            _errorLabel = new Label
+            _errorLabel = (new Label
             {
                 Text = "",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#C62828"),
                 IsVisible = false
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3, classifyPageText: true);
 
-            var saveButton = new Button
+            var saveButton = (new Button
             {
                 Text = "Save",
-                BackgroundColor = Color.FromArgb("#5B63EE"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 HeightRequest = 44
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             saveButton.Clicked += OnSaveClicked;
 
-            var cancelButton = new Button
+            var cancelButton = (new Button
             {
                 Text = "Cancel",
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#333"),
                 CornerRadius = 8,
                 HeightRequest = 44
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
             cancelButton.Clicked += async (_, _) =>
             {
                 _completion.TrySetResult(null);
@@ -290,9 +269,8 @@ public partial class ActivityGamePage
                 Padding = 20,
                 Children =
                 {
-                    new Frame
+                    (new Frame
                     {
-                        BackgroundColor = Colors.White,
                         CornerRadius = 12,
                         Padding = 20,
                         HasShadow = true,
@@ -304,13 +282,12 @@ public partial class ActivityGamePage
                             Spacing = 14,
                             Children =
                             {
-                                new Label
+                                (new Label
                                 {
                                     Text = "Add Pending Idea",
                                     FontSize = 20,
-                                    FontAttributes = FontAttributes.Bold,
-                                    TextColor = Color.FromArgb("#333")
-                                },
+                                    FontAttributes = FontAttributes.Bold
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                                 _activityNameEntry,
                                 _categoryPicker,
                                 _newCategoryEntry,
@@ -318,7 +295,7 @@ public partial class ActivityGamePage
                                 buttonGrid
                             }
                         }
-                    }
+                    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground)
                 }
             };
         }
@@ -377,34 +354,28 @@ public partial class ActivityGamePage
             Title = "Process Pending Idea";
 
 
-            var createButton = new Button
+            var createButton = (new Button
             {
                 Text = "Create",
-                BackgroundColor = Color.FromArgb("#5B63EE"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 HeightRequest = 44
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             createButton.Clicked += async (_, _) => await CompleteAsync(PendingIdeaProcessAction.Create);
 
-            var skipButton = new Button
+            var skipButton = (new Button
             {
                 Text = "Skip",
-                BackgroundColor = Color.FromArgb("#FF9800"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 HeightRequest = 44
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             skipButton.Clicked += async (_, _) => await CompleteAsync(PendingIdeaProcessAction.Skip);
 
-            var cancelButton = new Button
+            var cancelButton = (new Button
             {
                 Text = "Cancel",
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#333"),
                 CornerRadius = 8,
                 HeightRequest = 44
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
             cancelButton.Clicked += async (_, _) => await CompleteAsync(PendingIdeaProcessAction.Cancel);
 
             var buttonGrid = new Grid
@@ -432,9 +403,8 @@ public partial class ActivityGamePage
                 Padding = 20,
                 Children =
                 {
-                    new Frame
+                    (new Frame
                     {
-                        BackgroundColor = Colors.White,
                         CornerRadius = 12,
                         Padding = 20,
                         HasShadow = true,
@@ -446,38 +416,34 @@ public partial class ActivityGamePage
                             Spacing = 14,
                             Children =
                             {
-                                new Label
+                                (new Label
                                 {
                                     Text = "Process Pending Idea",
                                     FontSize = 20,
-                                    FontAttributes = FontAttributes.Bold,
-                                    TextColor = Color.FromArgb("#333")
-                                },
-                                new Label
+                                    FontAttributes = FontAttributes.Bold
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
+                                (new Label
                                 {
                                     Text = $"Pending idea 1 of {count}",
                                     FontSize = 13,
-                                    FontAttributes = FontAttributes.Bold,
-                                    TextColor = Color.FromArgb("#F57C00")
-                                },
-                                new Label
+                                    FontAttributes = FontAttributes.Bold
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true),
+                                (new Label
                                 {
                                     Text = $"Name: {idea.ActivityName}\nCategory: {idea.ActivityCategory}",
                                     FontSize = 15,
-                                    TextColor = Color.FromArgb("#333"),
                                     LineBreakMode = LineBreakMode.WordWrap
-                                },
-                                new Label
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
+                                (new Label
                                 {
                                     Text = "Open Activity Creation with these pre-filled? You can edit them before saving.",
                                     FontSize = 13,
-                                    TextColor = Color.FromArgb("#666"),
                                     LineBreakMode = LineBreakMode.WordWrap
-                                },
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                                 buttonGrid
                             }
                         }
-                    }
+                    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground)
                 }
             };
         }

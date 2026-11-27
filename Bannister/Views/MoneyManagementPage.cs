@@ -64,52 +64,45 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        _summaryLabel = new Label
+        _summaryLabel = (new Label
         {
             Text = "Monthly expenses: $0.00",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1B5E20"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1, classifyPageText: true);
         header.Add(_summaryLabel, 0, 0);
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add",
             FontSize = 13,
             HeightRequest = 38,
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             Padding = new Thickness(14, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (s, e) => await AddExpenseAsync();
         header.Add(addBtn, 1, 0);
 
-        var deleteBtn = new Button
+        var deleteBtn = (new Button
         {
             Text = "Delete",
             FontSize = 13,
             HeightRequest = 38,
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 6,
             Padding = new Thickness(14, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += async (s, e) => await DeleteSelectedExpenseAsync();
         header.Add(deleteBtn, 2, 0);
 
-        _currencyButton = new Button
+        _currencyButton = (new Button
         {
             Text = $"{_currency.Symbol} {_currency.Code}",
-            BackgroundColor = Color.FromArgb("#1B5E20"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             Padding = new Thickness(8, 4),
             FontSize = 13,
             HeightRequest = 38
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessStrongText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _currencyButton.Clicked += async (_, _) =>
         {
             var selectedLabel = await DisplayActionSheet(
@@ -139,13 +132,12 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
         };
 
         var optionsRow = new HorizontalStackLayout { Spacing = 8 };
-        optionsRow.Children.Add(new Label
+        optionsRow.Children.Add((new Label
         {
             Text = "Show inactive",
             FontSize = 12,
-            TextColor = Color.FromArgb("#555"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         _showInactiveSwitch = new Switch { IsToggled = true, VerticalOptions = LayoutOptions.Center };
         _showInactiveSwitch.Toggled += async (s, e) => await LoadExpensesAsync();
         optionsRow.Children.Add(_showInactiveSwitch);
@@ -157,23 +149,20 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
         _gridContainer = new VerticalStackLayout { Padding = new Thickness(12, 4), Spacing = 4 };
 
         _pieDrawable = new PieChartDrawable();
-        _pieChart = new GraphicsView
+        _pieChart = (new GraphicsView
         {
             Drawable = _pieDrawable,
             HeightRequest = 300,
-            Margin = new Thickness(0, 12, 0, 0),
-            BackgroundColor = Colors.White
-        };
+            Margin = new Thickness(0, 12, 0, 0)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         _pieChart.SizeChanged += (_, _) => _pieChart.Invalidate();
-        var chartCard = new Frame
+        var chartCard = (new Frame
         {
             Content = _pieChart,
             CornerRadius = 8,
             Padding = 8,
-            Margin = new Thickness(12, 8, 12, 12),
-            BorderColor = Color.FromArgb("#C8E6C9"),
-            BackgroundColor = Colors.White
-        };
+            Margin = new Thickness(12, 8, 12, 12)
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessBackground).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         var contentStack = new VerticalStackLayout { Spacing = 0 };
         contentStack.Children.Add(chartCard);
         contentStack.Children.Add(_gridContainer);
@@ -186,7 +175,7 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
     private async Task LoadExpensesAsync()
     {
         _gridContainer.Children.Clear();
-        _gridContainer.Children.Add(new ActivityIndicator { IsRunning = true, Color = Color.FromArgb("#2E7D32") });
+        _gridContainer.Children.Add((new ActivityIndicator { IsRunning = true }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SuccessText));
 
         _currentExpenses = await _money.GetMonthlyExpensesAsync(_auth.CurrentUsername, _showInactiveSwitch.IsToggled);
         _selectedExpense = null;
@@ -217,10 +206,10 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
 
         var palette = new[]
         {
-            Color.FromArgb("#2E7D32"), Color.FromArgb("#1565C0"), Color.FromArgb("#AD1457"),
-            Color.FromArgb("#E65100"), Color.FromArgb("#6A1B9A"), Color.FromArgb("#00838F"),
-            Color.FromArgb("#558B2F"), Color.FromArgb("#4527A0"), Color.FromArgb("#BF360C"),
-            Color.FromArgb("#00695C")
+            AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.InfoText), AppColors.Get(ThemeKey.HighlightPinkText),
+            AppColors.Get(ThemeKey.WarningText), AppColors.Get(ThemeKey.AccentPurpleStrongText), AppColors.Get(ThemeKey.HighlightTealText),
+            AppColors.Get(ThemeKey.HighlightLimeText), AppColors.Get(ThemeKey.AccentVioletStrongText), AppColors.Get(ThemeKey.WarningBurntText),
+            AppColors.Get(ThemeKey.HighlightMintText)
         };
 
         _pieDrawable.Slices = grouped
@@ -237,13 +226,12 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
 
         if (_currentExpenses.Count == 0)
         {
-            _gridContainer.Children.Add(new Label
+            _gridContainer.Children.Add((new Label
             {
                 Text = "No routine monthly expenses. Click + Add to log one.",
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -259,8 +247,8 @@ public class MoneyManagementPage : Bannister.Views.ModeThemedPage
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(Color.FromArgb("#2E7D32"), Colors.White)
-            .WithAlternateRowColor(Color.FromArgb("#F1F8E9"))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.OnColorText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightLime))
             .WithColumnWidths(60, 220)
             .WithCellPadding(6)
             .WithFontSize(12, 12)

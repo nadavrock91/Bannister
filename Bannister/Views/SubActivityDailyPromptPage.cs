@@ -19,7 +19,7 @@ public class SubActivityDailyPromptPage : ContentPage
         _process = process;
 
         Title = "Daily Routine Check";
-        BackgroundColor = Color.FromArgb("#80000000");
+        this.ThemeColor(BackgroundColorProperty, ThemeKey.Overlay);
 
         var steps = _subActivityService.GetSteps(process)
             .Select((step, index) => new SubActivityStepOption(index, step.Name))
@@ -31,43 +31,38 @@ public class SubActivityDailyPromptPage : ContentPage
             _stepStates[step.StepIndex] = (int)SubActivityStepSubmissionState.Done;
         }
 
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 22,
             CornerRadius = 12,
             HasShadow = true,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#D0D7DE"),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 640,
             MaximumWidthRequest = 760
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var content = new VerticalStackLayout { Spacing = 14 };
-        content.Children.Add(new Label
+        content.Children.Add((new Label
         {
             Text = "Daily Routine Check",
             FontSize = 22,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1F2937"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
-        content.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        content.Children.Add((new Label
         {
             Text = process.Name,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#111827"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        content.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        content.Children.Add((new Label
         {
             Text = "All steps are marked Done by default. Change any that you didn't complete.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#6B7280"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         var stepsStack = new VerticalStackLayout { Spacing = 10 };
         foreach (var step in steps)
@@ -91,25 +86,21 @@ public class SubActivityDailyPromptPage : ContentPage
             ColumnSpacing = 10
         };
 
-        var submit = new Button
+        var submit = (new Button
         {
             Text = "Submit Today's Progress",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 46
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         submit.Clicked += async (_, _) => await SubmitAsync();
 
-        var skip = new Button
+        var skip = (new Button
         {
             Text = "Skip",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#263238"),
             CornerRadius = 8,
             HeightRequest = 46
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         skip.Clicked += async (_, _) => await CloseAsync(false);
 
         buttons.Add(submit, 0, 0);
@@ -117,12 +108,11 @@ public class SubActivityDailyPromptPage : ContentPage
         content.Children.Add(buttons);
 
         card.Content = content;
-        Content = new Grid
+        Content = (new Grid
         {
             Padding = 20,
-            BackgroundColor = Color.FromArgb("#80000000"),
             Children = { card }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
     }
 
     public static async Task<bool> ShowAsync(INavigation navigation, SubActivityService subActivityService, SubActivity process)
@@ -136,21 +126,19 @@ public class SubActivityDailyPromptPage : ContentPage
     {
         string groupName = $"sub_step_{_process.Id}_{step.StepIndex}_{Guid.NewGuid():N}";
 
-        var row = new VerticalStackLayout
+        var row = (new VerticalStackLayout
         {
             Spacing = 6,
-            Padding = new Thickness(10, 8),
-            BackgroundColor = Color.FromArgb("#F8FAFC")
-        };
+            Padding = new Thickness(10, 8)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-        row.Children.Add(new Label
+        row.Children.Add((new Label
         {
             Text = step.Name,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#374151"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralButtonText, ThemeKey.PageText1, classifyPageText: true));
 
         var options = new Grid
         {
@@ -199,15 +187,14 @@ public class SubActivityDailyPromptPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"[SubActivityPrompt] Radio default-checked at construction: stepIndex={stepIndex} state={state}");
         }
 
-        var labelView = new Label
+        var labelView = (new Label
         {
             Text = label,
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#374151"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralButtonText, ThemeKey.PageText1, classifyPageText: true);
 
         var labelTap = new TapGestureRecognizer();
         labelTap.Tapped += (_, _) =>
@@ -370,7 +357,7 @@ public class SubActivityDailyPromptPage : ContentPage
 
         var tcs = new TaskCompletionSource<string?>();
 
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         var contentStack = new VerticalStackLayout
         {
@@ -378,49 +365,44 @@ public class SubActivityDailyPromptPage : ContentPage
             Padding = 0
         };
 
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = $"Fill new slot in '{process.Name}'",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             Margin = new Thickness(0, 0, 0, 4)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Choose a pending step to activate, type a new one, or leave empty.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap,
             Margin = new Thickness(0, 0, 0, 8)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Pending step buttons - full width, wrapping text
         if (pendingSteps.Count > 0)
         {
-            contentStack.Children.Add(new Label
+            contentStack.Children.Add((new Label
             {
                 Text = "Pending Steps:",
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333"),
                 Margin = new Thickness(0, 4, 0, 2)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
             foreach (var step in pendingSteps)
             {
-                var stepBtn = new Button
+                var stepBtn = (new Button
                 {
                     Text = step.Name,
-                    BackgroundColor = Color.FromArgb("#E3F2FD"),
-                    TextColor = Color.FromArgb("#1565C0"),
                     CornerRadius = 8,
                     FontSize = 14,
                     Padding = new Thickness(12, 10),
                     HorizontalOptions = LayoutOptions.Fill,
                     LineBreakMode = LineBreakMode.WordWrap
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
                 var capturedName = step.Name;
                 stepBtn.Clicked += (_, _) => tcs.TrySetResult($"pending:{capturedName}");
                 contentStack.Children.Add(stepBtn);
@@ -428,31 +410,27 @@ public class SubActivityDailyPromptPage : ContentPage
         }
 
         // Action buttons
-        var typeManualBtn = new Button
+        var typeManualBtn = (new Button
         {
             Text = "✏️ Type Manually",
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100"),
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         typeManualBtn.Clicked += (_, _) => tcs.TrySetResult("manual");
         contentStack.Children.Add(typeManualBtn);
 
-        var leaveEmptyBtn = new Button
+        var leaveEmptyBtn = (new Button
         {
             Text = "Leave Empty for Now",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#555"),
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44,
             HorizontalOptions = LayoutOptions.Fill,
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         leaveEmptyBtn.Clicked += (_, _) => tcs.TrySetResult(null);
         contentStack.Children.Add(leaveEmptyBtn);
 
@@ -462,16 +440,15 @@ public class SubActivityDailyPromptPage : ContentPage
             MaximumHeightRequest = 500
         };
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             WidthRequest = 420,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Content = scrollView
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         // Clicking overlay background = leave empty (prevents stuck state)
         var backgroundTap = new TapGestureRecognizer();

@@ -20,6 +20,9 @@ namespace Bannister.Views
 
         public LoginPage(AuthService auth, DatabaseService db, DeviceModeService deviceMode, SyncService sync)
         {
+            // Before sign-in there is no user mode; keep login's named palette local.
+            foreach (var token in ModeTheme.Get(ActivityDisplayMode.All).Tokens)
+                Resources["Mode" + token.Key] = token.Value;
             InitializeComponent();
             _auth = auth;
             _db = db;

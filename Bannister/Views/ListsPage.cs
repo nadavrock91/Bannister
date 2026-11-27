@@ -66,28 +66,27 @@ public class ListsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        _listPicker = new Picker
+        _listPicker = (new Picker
         {
             Title = "Select list...",
-            FontSize = 13,
-            BackgroundColor = Colors.White
-        };
+            FontSize = 13
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _listPicker.SelectedIndexChanged += async (s, e) => await OnListSelectedAsync();
         topRow.Add(_listPicker, 0, 0);
 
-        var newListBtn = CreateHeaderButton("+ List", Color.FromArgb("#2E7D32"), Colors.White);
+        var newListBtn = CreateHeaderButton("+ List", ThemeKey.SuccessDarkButtonBackground, ThemeKey.OnColorText);
         newListBtn.Clicked += async (s, e) => await CreateListAsync();
         topRow.Add(newListBtn, 1, 0);
 
-        var addItemBtn = CreateHeaderButton("+ Item", Color.FromArgb("#1565C0"), Colors.White);
+        var addItemBtn = CreateHeaderButton("+ Item", ThemeKey.ButtonPrimaryBackground, ThemeKey.OnColorText);
         addItemBtn.Clicked += async (s, e) => await AddItemAsync();
         topRow.Add(addItemBtn, 2, 0);
 
-        var deleteItemBtn = CreateHeaderButton("Delete Item", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+        var deleteItemBtn = CreateHeaderButton("Delete Item", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         deleteItemBtn.Clicked += async (s, e) => await DeleteSelectedItemAsync();
         topRow.Add(deleteItemBtn, 3, 0);
 
-        var deleteListBtn = CreateHeaderButton("Delete List", Color.FromArgb("#FFEBEE"), Color.FromArgb("#B71C1C"));
+        var deleteListBtn = CreateHeaderButton("Delete List", ThemeKey.ErrorBackground, ThemeKey.ErrorDeepText);
         deleteListBtn.Clicked += async (_, _) =>
         {
             if (_selectedList == null) return;
@@ -102,11 +101,11 @@ public class ListsPage : Bannister.Views.ModeThemedPage
         };
         topRow.Add(deleteListBtn, 4, 0);
 
-        var upBtn = CreateHeaderButton("Up", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
+        var upBtn = CreateHeaderButton("Up", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoText);
         upBtn.Clicked += async (s, e) => await MoveSelectedItemAsync(-1);
         topRow.Add(upBtn, 5, 0);
 
-        var downBtn = CreateHeaderButton("Down", Color.FromArgb("#E8EAF6"), Color.FromArgb("#283593"));
+        var downBtn = CreateHeaderButton("Down", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoText);
         downBtn.Clicked += async (s, e) => await MoveSelectedItemAsync(1);
         topRow.Add(downBtn, 6, 0);
 
@@ -117,12 +116,11 @@ public class ListsPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(12, 0, 12, 4),
             Spacing = 4
         };
-        _statusLabel = new Label
+        _statusLabel = (new Label
         {
             Text = "",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         fixedArea.Children.Add(_statusLabel);
         _gridToolbarContainer = new VerticalStackLayout { Spacing = 4 };
         fixedArea.Children.Add(_gridToolbarContainer);
@@ -136,18 +134,16 @@ public class ListsPage : Bannister.Views.ModeThemedPage
         Content = mainGrid;
     }
 
-    private static Button CreateHeaderButton(string text, Color background, Color textColor)
+    private static Button CreateHeaderButton(string text, ThemeKey background, ThemeKey textColor)
     {
-        return new Button
+        return (new Button
         {
             Text = text,
             FontSize = 12,
             HeightRequest = 38,
-            BackgroundColor = background,
-            TextColor = textColor,
             CornerRadius = 6,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, textColor);
     }
 
     private async Task LoadListsAsync()
@@ -167,7 +163,7 @@ public class ListsPage : Bannister.Views.ModeThemedPage
             _statusLabel.Text = "No lists yet.";
             _gridToolbarContainer.Children.Clear();
             _gridContainer.Children.Clear();
-            _gridContainer.Children.Add(new Label { Text = "Create a list to start.", TextColor = Color.FromArgb("#888"), Margin = new Thickness(8, 20) });
+            _gridContainer.Children.Add((new Label { Text = "Create a list to start.", Margin = new Thickness(8, 20) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             _isLoadingLists = false;
             return;
         }
@@ -206,7 +202,7 @@ public class ListsPage : Bannister.Views.ModeThemedPage
 
         if (_currentItems.Count == 0)
         {
-            _gridContainer.Children.Add(new Label { Text = "No items in this list.", TextColor = Color.FromArgb("#888"), Margin = new Thickness(8, 20) });
+            _gridContainer.Children.Add((new Label { Text = "No items in this list.", Margin = new Thickness(8, 20) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -217,8 +213,8 @@ public class ListsPage : Bannister.Views.ModeThemedPage
             .ToList();
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
-            .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.SecondaryAccentText), AppColors.Get(ThemeKey.OnColorText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.SecondaryLavenderSurface))
             .WithColumnWidths(60, 240)
             .WithCellPadding(6)
             .WithFontSize(12, 12)
@@ -356,33 +352,28 @@ public class ListsPage : Bannister.Views.ModeThemedPage
         public MultiLineItemInputPage()
         {
             Title = "Add Items";
-            BackgroundColor = Color.FromArgb("#F5F5F5");
+            this.ThemeColor(BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-            _editor = new Editor
+            _editor = (new Editor
             {
                 Placeholder = "One item per line...",
                 HeightRequest = 220,
                 AutoSize = EditorAutoSizeOption.Disabled,
-                BackgroundColor = Colors.White,
                 VerticalOptions = LayoutOptions.Start
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
-            var addButton = new Button
+            var addButton = (new Button
             {
                 Text = "Add",
-                BackgroundColor = Color.FromArgb("#1565C0"),
-                TextColor = Colors.White,
                 CornerRadius = 6
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             addButton.Clicked += async (_, _) => await CloseAsync(_editor.Text);
 
-            var cancelButton = new Button
+            var cancelButton = (new Button
             {
                 Text = "Cancel",
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#37474F"),
                 CornerRadius = 6
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
             cancelButton.Clicked += async (_, _) => await CloseAsync(null);
 
             Content = new VerticalStackLayout
@@ -391,12 +382,11 @@ public class ListsPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Enter one item per line.",
-                        FontSize = 16,
-                        TextColor = Color.FromArgb("#333333")
-                    },
+                        FontSize = 16
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     _editor,
                     new HorizontalStackLayout
                     {

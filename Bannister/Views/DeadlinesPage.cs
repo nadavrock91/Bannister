@@ -31,13 +31,12 @@ public class DeadlinesPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var root = new VerticalStackLayout { Padding = 16, Spacing = 12 };
-        root.Children.Add(new Label
+        root.Children.Add((new Label
         {
             Text = Title,
             FontSize = 26,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#6A1B9A")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true));
 
         var allowanceRow = new HorizontalStackLayout { Spacing = 10 };
         _allowanceLabel.FontSize = 15;
@@ -45,12 +44,12 @@ public class DeadlinesPage : Bannister.Views.ModeThemedPage
         _allowanceLabel.VerticalOptions = LayoutOptions.Center;
         allowanceRow.Children.Add(_allowanceLabel);
 
-        var gear = SmallButton("Allowance", "#6A1B9A");
+        var gear = SmallButton("Allowance", ThemeKey.AccentPurpleDarkButtonBackground);
         gear.Clicked += async (_, _) => await EditAllowanceAsync();
         allowanceRow.Children.Add(gear);
         root.Children.Add(allowanceRow);
 
-        var add = SmallButton("+ Add Deadline", "#2E7D32");
+        var add = SmallButton("+ Add Deadline", ThemeKey.SuccessDarkButtonBackground);
         add.HeightRequest = 42;
         add.HorizontalOptions = LayoutOptions.Start;
         add.Clicked += async (_, _) => await AddDeadlineAsync();
@@ -65,7 +64,7 @@ public class DeadlinesPage : Bannister.Views.ModeThemedPage
         int activeCount = await _deadlines.GetActiveCountAsync(_auth.CurrentUsername, _bucket);
         int allowance = _deadlines.GetAllowance(_auth.CurrentUsername, _bucket);
         _allowanceLabel.Text = $"Active: {activeCount} / {allowance}";
-        _allowanceLabel.TextColor = activeCount >= allowance ? Color.FromArgb("#C62828") : Color.FromArgb("#2E7D32");
+        _allowanceLabel.ThemeColor(Label.TextColorProperty, activeCount >= allowance ? ThemeKey.ErrorText : ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true);
 
         var deadlines = await _deadlines.GetDeadlinesAsync(_auth.CurrentUsername, _bucket);
         _listStack.Children.Clear();
@@ -78,18 +77,17 @@ public class DeadlinesPage : Bannister.Views.ModeThemedPage
     private void AddSection(string header, IEnumerable<Deadline> rows)
     {
         var items = rows.OrderBy(d => d.Title, StringComparer.OrdinalIgnoreCase).ToList();
-        _listStack.Children.Add(new Label
+        _listStack.Children.Add((new Label
         {
             Text = header,
             FontSize = 17,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#4A148C"),
             Margin = new Thickness(0, 8, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true));
 
         if (items.Count == 0)
         {
-            _listStack.Children.Add(new Label { Text = "None.", FontSize = 13, TextColor = Color.FromArgb("#888"), Margin = new Thickness(4, 0) });
+            _listStack.Children.Add((new Label { Text = "None.", FontSize = 13, Margin = new Thickness(4, 0) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -99,34 +97,30 @@ public class DeadlinesPage : Bannister.Views.ModeThemedPage
 
     private View BuildDeadlineRow(Deadline deadline)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = RowColor(deadline.State),
-            BorderColor = Color.FromArgb("#D1C4E9"),
             CornerRadius = 8,
             HasShadow = false,
             Padding = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, RowColor(deadline.State)).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleSelected);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
-        var title = new Label
+        var title = (new Label
         {
             Text = deadline.Title,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (_, _) => await EditDeadlineAsync(deadline);
         title.GestureRecognizers.Add(tap);
         stack.Children.Add(title);
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Due: {DeadlineService.ComputePeriodEnd(deadline.Bucket, deadline.CreatedAt):MMM d, yyyy h:mm tt}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         var actions = new FlexLayout
         {
@@ -145,30 +139,30 @@ public class DeadlinesPage : Bannister.Views.ModeThemedPage
     {
         if (deadline.State == DeadlineService.StateActive)
         {
-            AddAction(actions, "Complete", "#2E7D32", async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StateArchived));
-            AddAction(actions, "Failed", "#C62828", async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StateFailed));
-            AddAction(actions, "Move to Possible", "#6A1B9A", async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StatePossible));
+            AddAction(actions, "Complete", ThemeKey.SuccessText, async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StateArchived));
+            AddAction(actions, "Failed", ThemeKey.ErrorText, async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StateFailed));
+            AddAction(actions, "Move to Possible", ThemeKey.AccentPurpleStrongText, async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StatePossible));
         }
         else if (deadline.State == DeadlineService.StatePossible)
         {
-            AddAction(actions, "Promote to Active", "#2E7D32", async () => await PromoteAsync(deadline));
-            AddAction(actions, "Archive", "#607D8B", async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StateArchived));
+            AddAction(actions, "Promote to Active", ThemeKey.SuccessText, async () => await PromoteAsync(deadline));
+            AddAction(actions, "Archive", ThemeKey.NeutralMutedButton, async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StateArchived));
         }
         else if (deadline.State == DeadlineService.StateFailed)
         {
-            AddAction(actions, "Move to Possible", "#6A1B9A", async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StatePossible));
-            AddAction(actions, "Archive", "#607D8B", async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StateArchived));
+            AddAction(actions, "Move to Possible", ThemeKey.AccentPurpleStrongText, async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StatePossible));
+            AddAction(actions, "Archive", ThemeKey.NeutralMutedButton, async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StateArchived));
         }
         else
         {
-            AddAction(actions, "Move to Possible", "#6A1B9A", async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StatePossible));
+            AddAction(actions, "Move to Possible", ThemeKey.AccentPurpleStrongText, async () => await SetStateAndRefreshAsync(deadline.Id, DeadlineService.StatePossible));
         }
 
-        AddAction(actions, "Edit", "#1565C0", async () => await EditDeadlineAsync(deadline));
-        AddAction(actions, "Delete", "#C62828", async () => await DeleteAsync(deadline));
+        AddAction(actions, "Edit", ThemeKey.InfoText, async () => await EditDeadlineAsync(deadline));
+        AddAction(actions, "Delete", ThemeKey.ErrorText, async () => await DeleteAsync(deadline));
     }
 
-    private void AddAction(FlexLayout actions, string text, string color, Func<Task> action)
+    private void AddAction(FlexLayout actions, string text, ThemeKey color, Func<Task> action)
     {
         var button = SmallButton(text, color);
         button.Clicked += async (_, _) => await action();
@@ -258,26 +252,20 @@ public class DeadlinesPage : Bannister.Views.ModeThemedPage
         await RefreshAsync();
     }
 
-    private static Color RowColor(int state) => state switch
+    private static ThemeKey RowColor(int state) => state switch
     {
-        DeadlineService.StateActive => Color.FromArgb("#E8F5E9"),
-        DeadlineService.StatePossible => Color.FromArgb("#E3F2FD"),
-        DeadlineService.StateFailed => Color.FromArgb("#FFEBEE"),
-        _ => Color.FromArgb("#ECEFF1")
-    };
+        DeadlineService.StateActive => ThemeKey.SuccessBackground,        DeadlineService.StatePossible => ThemeKey.RowSelected,        DeadlineService.StateFailed => ThemeKey.ErrorBackground,        _ => ThemeKey.OnColorText    };
 
-    private static Button SmallButton(string text, string color)
+    private static Button SmallButton(string text, ThemeKey color)
     {
-        return new Button
+        return (new Button
         {
             Text = text,
             FontSize = 12,
             HeightRequest = 34,
-            BackgroundColor = Color.FromArgb(color),
-            TextColor = Colors.White,
             CornerRadius = 6,
             Padding = new Thickness(10, 0),
             Margin = new Thickness(4, 2)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
     }
 }

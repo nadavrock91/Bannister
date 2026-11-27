@@ -47,23 +47,21 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "🏆 All Games Comparison",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Compare levels across all games\nScroll down to see monthly history",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 0, 0, 8)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Charts container
         _chartsContainer = new VerticalStackLayout { Spacing = 24 };
@@ -81,14 +79,13 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
 
         if (_allGames.Count == 0)
         {
-            _chartsContainer.Children.Add(new Label
+            _chartsContainer.Children.Add((new Label
             {
                 Text = "No games found. Create a game to see charts!",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -108,14 +105,13 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
         
         if (months.Count > 0)
         {
-            _chartsContainer.Children.Add(new Label
+            _chartsContainer.Children.Add((new Label
             {
                 Text = "📅 Monthly History",
                 FontSize = 20,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333"),
                 Margin = new Thickness(0, 16, 0, 8)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
             foreach (var month in months.OrderByDescending(m => m))
             {
@@ -126,24 +122,21 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
 
     private async Task<Frame> CreateCurrentLevelsChartAsync()
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            BorderColor = Color.FromArgb("#4CAF50"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessLightText);
 
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "🎯 Current Levels",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#2E7D32")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true));
 
         // Horizontal scroll for bar chart
         var scrollView = new ScrollView { Orientation = ScrollOrientation.Horizontal };
@@ -152,20 +145,19 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
         foreach (var game in _allGames)
         {
             var (level, _, _) = await _exp.GetProgressAsync(_auth.CurrentUsername, game.GameId);
-            barContainer.Children.Add(CreateGameBar(game.DisplayName, level, Color.FromArgb("#4CAF50")));
+            barContainer.Children.Add(CreateGameBar(game.DisplayName, level, ThemeKey.SuccessLightText));
         }
 
         scrollView.Content = barContainer;
         stack.Children.Add(scrollView);
 
         // Legend
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "← Scroll horizontally if needed →",
             FontSize = 11,
-            TextColor = Color.FromArgb("#999"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
         frame.Content = stack;
         return frame;
@@ -173,23 +165,21 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
 
     private Frame CreateMonthlyChart(DateTime month)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"📅 {month:MMMM yyyy}",
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // Horizontal scroll for bar chart
         var scrollView = new ScrollView { Orientation = ScrollOrientation.Horizontal };
@@ -214,7 +204,7 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
         return frame;
     }
 
-    private View CreateGameBar(string gameName, int level, Color barColor)
+    private View CreateGameBar(string gameName, int level, ThemeKey barColor)
     {
         var stack = new VerticalStackLayout 
         { 
@@ -224,33 +214,30 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
         };
 
         // Level label on top
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Lv {level}",
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3, classifyPageText: true));
 
         // Bar container (fixed height, bar grows from bottom)
-        var barFrame = new Frame
+        var barFrame = (new Frame
         {
             Padding = 0,
             CornerRadius = 4,
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
             HeightRequest = 120,
             WidthRequest = 50,
             HasShadow = false,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
 
         // Inner bar (height based on level, max 100)
         double barHeight = Math.Min(level, 100) / 100.0 * 110; // Max 110px
         
         var innerBar = new BoxView
         {
-            Color = barColor,
             HeightRequest = barHeight,
             WidthRequest = 46,
             VerticalOptions = LayoutOptions.End,
@@ -264,6 +251,7 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
             HeightRequest = 120,
             WidthRequest = 50
         };
+        innerBar.ThemeColor(BoxView.ColorProperty, barColor);
         grid.Children.Add(innerBar);
 
         barFrame.Content = grid;
@@ -271,15 +259,14 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
 
         // Game name (truncated)
         string displayName = gameName.Length > 10 ? gameName.Substring(0, 8) + "..." : gameName;
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = displayName,
             FontSize = 10,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center,
             LineBreakMode = LineBreakMode.TailTruncation,
             MaxLines = 2
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         return stack;
     }
@@ -318,23 +305,23 @@ public class AllGamesComparisonPage : Bannister.Views.ModeThemedPage
         return logsBeforeDate?.LevelAfter ?? 1;
     }
 
-    private Color GetMonthColor(DateTime month)
+    private ThemeKey GetMonthColor(DateTime month)
     {
         // Rotate through colors based on month
         var colors = new[]
         {
-            Color.FromArgb("#2196F3"), // Blue
-            Color.FromArgb("#9C27B0"), // Purple
-            Color.FromArgb("#FF9800"), // Orange
-            Color.FromArgb("#009688"), // Teal
-            Color.FromArgb("#E91E63"), // Pink
-            Color.FromArgb("#3F51B5"), // Indigo
-            Color.FromArgb("#795548"), // Brown
-            Color.FromArgb("#607D8B"), // Blue Grey
-            Color.FromArgb("#8BC34A"), // Light Green
-            Color.FromArgb("#FFC107"), // Amber
-            Color.FromArgb("#00BCD4"), // Cyan
-            Color.FromArgb("#FF5722"), // Deep Orange
+            ThemeKey.InfoButtonBackground, // Blue
+            ThemeKey.AccentPurpleButtonBackground, // Purple
+            ThemeKey.WarningButtonBackground, // Orange
+            ThemeKey.TealButtonBackground, // Teal
+            ThemeKey.PinkButtonBackground, // Pink
+            ThemeKey.HighlightIndigoStrongText, // Indigo
+            ThemeKey.BrownLightButtonBackground, // Brown
+            ThemeKey.NeutralMutedButton, // Blue Grey
+            ThemeKey.LimeButtonBackground, // Light Green
+            ThemeKey.HighlightAmberButton, // Amber
+            ThemeKey.HighlightCyanButton, // Cyan
+            ThemeKey.DeepOrangeButtonBackground, // Deep Orange
         };
 
         return colors[month.Month % colors.Length];

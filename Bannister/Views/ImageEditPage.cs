@@ -1,11 +1,12 @@
 using SkiaSharp;
+using Bannister.Services;
 
 namespace Bannister.Views;
 
 public class ImageEditPage : Bannister.Views.ModeThemedPage
 {
-    private const string PrimaryColor = "#5B63EE";
-    private const string LightButtonColor = "#ECEFF1";
+    private const ThemeKey PrimaryColor = ThemeKey.SecondaryButtonBackground;
+    private const ThemeKey LightButtonColor = ThemeKey.NeutralButtonBackground;
 
     private readonly Label _sourcePathLabel;
     private readonly Image _sourcePreview;
@@ -33,30 +34,27 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
         Title = "Image Edit";
 
 
-        _sourcePathLabel = new Label
+        _sourcePathLabel = (new Label
         {
             Text = "No image selected.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
-        _sourcePreview = new Image
+        _sourcePreview = (new Image
         {
             IsVisible = false,
             Aspect = Aspect.AspectFit,
             MaximumHeightRequest = 300,
-            HeightRequest = 260,
-            BackgroundColor = Color.FromArgb("#EEEEEE")
-        };
+            HeightRequest = 260
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-        _sourceDimensionsLabel = new Label
+        _sourceDimensionsLabel = (new Label
         {
             Text = "",
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
         _presetPicker = CreatePicker("Resolution preset");
         _presetPicker.ItemsSource = new List<string>
@@ -90,13 +88,12 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
         _customSizeGrid.Children.Add(_customWidthEntry);
         _customSizeGrid.Children.Add(_customHeightEntry);
 
-        _statusLabel = new Label
+        _statusLabel = (new Label
         {
             Text = "",
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
         _cropModeButton = CreateModeButton("Crop", CropMode.Crop);
         _scaleModeButton = CreateModeButton("Scale", CropMode.Scale);
@@ -105,26 +102,23 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
             Spacing = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Crop anchor",
                     FontSize = 14,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#333")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 BuildAnchorGrid()
             }
         };
 
-        _actionButton = new Button
+        _actionButton = (new Button
         {
             Text = "Crop and Save",
-            BackgroundColor = Color.FromArgb(PrimaryColor),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, PrimaryColor).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _actionButton.Clicked += OnCropAndSaveClicked;
         UpdateModeButtons();
 
@@ -145,20 +139,16 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildCropToolFrame()
     {
-        var browseButton = new Button
+        var browseButton = (new Button
         {
             Text = "Browse Image",
-            BackgroundColor = Color.FromArgb(PrimaryColor),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 46
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, PrimaryColor).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         browseButton.Clicked += OnBrowseImageClicked;
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#DDDDDD"),
             CornerRadius = 8,
             HasShadow = false,
             Padding = 16,
@@ -167,13 +157,12 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
                 Spacing = 14,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Crop to Resolution",
                         FontSize = 20,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
                     BuildModeToggle(),
                     browseButton,
                     _sourcePathLabel,
@@ -186,7 +175,7 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
                     _statusLabel
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private Grid BuildModeToggle()
@@ -239,8 +228,8 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
     private void UpdateModeButton(Button button, CropMode mode)
     {
         bool selected = _selectedMode == mode;
-        button.BackgroundColor = selected ? Color.FromArgb(PrimaryColor) : Color.FromArgb(LightButtonColor);
-        button.TextColor = selected ? Colors.White : Color.FromArgb("#333333");
+        button.ThemeColor(VisualElement.BackgroundColorProperty, selected ? PrimaryColor : LightButtonColor);
+        button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.CardText1);
     }
 
     private Grid BuildAnchorGrid()
@@ -305,8 +294,8 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
         foreach (var button in _anchorButtons)
         {
             bool selected = button.BindingContext is CropAnchor anchor && anchor == _selectedAnchor;
-            button.BackgroundColor = selected ? Color.FromArgb(PrimaryColor) : Color.FromArgb(LightButtonColor);
-            button.TextColor = selected ? Colors.White : Color.FromArgb("#333333");
+            button.ThemeColor(VisualElement.BackgroundColorProperty, selected ? PrimaryColor : LightButtonColor);
+            button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.CardText1);
         }
     }
 
@@ -601,37 +590,31 @@ public class ImageEditPage : Bannister.Views.ModeThemedPage
 
     private static Entry CreateEntry(string placeholder)
     {
-        return new Entry
+        return (new Entry
         {
             Placeholder = placeholder,
-            Keyboard = Keyboard.Numeric,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Colors.White
-        };
+            Keyboard = Keyboard.Numeric
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
     }
 
     private static Picker CreatePicker(string title)
     {
-        return new Picker
+        return (new Picker
         {
-            Title = title,
-            TextColor = Color.FromArgb("#222"),
-            TitleColor = Color.FromArgb("#999"),
-            BackgroundColor = Colors.White
-        };
+            Title = title
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(Picker.TitleColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
     }
 
     private void SetStatus(string message)
     {
         _statusLabel.Text = message;
-        _statusLabel.TextColor = Color.FromArgb("#2E7D32");
+        _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true);
     }
 
     private void SetError(string message)
     {
         _statusLabel.Text = message;
-        _statusLabel.TextColor = Color.FromArgb("#C62828");
+        _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
     }
 
     private enum CropAnchor

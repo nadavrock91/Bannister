@@ -38,48 +38,42 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
     {
         var mainStack = new VerticalStackLayout { Padding = 20, Spacing = 12 };
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "\U0001F525 Active Emotions",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#E65100")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add Emotion",
-            BackgroundColor = Color.FromArgb("#E65100"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (_, _) => await AddEmotionAsync();
         mainStack.Children.Add(addBtn);
 
-        _activeCountLabel = new Label
+        _activeCountLabel = (new Label
         {
             Text = "Active (0)",
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(_activeCountLabel);
 
         _activeList = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_activeList);
 
-        var archivedToggle = new Button
+        var archivedToggle = (new Button
         {
             Text = "Show Archived",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            TextColor = Color.FromArgb("#888"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         archivedToggle.Clicked += async (_, _) =>
         {
             _showArchived = !_showArchived;
@@ -88,14 +82,13 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
         };
         mainStack.Children.Add(archivedToggle);
 
-        _archivedCountLabel = new Label
+        _archivedCountLabel = (new Label
         {
             Text = "Archived (0)",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#999"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(_archivedCountLabel);
 
         _archivedList = new VerticalStackLayout { Spacing = 8, IsVisible = false };
@@ -112,13 +105,12 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
         _activeList.Children.Clear();
         if (active.Count == 0)
         {
-            _activeList.Children.Add(new Label
+            _activeList.Children.Add((new Label
             {
                 Text = "No active emotions tracked. Tap + Add Emotion to start.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         }
 
         foreach (var emotion in active)
@@ -134,13 +126,12 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
 
             if (archived.Count == 0)
             {
-                _archivedList.Children.Add(new Label
+                _archivedList.Children.Add((new Label
                 {
                     Text = "No archived emotions.",
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#999"),
                     FontAttributes = FontAttributes.Italic
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             }
 
             foreach (var emotion in archived)
@@ -157,108 +148,97 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
     {
         string intensityBar = new string('\u2588', emotion.Intensity) + new string('\u2591', 10 - emotion.Intensity);
 
-        Color cardBg = isArchived ? Color.FromArgb("#F5F5F5") : GetCategoryColor(emotion.Category);
+        ThemeKey cardBg = isArchived ? ThemeKey.SecondarySurface : GetCategoryColor(emotion.Category);
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 14,
             CornerRadius = 10,
-            BackgroundColor = cardBg,
             BorderColor = Colors.Transparent,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, cardBg);
 
         var stack = new VerticalStackLayout { Spacing = 4 };
 
         var headerRow = new HorizontalStackLayout { Spacing = 8 };
-        headerRow.Children.Add(new Label
+        headerRow.Children.Add((new Label
         {
             Text = $"{GetCategoryEmoji(emotion.Category)} {emotion.Name}",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        });
-        headerRow.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        headerRow.Children.Add((new Label
         {
             Text = emotion.Category,
             FontSize = 11,
-            TextColor = Color.FromArgb("#888"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         stack.Children.Add(headerRow);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Intensity: {intensityBar} {emotion.Intensity}/10",
             FontSize = 11,
-            TextColor = Color.FromArgb("#666"),
             FontFamily = "Consolas"
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         if (!string.IsNullOrWhiteSpace(emotion.Description))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = emotion.Description,
                 FontSize = 12,
-                TextColor = Color.FromArgb("#555"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (!string.IsNullOrWhiteSpace(emotion.Notes))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = emotion.Notes,
                 FontSize = 11,
-                TextColor = Color.FromArgb("#888"),
                 FontAttributes = FontAttributes.Italic,
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
 
         string dateText = isArchived && emotion.ArchivedAt.HasValue
             ? $"Archived {emotion.ArchivedAt.Value.ToLocalTime():MMM dd}"
             : $"Added {emotion.CreatedAt.ToLocalTime():MMM dd}";
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = dateText,
-            FontSize = 10,
-            TextColor = Color.FromArgb("#AAA")
-        });
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
         var btnRow = new HorizontalStackLayout { Spacing = 6 };
 
         if (!isArchived)
         {
-            var editBtn = new Button
+            var editBtn = (new Button
             {
                 Text = "\u270F\uFE0F",
-                BackgroundColor = Color.FromArgb("#FFF3E0"),
-                TextColor = Color.FromArgb("#E65100"),
                 CornerRadius = 6,
                 WidthRequest = 36,
                 HeightRequest = 32,
                 Padding = 0,
                 FontSize = 12
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
             var capturedEmotion = emotion;
             editBtn.Clicked += async (_, _) => await EditEmotionAsync(capturedEmotion);
             btnRow.Children.Add(editBtn);
 
-            var archiveBtn = new Button
+            var archiveBtn = (new Button
             {
                 Text = "\U0001F4E6",
-                BackgroundColor = Color.FromArgb("#E0E0E0"),
-                TextColor = Color.FromArgb("#666"),
                 CornerRadius = 6,
                 WidthRequest = 36,
                 HeightRequest = 32,
                 Padding = 0,
                 FontSize = 12
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
             archiveBtn.Clicked += async (_, _) =>
             {
                 await _emotions.ArchiveEmotionAsync(capturedEmotion.Id);
@@ -268,17 +248,15 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
         }
         else
         {
-            var restoreBtn = new Button
+            var restoreBtn = (new Button
             {
                 Text = "\u267B\uFE0F",
-                BackgroundColor = Color.FromArgb("#E8F5E9"),
-                TextColor = Color.FromArgb("#2E7D32"),
                 CornerRadius = 6,
                 WidthRequest = 36,
                 HeightRequest = 32,
                 Padding = 0,
                 FontSize = 12
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
             var capturedEmotion = emotion;
             restoreBtn.Clicked += async (_, _) =>
             {
@@ -287,17 +265,15 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
             };
             btnRow.Children.Add(restoreBtn);
 
-            var deleteBtn = new Button
+            var deleteBtn = (new Button
             {
                 Text = "\U0001F5D1\uFE0F",
-                BackgroundColor = Color.FromArgb("#FFEBEE"),
-                TextColor = Color.FromArgb("#C62828"),
                 CornerRadius = 6,
                 WidthRequest = 36,
                 HeightRequest = 32,
                 Padding = 0,
                 FontSize = 12
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
             deleteBtn.Clicked += async (_, _) =>
             {
                 bool confirm = await DisplayAlert("Delete?", $"Permanently delete '{capturedEmotion.Name}'?", "Delete", "Cancel");
@@ -386,17 +362,7 @@ public class ActiveEmotionsPage : Bannister.Views.ModeThemedPage
         _ => "\U0001F4AD"
     };
 
-    private static Color GetCategoryColor(string category) => category switch
+    private static ThemeKey GetCategoryColor(string category) => category switch
     {
-        "Joy" => Color.FromArgb("#FFFDE7"),
-        "Sadness" => Color.FromArgb("#E3F2FD"),
-        "Anger" => Color.FromArgb("#FFEBEE"),
-        "Fear" => Color.FromArgb("#F3E5F5"),
-        "Surprise" => Color.FromArgb("#E0F7FA"),
-        "Disgust" => Color.FromArgb("#F1F8E9"),
-        "Love" => Color.FromArgb("#FCE4EC"),
-        "Anxiety" => Color.FromArgb("#FFF3E0"),
-        "Gratitude" => Color.FromArgb("#E8F5E9"),
-        _ => Color.FromArgb("#FAFAFA")
-    };
+        "Joy" => ThemeKey.HighlightYellowSoft,        "Sadness" => ThemeKey.RowSelected,        "Anger" => ThemeKey.ErrorBackground,        "Fear" => ThemeKey.AccentPurpleBackground,        "Surprise" => ThemeKey.HighlightTeal,        "Disgust" => ThemeKey.HighlightLime,        "Love" => ThemeKey.HighlightPink,        "Anxiety" => ThemeKey.WarningBackground,        "Gratitude" => ThemeKey.SuccessBackground,        _ => ThemeKey.SecondarySurface    };
 }

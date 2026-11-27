@@ -42,32 +42,28 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "⚡ Resets",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Track reset enforcers — commitments where breaking " +
                    "them resets your count.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add New Reset Enforcer",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (_, _) => await AddEnforcerAsync();
         stack.Children.Add(addBtn);
 
@@ -89,24 +85,21 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition(GridLength.Auto)
             }
         };
-        var archivedTitle = new Label
+        var archivedTitle = (new Label
         {
             Text = " Archived",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        };
-        var toggleArchivedBtn = new Button
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true);
+        var toggleArchivedBtn = (new Button
         {
             Text = "▶ Show",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         toggleArchivedBtn.Clicked += (_, _) =>
         {
             bool showing = _archivedContainer.IsVisible;
@@ -116,12 +109,10 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
         archivedHeader.Add(archivedTitle, 0, 0);
         archivedHeader.Add(toggleArchivedBtn, 1, 0);
 
-        _archivedSection = new Frame
+        _archivedSection = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             Padding = 12,
             CornerRadius = 10,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false,
             IsVisible = false,
             Content = new VerticalStackLayout
@@ -129,7 +120,7 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
                 Spacing = 8,
                 Children = { archivedHeader, _archivedContainer }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
         stack.Children.Add(_archivedSection);
 
         Content = new ScrollView { Content = stack };
@@ -166,14 +157,13 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
 
         if (active.Count == 0)
         {
-            _cardsContainer.Children.Add(new Label
+            _cardsContainer.Children.Add((new Label
             {
                 Text = "No active reset enforcers. Tap " +
                        "'+ Add New Reset Enforcer' to create one.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         }
         else
         {
@@ -198,13 +188,12 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
     private View BuildEnforcerCard(
         ResetEnforcer enforcer, bool isArchived = false)
     {
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 16,
             CornerRadius = 12,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var inner = new Grid
         {
@@ -239,17 +228,15 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             inner.Add(cardImg, 0, 0);
             Grid.SetRowSpan(cardImg, 2);
 
-            var cycleBtn = new Button
+            var cycleBtn = (new Button
             {
                 Text = "⟳",
                 FontSize = 10,
                 HeightRequest = 22,
                 WidthRequest = 70,
                 CornerRadius = 4,
-                Padding = 0,
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#37474F")
-            };
+                Padding = 0
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
             var capturedEnf = enforcer;
             cycleBtn.Clicked += async (_, _) =>
             {
@@ -271,14 +258,13 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
         }
 
         // Name
-        inner.Add(new Label
+        inner.Add((new Label
         {
             Text = enforcer.Name,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.End
-        }, 1, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
         string visText = enforcer.Visibility switch
         {
@@ -286,24 +272,18 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             2 => " Both",
             _ => " Private"
         };
-        var visBtn = new Button
+        var visBtn = (new Button
         {
             Text = visText,
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            TextColor = enforcer.Visibility switch
-            {
-                1 => Color.FromArgb("#1565C0"),
-                2 => Color.FromArgb("#2E7D32"),
-                _ => Color.FromArgb("#6A0DAD")
-            },
             CornerRadius = 6,
             FontSize = 11,
             HeightRequest = 26,
             Padding = new Thickness(8, 0),
             HorizontalOptions = LayoutOptions.Start,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             BorderWidth = 1
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, enforcer.Visibility switch
+            {
+                1 => ThemeKey.InfoText,                2 => ThemeKey.SuccessText,                _ => ThemeKey.AccentPurpleDarkButtonBackground            }).ThemeColor(Button.BorderColorProperty, ThemeKey.Separator);
         visBtn.Clicked += async (_, _) =>
         {
             enforcer.Visibility =
@@ -313,35 +293,31 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
         };
 
         // Reset count
-        inner.Add(new Label
+        inner.Add((new Label
         {
             Text = $"Resets: {enforcer.TotalResets}",
             FontSize = 13,
-            TextColor = Color.FromArgb("#C62828"),
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Start
-        }, 1, 1);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true), 1, 1);
 
-        inner.Add(new Label
+        inner.Add((new Label
         {
             Text = $" {enforcer.DaysInARow}d streak",
             FontSize = 12,
-            TextColor = Color.FromArgb("#2E7D32"),
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Start
-        }, 1, 2);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true), 1, 2);
 
         // Reset button
-        var resetBtn = new Button
+        var resetBtn = (new Button
         {
             Text = "Reset",
-            BackgroundColor = Color.FromArgb("#C62828"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 36,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         var capturedEnforcer = enforcer;
         resetBtn.Clicked += async (_, _) =>
         {
@@ -356,22 +332,16 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
         inner.Add(resetBtn, 2, 0);
         Grid.SetRowSpan(resetBtn, 2);
 
-        var archiveBtn = new Button
+        var archiveBtn = (new Button
         {
             Text = isArchived ? "↩ Unarchive" : " Archive",
-            BackgroundColor = isArchived
-                ? Color.FromArgb("#E8F5E9")
-                : Color.FromArgb("#F5F5F5"),
-            TextColor = isArchived
-                ? Color.FromArgb("#2E7D32")
-                : Color.FromArgb("#757575"),
             CornerRadius = 6,
             FontSize = 11,
             HeightRequest = 28,
             HorizontalOptions = LayoutOptions.End,
             Padding = new Thickness(10, 0),
             Margin = new Thickness(0, 6, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isArchived ? ThemeKey.SuccessBackground : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, isArchived ? ThemeKey.SuccessText : ThemeKey.NeutralHoverButton);
         var capturedArchived = isArchived;
         archiveBtn.Clicked += async (_, _) =>
         {
@@ -386,17 +356,15 @@ public class ResetsPage : Bannister.Views.ModeThemedPage
             await RefreshAsync();
         };
 
-        var deleteBtn = new Button
+        var deleteBtn = (new Button
         {
             Text = " Delete",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 6,
             FontSize = 11,
             HeightRequest = 28,
             HorizontalOptions = LayoutOptions.End,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += async (_, _) =>
         {
             bool confirm = await DisplayAlert(

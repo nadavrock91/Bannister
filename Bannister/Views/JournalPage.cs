@@ -58,13 +58,11 @@ public class JournalPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        var prevBtn = new Button
+        var prevBtn = (new Button
         {
             Text = "◀", FontSize = 14, HeightRequest = 36,
-            WidthRequest = 36, CornerRadius = 6, Padding = 0,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0")
-        };
+            WidthRequest = 36, CornerRadius = 6, Padding = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         prevBtn.Clicked += async (_, _) =>
         {
             _selectedDate = _selectedDate.AddDays(-1);
@@ -73,22 +71,19 @@ public class JournalPage : Bannister.Views.ModeThemedPage
         };
         headerGrid.Add(prevBtn, 0, 0);
 
-        _dateLabel = new Label
+        _dateLabel = (new Label
         {
             FontSize = 18, FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
         headerGrid.Add(_dateLabel, 1, 0);
 
-        var nextBtn = new Button
+        var nextBtn = (new Button
         {
             Text = "▶", FontSize = 14, HeightRequest = 36,
-            WidthRequest = 36, CornerRadius = 6, Padding = 0,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0")
-        };
+            WidthRequest = 36, CornerRadius = 6, Padding = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         nextBtn.Clicked += async (_, _) =>
         {
             if (_selectedDate.Date >= DateTime.Today) return;
@@ -102,38 +97,34 @@ public class JournalPage : Bannister.Views.ModeThemedPage
         UpdateDateLabel();
 
         var modeRow = new HorizontalStackLayout { Spacing = 0 };
-        var soloTab = new Button
+        var soloTab = (new Button
         {
             Text = "✏️ Solo", FontSize = 13, HeightRequest = 36,
-            CornerRadius = 0, Padding = new Thickness(20, 0),
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White
-        };
-        var aiTab = new Button
+            CornerRadius = 0, Padding = new Thickness(20, 0)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var aiTab = (new Button
         {
             Text = " AI Conversation", FontSize = 13,
             HeightRequest = 36, CornerRadius = 0,
-            Padding = new Thickness(20, 0),
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F")
-        };
+            Padding = new Thickness(20, 0)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         soloTab.Clicked += (_, _) =>
         {
             _isAiMode = false;
-            soloTab.BackgroundColor = Color.FromArgb("#1565C0");
-            soloTab.TextColor = Colors.White;
-            aiTab.BackgroundColor = Color.FromArgb("#ECEFF1");
-            aiTab.TextColor = Color.FromArgb("#37474F");
+            soloTab.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground);
+            soloTab.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            aiTab.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground);
+            aiTab.ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
             _soloSection.IsVisible = true;
             _aiSection.IsVisible = false;
         };
         aiTab.Clicked += (_, _) =>
         {
             _isAiMode = true;
-            aiTab.BackgroundColor = Color.FromArgb("#6A1B9A");
-            aiTab.TextColor = Colors.White;
-            soloTab.BackgroundColor = Color.FromArgb("#ECEFF1");
-            soloTab.TextColor = Color.FromArgb("#37474F");
+            aiTab.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground);
+            aiTab.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+            soloTab.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground);
+            soloTab.ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
             _soloSection.IsVisible = false;
             _aiSection.IsVisible = true;
         };
@@ -141,17 +132,15 @@ public class JournalPage : Bannister.Views.ModeThemedPage
         modeRow.Children.Add(aiTab);
         stack.Children.Add(modeRow);
 
-        var analyzeBtn = new Button
+        var analyzeBtn = (new Button
         {
             Text = " Analyze",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.End,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
         analyzeBtn.Clicked += async (_, _) =>
         {
             var services = Application.Current?.Handler?.MauiContext?.Services;
@@ -165,28 +154,24 @@ public class JournalPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(analyzeBtn);
 
         _soloSection = new VerticalStackLayout { Spacing = 8 };
-        _entryEditor = new Editor
+        _entryEditor = (new Editor
         {
             Placeholder = "Write your thoughts...",
             HeightRequest = 120,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
             FontSize = 14,
             Margin = new Thickness(0, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         _soloSection.Children.Add(_entryEditor);
 
-        _saveBtn = new Button
+        _saveBtn = (new Button
         {
             Text = " Save Entry",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _saveBtn.Clicked += async (_, _) => await SaveEntryAsync();
         _soloSection.Children.Add(_saveBtn);
         stack.Children.Add(_soloSection);
@@ -196,51 +181,44 @@ public class JournalPage : Bannister.Views.ModeThemedPage
             Spacing = 8,
             IsVisible = false
         };
-        _aiSection.Children.Add(new Label
+        _aiSection.Children.Add((new Label
         {
             Text = "Paste your full AI conversation below, " +
                    "then tap Save.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        _aiEditor = new Editor
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        _aiEditor = (new Editor
         {
             Placeholder = "Paste AI conversation here...",
             HeightRequest = 180,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13,
             Margin = new Thickness(0, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         _aiSection.Children.Add(_aiEditor);
-        var aiSaveBtn = new Button
+        var aiSaveBtn = (new Button
         {
             Text = " Save Conversation",
-            BackgroundColor = Color.FromArgb("#6A1B9A"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         aiSaveBtn.Clicked += async (_, _) => await SaveAiEntryAsync();
         _aiSection.Children.Add(aiSaveBtn);
         stack.Children.Add(_aiSection);
 
-        stack.Children.Add(new BoxView
+        stack.Children.Add((new BoxView
         {
             HeightRequest = 1,
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
             Margin = new Thickness(0, 4)
-        });
-        stack.Children.Add(new Label
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator));
+        stack.Children.Add((new Label
         {
             Text = "Entries", FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#444")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         _entriesContainer = new VerticalStackLayout { Spacing = 6 };
         stack.Children.Add(_entriesContainer);
@@ -261,12 +239,11 @@ public class JournalPage : Bannister.Views.ModeThemedPage
             _auth.CurrentUsername, _selectedDate);
         if (entries.Count == 0)
         {
-            _entriesContainer.Children.Add(new Label
+            _entriesContainer.Children.Add((new Label
             {
                 Text = "No entries for this day yet.", FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
         foreach (var entry in entries)
@@ -275,11 +252,10 @@ public class JournalPage : Bannister.Views.ModeThemedPage
 
     private View BuildEntryCard(JournalEntry entry)
     {
-        var stack = new VerticalStackLayout
+        var stack = (new VerticalStackLayout
         {
-            Padding = new Thickness(12, 10), Spacing = 4,
-            BackgroundColor = Colors.White
-        };
+            Padding = new Thickness(12, 10), Spacing = 4
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         var topRow = new Grid
         {
             ColumnDefinitions =
@@ -289,19 +265,17 @@ public class JournalPage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 6
         };
-        topRow.Add(new Label
+        topRow.Add((new Label
         {
             Text = entry.TimeDisplay, FontSize = 11,
-            TextColor = Color.FromArgb("#999"),
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
-        var deleteBtn = new Button
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true), 0, 0);
+        var deleteBtn = (new Button
         {
-            Text = "✕", BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"), CornerRadius = 4,
+            Text = "✕", CornerRadius = 4,
             FontSize = 11, HeightRequest = 28, WidthRequest = 28,
             Padding = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += async (_, _) =>
         {
             bool confirm = await DisplayAlert("Delete Entry",
@@ -312,18 +286,16 @@ public class JournalPage : Bannister.Views.ModeThemedPage
         };
         topRow.Add(deleteBtn, 1, 0);
         stack.Children.Add(topRow);
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = entry.Text, FontSize = 14,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        return new Frame
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        return (new Frame
         {
             Content = stack, Padding = 0, CornerRadius = 8,
-            HasShadow = false, BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Colors.White, Margin = new Thickness(0, 1)
-        };
+            HasShadow = false, Margin = new Thickness(0, 1)
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private async Task SaveEntryAsync()

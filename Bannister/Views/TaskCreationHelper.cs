@@ -40,27 +40,21 @@ public static class TaskCreationHelper
             string? category,
             string? impact,
             bool isPrivate)?>();
-        var overlay = new Grid { BackgroundColor = Color.FromArgb("#80000000") };
+        var overlay = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var editor = new Editor
+        var editor = (new Editor
         {
             AutoSize = EditorAutoSizeOption.Disabled,
             HeightRequest = 120,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888"),
             Placeholder = "Describe the task...",
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
-        var impactEntry = new Entry
+        var impactEntry = (new Entry
         {
             Placeholder = "Impact (public summary)",
-            FontSize = 13,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#888")
-        };
+            FontSize = 13
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
         var isPrivateCheck = new CheckBox { IsChecked = false };
         var isPrivateRow = new HorizontalStackLayout
@@ -69,25 +63,23 @@ public static class TaskCreationHelper
             Children =
             {
                 isPrivateCheck,
-                new Label
+                (new Label
                 {
                     Text = "Private (hide title in public mode)",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#666"),
                     VerticalOptions = LayoutOptions.Center
-                }
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true)
             }
         };
 
         string selectedCategory = fixedCategory ?? "";
-        var categoryLabel = new Label
+        var categoryLabel = (new Label
         {
             Text = string.IsNullOrWhiteSpace(fixedCategory)
                 ? "Category: (select below or on submit)"
                 : $"Category: {fixedCategory}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#888")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
 
         View categorySection;
         Entry? categorySearch = null;
@@ -95,15 +87,12 @@ public static class TaskCreationHelper
 
         if (string.IsNullOrWhiteSpace(fixedCategory))
         {
-            categorySearch = new Entry
+            categorySearch = (new Entry
             {
                 Placeholder = "Search categories...",
                 FontSize = 12,
-                BackgroundColor = Color.FromArgb("#FAFAFA"),
-                TextColor = Color.FromArgb("#333"),
-                PlaceholderColor = Color.FromArgb("#999"),
                 HeightRequest = 34
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3);
 
             categoryDropdown = new VerticalStackLayout { Spacing = 2, MaximumHeightRequest = 120 };
 
@@ -116,17 +105,15 @@ public static class TaskCreationHelper
 
                 foreach (var cat in filtered)
                 {
-                    var catBtn = new Button
+                    var catBtn = (new Button
                     {
                         Text = cat == selectedCategory ? $"\u2713 {cat}" : cat,
-                        BackgroundColor = cat == selectedCategory ? Color.FromArgb("#E8EAF6") : Color.FromArgb("#F5F5F5"),
-                        TextColor = cat == selectedCategory ? Color.FromArgb("#7B1FA2") : Color.FromArgb("#333"),
                         CornerRadius = 4,
                         HeightRequest = 30,
                         FontSize = 11,
                         Padding = new Thickness(8, 0),
                         HorizontalOptions = LayoutOptions.Fill
-                    };
+                    }).ThemeColor(VisualElement.BackgroundColorProperty, cat == selectedCategory ? ThemeKey.HighlightIndigo : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, cat == selectedCategory ? ThemeKey.AccentPurpleText : ThemeKey.CardText1);
                     var capturedCat = cat;
                     catBtn.Clicked += (_, _) =>
                     {
@@ -137,17 +124,15 @@ public static class TaskCreationHelper
                     categoryDropdown.Children.Add(catBtn);
                 }
 
-                var newCatBtn = new Button
+                var newCatBtn = (new Button
                 {
                     Text = "+ New Category",
-                    BackgroundColor = Color.FromArgb("#FFF3E0"),
-                    TextColor = Color.FromArgb("#E65100"),
                     CornerRadius = 4,
                     HeightRequest = 30,
                     FontSize = 11,
                     Padding = new Thickness(8, 0),
                     HorizontalOptions = LayoutOptions.Fill
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
                 newCatBtn.Clicked += async (_, _) =>
                 {
                     var newName = await page.DisplayPromptAsync("New Category", "Category name:", "Create", "Cancel", maxLength: 100);
@@ -191,20 +176,16 @@ public static class TaskCreationHelper
             categorySection = categoryLabel;
         }
 
-        var createBtn = new Button
+        var createBtn = (new Button
         {
             Text = "Create",
-            BackgroundColor = Color.FromArgb("#7B1FA2"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
-        var cancelBtn = new Button
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
         Grid rootGrid;
         View? originalContent = null;
@@ -269,9 +250,8 @@ public static class TaskCreationHelper
         };
         cancelBtn.Clicked += (_, _) => CloseOverlay(null);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             MaximumWidthRequest = 600,
@@ -283,20 +263,18 @@ public static class TaskCreationHelper
                 Spacing = 10,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = markAsTopCandidate ? "New Top Candidate" : "New Task",
                         FontSize = 18,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#7B1FA2")
-                    },
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1, classifyPageText: true),
                     editor,
-                    new Label
+                    (new Label
                     {
                         Text = "Impact (public summary)",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#666")
-                    },
+                        FontSize = 12
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
                     impactEntry,
                     isPrivateRow,
                     categorySection,
@@ -308,7 +286,7 @@ public static class TaskCreationHelper
                     }
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         overlay.Children.Add(card);
         rootGrid.Children.Add(overlay);

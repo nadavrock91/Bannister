@@ -39,33 +39,30 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#1976D2"),
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoHoverButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
         
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = $"🎬 Clip {_shot.Index}",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
         // Progress indicator
         int tasksComplete = (_shot.Task1_ImageGenerated ? 1 : 0) + (_shot.Task2_VideoGenerated ? 1 : 0);
-        _progressLabel = new Label
+        _progressLabel = (new Label
         {
             Text = $"{tasksComplete}/2 tasks complete",
-            FontSize = 16,
-            TextColor = Color.FromArgb("#BBDEFB")
-        };
+            FontSize = 16
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightBlueStrong, ThemeKey.PageText1, classifyPageText: true);
         headerStack.Children.Add(_progressLabel);
 
         headerFrame.Content = headerStack;
@@ -74,34 +71,29 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         // Clip description
         if (!string.IsNullOrEmpty(_shot.Description))
         {
-            var descFrame = new Frame
+            var descFrame = (new Frame
             {
-                BackgroundColor = Color.FromArgb("#FFF8E1"),
                 Padding = 12,
-                CornerRadius = 8,
-                BorderColor = Color.FromArgb("#FFB300")
-            };
-            descFrame.Content = new Label
+                CornerRadius = 8
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightYellowButton);
+            descFrame.Content = (new Label
             {
                 Text = $"📝 {_shot.Description}",
-                FontSize = 14,
-                TextColor = Color.FromArgb("#666")
-            };
+                FontSize = 14
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
             mainStack.Children.Add(descFrame);
         }
 
         // Edit description button
-        var editDescBtn = new Button
+        var editDescBtn = (new Button
         {
             Text = "✏️ Edit Description",
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100"),
             FontSize = 13,
             CornerRadius = 8,
             HeightRequest = 36,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         editDescBtn.Clicked += OnEditDescriptionClicked;
         mainStack.Children.Add(editDescBtn);
 
@@ -111,16 +103,14 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(_tasksContainer);
 
         // Delete clip button at bottom
-        var deleteBtn = new Button
+        var deleteBtn = (new Button
         {
             Text = "🗑️ Delete This Clip",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 14,
             CornerRadius = 8,
             HeightRequest = 44,
             Margin = new Thickness(0, 24, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += OnDeleteClipClicked;
         mainStack.Children.Add(deleteBtn);
 
@@ -149,8 +139,8 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             },
             onPromptChanged: (text) => _shot.ImagePrompt = text,
             linePrompt: _line.ImagePrompt,
-            promptColor: Color.FromArgb("#FFFDE7"),
-            accentColor: Color.FromArgb("#FFC107")
+            promptColor: ThemeKey.HighlightYellowSoft,
+            accentColor: ThemeKey.HighlightAmberButton
         ));
 
         // Task 2: Generate Video
@@ -170,8 +160,8 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             },
             onPromptChanged: (text) => _shot.VideoPrompt = text,
             linePrompt: _line.VideoPrompt,
-            promptColor: Color.FromArgb("#E3F2FD"),
-            accentColor: Color.FromArgb("#2196F3")
+            promptColor: ThemeKey.RowSelected,
+            accentColor: ThemeKey.InfoLinkText
         ));
 
         UpdateProgress();
@@ -193,17 +183,15 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         Func<bool, Task> onToggle,
         Action<string> onPromptChanged,
         string linePrompt,
-        Color promptColor,
-        Color accentColor)
+        ThemeKey promptColor,
+        ThemeKey accentColor)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = isComplete ? Color.FromArgb("#E8F5E9") : Colors.White,
-            BorderColor = isComplete ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E0E0E0"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isComplete ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isComplete ? ThemeKey.SuccessLightText : ThemeKey.Separator);
 
         var stack = new VerticalStackLayout { Spacing = 12 };
 
@@ -218,30 +206,27 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 12
         };
 
-        var checkbox = new CheckBox
+        var checkbox = (new CheckBox
         {
             IsChecked = isComplete,
-            Color = Color.FromArgb("#4CAF50"),
             VerticalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
         checkbox.CheckedChanged += async (s, e) => await onToggle(checkbox.IsChecked);
         Grid.SetColumn(checkbox, 0);
         headerGrid.Children.Add(checkbox);
 
         var titleStack = new VerticalStackLayout { Spacing = 2 };
-        titleStack.Children.Add(new Label
+        titleStack.Children.Add((new Label
         {
             Text = $"Task {taskNumber}: {title}",
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = isComplete ? Color.FromArgb("#4CAF50") : Color.FromArgb("#333")
-        });
-        titleStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, isComplete ? ThemeKey.SuccessLightText : ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        titleStack.Children.Add((new Label
         {
             Text = subtitle,
-            FontSize = 12,
-            TextColor = Color.FromArgb("#999")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(titleStack, 1);
         headerGrid.Children.Add(titleStack);
 
@@ -269,8 +254,8 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         string placeholder,
         Action<string> onChanged,
         string linePrompt,
-        Color bgColor,
-        Color accentColor)
+        ThemeKey bgColor,
+        ThemeKey accentColor)
     {
         var container = new VerticalStackLayout { Spacing = 8 };
 
@@ -286,38 +271,34 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        var expandLabel = new Label
+        var expandLabel = (new Label
         {
             Text = "▶",
             FontSize = 12,
-            TextColor = accentColor,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, accentColor, ThemeKey.PageText3, classifyPageText: true);
         Grid.SetColumn(expandLabel, 0);
         headerRow.Children.Add(expandLabel);
 
-        var promptLabel = new Label
+        var promptLabel = (new Label
         {
             Text = $"📋 {label}",
             FontSize = 13,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(promptLabel, 1);
         headerRow.Children.Add(promptLabel);
 
         // Copy button (always visible)
-        var copyBtn = new Button
+        var copyBtn = (new Button
         {
             Text = "📋 Copy",
-            BackgroundColor = bgColor,
-            TextColor = accentColor,
             HeightRequest = 30,
             Padding = new Thickness(10, 0),
             CornerRadius = 6,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bgColor).ThemeColor(Button.TextColorProperty, accentColor);
         string currentPrompt = promptText;
         copyBtn.Clicked += async (s, e) =>
         {
@@ -335,14 +316,12 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         container.Children.Add(headerRow);
 
         // Collapsible content
-        var contentFrame = new Frame
+        var contentFrame = (new Frame
         {
-            BackgroundColor = bgColor,
             Padding = 12,
             CornerRadius = 8,
-            BorderColor = accentColor,
             IsVisible = false  // Collapsed by default
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bgColor).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, accentColor);
 
         var contentStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -350,23 +329,20 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         if (!string.IsNullOrEmpty(linePrompt))
         {
             var fillRow = new HorizontalStackLayout { Spacing = 8 };
-            fillRow.Children.Add(new Label
+            fillRow.Children.Add((new Label
             {
                 Text = "💡 Line-level prompt available:",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#666"),
                 VerticalOptions = LayoutOptions.Center
-            });
-            var fillBtn = new Button
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+            var fillBtn = (new Button
             {
                 Text = "⬇️ Use Line Prompt",
-                BackgroundColor = accentColor,
-                TextColor = Colors.White,
                 HeightRequest = 28,
                 Padding = new Thickness(8, 0),
                 CornerRadius = 4,
                 FontSize = 11
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, accentColor).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             fillBtn.Clicked += async (s, e) =>
             {
                 onChanged(linePrompt);
@@ -379,14 +355,13 @@ public class ClipSetupPage : Bannister.Views.ModeThemedPage
         }
 
         // Prompt editor
-        var editor = new Editor
+        var editor = (new Editor
         {
             Text = promptText,
             Placeholder = placeholder,
             HeightRequest = 80,
-            FontSize = 13,
-            BackgroundColor = Colors.White
-        };
+            FontSize = 13
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         editor.TextChanged += (s, e) =>
         {
             onChanged(editor.Text);

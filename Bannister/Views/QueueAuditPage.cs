@@ -38,52 +38,44 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
         Title = "Queue Audit";
 
 
-        _databaseCountLabel = CreateSummaryLabel("Database: 0 ideas", "#333333");
-        _pendingCountLabel = CreateSummaryLabel("Pending on server: 0", "#EF6C00");
-        _archiveCountLabel = CreateSummaryLabel("Archived (applied): 0", "#2E7D32");
-        _matchedCountLabel = CreateSummaryLabel("✅ Matched: 0", "#2E7D32");
-        _unmatchedCountLabel = CreateSummaryLabel("⚠️ Not in database: 0", "#EF6C00");
-        _statusLabel = new Label
+        _databaseCountLabel = CreateSummaryLabel("Database: 0 ideas", ThemeKey.CardText1);
+        _pendingCountLabel = CreateSummaryLabel("Pending on server: 0", ThemeKey.WarningAmber);
+        _archiveCountLabel = CreateSummaryLabel("Archived (applied): 0", ThemeKey.SuccessText);
+        _matchedCountLabel = CreateSummaryLabel("✅ Matched: 0", ThemeKey.SuccessText);
+        _unmatchedCountLabel = CreateSummaryLabel("⚠️ Not in database: 0", ThemeKey.WarningAmber);
+        _statusLabel = (new Label
         {
             FontSize = 13,
-            TextColor = Color.FromArgb("#666666"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         _unmatchedSections = new VerticalStackLayout { Spacing = 10 };
 
-        _refreshButton = new Button
+        _refreshButton = (new Button
         {
             Text = "Refresh",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _refreshButton.Clicked += async (_, _) => await LoadAuditAsync();
 
-        _uploadPendingButton = new Button
+        _uploadPendingButton = (new Button
         {
             Text = "Upload Pending",
-            BackgroundColor = Color.FromArgb("#29B6F6"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoSkyButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _uploadPendingButton.Clicked += OnUploadPendingClicked;
 
-        _clearArchiveButton = new Button
+        _clearArchiveButton = (new Button
         {
             Text = "Clear Archive",
-            BackgroundColor = Color.FromArgb("#C62828"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _clearArchiveButton.Clicked += OnClearArchiveClicked;
 
-        _busyIndicator = new ActivityIndicator
+        _busyIndicator = (new ActivityIndicator
         {
-            Color = Color.FromArgb("#5B63EE"),
             IsVisible = false,
             IsRunning = false
-        };
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText);
 
         var buttonGrid = new Grid
         {
@@ -99,11 +91,10 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
         buttonGrid.Add(_uploadPendingButton, 1, 0);
         buttonGrid.Add(_clearArchiveButton, 2, 0);
 
-        var summaryFrame = new Frame
+        var summaryFrame = (new Frame
         {
             Padding = 18,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             Content = new VerticalStackLayout
             {
@@ -117,7 +108,7 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
                     _unmatchedCountLabel
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         Content = new ScrollView
         {
@@ -127,25 +118,23 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
                 Spacing = 14,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Queue Audit",
                         FontSize = 28,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333333")
-                    },
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     buttonGrid,
                     _busyIndicator,
                     _statusLabel,
                     summaryFrame,
-                    new Label
+                    (new Label
                     {
                         Text = "Unmatched Queue Operations",
                         FontSize = 20,
                         FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333333"),
                         Margin = new Thickness(0, 8, 0, 0)
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     _unmatchedSections
                 }
             }
@@ -209,7 +198,7 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
         catch (Exception ex)
         {
             _statusLabel.Text = $"Unable to load queue audit: {ex.Message}";
-            _statusLabel.TextColor = Color.FromArgb("#C62828");
+            _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
         }
         finally
         {
@@ -248,12 +237,11 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
         _unmatchedSections.Children.Clear();
         if (unmatched.Count == 0)
         {
-            _unmatchedSections.Children.Add(new Label
+            _unmatchedSections.Children.Add((new Label
             {
                 Text = "All queued idea operations have a matching database idea.",
-                FontSize = 14,
-                TextColor = Color.FromArgb("#2E7D32")
-            });
+                FontSize = 14
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true));
             return;
         }
 
@@ -270,15 +258,13 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
             foreach (var item in monthGroup.OrderByDescending(item => item.Operation.CreatedAt))
                 itemsStack.Children.Add(CreateOperationCard(item));
 
-            var headerButton = new Button
+            var headerButton = (new Button
             {
                 Text = $"▶ {monthGroup.Key.ToString("MMMM yyyy", CultureInfo.CurrentCulture)} ({monthGroup.Count()} unmatched)",
-                BackgroundColor = Color.FromArgb("#FFF3E0"),
-                TextColor = Color.FromArgb("#E65100"),
                 FontAttributes = FontAttributes.Bold,
                 CornerRadius = 8,
                 HorizontalOptions = LayoutOptions.Fill
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
             headerButton.Clicked += (_, _) =>
             {
                 itemsStack.IsVisible = !itemsStack.IsVisible;
@@ -292,41 +278,36 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
 
     private View CreateOperationCard(DecodedIdeaOperation item)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 14,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false,
             Content = new VerticalStackLayout
             {
                 Spacing = 4,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = item.Title,
                         FontSize = 15,
                         FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333333"),
                         LineBreakMode = LineBreakMode.WordWrap
-                    },
-                    new Label
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label
                     {
                         Text = $"Status: {GetStatusText(item.Operation.Status)}",
-                        FontSize = 12,
-                        TextColor = GetStatusColor(item.Operation.Status)
-                    },
-                    new Label
+                        FontSize = 12
+                    }).ThemeColor(Label.TextColorProperty, GetStatusColor(item.Operation.Status), ThemeKey.PageText3, classifyPageText: true),
+                    (new Label
                     {
                         Text = item.Operation.CreatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt", CultureInfo.CurrentCulture),
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#777777")
-                    }
+                        FontSize = 12
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true)
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (_, _) => await ShowOperationDetailsAsync(item.Operation);
@@ -382,15 +363,13 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
     {
         SetBusy(true);
         _statusLabel.Text = "Uploading pending operations...";
-        _statusLabel.TextColor = Color.FromArgb("#5B63EE");
+        _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
 
         try
         {
             var result = await _sync.UploadQueueAsync();
             _statusLabel.Text = result.Message;
-            _statusLabel.TextColor = result.Success
-                ? Color.FromArgb("#2E7D32")
-                : Color.FromArgb("#C62828");
+            _statusLabel.ThemeColor(Label.TextColorProperty, result.Success ? ThemeKey.SuccessText : ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
 
             if (result.Success)
                 await LoadAuditAsync();
@@ -398,7 +377,7 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
         catch (Exception ex)
         {
             _statusLabel.Text = $"Queue upload failed: {ex.Message}";
-            _statusLabel.TextColor = Color.FromArgb("#C62828");
+            _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
         }
         finally
         {
@@ -418,15 +397,13 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
 
         SetBusy(true);
         _statusLabel.Text = "Clearing queue archive...";
-        _statusLabel.TextColor = Color.FromArgb("#5B63EE");
+        _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
 
         try
         {
             var result = await _sync.ClearQueueArchiveAsync();
             _statusLabel.Text = result.Message;
-            _statusLabel.TextColor = result.Success
-                ? Color.FromArgb("#2E7D32")
-                : Color.FromArgb("#C62828");
+            _statusLabel.ThemeColor(Label.TextColorProperty, result.Success ? ThemeKey.SuccessText : ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
 
             if (result.Success)
                 await LoadAuditAsync();
@@ -434,7 +411,7 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
         catch (Exception ex)
         {
             _statusLabel.Text = $"Queue archive clear failed: {ex.Message}";
-            _statusLabel.TextColor = Color.FromArgb("#C62828");
+            _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
         }
         finally
         {
@@ -451,13 +428,11 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
         _clearArchiveButton.IsEnabled = !isBusy;
     }
 
-    private static Label CreateSummaryLabel(string text, string color) => new()
-    {
+    private static Label CreateSummaryLabel(string text, ThemeKey color) => (new Label(){
         Text = text,
         FontSize = 16,
-        FontAttributes = FontAttributes.Bold,
-        TextColor = Color.FromArgb(color)
-    };
+        FontAttributes = FontAttributes.Bold
+    }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1, classifyPageText: true);
 
     private static string BuildMatchKey(string? username, string? title)
         => $"{username?.Trim()}\u001F{title?.Trim()}";
@@ -471,14 +446,9 @@ public class QueueAuditPage : Bannister.Views.ModeThemedPage
         _ => $"Unknown ({status})"
     };
 
-    private static Color GetStatusColor(int status) => status switch
+    private static ThemeKey GetStatusColor(int status) => status switch
     {
-        0 => Color.FromArgb("#EF6C00"),
-        1 => Color.FromArgb("#1565C0"),
-        2 => Color.FromArgb("#2E7D32"),
-        3 => Color.FromArgb("#C62828"),
-        _ => Color.FromArgb("#666666")
-    };
+        0 => ThemeKey.WarningAmber,        1 => ThemeKey.InfoText,        2 => ThemeKey.SuccessText,        3 => ThemeKey.ErrorText,        _ => ThemeKey.CardText2    };
 
     private sealed record DecodedIdeaOperation(
         QueuedOperation Operation,

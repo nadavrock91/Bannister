@@ -79,213 +79,188 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
         };
 
         // Progress indicator
-        _progressLabel = new Label
+        _progressLabel = (new Label
         {
             Text = "1 of 1",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         mainStack.Children.Add(_progressLabel);
 
         // Warning header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#FFCDD2"),
-            BorderColor = Color.FromArgb("#F44336"),
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorSelectedBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
         
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "⚠️ Streak Broken",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#C62828"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true));
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "Your streak was broken. Choose how to handle it.",
             FontSize = 14,
-            TextColor = Color.FromArgb("#D32F2F"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorStrongText, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
 
         // Activity info card
-        var activityFrame = new Frame
+        var activityFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var activityStack = new VerticalStackLayout { Spacing = 12 };
 
-        activityStack.Children.Add(new Label
+        activityStack.Children.Add((new Label
         {
             Text = "Activity:",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#999")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
         _activityVisualContainer = new VerticalStackLayout { Spacing = 4 };
         activityStack.Children.Add(_activityVisualContainer);
 
-        _streakInfoLabel = new Label
+        _streakInfoLabel = (new Label
         {
             Text = "🔥 7 day streak was broken",
             FontSize = 16,
-            TextColor = Color.FromArgb("#FF5722"),
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.DeepOrangeButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         activityStack.Children.Add(_streakInfoLabel);
 
-        _missedDateLabel = new Label
+        _missedDateLabel = (new Label
         {
             Text = "Missed: March 14, 2026",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         activityStack.Children.Add(_missedDateLabel);
 
-        _penaltyLabel = new Label
+        _penaltyLabel = (new Label
         {
             Text = "Penalty: -14 EXP",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#F44336")
-        };
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         activityStack.Children.Add(_penaltyLabel);
 
         activityFrame.Content = activityStack;
         mainStack.Children.Add(activityFrame);
 
         // Level down warning (hidden by default)
-        _levelDownWarning = new Frame
+        _levelDownWarning = (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            BorderColor = Color.FromArgb("#FF9800"),
             HasShadow = false,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
 
-        _levelDownLabel = new Label
+        _levelDownLabel = (new Label
         {
             Text = "⚠️ Accepting will also LEVEL DOWN to level X",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#E65100"),
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText1, classifyPageText: true);
         _levelDownWarning.Content = _levelDownLabel;
         mainStack.Children.Add(_levelDownWarning);
 
         // Options
-        var optionsLabel = new Label
+        var optionsLabel = (new Label
         {
             Text = "Choose an option:",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             Margin = new Thickness(0, 10, 0, 0)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(optionsLabel);
 
         // Accept Penalty button
-        _acceptButton = new Button
+        _acceptButton = (new Button
         {
             Text = "✅ Accept Penalty",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _acceptButton.Clicked += OnAcceptPenaltyClicked;
         mainStack.Children.Add(_acceptButton);
 
         // Day before yesterday didn't count button
-        _dayDidntCountButton = new Button
+        _dayDidntCountButton = (new Button
         {
             Text = "📅 That Day Didn't Count",
-            BackgroundColor = Color.FromArgb("#2196F3"),
-            TextColor = Colors.White,
             FontSize = 16,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _dayDidntCountButton.Clicked += OnDayDidntCountClicked;
         mainStack.Children.Add(_dayDidntCountButton);
 
         // Add explanation
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Use if the missed day was an exception (sick, travel, etc.)",
             FontSize = 11,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, -12, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Day didn't count + change to weekly button
-        _dayDidntCountWeeklyButton = new Button
+        _dayDidntCountWeeklyButton = (new Button
         {
             Text = "📅 Didn't Count + Change to Weekly",
-            BackgroundColor = Color.FromArgb("#00897B"),
-            TextColor = Colors.White,
             FontSize = 16,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _dayDidntCountWeeklyButton.Clicked += OnDayDidntCountWeeklyClicked;
         mainStack.Children.Add(_dayDidntCountWeeklyButton);
 
         // Add explanation
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Restore streak + set this activity to only display once a week",
             FontSize = 11,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, -12, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Forgot to click button
-        _forgotButton = new Button
+        _forgotButton = (new Button
         {
             Text = "🔄 Forgot to Log That Day",
-            BackgroundColor = Color.FromArgb("#9C27B0"),
-            TextColor = Colors.White,
             FontSize = 16,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _forgotButton.Clicked += OnForgotToClickClicked;
         mainStack.Children.Add(_forgotButton);
 
         // Add explanation
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Use if you did the activity but forgot to log it",
             FontSize = 11,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, -12, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         var scrollView = new ScrollView { Content = mainStack };
         Content = scrollView;
@@ -323,20 +298,20 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
                 _levelDownWarning.IsVisible = true;
                 _levelDownLabel.Text = $"⚠️ Accepting will also LEVEL DOWN to level {activity.LevelCapAt}";
                 _acceptButton.Text = $"✅ Accept Penalty + Level Down";
-                _acceptButton.BackgroundColor = Color.FromArgb("#FF9800");
+                _acceptButton.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground);
             }
             else
             {
                 _levelDownWarning.IsVisible = false;
                 _acceptButton.Text = "✅ Accept Penalty";
-                _acceptButton.BackgroundColor = Color.FromArgb("#4CAF50");
+                _acceptButton.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground);
             }
         }
         else
         {
             _levelDownWarning.IsVisible = false;
             _acceptButton.Text = "✅ Accept Penalty";
-            _acceptButton.BackgroundColor = Color.FromArgb("#4CAF50");
+            _acceptButton.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground);
         }
     }
 
@@ -369,20 +344,18 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             };
             stack.Children.Add(img);
 
-            var nameLabel = new Label
+            var nameLabel = (new Label
             {
                 Text = activity.Name,
                 FontSize = 11,
-                TextColor = Color.FromArgb("#888"),
                 IsVisible = false,
                 LineBreakMode = LineBreakMode.WordWrap
-            };
-            var expandLabel = new Label
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
+            var expandLabel = (new Label
             {
                 Text = "▼ show name",
-                FontSize = 10,
-                TextColor = Color.FromArgb("#1976D2")
-            };
+                FontSize = 10
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText3, classifyPageText: true);
             var tap = new TapGestureRecognizer();
             tap.Tapped += (_, _) =>
             {
@@ -395,14 +368,13 @@ public class StreakBrokenPage : Bannister.Views.ModeThemedPage
             return stack;
         }
 
-        return new Label
+        return (new Label
         {
             Text = activity.Name,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
     }
 
     private static string? ResolveImagePath(string? storedPath)

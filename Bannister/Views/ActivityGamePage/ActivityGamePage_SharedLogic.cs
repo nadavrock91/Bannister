@@ -596,34 +596,31 @@ public partial class ActivityGamePage
             return;
 
         var completion = new TaskCompletionSource<bool>();
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             ZIndex = 1000
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         var cardStack = new VerticalStackLayout
         {
             Spacing = 10,
             Padding = 20
         };
-        cardStack.Children.Add(new Label
+        cardStack.Children.Add((new Label
         {
             Text = "Update Streak Values",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
         Entry? attemptEntry = null;
         if (attemptVM != null)
         {
-            cardStack.Children.Add(new Label
+            cardStack.Children.Add((new Label
             {
                 Text = "Attempt Days",
-                FontSize = 13,
-                TextColor = Color.FromArgb("#444")
-            });
+                FontSize = 13
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
             attemptEntry = new Entry
             {
                 Text = attemptVM.DaysAchieved.ToString(),
@@ -633,12 +630,11 @@ public partial class ActivityGamePage
             cardStack.Children.Add(attemptEntry);
         }
 
-        cardStack.Children.Add(new Label
+        cardStack.Children.Add((new Label
         {
             Text = "Habit Streak",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#444")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         var habitEntry = new Entry
         {
             Text = activity.HabitStreak.ToString(),
@@ -647,12 +643,11 @@ public partial class ActivityGamePage
         };
         cardStack.Children.Add(habitEntry);
 
-        cardStack.Children.Add(new Label
+        cardStack.Children.Add((new Label
         {
             Text = "Display Day Streak",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#444")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         var displayEntry = new Entry
         {
             Text = activity.DisplayDayStreak.ToString(),
@@ -661,20 +656,16 @@ public partial class ActivityGamePage
         };
         cardStack.Children.Add(displayEntry);
 
-        var cancelButton = new Button
+        var cancelButton = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8
-        };
-        var saveButton = new Button
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
+        var saveButton = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         var buttons = new HorizontalStackLayout
         {
             Spacing = 10,
@@ -682,9 +673,8 @@ public partial class ActivityGamePage
         };
         cardStack.Children.Add(buttons);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             HasShadow = true,
             Padding = 0,
@@ -692,7 +682,7 @@ public partial class ActivityGamePage
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Content = cardStack
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         overlay.Children.Add(card);
 
         cancelButton.Clicked += (_, _) =>
@@ -1147,8 +1137,8 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
                 isIn ? "✓" : "+",
                 grouping.Name,
                 isIn ? "Tap to remove from this grouping" : "Tap to add to this grouping",
-                isIn ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#F5F5F5"),
-                isIn ? Color.FromArgb("#2E7D32") : Color.FromArgb("#5E35B1"),
+                isIn ? ThemeKey.SuccessBackground : ThemeKey.SecondarySurface,
+                isIn ? ThemeKey.SuccessText : ThemeKey.AccentVioletButton,
                 () => CompleteAsync(grouping.Id)));
         }
 
@@ -1156,19 +1146,17 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
             "+",
             "Create New Grouping",
             "Add this activity to a new custom group",
-            Color.FromArgb("#FFF8E1"),
-            Color.FromArgb("#F9A825"),
+            ThemeKey.HighlightYellow,
+            ThemeKey.WarningGoldenButton,
             () => CompleteAsync(-1)));
 
-        var doneButton = new Button
+        var doneButton = (new Button
         {
             Text = "Done",
-            BackgroundColor = Color.FromArgb("#EEEEEE"),
-            TextColor = Colors.Black,
             CornerRadius = 8,
             HeightRequest = 40,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardTextStrong);
         doneButton.Clicked += async (_, _) => await CompleteAsync(null);
 
         var content = new VerticalStackLayout
@@ -1176,26 +1164,23 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
             Spacing = 10,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Groupings for",
-                    FontSize = 13,
-                    TextColor = Color.FromArgb("#666666")
-                },
-                new Label
+                    FontSize = 13
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
+                (new Label
                 {
                     Text = activity.Name,
                     FontSize = 18,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Colors.Black,
                     LineBreakMode = LineBreakMode.WordWrap
-                },
-                new BoxView
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                (new BoxView
                 {
                     HeightRequest = 1,
-                    BackgroundColor = Color.FromArgb("#E0E0E0"),
                     Margin = new Thickness(0, 4)
-                },
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator),
                 new ScrollView
                 {
                     MaximumHeightRequest = 360,
@@ -1205,29 +1190,26 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
             }
         };
 
-        modalPage = new ContentPage
+        modalPage = (new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Content = new Grid
             {
                 Padding = new Thickness(24),
                 Children =
                 {
-                    new Frame
+                    (new Frame
                     {
                         Padding = 18,
                         CornerRadius = 8,
                         HasShadow = true,
-                        BackgroundColor = Colors.White,
-                        BorderColor = Color.FromArgb("#DDDDDD"),
                         MaximumWidthRequest = 620,
                         HorizontalOptions = LayoutOptions.Center,
                         VerticalOptions = LayoutOptions.Center,
                         Content = content
-                    }
+                    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator)
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         await Navigation.PushModalAsync(modalPage);
         return await completion.Task;
@@ -1237,8 +1219,8 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
         string icon,
         string title,
         string subtitle,
-        Color backgroundColor,
-        Color iconColor,
+        ThemeKey backgroundColor,
+        ThemeKey iconColor,
         Func<Task> onTap)
     {
         var row = new Grid
@@ -1251,45 +1233,40 @@ private async Task HandleEditCategory(Activity activity, ActivityGameViewModel? 
             ColumnSpacing = 10
         };
 
-        var iconLabel = new Label
+        var iconLabel = (new Label
         {
             Text = icon,
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = iconColor,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, iconColor, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(iconLabel, 0);
         row.Children.Add(iconLabel);
 
         var textStack = new VerticalStackLayout { Spacing = 2 };
-        textStack.Children.Add(new Label
+        textStack.Children.Add((new Label
         {
             Text = title,
             FontSize = 14,
-            TextColor = Colors.Black,
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        textStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        textStack.Children.Add((new Label
         {
             Text = subtitle,
             FontSize = 11,
-            TextColor = Color.FromArgb("#777777"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(textStack, 1);
         row.Children.Add(textStack);
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = new Thickness(10, 8),
             CornerRadius = 8,
             HasShadow = false,
-            BackgroundColor = backgroundColor,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             Content = row
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, backgroundColor).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
         frame.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await onTap())

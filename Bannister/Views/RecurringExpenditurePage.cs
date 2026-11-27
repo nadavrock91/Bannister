@@ -24,12 +24,11 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
         Title = "Data-Based Recurring Expenditures";
 
 
-        _approvedTotalLabel = new Label
+        _approvedTotalLabel = (new Label
         {
             Text = "Approved: $0/mo",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         _pendingContainer = new VerticalStackLayout { Spacing = 10 };
         _historyContainer = new VerticalStackLayout { Spacing = 10 };
 
@@ -45,35 +44,30 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var headerText = new VerticalStackLayout { Spacing = 2 };
-        headerText.Children.Add(new Label
+        headerText.Children.Add((new Label
         {
             Text = "Data-Based Recurring Expenditures",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#6A1B9A")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true));
         headerText.Children.Add(_approvedTotalLabel);
 
-        var addButton = new Button
+        var addButton = (new Button
         {
             Text = "+ Add to Trial",
-            BackgroundColor = Color.FromArgb("#6A1B9A"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(16, 8),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addButton.Clicked += async (_, _) => await AddToTrialAsync();
 
-        var currencyButton = new Button
+        var currencyButton = (new Button
         {
             Text = "$ USD",
-            BackgroundColor = Color.FromArgb("#6A1B9A"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(10, 8),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         currencyButton.Clicked += async (_, _) =>
         {
             var selectedLabel = await DisplayActionSheet(
@@ -108,22 +102,21 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             Spacing = 18
         };
         content.Children.Add(header);
-        content.Children.Add(BuildSection("Pending", _pendingContainer, "#6A1B9A"));
-        content.Children.Add(BuildSection("History", _historyContainer, "#333333"));
+        content.Children.Add(BuildSection("Pending", _pendingContainer, ThemeKey.AccentPurpleStrongText));
+        content.Children.Add(BuildSection("History", _historyContainer, ThemeKey.CardText1));
 
         Content = new ScrollView { Content = content };
     }
 
-    private static View BuildSection(string title, VerticalStackLayout container, string color)
+    private static View BuildSection(string title, VerticalStackLayout container, ThemeKey color)
     {
         var section = new VerticalStackLayout { Spacing = 8 };
-        section.Children.Add(new Label
+        section.Children.Add((new Label
         {
             Text = title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb(color)
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1, classifyPageText: true));
         section.Children.Add(container);
         return section;
     }
@@ -170,57 +163,49 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
 
     private static void AddEmptyMessage(VerticalStackLayout container, string message)
     {
-        container.Children.Add(new Label
+        container.Children.Add((new Label
         {
             Text = message,
             FontSize = 13,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#999")
-        });
+            FontAttributes = FontAttributes.Italic
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
     }
 
     private View BuildPendingCard(RecurringExpenditure item)
     {
         int daysLeft = Math.Max(0, (item.TrialEndDate.ToLocalTime() - DateTime.Now).Days);
         var stack = new VerticalStackLayout { Spacing = 7 };
-        stack.Children.Add(BuildNameAndCostRow(item, Color.FromArgb("#333")));
-        stack.Children.Add(new Label
+        stack.Children.Add(BuildNameAndCostRow(item, ThemeKey.CardText1));
+        stack.Children.Add((new Label
         {
             Text = $"{daysLeft} days left",
             FontSize = 32,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = daysLeft <= 3 ? Color.FromArgb("#C62828") : Color.FromArgb("#6A1B9A")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, daysLeft <= 3 ? ThemeKey.ErrorText : ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = $"{item.TrialStartDate.ToLocalTime():yyyy-MM-dd} → {item.TrialEndDate.ToLocalTime():yyyy-MM-dd}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#777")
-        });
-        stack.Children.Add(new Label
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = $"Justification target: {item.JustificationTarget}",
             FontSize = 13,
-            TextColor = Color.FromArgb("#6A1B9A"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true));
 
-        var approveButton = new Button
+        var approveButton = (new Button
         {
             Text = "✓ Approve",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 7
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         approveButton.Clicked += async (_, _) => await ResolveTrialAsync(item, "Approved");
 
-        var cutButton = new Button
+        var cutButton = (new Button
         {
             Text = "✗ Cut",
-            BackgroundColor = Color.FromArgb("#C62828"),
-            TextColor = Colors.White,
             CornerRadius = 7
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         cutButton.Clicked += async (_, _) => await ResolveTrialAsync(item, "Cut");
 
         var actions = new Grid
@@ -236,62 +221,57 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
         actions.Add(cutButton, 1, 0);
         stack.Children.Add(actions);
 
-        var deleteButton = BuildOutlineButton("Delete", "#C62828");
+        var deleteButton = BuildOutlineButton("Delete", ThemeKey.ErrorDarkButtonBackground);
         deleteButton.Clicked += async (_, _) => await DeleteAsync(item);
         stack.Children.Add(deleteButton);
 
-        return BuildCard(stack, Colors.White);
+        return BuildCard(stack, ThemeKey.CardBackground);
     }
 
     private View BuildHistoryRow(RecurringExpenditureTest test, RecurringExpenditure item)
     {
         bool isApproved = test.Note == "Approved";
-        var color = Color.FromArgb(isApproved ? "#2E7D32" : "#C62828");
-        var bg = Color.FromArgb(isApproved ? "#E8F5E9" : "#FFEBEE");
+        var color = isApproved ? ThemeKey.SuccessText : ThemeKey.ErrorText;
+        var bg = isApproved ? ThemeKey.SuccessBackground : ThemeKey.ErrorBackground;
 
         var stack = new VerticalStackLayout { Spacing = 4 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = test.Note,
             FontSize = 26,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = color
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = item.Name,
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = $"{FormatMoney(item.MonthlyCost)}/mo  ·  {test.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}",
-            FontSize = 15,
-            TextColor = Color.FromArgb("#777")
-        });
+            FontSize = 15
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         if (!string.IsNullOrWhiteSpace(item.JustificationTarget))
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"Target: {item.JustificationTarget}",
                 FontSize = 16,
-                TextColor = Color.FromArgb("#555"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         if (!string.IsNullOrWhiteSpace(test.ActualResult))
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"Result: {test.ActualResult}",
                 FontSize = 16,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = color,
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1, classifyPageText: true));
 
-        var editBtn = BuildOutlineButton("Edit Result", "#555555");
+        var editBtn = BuildOutlineButton("Edit Result", ThemeKey.CardText2);
         editBtn.Clicked += async (_, _) =>
         {
             string? newResult = await DisplayPromptAsync(
@@ -306,7 +286,7 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             await RefreshAsync();
         };
 
-        var deleteBtn = BuildOutlineButton("Delete", "#C62828");
+        var deleteBtn = BuildOutlineButton("Delete", ThemeKey.ErrorDarkButtonBackground);
         deleteBtn.Clicked += async (_, _) =>
         {
             bool confirmed = await DisplayAlert("Delete verdict?", $"Remove this {test.Note} entry?", "Delete", "Cancel");
@@ -329,18 +309,17 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
         btnRow.Add(deleteBtn, 1, 0);
         stack.Children.Add(btnRow);
 
-        return new Frame
+        return (new Frame
         {
             Content = stack,
             Padding = 14,
             CornerRadius = 10,
             HasShadow = true,
-            BorderColor = Colors.Transparent,
-            BackgroundColor = bg
-        };
+            BorderColor = Colors.Transparent
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bg);
     }
 
-    private View BuildNameAndCostRow(RecurringExpenditure item, Color textColor)
+    private View BuildNameAndCostRow(RecurringExpenditure item, ThemeKey textColor)
     {
         var row = new Grid
         {
@@ -351,53 +330,47 @@ public class RecurringExpenditurePage : Bannister.Views.ModeThemedPage
             },
             ColumnSpacing = 10
         };
-        row.Add(new Label
+        row.Add((new Label
         {
             Text = item.Name,
             FontSize = 17,
             FontAttributes = FontAttributes.Bold,
-            TextColor = textColor,
             LineBreakMode = LineBreakMode.WordWrap
-        }, 0, 0);
-        row.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, textColor, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        row.Add((new Label
         {
             Text = $"{FormatMoney(item.MonthlyCost)}/mo",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = textColor,
             VerticalOptions = LayoutOptions.Center
-        }, 1, 0);
+        }).ThemeColor(Label.TextColorProperty, textColor, ThemeKey.PageText1, classifyPageText: true), 1, 0);
         return row;
     }
 
-    private static View BuildCard(View content, Color background)
+    private static View BuildCard(View content, ThemeKey background)
     {
-        return new Frame
+        return (new Frame
         {
             Content = content,
             Padding = 14,
             CornerRadius = 10,
             HasShadow = true,
-            BorderColor = Colors.Transparent,
-            BackgroundColor = background
-        };
+            BorderColor = Colors.Transparent
+        }).ThemeColor(VisualElement.BackgroundColorProperty, background);
     }
 
-    private static Button BuildOutlineButton(string text, string color)
+    private static Button BuildOutlineButton(string text, ThemeKey color)
     {
-        var accent = Color.FromArgb(color);
-        return new Button
+        var accent = color;
+        return (new Button
         {
             Text = text,
             FontSize = 12,
-            BackgroundColor = Colors.White,
-            BorderColor = accent,
             BorderWidth = 1,
-            TextColor = accent,
             CornerRadius = 7,
             HeightRequest = 36,
             Padding = new Thickness(10, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Button.BorderColorProperty, accent).ThemeColor(Button.TextColorProperty, accent);
     }
 
     private async Task DeleteAsync(RecurringExpenditure item)

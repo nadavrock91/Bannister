@@ -47,31 +47,28 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#FF9800"),
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 4 };
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "🏆 Slain Dragons",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "Dragons you have defeated (reached Level 100)",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#FFFFFFCC")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
@@ -83,14 +80,13 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 8, 0, 0)
         };
-        sortStack.Children.Add(new Label
+        sortStack.Children.Add((new Label
         {
             Text = "Sort by:",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        });
-        _sortPicker = new Picker
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
+        _sortPicker = (new Picker
         {
             ItemsSource = new List<string>
             {
@@ -102,9 +98,8 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
                 "Longest Battle"
             },
             SelectedIndex = 0,
-            WidthRequest = 180,
-            TextColor = Colors.Black
-        };
+            WidthRequest = 180
+        }).ThemeColor(Picker.TextColorProperty, ThemeKey.CardTextStrong);
         _sortPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_sortPicker.SelectedItem != null)
@@ -117,13 +112,12 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(sortStack);
 
         // Info
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "💡 Click ▶ to expand attempt history for each dragon",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Dragons list container
         _dragonsList = new VerticalStackLayout { Spacing = 16 };
@@ -141,15 +135,14 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
 
         if (dragons.Count == 0)
         {
-            _dragonsList.Children.Add(new Label
+            _dragonsList.Children.Add((new Label
             {
                 Text = "No slain dragons yet.\n\nReach Level 100 in a game to slay your first dragon!",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -198,14 +191,12 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
         bool isExpanded = _expandedDragons[dragonKey];
 
         // Dragon header card
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            BorderColor = Color.FromArgb("#FF9800"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -213,16 +204,15 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
         var titleRow = new HorizontalStackLayout { Spacing = 12 };
 
         // Expand/Collapse button
-        var btnExpand = new Button
+        var btnExpand = (new Button
         {
             Text = isExpanded ? $"▼ ({sortedAttempts.Count})" : $"▶ ({sortedAttempts.Count})",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#FF9800"),
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 30,
             Padding = new Thickness(4, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.WarningAccentText);
         btnExpand.Clicked += (s, e) =>
         {
             _expandedDragons[dragonKey] = !_expandedDragons[dragonKey];
@@ -241,37 +231,34 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
         dragonImage.Source = !string.IsNullOrEmpty(imagePath) ? imagePath : "diet_dragon_default.png";
         titleRow.Children.Add(dragonImage);
 
-        titleRow.Children.Add(new Label
+        titleRow.Children.Add((new Label
         {
             Text = dragon.Title ?? "Unnamed Dragon",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // Trophy badge
-        titleRow.Children.Add(new Label
+        titleRow.Children.Add((new Label
         {
             Text = "🏆 Slain!",
             FontSize = 14,
-            TextColor = Color.FromArgb("#FF9800"),
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
 
         headerStack.Children.Add(titleRow);
 
         // Game name
         string gameDisplay = dragon.Game == "_standalone_" ? "Standalone Dragon" : dragon.Game;
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = $"📁 {gameDisplay}",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(40, 0, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Slain info
         if (dragon.SlainAt.HasValue)
@@ -279,22 +266,20 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
             var duration = dragon.SlainAt.Value - dragon.CreatedAt;
             var infoRow = new HorizontalStackLayout { Spacing = 16, Margin = new Thickness(40, 4, 0, 0) };
             
-            infoRow.Children.Add(new Label
+            infoRow.Children.Add((new Label
             {
                 Text = $"⚔️ Slain in {DragonService.FormatDuration(duration)}",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#4CAF50"),
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true));
 
-            infoRow.Children.Add(new Label
+            infoRow.Children.Add((new Label
             {
                 Text = $"📅 {dragon.SlainAt.Value.ToLocalTime():MMM dd, yyyy}",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#999"),
                 VerticalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
             headerStack.Children.Add(infoRow);
         }
@@ -303,30 +288,26 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
         var buttonsRow = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(40, 8, 0, 0) };
 
         // Edit Slay Date button
-        var btnEditSlayDate = new Button
+        var btnEditSlayDate = (new Button
         {
             Text = "📅 Edit Slay Date",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnEditSlayDate.Clicked += async (s, e) => await EditSlayDateAsync(dragon);
         buttonsRow.Children.Add(btnEditSlayDate);
 
         // Add Attempt button
-        var btnAddAttempt = new Button
+        var btnAddAttempt = (new Button
         {
             Text = "+ Attempt",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddAttempt.Clicked += async (s, e) => await AddAttemptAsync(dragon, sortedAttempts);
         buttonsRow.Children.Add(btnAddAttempt);
 
@@ -336,31 +317,27 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
         var buttonsRow2 = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(40, 4, 0, 0) };
 
         // Restore to Active button
-        var btnRestore = new Button
+        var btnRestore = (new Button
         {
             Text = "♻️ Restore to Active",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnRestore.Clicked += async (s, e) => await RestoreToActiveAsync(dragon);
         buttonsRow2.Children.Add(btnRestore);
 
         // Move to Irrelevant button
-        var btnIrrelevant = new Button
+        var btnIrrelevant = (new Button
         {
             Text = "💤",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 32,
             WidthRequest = 40,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnIrrelevant.Clicked += async (s, e) => await MarkDragonIrrelevantAsync(dragon);
         buttonsRow2.Children.Add(btnIrrelevant);
 
@@ -395,65 +372,59 @@ public class SlainDragonsPage : Bannister.Views.ModeThemedPage
     {
         var isFailed = attempt.FailedAt.HasValue;
         
-        var borderColor = isFailed ? Color.FromArgb("#F44336") : Color.FromArgb("#4CAF50");
-        var bgColor = isFailed ? Color.FromArgb("#FFEBEE") : Color.FromArgb("#E8F5E9");
+        var borderColor = isFailed ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessLightText;
+        var bgColor = isFailed ? ThemeKey.ErrorBackground : ThemeKey.SuccessBackground;
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 10,
             CornerRadius = 8,
-            BackgroundColor = bgColor,
-            BorderColor = borderColor,
             HasShadow = false,
             WidthRequest = 120,
             Margin = new Thickness(4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bgColor).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, borderColor);
 
         var stack = new VerticalStackLayout { Spacing = 4 };
 
         // Attempt number
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Attempt #{attempt.AttemptNumber}",
             FontSize = 12,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3, classifyPageText: true));
 
         // Duration
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"{attempt.DurationDays} days",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = borderColor,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, borderColor, ThemeKey.PageText1, classifyPageText: true));
 
         // Status
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = isFailed ? "Failed" : "Completed",
             FontSize = 10,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Tap to edit
         var tapGesture = new TapGestureRecognizer();
         tapGesture.Tapped += async (s, e) => await EditAttemptAsync(attempt, dragon);
         frame.GestureRecognizers.Add(tapGesture);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "tap to edit",
             FontSize = 9,
-            TextColor = Color.FromArgb("#999"),
             FontAttributes = FontAttributes.Italic,
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 4, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
         frame.Content = stack;
         return frame;

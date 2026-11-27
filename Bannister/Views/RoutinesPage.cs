@@ -30,53 +30,47 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
     {
         var root = new VerticalStackLayout { Padding = 16, Spacing = 12 };
 
-        root.Children.Add(new Label
+        root.Children.Add((new Label
         {
             Text = "Routines",
             FontSize = 26,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
-        root.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
+        root.Children.Add((new Label
         {
             Text = "Recurring tasks that show on your calendar.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var addButton = new Button
+        var addButton = (new Button
         {
             Text = "+ Add Routine",
             FontSize = 14,
             HeightRequest = 42,
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(16, 0),
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addButton.Clicked += async (_, _) => await AddRoutineAsync();
         root.Children.Add(addButton);
 
-        root.Children.Add(new Label
+        root.Children.Add((new Label
         {
             Text = "Active Routines",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#2E7D32"),
             Margin = new Thickness(0, 8, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true));
         _activeStack = new VerticalStackLayout { Spacing = 8 };
         root.Children.Add(_activeStack);
 
-        root.Children.Add(new Label
+        root.Children.Add((new Label
         {
             Text = "Inactive Routines",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#795548"),
             Margin = new Thickness(0, 10, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrownLightButtonBackground, ThemeKey.PageText1, classifyPageText: true));
         _inactiveStack = new VerticalStackLayout { Spacing = 8 };
         root.Children.Add(_inactiveStack);
 
@@ -115,14 +109,12 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
 
     private View BuildRoutineRow(Routine routine, TaskItem? openTask)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = routine.IsActive ? Color.FromArgb("#E8F5E9") : Color.FromArgb("#EFEBE9"),
-            BorderColor = routine.IsActive ? Color.FromArgb("#81C784") : Color.FromArgb("#BCAAA4"),
             CornerRadius = 8,
             Padding = 12,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, routine.IsActive ? ThemeKey.SuccessBackground : ThemeKey.WarmSurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, routine.IsActive ? ThemeKey.SuccessSelectedBackground : ThemeKey.WarmSelectedSurface);
 
         var grid = new Grid
         {
@@ -135,20 +127,18 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
         };
 
         var text = new VerticalStackLayout { Spacing = 3 };
-        text.Children.Add(new Label
+        text.Children.Add((new Label
         {
             Text = routine.Name,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        text.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        text.Children.Add((new Label
         {
             Text = $"{RoutineService.FormatRoutineFrequency(routine)} · started {routine.StartDate:MMM d, yyyy}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         if (routine.IsActive && openTask != null && openTask.DueDate.HasValue)
         {
@@ -157,46 +147,44 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
             var daysUntil = (dueDate - today).Days;
 
             string dateText;
-            Color dateColor;
+            ThemeKey dateColor;
 
             if (daysUntil < 0)
             {
                 dateText = $" Overdue: {dueDate:MMM d, yyyy} ({Math.Abs(daysUntil)} day(s) ago)";
-                dateColor = Color.FromArgb("#C62828");
+                dateColor = ThemeKey.ErrorText;
             }
             else if (daysUntil == 0)
             {
                 dateText = $" Due today";
-                dateColor = Color.FromArgb("#E65100");
+                dateColor = ThemeKey.WarningText;
             }
             else if (daysUntil == 1)
             {
                 dateText = $" Due tomorrow";
-                dateColor = Color.FromArgb("#F57C00");
+                dateColor = ThemeKey.WarningStrongText;
             }
             else
             {
                 dateText = $" Next: {dueDate:MMM d, yyyy} ({daysUntil} days)";
-                dateColor = Color.FromArgb("#1565C0");
+                dateColor = ThemeKey.InfoText;
             }
 
-            text.Children.Add(new Label
+            text.Children.Add((new Label
             {
                 Text = dateText,
                 FontSize = 12,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = dateColor
-            });
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, dateColor, ThemeKey.PageText3, classifyPageText: true));
         }
         else if (routine.IsActive)
         {
-            text.Children.Add(new Label
+            text.Children.Add((new Label
             {
                 Text = " No open occurrence",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
 
         grid.Add(text, 0, 0);
@@ -208,7 +196,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
             AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center
         };
 
-        var edit = SmallButton("Edit", "#1565C0");
+        var edit = SmallButton("Edit", ThemeKey.ButtonPrimaryBackground);
         edit.Clicked += async (_, _) => await EditRoutineAsync(routine);
         actions.Children.Add(edit);
 
@@ -216,7 +204,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
         {
             if (openTask != null && openTask.DueDate.HasValue)
             {
-                var editDate = SmallButton("Edit Date", "#1565C0");
+                var editDate = SmallButton("Edit Date", ThemeKey.ButtonPrimaryBackground);
                 var capturedRoutine = routine;
                 var capturedTask = openTask;
                 editDate.Clicked += async (_, _) =>
@@ -234,7 +222,7 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
                 actions.Children.Add(editDate);
             }
 
-            var inactive = SmallButton("Make Inactive", "#795548");
+            var inactive = SmallButton("Make Inactive", ThemeKey.BrownLightButtonBackground);
             inactive.Clicked += async (_, _) =>
             {
                 await _routines.SetRoutineActiveAsync(routine.Id, false);
@@ -244,12 +232,12 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
         }
         else
         {
-            var resume = SmallButton("Resume", "#2E7D32");
+            var resume = SmallButton("Resume", ThemeKey.SuccessDarkButtonBackground);
             resume.Clicked += async (_, _) => await ResumeRoutineAsync(routine);
             actions.Children.Add(resume);
         }
 
-        var delete = SmallButton("Delete", "#C62828");
+        var delete = SmallButton("Delete", ThemeKey.ErrorDarkButtonBackground);
         delete.Clicked += async (_, _) =>
         {
             if (!await DisplayAlert("Delete Routine?", $"Delete \"{routine.Name}\" and all its calendar instances?", "Delete", "Cancel"))
@@ -459,12 +447,11 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
     private async Task<DateTime?> ShowDatePickerModalAsync(string title, DateTime initialDate)
     {
         var tcs = new TaskCompletionSource<DateTime?>();
-        var picker = new DatePicker
+        var picker = (new DatePicker
         {
             Date = initialDate.Date,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
             FontSize = 14
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground);
 
         ContentPage? page = null;
         bool closing = false;
@@ -478,22 +465,20 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
             tcs.TrySetResult(result);
         }
 
-        var save = SmallButton("Save", "#2E7D32");
+        var save = SmallButton("Save", ThemeKey.SuccessDarkButtonBackground);
         save.Clicked += async (_, _) => await CloseAsync(picker.Date);
-        var cancel = SmallButton("Cancel", "#9E9E9E");
+        var cancel = SmallButton("Cancel", ThemeKey.DisabledButtonBackground);
         cancel.Clicked += async (_, _) => await CloseAsync(null);
 
-        page = new ContentPage
+        page = (new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Content = new Grid
             {
                 Padding = 24,
                 Children =
                 {
-                    new Frame
+                    (new Frame
                     {
-                        BackgroundColor = Colors.White,
                         CornerRadius = 12,
                         Padding = 18,
                         HasShadow = true,
@@ -505,41 +490,37 @@ public class RoutinesPage : Bannister.Views.ModeThemedPage
                             Spacing = 12,
                             Children =
                             {
-                                new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0") },
+                                (new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true),
                                 picker,
                                 new HorizontalStackLayout { Spacing = 10, Children = { save, cancel } }
                             }
                         }
-                    }
+                    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground)
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         await Navigation.PushModalAsync(page, false);
         return await tcs.Task;
     }
 
-    private static Label EmptyLabel(string text) => new()
-    {
+    private static Label EmptyLabel(string text) => (new Label(){
         Text = text,
         FontSize = 13,
-        TextColor = Color.FromArgb("#888"),
         Margin = new Thickness(4, 4)
-    };
+    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
 
-    private static Button SmallButton(string text, string color)
+    private static Button SmallButton(string text, ThemeKey color)
     {
-        var button = new Button
+        var button = (new Button
         {
             Text = text,
             FontSize = 12,
             HeightRequest = 34,
-            BackgroundColor = Color.FromArgb(color),
-            TextColor = Colors.White,
             CornerRadius = 6,
             Padding = new Thickness(10, 0),
             Margin = new Thickness(4, 2)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         return button;
     }
 

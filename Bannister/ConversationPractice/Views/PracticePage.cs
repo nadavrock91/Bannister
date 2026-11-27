@@ -1,4 +1,5 @@
 using ConversationPractice.Models;
+using Bannister.Services;
 using ConversationPractice.Services;
 using Microsoft.Maui.Controls;
 
@@ -59,83 +60,73 @@ public class PracticePage : Bannister.Views.ModeThemedPage
         // Header
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = $"🎭 {_conversation.Title}",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = $"You are: {_conversation.UserRole} | They are: {_conversation.AiRole}",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        lblTurnCount = new Label
+        lblTurnCount = (new Label
         {
             Text = "Turn 0",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#999")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         headerStack.Children.Add(lblTurnCount);
 
         mainStack.Children.Add(headerStack);
 
         // Their response card (purple)
-        var theirFrame = new Frame
+        var theirFrame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#9C27B0"),
             HasShadow = true,
             MinimumHeightRequest = 100
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleButtonBackground);
 
         var theirStack = new VerticalStackLayout { Spacing = 12 };
 
-        theirStack.Children.Add(new Label
+        theirStack.Children.Add((new Label
         {
             Text = $"🗣️ {_conversation.AiRole} says:",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#9C27B0")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleButtonBackground, ThemeKey.PageText1, classifyPageText: true));
 
-        lblTheirResponse = new Label
+        lblTheirResponse = (new Label
         {
             Text = "Loading...",
             FontSize = 20,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         theirStack.Children.Add(lblTheirResponse);
 
         theirFrame.Content = theirStack;
         mainStack.Children.Add(theirFrame);
 
         // Your choices container (blue)
-        var yourFrame = new Frame
+        var yourFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            BorderColor = Color.FromArgb("#2196F3"),
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoLinkText);
 
         var yourOuterStack = new VerticalStackLayout { Spacing = 12 };
 
-        yourOuterStack.Children.Add(new Label
+        yourOuterStack.Children.Add((new Label
         {
             Text = $"💬 Your response ({_conversation.UserRole}):",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
 
         yourChoicesContainer = new VerticalStackLayout { Spacing = 8 };
         yourOuterStack.Children.Add(yourChoicesContainer);
@@ -144,27 +135,24 @@ public class PracticePage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(yourFrame);
 
         // Restart button
-        btnRestart = new Button
+        btnRestart = (new Button
         {
             Text = "🔄 Restart Conversation",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 45
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnRestart.Clicked += OnRestartClicked;
         mainStack.Children.Add(btnRestart);
 
         // Conversation history
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "📜 Conversation History:",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, 12, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true));
 
         historyScroll = new ScrollView { HeightRequest = 200 };
         conversationHistory = new VerticalStackLayout { Spacing = 8 };
@@ -245,24 +233,21 @@ public class PracticePage : Bannister.Views.ModeThemedPage
 
         if (yourOptions.Count == 0)
         {
-            yourChoicesContainer.Children.Add(new Label
+            yourChoicesContainer.Children.Add((new Label
             {
                 Text = "No response options defined",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
 
             // Add a "Continue anyway" button
-            var btnContinue = new Button
+            var btnContinue = (new Button
             {
                 Text = "End Conversation",
-                BackgroundColor = Color.FromArgb("#9E9E9E"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 FontSize = 14,
                 HeightRequest = 45
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnContinue.Clicked += async (s, e) => await EndConversationAsync();
             yourChoicesContainer.Children.Add(btnContinue);
             return;
@@ -270,17 +255,15 @@ public class PracticePage : Bannister.Views.ModeThemedPage
 
         foreach (var option in yourOptions)
         {
-            var btn = new Button
+            var btn = (new Button
             {
                 Text = option.Text,
-                BackgroundColor = Color.FromArgb("#2196F3"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
                 Padding = new Thickness(12, 10),
                 LineBreakMode = LineBreakMode.WordWrap
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
             btn.Clicked += async (s, e) => await OnYourChoiceClicked(option);
             yourChoicesContainer.Children.Add(btn);
@@ -322,14 +305,13 @@ public class PracticePage : Bannister.Views.ModeThemedPage
         lblTheirResponse.Text = "--- Conversation Ended ---";
         yourChoicesContainer.Children.Clear();
         
-        yourChoicesContainer.Children.Add(new Label
+        yourChoicesContainer.Children.Add((new Label
         {
             Text = "🏁 Practice complete!",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#4CAF50"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true));
 
         // Show self-scoring dialog
         await ShowSelfScoringAsync();
@@ -337,33 +319,29 @@ public class PracticePage : Bannister.Views.ModeThemedPage
 
     private void AddToHistory(string text, bool isUser)
     {
-        var historyFrame = new Frame
+        var historyFrame = (new Frame
         {
             Padding = 10,
             CornerRadius = 8,
-            BackgroundColor = isUser ? Color.FromArgb("#E3F2FD") : Color.FromArgb("#F3E5F5"),
-            BorderColor = isUser ? Color.FromArgb("#2196F3") : Color.FromArgb("#9C27B0"),
             HasShadow = false,
             Margin = isUser ? new Thickness(40, 0, 0, 0) : new Thickness(0, 0, 40, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isUser ? ThemeKey.InfoBackground : ThemeKey.AccentPurpleBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isUser ? ThemeKey.InfoLinkText : ThemeKey.AccentPurpleButtonBackground);
 
         var stack = new VerticalStackLayout { Spacing = 4 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = isUser ? $"You ({_conversation.UserRole}):" : $"{_conversation.AiRole}:",
             FontSize = 11,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = isUser ? Color.FromArgb("#1565C0") : Color.FromArgb("#7B1FA2")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, isUser ? ThemeKey.InfoText : ThemeKey.AccentPurpleText, ThemeKey.PageText3, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = text,
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         historyFrame.Content = stack;
         conversationHistory.Children.Add(historyFrame);
@@ -398,10 +376,9 @@ public class PracticePage : Bannister.Views.ModeThemedPage
 
     private async Task ShowSelfScoringAsync()
     {
-        var scoringPage = new ContentPage
+        var scoringPage = (new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
         var stack = new VerticalStackLayout
         {
@@ -410,50 +387,46 @@ public class PracticePage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "🎯 Practice Complete!",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"You completed this practice in {_turnCount} turns.",
             FontSize = 16,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Rate your performance:",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 20, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var slider = new Slider
         {
             Minimum = 1,
             Maximum = 100,
-            Value = 50,
-            MinimumTrackColor = Color.FromArgb("#4CAF50"),
-            MaximumTrackColor = Color.FromArgb("#E0E0E0")
+            Value = 50
         };
+        slider.ThemeColor(Slider.MinimumTrackColorProperty, ThemeKey.SuccessLightText)
+            .ThemeColor(Slider.MaximumTrackColorProperty, ThemeKey.Separator);
 
-        var lblScore = new Label
+        var lblScore = (new Label
         {
             Text = "50 EXP",
             FontSize = 48,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
 
         slider.ValueChanged += (s, e) =>
         {
@@ -464,25 +437,22 @@ public class PracticePage : Bannister.Views.ModeThemedPage
         stack.Children.Add(slider);
         stack.Children.Add(lblScore);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "1 = Poor | 50 = Average | 100 = Perfect",
             FontSize = 12,
-            TextColor = Color.FromArgb("#999"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
-        var btnSubmit = new Button
+        var btnSubmit = (new Button
         {
             Text = "Award EXP & Complete",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 18,
             HeightRequest = 60,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 20, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
         TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
 

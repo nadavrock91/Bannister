@@ -52,26 +52,24 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var mainStack = new VerticalStackLayout { Padding = 20, Spacing = 12 };
-        mainStack.Children.Add(new Label { Text = "\U0001F3AF Focus Context", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#7B1FA2") });
-        mainStack.Children.Add(new Label { Text = "Define what you are focusing on as ordered bullet points. Export with your focus tasks for LLM context.", FontSize = 13, TextColor = Color.FromArgb("#666") });
+        mainStack.Children.Add((new Label { Text = "\U0001F3AF Focus Context", FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1, classifyPageText: true));
+        mainStack.Children.Add((new Label { Text = "Define what you are focusing on as ordered bullet points. Export with your focus tasks for LLM context.", FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         var btnRow = new HorizontalStackLayout { Spacing = 8 };
-        var addBtn = new Button { Text = "+ Add Point", BackgroundColor = Color.FromArgb("#7B1FA2"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 40, FontSize = 13, Padding = new Thickness(14, 0), IsEnabled = !_db.IsReadOnly };
+        var addBtn = (new Button { Text = "+ Add Point", CornerRadius = 8, HeightRequest = 40, FontSize = 13, Padding = new Thickness(14, 0), IsEnabled = !_db.IsReadOnly }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (_, _) => await AddBulletAsync();
         btnRow.Children.Add(addBtn);
-        var exportBtn = new Button { Text = "\U0001F4CB Export for LLM", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, HeightRequest = 40, FontSize = 13, Padding = new Thickness(14, 0) };
+        var exportBtn = (new Button { Text = "\U0001F4CB Export for LLM", CornerRadius = 8, HeightRequest = 40, FontSize = 13, Padding = new Thickness(14, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         exportBtn.Clicked += async (_, _) => await ExportForLlmAsync();
         btnRow.Children.Add(exportBtn);
-        var updateBtn = new Button
+        var updateBtn = (new Button
         {
             Text = " Update from Conversation",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 40,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         updateBtn.Clicked += async (_, _) => await UpdateFromConversationAsync();
         btnRow.Children.Add(updateBtn);
         mainStack.Children.Add(btnRow);
@@ -79,7 +77,7 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
         _bulletsList = new VerticalStackLayout { Spacing = 6 };
         mainStack.Children.Add(_bulletsList);
 
-        var archiveToggle = new Button { Text = "Show Archived", BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#666"), CornerRadius = 8, HeightRequest = 36, FontSize = 12 };
+        var archiveToggle = (new Button { Text = "Show Archived", CornerRadius = 8, HeightRequest = 36, FontSize = 12 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         archiveToggle.Clicked += async (_, _) =>
         {
             _showArchived = !_showArchived;
@@ -104,7 +102,7 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
 
             _bulletsList.Children.Clear();
             if (active.Count == 0)
-                _bulletsList.Children.Add(new Label { Text = "No focus points yet. Add what you are currently focusing on.", FontSize = 13, TextColor = Color.FromArgb("#999"), FontAttributes = FontAttributes.Italic });
+                _bulletsList.Children.Add((new Label { Text = "No focus points yet. Add what you are currently focusing on.", FontSize = 13, FontAttributes = FontAttributes.Italic }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             for (int i = 0; i < active.Count; i++)
                 _bulletsList.Children.Add(BuildBulletCard(active[i], i, active.Count, false));
 
@@ -117,7 +115,7 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
                 .OrderByDescending(b => b.ArchivedAt).ToListAsync();
             if (archived.Count > 0)
             {
-                _archivedList.Children.Add(new Label { Text = $"Archived ({archived.Count})", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#999") });
+                _archivedList.Children.Add((new Label { Text = $"Archived ({archived.Count})", FontSize = 14, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1, classifyPageText: true));
                 foreach (var bullet in archived)
                     _archivedList.Children.Add(BuildBulletCard(bullet, -1, -1, true));
             }
@@ -125,13 +123,12 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
         catch (SQLite.SQLiteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
         {
             _bulletsList.Children.Clear();
-            _bulletsList.Children.Add(new Label
+            _bulletsList.Children.Add((new Label
             {
                 Text = "Focus Context has not been synced to this device yet.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             _archivedList.Children.Clear();
             _archivedList.IsVisible = false;
         }
@@ -151,12 +148,12 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
 
         if (!isArchived)
         {
-            var orderLabel = new Label { Text = $"{index + 1}.", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#7B1FA2"), VerticalOptions = LayoutOptions.Center };
+            var orderLabel = (new Label { Text = $"{index + 1}.", FontSize = 14, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1, classifyPageText: true);
             Grid.SetColumn(orderLabel, 0);
             row.Children.Add(orderLabel);
         }
 
-        var textLabel = new Label { Text = bullet.Text, FontSize = 13, TextColor = isArchived ? Color.FromArgb("#999") : Color.FromArgb("#333"), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap };
+        var textLabel = (new Label { Text = bullet.Text, FontSize = 13, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, isArchived ? ThemeKey.CardText3 : ThemeKey.CardText1, ThemeKey.PageText2, classifyPageText: true);
         Grid.SetColumn(textLabel, 1);
         row.Children.Add(textLabel);
         var actions = new HorizontalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
@@ -165,18 +162,18 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
         {
             if (index > 0)
             {
-                var up = ActionButton("\u25B2", "#7B1FA2");
+                var up = ActionButton("\u25B2", ThemeKey.AccentPurpleSurface);
                 up.Clicked += async (_, _) => await MoveBulletAsync(bullet, -1);
                 actions.Children.Add(up);
             }
             if (index < total - 1)
             {
-                var down = ActionButton("\u25BC", "#7B1FA2");
+                var down = ActionButton("\u25BC", ThemeKey.AccentPurpleSurface);
                 down.Clicked += async (_, _) => await MoveBulletAsync(bullet, 1);
                 actions.Children.Add(down);
             }
 
-            var edit = ActionButton("\u270F\uFE0F", "#1565C0");
+            var edit = ActionButton("\u270F\uFE0F", ThemeKey.ButtonPrimaryBackground);
             edit.Clicked += async (_, _) =>
             {
                 var text = await DisplayPromptAsync("Edit", "Update this point:", "Save", "Cancel", initialValue: bullet.Text, maxLength: 500);
@@ -188,7 +185,7 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
             };
             actions.Children.Add(edit);
 
-            var archive = ActionButton("\U0001F4E6", "#888");
+            var archive = ActionButton("\U0001F4E6", ThemeKey.CardText3);
             archive.Clicked += async (_, _) =>
             {
                 bullet.Status = "archived";
@@ -201,7 +198,7 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
         }
         else if (!_db.IsReadOnly)
         {
-            var restore = ActionButton("\u267B\uFE0F", "#2E7D32");
+            var restore = ActionButton("\u267B\uFE0F", ThemeKey.SuccessDarkButtonBackground);
             restore.Clicked += async (_, _) =>
             {
                 bullet.Status = "active";
@@ -214,7 +211,7 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
             };
             actions.Children.Add(restore);
 
-            var delete = ActionButton("\U0001F5D1", "#C62828");
+            var delete = ActionButton("\U0001F5D1", ThemeKey.ErrorDarkButtonBackground);
             delete.Clicked += async (_, _) =>
             {
                 if (!await DisplayAlert("Delete?", "Permanently delete this point?", "Delete", "Cancel")) return;
@@ -227,19 +224,17 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
 
         Grid.SetColumn(actions, 2);
         row.Children.Add(actions);
-        return new Frame { Padding = 12, CornerRadius = 8, BackgroundColor = isArchived ? Color.FromArgb("#F5F5F5") : Colors.White, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = false, Content = row };
+        return (new Frame { Padding = 12, CornerRadius = 8, HasShadow = false, Content = row }).ThemeColor(VisualElement.BackgroundColorProperty, isArchived ? ThemeKey.SecondarySurface : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
-    private static Button ActionButton(string text, string color) => new()
-    {
+    private static Button ActionButton(string text, ThemeKey color) => (new Button(){
         Text = text,
         BackgroundColor = Colors.Transparent,
-        TextColor = Color.FromArgb(color),
         WidthRequest = 28,
         HeightRequest = 28,
         Padding = 0,
         FontSize = 10
-    };
+    }).ThemeColor(Button.TextColorProperty, color);
 
     private async Task AddBulletAsync()
     {
@@ -669,29 +664,24 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
         string title, string message)
     {
         var tcs = new TaskCompletionSource<string>();
-        var editorPage = new ContentPage
+        var editorPage = (new ContentPage
         {
-            Title = title,
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
-        var editor = new Editor
+            Title = title
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+        var editor = (new Editor
         {
             Placeholder = "Paste here...",
             HeightRequest = 300,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13,
             Margin = new Thickness(16)
-        };
-        var confirmBtn = new Button
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
+        var confirmBtn = (new Button
         {
             Text = "Done",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Margin = new Thickness(16, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         confirmBtn.Clicked += async (_, _) =>
         {
             tcs.TrySetResult(editor.Text ?? "");
@@ -703,14 +693,13 @@ public class FocusContextPage : Bannister.Views.ModeThemedPage
             Padding = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = message,
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#444"),
                     Margin = new Thickness(16, 16, 16, 0),
                     LineBreakMode = LineBreakMode.WordWrap
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 editor,
                 confirmBtn
             }

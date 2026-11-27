@@ -1,4 +1,5 @@
 using Bannister.Drawables;
+using Bannister.Services;
 using Bannister.Models;
 
 namespace Bannister.Views;
@@ -71,14 +72,13 @@ public partial class ActivityGamePage
     {
         var stack = new VerticalStackLayout { Spacing = 8 };
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 10,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var innerStack = new VerticalStackLayout { Spacing = 6 };
 
@@ -92,55 +92,49 @@ public partial class ActivityGamePage
         innerStack.Children.Add(lblGameTitle);
 
         // Current Level Label
-        lblCurrentLevel = new Label
+        lblCurrentLevel = (new Label
         {
             Text = "Level 1",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         innerStack.Children.Add(lblCurrentLevel);
 
         // EXP Progress Bar
-        expProgressBar = new ProgressBar
+        expProgressBar = (new ProgressBar
         {
             Progress = 0,
-            ProgressColor = Color.FromArgb("#4CAF50"),
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
             HeightRequest = 16,
             Margin = new Thickness(0, 2)
-        };
+        }).ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
         innerStack.Children.Add(expProgressBar);
 
         // EXP to Next Level Label
-        lblExpToNext = new Label
+        lblExpToNext = (new Label
         {
             Text = "0 / 100 EXP",
             FontSize = 10,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         innerStack.Children.Add(lblExpToNext);
 
-        lblExpTotal = new Label
+        lblExpTotal = (new Label
         {
             Text = "Total EXP: 0",
             FontSize = 11,
-            TextColor = Color.FromArgb("#999"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         innerStack.Children.Add(lblExpTotal);
 
         // Dragon image below EXP info (smaller)
-        var imgFrame = new Frame
+        var imgFrame = (new Frame
         {
             Padding = 0,
             CornerRadius = 8,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#DDD"),
             HeightRequest = 120
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
         imgDragon = new Image { Aspect = Aspect.AspectFit };
         imgFrame.Content = imgDragon;
         innerStack.Children.Add(imgFrame);
@@ -154,81 +148,71 @@ public partial class ActivityGamePage
         };
         innerStack.Children.Add(lblDragonTitle);
 
-        lblDragonSubtitle = new Label
+        lblDragonSubtitle = (new Label
         {
             Text = "",
             FontSize = 10,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         innerStack.Children.Add(lblDragonSubtitle);
 
-        lblDragonDesc = new Label
+        lblDragonDesc = (new Label
         {
             Text = "Dragon description",
             FontSize = 10,
-            TextColor = Color.FromArgb("#999"),
             LineBreakMode = LineBreakMode.WordWrap,
             MaxLines = 3,
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         innerStack.Children.Add(lblDragonDesc);
 
-        btnDefineDragon = new Button
+        btnDefineDragon = (new Button
         {
             Text = "Define Dragon",
-            BackgroundColor = Color.FromArgb("#C62828"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(6, 4),
             Margin = new Thickness(0, 4, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnDefineDragon.Clicked += OnDefineDragonClicked;
         innerStack.Children.Add(btnDefineDragon);
 
         // Calculate EXP button - prominent, square-ish
-        btnCalculateExp = new Button
+        btnCalculateExp = (new Button
         {
             Text = "Calculate EXP",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 12,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 80,
             Margin = new Thickness(0, 12, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnCalculateExp.Clicked += OnCalculateClicked;
         innerStack.Children.Add(btnCalculateExp);
 
-        btnNextGame = new Button
+        btnNextGame = (new Button
         {
             Text = "Next Game →",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 12,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 56,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         btnNextGame.Clicked += OnNextGameClicked;
         innerStack.Children.Add(btnNextGame);
 
-        btnHome = new Button
+        btnHome = (new Button
         {
             Text = " Home",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 12,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 56,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         btnHome.Clicked += OnHomeClicked;
         innerStack.Children.Add(btnHome);
 
@@ -240,85 +224,72 @@ public partial class ActivityGamePage
 
     private Frame BuildButtonPanel()
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent,
             Margin = new Thickness(0, 12, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
-        var btnSelectAll = new Button
+        var btnSelectAll = (new Button
         {
             Text = "Select All",
-            BackgroundColor = Color.FromArgb("#7E57C2"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentVioletButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSelectAll.Clicked += OnSelectAllClicked;
         stack.Children.Add(btnSelectAll);
 
-        var btnClear = new Button
+        var btnClear = (new Button
         {
             Text = "Clear Selection",
-            BackgroundColor = Color.FromArgb("#999"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnClear.Clicked += OnClearSelectionClicked;
         stack.Children.Add(btnClear);
 
         AddSetDisplayDaysButton(stack);
 
-        var btnAdd = new Button
+        var btnAdd = (new Button
         {
             Text = "+ Add Activity",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAdd.Clicked += OnAddActivityClicked;
         stack.Children.Add(btnAdd);
         AddPendingActivityIdeaControls(stack);
 
-        var btnManage = new Button
+        var btnManage = (new Button
         {
             Text = "Manage",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnManage.Clicked += OnManageClicked;
         stack.Children.Add(btnManage);
 
-        var btnViewLog = new Button
+        var btnViewLog = (new Button
         {
             Text = "📊 View Activity Log",
-            BackgroundColor = Color.FromArgb("#2196F3"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnViewLog.Clicked += OnViewLogClicked;
         stack.Children.Add(btnViewLog);
 
         // Options button with context menu
-        var btnOptions = new Button
+        var btnOptions = (new Button
         {
             Text = "⚙️ Options",
-            BackgroundColor = Color.FromArgb("#607D8B"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralMutedButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnOptions.Clicked += OnOptionsClicked;
         stack.Children.Add(btnOptions);
 
@@ -346,14 +317,13 @@ public partial class ActivityGamePage
         stack.Children.Add(escalationTimer);
 
         // Level Over Time Chart
-        var levelChartFrame = new Frame
+        var levelChartFrame = (new Frame
         {
             Padding = 12,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var levelChartStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -377,14 +347,13 @@ public partial class ActivityGamePage
         stack.Children.Add(levelChartFrame);
 
         // EXP Over Time Chart
-        var expChartFrame = new Frame
+        var expChartFrame = (new Frame
         {
             Padding = 12,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var expChartStack = new VerticalStackLayout { Spacing = 8 };
 

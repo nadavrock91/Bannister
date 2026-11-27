@@ -1,4 +1,5 @@
 using ConversationPractice.Models;
+using Bannister.Services;
 using ConversationPractice.Services;
 using Microsoft.Maui.Controls;
 
@@ -42,37 +43,32 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 0,
-            BackgroundColor = Color.FromArgb("#F8F9FA"),
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
         var headerStack = new VerticalStackLayout { Spacing = 12 };
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "💬 Practice Difficult Conversations",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "Build confidence through AI-powered role-play scenarios",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        pickerScenarioType = new Picker
+        pickerScenarioType = (new Picker
         {
-            Title = "All Scenarios",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#333")
-        };
+            Title = "All Scenarios"
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText);
         pickerScenarioType.SelectedIndexChanged += OnScenarioTypeChanged;
         headerStack.Children.Add(pickerScenarioType);
 
@@ -92,7 +88,7 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
         mainGrid.Children.Add(scrollView);
 
         // Bottom action bar
-        var bottomGrid = new Grid
+        var bottomGrid = (new Grid
         {
             ColumnDefinitions =
             {
@@ -101,47 +97,40 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition { Width = GridLength.Auto }
             },
             Padding = 16,
-            BackgroundColor = Color.FromArgb("#F8F9FA"),
             ColumnSpacing = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-        var createButton = new Button
+        var createButton = (new Button
         {
             Text = "📝 Create Custom Scenario",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         createButton.Clicked += OnCreateScenario;
         Grid.SetColumn(createButton, 0);
         bottomGrid.Children.Add(createButton);
 
-        var manageButton = new Button
+        var manageButton = (new Button
         {
             Text = "🔧 Manage",
             BackgroundColor = Colors.Transparent,
-            BorderColor = Color.FromArgb("#FF9800"),
             BorderWidth = 2,
-            TextColor = Color.FromArgb("#FF9800"),
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(Button.BorderColorProperty, ThemeKey.WarningAccentText).ThemeColor(Button.TextColorProperty, ThemeKey.WarningAccentText);
         manageButton.Clicked += OnManageCustom;
         Grid.SetColumn(manageButton, 1);
         bottomGrid.Children.Add(manageButton);
 
-        var statsButton = new Button
+        var statsButton = (new Button
         {
             Text = "📊 Stats",
             BackgroundColor = Colors.Transparent,
-            BorderColor = Color.FromArgb("#5B63EE"),
             BorderWidth = 2,
-            TextColor = Color.FromArgb("#5B63EE"),
             CornerRadius = 8,
             HeightRequest = 50,
             WidthRequest = 100
-        };
+        }).ThemeColor(Button.BorderColorProperty, ThemeKey.SecondaryAccentText).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
         statsButton.Clicked += OnViewStats;
         Grid.SetColumn(statsButton, 2);
         bottomGrid.Children.Add(statsButton);
@@ -182,14 +171,13 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
 
         if (conversations.Count == 0)
         {
-            scenariosContainer.Children.Add(new Label
+            scenariosContainer.Children.Add((new Label
             {
                 Text = "No scenarios yet. Create your first one!",
                 FontSize = 16,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -199,14 +187,13 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
         foreach (var group in grouped)
         {
             // Section header
-            scenariosContainer.Children.Add(new Label
+            scenariosContainer.Children.Add((new Label
             {
                 Text = group.Key,
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333"),
                 Margin = new Thickness(0, 16, 0, 8)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
             // Scenarios in this group
             foreach (var conversation in group.OrderBy(c => c.DifficultyLevel).ThenBy(c => c.Title))
@@ -218,15 +205,13 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildScenarioCard(Conversation conversation)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             Margin = new Thickness(0, 0, 0, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var tapGesture = new TapGestureRecognizer();
         tapGesture.Tapped += async (s, e) => await OnScenarioTappedAsync(conversation);
@@ -257,43 +242,39 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
         // Info
         var infoStack = new VerticalStackLayout { Spacing = 4 };
 
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = conversation.Title,
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = conversation.Description,
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Difficulty stars
         string stars = string.Concat(Enumerable.Repeat("⭐", conversation.DifficultyLevel)) +
                        string.Concat(Enumerable.Repeat("☆", 5 - conversation.DifficultyLevel));
         
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = stars,
-            FontSize = 12,
-            TextColor = Color.FromArgb("#FFB300")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowButton, ThemeKey.PageText3, classifyPageText: true));
 
         // Level and EXP bar
         var levelExpStack = new VerticalStackLayout { Spacing = 4, Margin = new Thickness(0, 8, 0, 0) };
 
-        var levelLabel = new Label
+        var levelLabel = (new Label
         {
             Text = $"Level {conversation.CurrentLevel}",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         levelExpStack.Children.Add(levelLabel);
 
         // EXP progress bar
@@ -302,41 +283,37 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
             int expNeeded = 100 * conversation.CurrentLevel; // GetExpForNextLevel formula
             double progress = expNeeded > 0 ? (double)conversation.CurrentLevelExp / expNeeded : 0;
 
-            var expFrame = new Frame
+            var expFrame = (new Frame
             {
                 Padding = 0,
                 CornerRadius = 4,
                 HeightRequest = 8,
-                BackgroundColor = Color.FromArgb("#E0E0E0"),
                 HasShadow = false
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
 
-            var expBar = new BoxView
+            var expBar = (new BoxView
             {
-                Color = Color.FromArgb("#5B63EE"),
                 WidthRequest = 200 * progress,
                 HorizontalOptions = LayoutOptions.Start
-            };
+            }).ThemeColor(BoxView.ColorProperty, ThemeKey.SecondaryButtonBackground);
 
             expFrame.Content = expBar;
             levelExpStack.Children.Add(expFrame);
 
-            levelExpStack.Children.Add(new Label
+            levelExpStack.Children.Add((new Label
             {
                 Text = $"{conversation.CurrentLevelExp} / {expNeeded} EXP",
-                FontSize = 10,
-                TextColor = Color.FromArgb("#999")
-            });
+                FontSize = 10
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
         else
         {
-            levelExpStack.Children.Add(new Label
+            levelExpStack.Children.Add((new Label
             {
                 Text = "⭐ MAX LEVEL",
                 FontSize = 11,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#FFB300")
-            });
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowButton, ThemeKey.PageText3, classifyPageText: true));
         }
 
         infoStack.Children.Add(levelExpStack);
@@ -344,26 +321,24 @@ public class ConversationListPage : Bannister.Views.ModeThemedPage
         // Stats
         if (conversation.TimesCompleted > 0)
         {
-            infoStack.Children.Add(new Label
+            infoStack.Children.Add((new Label
             {
                 Text = $"✅ Practiced {conversation.TimesCompleted} time{(conversation.TimesCompleted == 1 ? "" : "s")}",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#4CAF50"),
                 Margin = new Thickness(0, 4, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3, classifyPageText: true));
         }
 
         Grid.SetColumn(infoStack, 1);
         mainLayout.Children.Add(infoStack);
 
         // Arrow
-        var arrowLabel = new Label
+        var arrowLabel = (new Label
         {
             Text = "▶",
             FontSize = 20,
-            TextColor = Color.FromArgb("#5B63EE"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(arrowLabel, 2);
         mainLayout.Children.Add(arrowLabel);
 

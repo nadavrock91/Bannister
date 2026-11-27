@@ -34,7 +34,7 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
 
     private void BuildUI()
     {
-        _root = new Grid { BackgroundColor = Color.FromArgb("#F5F5F5") };
+        _root = (new Grid { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
         var stack = new VerticalStackLayout
         {
@@ -42,38 +42,33 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
             Spacing = 12
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Postponed Tasks Management",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#EF6C00")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText1, classifyPageText: true));
 
-        var newButton = new Button
+        var newButton = (new Button
         {
             Text = "+ New Postponed Task",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         newButton.Clicked += async (_, _) => await CreatePostponedTaskAsync();
         stack.Children.Add(newButton);
 
         _activeStack = new VerticalStackLayout { Spacing = 8 };
         stack.Children.Add(BuildSectionFrame("Active Postponed Tasks", _activeStack));
 
-        _completedToggle = new Button
+        _completedToggle = (new Button
         {
             Text = "Show completed",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         _completedToggle.Clicked += async (_, _) =>
         {
             _showCompleted = !_showCompleted;
@@ -84,15 +79,13 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
         _completedStack = new VerticalStackLayout { Spacing = 8, IsVisible = false };
         stack.Children.Add(BuildSectionFrame("Completed", _completedStack));
 
-        _disabledToggle = new Button
+        _disabledToggle = (new Button
         {
             Text = "Show disabled",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         _disabledToggle.Clicked += async (_, _) =>
         {
             _showDisabled = !_showDisabled;
@@ -109,10 +102,8 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
 
     private static Frame BuildSectionFrame(string title, VerticalStackLayout content)
     {
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 12,
             HasShadow = false,
@@ -121,17 +112,16 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
                 Spacing = 8,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = title,
                         FontSize = 16,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333")
-                    },
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                     content
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private async Task LoadAsync()
@@ -177,28 +167,26 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
         }
     }
 
-    private static Label EmptyLabel(string text) => new()
-    {
+    private static Label EmptyLabel(string text) => (new Label(){
         Text = text,
         FontSize = 13,
         FontAttributes = FontAttributes.Italic,
-        TextColor = Color.FromArgb("#777"),
         Margin = new Thickness(4, 4)
-    };
+    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
     private View BuildActiveCard(PostponedTask task)
     {
         var buttons = new HorizontalStackLayout { Spacing = 8 };
 
-        var postpone = SmallButton("Postpone", "#FFF3E0", "#EF6C00");
+        var postpone = SmallButton("Postpone", ThemeKey.WarningBackground, ThemeKey.WarningAmber);
         postpone.Clicked += async (_, _) => await PostponeTaskAsync(task);
         buttons.Children.Add(postpone);
 
-        var done = SmallButton("Mark Done", "#E8F5E9", "#2E7D32");
+        var done = SmallButton("Mark Done", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         done.Clicked += async (_, _) => await MarkDoneAsync(task);
         buttons.Children.Add(done);
 
-        var disable = SmallButton("Disable", "#FFEBEE", "#C62828");
+        var disable = SmallButton("Disable", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         disable.Clicked += async (_, _) => await DisableAsync(task);
         buttons.Children.Add(disable);
 
@@ -208,7 +196,7 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
     private View BuildDisabledCard(PostponedTask task)
     {
         var buttons = new HorizontalStackLayout { Spacing = 8 };
-        var reactivate = SmallButton("Reactivate", "#E3F2FD", "#1565C0");
+        var reactivate = SmallButton("Reactivate", ThemeKey.RowSelected, ThemeKey.InfoText);
         reactivate.Clicked += async (_, _) => await ReactivateAsync(task);
         buttons.Children.Add(reactivate);
 
@@ -223,54 +211,46 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
     private static Frame BuildTaskFrame(PostponedTask task, string dateLine, View? actions)
     {
         var stack = new VerticalStackLayout { Spacing = 4 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = task.Title,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        stack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = $"{dateLine} · Postponed {task.TimesPostponed}x",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#EF6C00")
-        });
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText3, classifyPageText: true));
         if (!string.IsNullOrWhiteSpace(task.Description))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = task.Description,
                 FontSize = 12,
-                TextColor = Color.FromArgb("#666"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         }
         if (actions != null)
             stack.Children.Add(actions);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
-            BorderColor = Color.FromArgb("#FFB74D"),
             CornerRadius = 8,
             Padding = 10,
             HasShadow = false,
             Content = stack
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningLightButtonBackground);
     }
 
-    private static Button SmallButton(string text, string bg, string fg) => new()
-    {
+    private static Button SmallButton(string text, ThemeKey bg, ThemeKey fg) => (new Button(){
         Text = text,
-        BackgroundColor = Color.FromArgb(bg),
-        TextColor = Color.FromArgb(fg),
         CornerRadius = 6,
         FontSize = 11,
         HeightRequest = 32,
         Padding = new Thickness(10, 0)
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, bg).ThemeColor(Button.TextColorProperty, fg);
 
     private async Task CreatePostponedTaskAsync()
     {
@@ -354,40 +334,33 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
     private async Task<DateTime?> ShowDatePickerModalAsync(string title, DateTime initialDate)
     {
         var tcs = new TaskCompletionSource<DateTime?>();
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var picker = new DatePicker
+        var picker = (new DatePicker
         {
-            Date = initialDate.Date,
-            BackgroundColor = Color.FromArgb("#FFF3E0")
-        };
+            Date = initialDate.Date
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground);
 
-        var save = new Button
+        var save = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#EF6C00"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 38
-        };
-        var cancel = new Button
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningAmber).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
+        var cancel = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 38
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
 
         var row = new HorizontalStackLayout { Spacing = 10, Children = { cancel, save } };
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             WidthRequest = 420,
@@ -398,12 +371,12 @@ public class PostponedTasksManagementPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#EF6C00") },
+                    (new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAmber, ThemeKey.PageText1, classifyPageText: true),
                     picker,
                     row
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         overlay.Children.Add(card);
         _root.Children.Add(overlay);

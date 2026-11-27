@@ -59,49 +59,44 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
         };
 
         // Top bar with Cancel button
-        var topBar = new Grid
+        var topBar = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#5B63EE"),
             Padding = new Thickness(8, 8),
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Star }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
 
-        var btnCancel = new Button
+        var btnCancel = (new Button
         {
             Text = "← Cancel",
             BackgroundColor = Colors.Transparent,
-            TextColor = Colors.White,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             Padding = new Thickness(8, 4)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnCancel.Clicked += OnCancelClicked;
         topBar.Add(btnCancel, 0, 0);
 
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = _negativeOnly ? "Select Penalty Activity" : "Select Activity for Habit",
-            TextColor = Colors.White,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
         topBar.Add(titleLabel, 1, 0);
 
         mainGrid.Add(topBar, 0, 0);
 
         // Search bar
-        _searchBar = new SearchBar
+        _searchBar = (new SearchBar
         {
-            Placeholder = "Search activities...",
-            BackgroundColor = Colors.White,
-            CancelButtonColor = Color.FromArgb("#5B63EE")
-        };
+            Placeholder = "Search activities..."
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(SearchBar.CancelButtonColorProperty, ThemeKey.SecondaryAccentText);
         _searchBar.TextChanged += OnSearchTextChanged;
         mainGrid.Add(_searchBar, 0, 1);
 
@@ -118,22 +113,20 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
         };
 
         // Header info
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
-            BackgroundColor = _negativeOnly ? Color.FromArgb("#F44336") : Color.FromArgb("#4CAF50"),
             Padding = 12,
             CornerRadius = 12,
             HasShadow = true
-        };
-        headerFrame.Content = new Label
+        }).ThemeColor(VisualElement.BackgroundColorProperty, _negativeOnly ? ThemeKey.ErrorButtonBackground : ThemeKey.SuccessButtonBackground);
+        headerFrame.Content = (new Label
         {
             Text = _negativeOnly 
                 ? "Choose what happens if you miss a day"
                 : "Activities with ⚠️ have been waiting longest",
             FontSize = 14,
-            TextColor = Colors.White,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
         contentStack.Children.Add(headerFrame);
 
         // Filters
@@ -147,21 +140,19 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        _gamePicker = new Picker
+        _gamePicker = (new Picker
         {
-            Title = "All Games",
-            BackgroundColor = Colors.White
-        };
+            Title = "All Games"
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _gamePicker.SelectedIndexChanged += OnGameFilterChanged;
         Grid.SetColumn(_gamePicker, 0);
         filterGrid.Children.Add(_gamePicker);
 
-        _categoryPicker = new Picker
+        _categoryPicker = (new Picker
         {
             Title = "All Categories",
-            BackgroundColor = Colors.White,
             IsEnabled = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _categoryPicker.SelectedIndexChanged += OnCategoryFilterChanged;
         Grid.SetColumn(_categoryPicker, 1);
         filterGrid.Children.Add(_categoryPicker);
@@ -190,13 +181,12 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
     private void ShowSelectionHint()
     {
         _activityList.Children.Clear();
-        _activityList.Children.Add(new Label
+        _activityList.Children.Add((new Label
         {
             Text = "Search by activity name or pick a game to show activities.",
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 20)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
     }
 
     private void DisplayFilteredActivities()
@@ -217,15 +207,14 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
 
         if (filtered.Count == 0)
         {
-            _activityList.Children.Add(new Label
+            _activityList.Children.Add((new Label
             {
                 Text = string.IsNullOrEmpty(_searchText) 
                     ? "No activities found" 
                     : $"No activities matching '{_searchText}'",
-                TextColor = Color.FromArgb("#666"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -244,14 +233,13 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
 
         if (sorted.Count > MaxRenderedActivities)
         {
-            _activityList.Children.Add(new Label
+            _activityList.Children.Add((new Label
             {
                 Text = $"Showing first {MaxRenderedActivities} of {sorted.Count}. Search or filter more to narrow results.",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#666"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 0, 0, 4)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         }
 
         foreach (var activity in shown)
@@ -330,7 +318,7 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
             return;
         }
 
-        _activityList.Children.Add(new ActivityIndicator { IsRunning = true, Color = Color.FromArgb("#5B63EE") });
+        _activityList.Children.Add((new ActivityIndicator { IsRunning = true }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText));
 
         try
         {
@@ -381,13 +369,12 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
         {
             System.Diagnostics.Debug.WriteLine($"[SELECTION] Error loading activities: {ex.Message}");
             _activityList.Children.Clear();
-            _activityList.Children.Add(new Label
+            _activityList.Children.Add((new Label
             {
                 Text = $"Error loading activities: {ex.Message}",
-                TextColor = Colors.Red,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorPureText, ThemeKey.PageText1, classifyPageText: true));
         }
     }
 
@@ -397,25 +384,24 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
         var hasTargetInfo = activity.HabitTargetFirstSet.HasValue;
         var isOverdue = activity.HabitTargetDate.HasValue && activity.HabitTargetDate.Value.Date < DateTime.Now.Date;
         
-        Color bgColor;
+        ThemeKey bgColor;
         if (isOverdue)
-            bgColor = Color.FromArgb("#FFEBEE");
+            bgColor = ThemeKey.ErrorBackground;
         else if (hasTargetInfo && activity.HabitTargetPostponeCount >= 2)
-            bgColor = Color.FromArgb("#FFF3E0");
+            bgColor = ThemeKey.WarningBackground;
         else if (hasTargetInfo && activity.DaysSinceHabitTargetSet >= 30)
-            bgColor = Color.FromArgb("#FFFDE7");
+            bgColor = ThemeKey.HighlightYellowSoft;
         else if (hasTargetDate)
-            bgColor = Color.FromArgb("#E8F5E9");
+            bgColor = ThemeKey.SuccessBackground;
         else
-            bgColor = Colors.White;
+            bgColor = ThemeKey.CardBackground;
 
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = bgColor,
             Padding = 12,
             CornerRadius = 10,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bgColor);
 
         var grid = new Grid
         {
@@ -491,24 +477,22 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
                     HorizontalOptions = LayoutOptions.Start
                 });
             else
-                nameStack.Children.Add(new Label
+                nameStack.Children.Add((new Label
                 {
                     Text = "",
-                    FontSize = 24,
-                    TextColor = Color.FromArgb("#999")
-                });
+                    FontSize = 24
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         }
         else
         {
-            nameStack.Children.Add(new Label
+            nameStack.Children.Add((new Label
             {
                 Text = activity.Name,
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333"),
                 LineBreakMode = LineBreakMode.TailTruncation,
                 MaxLines = 2
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         }
         grid.Add(nameStack, 0, 0);
 
@@ -517,22 +501,20 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
             ? $"{activity.ExpGain:+#;-#;0} EXP" 
             : (activity.IsStreakTracked ? $"🔥{activity.DisplayDayStreak}" : "0 EXP");
         
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = expText,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = activity.ExpGain >= 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#F44336"),
             HorizontalTextAlignment = TextAlignment.End
-        }, 1, 0);
+        }).ThemeColor(Label.TextColorProperty, activity.ExpGain >= 0 ? ThemeKey.SuccessLightText : ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
         // Row 1: Game name
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = $"📁 {activity.Game}",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#666")
-        }, 0, 1);
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true), 0, 1);
 
         // Row 2: Habit target info
         if (hasTargetDate || hasTargetInfo)
@@ -542,40 +524,33 @@ public class ActivitySelectionPage : Bannister.Views.ModeThemedPage
             if (hasTargetInfo)
             {
                 var daysSince = activity.DaysSinceHabitTargetSet;
-                var daysColor = daysSince >= 30 ? Color.FromArgb("#D32F2F") :
-                               daysSince >= 14 ? Color.FromArgb("#F57C00") :
-                               Color.FromArgb("#666");
-                infoStack.Children.Add(new Label
+                var daysColor = daysSince >= 30 ? ThemeKey.ErrorStrongText : daysSince >= 14 ? ThemeKey.WarningStrongText : ThemeKey.CardText2;
+                infoStack.Children.Add((new Label
                 {
                     Text = $"🕐 {daysSince}d waiting",
                     FontSize = 11,
-                    TextColor = daysColor,
                     FontAttributes = daysSince >= 14 ? FontAttributes.Bold : FontAttributes.None
-                });
+                }).ThemeColor(Label.TextColorProperty, daysColor, ThemeKey.PageText3, classifyPageText: true));
             }
 
             if (activity.HabitTargetPostponeCount > 0)
             {
-                var postponeColor = activity.HabitTargetPostponeCount >= 3 ? Color.FromArgb("#D32F2F") :
-                                   activity.HabitTargetPostponeCount >= 2 ? Color.FromArgb("#F57C00") :
-                                   Color.FromArgb("#666");
-                infoStack.Children.Add(new Label
+                var postponeColor = activity.HabitTargetPostponeCount >= 3 ? ThemeKey.ErrorStrongText : activity.HabitTargetPostponeCount >= 2 ? ThemeKey.WarningStrongText : ThemeKey.CardText2;
+                infoStack.Children.Add((new Label
                 {
                     Text = $"🔄 {activity.HabitTargetPostponeCount}x postponed",
                     FontSize = 11,
-                    TextColor = postponeColor,
                     FontAttributes = activity.HabitTargetPostponeCount >= 2 ? FontAttributes.Bold : FontAttributes.None
-                });
+                }).ThemeColor(Label.TextColorProperty, postponeColor, ThemeKey.PageText3, classifyPageText: true));
             }
 
             if (hasTargetDate && !hasTargetInfo)
             {
-                infoStack.Children.Add(new Label
+                infoStack.Children.Add((new Label
                 {
                     Text = $"📅 Target: {activity.HabitTargetDate!.Value:MMM dd}",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#388E3C")
-                });
+                    FontSize = 11
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessBrightText, ThemeKey.PageText3, classifyPageText: true));
             }
 
             Grid.SetColumnSpan(infoStack, 2);

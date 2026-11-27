@@ -47,21 +47,19 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
             Spacing = 12
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = " Privacy Log",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Recent visibility changes across activities " +
                    "and games, sorted by most recent.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Time filter row
         var filterRow = new HorizontalStackLayout
@@ -70,7 +68,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 4, 0, 0)
         };
 
-        _btnAll = MakeFilterBtn("All", true, "#555555");
+        _btnAll = MakeFilterBtn("All", true, ThemeKey.NeutralHoverButton);
         _btnAll.Clicked += async (_, _) =>
         {
             _timeFilter = null;
@@ -79,7 +77,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_btnAll);
 
-        _btnToday = MakeFilterBtn("Today", false, "#1565C0");
+        _btnToday = MakeFilterBtn("Today", false, ThemeKey.ButtonPrimaryBackground);
         _btnToday.Clicked += async (_, _) =>
         {
             _timeFilter = 0;
@@ -88,7 +86,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_btnToday);
 
-        _btnYesterday = MakeFilterBtn("Yesterday", false, "#1565C0");
+        _btnYesterday = MakeFilterBtn("Yesterday", false, ThemeKey.ButtonPrimaryBackground);
         _btnYesterday.Clicked += async (_, _) =>
         {
             _timeFilter = 1;
@@ -97,7 +95,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_btnYesterday);
 
-        _btnWeek = MakeFilterBtn("7 Days", false, "#1565C0");
+        _btnWeek = MakeFilterBtn("7 Days", false, ThemeKey.ButtonPrimaryBackground);
         _btnWeek.Clicked += async (_, _) =>
         {
             _timeFilter = 7;
@@ -106,7 +104,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_btnWeek);
 
-        _btnMonth = MakeFilterBtn("30 Days", false, "#1565C0");
+        _btnMonth = MakeFilterBtn("30 Days", false, ThemeKey.ButtonPrimaryBackground);
         _btnMonth.Clicked += async (_, _) =>
         {
             _timeFilter = 30;
@@ -124,40 +122,30 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
     }
 
     private static Button MakeFilterBtn(
-        string text, bool active, string activeHex)
-        => new Button
+        string text, bool active, ThemeKey activeHex)
+        => (new Button
         {
             Text = text,
             FontSize = 11,
             HeightRequest = 30,
             CornerRadius = 6,
-            Padding = new Thickness(8, 0),
-            BackgroundColor = active
-                ? Color.FromArgb(activeHex)
-                : Color.FromArgb("#ECEFF1"),
-            TextColor = active
-                ? Colors.White
-                : Color.FromArgb("#37474F")
-        };
+            Padding = new Thickness(8, 0)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
 
     private void UpdateFilterButtons()
     {
-        StyleBtn(_btnAll, _timeFilter == null, "#555555");
-        StyleBtn(_btnToday, _timeFilter == 0, "#1565C0");
-        StyleBtn(_btnYesterday, _timeFilter == 1, "#1565C0");
-        StyleBtn(_btnWeek, _timeFilter == 7, "#1565C0");
-        StyleBtn(_btnMonth, _timeFilter == 30, "#1565C0");
+        StyleBtn(_btnAll, _timeFilter == null, ThemeKey.NeutralHoverButton);
+        StyleBtn(_btnToday, _timeFilter == 0, ThemeKey.ButtonPrimaryBackground);
+        StyleBtn(_btnYesterday, _timeFilter == 1, ThemeKey.ButtonPrimaryBackground);
+        StyleBtn(_btnWeek, _timeFilter == 7, ThemeKey.ButtonPrimaryBackground);
+        StyleBtn(_btnMonth, _timeFilter == 30, ThemeKey.ButtonPrimaryBackground);
     }
 
     private static void StyleBtn(
-        Button btn, bool active, string activeHex)
+        Button btn, bool active, ThemeKey activeHex)
     {
-        btn.BackgroundColor = active
-            ? Color.FromArgb(activeHex)
-            : Color.FromArgb("#ECEFF1");
-        btn.TextColor = active
-            ? Colors.White
-            : Color.FromArgb("#37474F");
+        btn.ThemeColor(VisualElement.BackgroundColorProperty, active ? activeHex : ThemeKey.NeutralButtonBackground);
+        btn.ThemeColor(Button.TextColorProperty, active ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
     }
 
     private async Task LoadAndRenderAsync()
@@ -203,14 +191,13 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
 
         if (actChanges.Count == 0 && gameChanges.Count == 0)
         {
-            _contentContainer.Children.Add(new Label
+            _contentContainer.Children.Add((new Label
             {
                 Text = "No visibility changes found " +
                        "for the selected period.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -222,7 +209,7 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
             .Max();
         int daysSince = (int)(now - mostRecent).TotalDays;
 
-        _contentContainer.Children.Add(new Label
+        _contentContainer.Children.Add((new Label
         {
             Text = daysSince == 0
                 ? "Most recent change: today"
@@ -230,21 +217,19 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
                     ? "Most recent change: yesterday"
                     : $"Most recent change: {daysSince} days ago",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
 
         // Games section
         if (gameChanges.Count > 0)
         {
-            _contentContainer.Children.Add(new Label
+            _contentContainer.Children.Add((new Label
             {
                 Text = $" Games ({gameChanges.Count})",
                 FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#222"),
                 Margin = new Thickness(0, 8, 0, 2)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
             foreach (var g in gameChanges)
                 _contentContainer.Children.Add(
@@ -258,14 +243,13 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
         // Activities section
         if (actChanges.Count > 0)
         {
-            _contentContainer.Children.Add(new Label
+            _contentContainer.Children.Add((new Label
             {
                 Text = $"⚡ Activities ({actChanges.Count})",
                 FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#222"),
                 Margin = new Thickness(0, 8, 0, 2)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
             foreach (var a in actChanges)
                 _contentContainer.Children.Add(
@@ -292,14 +276,14 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
             2 => " Both",
             _ => " Private"
         };
-        string visColor = visibility switch
+        ThemeKey visColor = visibility switch
         {
-            1 => "#1565C0",
-            2 => "#2E7D32",
-            _ => "#6A0DAD"
+            1 => ThemeKey.InfoText,
+            2 => ThemeKey.SuccessText,
+            _ => ThemeKey.AccentPurpleStrongText
         };
 
-        var row = new Grid
+        var row = (new Grid
         {
             ColumnDefinitions =
             {
@@ -308,55 +292,48 @@ public class PrivacyLogPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition(new GridLength(70))
             },
             ColumnSpacing = 8,
-            Padding = new Thickness(12, 8),
-            BackgroundColor = Colors.White
-        };
+            Padding = new Thickness(12, 8)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var nameStack = new VerticalStackLayout { Spacing = 1 };
-        nameStack.Children.Add(new Label
+        nameStack.Children.Add((new Label
         {
             Text = name,
             FontSize = 13,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.TailTruncation
-        });
-        nameStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        nameStack.Children.Add((new Label
         {
             Text = changedAt.ToLocalTime()
                 .ToString("dd MMM yyyy HH:mm"),
-            FontSize = 10,
-            TextColor = Color.FromArgb("#999")
-        });
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         row.Add(nameStack, 0, 0);
 
-        row.Add(new Label
+        row.Add((new Label
         {
             Text = visLabel,
             FontSize = 12,
-            TextColor = Color.FromArgb(visColor),
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        }, 1, 0);
+        }).ThemeColor(Label.TextColorProperty, visColor, ThemeKey.PageText3, classifyPageText: true), 1, 0);
 
-        row.Add(new Label
+        row.Add((new Label
         {
             Text = when,
             FontSize = 12,
-            TextColor = Color.FromArgb("#888"),
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.End
-        }, 2, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true), 2, 0);
 
-        return new Frame
+        return (new Frame
         {
             Content = row,
             Padding = 0,
             CornerRadius = 6,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Colors.White,
             Margin = new Thickness(0, 1)
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 }

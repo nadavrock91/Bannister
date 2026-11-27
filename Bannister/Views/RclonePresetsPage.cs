@@ -131,41 +131,35 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
     {
         _mainStack.Children.Clear();
 
-        _mainStack.Children.Add(new Label
+        _mainStack.Children.Add((new Label
         {
             Text = "Rclone Presets",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238")
-        });
-        _mainStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        _mainStack.Children.Add((new Label
         {
             Text = "Save rclone copy commands with fixed or input fields. Run a preset to build your command.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#546E7A")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add Preset",
-            BackgroundColor = Color.FromArgb("#6A1B9A"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13,
             Padding = new Thickness(12, 0),
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (s, e) => await OnAddPresetAsync();
 
-        var addQueueBtn = new Button
+        var addQueueBtn = (new Button
         {
             Text = "+ Add to Queue",
-            BackgroundColor = Color.FromArgb("#1B5E20"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(12, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessStrongText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addQueueBtn.Clicked += async (_, _) =>
         {
             string? title = await DisplayPromptAsync("Add to Queue", "Label for this command:");
@@ -189,17 +183,16 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
         addRow.Children.Add(addQueueBtn);
         _mainStack.Children.Add(addRow);
 
-        _modeBtn = new Button
+        _modeBtn = (new Button
         {
             Text = GetModeBtnText(),
             FontSize = 12,
             BackgroundColor = Colors.Transparent,
-            BorderColor = Color.FromArgb("#888"),
             BorderWidth = 1,
             CornerRadius = 8,
             HeightRequest = 36,
             Padding = new Thickness(8, 0)
-        };
+        }).ThemeColor(Button.BorderColorProperty, ThemeKey.CardText3);
         _modeBtn.Clicked += async (_, _) =>
         {
             _privacyMode.CycleMode(_auth.CurrentUsername);
@@ -210,14 +203,13 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
 
         if (_presets.Count == 0)
         {
-            _mainStack.Children.Add(new Label
+            _mainStack.Children.Add((new Label
             {
                 Text = "No presets yet. Add one to get started.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#90A4AE"),
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(0, 24)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText1, classifyPageText: true));
         }
 
         var displayMode = _privacyMode.GetDisplayMode(_auth.CurrentUsername);
@@ -233,14 +225,13 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
 
         if (_queueItems.Count > 0)
         {
-            _mainStack.Children.Add(new Label
+            _mainStack.Children.Add((new Label
             {
                 Text = "Command Queue",
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#263238"),
                 Margin = new Thickness(0, 12, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
             foreach (var item in _queueItems)
                 _mainStack.Children.Add(BuildQueueRow(item));
@@ -259,14 +250,12 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildPresetCard(RclonePreset preset)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = new Thickness(12, 10),
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var stack = new VerticalStackLayout { Spacing = 6 };
 
@@ -284,75 +273,66 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 6
         };
 
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = preset.Title,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(titleLabel, 0);
         titleRow.Children.Add(titleLabel);
 
-        var runBtn = new Button
+        var runBtn = (new Button
         {
             Text = "▶️",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             FontSize = 12,
             CornerRadius = 6,
             WidthRequest = 34,
             HeightRequest = 30,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         runBtn.Clicked += async (s, e) => await OnRunPresetAsync(preset);
         Grid.SetColumn(runBtn, 1);
         titleRow.Children.Add(runBtn);
 
-        var editBtn = new Button
+        var editBtn = (new Button
         {
             Text = "✏️",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             FontSize = 12,
             CornerRadius = 6,
             WidthRequest = 34,
             HeightRequest = 30,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         editBtn.Clicked += async (s, e) => await OnEditPresetAsync(preset);
         Grid.SetColumn(editBtn, 2);
         titleRow.Children.Add(editBtn);
 
-        var deleteBtn = new Button
+        var deleteBtn = (new Button
         {
             Text = "️",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 12,
             CornerRadius = 6,
             WidthRequest = 34,
             HeightRequest = 30,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += async (s, e) => await OnDeletePresetAsync(preset);
         Grid.SetColumn(deleteBtn, 3);
         titleRow.Children.Add(deleteBtn);
 
-        var visBtn = new Button
+        var visBtn = (new Button
         {
             Text = preset.Visibility switch { 0 => "Private", 1 => "Public", _ => "Both" },
             FontSize = 10,
             HeightRequest = 30,
             Padding = new Thickness(6, 0),
-            BackgroundColor = Color.FromArgb("#2D333B"),
-            TextColor = Colors.White,
             CornerRadius = 4
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         visBtn.Clicked += async (_, _) =>
         {
             string? choice = await DisplayActionSheet("Visibility", "Cancel", null,
@@ -372,27 +352,24 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
         // Summary of fields
         var sourceDesc = preset.SourceIsInput ? "[ask at run time]" : preset.Source;
         var destDesc = preset.DestinationIsInput ? "[ask at run time]" : preset.Destination;
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Source: {sourceDesc}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#546E7A")
-        });
-        stack.Children.Add(new Label
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = $"Destination: {destDesc}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#546E7A")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3, classifyPageText: true));
         var bwDisplay = "";
         if (!string.IsNullOrWhiteSpace(preset.BwLimitUp) || !string.IsNullOrWhiteSpace(preset.BwLimitDown))
             bwDisplay = $"  up:{(string.IsNullOrWhiteSpace(preset.BwLimitUp) ? "∞" : preset.BwLimitUp)}  down:{(string.IsNullOrWhiteSpace(preset.BwLimitDown) ? "∞" : preset.BwLimitDown)}";
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"--transfers={preset.Transfers}  --checkers={preset.Checkers}{bwDisplay}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#90A4AE")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText3, classifyPageText: true));
         frame.Content = stack;
         return frame;
     }
@@ -413,13 +390,12 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 6
         };
 
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = item.Title + (item.IsRunning ? " [Running]" : item.IsDone ? " [Done]" : ""),
             FontSize = 13,
-            TextColor = Color.FromArgb("#263238"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         row.Add(titleLabel, 0, 0);
 
         var copyBtn = new Button { Text = "Copy", FontSize = 11, HeightRequest = 32, Padding = new Thickness(8, 0) };
@@ -464,16 +440,14 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
         };
         row.Add(deleteBtn, 4, 0);
 
-        var visBtn = new Button
+        var visBtn = (new Button
         {
             Text = item.Visibility switch { 0 => "Private", 1 => "Public", _ => "Both" },
             FontSize = 10,
             HeightRequest = 30,
             Padding = new Thickness(6, 0),
-            BackgroundColor = Color.FromArgb("#2D333B"),
-            TextColor = Colors.White,
             CornerRadius = 4
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         visBtn.Clicked += async (_, _) =>
         {
             string? choice = await DisplayActionSheet("Visibility", "Cancel", null, "Private", "Public", "Both");
@@ -710,74 +684,64 @@ public class RclonePresetsPage : Bannister.Views.ModeThemedPage
         }
 
         // Show inline dialog overlay
-        var overlay = new Grid
+        var overlay = (new Grid
         {
-            BackgroundColor = Color.FromArgb("#99000000"),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayDark);
 
-        var commandLabel = new Label
+        var commandLabel = (new Label
         {
             Text = command,
             FontSize = 12,
-            TextColor = Color.FromArgb("#263238"),
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
             Padding = new Thickness(10),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.RowAltBackground);
 
-        var copyBtn = new Button
+        var copyBtn = (new Button
         {
             Text = " Copy",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var launchBtn = new Button
+        var launchBtn = (new Button
         {
             Text = "⌨️ Launch CMD",
-            BackgroundColor = Color.FromArgb("#1B5E20"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessStrongText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 
-        var closeBtn = new Button
+        var closeBtn = (new Button
         {
             Text = "Close",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
 
         var btnRow = new VerticalStackLayout { Spacing = 8, Margin = new Thickness(0, 12, 0, 0) };
         btnRow.Children.Add(copyBtn);
         btnRow.Children.Add(launchBtn);
         btnRow.Children.Add(closeBtn);
 
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = new Thickness(20),
             CornerRadius = 10,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Margin = new Thickness(24)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         card.Content = new VerticalStackLayout
         {
             Spacing = 8,
             Children =
             {
-                new Label { Text = "Rclone Command", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#263238") },
+                (new Label { Text = "Rclone Command", FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 commandLabel,
                 btnRow
             }

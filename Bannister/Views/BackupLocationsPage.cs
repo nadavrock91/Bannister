@@ -88,76 +88,66 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
         _mainStack.Children.Clear();
 
         // Header
-        _mainStack.Children.Add(new Label
+        _mainStack.Children.Add((new Label
         {
             Text = "File & Backup Locations",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238")
-        });
-        _mainStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        _mainStack.Children.Add((new Label
         {
             Text = "Track which files are stored in which locations. Files are organised by category.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#546E7A")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true));
 
         // Action buttons row
         var actionRow = new HorizontalStackLayout { Spacing = 10 };
 
-        var manageLocationsBtn = new Button
+        var manageLocationsBtn = (new Button
         {
             Text = "⚙️ Manage Locations",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         manageLocationsBtn.Clicked += async (s, e) => await OnManageLocationsAsync();
         actionRow.Children.Add(manageLocationsBtn);
 
-        var addFileBtn = new Button
+        var addFileBtn = (new Button
         {
             Text = "+ Add File",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addFileBtn.Clicked += async (s, e) => await OnAddFileAsync();
         actionRow.Children.Add(addFileBtn);
 
-        var rcloneBtn = new Button
+        var rcloneBtn = (new Button
         {
             Text = " Rclone",
-            BackgroundColor = Color.FromArgb("#F3E5F5"),
-            TextColor = Color.FromArgb("#6A1B9A"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleBackground).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
         rcloneBtn.Clicked += async (s, e) => await OnRcloneBuilderAsync();
         actionRow.Children.Add(rcloneBtn);
 
-        _modeBtn = new Button
+        _modeBtn = (new Button
         {
             Text = "All",
             FontSize = 12,
             BackgroundColor = Colors.Transparent,
-            BorderColor = Colors.White,
             BorderWidth = 1,
             CornerRadius = 8,
             HeightRequest = 36,
             WidthRequest = 90,
             Padding = new Thickness(6, 0),
-            VerticalOptions = LayoutOptions.Center,
-            TextColor = Colors.White
-        };
+            VerticalOptions = LayoutOptions.Center
+        }).ThemeColor(Button.BorderColorProperty, ThemeKey.OnColorText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _modeBtn.Clicked += async (_, _) =>
         {
             _privacyMode.CycleMode(_auth.CurrentUsername);
@@ -170,25 +160,23 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
 
         if (_locations.Count == 0)
         {
-            _mainStack.Children.Add(new Label
+            _mainStack.Children.Add((new Label
             {
                 Text = "⚙️ Start by adding your storage locations (e.g. Backblaze, PC, OneDrive) using 'Manage Locations'.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#FF9800"),
                 Margin = new Thickness(0, 8)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
         }
 
         if (_files.Count == 0)
         {
-            _mainStack.Children.Add(new Label
+            _mainStack.Children.Add((new Label
             {
                 Text = "No files added yet.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#90A4AE"),
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(0, 24)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.DisabledBlueGrey, ThemeKey.PageText1, classifyPageText: true));
             return;
         }
 
@@ -230,15 +218,13 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
         bool hasSubMismatch = subItems.Any(i => i.LocationIds != file.LocationIds);
         bool isInconsistent = (_locations.Count > 0 && fileLocationIds.Count < _locations.Count) || hasSubMismatch;
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = new Thickness(12, 8),
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = isInconsistent ? Color.FromArgb("#FFB74D") : Color.FromArgb("#E0E0E0"),
             HasShadow = false,
             Margin = new Thickness(0, 2)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isInconsistent ? ThemeKey.WarningLightButtonBackground : ThemeKey.Separator);
 
         var cardStack = new VerticalStackLayout { Spacing = 6 };
 
@@ -257,93 +243,82 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 6
         };
 
-        var nameLabel = new Label
+        var nameLabel = (new Label
         {
             Text = (_fileCollapsed.GetValueOrDefault(file.Id, true) ? "▶ " : "▼ ")
                 + (isInconsistent ? "⚠️ " : "") + file.Name,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(nameLabel, 0);
         nameRow.Children.Add(nameLabel);
 
-        var addSubBtn = new Button
+        var addSubBtn = (new Button
         {
             Text = "+",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             FontSize = 12,
             CornerRadius = 6,
             WidthRequest = 34,
             HeightRequest = 30,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         addSubBtn.Clicked += async (s, e) => await OnAddSubItemAsync(file);
         Grid.SetColumn(addSubBtn, 1);
         nameRow.Children.Add(addSubBtn);
 
-        var scanBtn = new Button
+        var scanBtn = (new Button
         {
             Text = "",
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100"),
             FontSize = 12,
             CornerRadius = 6,
             WidthRequest = 34,
             HeightRequest = 30,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         scanBtn.Clicked += async (s, e) => await OnScanSubfoldersAsync(file);
         Grid.SetColumn(scanBtn, 2);
         nameRow.Children.Add(scanBtn);
 
-        var editBtn = new Button
+        var editBtn = (new Button
         {
             Text = "✏️",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             FontSize = 12,
             CornerRadius = 6,
             WidthRequest = 34,
             HeightRequest = 30,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         editBtn.Clicked += async (s, e) => await OnEditFileAsync(file);
         Grid.SetColumn(editBtn, 3);
         nameRow.Children.Add(editBtn);
 
-        var deleteBtn = new Button
+        var deleteBtn = (new Button
         {
             Text = "️",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 12,
             CornerRadius = 6,
             WidthRequest = 34,
             HeightRequest = 30,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += async (s, e) => await OnDeleteFileAsync(file);
         Grid.SetColumn(deleteBtn, 4);
         nameRow.Children.Add(deleteBtn);
 
-        var visBtn = new Button
+        var visBtn = (new Button
         {
             Text = file.Visibility switch { 0 => "🔒", 1 => "🌐", _ => "↔️" },
             FontSize = 11,
             WidthRequest = 36,
             HeightRequest = 30,
             Padding = new Thickness(0),
-            BackgroundColor = Color.FromArgb("#2D333B"),
-            TextColor = Colors.White,
             CornerRadius = 4
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralStrongButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         visBtn.Clicked += async (_, _) =>
         {
             string? choice = await DisplayActionSheet(
@@ -393,13 +368,12 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             }));
 
         if (!string.IsNullOrWhiteSpace(file.Notes))
-            childrenContainer.Children.Add(new Label
+            childrenContainer.Children.Add((new Label
             {
                 Text = file.Notes,
                 FontSize = 11,
-                TextColor = Color.FromArgb("#78909C"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3, classifyPageText: true));
 
         // Sub-items
         foreach (var item in subItems.Where(i => i.ParentItemId == null))
@@ -431,11 +405,10 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
                 HorizontalOptions = LayoutOptions.Center
             };
 
-            var chk = new CheckBox
+            var chk = (new CheckBox
             {
-                IsChecked = hasIt,
-                Color = hasIt ? Color.FromArgb("#1565C0") : Color.FromArgb("#BDBDBD")
-            };
+                IsChecked = hasIt
+            }).ThemeColor(CheckBox.ColorProperty, hasIt ? ThemeKey.InfoText : ThemeKey.DisabledButtonBackground);
 
             var capturedLoc = loc;
             chk.CheckedChanged += async (s, e) =>
@@ -446,14 +419,13 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             };
 
             locStack.Children.Add(chk);
-            locStack.Children.Add(new Label
+            locStack.Children.Add((new Label
             {
                 Text = string.IsNullOrWhiteSpace(loc.Abbreviation) ? loc.Name : loc.Abbreviation,
                 FontSize = 13,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#263238"),
                 HorizontalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
             locRow.Children.Add(locStack);
         }
         return locRow;
@@ -464,15 +436,13 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
         bool mismatch = item.LocationIds != rootFile.LocationIds;
         var allChildren = _items.Where(i => i.ParentItemId == item.Id).ToList();
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = new Thickness(10, 6),
             CornerRadius = 6,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
-            BorderColor = mismatch ? Color.FromArgb("#FFB74D") : Color.FromArgb("#EEEEEE"),
             HasShadow = false,
             Margin = new Thickness(depth * 16, 2, 0, 2)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, mismatch ? ThemeKey.WarningLightButtonBackground : ThemeKey.Separator);
 
         var stack = new VerticalStackLayout { Spacing = 4 };
 
@@ -489,77 +459,68 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 6
         };
 
-        var nameLabel = new Label
+        var nameLabel = (new Label
         {
             Text = (_itemCollapsed.GetValueOrDefault(item.Id, true) ? "▶ " : "▼ ")
                 + (mismatch ? "⚠️ " : "↳ ") + item.Name,
             FontSize = 13,
-            TextColor = Color.FromArgb("#263238"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(nameLabel, 0);
         nameRow.Children.Add(nameLabel);
 
-        var addChildBtn = new Button
+        var addChildBtn = (new Button
         {
             Text = "+",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             FontSize = 11,
             CornerRadius = 6,
             WidthRequest = 30,
             HeightRequest = 26,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         addChildBtn.Clicked += async (s, e) => await OnAddChildItemAsync(item, rootFile);
         Grid.SetColumn(addChildBtn, 1);
         nameRow.Children.Add(addChildBtn);
 
-        var scanBtn = new Button
+        var scanBtn = (new Button
         {
             Text = "",
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100"),
             FontSize = 11,
             CornerRadius = 6,
             WidthRequest = 30,
             HeightRequest = 26,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         scanBtn.Clicked += async (s, e) => await OnScanItemSubfoldersAsync(item, rootFile);
         Grid.SetColumn(scanBtn, 2);
         nameRow.Children.Add(scanBtn);
 
-        var editBtn = new Button
+        var editBtn = (new Button
         {
             Text = "✏️",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             FontSize = 11,
             CornerRadius = 6,
             WidthRequest = 30,
             HeightRequest = 26,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         editBtn.Clicked += async (s, e) => await OnEditSubItemAsync(item);
         Grid.SetColumn(editBtn, 3);
         nameRow.Children.Add(editBtn);
 
-        var deleteBtn = new Button
+        var deleteBtn = (new Button
         {
             Text = "️",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 11,
             CornerRadius = 6,
             WidthRequest = 30,
             HeightRequest = 26,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += async (s, e) => await OnDeleteSubItemAsync(item);
         Grid.SetColumn(deleteBtn, 4);
         nameRow.Children.Add(deleteBtn);
@@ -590,13 +551,12 @@ public class BackupLocationsPage : Bannister.Views.ModeThemedPage
             }));
 
         if (!string.IsNullOrWhiteSpace(item.Notes))
-            childrenContainer.Children.Add(new Label
+            childrenContainer.Children.Add((new Label
             {
                 Text = item.Notes,
                 FontSize = 11,
-                TextColor = Color.FromArgb("#78909C"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText3, classifyPageText: true));
 
         // Render children recursively
         foreach (var child in allChildren)

@@ -1,4 +1,5 @@
 using ConversationPractice.Models;
+using Bannister.Services;
 using ConversationPractice.Services;
 using Microsoft.Maui.Controls;
 
@@ -51,47 +52,41 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var lblHeader = new Label
+        var lblHeader = (new Label
         {
             Text = $"🌳 Conversation Tree Builder",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetRow(lblHeader, 0);
         mainGrid.Children.Add(lblHeader);
 
-        var lblDescription = new Label
+        var lblDescription = (new Label
         {
             Text = "Build conversation branches. Each branch is a possible response from the other person.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         Grid.SetRow(lblDescription, 1);
         mainGrid.Children.Add(lblDescription);
 
         // Action buttons
         var btnStack = new HorizontalStackLayout { Spacing = 8 };
 
-        var btnAddRoot = new Button
+        var btnAddRoot = (new Button
         {
             Text = "+ Add Opening Line",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddRoot.Clicked += (s, e) => OnAddNodeClicked(null);
         btnStack.Children.Add(btnAddRoot);
 
-        var btnPractice = new Button
+        var btnPractice = (new Button
         {
             Text = "▶ Practice",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnPractice.Clicked += OnPracticeClicked;
         btnStack.Children.Add(btnPractice);
 
@@ -137,14 +132,13 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
 
         if (rootNodes.Count == 0)
         {
-            treeContainer.Children.Add(new Label
+            treeContainer.Children.Add((new Label
             {
                 Text = "No conversation branches yet. Click '+ Add Opening Line' to start!",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#999"),
                 Margin = new Thickness(0, 20, 0, 0),
                 HorizontalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -179,29 +173,26 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
         bool isTheirTurn = depth % 2 == 0; // Even depth = THEM, Odd depth = YOU
 
         // Colors: Purple for THEM, Blue for YOU
-        var borderColor = isTheirTurn ? Color.FromArgb("#9C27B0") : Color.FromArgb("#2196F3");
-        var bgColor = isTheirTurn ? Color.FromArgb("#F3E5F5") : Color.FromArgb("#E3F2FD");
+        var borderColor = isTheirTurn ? ThemeKey.AccentPurpleButtonBackground : ThemeKey.InfoLinkText;
+        var bgColor = isTheirTurn ? ThemeKey.AccentPurpleBackground : ThemeKey.InfoBackground;
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = bgColor,
-            BorderColor = borderColor,
             Margin = new Thickness(depth * 24, 4, 0, 4),
             HasShadow = depth == 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bgColor).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, borderColor);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
         // Turn indicator
-        var turnLabel = new Label
+        var turnLabel = (new Label
         {
             Text = isTheirTurn ? "🗣️ THEM:" : "💬 YOU:",
             FontSize = 10,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = isTheirTurn ? Color.FromArgb("#7B1FA2") : Color.FromArgb("#1565C0")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, isTheirTurn ? ThemeKey.AccentPurpleText : ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true);
         stack.Children.Add(turnLabel);
 
         // Header with collapse button
@@ -210,18 +201,17 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
         // Collapse/Expand button (only if has children)
         if (hasChildren)
         {
-            var toggleColor = isTheirTurn ? Color.FromArgb("#9C27B0") : Color.FromArgb("#2196F3");
-            var btnToggle = new Button
+            var toggleColor = isTheirTurn ? ThemeKey.AccentPurpleButtonBackground : ThemeKey.InfoLinkText;
+            var btnToggle = (new Button
             {
                 Text = isCollapsed ? $"▶ ({childCount})" : "▼",
                 BackgroundColor = Colors.Transparent,
-                TextColor = toggleColor,
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
                 HeightRequest = 30,
                 Padding = new Thickness(4, 0),
                 CornerRadius = 4
-            };
+            }).ThemeColor(Button.TextColorProperty, toggleColor);
             btnToggle.Clicked += (s, e) => OnToggleCollapseClicked(node);
             headerStack.Children.Add(btnToggle);
         }
@@ -236,15 +226,14 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
         }
 
         // Node text
-        var textLabel = new Label
+        var textLabel = (new Label
         {
             Text = node.Text,
             FontSize = 14,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         headerStack.Children.Add(textLabel);
 
         stack.Children.Add(headerStack);
@@ -254,45 +243,41 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
 
         if (node.TimesReached > 0)
         {
-            statsStack.Children.Add(new Label
+            statsStack.Children.Add((new Label
             {
                 Text = $"🎯 Reached {node.TimesReached}x",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#4CAF50")
-            });
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (hasChildren)
         {
-            statsStack.Children.Add(new Label
+            statsStack.Children.Add((new Label
             {
                 Text = $"💬 {childCount} response{(childCount == 1 ? "" : "s")}",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#5B63EE"),
                 FontAttributes = FontAttributes.Bold
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (node.Notes != null)
         {
-            statsStack.Children.Add(new Label
+            statsStack.Children.Add((new Label
             {
                 Text = $"📝 {node.Notes}",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#FF9800"),
                 LineBreakMode = LineBreakMode.TailTruncation
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (node.IsTerminal)
         {
-            statsStack.Children.Add(new Label
+            statsStack.Children.Add((new Label
             {
                 Text = "🏁 END",
                 FontSize = 11,
-                TextColor = Color.FromArgb("#F44336"),
                 FontAttributes = FontAttributes.Bold
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorButtonBackground, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (statsStack.Children.Count > 0)
@@ -305,40 +290,34 @@ public class TreeBuilderPage : Bannister.Views.ModeThemedPage
 
         if (!node.IsTerminal)
         {
-            var btnAddChild = new Button
+            var btnAddChild = (new Button
             {
                 Text = "+ Branch",
-                BackgroundColor = Color.FromArgb("#5B63EE"),
-                TextColor = Colors.White,
                 CornerRadius = 6,
                 FontSize = 11,
                 Padding = new Thickness(8, 4)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnAddChild.Clicked += (s, e) => OnAddNodeClicked(node.Id);
             buttonStack.Children.Add(btnAddChild);
         }
 
-        var btnEdit = new Button
+        var btnEdit = (new Button
         {
             Text = "✏️ Edit",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnEdit.Clicked += (s, e) => OnEditNodeClicked(node);
         buttonStack.Children.Add(btnEdit);
 
-        var btnDelete = new Button
+        var btnDelete = (new Button
         {
             Text = "🗑️",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnDelete.Clicked += (s, e) => OnDeleteNodeClicked(node);
         buttonStack.Children.Add(btnDelete);
 

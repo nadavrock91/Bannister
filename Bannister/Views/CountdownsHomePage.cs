@@ -35,48 +35,42 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
         };
         
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "⏳ Countdowns",
             FontSize = 32,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Make predictions and track your accuracy",
-            TextColor = Color.FromArgb("#AAAAAA"),
             FontSize = 14
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         
         // Stats
-        _statsLabel = new Label
+        _statsLabel = (new Label
         {
-            TextColor = Color.FromArgb("#4CAF50"),
             FontSize = 14,
             Margin = new Thickness(0, 0, 0, 10)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(_statsLabel);
         
         // Expired countdowns section (needs resolution)
-        _expiredFrame = new Frame
+        _expiredFrame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D44"),
-            BorderColor = Color.FromArgb("#FF9800"),
             CornerRadius = 12,
             Padding = 16,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
         
         var expiredStack = new VerticalStackLayout { Spacing = 12 };
-        expiredStack.Children.Add(new Label
+        expiredStack.Children.Add((new Label
         {
             Text = "⏰ Needs Resolution",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#FF9800")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
         
         _expiredLayout = new VerticalStackLayout { Spacing = 8 };
         expiredStack.Children.Add(_expiredLayout);
@@ -85,54 +79,47 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(_expiredFrame);
         
         // Categories section
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Categories",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             Margin = new Thickness(0, 10, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
         _categoriesLayout = new VerticalStackLayout { Spacing = 12 };
         mainStack.Children.Add(_categoriesLayout);
         
         // Add Category button
-        var btnAddCategory = new Button
+        var btnAddCategory = (new Button
         {
             Text = "+ Add Category",
-            BackgroundColor = Color.FromArgb("#3D3D5C"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 10, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddCategory.Clicked += OnAddCategoryClicked;
         mainStack.Children.Add(btnAddCategory);
         
         // Overdue section
-        _overdueButton = new Button
+        _overdueButton = (new Button
         {
             Text = "📛 Overdue (0)",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 20, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _overdueButton.Clicked += OnOverdueClicked;
         mainStack.Children.Add(_overdueButton);
         
         // View All button
-        var btnViewAll = new Button
+        var btnViewAll = (new Button
         {
             Text = "📊 View All Countdowns",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 10, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnViewAll.Clicked += OnViewAllClicked;
         mainStack.Children.Add(btnViewAll);
         
@@ -208,13 +195,12 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
     
     private Frame CreateCategoryCard(string category, int activeCount, int totalCount)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D44"),
             BorderColor = Colors.Transparent,
             CornerRadius = 12,
             Padding = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground);
         
         var grid = new Grid
         {
@@ -227,31 +213,28 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
         
         var leftStack = new VerticalStackLayout { Spacing = 4 };
         
-        leftStack.Children.Add(new Label
+        leftStack.Children.Add((new Label
         {
             Text = GetCategoryEmoji(category) + " " + category,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
-        leftStack.Children.Add(new Label
+        leftStack.Children.Add((new Label
         {
             Text = $"{activeCount} active • {totalCount} total",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#AAAAAA")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         
         Grid.SetColumn(leftStack, 0);
         grid.Children.Add(leftStack);
         
-        var arrow = new Label
+        var arrow = (new Label
         {
             Text = "→",
             FontSize = 24,
-            TextColor = Color.FromArgb("#5B63EE"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(arrow, 1);
         grid.Children.Add(arrow);
         
@@ -266,66 +249,56 @@ public class CountdownsHomePage : Bannister.Views.ModeThemedPage
     
     private Frame CreateExpiredCard(Countdown countdown)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#3D2D2D"),
-            BorderColor = Color.FromArgb("#FF9800"),
             CornerRadius = 8,
             Padding = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DarkErrorBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
         
         var stack = new VerticalStackLayout { Spacing = 8 };
         
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = countdown.Name,
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Target: {countdown.TargetDate:MMM d, yyyy} • {countdown.DaysRemainingDisplay}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#FF9800")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
         
         var buttonStack = new HorizontalStackLayout { Spacing = 8 };
         
-        var btnCorrect = new Button
+        var btnCorrect = (new Button
         {
             Text = "✅ I was right!",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             Padding = new Thickness(12, 6),
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnCorrect.Clicked += async (s, e) => await ResolveCountdown(countdown, true);
         buttonStack.Children.Add(btnCorrect);
         
-        var btnPostpone = new Button
+        var btnPostpone = (new Button
         {
             Text = "⏱️ Postpone",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             Padding = new Thickness(12, 6),
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnPostpone.Clicked += async (s, e) => await PostponeCountdown(countdown);
         buttonStack.Children.Add(btnPostpone);
         
-        var btnWrong = new Button
+        var btnWrong = (new Button
         {
             Text = "❌ Wrong",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             Padding = new Thickness(12, 6),
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnWrong.Clicked += async (s, e) => await ResolveCountdown(countdown, false);
         buttonStack.Children.Add(btnWrong);
         

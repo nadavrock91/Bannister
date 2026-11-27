@@ -26,41 +26,37 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
 
     private void BuildUI()
     {
-        var rootGrid = new Grid
+        var rootGrid = (new Grid
         {
             RowDefinitions =
             {
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Star }
-            },
-            BackgroundColor = Color.FromArgb("#F5F7FC")
-        };
+            }
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
 
-        var topStack = new VerticalStackLayout
+        var topStack = (new VerticalStackLayout
         {
             Padding = 20,
-            Spacing = 16,
-            BackgroundColor = Color.FromArgb("#F5F7FC")
-        };
+            Spacing = 16
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
 
-        topStack.Children.Add(new Label
+        topStack.Children.Add((new Label
         {
             Text = "Expired Activities",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#12161E"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
-        topStack.Children.Add(new Label
+        topStack.Children.Add((new Label
         {
             Text = "The following activities have expired. For each activity, choose to:\n\u2022 Postpone - Set a new end date\n\u2022 Move to Expired - Activity moves to 'Expired' category",
             FontSize = 14,
-            TextColor = Color.FromArgb("#5A6273"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             MaximumWidthRequest = 500
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         var buttonRow = new HorizontalStackLayout
         {
@@ -68,29 +64,25 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center
         };
 
-        var postponeBtn = new Button
+        var postponeBtn = (new Button
         {
             Text = "Postpone Selected",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             WidthRequest = 150,
             HeightRequest = 45
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         postponeBtn.Clicked += OnPostponeClicked;
         buttonRow.Children.Add(postponeBtn);
 
-        var expireBtn = new Button
+        var expireBtn = (new Button
         {
             Text = "Move to Expired",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#E64848"),
-            BorderColor = Color.FromArgb("#E64848"),
             BorderWidth = 1,
             CornerRadius = 8,
             WidthRequest = 150,
             HeightRequest = 45
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorBrightText).ThemeColor(Button.BorderColorProperty, ThemeKey.ErrorBrightText);
         expireBtn.Clicked += OnExpireClicked;
         buttonRow.Children.Add(expireBtn);
 
@@ -102,29 +94,25 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center
         };
 
-        var expireAllBtn = new Button
+        var expireAllBtn = (new Button
         {
             Text = "Expire All",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#666"),
-            BorderColor = Color.FromArgb("#999"),
             BorderWidth = 1,
             CornerRadius = 8,
             WidthRequest = 150,
             HeightRequest = 45
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2).ThemeColor(Button.BorderColorProperty, ThemeKey.CardText3);
         expireAllBtn.Clicked += OnExpireAllClicked;
         secondaryButtonRow.Children.Add(expireAllBtn);
 
-        var doneBtn = new Button
+        var doneBtn = (new Button
         {
             Text = "Done",
-            BackgroundColor = Color.FromArgb("#EEE"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             WidthRequest = 150,
             HeightRequest = 45
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         doneBtn.Clicked += OnDoneClicked;
         secondaryButtonRow.Children.Add(doneBtn);
 
@@ -147,7 +135,7 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
                 StrokeThickness = 2,
                 Shadow = new Shadow
                 {
-                    Brush = Colors.Black,
+                    Brush = AppColors.Get(ThemeKey.Shadow),
                     Offset = new Point(2, 2),
                     Radius = 4,
                     Opacity = 0.2f
@@ -181,13 +169,12 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
 
             var nameRow = new HorizontalStackLayout { Spacing = 8 };
             
-            var checkLabel = new Label
+            var checkLabel = (new Label
             {
                 Text = "\u2713",
                 FontSize = 16,
-                VerticalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb("#1976D2")
-            };
+                VerticalOptions = LayoutOptions.Center
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText1, classifyPageText: true);
             checkLabel.SetBinding(Label.IsVisibleProperty, nameof(ExpiredActivityViewModel.IsSelected));
             nameRow.Children.Add(checkLabel);
             
@@ -203,29 +190,26 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             Grid.SetRow(nameRow, 0);
             grid.Children.Add(nameRow);
 
-            var gameLabel = new Label
+            var gameLabel = (new Label
             {
-                FontSize = 14,
-                TextColor = Color.FromArgb("#F57C00")
-            };
+                FontSize = 14
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true);
             gameLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Game), stringFormat: "Game: {0}");
             Grid.SetRow(gameLabel, 1);
             grid.Children.Add(gameLabel);
 
-            var categoryLabel = new Label
+            var categoryLabel = (new Label
             {
-                FontSize = 14,
-                TextColor = Color.FromArgb("#FF9800")
-            };
+                FontSize = 14
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true);
             categoryLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.Category), stringFormat: "Category: {0}");
             Grid.SetRow(categoryLabel, 2);
             grid.Children.Add(categoryLabel);
 
-            var endDateLabel = new Label
+            var endDateLabel = (new Label
             {
-                FontSize = 12,
-                TextColor = Color.FromArgb("#999")
-            };
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
             endDateLabel.SetBinding(Label.TextProperty, nameof(ExpiredActivityViewModel.EndDateDisplay));
             Grid.SetRow(endDateLabel, 3);
             grid.Children.Add(endDateLabel);
@@ -234,14 +218,13 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             return border;
         });
 
-        _expiredList.EmptyView = new Label
+        _expiredList.EmptyView = (new Label
         {
             Text = "No expired activities!",
             FontSize = 16,
-            TextColor = Color.FromArgb("#999"),
             Padding = 40,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
 
         rootGrid.Add(_expiredList, 0, 1);
         Content = rootGrid;
@@ -317,61 +300,55 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
         // Start with tomorrow
         DateTime currentDate = DateTime.Today.AddDays(1);
         
-        var contentStack = new VerticalStackLayout
+        var contentStack = (new VerticalStackLayout
         {
             Spacing = 16,
-            Padding = 24,
-            BackgroundColor = Colors.White
-        };
+            Padding = 24
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         
         // Header
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = "Postpone Activity",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         
         // Activity name
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = activityName,
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             LineBreakMode = LineBreakMode.WordWrap,
             MaxLines = 3
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
-            HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0")
-        });
+            HeightRequest = 1
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // Current date display
-        var dateLabel = new Label
+        var dateLabel = (new Label
         {
             Text = currentDate.ToString("dddd, MMMM d, yyyy"),
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 8)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         contentStack.Children.Add(dateLabel);
         
         // Days from today display
-        var daysLabel = new Label
+        var daysLabel = (new Label
         {
             Text = GetDaysFromTodayText(currentDate),
             FontSize = 12,
-            TextColor = Color.FromArgb("#999"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         contentStack.Children.Add(daysLabel);
         
         // Helper to update labels
@@ -390,17 +367,15 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
         
         foreach (var days in new[] { 1, 7, 14, 30 })
         {
-            var btn = new Button
+            var btn = (new Button
             {
                 Text = $"+{days}",
-                BackgroundColor = Color.FromArgb("#5B63EE"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 WidthRequest = 60,
                 HeightRequest = 44,
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btn.Clicked += (s, args) =>
             {
                 currentDate = currentDate.AddDays(days);
@@ -419,17 +394,15 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
         
         foreach (var days in new[] { 60, 90, 180, 365 })
         {
-            var btn = new Button
+            var btn = (new Button
             {
                 Text = $"+{days}",
-                BackgroundColor = Color.FromArgb("#FF9800"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 WidthRequest = 60,
                 HeightRequest = 44,
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btn.Clicked += (s, args) =>
             {
                 currentDate = currentDate.AddDays(days);
@@ -440,16 +413,14 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
         contentStack.Children.Add(row2);
         
         // Reset to tomorrow button
-        var resetBtn = new Button
+        var resetBtn = (new Button
         {
             Text = "↺ Reset to Tomorrow",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         resetBtn.Clicked += (s, args) =>
         {
             currentDate = DateTime.Today.AddDays(1);
@@ -457,12 +428,11 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
         };
         contentStack.Children.Add(resetBtn);
         
-        contentStack.Children.Add(new BoxView
+        contentStack.Children.Add((new BoxView
         {
             HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0"),
             Margin = new Thickness(0, 8)
-        });
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // OK / Cancel buttons
         var buttonRow = new HorizontalStackLayout
@@ -471,52 +441,46 @@ public class ExpiredActivitiesPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center
         };
         
-        var okBtn = new Button
+        var okBtn = (new Button
         {
             Text = "Postpone",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             WidthRequest = 120,
             HeightRequest = 48,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         okBtn.Clicked += (s, args) => tcs.TrySetResult(currentDate);
         buttonRow.Children.Add(okBtn);
         
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#EEE"),
-            TextColor = Color.FromArgb("#666"),
             CornerRadius = 8,
             WidthRequest = 120,
             HeightRequest = 48,
             FontSize = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         cancelBtn.Clicked += (s, args) => tcs.TrySetResult(null);
         buttonRow.Children.Add(cancelBtn);
         
         contentStack.Children.Add(buttonRow);
         
-        var popup = new Frame
+        var popup = (new Frame
         {
             CornerRadius = 16,
-            BackgroundColor = Colors.White,
             Padding = 0,
             HasShadow = true,
             WidthRequest = 340,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             Content = contentStack
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         
-        var overlayPage = new ContentPage
+        var overlayPage = (new ContentPage
         {
-            BackgroundColor = Color.FromArgb("#80000000"),
             Content = popup
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
         
         await Navigation.PushModalAsync(overlayPage, false);
         
@@ -623,17 +587,17 @@ public class ExpiredActivityViewModel : INotifyPropertyChanged
     
     // Selection-based colors
     public Color BackgroundColor => IsSelected 
-        ? Color.FromArgb("#E3F2FD")  // Light blue when selected
-        : Color.FromArgb("#FFF3E0"); // Original orange tint
+        ? AppColors.Get(ThemeKey.RowSelected)  // Light blue when selected
+        : AppColors.Get(ThemeKey.WarningBackground); // Original orange tint
     
     // Border uses Brush, not Color
     public Brush BorderBrush => IsSelected 
-        ? new SolidColorBrush(Color.FromArgb("#2196F3"))  // Blue border when selected
+        ? new SolidColorBrush(AppColors.Get(ThemeKey.InfoLinkText))  // Blue border when selected
         : new SolidColorBrush(Colors.Transparent);
     
     public Color NameColor => IsSelected 
-        ? Color.FromArgb("#1976D2")  // Blue text when selected
-        : Color.FromArgb("#E65100"); // Original orange
+        ? AppColors.Get(ThemeKey.InfoStrongText)  // Blue text when selected
+        : AppColors.Get(ThemeKey.WarningText); // Original orange
 
     public event PropertyChangedEventHandler? PropertyChanged;
     

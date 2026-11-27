@@ -62,30 +62,26 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             Spacing = 8,
             HorizontalOptions = LayoutOptions.Center
         };
-        var changeImageBtn = new Button
+        var changeImageBtn = (new Button
         {
             Text = " Change Image",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 36,
             Padding = new Thickness(14, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         changeImageBtn.Clicked += async (_, _) =>
             await ChangeImageAsync();
         imgBtnRow.Children.Add(changeImageBtn);
 
-        var cycleAspectBtn = new Button
+        var cycleAspectBtn = (new Button
         {
             Text = "⟳ Fit",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 36,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         cycleAspectBtn.Clicked += async (_, _) =>
         {
             _enforcer.ImageAspect = (_enforcer.ImageAspect + 1) % 3;
@@ -96,34 +92,31 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(imgBtnRow);
 
         // Name
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = _enforcer.Name,
             FontSize = 22,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
         // Stats
-        _streakLabel = new Label
+        _streakLabel = (new Label
         {
             Text = $" {_enforcer.DaysInARow} days in a row",
             FontSize = 16,
-            TextColor = Color.FromArgb("#2E7D32"),
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true);
         stack.Children.Add(_streakLabel);
 
-        _resetCountLabel = new Label
+        _resetCountLabel = (new Label
         {
             Text = $"Total Resets: {_enforcer.TotalResets}",
             FontSize = 14,
-            TextColor = Color.FromArgb("#C62828"),
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
         stack.Children.Add(_resetCountLabel);
 
         // Current level display
@@ -147,16 +140,14 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(_levelLabel);
 
         // Reset button
-        var resetBtn = new Button
+        var resetBtn = (new Button
         {
             Text = "⚡ Reset",
-            BackgroundColor = Color.FromArgb("#C62828"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 16,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         resetBtn.Clicked += async (_, _) => await DoResetAsync();
         stack.Children.Add(resetBtn);
 
@@ -167,16 +158,14 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center
         };
 
-        var levelsBtn = new Button
+        var levelsBtn = (new Button
         {
             Text = " Manage Levels",
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
-            TextColor = Color.FromArgb("#3949AB"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 38,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightIndigoButton);
         levelsBtn.Clicked += async (_, _) =>
         {
             await Navigation.PushAsync(
@@ -184,16 +173,14 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
         };
         actionRow.Children.Add(levelsBtn);
 
-        var setLevelBtn = new Button
+        var setLevelBtn = (new Button
         {
             Text = "✏ Set Level",
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
-            TextColor = Color.FromArgb("#F57F17"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 38,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightYellowText);
         setLevelBtn.Clicked += async (_, _) =>
             await ManualSetLevelAsync();
         actionRow.Children.Add(setLevelBtn);
@@ -201,35 +188,31 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(actionRow);
 
         // Conditions section
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Reset Conditions",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0"),
             Margin = new Thickness(0, 8, 0, 0)
-        });
-        stack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Define what triggers a reset for this enforcer.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         _conditionsContainer = new VerticalStackLayout { Spacing = 8 };
         stack.Children.Add(_conditionsContainer);
 
-        var addConditionBtn = new Button
+        var addConditionBtn = (new Button
         {
             Text = "+ New Reset Condition",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(14, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         addConditionBtn.Clicked += async (_, _) =>
             await AddConditionAsync();
         stack.Children.Add(addConditionBtn);
@@ -254,11 +237,7 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             var current = levels[_enforcer.CurrentLevelIndex];
             _levelLabel.Text =
                 $"{current.LevelIcon} {current.LevelDisplay} — {current.Name}";
-            _levelLabel.TextColor = current.LevelNumber > 0
-                ? Color.FromArgb("#2E7D32")
-                : current.LevelNumber < 0
-                    ? Color.FromArgb("#E65100")
-                    : Color.FromArgb("#555");
+            _levelLabel.ThemeColor(Label.TextColorProperty, current.LevelNumber > 0 ? ThemeKey.SuccessText : current.LevelNumber < 0 ? ThemeKey.WarningText : ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true);
             _levelLabel.IsVisible = true;
 
             if (!string.IsNullOrWhiteSpace(current.ImagePath) &&
@@ -284,13 +263,12 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
         _conditionsContainer.Children.Clear();
         if (conditions.Count == 0)
         {
-            _conditionsContainer.Children.Add(new Label
+            _conditionsContainer.Children.Add((new Label
             {
                 Text = "No conditions defined yet.",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
         else
         {
@@ -314,28 +292,26 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
                 };
 
                 var condTextStack = new VerticalStackLayout { Spacing = 2 };
-                condTextStack.Children.Add(new Label
+                condTextStack.Children.Add((new Label
                 {
                     Text = condition.Text,
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#222"),
                     LineBreakMode = LineBreakMode.WordWrap
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
                 if (!string.IsNullOrWhiteSpace(condition.WhatGetsReset))
                 {
-                    condTextStack.Children.Add(new Label
+                    condTextStack.Children.Add((new Label
                     {
                         Text = $"⚡ Resets: {condition.WhatGetsReset}",
                         FontSize = 11,
-                        TextColor = Color.FromArgb("#C62828"),
                         FontAttributes = FontAttributes.Bold
-                    });
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText3, classifyPageText: true));
                 }
                 condGrid.Add(condTextStack, 0, 0);
 
                 if (condition.HasTimeWindow)
                 {
-                    condGrid.Add(new Label
+                    condGrid.Add((new Label
                     {
                         Text = string.Join("\n",
                             new[]
@@ -347,38 +323,33 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
                             }
                             .Where(s => s != null)),
                         FontSize = 11,
-                        TextColor = Color.FromArgb("#5B63EE"),
                         FontAttributes = FontAttributes.Italic
-                    }, 0, 1);
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true), 0, 1);
                 }
 
-                var editCondBtn = new Button
+                var editCondBtn = (new Button
                 {
                     Text = "✏",
                     FontSize = 12,
                     HeightRequest = 34,
                     WidthRequest = 34,
                     CornerRadius = 6,
-                    Padding = 0,
-                    BackgroundColor = Color.FromArgb("#E3F2FD"),
-                    TextColor = Color.FromArgb("#1565C0")
-                };
+                    Padding = 0
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
                 var capturedCond = condition;
                 editCondBtn.Clicked += async (_, _) =>
                     await EditConditionTimeAsync(capturedCond);
                 condGrid.Add(editCondBtn, 1, 0);
 
-                var delCondBtn = new Button
+                var delCondBtn = (new Button
                 {
                     Text = "✕",
                     FontSize = 13,
                     HeightRequest = 34,
                     WidthRequest = 34,
                     CornerRadius = 6,
-                    Padding = 0,
-                    BackgroundColor = Color.FromArgb("#FFEBEE"),
-                    TextColor = Color.FromArgb("#C62828")
-                };
+                    Padding = 0
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
                 var capturedCondId = condition.Id;
                 delCondBtn.Clicked += async (_, _) =>
                 {
@@ -594,31 +565,26 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
         string title, string message)
     {
         var tcs = new TaskCompletionSource<string>();
-        var editorPage = new ContentPage
+        var editorPage = (new ContentPage
         {
-            Title = title,
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
-        var editor = new Editor
+            Title = title
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+        var editor = (new Editor
         {
             Placeholder = "Paste LLM response here...",
             HeightRequest = 300,
             AutoSize = EditorAutoSizeOption.TextChanges,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13,
             Margin = new Thickness(16)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         editorPage.Disappearing += (_, _) =>
             tcs.TrySetResult(editor.Text ?? "");
-        var confirmBtn = new Button
+        var confirmBtn = (new Button
         {
             Text = "Done",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             Margin = new Thickness(16, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         confirmBtn.Clicked += async (_, _) =>
         {
             tcs.TrySetResult(editor.Text ?? "");
@@ -630,14 +596,13 @@ public class ResetEnforcerDetailPage : Bannister.Views.ModeThemedPage
             Padding = 8,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = message,
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#444"),
                     Margin = new Thickness(16, 16, 16, 0),
                     LineBreakMode = LineBreakMode.WordWrap
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                 editor,
                 confirmBtn
             }

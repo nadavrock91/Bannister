@@ -42,6 +42,7 @@ public enum ThemeKey
     IndigoMutedButton, HighlightAmberStrong,
     NeutralStrongButtonBackground,
     PeriwinkleButtonBackground, PublicCardBackground, PrivateCardBackground, DeepVioletText,
+    DarkErrorBackground, HighlightCyanButton, HighlightAquaButton,
     BrandFacebook, BrandTikTok, BrandYouTube, BrandMediaBackground, BrandMediaPanel,
     BrandMediaBorder, BrandMediaConsoleBorder, BrandMediaButton, BrandMediaSelection, BrandMediaText,
     BrandMediaMutedText, BrandMediaHintText, BrandMediaDetailText,

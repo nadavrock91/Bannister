@@ -78,25 +78,23 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
         System.Diagnostics.Debug.WriteLine("PromptsEditPage: mainStack created");
 
         // Header
-        var headerLabel = new Label
+        var headerLabel = (new Label
         {
             Text = "📝 Edit Prompts",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(headerLabel);
         System.Diagnostics.Debug.WriteLine("PromptsEditPage: header added");
 
         // Filters Frame
-        var filtersFrame = new Frame
+        var filtersFrame = (new Frame
         {
             Padding = 12,
             CornerRadius = 10,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         System.Diagnostics.Debug.WriteLine("PromptsEditPage: filtersFrame created");
 
         var filtersStack = new VerticalStackLayout { Spacing = 10 };
@@ -106,12 +104,11 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
 
         // Pack picker
         var packStack = new VerticalStackLayout { Spacing = 4 };
-        packStack.Children.Add(new Label { Text = "Pack", FontSize = 11, TextColor = Color.FromArgb("#666") });
-        _packPicker = new Picker
+        packStack.Children.Add((new Label { Text = "Pack", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        _packPicker = (new Picker
         {
-            WidthRequest = 140,
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
+            WidthRequest = 140
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _packPicker.SelectedIndexChanged += OnPackChanged;
         packStack.Children.Add(_packPicker);
         pickersRow.Children.Add(packStack);
@@ -119,12 +116,11 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
 
         // Group picker
         var groupStack = new VerticalStackLayout { Spacing = 4 };
-        groupStack.Children.Add(new Label { Text = "Group", FontSize = 11, TextColor = Color.FromArgb("#666") });
-        _groupPicker = new Picker
+        groupStack.Children.Add((new Label { Text = "Group", FontSize = 11 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        _groupPicker = (new Picker
         {
-            WidthRequest = 140,
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
+            WidthRequest = 140
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _groupPicker.SelectedIndexChanged += OnGroupChanged;
         groupStack.Children.Add(_groupPicker);
         pickersRow.Children.Add(groupStack);
@@ -135,24 +131,22 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
         // Search row
         var searchRow = new HorizontalStackLayout { Spacing = 8 };
         
-        _searchEntry = new Entry
+        _searchEntry = (new Entry
         {
             Placeholder = "🔍 Search prompts...",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             HorizontalOptions = LayoutOptions.Fill,
             WidthRequest = 250
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _searchEntry.TextChanged += OnSearchChanged;
         searchRow.Children.Add(_searchEntry);
         System.Diagnostics.Debug.WriteLine("PromptsEditPage: search entry created");
 
-        _countLabel = new Label
+        _countLabel = (new Label
         {
             Text = "0 prompts",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         searchRow.Children.Add(_countLabel);
 
         filtersStack.Children.Add(searchRow);
@@ -162,15 +156,14 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
         System.Diagnostics.Debug.WriteLine("PromptsEditPage: filters added to main");
 
         // Prompts list
-        var listFrame = new Frame
+        var listFrame = (new Frame
         {
             Padding = 0,
             CornerRadius = 10,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent,
             VerticalOptions = LayoutOptions.FillAndExpand
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var scrollView = new ScrollView
         {
@@ -222,14 +215,13 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
             {
                 // No packs, show empty state
                 _promptsStack.Children.Clear();
-                _promptsStack.Children.Add(new Label
+                _promptsStack.Children.Add((new Label
                 {
                     Text = "No prompt packs found.\nAdd prompts from the main Prompts page.",
-                    TextColor = Color.FromArgb("#999"),
                     HorizontalOptions = LayoutOptions.Center,
                     HorizontalTextAlignment = TextAlignment.Center,
                     Margin = new Thickness(0, 40)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             }
         }
         catch (Exception ex)
@@ -339,13 +331,12 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
 
         if (_filteredPrompts.Count == 0)
         {
-            _promptsStack.Children.Add(new Label
+            _promptsStack.Children.Add((new Label
             {
                 Text = "No prompts found",
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(0, 20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             System.Diagnostics.Debug.WriteLine("PromptsEditPage: No prompts to display");
             return;
         }
@@ -369,18 +360,16 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
     private Frame BuildPromptRow(PromptItem prompt)
     {
         // Color based on group
-        var groupColors = new[] { "#E3F2FD", "#E8F5E9", "#FFF3E0", "#F3E5F5", "#E0F7FA", "#FCE4EC", "#FBE9E7", "#E8EAF6" };
+        var groupColors = new[] { ThemeKey.RowSelected, ThemeKey.SuccessBackground, ThemeKey.WarningBackground, ThemeKey.AccentPurpleBackground, ThemeKey.HighlightTeal, ThemeKey.HighlightPink, ThemeKey.WarningBackground, ThemeKey.HighlightIndigo };
         int colorIndex = Math.Abs(prompt.GroupName.GetHashCode()) % groupColors.Length;
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 10,
             CornerRadius = 8,
-            BackgroundColor = Color.FromArgb(groupColors[colorIndex]),
             HasShadow = false,
-            BorderColor = prompt.Priority > 0 ? Color.FromArgb("#FF9800") : Colors.Transparent,
             Margin = new Thickness(0, 2)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, groupColors[colorIndex]).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, prompt.Priority > 0 ? ThemeKey.WarningAccentText : (ThemeKey?)null);
 
         var grid = new Grid
         {
@@ -398,88 +387,79 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
         // Group and priority badges
         var badgeRow = new HorizontalStackLayout { Spacing = 6 };
         
-        var groupBadge = new Frame
+        var groupBadge = (new Frame
         {
             Padding = new Thickness(6, 2),
             CornerRadius = 4,
-            BackgroundColor = Color.FromArgb("#5B63EE"),
             HasShadow = false
-        };
-        groupBadge.Content = new Label
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
+        groupBadge.Content = (new Label
         {
             Text = prompt.GroupName,
-            FontSize = 10,
-            TextColor = Colors.White
-        };
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
         badgeRow.Children.Add(groupBadge);
 
         if (prompt.Priority > 0)
         {
-            var priorityBadge = new Frame
+            var priorityBadge = (new Frame
             {
                 Padding = new Thickness(6, 2),
                 CornerRadius = 4,
-                BackgroundColor = Color.FromArgb("#FF9800"),
                 HasShadow = false
-            };
-            priorityBadge.Content = new Label
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground);
+            priorityBadge.Content = (new Label
             {
                 Text = $"P{prompt.Priority}",
                 FontSize = 10,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White
-            };
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
             badgeRow.Children.Add(priorityBadge);
         }
 
         if (!prompt.IsActive)
         {
-            var inactiveBadge = new Frame
+            var inactiveBadge = (new Frame
             {
                 Padding = new Thickness(6, 2),
                 CornerRadius = 4,
-                BackgroundColor = Color.FromArgb("#9E9E9E"),
                 HasShadow = false
-            };
-            inactiveBadge.Content = new Label
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground);
+            inactiveBadge.Content = (new Label
             {
                 Text = "Inactive",
-                FontSize = 10,
-                TextColor = Colors.White
-            };
+                FontSize = 10
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText3, classifyPageText: true);
             badgeRow.Children.Add(inactiveBadge);
         }
 
         // Rating stars
-        var ratingLabel = new Label
+        var ratingLabel = (new Label
         {
             Text = new string('★', prompt.Rating) + new string('☆', 5 - prompt.Rating),
             FontSize = 10,
-            TextColor = Color.FromArgb("#FFC107"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightAmberButton, ThemeKey.PageText3, classifyPageText: true);
         badgeRow.Children.Add(ratingLabel);
 
         infoStack.Children.Add(badgeRow);
 
         // Prompt text
-        var textLabel = new Label
+        var textLabel = (new Label
         {
             Text = prompt.Text,
             FontSize = 13,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap,
             MaxLines = 3
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         infoStack.Children.Add(textLabel);
 
         // Stats
-        var statsLabel = new Label
+        var statsLabel = (new Label
         {
             Text = $"Used {prompt.UsageCount}x | Prob: {prompt.Probability:P0}",
-            FontSize = 10,
-            TextColor = Color.FromArgb("#999")
-        };
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         infoStack.Children.Add(statsLabel);
 
         Grid.SetColumn(infoStack, 0);
@@ -493,17 +473,15 @@ public class PromptsEditPage : Bannister.Views.ModeThemedPage
         };
 
         // Menu button
-        var menuBtn = new Button
+        var menuBtn = (new Button
         {
             Text = "⋮",
             FontSize = 18,
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333"),
             WidthRequest = 36,
             HeightRequest = 36,
             CornerRadius = 18,
             Padding = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         menuBtn.Clicked += async (s, e) => await ShowPromptMenuAsync(prompt);
         actionsStack.Children.Add(menuBtn);
 

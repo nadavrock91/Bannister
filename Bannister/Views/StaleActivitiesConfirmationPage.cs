@@ -31,7 +31,7 @@ public class StaleActivitiesConfirmationPage : ContentPage
         _tcs = new TaskCompletionSource<int>();
 
         Title = "Stale Activities";
-        BackgroundColor = Color.FromArgb("#F5F7FC");
+        this.ThemeColor(BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
 
         BuildUI();
     }
@@ -41,72 +41,64 @@ public class StaleActivitiesConfirmationPage : ContentPage
     private void BuildUI()
     {
         // Main grid: top section (fixed) + scrollable activities
-        var mainGrid = new Grid
+        var mainGrid = (new Grid
         {
             RowDefinitions =
             {
                 new RowDefinition { Height = GridLength.Auto }, // Header + buttons (fixed)
                 new RowDefinition { Height = GridLength.Star }  // Scrollable activities
-            },
-            BackgroundColor = Color.FromArgb("#F5F7FC")
-        };
+            }
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
 
         // ===== TOP SECTION (Fixed, no scroll) =====
-        var topSection = new VerticalStackLayout
+        var topSection = (new VerticalStackLayout
         {
             Padding = 20,
-            Spacing = 15,
-            BackgroundColor = Color.FromArgb("#F5F7FC")
-        };
+            Spacing = 15
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
 
         // Header
-        var lblTitle = new Label
+        var lblTitle = (new Label
         {
             Text = "📦 Stale Activities Found",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         topSection.Children.Add(lblTitle);
 
         // Count display
-        var lblCount = new Label
+        var lblCount = (new Label
         {
             Text = $"{_staleActivities.Count} activities not used in 30+ days",
             FontSize = 16,
-            TextColor = Color.FromArgb("#FF9800"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 0, 0, 10)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true);
         topSection.Children.Add(lblCount);
 
         // Move Selected button
-        var btnMove = new Button
+        var btnMove = (new Button
         {
             Text = "📦 Move Selected to Stale",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 12,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 55,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnMove.Clicked += OnMoveClicked;
         topSection.Children.Add(btnMove);
 
         // Skip button (smaller, secondary)
-        var btnSkip = new Button
+        var btnSkip = (new Button
         {
             Text = "Keep All Active",
-            BackgroundColor = Color.FromArgb("#999"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSkip.Clicked += OnSkipClicked;
         topSection.Children.Add(btnSkip);
 
@@ -117,38 +109,33 @@ public class StaleActivitiesConfirmationPage : ContentPage
             Margin = new Thickness(0, 10, 0, 0)
         };
         
-        var lblToggle = new Label
+        var lblToggle = (new Label
         {
             Text = "Toggle which to move:",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         toggleAllStack.Children.Add(lblToggle);
 
-        var btnSelectAll = new Button
+        var btnSelectAll = (new Button
         {
             Text = "Select All",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1976D2"),
             FontSize = 12,
             HeightRequest = 32,
             Padding = new Thickness(10, 0),
             CornerRadius = 6
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoStrongText);
         btnSelectAll.Clicked += (s, e) => SetAllSwitches(true);
         toggleAllStack.Children.Add(btnSelectAll);
 
-        var btnSelectNone = new Button
+        var btnSelectNone = (new Button
         {
             Text = "Select None",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 12,
             HeightRequest = 32,
             Padding = new Thickness(10, 0),
             CornerRadius = 6
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         btnSelectNone.Clicked += (s, e) => SetAllSwitches(false);
         toggleAllStack.Children.Add(btnSelectNone);
 
@@ -177,14 +164,12 @@ public class StaleActivitiesConfirmationPage : ContentPage
 
     private Frame BuildActivityCard(Activity activity)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 10,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            BorderColor = Color.FromArgb("#1976D2"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoStrongText);
         _activityFrames[activity.Id] = frame;
 
         var grid = new Grid
@@ -202,10 +187,10 @@ public class StaleActivitiesConfirmationPage : ContentPage
         var toggle = new Switch
         {
             IsToggled = true,
-            OnColor = Color.FromArgb("#FF9800"),
-            ThumbColor = Colors.White,
             VerticalOptions = LayoutOptions.Center
         };
+        toggle.ThemeColor(Switch.OnColorProperty, ThemeKey.WarningAccentText)
+            .ThemeColor(Switch.ThumbColorProperty, ThemeKey.OnColorText);
         _activitySwitches[activity.Id] = toggle;
         toggle.Toggled += (_, e) => SetActivitySelected(activity.Id, e.Value);
         grid.Add(toggle, 0, 0);
@@ -224,14 +209,13 @@ public class StaleActivitiesConfirmationPage : ContentPage
 
         bool hidesImageOnlyName = activity.IsImageOnly &&
             !string.IsNullOrWhiteSpace(activity.ImagePath);
-        var subtitleLabel = new Label
+        var subtitleLabel = (new Label
         {
             Text = hidesImageOnlyName
                 ? dateText
                 : $"📁 {activity.Category} • {dateText}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#888")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
 
         infoStack.Children.Add(BuildActivityVisual(activity, subtitleLabel, dateText));
         infoStack.Children.Add(subtitleLabel);
@@ -245,25 +229,23 @@ public class StaleActivitiesConfirmationPage : ContentPage
             HorizontalOptions = LayoutOptions.End
         };
 
-        var checkLabel = new Label
+        var checkLabel = (new Label
         {
             Text = "✓",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1976D2"),
             HorizontalOptions = LayoutOptions.End
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText1, classifyPageText: true);
         _activityCheckLabels[activity.Id] = checkLabel;
         rightStack.Children.Add(checkLabel);
 
-        var expLabel = new Label
+        var expLabel = (new Label
         {
             Text = activity.ExpGain >= 0 ? $"+{activity.ExpGain}" : $"{activity.ExpGain}",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = activity.ExpGain >= 0 ? Color.FromArgb("#4CAF50") : Color.FromArgb("#F44336"),
             HorizontalOptions = LayoutOptions.End
-        };
+        }).ThemeColor(Label.TextColorProperty, activity.ExpGain >= 0 ? ThemeKey.SuccessLightText : ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         rightStack.Children.Add(expLabel);
         grid.Add(rightStack, 2, 0);
 
@@ -291,20 +273,18 @@ public class StaleActivitiesConfirmationPage : ContentPage
             };
             stack.Children.Add(img);
 
-            var nameLabel = new Label
+            var nameLabel = (new Label
             {
                 Text = activity.Name,
                 FontSize = 11,
-                TextColor = Color.FromArgb("#888"),
                 IsVisible = false,
                 LineBreakMode = LineBreakMode.WordWrap
-            };
-            var expandLabel = new Label
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
+            var expandLabel = (new Label
             {
                 Text = "▼ show name",
-                FontSize = 10,
-                TextColor = Color.FromArgb("#1976D2")
-            };
+                FontSize = 10
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText3, classifyPageText: true);
             var tap = new TapGestureRecognizer();
             tap.Tapped += (_, _) =>
             {
@@ -320,14 +300,13 @@ public class StaleActivitiesConfirmationPage : ContentPage
             return stack;
         }
 
-        return new Label
+        return (new Label
         {
             Text = activity.Name,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
     }
 
     private static string? ResolveImagePath(string? storedPath)
@@ -365,8 +344,8 @@ public class StaleActivitiesConfirmationPage : ContentPage
 
         if (_activityFrames.TryGetValue(activityId, out var frame))
         {
-            frame.BackgroundColor = isSelected ? Color.FromArgb("#E3F2FD") : Colors.White;
-            frame.BorderColor = isSelected ? Color.FromArgb("#1976D2") : Color.FromArgb("#DDD");
+            frame.ThemeColor(VisualElement.BackgroundColorProperty, isSelected ? ThemeKey.InfoBackground : ThemeKey.CardBackground);
+            frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isSelected ? ThemeKey.InfoStrongText : ThemeKey.Separator);
         }
 
         if (_activityCheckLabels.TryGetValue(activityId, out var checkLabel))

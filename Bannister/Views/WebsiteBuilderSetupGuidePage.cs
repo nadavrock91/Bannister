@@ -39,52 +39,44 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
             HorizontalOptions = LayoutOptions.Center
         };
 
-        var restartButton = new Button
+        var restartButton = (new Button
         {
             Text = "Restart Guide",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            TextColor = Color.FromArgb("#666"),
             CornerRadius = 6,
             FontSize = 11,
             HeightRequest = 32,
             Padding = new Thickness(12, 0),
             HorizontalOptions = LayoutOptions.End
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         restartButton.Clicked += async (_, _) => await RestartGuideAsync();
 
         _stepCardContainer = new ContentView();
 
-        _backButton = new Button
+        _backButton = (new Button
         {
             Text = "Back",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _backButton.Clicked += async (_, _) => await BackAsync();
 
-        _skipButton = new Button
+        _skipButton = (new Button
         {
             Text = "Skip for Now",
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
-            TextColor = Color.FromArgb("#666"),
             CornerRadius = 8,
             FontSize = 12,
             HeightRequest = 40,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         _skipButton.Clicked += async (_, _) => await SkipAsync();
 
-        _markDoneButton = new Button
+        _markDoneButton = (new Button
         {
             Text = "Mark Done & Next",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _markDoneButton.Clicked += async (_, _) => await MarkDoneAsync();
 
         _navigationRow = new Grid
@@ -115,20 +107,18 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
             Spacing = 16,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Setup Guide",
                     FontSize = 28,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222")
-                },
-                new Label
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                (new Label
                 {
                     Text = "14 steps to your first deployed website. Follow in order - Bannister handles some steps for you.",
                     FontSize = 14,
-                    FontAttributes = FontAttributes.Italic,
-                    TextColor = Color.FromArgb("#666")
-                },
+                    FontAttributes = FontAttributes.Italic
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                 _stepIndicator,
                 restartButton,
                 _stepCardContainer,
@@ -194,16 +184,14 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
         {
             var isCurrent = _currentStep == i;
             var isDone = _completedSteps.Contains(i) || _currentStep == TotalSteps + 1;
-            var dot = new Frame
+            var dot = (new Frame
             {
                 WidthRequest = 18,
                 HeightRequest = 18,
                 CornerRadius = 9,
                 Padding = 0,
-                HasShadow = false,
-                BorderColor = isCurrent ? Color.FromArgb("#00897B") : Color.FromArgb("#BBB"),
-                BackgroundColor = isDone && !isCurrent ? Color.FromArgb("#00897B") : Colors.Transparent
-            };
+                HasShadow = false
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isCurrent ? ThemeKey.TealButtonBackground : ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, isDone && !isCurrent ? ThemeKey.TealButtonBackground : (ThemeKey?)null);
 
             _stepIndicator.Children.Add(dot);
         }
@@ -370,16 +358,14 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
     private VerticalStackLayout CreateCompletionSection()
     {
         var backButton = CreateInternalActionButton("Back to Website Builder", async () => await Navigation.PopAsync());
-        var restartButton = new Button
+        var restartButton = (new Button
         {
             Text = "Restart Guide",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 42,
             FontSize = 13,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         restartButton.Clicked += async (_, _) => await RestartGuideAsync();
 
         return new VerticalStackLayout
@@ -388,10 +374,8 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
             Spacing = 14,
             Children =
             {
-                new Frame
+                (new Frame
                 {
-                    BackgroundColor = Colors.White,
-                    BorderColor = Color.FromArgb("#E0E0E0"),
                     CornerRadius = 10,
                     Padding = 16,
                     HasShadow = false,
@@ -400,25 +384,23 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
                         Spacing = 12,
                         Children =
                         {
-                            new Label
+                            (new Label
                             {
                                 Text = "You're Set Up!",
                                 FontSize = 22,
-                                FontAttributes = FontAttributes.Bold,
-                                TextColor = Color.FromArgb("#222")
-                            },
-                            new Label
+                                FontAttributes = FontAttributes.Bold
+                            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                            (new Label
                             {
                                 Text = "All 14 steps complete. From here, the recurring loop is: Codex edits files -> npm run dev to test -> git push to deploy. Bannister's task counter tracks your progress.",
                                 FontSize = 14,
-                                TextColor = Color.FromArgb("#333"),
                                 LineBreakMode = LineBreakMode.WordWrap
-                            },
+                            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
                             backButton,
                             restartButton
                         }
                     }
-                }
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator)
             }
         };
     }
@@ -426,36 +408,32 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
     private View CreateStepCard(int number, StepData step)
     {
         var actions = step.Actions.Select(CreateActionButton).ToArray();
-        var badge = new Frame
+        var badge = (new Frame
         {
             WidthRequest = 36,
             HeightRequest = 36,
             CornerRadius = 18,
             Padding = 0,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#00897B"),
-            BackgroundColor = Color.FromArgb("#00897B"),
-            Content = new Label
+            Content = (new Label
             {
                 Text = number.ToString(),
                 FontSize = 16,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White,
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center
-            }
-        };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true)
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.TealButtonBackground).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground);
         Grid.SetColumn(badge, 0);
 
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = step.Title,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             VerticalTextAlignment = TextAlignment.Center,
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(titleLabel, 1);
 
         var titleRow = new Grid
@@ -480,13 +458,12 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
             Children =
             {
                 titleRow,
-                new Label
+                (new Label
                 {
                     Text = step.Body,
                     FontSize = 14,
-                    TextColor = Color.FromArgb("#333"),
                     LineBreakMode = LineBreakMode.WordWrap
-                }
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true)
             }
         };
 
@@ -503,15 +480,13 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
             cardContent.Children.Add(actionStack);
         }
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 16,
             HasShadow = false,
             Content = cardContent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private Button CreateActionButton(StepAction action)
@@ -632,33 +607,29 @@ public class WebsiteBuilderSetupGuidePage : Bannister.Views.ModeThemedPage
 
     private static Button CreateExternalLinkButton(string label, string url)
     {
-        var button = new Button
+        var button = (new Button
         {
             Text = label,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#01579B"),
             CornerRadius = 8,
             HeightRequest = 40,
             FontSize = 13,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.HighlightSkyText);
         button.Clicked += async (_, _) => await Launcher.OpenAsync(url);
         return button;
     }
 
     private static Button CreateInternalActionButton(string label, Func<Task> onClick)
     {
-        var button = new Button
+        var button = (new Button
         {
             Text = label,
-            BackgroundColor = Color.FromArgb("#00897B"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 42,
             FontSize = 13,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         button.Clicked += async (_, _) => await onClick();
         return button;
     }

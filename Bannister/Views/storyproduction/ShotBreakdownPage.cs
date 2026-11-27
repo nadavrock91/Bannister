@@ -37,32 +37,29 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#7B1FA2"),
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
         
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = $"📸 Line #{_line.LineOrder} - Clips",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
         // Progress indicator
-        _progressLabel = new Label
+        _progressLabel = (new Label
         {
             Text = "0/0 clips ready",
-            FontSize = 16,
-            TextColor = Color.FromArgb("#E1BEE7")
-        };
+            FontSize = 16
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleSelected, ThemeKey.PageText1, classifyPageText: true);
         headerStack.Children.Add(_progressLabel);
 
         headerFrame.Content = headerStack;
@@ -71,54 +68,46 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
         // Visual description context
         if (!string.IsNullOrEmpty(_line.VisualDescription))
         {
-            var contextFrame = new Frame
+            var contextFrame = (new Frame
             {
-                BackgroundColor = Color.FromArgb("#FFF8E1"),
                 Padding = 12,
-                CornerRadius = 8,
-                BorderColor = Color.FromArgb("#FFB300")
-            };
-            contextFrame.Content = new Label
+                CornerRadius = 8
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightYellowButton);
+            contextFrame.Content = (new Label
             {
                 Text = $"🎨 {_line.VisualDescription}",
-                FontSize = 13,
-                TextColor = Color.FromArgb("#666")
-            };
+                FontSize = 13
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
             mainStack.Children.Add(contextFrame);
         }
 
         // Line text context
         if (!string.IsNullOrEmpty(_line.LineText) && !_line.IsSilent)
         {
-            var lineTextFrame = new Frame
+            var lineTextFrame = (new Frame
             {
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
                 Padding = 12,
-                CornerRadius = 8,
-                BorderColor = Color.FromArgb("#2196F3")
-            };
-            lineTextFrame.Content = new Label
+                CornerRadius = 8
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.InfoLinkText);
+            lineTextFrame.Content = (new Label
             {
                 Text = $"💬 \"{_line.LineText}\"",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#1565C0"),
                 FontAttributes = FontAttributes.Italic
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText3, classifyPageText: true);
             mainStack.Children.Add(lineTextFrame);
         }
 
         // Add clip button
-        var addClipBtn = new Button
+        var addClipBtn = (new Button
         {
             Text = "+ Add Clip",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             FontSize = 14,
             CornerRadius = 8,
             HeightRequest = 44,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addClipBtn.Clicked += OnAddClipClicked;
         mainStack.Children.Add(addClipBtn);
 
@@ -149,13 +138,12 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
 
         if (_shots.Count == 0)
         {
-            var emptyFrame = new Frame
+            var emptyFrame = (new Frame
             {
-                BackgroundColor = Colors.White,
                 Padding = 24,
                 CornerRadius = 12,
                 HasShadow = true
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
             var emptyStack = new VerticalStackLayout
             {
                 Spacing = 12,
@@ -167,22 +155,20 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
                 FontSize = 48,
                 HorizontalOptions = LayoutOptions.Center
             });
-            emptyStack.Children.Add(new Label
+            emptyStack.Children.Add((new Label
             {
                 Text = "No clips yet",
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
-                HorizontalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb("#666")
-            });
-            emptyStack.Children.Add(new Label
+                HorizontalOptions = LayoutOptions.Center
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true));
+            emptyStack.Children.Add((new Label
             {
                 Text = "Add clips to break down this visual into separate shots",
                 FontSize = 13,
                 HorizontalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalTextAlignment = TextAlignment.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             emptyFrame.Content = emptyStack;
             _clipsContainer.Children.Add(emptyFrame);
             
@@ -209,14 +195,12 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
         bool isReady = shot.Done || shot.AllTasksDone;
         int tasksComplete = (shot.Task1_ImageGenerated ? 1 : 0) + (shot.Task2_VideoGenerated ? 1 : 0);
         
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = isReady ? Color.FromArgb("#E8F5E9") : Colors.White,
-            BorderColor = isReady ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E0E0E0"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isReady ? ThemeKey.SuccessBackground : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, isReady ? ThemeKey.SuccessLightText : ThemeKey.Separator);
 
         var grid = new Grid
         {
@@ -231,12 +215,11 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
         };
 
         // Checkbox
-        var checkbox = new CheckBox
+        var checkbox = (new CheckBox
         {
             IsChecked = isReady,
-            Color = Color.FromArgb("#4CAF50"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
         int shotIdx = shot.Index - 1;
         checkbox.CheckedChanged += async (s, e) =>
         {
@@ -260,56 +243,51 @@ public class ShotBreakdownPage : Bannister.Views.ModeThemedPage
         // Content
         var contentStack = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
         
-        contentStack.Children.Add(new Label
+        contentStack.Children.Add((new Label
         {
             Text = $"Clip {shot.Index}",
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         if (!string.IsNullOrEmpty(shot.Description))
         {
-            contentStack.Children.Add(new Label
+            contentStack.Children.Add((new Label
             {
                 Text = shot.Description,
                 FontSize = 13,
-                TextColor = Color.FromArgb("#666"),
                 LineBreakMode = LineBreakMode.TailTruncation,
                 MaxLines = 2
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         }
 
         Grid.SetColumn(contentStack, 1);
         grid.Children.Add(contentStack);
 
         // Progress badge
-        var progressFrame = new Frame
+        var progressFrame = (new Frame
         {
             Padding = new Thickness(8, 4),
             CornerRadius = 12,
-            BackgroundColor = isReady ? Color.FromArgb("#4CAF50") : Color.FromArgb("#FFF3E0"),
             BorderColor = Colors.Transparent,
             VerticalOptions = LayoutOptions.Center
-        };
-        progressFrame.Content = new Label
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isReady ? ThemeKey.SuccessButtonBackground : ThemeKey.WarningBackground);
+        progressFrame.Content = (new Label
         {
             Text = isReady ? "✓ Ready" : $"{tasksComplete}/2 tasks",
             FontSize = 12,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = isReady ? Colors.White : Color.FromArgb("#E65100")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, isReady ? ThemeKey.OnColorText : ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true);
         Grid.SetColumn(progressFrame, 2);
         grid.Children.Add(progressFrame);
 
         // Arrow for navigation
-        var arrowLabel = new Label
+        var arrowLabel = (new Label
         {
             Text = "›",
             FontSize = 24,
-            TextColor = Color.FromArgb("#999"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
         Grid.SetColumn(arrowLabel, 3);
         grid.Children.Add(arrowLabel);
 

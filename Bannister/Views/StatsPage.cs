@@ -30,46 +30,40 @@ public class StatsPage : Bannister.Views.ModeThemedPage
     {
         var mainStack = new VerticalStackLayout { Padding = 20, Spacing = 12 };
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "\U0001F4CA Stats Tracker",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Track anything. Add results tagged with labels to see breakdowns.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ New Tracker",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (_, _) => await AddTrackerAsync();
         mainStack.Children.Add(addBtn);
 
         _trackersContainer = new VerticalStackLayout { Spacing = 12 };
         mainStack.Children.Add(_trackersContainer);
 
-        var archivedToggle = new Button
+        var archivedToggle = (new Button
         {
             Text = "Show Archived",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#666"),
             CornerRadius = 8,
             HeightRequest = 36,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         archivedToggle.Clicked += async (_, _) =>
         {
             _showArchived = !_showArchived;
@@ -89,13 +83,12 @@ public class StatsPage : Bannister.Views.ModeThemedPage
 
         if (trackers.Count == 0)
         {
-            _trackersContainer.Children.Add(new Label
+            _trackersContainer.Children.Add((new Label
             {
                 Text = "No trackers yet. Tap + New Tracker to start.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         }
 
         foreach (var tracker in trackers)
@@ -106,14 +99,13 @@ public class StatsPage : Bannister.Views.ModeThemedPage
             var archived = await _stats.GetArchivedTrackersAsync(_auth.CurrentUsername);
             if (archived.Count > 0)
             {
-                _trackersContainer.Children.Add(new Label
+                _trackersContainer.Children.Add((new Label
                 {
                     Text = $"Archived ({archived.Count})",
                     FontSize = 14,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#999"),
                     Margin = new Thickness(0, 8, 0, 0)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1, classifyPageText: true));
 
                 foreach (var tracker in archived)
                     _trackersContainer.Children.Add(await BuildTrackerCardAsync(tracker, true));
@@ -126,33 +118,29 @@ public class StatsPage : Bannister.Views.ModeThemedPage
         var summary = await _stats.GetSummaryAsync(tracker.Id);
         var breakdown = await _stats.GetLabelBreakdownAsync(tracker.Id);
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = isArchived ? Color.FromArgb("#F5F5F5") : Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, isArchived ? ThemeKey.SecondarySurface : ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = tracker.Title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         if (!string.IsNullOrWhiteSpace(tracker.Description))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = tracker.Description,
-                FontSize = 12,
-                TextColor = Color.FromArgb("#666")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (summary.Count > 0)
@@ -171,23 +159,17 @@ public class StatsPage : Bannister.Views.ModeThemedPage
                     _ => "\U0001F4CA"
                 };
 
-                Color color = kvp.Key switch
+                ThemeKey color = kvp.Key switch
                 {
-                    "success" => Color.FromArgb("#2E7D32"),
-                    "failure" => Color.FromArgb("#C62828"),
-                    "increment" => Color.FromArgb("#1565C0"),
-                    "decrement" => Color.FromArgb("#E65100"),
-                    _ => Color.FromArgb("#666")
-                };
+                    "success" => ThemeKey.SuccessText,                    "failure" => ThemeKey.ErrorText,                    "increment" => ThemeKey.InfoText,                    "decrement" => ThemeKey.WarningText,                    _ => ThemeKey.CardText2                };
 
-                statsRow.Children.Add(new Label
+                statsRow.Children.Add((new Label
                 {
                     Text = $"{icon} {kvp.Value}",
                     FontSize = 14,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = color,
                     VerticalOptions = LayoutOptions.Center
-                });
+                }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1, classifyPageText: true));
             }
 
             int total = summary.Values.Sum();
@@ -195,13 +177,12 @@ public class StatsPage : Bannister.Views.ModeThemedPage
             if (total > 0 && summary.ContainsKey("success") && summary.ContainsKey("failure"))
             {
                 int pct = (int)Math.Round(100.0 * successCount / (successCount + summary.GetValueOrDefault("failure", 0)));
-                statsRow.Children.Add(new Label
+                statsRow.Children.Add((new Label
                 {
                     Text = $"({pct}%)",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#888"),
                     VerticalOptions = LayoutOptions.Center
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
             }
 
             stack.Children.Add(statsRow);
@@ -210,13 +191,12 @@ public class StatsPage : Bannister.Views.ModeThemedPage
         if (breakdown.Count > 0 && breakdown.Count <= 20)
         {
             var breakdownStack = new VerticalStackLayout { Spacing = 2 };
-            breakdownStack.Children.Add(new Label
+            breakdownStack.Children.Add((new Label
             {
                 Text = "By label:",
                 FontSize = 11,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#888")
-            });
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
             foreach (var labelKvp in breakdown.OrderByDescending(b =>
                 b.Value.GetValueOrDefault("success", 0) + b.Value.GetValueOrDefault("increment", 0)))
@@ -235,12 +215,11 @@ public class StatsPage : Bannister.Views.ModeThemedPage
                     parts.Add($"{icon}{typeKvp.Value}");
                 }
 
-                breakdownStack.Children.Add(new Label
+                breakdownStack.Children.Add((new Label
                 {
                     Text = $"  {labelKvp.Key}: {string.Join("  ", parts)}",
-                    FontSize = 11,
-                    TextColor = Color.FromArgb("#555")
-                });
+                    FontSize = 11
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
             }
 
             stack.Children.Add(breakdownStack);
@@ -252,69 +231,59 @@ public class StatsPage : Bannister.Views.ModeThemedPage
         {
             var capturedTracker = tracker;
 
-            var successBtn = new Button
+            var successBtn = (new Button
             {
                 Text = "\u2705 Success",
-                BackgroundColor = Color.FromArgb("#E8F5E9"),
-                TextColor = Color.FromArgb("#2E7D32"),
                 CornerRadius = 6,
                 HeightRequest = 32,
                 FontSize = 11,
                 Padding = new Thickness(8, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
             successBtn.Clicked += async (_, _) => await QuickAddEntryAsync(capturedTracker, "success");
             btnRow.Children.Add(successBtn);
 
-            var failBtn = new Button
+            var failBtn = (new Button
             {
                 Text = "\u274C Failure",
-                BackgroundColor = Color.FromArgb("#FFEBEE"),
-                TextColor = Color.FromArgb("#C62828"),
                 CornerRadius = 6,
                 HeightRequest = 32,
                 FontSize = 11,
                 Padding = new Thickness(8, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
             failBtn.Clicked += async (_, _) => await QuickAddEntryAsync(capturedTracker, "failure");
             btnRow.Children.Add(failBtn);
 
-            var incBtn = new Button
+            var incBtn = (new Button
             {
                 Text = "\u2B06 +1",
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0"),
                 CornerRadius = 6,
                 HeightRequest = 32,
                 FontSize = 11,
                 Padding = new Thickness(8, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
             incBtn.Clicked += async (_, _) => await QuickAddEntryAsync(capturedTracker, "increment");
             btnRow.Children.Add(incBtn);
 
-            var decBtn = new Button
+            var decBtn = (new Button
             {
                 Text = "\u2B07 -1",
-                BackgroundColor = Color.FromArgb("#FFF3E0"),
-                TextColor = Color.FromArgb("#E65100"),
                 CornerRadius = 6,
                 HeightRequest = 32,
                 FontSize = 11,
                 Padding = new Thickness(8, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
             decBtn.Clicked += async (_, _) => await QuickAddEntryAsync(capturedTracker, "decrement");
             btnRow.Children.Add(decBtn);
 
-            var moreBtn = new Button
+            var moreBtn = (new Button
             {
                 Text = "\u22EF",
-                BackgroundColor = Color.FromArgb("#E0E0E0"),
-                TextColor = Color.FromArgb("#333"),
                 CornerRadius = 6,
                 HeightRequest = 32,
                 WidthRequest = 36,
                 FontSize = 14,
                 Padding = 0
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
             moreBtn.Clicked += async (_, _) => await ShowTrackerMenuAsync(capturedTracker);
             btnRow.Children.Add(moreBtn);
         }
@@ -322,16 +291,14 @@ public class StatsPage : Bannister.Views.ModeThemedPage
         {
             var capturedTracker = tracker;
 
-            var restoreBtn = new Button
+            var restoreBtn = (new Button
             {
                 Text = "\u267B\uFE0F Restore",
-                BackgroundColor = Color.FromArgb("#E8F5E9"),
-                TextColor = Color.FromArgb("#2E7D32"),
                 CornerRadius = 6,
                 HeightRequest = 32,
                 FontSize = 11,
                 Padding = new Thickness(8, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
             restoreBtn.Clicked += async (_, _) =>
             {
                 await _stats.RestoreTrackerAsync(capturedTracker.Id);
@@ -339,16 +306,14 @@ public class StatsPage : Bannister.Views.ModeThemedPage
             };
             btnRow.Children.Add(restoreBtn);
 
-            var deleteBtn = new Button
+            var deleteBtn = (new Button
             {
                 Text = "\U0001F5D1 Delete",
-                BackgroundColor = Color.FromArgb("#FFEBEE"),
-                TextColor = Color.FromArgb("#C62828"),
                 CornerRadius = 6,
                 HeightRequest = 32,
                 FontSize = 11,
                 Padding = new Thickness(8, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
             deleteBtn.Clicked += async (_, _) =>
             {
                 bool confirm = await DisplayAlert("Delete?", $"Permanently delete '{capturedTracker.Title}' and all its entries?", "Delete", "Cancel");
