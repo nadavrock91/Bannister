@@ -31,6 +31,10 @@ public static class MauiProgram
             .UseMauiCommunityToolkit()
             .UseMauiCommunityToolkitMediaElement();
 
+#if WINDOWS
+        Bannister.Platforms.Windows.NavigationBarTheme.Configure();
+#endif
+
         // Set window to fullscreen/maximized
         builder.ConfigureLifecycleEvents(events =>
         {
