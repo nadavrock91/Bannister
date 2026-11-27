@@ -13,6 +13,18 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
+        Microsoft.Maui.Handlers.PickerHandler.Mapper.AppendToMapping(nameof(Picker.Title), (handler, _) =>
+        {
+            if (handler.VirtualView is Picker picker) ThemeColorExtensions.FixPickerHeader(picker);
+        });
+        Microsoft.Maui.Handlers.PickerHandler.Mapper.AppendToMapping(nameof(Picker.HeightRequest), (handler, _) =>
+        {
+            if (handler.VirtualView is Picker picker) ThemeColorExtensions.FixPickerHeader(picker);
+        });
+        Microsoft.Maui.Handlers.PickerHandler.Mapper.AppendToMapping(nameof(Picker.BackgroundColor), (handler, _) =>
+        {
+            if (handler.VirtualView is Picker picker) ThemeColorExtensions.FixPickerHeader(picker);
+        });
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<AppMain>()

@@ -42,39 +42,35 @@ public class MotivationNotesPage : Bannister.Views.ModeThemedPage
     {
         await _service.InitAsync();
         _content.Children.Clear();
-        _content.Children.Add(new Label
+        _content.Children.Add((new Label
         {
             Text = _source.Title,
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
         if (!string.IsNullOrWhiteSpace(_source.Description))
-            _content.Children.Add(new Label
+            _content.Children.Add((new Label
             {
                 Text = _source.Description,
-                FontSize = 13,
-                TextColor = Color.FromArgb("#777")
-            });
+                FontSize = 13
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         foreach (var note in await _service.GetNotesAsync(_source.Id))
         {
             var body = new VerticalStackLayout { Spacing = 6 };
-            body.Children.Add(new Label
+            body.Children.Add((new Label
             {
                 Text = note.Content,
-                FontSize = 14,
-                TextColor = Color.FromArgb("#222")
-            });
+                FontSize = 14
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
             var footer = new HorizontalStackLayout { Spacing = 8 };
-            footer.Children.Add(new Label
+            footer.Children.Add((new Label
             {
                 Text = note.CreatedDate.ToString("dd MMM yyyy HH:mm"),
                 FontSize = 11,
-                TextColor = Color.FromArgb("#888"),
                 VerticalOptions = LayoutOptions.Center
-            });
-            var delete = MakeButton("Delete", "#FFEBEE", "#C62828");
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
+            var delete = MakeButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
             delete.Clicked += async (_, _) =>
             {
                 await _service.DeleteNoteAsync(note.Id);
@@ -82,14 +78,12 @@ public class MotivationNotesPage : Bannister.Views.ModeThemedPage
             };
             footer.Children.Add(delete);
             body.Children.Add(footer);
-            _content.Children.Add(new Border
+            _content.Children.Add((new Border
             {
                 Content = body,
-                Stroke = Color.FromArgb("#DDDDDD"),
                 StrokeThickness = 1,
-                BackgroundColor = Colors.White,
                 Padding = 12
-            });
+            }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground));
         }
 
         _content.Children.Add(BuildAddForm());
@@ -98,23 +92,20 @@ public class MotivationNotesPage : Bannister.Views.ModeThemedPage
     private View BuildAddForm()
     {
         var form = new VerticalStackLayout { Spacing = 8 };
-        form.Children.Add(new Label
+        form.Children.Add((new Label
         {
             Text = "Add Note",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        _noteEditor = new Editor
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        _noteEditor = (new Editor
         {
             Placeholder = "Write an observation...",
             HeightRequest = 130,
-            AutoSize = EditorAutoSizeOption.Disabled,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222")
-        };
+            AutoSize = EditorAutoSizeOption.Disabled
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
         form.Children.Add(_noteEditor);
-        var save = MakeButton("Save", "#E8F5E9", "#2E7D32");
+        var save = MakeButton("Save", ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         save.Clicked += async (_, _) =>
         {
             if (string.IsNullOrWhiteSpace(_noteEditor.Text)) return;
@@ -128,24 +119,19 @@ public class MotivationNotesPage : Bannister.Views.ModeThemedPage
             await RefreshAsync();
         };
         form.Children.Add(save);
-        return new Border
+        return (new Border
         {
             Content = form,
-            Stroke = Color.FromArgb("#DDDDDD"),
             StrokeThickness = 1,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             Padding = 12
-        };
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
     }
 
-    private static Button MakeButton(string text, string background, string foreground) => new()
-    {
+    private static Button MakeButton(string text, ThemeKey background, ThemeKey foreground) => (new Button(){
         Text = text,
-        BackgroundColor = Color.FromArgb(background),
-        TextColor = Color.FromArgb(foreground),
         CornerRadius = 6,
         HeightRequest = 36,
         Padding = new Thickness(10, 0),
         FontSize = 12
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
 }

@@ -53,47 +53,42 @@ public class AudioLibraryPage : Bannister.Views.ModeThemedPage
         };
 
         // ===== Header =====
-        var headerStack = new VerticalStackLayout
+        var headerStack = (new VerticalStackLayout
         {
             Padding = 16,
-            Spacing = 12,
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        };
+            Spacing = 12
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "🔊 Audio Library",
             FontSize = 26,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        _statsLabel = new Label
+        _statsLabel = (new Label
         {
             Text = "",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#888")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
         headerStack.Children.Add(_statsLabel);
 
         // Category filter
         var filterRow = new HorizontalStackLayout { Spacing = 10 };
 
-        filterRow.Children.Add(new Label
+        filterRow.Children.Add((new Label
         {
             Text = "Category:",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        _categoryPicker = new Picker
+        _categoryPicker = (new Picker
         {
             Title = "All",
             FontSize = 14,
-            BackgroundColor = Colors.White,
             WidthRequest = 200
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _categoryPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_categoryPicker.SelectedIndex >= 0)
@@ -106,16 +101,14 @@ public class AudioLibraryPage : Bannister.Views.ModeThemedPage
         };
         filterRow.Children.Add(_categoryPicker);
 
-        _actionsButton = new Button
+        _actionsButton = (new Button
         {
             Text = "⋮ Actions",
             FontSize = 13,
-            BackgroundColor = Color.FromArgb("#4527A0"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             HeightRequest = 36,
             IsEnabled = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentVioletStrongText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _actionsButton.Clicked += async (s, e) =>
         {
             if (_selectedItem != null)
@@ -154,42 +147,37 @@ public class AudioLibraryPage : Bannister.Views.ModeThemedPage
         mainGrid.Children.Add(gridArea);
 
         // ===== Bottom bar =====
-        var bottomBar = new Grid
+        var bottomBar = (new Grid
         {
             Padding = 12,
-            BackgroundColor = Colors.White,
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Star }
             },
             ColumnSpacing = 10
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        var btnAddText = new Button
+        var btnAddText = (new Button
         {
             Text = "✍️ Add from Text",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddText.Clicked += OnAddFromTextClicked;
         Grid.SetColumn(btnAddText, 0);
         bottomBar.Children.Add(btnAddText);
 
-        var btnAddAudio = new Button
+        var btnAddAudio = (new Button
         {
             Text = "🔊 Add from Audio File",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddAudio.Clicked += OnAddFromAudioClicked;
         Grid.SetColumn(btnAddAudio, 1);
         bottomBar.Children.Add(btnAddAudio);
@@ -242,14 +230,13 @@ public class AudioLibraryPage : Bannister.Views.ModeThemedPage
 
         if (items.Count == 0)
         {
-            _gridContainer.Children.Add(new Label
+            _gridContainer.Children.Add((new Label
             {
                 Text = "No audio items yet.\n\nAdd quotes, anecdotes, or lessons\nusing the buttons below.",
                 FontSize = 16,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 60, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -267,8 +254,8 @@ public class AudioLibraryPage : Bannister.Views.ModeThemedPage
         }
 
         var dataGrid = DataGridView.Create(columns, displayRows)
-            .WithHeaderStyle(Color.FromArgb("#4527A0"), Colors.White)
-            .WithAlternateRowColor(Color.FromArgb("#F5F0FF"))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.AccentVioletStrongText), AppColors.Get(ThemeKey.OnColorText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightViolet))
             .WithColumnWidths(60, 400)
             .WithCellPadding(6)
             .WithFontSize(12, 12)

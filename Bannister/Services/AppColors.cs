@@ -40,7 +40,26 @@ public static class AppColors
 
 public static class ThemeColorExtensions
 {
-    private sealed record Binding(ThemeKey? Key, ThemeKey? PageKey, bool ClassifyPageText);
+    public static void FixPickerHeader(Picker picker)
+    {
+#if WINDOWS
+        if (picker.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.ComboBox native)
+        {
+            if (picker.HeightRequest >= 0)
+            {
+                if (!string.IsNullOrWhiteSpace(picker.Title) && string.IsNullOrWhiteSpace(SemanticProperties.GetDescription(picker)))
+                    SemanticProperties.SetDescription(picker, picker.Title);
+                native.Header = null;
+            }
+            var background = picker.BackgroundColor;
+            if (background?.Alpha > 0)
+                native.RequestedTheme = background.Red + background.Green + background.Blue > 1.5
+                    ? Microsoft.UI.Xaml.ElementTheme.Light : Microsoft.UI.Xaml.ElementTheme.Dark;
+        }
+#endif
+    }
+
+    private sealed record Binding(ThemeKey? Key, ThemeKey? PageKey, bool ClassifyPageText, Color? StoredValue = null);
     private static readonly ConditionalWeakTable<Element, Dictionary<BindableProperty, Binding>> Bindings = new();
     private static readonly Lazy<IReadOnlyDictionary<string, Color>> TextDefaults = new(() => ModeTheme.Get(ActivityDisplayMode.All).Tokens);
 
@@ -50,15 +69,30 @@ public static class ThemeColorExtensions
     // A null key is structural transparency, including the inactive branch of a highlight.
     public static T ThemeColor<T>(this T element, BindableProperty property, ThemeKey? key, ThemeKey? pageKey = null, bool classifyPageText = false) where T : Element
     {
+        var bindings = Watch(element);
+        bindings[property] = new(key, pageKey, classifyPageText);
+        Bind(element, property, bindings[property]);
+        return element;
+    }
+
+    // Explicit colors from persisted user data stay intact and are protected from legacy recoloring.
+    public static T ThemeColor<T>(this T element, BindableProperty property, Color value, ThemeKey? pageKey = null, bool classifyPageText = false) where T : Element
+    {
+        var bindings = Watch(element);
+        bindings[property] = new(null, null, false, value);
+        Bind(element, property, bindings[property]);
+        return element;
+    }
+
+    private static Dictionary<BindableProperty, Binding> Watch(Element element)
+    {
         if (!Bindings.TryGetValue(element, out var bindings))
         {
             bindings = Bindings.GetOrCreateValue(element);
             element.PropertyChanged += (_, args) => { if (args.PropertyName == "Parent") RefreshThemeColors(element); };
             if (element is VisualElement visual) visual.Loaded += (_, _) => RefreshThemeColors(element);
         }
-        bindings[property] = new(key, pageKey, classifyPageText);
-        Bind(element, property, bindings[property]);
-        return element;
+        return bindings;
     }
 
     public static readonly BindableProperty NamedColorPropertiesProperty = BindableProperty.CreateAttached(
@@ -76,7 +110,10 @@ public static class ThemeColorExtensions
         foreach (var property in properties)
         {
             if (Bindings.TryGetValue(source, out var sourceBindings) && sourceBindings.TryGetValue(property, out var binding))
-                target.ThemeColor(property, binding.Key, binding.PageKey, binding.ClassifyPageText);
+            {
+                if (binding.StoredValue != null) target.ThemeColor(property, binding.StoredValue);
+                else target.ThemeColor(property, binding.Key, binding.PageKey, binding.ClassifyPageText);
+            }
             else
             {
                 if (Bindings.TryGetValue(target, out var targetBindings)) targetBindings.Remove(property);
@@ -88,9 +125,12 @@ public static class ThemeColorExtensions
         return target;
     }
 
-    internal static bool UsesThemeColor(this Element element, BindableProperty property, ThemeKey key) =>
-        Bindings.TryGetValue(element, out var bindings) && bindings.TryGetValue(property, out var binding) && binding.Key == key ||
-        GetNamedColorProperties(element).Split(',').Contains(property.PropertyName + "=" + ModeTheme.KeyName(key));
+    internal static bool UsesThemeColor(this Element element, BindableProperty property, ThemeKey key)
+    {
+        if (Bindings.TryGetValue(element, out var bindings) && bindings.TryGetValue(property, out var binding))
+            return binding.StoredValue == null && binding.Key == key;
+        return GetNamedColorProperties(element).Split(',').Contains(property.PropertyName + "=" + ModeTheme.KeyName(key));
+    }
 
     // Temporary feedback must restore the binding, so it also survives the next theme refresh.
     public static Action CaptureThemeColor(this Element element, BindableProperty property)
@@ -100,7 +140,8 @@ public static class ThemeColorExtensions
         var original = element.GetValue(property);
         return () =>
         {
-            if (saved != null) element.ThemeColor(property, saved.Key, saved.PageKey, saved.ClassifyPageText);
+            if (saved?.StoredValue != null) element.ThemeColor(property, saved.StoredValue);
+            else if (saved != null) element.ThemeColor(property, saved.Key, saved.PageKey, saved.ClassifyPageText);
             else
             {
                 if (Bindings.TryGetValue(element, out var current)) current.Remove(property);
@@ -119,6 +160,13 @@ public static class ThemeColorExtensions
 
     private static void Bind(Element element, BindableProperty property, Binding binding)
     {
+        if (binding.StoredValue != null)
+        {
+            element.RemoveDynamicResource(property);
+            element.ClearValue(property);
+            element.SetValue(property, binding.StoredValue);
+            return;
+        }
         var key = binding.Key;
         if (key == null)
         {

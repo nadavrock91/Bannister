@@ -37,21 +37,19 @@ public class ZeroCountsPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        root.Children.Add(new Label
+        root.Children.Add((new Label
         {
             Text = "Zero Counts",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
-        root.Children.Add(new Label
+        root.Children.Add((new Label
         {
             Text = "Things you've never done - yet.",
             FontSize = 14,
-            TextColor = Color.FromArgb("#A1A1AA"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
 
         var modeGrid = new Grid
         {
@@ -189,21 +187,19 @@ public class ZeroCountsPage : Bannister.Views.ModeThemedPage
 
         foreach (var group in groups)
         {
-            _contentStack.Children.Add(new Label
+            _contentStack.Children.Add((new Label
             {
                 Text = GetGameName(gameNames, group.Key),
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White,
                 Margin = new Thickness(0, 12, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
-            _contentStack.Children.Add(new BoxView
+            _contentStack.Children.Add((new BoxView
             {
                 HeightRequest = 1,
-                BackgroundColor = Color.FromArgb("#3F3F46"),
                 Margin = new Thickness(0, -4, 0, 4)
-            });
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBorder));
 
             var sorted = completed
                 ? group.OrderByDescending(a => a.ZeroCountCompletedAt).ToList()
@@ -230,55 +226,49 @@ public class ZeroCountsPage : Bannister.Views.ModeThemedPage
     private View CreateActivityRow(Activity activity, string? gameName, bool completed)
     {
         var stack = new VerticalStackLayout { Spacing = 4 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = activity.Name,
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#F4F4F5")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondarySurface, ThemeKey.PageText1, classifyPageText: true));
 
         if (!string.IsNullOrWhiteSpace(gameName))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = gameName,
-                FontSize = 12,
-                TextColor = Color.FromArgb("#A1A1AA")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
 
         if (completed && activity.ZeroCountCompletedAt.HasValue)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"Completed: {activity.ZeroCountCompletedAt.Value:yyyy-MM-dd}",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#34D399")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.TimelineMint, ThemeKey.PageText3, classifyPageText: true));
         }
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Color.FromArgb("#18181B"),
-            BorderColor = Color.FromArgb("#3F3F46"),
             CornerRadius = 8,
             Padding = 12,
             HasShadow = false,
             Content = stack
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.BrandMediaBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.BrandMediaBorder);
     }
 
     private void RenderEmpty(string message)
     {
-        _contentStack.Children.Add(new Label
+        _contentStack.Children.Add((new Label
         {
             Text = $"{message}\nMark an activity as Zero Count when creating it to add it here.",
             FontSize = 14,
-            TextColor = Color.FromArgb("#A1A1AA"),
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 40, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
     }
 
     private void UpdateModeButtons()
@@ -286,9 +276,9 @@ public class ZeroCountsPage : Bannister.Views.ModeThemedPage
         foreach (var mode in _modeFrames.Keys)
         {
             bool selected = mode == _currentMode;
-            _modeFrames[mode].BackgroundColor = selected ? Color.FromArgb("#10B981") : Colors.Transparent;
-            _modeFrames[mode].BorderColor = selected ? Color.FromArgb("#10B981") : Color.FromArgb("#3F3F46");
-            _modeLabels[mode].TextColor = selected ? Colors.White : Color.FromArgb("#D4D4D8");
+            _modeFrames[mode].ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.TealButtonBackground : (ThemeKey?)null);
+            _modeFrames[mode].ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, selected ? ThemeKey.TealButtonBackground : ThemeKey.BrandMediaBorder);
+            _modeLabels[mode].ThemeColor(Label.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.BrandMediaText, ThemeKey.PageText1, classifyPageText: true);
         }
     }
 

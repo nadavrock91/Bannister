@@ -28,24 +28,20 @@ public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
         _gameId = gameId;
 
 
-        var endButton = new Button
+        var endButton = (new Button
         {
             Text = "End Game Now",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         endButton.Clicked += async (_, _) => await EndManuallyAsync();
 
-        var topScores = new Button
+        var topScores = (new Button
         {
             Text = "View Top Scores",
-            BackgroundColor = Color.FromArgb("#EDE7F6"),
-            TextColor = Color.FromArgb("#512DA8"),
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.AccentVioletDeep);
         topScores.Clicked += async (_, _) => await Navigation.PushAsync(new CustomGameTopScoresPage(_auth, _customGames, _gameId));
 
         Content = new ScrollView
@@ -56,7 +52,7 @@ public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
                 Spacing = 14,
                 Children =
                 {
-                    new Label { Text = "Custom Game", FontSize = 14, TextColor = Color.FromArgb("#666666") },
+                    (new Label { Text = "Custom Game", FontSize = 14 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                     _scoreLabel,
                     _statusLabel,
                     _buttonsLayout,
@@ -105,16 +101,14 @@ public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
         var buttons = await _customGames.GetButtonsAsync(_gameId);
         foreach (var customButton in buttons)
         {
-            var button = new Button
+            var button = (new Button
             {
                 Text = customButton.Label,
-                BackgroundColor = TryParseColor(customButton.Color, customButton.PointValue >= 0 ? "#2E7D32" : "#C62828"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 Margin = new Thickness(0, 0, 8, 8),
                 HeightRequest = 48,
                 MinimumWidthRequest = 96
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, TryParseColor(customButton.Color, customButton.PointValue >= 0 ? ThemeKey.SuccessDarkButtonBackground : ThemeKey.ErrorDarkButtonBackground)).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             button.Clicked += async (_, _) => await ApplyButtonAsync(customButton);
             _buttonsLayout.Children.Add(button);
         }
@@ -242,7 +236,7 @@ public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
         _scoreLabel.Text = _instance.FinalScore.ToString();
         _scoreLabel.FontSize = 56;
         _scoreLabel.FontAttributes = FontAttributes.Bold;
-        _scoreLabel.TextColor = Color.FromArgb("#222222");
+        _scoreLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
         _scoreLabel.HorizontalTextAlignment = TextAlignment.Center;
 
         _statusLabel.Text = _game.EndType switch
@@ -253,7 +247,7 @@ public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
             _ => ""
         };
         _statusLabel.FontSize = 16;
-        _statusLabel.TextColor = Color.FromArgb("#666666");
+        _statusLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true);
         _statusLabel.HorizontalTextAlignment = TextAlignment.Center;
     }
 
@@ -266,15 +260,15 @@ public class CustomGamePlayPage : Bannister.Views.ModeThemedPage
         return TimeSpan.FromSeconds(remaining).ToString(remaining >= 3600 ? "h\\:mm\\:ss" : "m\\:ss");
     }
 
-    private static Color TryParseColor(string color, string fallback)
+    private static Color TryParseColor(string color, ThemeKey fallback)
     {
         try
         {
-            return Color.FromArgb(string.IsNullOrWhiteSpace(color) ? fallback : color);
+            return string.IsNullOrWhiteSpace(color) ? AppColors.Get(fallback) : ModeTheme.ParseStoredHex(color);
         }
         catch
         {
-            return Color.FromArgb(fallback);
+            return AppColors.Get(fallback);
         }
     }
 }

@@ -2,6 +2,8 @@ using Microsoft.Maui.Graphics;
 using System.Collections.Generic;
 using System.Linq;
 
+using Bannister.Services;
+
 namespace Bannister.Helpers;
 
 public class PieChartDrawable : IDrawable
@@ -9,12 +11,12 @@ public class PieChartDrawable : IDrawable
     public List<(string Label, float Value, Color Color)> Slices { get; set; } = new();
     public string CurrencySymbol { get; set; } = "$";
 
-    private static readonly Color[] Palette = new[]
+    private static Color[] Palette => new[]
     {
-        Color.FromArgb("#2E7D32"), Color.FromArgb("#1565C0"), Color.FromArgb("#AD1457"),
-        Color.FromArgb("#E65100"), Color.FromArgb("#6A1B9A"), Color.FromArgb("#00838F"),
-        Color.FromArgb("#558B2F"), Color.FromArgb("#4527A0"), Color.FromArgb("#BF360C"),
-        Color.FromArgb("#00695C"),
+        AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.InfoText), AppColors.Get(ThemeKey.HighlightPinkText),
+        AppColors.Get(ThemeKey.WarningText), AppColors.Get(ThemeKey.AccentPurpleStrongText), AppColors.Get(ThemeKey.HighlightTealText),
+        AppColors.Get(ThemeKey.HighlightLimeText), AppColors.Get(ThemeKey.AccentVioletStrongText), AppColors.Get(ThemeKey.WarningBurntText),
+        AppColors.Get(ThemeKey.HighlightMintText),
     };
 
     public void AssignColors(List<string> categories)
@@ -73,7 +75,7 @@ public class PieChartDrawable : IDrawable
 
             // thin white separator on the leading edge
             double r0 = startAngle * Math.PI / 180.0;
-            canvas.StrokeColor = Colors.White;
+            canvas.StrokeColor = AppColors.Get(ThemeKey.OnColorText);
             canvas.StrokeSize = 1.5f;
             canvas.DrawLine(pieCx, pieCy,
                 pieCx + radius * (float)Math.Cos(r0),
@@ -101,7 +103,7 @@ public class PieChartDrawable : IDrawable
             canvas.FillRectangle(lx, ly + 2f, boxSize, boxSize);
 
             // Label text
-            canvas.FontColor = Color.FromArgb("#212121");
+            canvas.FontColor = AppColors.Get(ThemeKey.CardTextStrong);
             canvas.FontSize = 10.5f;
             string text = $"{slice.Label}: {CurrencySymbol}{slice.Value.ToString("N0")}";
             canvas.DrawString(text,

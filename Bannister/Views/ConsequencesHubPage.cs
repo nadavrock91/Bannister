@@ -26,22 +26,20 @@ public class ConsequencesHubPage : Bannister.Views.ModeThemedPage
             Spacing = 16,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "⚖️ Consequences",
                     FontSize = 26,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222"),
                     HorizontalOptions = LayoutOptions.Center
-                },
-                new Label
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                (new Label
                 {
                     Text = "Define the consequences of breaking your commitments.",
                     FontSize = 14,
-                    TextColor = Color.FromArgb("#666"),
                     HorizontalOptions = LayoutOptions.Center,
                     LineBreakMode = LineBreakMode.WordWrap
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                 CreateHubCard(
                     "Resets",
                     "Track commitments where breaking them resets your count.",
@@ -67,37 +65,33 @@ public class ConsequencesHubPage : Bannister.Views.ModeThemedPage
         };
 
         var textStack = new VerticalStackLayout { Spacing = 4 };
-        textStack.Children.Add(new Label
+        textStack.Children.Add((new Label
         {
             Text = title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        textStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        textStack.Children.Add((new Label
         {
             Text = subtitle,
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         grid.Add(textStack, 0, 0);
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = "→",
             FontSize = 24,
-            TextColor = Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.Center
-        }, 1, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 20,
             CornerRadius = 12,
             HasShadow = true,
             Content = grid
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         var tap = new TapGestureRecognizer();
         tap.Tapped += tapped;
         frame.GestureRecognizers.Add(tap);

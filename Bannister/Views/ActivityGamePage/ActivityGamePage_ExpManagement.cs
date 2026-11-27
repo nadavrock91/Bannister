@@ -22,7 +22,7 @@ public partial class ActivityGamePage
                 if (lblCurrentLevel != null)
                 {
                     lblCurrentLevel.Text = "Negative EXP";
-                    lblCurrentLevel.TextColor = Color.FromArgb("#EE5B5B");
+                    lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorBrightText, ThemeKey.PageText1, classifyPageText: true);
                 }
                 if (lblExpToNext != null)
                     lblExpToNext.Text = $"{totalExp} EXP (below zero)";
@@ -31,7 +31,7 @@ public partial class ActivityGamePage
                 if (expProgressBar != null)
                 {
                     expProgressBar.Progress = 0;
-                    expProgressBar.ProgressColor = Color.FromArgb("#EE5B5B");
+                    expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.ErrorBrightText);
                 }
             });
 
@@ -48,7 +48,7 @@ public partial class ActivityGamePage
             if (lblCurrentLevel != null)
             {
                 lblCurrentLevel.Text = $"Level {level}";
-                lblCurrentLevel.TextColor = Color.FromArgb("#5B63EE");
+                lblCurrentLevel.ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
             }
             if (lblExpToNext != null)
             {
@@ -62,7 +62,7 @@ public partial class ActivityGamePage
             {
                 double progress = expNeeded > 0 ? (double)expInto / expNeeded : 0;
                 expProgressBar.Progress = progress;
-                expProgressBar.ProgressColor = Color.FromArgb("#4CAF50");
+                expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText);
             }
         });
 
@@ -232,7 +232,7 @@ public partial class ActivityGamePage
                 lblExpTotal.Text = $"Total EXP: {totalExp:N0}";
             }
             if (expProgressBar != null)
-                expProgressBar.ProgressColor = Color.FromArgb("#4CAF50");
+                expProgressBar.ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText);
 
             await AnimateExpBar(progressBefore, progressAfter, leveledUp);
             await RefreshExpAsync();

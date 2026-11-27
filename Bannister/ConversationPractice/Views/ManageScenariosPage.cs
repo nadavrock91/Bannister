@@ -2,6 +2,8 @@ using ConversationPractice.Models;
 using ConversationPractice.Services;
 using Microsoft.Maui.Controls;
 
+using Bannister.Services;
+
 namespace ConversationPractice.Views;
 
 /// <summary>
@@ -40,21 +42,19 @@ public class ManageScenariosPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "🔧 Manage Custom Scenarios",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Edit or delete your custom conversation scenarios. Default scenarios cannot be deleted.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, 0, 0, 8)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Scenario list
         scenarioList = new VerticalStackLayout { Spacing = 12 };
@@ -75,15 +75,14 @@ public class ManageScenariosPage : Bannister.Views.ModeThemedPage
 
         if (customScenarios.Count == 0)
         {
-            scenarioList.Children.Add(new Label
+            scenarioList.Children.Add((new Label
             {
                 Text = "No custom scenarios yet.\n\nCreate one from the main screen!",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -95,14 +94,12 @@ public class ManageScenariosPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildScenarioCard(Conversation scenario)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var mainStack = new VerticalStackLayout { Spacing = 12 };
 
@@ -118,20 +115,18 @@ public class ManageScenariosPage : Bannister.Views.ModeThemedPage
 
         var titleStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
         
-        titleStack.Children.Add(new Label
+        titleStack.Children.Add((new Label
         {
             Text = scenario.Title,
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        titleStack.Children.Add(new Label
+        titleStack.Children.Add((new Label
         {
             Text = scenario.ScenarioType,
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         headerStack.Children.Add(titleStack);
         mainStack.Children.Add(headerStack);
@@ -139,32 +134,29 @@ public class ManageScenariosPage : Bannister.Views.ModeThemedPage
         // Description
         if (!string.IsNullOrEmpty(scenario.Description))
         {
-            mainStack.Children.Add(new Label
+            mainStack.Children.Add((new Label
             {
                 Text = scenario.Description,
                 FontSize = 13,
-                TextColor = Color.FromArgb("#666"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         }
 
         // Stats
         var statsStack = new HorizontalStackLayout { Spacing = 16 };
 
-        statsStack.Children.Add(new Label
+        statsStack.Children.Add((new Label
         {
             Text = $"Level {scenario.CurrentLevel}",
             FontSize = 12,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true));
 
-        statsStack.Children.Add(new Label
+        statsStack.Children.Add((new Label
         {
             Text = $"✅ {scenario.TimesCompleted}x practiced",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#4CAF50")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText3, classifyPageText: true));
 
         string stars = string.Concat(Enumerable.Repeat("⭐", scenario.DifficultyLevel)) +
                        string.Concat(Enumerable.Repeat("☆", 5 - scenario.DifficultyLevel));
@@ -188,26 +180,22 @@ public class ManageScenariosPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        var btnEdit = new Button
+        var btnEdit = (new Button
         {
             Text = "✏️ Edit",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnEdit.Clicked += (s, e) => OnEditScenarioClicked(scenario);
         Grid.SetColumn(btnEdit, 0);
         buttonGrid.Children.Add(btnEdit);
 
-        var btnDelete = new Button
+        var btnDelete = (new Button
         {
             Text = "🗑️ Delete",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnDelete.Clicked += (s, e) => OnDeleteScenarioClicked(scenario);
         Grid.SetColumn(btnDelete, 1);
         buttonGrid.Children.Add(btnDelete);

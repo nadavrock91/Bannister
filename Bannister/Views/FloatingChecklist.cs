@@ -46,21 +46,19 @@ public class FloatingChecklist
         wrapper.Children.Add(existingContent);
 
         // Floating button (bottom-right corner)
-        _floatingBtn = new Button
+        _floatingBtn = (new Button
         {
             Text = "📋",
             FontSize = 20,
             WidthRequest = 50,
             HeightRequest = 50,
             CornerRadius = 25,
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 20, 20),
-            Shadow = new Shadow { Brush = Colors.Black, Offset = new Point(2, 2), Radius = 6, Opacity = 0.3f },
+            Shadow = new Shadow { Brush = AppColors.Get(ThemeKey.CardTextStrong), Offset = new Point(2, 2), Radius = 6, Opacity = 0.3f },
             ZIndex = 100
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _floatingBtn.Clicked += async (s, e) => await TogglePopupAsync();
         wrapper.Children.Add(_floatingBtn);
 
@@ -82,16 +80,15 @@ public class FloatingChecklist
         };
 
         // Tap background to close
-        var bg = new BoxView { BackgroundColor = Color.FromArgb("#40000000") };
+        var bg = (new BoxView { }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.OverlayFaint);
         var bgTap = new TapGestureRecognizer();
         bgTap.Tapped += (s, e) => _popupOverlay.IsVisible = false;
         bg.GestureRecognizers.Add(bgTap);
         _popupOverlay.Children.Add(bg);
 
         // Card (bottom-right, above the button)
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 16,
             HasShadow = true,
@@ -100,7 +97,7 @@ public class FloatingChecklist
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.End,
             Margin = new Thickness(0, 0, 20, 80)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         _contentStack = new VerticalStackLayout { Spacing = 10 };
 
@@ -110,14 +107,14 @@ public class FloatingChecklist
             ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
             ColumnSpacing = 8
         };
-        headerRow.Add(new Label { Text = "📋 Process Checklist", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#5B63EE"), VerticalOptions = LayoutOptions.Center }, 0, 0);
-        var closeBtn = new Button { Text = "✕", FontSize = 14, WidthRequest = 32, HeightRequest = 32, BackgroundColor = Color.FromArgb("#F5F5F5"), TextColor = Color.FromArgb("#666"), CornerRadius = 16, Padding = 0 };
+        headerRow.Add((new Label { Text = "📋 Process Checklist", FontSize = 16, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        var closeBtn = (new Button { Text = "✕", FontSize = 14, WidthRequest = 32, HeightRequest = 32, CornerRadius = 16, Padding = 0 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         closeBtn.Clicked += (s, e) => _popupOverlay.IsVisible = false;
         headerRow.Add(closeBtn, 1, 0);
         _contentStack.Children.Add(headerRow);
 
         // Process picker
-        _processPicker = new Picker { Title = "Select process...", BackgroundColor = Color.FromArgb("#F5F5F5"), FontSize = 13 };
+        _processPicker = (new Picker { Title = "Select process...", FontSize = 13 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _processPicker.SelectedIndexChanged += async (s, e) =>
         {
             if (_processPicker.SelectedIndex >= 0 && _processPicker.SelectedIndex < _processes.Count)
@@ -129,7 +126,7 @@ public class FloatingChecklist
         _contentStack.Children.Add(_processPicker);
 
         // Progress
-        _progressLabel = new Label { Text = "", FontSize = 12, TextColor = Color.FromArgb("#888") };
+        _progressLabel = (new Label { Text = "", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         _contentStack.Children.Add(_progressLabel);
 
         // Steps list (scrollable)
@@ -200,9 +197,9 @@ public class FloatingChecklist
 
         _progressLabel.Text = $"{done}/{total} steps done";
         if (done == total && total > 0)
-            _progressLabel.TextColor = Color.FromArgb("#2E7D32");
+            _progressLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true);
         else
-            _progressLabel.TextColor = Color.FromArgb("#888");
+            _progressLabel.ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1, classifyPageText: true);
 
         // Update floating button badge
         _floatingBtn.Text = done == total && total > 0 ? "✅" : $"📋";
@@ -221,11 +218,10 @@ public class FloatingChecklist
                 Padding = new Thickness(4, 6)
             };
 
-            var cb = new CheckBox
+            var cb = (new CheckBox
             {
-                IsChecked = step.Done,
-                Color = Color.FromArgb("#5B63EE")
-            };
+                IsChecked = step.Done
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SecondaryAccentText);
             cb.CheckedChanged += async (s, e) =>
             {
                 var result = await _subService.ToggleStepAsync(_selectedProcess, idx);
@@ -237,15 +233,14 @@ public class FloatingChecklist
             };
             row.Add(cb, 0, 0);
 
-            var lbl = new Label
+            var lbl = (new Label
             {
                 Text = step.Name,
                 FontSize = 13,
-                TextColor = step.Done ? Color.FromArgb("#999") : Color.FromArgb("#333"),
                 TextDecorations = step.Done ? TextDecorations.Strikethrough : TextDecorations.None,
                 VerticalOptions = LayoutOptions.Center,
                 LineBreakMode = LineBreakMode.WordWrap
-            };
+            }).ThemeColor(Label.TextColorProperty, step.Done ? ThemeKey.CardText3 : ThemeKey.CardText1, ThemeKey.PageText2, classifyPageText: true);
             row.Add(lbl, 1, 0);
 
             _stepsStack.Children.Add(row);
@@ -255,13 +250,12 @@ public class FloatingChecklist
         var pending = _subService.GetPendingSteps(_selectedProcess);
         if (pending.Count > 0)
         {
-            _stepsStack.Children.Add(new Label
+            _stepsStack.Children.Add((new Label
             {
                 Text = $"+ {pending.Count} pending steps",
-                FontSize = 11, TextColor = Color.FromArgb("#BBBBBB"),
-                FontAttributes = FontAttributes.Italic,
+                FontSize = 11,                 FontAttributes = FontAttributes.Italic,
                 Margin = new Thickness(36, 4, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
     }
 

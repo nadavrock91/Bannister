@@ -50,11 +50,10 @@ public sealed class CompanionInterviewHistoryPage : Bannister.Views.ModeThemedPa
             _content.Children.Clear();
             if (interviews.Count == 0)
             {
-                _content.Children.Add(new Label
+                _content.Children.Add((new Label
                 {
-                    Text = "No interviews yet.",
-                    TextColor = Colors.White
-                });
+                    Text = "No interviews yet."
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
                 return;
             }
 
@@ -111,46 +110,39 @@ internal static class CompanionInterviewPresentation
             Text = $"{interview.StartedAt.ToLocalTime():dd MMM yyyy HH:mm} · {interview.QuestionCount} questions",
             FontAttributes = FontAttributes.Bold
         });
-        row.Children.Add(new Label
+        row.Children.Add((new Label
         {
             Text = $"Added {interview.PointsAdded} · Reprioritized {interview.PointsReprioritized} · Archived {interview.PointsArchived}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
-        row.Children.Add(new Label
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        row.Children.Add((new Label
         {
             Text = StepText(interview),
-            FontSize = 12,
-            TextColor = Color.FromArgb("#5B63EE")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText3, classifyPageText: true));
 
-        var resume = MakeButton("Open / Resume", "#E8EAF6", "#3949AB");
+        var resume = MakeButton("Open / Resume", ThemeKey.HighlightIndigo, ThemeKey.HighlightIndigoButton);
         resume.HorizontalOptions = LayoutOptions.Start;
         resume.Clicked += async (_, _) => await openOrResume();
-        var delete = MakeButton("Delete", "#FFEBEE", "#C62828");
+        var delete = MakeButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         delete.HorizontalOptions = LayoutOptions.Start;
         delete.Clicked += async (_, _) => await deleteInterview();
         row.Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { resume, delete } });
 
-        return new Frame
+        return (new Frame
         {
             Content = row,
             Padding = 12,
             CornerRadius = 9,
-            HasShadow = false,
-            BorderColor = Color.FromArgb("#DDDDDD"),
-            BackgroundColor = Colors.White
-        };
+            HasShadow = false
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
-    private static Button MakeButton(string text, string background, string foreground) => new()
-    {
+    private static Button MakeButton(string text, ThemeKey background, ThemeKey foreground) => (new Button(){
         Text = text,
-        BackgroundColor = Color.FromArgb(background),
-        TextColor = Color.FromArgb(foreground),
         CornerRadius = 7,
         FontSize = 12,
         HeightRequest = 38,
         Padding = new Thickness(10, 0)
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
 }

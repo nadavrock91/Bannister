@@ -1,6 +1,8 @@
 using Bannister.Models;
 using Bannister.ViewModels;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public partial class ActivityGamePage
@@ -9,29 +11,26 @@ public partial class ActivityGamePage
 
     private void AddSetDisplayDaysButton(VerticalStackLayout stack)
     {
-        btnSetDisplayDays = new Button
+        btnSetDisplayDays = (new Button
         {
             Text = "Set Display Days",
-            BackgroundColor = Color.FromArgb("#607D8B"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13,
             IsVisible = !_db.IsReadOnly
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralMutedButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSetDisplayDays.Clicked += OnSetDisplayDaysClicked;
         stack.Children.Add(btnSetDisplayDays);
     }
 
     private void SetPageContentWithBusyOverlay(View pageContent)
     {
-        _busyOverlayLabel = new Label
+        _busyOverlayLabel = (new Label
         {
             Text = "",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333333"),
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
         _busyOverlay = new Grid
         {
@@ -39,14 +38,12 @@ public partial class ActivityGamePage
             InputTransparent = false,
             Children =
             {
-                new BoxView
+                (new BoxView
                 {
-                    Color = Colors.Black,
                     Opacity = 0.6
-                },
-                new Frame
+                }).ThemeColor(BoxView.ColorProperty, ThemeKey.BrandMediaBackground),
+                (new Frame
                 {
-                    BackgroundColor = Colors.White,
                     CornerRadius = 12,
                     Padding = 24,
                     HasShadow = true,
@@ -58,18 +55,17 @@ public partial class ActivityGamePage
                         Spacing = 14,
                         Children =
                         {
-                            new ActivityIndicator
+                            (new ActivityIndicator
                             {
                                 IsRunning = true,
-                                Color = Color.FromArgb("#5B63EE"),
                                 WidthRequest = 36,
                                 HeightRequest = 36,
                                 HorizontalOptions = LayoutOptions.Center
-                            },
+                            }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText),
                             _busyOverlayLabel
                         }
                     }
-                }
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground)
             }
         };
 
@@ -146,7 +142,7 @@ public partial class ActivityGamePage
         private BulkDisplayDaysPage(int selectedCount)
         {
             Title = "Set Display Days";
-            BackgroundColor = Color.FromRgba(0, 0, 0, 0.45);
+            BackgroundColor = AppColors.Get(ThemeKey.OverlayLight);
 
             var daysGrid = new Grid
             {
@@ -171,14 +167,11 @@ public partial class ActivityGamePage
             _chkFriday = AddDayCheckbox(daysGrid, "Fri", 5);
             _chkSaturday = AddDayCheckbox(daysGrid, "Sat", 6);
 
-            _dayOfMonthPicker = new Picker
+            _dayOfMonthPicker = (new Picker
             {
                 Title = "Select day",
-                TextColor = Color.FromArgb("#222222"),
-                TitleColor = Color.FromArgb("#999999"),
-                BackgroundColor = Colors.White,
                 WidthRequest = 140
-            };
+            }).ThemeColor(Picker.TextColorProperty, ThemeKey.InputText).ThemeColor(Picker.TitleColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
             var dayOptions = new List<string> { "None" };
             for (int i = 1; i <= 31; i++)
@@ -186,24 +179,20 @@ public partial class ActivityGamePage
             _dayOfMonthPicker.ItemsSource = dayOptions;
             _dayOfMonthPicker.SelectedIndex = 0;
 
-            var cancelButton = new Button
+            var cancelButton = (new Button
             {
                 Text = "Cancel",
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#333333"),
                 CornerRadius = 8,
                 HeightRequest = 44
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
             cancelButton.Clicked += async (_, _) => await CompleteAsync(null);
 
-            var applyButton = new Button
+            var applyButton = (new Button
             {
                 Text = "Apply to Selected",
-                BackgroundColor = Color.FromArgb("#5B63EE"),
-                TextColor = Colors.White,
                 CornerRadius = 8,
                 HeightRequest = 44
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             applyButton.Clicked += async (_, _) => await CompleteAsync(BuildSchedule());
 
             var buttonGrid = new Grid
@@ -223,9 +212,8 @@ public partial class ActivityGamePage
                 Padding = 20,
                 Children =
                 {
-                    new Frame
+                    (new Frame
                     {
-                        BackgroundColor = Colors.White,
                         CornerRadius = 12,
                         Padding = 20,
                         HasShadow = true,
@@ -237,39 +225,36 @@ public partial class ActivityGamePage
                             Spacing = 14,
                             Children =
                             {
-                                new Label
+                                (new Label
                                 {
                                     Text = $"Apply Display Schedule to {selectedCount} Activities",
                                     FontSize = 20,
-                                    FontAttributes = FontAttributes.Bold,
-                                    TextColor = Color.FromArgb("#333333")
-                                },
-                                new Label
+                                    FontAttributes = FontAttributes.Bold
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
+                                (new Label
                                 {
                                     Text = "Choose weekdays and/or a day of the month. This will fully replace the selected activities' current display schedule.",
                                     FontSize = 12,
-                                    TextColor = Color.FromArgb("#666666"),
                                     LineBreakMode = LineBreakMode.WordWrap
-                                },
+                                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
                                 daysGrid,
                                 new HorizontalStackLayout
                                 {
                                     Spacing = 8,
                                     Children =
                                     {
-                                        new Label
+                                        (new Label
                                         {
                                             Text = "Day of month:",
-                                            TextColor = Color.FromArgb("#666666"),
                                             VerticalOptions = LayoutOptions.Center
-                                        },
+                                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                                         _dayOfMonthPicker
                                     }
                                 },
                                 buttonGrid
                             }
                         }
-                    }
+                    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground)
                 }
             };
         }
@@ -282,20 +267,18 @@ public partial class ActivityGamePage
                 HorizontalOptions = LayoutOptions.Center
             };
 
-            var checkBox = new CheckBox
+            var checkBox = (new CheckBox
             {
-                Color = Color.FromArgb("#5B63EE"),
                 HorizontalOptions = LayoutOptions.Center
-            };
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SecondaryAccentText);
 
             stack.Children.Add(checkBox);
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = label,
                 FontSize = 11,
-                TextColor = Color.FromArgb("#333333"),
                 HorizontalTextAlignment = TextAlignment.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3, classifyPageText: true));
 
             Grid.SetColumn(stack, column);
             grid.Children.Add(stack);

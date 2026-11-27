@@ -1,3 +1,5 @@
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 /// <summary>
@@ -12,45 +14,41 @@ public class TextInputPage : ContentPage
     public TextInputPage(string title, string subtitle, string placeholder = "Type or paste text...",
         string confirmText = "OK", string cancelText = "Cancel", string initialValue = "")
     {
-        BackgroundColor = Color.FromArgb("#80000000");
+        BackgroundColor = AppColors.Get(ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 12,
             Padding = 20,
             HasShadow = true,
             WidthRequest = 500,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 12 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = title,
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = subtitle,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        _editor = new Editor
+        _editor = (new Editor
         {
             Placeholder = placeholder,
             Text = initialValue,
             HeightRequest = 200,
             FontSize = 14,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             AutoSize = EditorAutoSizeOption.Disabled
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         stack.Children.Add(_editor);
 
         var buttonGrid = new Grid
@@ -63,27 +61,23 @@ public class TextInputPage : ContentPage
             ColumnSpacing = 12
         };
 
-        var btnConfirm = new Button
+        var btnConfirm = (new Button
         {
             Text = confirmText,
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnConfirm.Clicked += (s, e) => Close(_editor.Text);
         Grid.SetColumn(btnConfirm, 0);
         buttonGrid.Children.Add(btnConfirm);
 
-        var btnCancel = new Button
+        var btnCancel = (new Button
         {
             Text = cancelText,
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         btnCancel.Clicked += (s, e) => Close(null);
         Grid.SetColumn(btnCancel, 1);
         buttonGrid.Children.Add(btnCancel);

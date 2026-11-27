@@ -165,28 +165,28 @@ public partial class SetupGoalPage : Bannister.Views.ModeThemedPage
 
     private void UpdateButtonStyles()
     {
-        btnImageDefault.BackgroundColor = Color.FromArgb("#EEE");
-        btnImageDefault.TextColor = Color.FromArgb("#333");
+        btnImageDefault.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+        btnImageDefault.ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
 
-        btnImageLibrary.BackgroundColor = Color.FromArgb("#EEE");
-        btnImageLibrary.TextColor = Color.FromArgb("#333");
+        btnImageLibrary.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+        btnImageLibrary.ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
 
-        btnImageOwn.BackgroundColor = Color.FromArgb("#EEE");
-        btnImageOwn.TextColor = Color.FromArgb("#333");
+        btnImageOwn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+        btnImageOwn.ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
 
         switch (_imageMode)
         {
             case "default":
-                btnImageDefault.BackgroundColor = Color.FromArgb("#5B63EE");
-                btnImageDefault.TextColor = Colors.White;
+                btnImageDefault.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
+                btnImageDefault.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
                 break;
             case "library":
-                btnImageLibrary.BackgroundColor = Color.FromArgb("#5B63EE");
-                btnImageLibrary.TextColor = Colors.White;
+                btnImageLibrary.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
+                btnImageLibrary.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
                 break;
             case "own":
-                btnImageOwn.BackgroundColor = Color.FromArgb("#5B63EE");
-                btnImageOwn.TextColor = Colors.White;
+                btnImageOwn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
+                btnImageOwn.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
                 break;
         }
 

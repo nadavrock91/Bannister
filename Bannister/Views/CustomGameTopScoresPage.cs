@@ -18,15 +18,14 @@ public class CustomGameTopScoresPage : Bannister.Views.ModeThemedPage
         _gameId = gameId;
 
 
-        _emptyLabel = new Label
+        _emptyLabel = (new Label
         {
             Text = "No finished scores yet.",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666666"),
             HorizontalTextAlignment = TextAlignment.Center,
             IsVisible = false,
             Margin = new Thickness(0, 24, 0, 0)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
         Content = new ScrollView
         {
@@ -64,13 +63,12 @@ public class CustomGameTopScoresPage : Bannister.Views.ModeThemedPage
         var scores = await _customGames.GetTopScoresAsync(game.Id, _auth.CurrentUsername, game.HigherIsBetter);
         _emptyLabel.IsVisible = scores.Count == 0;
 
-        _scoresStack.Children.Add(new Label
+        _scoresStack.Children.Add((new Label
         {
             Text = Title,
             FontSize = 26,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
         for (int i = 0; i < scores.Count; i++)
         {
@@ -88,22 +86,20 @@ public class CustomGameTopScoresPage : Bannister.Views.ModeThemedPage
             Spacing = 2,
             Children =
             {
-                new Label { Text = score.FinalScore.ToString(), FontAttributes = FontAttributes.Bold, FontSize = 20, TextColor = Color.FromArgb("#222222") },
-                new Label { Text = $"{(score.EndedAt ?? score.StartedAt).ToLocalTime():g}   Duration: {FormatDuration(duration)}", FontSize = 12, TextColor = Color.FromArgb("#666666") }
+                (new Label { Text = score.FinalScore.ToString(), FontAttributes = FontAttributes.Bold, FontSize = 20 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                (new Label { Text = $"{(score.EndedAt ?? score.StartedAt).ToLocalTime():g}   Duration: {FormatDuration(duration)}", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true)
             }
         };
         details.SetValue(Grid.ColumnProperty, 1);
 
-        var deleteButton = new Button
+        var deleteButton = (new Button
         {
             Text = "Delete",
             FontSize = 12,
             Padding = new Thickness(10, 4),
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 6,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteButton.Clicked += async (_, _) => await DeleteScoreAsync(score);
         deleteButton.SetValue(Grid.ColumnProperty, 2);
 
@@ -118,28 +114,25 @@ public class CustomGameTopScoresPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 12,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = $"#{rank}",
                     FontAttributes = FontAttributes.Bold,
                     FontSize = 18,
-                    TextColor = Color.FromArgb("#512DA8"),
                     VerticalOptions = LayoutOptions.Center
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentVioletDeep, ThemeKey.PageText1, classifyPageText: true),
                 details,
                 deleteButton
             }
         };
 
-        return new Frame
+        return (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Colors.White,
             Content = grid
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private async Task DeleteScoreAsync(CustomGameInstance score)

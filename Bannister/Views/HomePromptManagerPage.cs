@@ -1,3 +1,5 @@
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public sealed record HomePromptDefinition(
@@ -29,20 +31,18 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
         Title = "Today's Prompts";
 
 
-        var title = new Label
+        var title = (new Label
         {
             Text = "Today's Prompts",
             FontSize = 26,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
-        _subtitle = new Label
+        _subtitle = (new Label
         {
             FontSize = 14,
-            TextColor = Color.FromArgb("#607D8B"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true);
 
         var scroll = new ScrollView
         {
@@ -50,25 +50,21 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
             MaximumHeightRequest = 520
         };
 
-        _addressAllButton = new Button
+        _addressAllButton = (new Button
         {
             Text = "Address All in Order",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 46
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _addressAllButton.Clicked += async (_, _) => await CloseAsync(new HomePromptManagerResult(HomePromptManagerResult.AddressAll));
 
-        var closeButton = new Button
+        var closeButton = (new Button
         {
             Text = "Close",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#263238"),
             CornerRadius = 8,
             HeightRequest = 46
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         closeButton.Clicked += async (_, _) => await CloseAsync(null);
 
         var bottomButtons = new Grid
@@ -83,13 +79,11 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
         bottomButtons.Add(_addressAllButton, 0, 0);
         bottomButtons.Add(closeButton, 1, 0);
 
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 22,
             CornerRadius = 12,
             HasShadow = true,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#D0D7DE"),
             WidthRequest = 620,
             MaximumWidthRequest = 760,
             HorizontalOptions = LayoutOptions.Center,
@@ -105,14 +99,13 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
                     bottomButtons
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
-        Content = new Grid
+        Content = (new Grid
         {
             Padding = 20,
-            BackgroundColor = Color.FromArgb("#80000000"),
             Children = { card }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
         RenderPrompts();
     }
@@ -132,12 +125,11 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
 
         if (_prompts.Count == 0)
         {
-            _promptStack.Children.Add(new Label
+            _promptStack.Children.Add((new Label
             {
                 Text = "No prompts remain.",
-                FontSize = 15,
-                TextColor = Color.FromArgb("#607D8B")
-            });
+                FontSize = 15
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.NeutralMutedButton, ThemeKey.PageText1, classifyPageText: true));
             return;
         }
 
@@ -149,41 +141,35 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
 
     private View BuildPromptCard(HomePromptDefinition prompt)
     {
-        var name = new Label
+        var name = (new Label
         {
             Text = prompt.DisplayName,
             FontSize = 17,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
-        var description = new Label
+        var description = (new Label
         {
             Text = prompt.Description,
             FontSize = 13,
             FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666666"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
-        var address = new Button
+        var address = (new Button
         {
             Text = "Address",
-            BackgroundColor = Color.FromArgb("#00796B"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 40
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.TealButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         address.Clicked += async (_, _) => await CloseAsync(new HomePromptManagerResult(HomePromptManagerResult.Address, prompt.Id));
 
-        var skip = new Button
+        var skip = (new Button
         {
             Text = "Skip Today",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#263238"),
             CornerRadius = 8,
             HeightRequest = 40
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         skip.Clicked += async (_, _) =>
         {
             await prompt.SkipTodayAsync();
@@ -203,13 +189,11 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
         buttons.Add(address, 0, 0);
         buttons.Add(skip, 1, 0);
 
-        return new Frame
+        return (new Frame
         {
             Padding = 14,
             CornerRadius = 8,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             Content = new VerticalStackLayout
             {
                 Spacing = 8,
@@ -220,7 +204,7 @@ public class HomePromptManagerPage : Bannister.Views.ModeThemedPage
                     buttons
                 }
             }
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
     }
 
     protected override bool OnBackButtonPressed()

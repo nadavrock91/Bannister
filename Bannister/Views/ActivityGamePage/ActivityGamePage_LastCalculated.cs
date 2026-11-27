@@ -1,5 +1,7 @@
 using Bannister.Models;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public partial class ActivityGamePage
@@ -80,8 +82,8 @@ public partial class ActivityGamePage
         if (btnShowAll != null)
         {
             btnShowAll.Text = "👁️ Showing All Days";
-            btnShowAll.BackgroundColor = Color.FromArgb("#5B63EE");
-            btnShowAll.TextColor = Colors.White;
+            btnShowAll.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
+            btnShowAll.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         }
         int navigableIndex = _navigableCategories.FindIndex(x =>
             string.Equals(x, _targetCategory, StringComparison.OrdinalIgnoreCase));
@@ -111,7 +113,7 @@ public partial class ActivityGamePage
         {
             await activitiesCollection.ScrollToAsync(card, ScrollToPosition.Center, true);
             Color oldBorder = card.BorderColor;
-            card.BorderColor = Color.FromArgb("#FF9800");
+            card.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningAccentText);
             await Task.Delay(1600);
             card.BorderColor = oldBorder;
         }

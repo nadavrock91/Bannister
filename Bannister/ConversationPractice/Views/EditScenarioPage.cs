@@ -2,6 +2,8 @@ using ConversationPractice.Models;
 using ConversationPractice.Services;
 using Microsoft.Maui.Controls;
 
+using Bannister.Services;
+
 namespace ConversationPractice.Views;
 
 /// <summary>
@@ -47,13 +49,12 @@ public class EditScenarioPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "✏️ Edit Scenario",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // Title
         mainStack.Children.Add(CreateFieldLabel("Scenario Title *"));
@@ -133,27 +134,23 @@ public class EditScenarioPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 20, 0, 0)
         };
 
-        var btnSave = new Button
+        var btnSave = (new Button
         {
             Text = "Save Changes",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSave.Clicked += OnSaveClicked;
         Grid.SetColumn(btnSave, 0);
         buttonGrid.Children.Add(btnSave);
 
-        var btnCancel = new Button
+        var btnCancel = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#999"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnCancel.Clicked += OnCancelClicked;
         Grid.SetColumn(btnCancel, 1);
         buttonGrid.Children.Add(btnCancel);
@@ -166,13 +163,12 @@ public class EditScenarioPage : Bannister.Views.ModeThemedPage
 
     private Label CreateFieldLabel(string text)
     {
-        return new Label
+        return (new Label
         {
             Text = text,
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
     }
 
     private void LoadScenarioData()

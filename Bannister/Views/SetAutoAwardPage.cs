@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
@@ -50,31 +52,28 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var lblTitle = new Label
+        var lblTitle = (new Label
         {
             Text = "Auto-Award Settings",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(lblTitle);
 
-        var lblActivity = new Label
+        var lblActivity = (new Label
         {
             Text = _activity.Name,
-            FontSize = 16,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 16
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         mainStack.Children.Add(lblActivity);
 
         // Enable/Disable Auto-Award
-        var autoAwardFrame = new Frame
+        var autoAwardFrame = (new Frame
         {
             Padding = 15,
             CornerRadius = 8,
-            BackgroundColor = Color.FromArgb("#F5F5F5"),
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
 
         var autoAwardStack = new HorizontalStackLayout
         {
@@ -93,7 +92,7 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
 
         switchAutoAward = new Switch
         {
-            OnColor = Color.FromArgb("#4CAF50"),
+            OnColor = AppColors.Get(ThemeKey.SuccessLightText),
             VerticalOptions = LayoutOptions.Center,
             IsEnabled = !_requireAutoAward
         };
@@ -104,13 +103,11 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(autoAwardFrame);
 
         // Frequency Picker
-        var freqFrame = new Frame
+        var freqFrame = (new Frame
         {
             Padding = 15,
-            CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#DDD")
-        };
+            CornerRadius = 8
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var freqStack = new VerticalStackLayout { Spacing = 10 };
 
@@ -146,13 +143,11 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
         };
         daysPanel.Children.Add(lblDays);
 
-        var daysFrame = new Frame
+        var daysFrame = (new Frame
         {
             Padding = 15,
-            CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#DDD")
-        };
+            CornerRadius = 8
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var daysStack = new VerticalStackLayout { Spacing = 8 };
 
@@ -161,10 +156,9 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
         {
             var checkStack = new HorizontalStackLayout { Spacing = 10 };
 
-            var checkbox = new CheckBox
+            var checkbox = (new CheckBox
             {
-                Color = Color.FromArgb("#4CAF50")
-            };
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
             dayCheckBoxes[day] = checkbox;
             checkStack.Children.Add(checkbox);
 
@@ -185,22 +179,20 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(daysPanel);
 
         // Info labels
-        var infoFrame = new Frame
+        var infoFrame = (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
             BorderColor = Colors.Transparent,
             Margin = new Thickness(0, 10, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground);
 
-        var lblInfo = new Label
+        var lblInfo = (new Label
         {
             Text = "ℹ️ Auto-award activities will appear in a confirmation dialog when you first enter the game each day.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#1976D2"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText3, classifyPageText: true);
 
         infoFrame.Content = lblInfo;
         mainStack.Children.Add(infoFrame);
@@ -212,25 +204,21 @@ public class SetAutoAwardPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 20, 0, 0)
         };
 
-        var btnSave = new Button
+        var btnSave = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSave.Clicked += OnSaveClicked;
         buttonStack.Children.Add(btnSave);
 
-        var btnCancel = new Button
+        var btnCancel = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#999"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnCancel.Clicked += OnCancelClicked;
         buttonStack.Children.Add(btnCancel);
 

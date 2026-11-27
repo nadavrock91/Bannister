@@ -63,28 +63,25 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var lblHeader = new Label
+        var lblHeader = (new Label
         {
             Text = "🐲 Dragon Hierarchy",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetRow(lblHeader, 0);
         mainGrid.Children.Add(lblHeader);
 
         // Action buttons
         var btnStack = new HorizontalStackLayout { Spacing = 8 };
 
-        var btnAddRoot = new Button
+        var btnAddRoot = (new Button
         {
             Text = "+ Add Main Dragon",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddRoot.Clicked += (s, e) => OnAddDragonClicked(null);
         btnStack.Children.Add(btnAddRoot);
 
@@ -119,15 +116,14 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
 
         if (rootDragons.Count == 0)
         {
-            treeContainer.Children.Add(new Label
+            treeContainer.Children.Add((new Label
             {
                 Text = "No dragons yet. Click '+ Add Main Dragon' to start building your dragon hierarchy!",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -147,15 +143,13 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
         bool hasChildren = children.Count > 0;
         bool isCollapsed = _collapsedDragons.ContainsKey(dragon.Id) && _collapsedDragons[dragon.Id];
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#F44336"),
             Margin = new Thickness(depth * 20, 0, 0, 0),
             HasShadow = depth == 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorButtonBackground);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
@@ -165,17 +159,16 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
         // Collapse/Expand button (only if has children)
         if (hasChildren)
         {
-            var btnToggle = new Button
+            var btnToggle = (new Button
             {
                 Text = isCollapsed ? "▶" : "▼",
                 BackgroundColor = Colors.Transparent,
-                TextColor = Color.FromArgb("#666"),
                 FontSize = 16,
                 WidthRequest = 30,
                 HeightRequest = 30,
                 Padding = 0,
                 CornerRadius = 4
-            };
+            }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
             btnToggle.Clicked += (s, e) => OnToggleCollapseClicked(dragon);
             headerStack.Children.Add(btnToggle);
         }
@@ -190,15 +183,14 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
         }
 
         // Dragon title
-        var titleLabel = new Label
+        var titleLabel = (new Label
         {
             Text = $"🐲 {dragon.Title}",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#F44336"),
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.FillAndExpand
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         headerStack.Children.Add(titleLabel);
 
         stack.Children.Add(headerStack);
@@ -206,62 +198,54 @@ public class DragonTreePage : Bannister.Views.ModeThemedPage
         // Description
         if (!string.IsNullOrEmpty(dragon.Description))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = dragon.Description,
                 FontSize = 13,
-                TextColor = Color.FromArgb("#666"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         }
 
         // Child count
         if (hasChildren)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"📊 {children.Count} sub-dragon{(children.Count == 1 ? "" : "s")}",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#999")
-            });
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
 
         // Action buttons
         var buttonStack = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 4, 0, 0) };
 
-        var btnAddChild = new Button
+        var btnAddChild = (new Button
         {
             Text = "+ Sub-Dragon",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddChild.Clicked += (s, e) => OnAddDragonClicked(dragon.Id);
         buttonStack.Children.Add(btnAddChild);
 
-        var btnEdit = new Button
+        var btnEdit = (new Button
         {
             Text = "✏️ Edit",
-            BackgroundColor = Color.FromArgb("#2196F3"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnEdit.Clicked += (s, e) => OnEditDragonClicked(dragon);
         buttonStack.Children.Add(btnEdit);
 
-        var btnDelete = new Button
+        var btnDelete = (new Button
         {
             Text = "🗑️ Delete",
-            BackgroundColor = Color.FromArgb("#9E9E9E"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 11,
             Padding = new Thickness(8, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnDelete.Clicked += (s, e) => OnDeleteDragonClicked(dragon);
         buttonStack.Children.Add(btnDelete);
 

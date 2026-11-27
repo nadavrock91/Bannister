@@ -1,5 +1,7 @@
 using CommunityToolkit.Maui.Views;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public class ActivityContextMenuPopup : Popup
@@ -17,41 +19,35 @@ public class ActivityContextMenuPopup : Popup
             DeviceDisplay.MainDisplayInfo.Density;
         double popupW = Math.Min(screenW - 32, 520);
 
-        var stack = new VerticalStackLayout
+        var stack = (new VerticalStackLayout
         {
-            Spacing = 0,
-            BackgroundColor = Colors.White
-        };
+            Spacing = 0
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = title,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.WordWrap,
-            Padding = new Thickness(20, 16, 20, 10),
-            BackgroundColor = Color.FromArgb("#F5F5F5")
-        });
+            Padding = new Thickness(20, 16, 20, 10)
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface));
 
-        stack.Children.Add(new BoxView
+        stack.Children.Add((new BoxView
         {
-            HeightRequest = 1,
-            BackgroundColor = Color.FromArgb("#E0E0E0")
-        });
+            HeightRequest = 1
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator));
 
         var scrollContent = new VerticalStackLayout { Spacing = 0 };
         foreach (var opt in options.ToList())
         {
-            var optLabel = new Label
+            var optLabel = (new Label
             {
                 Text = opt,
                 FontSize = 14,
-                TextColor = Color.FromArgb("#222"),
                 Padding = new Thickness(20, 14),
-                BackgroundColor = Colors.White,
                 LineBreakMode = LineBreakMode.WordWrap
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
             var tap = new TapGestureRecognizer();
             string capturedOpt = opt;
@@ -62,22 +58,19 @@ public class ActivityContextMenuPopup : Popup
             };
             optLabel.GestureRecognizers.Add(tap);
             scrollContent.Children.Add(optLabel);
-            scrollContent.Children.Add(new BoxView
+            scrollContent.Children.Add((new BoxView
             {
-                HeightRequest = 1,
-                BackgroundColor = Color.FromArgb("#F0F0F0")
-            });
+                HeightRequest = 1
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface));
         }
 
-        var cancelLabel = new Label
+        var cancelLabel = (new Label
         {
             Text = "Cancel",
             FontSize = 14,
-            TextColor = Color.FromArgb("#888"),
             Padding = new Thickness(20, 14),
-            HorizontalTextAlignment = TextAlignment.Center,
-            BackgroundColor = Colors.White
-        };
+            HorizontalTextAlignment = TextAlignment.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         var cancelTap = new TapGestureRecognizer();
         cancelTap.Tapped += (_, _) =>
         {
@@ -86,11 +79,10 @@ public class ActivityContextMenuPopup : Popup
         };
         cancelLabel.GestureRecognizers.Add(cancelTap);
 
-        scrollContent.Children.Add(new BoxView
+        scrollContent.Children.Add((new BoxView
         {
-            HeightRequest = 1,
-            BackgroundColor = Color.FromArgb("#E0E0E0")
-        });
+            HeightRequest = 1
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator));
         scrollContent.Children.Add(cancelLabel);
 
         double maxH =
@@ -102,7 +94,7 @@ public class ActivityContextMenuPopup : Popup
             MaximumHeightRequest = maxH - 60
         });
 
-        Content = new Border
+        Content = (new Border
         {
             Content = stack,
             StrokeShape =
@@ -111,7 +103,6 @@ public class ActivityContextMenuPopup : Popup
                     CornerRadius = new CornerRadius(12)
                 },
             StrokeThickness = 0,
-            BackgroundColor = Colors.White,
             WidthRequest = popupW,
             Shadow = new Shadow
             {
@@ -120,7 +111,7 @@ public class ActivityContextMenuPopup : Popup
                 Radius = 12,
                 Offset = new Point(0, 4)
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         Color = Colors.Transparent;
     }

@@ -1,6 +1,8 @@
 using Microsoft.Maui.Controls;
 using System.Globalization;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public class CellTappedEventArgs : EventArgs
@@ -41,14 +43,36 @@ public delegate Task<bool> CellUpdateDelegate(string idValue, string columnName,
 public class DataGridView : ContentView
 {
     // Styling
-    public Color HeaderBackgroundColor { get; set; } = Color.FromArgb("#1565C0");
-    public Color HeaderTextColor { get; set; } = Colors.White;
-    public Color CellBackgroundColor { get; set; } = Colors.White;
-    public Color CellTextColor { get; set; } = Color.FromArgb("#333333");
-    public Color AlternateRowColor { get; set; } = Color.FromArgb("#F5F5F5");
-    public Color SelectedCellColor { get; set; } = Color.FromArgb("#BBDEFB");
-    public Color EditingCellColor { get; set; } = Color.FromArgb("#FFF9C4");
-    public Color BorderColor { get; set; } = Color.FromArgb("#DDDDDD");
+    private readonly Dictionary<string, Color> _customColors = new();
+    public Color HeaderBackgroundColor { get => GridColor(nameof(HeaderBackgroundColor)); set => _customColors[nameof(HeaderBackgroundColor)] = value; }
+    public Color HeaderTextColor { get => GridColor(nameof(HeaderTextColor)); set => _customColors[nameof(HeaderTextColor)] = value; }
+    public Color CellBackgroundColor { get => GridColor(nameof(CellBackgroundColor)); set => _customColors[nameof(CellBackgroundColor)] = value; }
+    public Color CellTextColor { get => GridColor(nameof(CellTextColor)); set => _customColors[nameof(CellTextColor)] = value; }
+    public Color AlternateRowColor { get => GridColor(nameof(AlternateRowColor)); set => _customColors[nameof(AlternateRowColor)] = value; }
+    public Color SelectedCellColor { get => GridColor(nameof(SelectedCellColor)); set => _customColors[nameof(SelectedCellColor)] = value; }
+    public Color EditingCellColor { get => GridColor(nameof(EditingCellColor)); set => _customColors[nameof(EditingCellColor)] = value; }
+    public Color BorderColor { get => GridColor(nameof(BorderColor)); set => _customColors[nameof(BorderColor)] = value; }
+
+    private static ThemeKey DefaultColor(string role) => role switch
+    {
+        nameof(HeaderBackgroundColor) => ThemeKey.ButtonPrimaryBackground,
+        nameof(HeaderTextColor) => ThemeKey.ButtonPrimaryText,
+        nameof(CellBackgroundColor) => ThemeKey.RowBackground,
+        nameof(CellTextColor) => ThemeKey.CardText1,
+        nameof(AlternateRowColor) => ThemeKey.RowAltBackground,
+        nameof(SelectedCellColor) => ThemeKey.HighlightBlueStrong,
+        nameof(EditingCellColor) => ThemeKey.HighlightYellowStrong,
+        nameof(BorderColor) => ThemeKey.Separator,
+        _ => throw new ArgumentOutOfRangeException(nameof(role))
+    };
+
+    private Color GridColor(string role) => _customColors.TryGetValue(role, out var color) ? color : AppColors.Get(DefaultColor(role));
+
+    private void ApplyGridColor(Element element, BindableProperty property, string role)
+    {
+        if (_customColors.TryGetValue(role, out var color)) element.ThemeColor(property, color);
+        else element.ThemeColor(property, DefaultColor(role));
+    }
     public bool UseAlternatingRowColors { get; set; } = true;
     public bool ShowHeaders { get; set; } = true;
     public bool SortingEnabled { get; set; } = false;
@@ -268,32 +292,29 @@ public class DataGridView : ContentView
             ColumnSpacing = 6
         };
 
-        _displayHeader = new Label
+        _displayHeader = (new Label
         {
             Text = "Left-click: select · Right-click: edit",
-            FontSize = 11, TextColor = Color.FromArgb("#888"),
-            VerticalOptions = LayoutOptions.Center
-        };
+            FontSize = 11,             VerticalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         headerRow.Add(_displayHeader, 0, 0);
 
-        var menuBtn = new Button
+        var menuBtn = (new Button
         {
             Text = "⋯", FontSize = 16, FontAttributes = FontAttributes.Bold,
             HeightRequest = 28, WidthRequest = 36, Padding = 0,
-            BackgroundColor = Color.FromArgb("#E0E0E0"), TextColor = Color.FromArgb("#555"),
             CornerRadius = 4, VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         menuBtn.Clicked += OnMenuClicked;
         headerRow.Add(menuBtn, 1, 0);
         stack.Children.Add(headerRow);
 
-        _displayBox = new Editor
+        _displayBox = (new Editor
         {
             Text = "", FontSize = 13, FontFamily = "Consolas",
-            BackgroundColor = Colors.White, TextColor = Color.FromArgb("#333"),
             IsReadOnly = true, HeightRequest = 85,
             AutoSize = EditorAutoSizeOption.Disabled
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
 
         _displayBox.Focused += (s, e) =>
         {
@@ -334,28 +355,25 @@ public class DataGridView : ContentView
             IsVisible = false
         };
 
-        _btnPrev = new Button
+        _btnPrev = (new Button
         {
             Text = "← Prev", FontSize = 12, HeightRequest = 30,
-            BackgroundColor = Color.FromArgb("#5B63EE"), TextColor = Colors.White,
             CornerRadius = 6, Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnPrev.Clicked += (s, e) => { if (_pageOffset >= PageSize) SaveAndNavigate(-PageSize); };
         _paginationBar.Add(_btnPrev, 0, 0);
 
-        _pageLabel = new Label
+        _pageLabel = (new Label
         {
-            Text = "", FontSize = 12, TextColor = Color.FromArgb("#666"),
-            HorizontalTextAlignment = TextAlignment.Center, VerticalOptions = LayoutOptions.Center
-        };
+            Text = "", FontSize = 12,             HorizontalTextAlignment = TextAlignment.Center, VerticalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         _paginationBar.Add(_pageLabel, 1, 0);
 
-        _btnNext = new Button
+        _btnNext = (new Button
         {
             Text = "Next →", FontSize = 12, HeightRequest = 30,
-            BackgroundColor = Color.FromArgb("#5B63EE"), TextColor = Colors.White,
             CornerRadius = 6, Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _btnNext.Clicked += (s, e) => { if (_pageOffset + PageSize < _allRows.Count) SaveAndNavigate(PageSize); };
         _paginationBar.Add(_btnNext, 2, 0);
 
@@ -422,12 +440,13 @@ public class DataGridView : ContentView
     {
         if (_columnCount == 0)
         {
-            _gridWrapper.Children.Add(new Label { Text = "No data to display", TextColor = Color.FromArgb("#666") });
+            _gridWrapper.Children.Add((new Label { Text = "No data to display" }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
         int totalGridRows = (ShowHeaders ? 1 : 0) + _pageRowCount;
-        var grid = new Grid { ColumnSpacing = 0, RowSpacing = 0, BackgroundColor = BorderColor };
+        var grid = new Grid { ColumnSpacing = 0, RowSpacing = 0 };
+        ApplyGridColor(grid, BackgroundColorProperty, nameof(BorderColor));
 
         for (int c = 0; c < _columnCount; c++)
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -444,12 +463,13 @@ public class DataGridView : ContentView
                 {
                     Text = GetHeaderText(col),
                     FontSize = HeaderFontSize, FontAttributes = FontAttributes.Bold,
-                    TextColor = HeaderTextColor, BackgroundColor = HeaderBackgroundColor,
                     Padding = new Thickness(CellPadding), VerticalTextAlignment = TextAlignment.Center,
                     LineBreakMode = LineBreakMode.TailTruncation, MaxLines = 1,
                     MinimumWidthRequest = MinColumnWidth, MaximumWidthRequest = MaxColumnWidth,
                     Margin = new Thickness(0, 0, 1, 1)
                 };
+                ApplyGridColor(label, Label.TextColorProperty, nameof(HeaderTextColor));
+                ApplyGridColor(label, BackgroundColorProperty, nameof(HeaderBackgroundColor));
                 int capturedColumn = col;
                 var headerTap = new TapGestureRecognizer();
                 headerTap.Tapped += (_, _) =>
@@ -483,21 +503,22 @@ public class DataGridView : ContentView
         {
             var rowData = _pageRows[rowIdx];
             bool isAlt = UseAlternatingRowColors && rowIdx % 2 == 1;
-            Color bgColor = isAlt ? AlternateRowColor : CellBackgroundColor;
+            var bgColor = isAlt ? nameof(AlternateRowColor) : nameof(CellBackgroundColor);
 
             for (int col = 0; col < _columnCount; col++)
             {
                 string text = col < rowData.Count ? rowData[col] : "";
                 var label = new Label
                 {
-                    Text = text, FontSize = FontSize, TextColor = CellTextColor,
-                    BackgroundColor = bgColor, Padding = new Thickness(CellPadding),
+                    Text = text, FontSize = FontSize, Padding = new Thickness(CellPadding),
                     VerticalTextAlignment = TextAlignment.Center,
                     LineBreakMode = LineBreakMode.TailTruncation, MaxLines = 1,
                     MinimumWidthRequest = MinColumnWidth, MaximumWidthRequest = MaxColumnWidth,
                     Margin = new Thickness(0, 0, 1, 1)
                 };
 
+                ApplyGridColor(label, Label.TextColorProperty, nameof(CellTextColor));
+                ApplyGridColor(label, BackgroundColorProperty, bgColor);
                 _cellLabels[rowIdx, col] = label;
                 int cPageRow = rowIdx, cCol = col;
 
@@ -516,7 +537,7 @@ public class DataGridView : ContentView
 
         if (_pageRowCount == 0)
         {
-            var emptyLabel = new Label { Text = "No rows", TextColor = Color.FromArgb("#999"), HorizontalTextAlignment = TextAlignment.Center, Padding = new Thickness(20) };
+            var emptyLabel = (new Label { Text = "No rows", HorizontalTextAlignment = TextAlignment.Center, Padding = new Thickness(20) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
             grid.Add(emptyLabel, 0, currentRow);
             Grid.SetColumnSpan((BindableObject)emptyLabel, _columnCount);
         }
@@ -642,7 +663,7 @@ public class DataGridView : ContentView
         if (_cellLabels != null && pageRow >= 0 && pageRow < _cellLabels.GetLength(0) && col < _cellLabels.GetLength(1))
         {
             var label = _cellLabels[pageRow, col];
-            label.BackgroundColor = SelectedCellColor;
+            ApplyGridColor(label, BackgroundColorProperty, nameof(SelectedCellColor));
             _lastSelectedLabel = label;
         }
 
@@ -715,12 +736,12 @@ public class DataGridView : ContentView
         if (_selectedRow < 0 || _selectedCol < 0) return;
         _isEditing = true;
         _displayBox.IsReadOnly = false;
-        _displayBox.BackgroundColor = Color.FromArgb("#FFFDE7");
+        _displayBox.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellowSoft);
         _displayHeader.Text = $"✏️ EDITING — Row {_selectedRow + 1} • {_selectedColumnName}";
 
         int pageRow = AbsoluteToPageRow(_selectedRow);
         if (_cellLabels != null && pageRow >= 0 && pageRow < _cellLabels.GetLength(0) && _selectedCol < _cellLabels.GetLength(1))
-            _cellLabels[pageRow, _selectedCol].BackgroundColor = EditingCellColor;
+            ApplyGridColor(_cellLabels[pageRow, _selectedCol], BackgroundColorProperty, nameof(EditingCellColor));
 
         await Task.Delay(50);
         _displayBox.Focus();
@@ -733,10 +754,10 @@ public class DataGridView : ContentView
             _selectedCol >= 0 && _selectedCol < _cellLabels.GetLength(1))
         {
             bool isAlt = UseAlternatingRowColors && pageRow % 2 == 1;
-            _cellLabels[pageRow, _selectedCol].BackgroundColor = isAlt ? AlternateRowColor : CellBackgroundColor;
+            ApplyGridColor(_cellLabels[pageRow, _selectedCol], BackgroundColorProperty, isAlt ? nameof(AlternateRowColor) : nameof(CellBackgroundColor));
         }
         _isEditing = false;
-        if (_displayBox != null) { _displayBox.IsReadOnly = true; _displayBox.BackgroundColor = Colors.White; }
+        if (_displayBox != null) { _displayBox.IsReadOnly = true; _displayBox.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground); }
     }
 
     private async Task AutoSaveAsync()
@@ -769,12 +790,12 @@ public class DataGridView : ContentView
 
     private void ResetLabelColor(Label label)
     {
-        if (_cellLabels == null) { label.BackgroundColor = CellBackgroundColor; return; }
+        if (_cellLabels == null) { ApplyGridColor(label, BackgroundColorProperty, nameof(CellBackgroundColor)); return; }
         for (int r = 0; r < _cellLabels.GetLength(0); r++)
             for (int c = 0; c < _cellLabels.GetLength(1); c++)
                 if (_cellLabels[r, c] == label)
-                { label.BackgroundColor = (UseAlternatingRowColors && r % 2 == 1) ? AlternateRowColor : CellBackgroundColor; return; }
-        label.BackgroundColor = CellBackgroundColor;
+                { ApplyGridColor(label, BackgroundColorProperty, (UseAlternatingRowColors && r % 2 == 1) ? nameof(AlternateRowColor) : nameof(CellBackgroundColor)); return; }
+        ApplyGridColor(label, BackgroundColorProperty, nameof(CellBackgroundColor));
     }
 
     // ===================== UNDO =====================

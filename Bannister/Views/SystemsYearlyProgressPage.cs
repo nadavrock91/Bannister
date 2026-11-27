@@ -39,21 +39,19 @@ public class SystemsYearlyProgressPage : Bannister.Views.ModeThemedPage
             Spacing = 12
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = " Yearly Progress",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5E35B1")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentVioletButton, ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"{periodStart:MMMM d} → {DateTime.Today:MMMM d, yyyy}",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, 0, 0, 4)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         stack.Children.Add(_rowsStack);
 
@@ -100,19 +98,18 @@ public class SystemsYearlyProgressPage : Bannister.Views.ModeThemedPage
         }
     }
 
-    private static View CreateEmptyState() => new Label
+    private static View CreateEmptyState() => (new Label
     {
         Text = "No games yet. Create games to track progress.",
         FontSize = 14,
-        TextColor = Color.FromArgb("#999"),
         HorizontalTextAlignment = TextAlignment.Center,
         Margin = new Thickness(0, 40, 0, 0)
-    };
+    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
 
     private static View BuildProgressRow(string gameName, int levelBefore, int levelAfter, int delta)
     {
-        var badgeColor = delta > 0 ? Color.FromArgb("#2E7D32") : Color.FromArgb("#ECEFF1");
-        var badgeTextColor = delta > 0 ? Colors.White : Color.FromArgb("#607D8B");
+        var badgeColor = delta > 0 ? ThemeKey.SuccessText : ThemeKey.OnColorText;
+        var badgeTextColor = delta > 0 ? ThemeKey.OnColorText : ThemeKey.NeutralMutedButton;
 
         var row = new Grid
         {
@@ -129,35 +126,31 @@ public class SystemsYearlyProgressPage : Bannister.Views.ModeThemedPage
             Spacing = 3,
             Children =
             {
-                new Label { Text = gameName, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333") },
-                new Label { Text = $"Level {levelBefore} → {levelAfter}", FontSize = 12, TextColor = Color.FromArgb("#666") }
+                (new Label { Text = gameName, FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
+                (new Label { Text = $"Level {levelBefore} → {levelAfter}", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true)
             }
         }, 0, 0);
 
-        row.Add(new Frame
+        row.Add((new Frame
         {
             Padding = new Thickness(10, 4),
             CornerRadius = 12,
             HasShadow = false,
-            BackgroundColor = badgeColor,
             VerticalOptions = LayoutOptions.Center,
-            Content = new Label
+            Content = (new Label
             {
                 Text = delta > 0 ? $"+{delta} levels" : "0 levels",
                 FontSize = 12,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = badgeTextColor
-            }
-        }, 1, 0);
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, badgeTextColor, ThemeKey.PageText3, classifyPageText: true)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, badgeColor), 1, 0);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 14,
             HasShadow = false,
             Content = row
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 }

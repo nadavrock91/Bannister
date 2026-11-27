@@ -44,29 +44,26 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 20,
             CornerRadius = 16,
-            BackgroundColor = Color.FromArgb("#5B63EE"),
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "🐉 Dragons",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
-        headerStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        headerStack.Children.Add((new Label
         {
             Text = "Track your quests to slay dragons (reach Level 100)",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#FFFFFFCC")
-        });
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
 
@@ -74,17 +71,16 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
         var activeFrame = CreateMenuButton(
             "⚔️ Active Dragons",
             "Dragons you're currently battling",
-            Color.FromArgb("#4CAF50"),
+            ThemeKey.SuccessButtonBackground,
             async () => await NavigateToActiveDragonsAsync()
         );
-        _activeCountLabel = new Label
+        _activeCountLabel = (new Label
         {
             Text = "Loading...",
             FontSize = 14,
-            TextColor = Colors.White,
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
         ((Grid)((Frame)activeFrame).Content).Children.Add(_activeCountLabel);
         Grid.SetColumn(_activeCountLabel, 1);
         mainStack.Children.Add(activeFrame);
@@ -93,17 +89,16 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
         var slainFrame = CreateMenuButton(
             "🏆 Slain Dragons",
             "Dragons you've defeated (reached Level 100)",
-            Color.FromArgb("#FF9800"),
+            ThemeKey.WarningButtonBackground,
             async () => await NavigateToSlainDragonsAsync()
         );
-        _slainCountLabel = new Label
+        _slainCountLabel = (new Label
         {
             Text = "Loading...",
             FontSize = 14,
-            TextColor = Colors.White,
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
         ((Grid)((Frame)slainFrame).Content).Children.Add(_slainCountLabel);
         Grid.SetColumn(_slainCountLabel, 1);
         mainStack.Children.Add(slainFrame);
@@ -112,33 +107,30 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
         var irrelevantFrame = CreateMenuButton(
             "💤 Irrelevant Dragons",
             "Dragons you've decided not to pursue",
-            Color.FromArgb("#9E9E9E"),
+            ThemeKey.DisabledButtonBackground,
             async () => await NavigateToIrrelevantDragonsAsync()
         );
-        _irrelevantCountLabel = new Label
+        _irrelevantCountLabel = (new Label
         {
             Text = "Loading...",
             FontSize = 14,
-            TextColor = Colors.White,
             HorizontalOptions = LayoutOptions.End,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
         ((Grid)((Frame)irrelevantFrame).Content).Children.Add(_irrelevantCountLabel);
         Grid.SetColumn(_irrelevantCountLabel, 1);
         mainStack.Children.Add(irrelevantFrame);
 
         // Add Dragon button
-        var addDragonBtn = new Button
+        var addDragonBtn = (new Button
         {
             Text = "➕ Add New Dragon",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 12,
             HeightRequest = 50,
             Margin = new Thickness(0, 20, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addDragonBtn.Clicked += OnAddDragonClicked;
         mainStack.Children.Add(addDragonBtn);
 
@@ -146,16 +138,15 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
         Content = scrollView;
     }
 
-    private Frame CreateMenuButton(string title, string subtitle, Color bgColor, Func<Task> onTap)
+    private Frame CreateMenuButton(string title, string subtitle, ThemeKey bgColor, Func<Task> onTap)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = bgColor,
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bgColor);
 
         var grid = new Grid
         {
@@ -167,19 +158,17 @@ public class DragonsHubPage : Bannister.Views.ModeThemedPage
         };
 
         var textStack = new VerticalStackLayout { Spacing = 4 };
-        textStack.Children.Add(new Label
+        textStack.Children.Add((new Label
         {
             Text = title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
-        textStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        textStack.Children.Add((new Label
         {
             Text = subtitle,
-            FontSize = 12,
-            TextColor = Color.FromArgb("#FFFFFFAA")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(textStack, 0);
         grid.Children.Add(textStack);
 

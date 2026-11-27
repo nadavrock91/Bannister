@@ -51,25 +51,21 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
         Title = "Catch Up";
 
 
-        _applyButton = new Button
+        _applyButton = (new Button
         {
             Text = "Apply Catch-Up",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 48
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _applyButton.Clicked += OnApplyClicked;
 
-        _skipButton = new Button
+        _skipButton = (new Button
         {
             Text = "Skip All",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#444444"),
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         _skipButton.Clicked += OnSkipClicked;
 
         Content = BuildContent();
@@ -94,19 +90,18 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(20, 18, 20, 10),
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Catch Up",
                     FontSize = 28,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222222")
-                },
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
                 _subtitle
             }
         };
 
         _subtitle.FontSize = 15;
-        _subtitle.TextColor = Color.FromArgb("#666666");
+        _subtitle.ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true);
         _subtitle.LineBreakMode = LineBreakMode.WordWrap;
 
         var buttonGrid = new Grid
@@ -226,20 +221,17 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
 
         if (_cards.Count == 0)
         {
-            _cardsStack.Children.Add(new Frame
+            _cardsStack.Children.Add((new Frame
             {
                 Padding = 18,
                 CornerRadius = 8,
                 HasShadow = false,
-                BorderColor = Color.FromArgb("#DDDDDD"),
-                BackgroundColor = Colors.White,
-                Content = new Label
+                Content = (new Label
                 {
                     Text = "No eligible catch-up days remain for this game.",
-                    FontSize = 15,
-                    TextColor = Color.FromArgb("#555555")
-                }
-            });
+                    FontSize = 15
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true)
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground));
         }
     }
 
@@ -469,34 +461,30 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
             Rows = days.Select(day => new CatchUpDayRow(day, showCountPrompt)).ToList();
 
             var stack = new VerticalStackLayout { Spacing = 10 };
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = activity.Name,
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#222222"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
-            stack.Children.Add(new Label
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+            stack.Children.Add((new Label
             {
                 Text = string.IsNullOrWhiteSpace(activity.Category) ? "Uncategorized" : activity.Category,
                 FontSize = 13,
-                TextColor = Color.FromArgb("#666666"),
                 Margin = new Thickness(0, -6, 0, 0),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-            var selectAllButton = new Button
+            var selectAllButton = (new Button
             {
                 Text = "Select All Days",
-                BackgroundColor = Color.FromArgb("#E8F5E9"),
-                TextColor = Color.FromArgb("#2E7D32"),
                 CornerRadius = 8,
                 HeightRequest = 38,
                 FontSize = 13,
                 FontAttributes = FontAttributes.Bold,
                 HorizontalOptions = LayoutOptions.Start
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
             selectAllButton.Clicked += (_, _) =>
             {
                 foreach (var row in Rows)
@@ -512,15 +500,13 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
             foreach (var row in Rows)
                 stack.Children.Add(row.View);
 
-            View = new Frame
+            View = (new Frame
             {
                 Padding = 14,
                 CornerRadius = 8,
                 HasShadow = false,
-                BorderColor = Color.FromArgb("#DDDDDD"),
-                BackgroundColor = Colors.White,
                 Content = stack
-            };
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
         }
     }
 
@@ -541,33 +527,30 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
             Date = date;
             _showCountPrompt = showCountPrompt;
 
-            _checkbox = new CheckBox
+            _checkbox = (new CheckBox
             {
-                VerticalOptions = LayoutOptions.Center,
-                Color = Color.FromArgb("#2E7D32")
-            };
+                VerticalOptions = LayoutOptions.Center
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessText);
 
-            var dateLabel = new Label
+            var dateLabel = (new Label
             {
                 Text = date.ToString("ddd, MMM d"),
                 FontSize = 15,
-                TextColor = Color.FromArgb("#333333"),
                 VerticalTextAlignment = TextAlignment.Center
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
             var minus = BuildCountButton("-");
             minus.Clicked += (_, _) => SetCount(Math.Max(1, Count - 1));
 
-            _countLabel = new Label
+            _countLabel = (new Label
             {
                 Text = Count.ToString(),
                 FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#222222"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center,
                 WidthRequest = 42
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
             _countLabel.GestureRecognizers.Add(new TapGestureRecognizer
             {
                 Command = new Command(async () =>
@@ -623,7 +606,7 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
 
         private static Button BuildCountButton(string text)
         {
-            return new Button
+            return (new Button
             {
                 Text = text,
                 WidthRequest = 34,
@@ -631,10 +614,8 @@ public class GameCatchUpPage : Bannister.Views.ModeThemedPage
                 CornerRadius = 17,
                 Padding = 0,
                 FontSize = 18,
-                FontAttributes = FontAttributes.Bold,
-                BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#333333")
-            };
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         }
 
         private void SetCount(int count)

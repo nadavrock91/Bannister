@@ -49,106 +49,99 @@ public class ImageProductionPage : Bannister.Views.ModeThemedPage
         var mainStack = new VerticalStackLayout { Padding = 20, Spacing = 16 };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "🎨 Image Production",
             FontSize = 26, FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#C62828"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true));
 
         // ====== PROJECT SELECTION ======
-        var projectSection = new Frame
+        var projectSection = (new Frame
         {
-            BackgroundColor = Colors.White, CornerRadius = 10,
-            Padding = 16, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = true
-        };
+CornerRadius = 10,
+            Padding = 16, HasShadow = true
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var projectStack = new VerticalStackLayout { Spacing = 10 };
 
-        projectStack.Children.Add(new Label
+        projectStack.Children.Add((new Label
         {
             Text = "PROJECT", FontSize = 12, FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#888"), CharacterSpacing = 1
-        });
+CharacterSpacing = 1
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
         var pickerRow = new HorizontalStackLayout { Spacing = 8 };
 
-        _projectPicker = new Picker
+        _projectPicker = (new Picker
         {
             Title = "Select project...", FontSize = 14,
-            BackgroundColor = Color.FromArgb("#FAFAFA"), WidthRequest = 280
-        };
+WidthRequest = 280
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _projectPicker.SelectedIndexChanged += OnProjectSelected;
         pickerRow.Children.Add(_projectPicker);
 
-        var newBtn = new Button
+        var newBtn = (new Button
         {
             Text = "+ New Project", FontSize = 12, HeightRequest = 36,
-            BackgroundColor = Color.FromArgb("#C62828"), TextColor = Colors.White,
             CornerRadius = 6, Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         newBtn.Clicked += OnNewProjectClicked;
         pickerRow.Children.Add(newBtn);
 
-        var deleteBtn = new Button
+        var deleteBtn = (new Button
         {
             Text = "🗑️", FontSize = 14, HeightRequest = 36, WidthRequest = 40,
-            BackgroundColor = Color.FromArgb("#FFEBEE"), TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 6, Padding = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += OnDeleteProjectClicked;
         pickerRow.Children.Add(deleteBtn);
 
         projectStack.Children.Add(pickerRow);
 
-        _projectInfoLabel = new Label
+        _projectInfoLabel = (new Label
         {
-            Text = "No project selected", FontSize = 12,
-            TextColor = Color.FromArgb("#999")
-        };
+            Text = "No project selected", FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         projectStack.Children.Add(_projectInfoLabel);
 
         projectSection.Content = projectStack;
         mainStack.Children.Add(projectSection);
 
         // ====== STORY / VIDEO CONCEPT ======
-        var storySection = new Frame
+        var storySection = (new Frame
         {
-            BackgroundColor = Colors.White, CornerRadius = 10,
-            Padding = 16, BorderColor = Color.FromArgb("#E0E0E0"), HasShadow = true,
+CornerRadius = 10,
+            Padding = 16, HasShadow = true,
             IsVisible = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var storyStack = new VerticalStackLayout { Spacing = 10 };
 
-        storyStack.Children.Add(new Label
+        storyStack.Children.Add((new Label
         {
             Text = "STORY / VIDEO CONCEPT", FontSize = 12, FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#888"), CharacterSpacing = 1
-        });
+CharacterSpacing = 1
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
-        storyStack.Children.Add(new Label
+        storyStack.Children.Add((new Label
         {
             Text = "Paste what the story or video is about. This feeds into all prompt generation.",
-            FontSize = 12, TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12         }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
-        _storyEditor = new Editor
+        _storyEditor = (new Editor
         {
             Placeholder = "Paste your story concept, video idea, script summary, or narrative here...",
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             HeightRequest = 140, FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         storyStack.Children.Add(_storyEditor);
 
-        _saveStoryBtn = new Button
+        _saveStoryBtn = (new Button
         {
             Text = "💾 Save Concept", FontSize = 13, HeightRequest = 38,
-            BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White,
             CornerRadius = 6, Padding = new Thickness(16, 0),
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _saveStoryBtn.Clicked += OnSaveStoryClicked;
         storyStack.Children.Add(_saveStoryBtn);
 
@@ -158,18 +151,18 @@ public class ImageProductionPage : Bannister.Views.ModeThemedPage
         // ====== WORKFLOWS ======
         _workflowContainer = new VerticalStackLayout { Spacing = 12, IsVisible = false };
 
-        _workflowContainer.Children.Add(new Label
+        _workflowContainer.Children.Add((new Label
         {
             Text = "WORKFLOWS", FontSize = 12, FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#888"), CharacterSpacing = 1,
+CharacterSpacing = 1,
             Margin = new Thickness(0, 4, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
         // Hook First Frame workflow button
         var hookBtn = CreateWorkflowButton(
             "🎬 Generate Hook First Frame",
             "Get 10 ideas for a compelling opening frame that works as thumbnail and video start",
-            Color.FromArgb("#FF6F00"));
+            ThemeKey.WarningAmber);
         hookBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnHookFirstFrameClicked())
@@ -180,7 +173,7 @@ public class ImageProductionPage : Bannister.Views.ModeThemedPage
         var clipBtn = CreateWorkflowButton(
             "🎞️ Generate Clip Start Frame",
             "Get 10 ideas for the opening frame of a specific scene/clip",
-            Color.FromArgb("#7B1FA2"));
+            ThemeKey.AccentPurpleText);
         clipBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnClipStartFrameClicked())
@@ -197,35 +190,32 @@ public class ImageProductionPage : Bannister.Views.ModeThemedPage
 
     private Frame _storySection;
 
-    private Frame CreateWorkflowButton(string title, string subtitle, Color accentColor)
+    private Frame CreateWorkflowButton(string title, string subtitle, ThemeKey accentColor)
     {
         var frame = new Frame
         {
-            BackgroundColor = accentColor.WithAlpha(0.08f),
-            BorderColor = accentColor.WithAlpha(0.3f),
+            BackgroundColor = AppColors.Get(accentColor).WithAlpha(0.08f),
+            BorderColor = AppColors.Get(accentColor).WithAlpha(0.3f),
             CornerRadius = 10, Padding = 16, HasShadow = true
         };
 
         var stack = new HorizontalStackLayout { Spacing = 12 };
 
         var textStack = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
-        textStack.Children.Add(new Label
+        textStack.Children.Add((new Label
         {
-            Text = title, FontSize = 16, FontAttributes = FontAttributes.Bold,
-            TextColor = accentColor
-        });
-        textStack.Children.Add(new Label
+            Text = title, FontSize = 16, FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, accentColor, ThemeKey.PageText1, classifyPageText: true));
+        textStack.Children.Add((new Label
         {
-            Text = subtitle, FontSize = 12, TextColor = Color.FromArgb("#666")
-        });
+            Text = subtitle, FontSize = 12         }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         stack.Children.Add(textStack);
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
-            Text = "›", FontSize = 28, TextColor = accentColor,
-            VerticalOptions = LayoutOptions.Center,
+            Text = "›", FontSize = 28,             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.EndAndExpand
-        });
+        }).ThemeColor(Label.TextColorProperty, accentColor, ThemeKey.PageText1, classifyPageText: true));
 
         frame.Content = stack;
         return frame;

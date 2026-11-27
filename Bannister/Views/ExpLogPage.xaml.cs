@@ -220,5 +220,5 @@ public class ExpLogViewModel
         : $"Level {LevelAfter}";
         
     public string ExpText => ExpEarned >= 0 ? $"+{ExpEarned} EXP" : $"{ExpEarned} EXP";
-    public string ExpColor => ExpEarned >= 0 ? "#4CAF50" : "#F44336";
+    public string ExpColor => ExpEarned >= 0 ? AppColors.Hex(ThemeKey.SuccessLightText) : AppColors.Hex(ThemeKey.ErrorButtonBackground);
 }

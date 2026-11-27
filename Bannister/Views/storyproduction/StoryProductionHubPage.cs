@@ -57,40 +57,37 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "🎬 Story Production",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#F57C00"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true));
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Create and manage video production scripts",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Stats summary
-        _statsLabel = new Label
+        _statsLabel = (new Label
         {
             Text = "Loading...",
             FontSize = 13,
-            TextColor = Color.FromArgb("#888"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 0, 0, 10)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
         mainStack.Children.Add(_statsLabel);
 
         // Drafts button (main production UI)
         var draftsBtn = CreateMenuButton(
             "📝 Drafts",
             "Create and edit production scripts with visual breakdowns",
-            Color.FromArgb("#FFF8E1"),
-            Color.FromArgb("#F57C00"));
+            ThemeKey.HighlightYellow,
+            ThemeKey.WarningStrongText);
         draftsBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnDraftsClicked())
@@ -100,8 +97,8 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         var clipsBtn = CreateMenuButton(
             "\U0001F3AC Clips Creation",
             "Manage parallel clip creation tasks across all shots",
-            Color.FromArgb("#E3F2FD"),
-            Color.FromArgb("#1565C0"));
+            ThemeKey.InfoBackground,
+            ThemeKey.InfoText);
         clipsBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnClipsClicked())
@@ -112,8 +109,8 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         var statsBtn = CreateMenuButton(
             "📊 Production Stats",
             "View completion rates, timelines, and productivity metrics",
-            Color.FromArgb("#E3F2FD"),
-            Color.FromArgb("#1565C0"));
+            ThemeKey.InfoBackground,
+            ThemeKey.InfoText);
         statsBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnStatsClicked())
@@ -124,8 +121,8 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         var assetLibraryBtn = CreateMenuButton(
             "📁 Asset Library",
             "Index and categorize reusable image and video files",
-            Color.FromArgb("#E0F2F1"),
-            Color.FromArgb("#00695C"));
+            ThemeKey.HighlightMint,
+            ThemeKey.HighlightMintText);
         assetLibraryBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnAssetLibraryClicked())
@@ -136,8 +133,8 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         var processesBtn = CreateMenuButton(
             "Writing Processes",
             "Define and manage writing process types for your projects",
-            Color.FromArgb("#F3E5F5"),
-            Color.FromArgb("#7B1FA2"));
+            ThemeKey.AccentPurpleBackground,
+            ThemeKey.AccentPurpleText);
         processesBtn.GestureRecognizers.Clear();
         processesBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
@@ -148,8 +145,8 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         var clipsExperimentBtn = CreateMenuButton(
             "🎬 AI Clips Experiment",
             "Compare short-video hook concepts by viewer retention",
-            Color.FromArgb("#E3F2FD"),
-            Color.FromArgb("#1565C0"));
+            ThemeKey.InfoBackground,
+            ThemeKey.InfoText);
         clipsExperimentBtn.GestureRecognizers.Clear();
         clipsExperimentBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
@@ -160,7 +157,7 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         var videoGenBtn = CreateMenuButton(
             "🎥 Video Generation Methods",
             "Test production methods and compare short-video retention",
-            Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"));
+            ThemeKey.SuccessBackground, ThemeKey.SuccessText);
         videoGenBtn.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await OnVideoGenExperimentClicked())
@@ -170,33 +167,30 @@ public class StoryProductionHubPage : Bannister.Views.ModeThemedPage
         Content = new ScrollView { Content = mainStack };
     }
 
-    private Frame CreateMenuButton(string title, string subtitle, Color bgColor, Color textColor)
+    private Frame CreateMenuButton(string title, string subtitle, ThemeKey bgColor, ThemeKey textColor)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = bgColor,
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, bgColor);
 
         var stack = new VerticalStackLayout { Spacing = 6 };
         
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = title,
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = textColor
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, textColor, ThemeKey.PageText1, classifyPageText: true));
         
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = subtitle,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         frame.Content = stack;
         return frame;

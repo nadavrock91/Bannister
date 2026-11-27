@@ -33,13 +33,12 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
         };
         
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "📊 All Countdowns",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
         // Filters row
         var filterRow = new Grid
@@ -54,20 +53,17 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
         
         // Status filter
         var filterStack = new VerticalStackLayout { Spacing = 4 };
-        filterStack.Children.Add(new Label
+        filterStack.Children.Add((new Label
         {
             Text = "Filter:",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#AAAAAA")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         
-        _filterPicker = new Picker
+        _filterPicker = (new Picker
         {
-            BackgroundColor = Color.FromArgb("#2D2D44"),
-            TextColor = Colors.White,
             ItemsSource = new[] { "All", "Active", "Correct", "Wrong", "Cancelled" },
             SelectedIndex = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.OnColorText);
         _filterPicker.SelectedIndexChanged += async (s, e) => await LoadCountdownsAsync();
         filterStack.Children.Add(_filterPicker);
         
@@ -76,20 +72,17 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
         
         // Sort
         var sortStack = new VerticalStackLayout { Spacing = 4 };
-        sortStack.Children.Add(new Label
+        sortStack.Children.Add((new Label
         {
             Text = "Sort:",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#AAAAAA")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         
-        _sortPicker = new Picker
+        _sortPicker = (new Picker
         {
-            BackgroundColor = Color.FromArgb("#2D2D44"),
-            TextColor = Colors.White,
             ItemsSource = new[] { "Target Date", "Created Date", "Category", "Days Remaining" },
             SelectedIndex = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Picker.TextColorProperty, ThemeKey.OnColorText);
         _sortPicker.SelectedIndexChanged += async (s, e) => await LoadCountdownsAsync();
         sortStack.Children.Add(_sortPicker);
         
@@ -141,13 +134,12 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
         
         if (sorted.Count == 0)
         {
-            _countdownsLayout.Children.Add(new Label
+            _countdownsLayout.Children.Add((new Label
             {
                 Text = "No countdowns found.",
-                TextColor = Color.FromArgb("#AAAAAA"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
         
@@ -155,13 +147,12 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
         var stats = await _countdowns.GetStatsAsync(_auth.CurrentUsername);
         var accuracy = await _countdowns.GetAccuracyAsync(_auth.CurrentUsername);
         
-        _countdownsLayout.Children.Add(new Label
+        _countdownsLayout.Children.Add((new Label
         {
             Text = $"Showing {sorted.Count} countdowns • Accuracy: {accuracy:F0}%",
             FontSize = 12,
-            TextColor = Color.FromArgb("#AAAAAA"),
             Margin = new Thickness(0, 0, 0, 10)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         
         foreach (var countdown in sorted)
         {
@@ -172,13 +163,12 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
     
     private Frame CreateCountdownCard(Countdown countdown)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D44"),
             BorderColor = countdown.StatusColor,
             CornerRadius = 12,
             Padding = 14
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground);
         
         var stack = new VerticalStackLayout { Spacing = 6 };
         
@@ -195,32 +185,29 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
         };
         
         // Category badge
-        var categoryBadge = new Frame
+        var categoryBadge = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#3D3D5C"),
             BorderColor = Colors.Transparent,
             CornerRadius = 4,
             Padding = new Thickness(6, 2),
             VerticalOptions = LayoutOptions.Center
-        };
-        categoryBadge.Content = new Label
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton);
+        categoryBadge.Content = (new Label
         {
             Text = countdown.Category,
-            FontSize = 10,
-            TextColor = Color.FromArgb("#AAAAAA")
-        };
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         Grid.SetColumn(categoryBadge, 0);
         titleRow.Children.Add(categoryBadge);
         
         // Name
-        var nameLabel = new Label
+        var nameLabel = (new Label
         {
             Text = countdown.StatusEmoji + " " + countdown.Name,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(nameLabel, 1);
         titleRow.Children.Add(nameLabel);
         
@@ -239,22 +226,20 @@ public class AllCountdownsPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(titleRow);
         
         // Target date
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Target: {countdown.TargetDate:MMM d, yyyy}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#888888")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         
         // Postpone info if any
         if (countdown.PostponeCount > 0)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"⏱️ Postponed {countdown.PostponeCount}x",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#FF9800")
-            });
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
         }
         
         frame.Content = stack;

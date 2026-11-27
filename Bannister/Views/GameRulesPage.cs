@@ -46,58 +46,52 @@ public class GameRulesPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 20,
             CornerRadius = 0,
-            BackgroundColor = Color.FromArgb("#5B63EE"),
             BorderColor = Colors.Transparent,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "📜 Rules of the Game",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = "Your personal clarifications and rules for the EXP system",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#FFFFFFCC")
-        });
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
 
         // Add button
-        var addButton = new Button
+        var addButton = (new Button
         {
             Text = "➕ Add New Rule",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 48,
             Margin = new Thickness(16, 16, 16, 8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addButton.Clicked += OnAddRuleClicked;
         mainStack.Children.Add(addButton);
 
         // Hint
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "💡 Use ▲▼ to reorder • Tap to edit • ✕ to delete",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 0, 0, 8)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         // Scrollable rules list
         var scrollView = new ScrollView();
@@ -124,21 +118,19 @@ public class GameRulesPage : Bannister.Views.ModeThemedPage
 
         if (_rules.Count == 0)
         {
-            _rulesList.Children.Add(new Frame
+            _rulesList.Children.Add((new Frame
             {
                 Padding = 20,
                 CornerRadius = 12,
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
                 BorderColor = Colors.Transparent,
                 HasShadow = false,
-                Content = new Label
+                Content = (new Label
                 {
                     Text = "No rules yet.\n\nAdd rules to clarify how your EXP system works.\n\nExamples:\n• \"Designations may be canceled up to start date\"\n• \"EXP applies from moment of adding activity\"\n• \"Be honest in reward and punishment\"",
                     FontSize = 14,
-                    TextColor = Color.FromArgb("#1565C0"),
                     HorizontalTextAlignment = TextAlignment.Center
-                }
-            });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground));
             return;
         }
 
@@ -150,14 +142,12 @@ public class GameRulesPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildRuleCard(GameRule rule, int index)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 10,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var grid = new Grid
         {
@@ -171,27 +161,25 @@ public class GameRulesPage : Bannister.Views.ModeThemedPage
         };
 
         // Order number
-        var orderLabel = new Label
+        var orderLabel = (new Label
         {
             Text = $"#{index + 1}",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE"),
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(orderLabel, 0);
         grid.Children.Add(orderLabel);
 
         // Rule text (tappable to edit)
-        var textLabel = new Label
+        var textLabel = (new Label
         {
             Text = rule.Text,
             FontSize = 14,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center,
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         
         var textContainer = new VerticalStackLayout { VerticalOptions = LayoutOptions.Center };
         textContainer.Children.Add(textLabel);
@@ -209,17 +197,15 @@ public class GameRulesPage : Bannister.Views.ModeThemedPage
         // Move up
         if (index > 0)
         {
-            var btnUp = new Button
+            var btnUp = (new Button
             {
                 Text = "▲",
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0"),
                 FontSize = 14,
                 WidthRequest = 36,
                 HeightRequest = 36,
                 Padding = 0,
                 CornerRadius = 6
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
             btnUp.Clicked += async (s, e) => await MoveRuleAsync(rule, -1);
             buttonStack.Children.Add(btnUp);
         }
@@ -227,33 +213,29 @@ public class GameRulesPage : Bannister.Views.ModeThemedPage
         // Move down
         if (index < _rules.Count - 1)
         {
-            var btnDown = new Button
+            var btnDown = (new Button
             {
                 Text = "▼",
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0"),
                 FontSize = 14,
                 WidthRequest = 36,
                 HeightRequest = 36,
                 Padding = 0,
                 CornerRadius = 6
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
             btnDown.Clicked += async (s, e) => await MoveRuleAsync(rule, 1);
             buttonStack.Children.Add(btnDown);
         }
 
         // Delete
-        var btnDelete = new Button
+        var btnDelete = (new Button
         {
             Text = "✕",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 14,
             WidthRequest = 36,
             HeightRequest = 36,
             Padding = 0,
             CornerRadius = 6
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         btnDelete.Clicked += async (s, e) => await DeleteRuleAsync(rule);
         buttonStack.Children.Add(btnDelete);
 

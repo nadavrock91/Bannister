@@ -45,93 +45,84 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
         };
 
         // Progress indicator
-        _lblProgress = new Label
+        _lblProgress = (new Label
         {
             Text = "1 of 1",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         _mainContent.Children.Add(_lblProgress);
 
         // Header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
-            BackgroundColor = _isExpiredMode ? Color.FromArgb("#FF9800") : Color.FromArgb("#4CAF50"),
             Padding = 20,
             CornerRadius = 12,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, _isExpiredMode ? ThemeKey.WarningButtonBackground : ThemeKey.SuccessButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = _isExpiredMode ? "⏰ Habit Target Expired" : "🎯 Set Habit Target",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             HorizontalTextAlignment = TextAlignment.Center
-        });
-        headerStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
+        headerStack.Children.Add((new Label
         {
             Text = _isExpiredMode 
                 ? "This activity's target date has passed. Choose a new date or opt out."
                 : "When do you want to make this activity a habit?",
             FontSize = 14,
-            TextColor = Colors.White,
             Opacity = 0.9,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         headerFrame.Content = headerStack;
         _mainContent.Children.Add(headerFrame);
 
         // Activity name frame
-        var activityFrame = new Frame
+        var activityFrame = (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 20,
             CornerRadius = 12,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var activityStack = new VerticalStackLayout { Spacing = 8 };
-        activityStack.Children.Add(new Label
+        activityStack.Children.Add((new Label
         {
             Text = "Activity:",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
-        _lblActivityName = new Label
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        _lblActivityName = (new Label
         {
             Text = "",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         activityStack.Children.Add(_lblActivityName);
 
-        _lblExpiredInfo = new Label
+        _lblExpiredInfo = (new Label
         {
             Text = "",
             FontSize = 12,
-            TextColor = Color.FromArgb("#FF5722"),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.DeepOrangeButtonBackground, ThemeKey.PageText3, classifyPageText: true);
         activityStack.Children.Add(_lblExpiredInfo);
 
         activityFrame.Content = activityStack;
         _mainContent.Children.Add(activityFrame);
 
         // Quick select buttons
-        _mainContent.Children.Add(new Label
+        _mainContent.Children.Add((new Label
         {
             Text = "Add days to target date:",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             Margin = new Thickness(0, 8, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         var quickButtonsGrid = new Grid
         {
@@ -183,23 +174,20 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
         _mainContent.Children.Add(quickButtonsGrid);
 
         // Date picker section
-        _mainContent.Children.Add(new Label
+        _mainContent.Children.Add((new Label
         {
             Text = "Target Date:",
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             Margin = new Thickness(0, 16, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        var datePickerFrame = new Frame
+        var datePickerFrame = (new Frame
         {
-            BackgroundColor = Colors.White,
             Padding = 16,
             CornerRadius = 8,
-            HasShadow = true,
-            BorderColor = Color.FromArgb("#4CAF50")
-        };
+            HasShadow = true
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SuccessLightText);
 
         var dateStack = new VerticalStackLayout { Spacing = 12 };
         _datePicker = new DatePicker
@@ -211,15 +199,13 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
         };
         dateStack.Children.Add(_datePicker);
 
-        var btnSetDate = new Button
+        var btnSetDate = (new Button
         {
             Text = "✓ Set This Target Date",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSetDate.Clicked += OnSetSpecificDateClicked;
         dateStack.Children.Add(btnSetDate);
 
@@ -227,41 +213,37 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
         _mainContent.Children.Add(datePickerFrame);
 
         // No habit target button
-        var btnNoHabit = new Button
+        var btnNoHabit = (new Button
         {
             Text = "❌ I don't want this as a habit",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 16, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         btnNoHabit.Clicked += OnNoHabitTargetClicked;
         _mainContent.Children.Add(btnNoHabit);
 
         // Skip button (only for non-expired)
         if (!_isExpiredMode)
         {
-            var btnSkip = new Button
+            var btnSkip = (new Button
             {
                 Text = "Skip (decide later)",
                 BackgroundColor = Colors.Transparent,
-                TextColor = Color.FromArgb("#666"),
                 FontSize = 14
-            };
+            }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
             btnSkip.Clicked += OnSkipClicked;
             _mainContent.Children.Add(btnSkip);
         }
 
         // Skip all button
-        var btnSkipAll = new Button
+        var btnSkipAll = (new Button
         {
             Text = _isExpiredMode ? "Skip remaining (default +30 days)" : "Skip all remaining",
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#999"),
             FontSize = 12,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         btnSkipAll.Clicked += OnSkipAllClicked;
         _mainContent.Children.Add(btnSkipAll);
 
@@ -271,15 +253,13 @@ public class HabitTargetDecisionPage : Bannister.Views.ModeThemedPage
 
     private Button CreateQuickButton(string text, int days)
     {
-        var btn = new Button
+        var btn = (new Button
         {
             Text = "+" + text,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         btn.Clicked += (s, e) => {
             _datePicker.Date = _datePicker.Date.AddDays(days);
         };

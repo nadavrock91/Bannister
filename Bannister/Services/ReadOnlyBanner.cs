@@ -19,22 +19,19 @@ public class ReadOnlyBanner : ContentView
     {
         _deviceMode = deviceMode;
 
-        _frame = new Frame
+        _frame = (new Frame
         {
             Padding = new Thickness(12, 6),
             CornerRadius = 6,
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            BorderColor = Color.FromArgb("#FB8C00"),
             HasShadow = false,
             Margin = new Thickness(0, 0, 0, 8),
-            Content = new Label
+            Content = (new Label
             {
                 Text = "🔒 Read-Only Mode — this device is in Secondary mode. Tap Settings → Sync & Devices to change.",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#E65100"),
                 LineBreakMode = LineBreakMode.WordWrap
-            }
-        };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.WarningButtonBackground);
 
         Content = _frame;
         UpdateVisibility();

@@ -45,27 +45,24 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
             Spacing = 12
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = " Hook Word Pool",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1565C0")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
 
-        _countLabel = new Label
+        _countLabel = (new Label
         {
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
         stack.Children.Add(_countLabel);
 
-        _searchEntry = new Entry
+        _searchEntry = (new Entry
         {
             Placeholder = "Search words...",
-            BackgroundColor = Colors.White,
             FontSize = 14
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _searchEntry.TextChanged += (_, _) => RenderWords();
         stack.Children.Add(_searchEntry);
 
@@ -78,15 +75,13 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
             Children = { _activeToggle, _removedToggle, _allToggle }
         });
 
-        _bulkToggle = new Button
+        _bulkToggle = (new Button
         {
             Text = "Bulk select",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             HeightRequest = 36,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         _bulkToggle.Clicked += (_, _) =>
         {
             _bulkSelectMode = !_bulkSelectMode;
@@ -103,19 +98,19 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
             IsVisible = false,
             Children =
             {
-                BuildBulkButton("Remove selected", Color.FromArgb("#FFF3E0"), Color.FromArgb("#EF6C00"), async () =>
+                BuildBulkButton("Remove selected", ThemeKey.WarningBackground, ThemeKey.WarningAmber, async () =>
                 {
                     await _hookWordService.BulkRemoveAsync(_selectedIds.ToList());
                     _selectedIds.Clear();
                     await LoadAsync();
                 }),
-                BuildBulkButton("Restore selected", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"), async () =>
+                BuildBulkButton("Restore selected", ThemeKey.SuccessBackground, ThemeKey.SuccessText, async () =>
                 {
                     await _hookWordService.BulkRestoreAsync(_selectedIds.ToList());
                     _selectedIds.Clear();
                     await LoadAsync();
                 }),
-                BuildBulkButton("Delete selected", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"), async () =>
+                BuildBulkButton("Delete selected", ThemeKey.ErrorBackground, ThemeKey.ErrorText, async () =>
                 {
                     if (_selectedIds.Count == 0) return;
                     var ok = await DisplayAlert("Delete permanently?", $"Delete {_selectedIds.Count} selected word(s)? This cannot be undone.", "Delete", "Cancel");
@@ -155,17 +150,15 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
         return button;
     }
 
-    private Button BuildBulkButton(string text, Color background, Color textColor, Func<Task> action)
+    private Button BuildBulkButton(string text, ThemeKey background, ThemeKey textColor, Func<Task> action)
     {
-        var button = new Button
+        var button = (new Button
         {
             Text = text,
-            BackgroundColor = background,
-            TextColor = textColor,
             CornerRadius = 8,
             HeightRequest = 34,
             FontSize = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, textColor);
         button.Clicked += async (_, _) => await action();
         return button;
     }
@@ -179,8 +172,8 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
 
     private static void StyleToggle(Button button, bool selected)
     {
-        button.BackgroundColor = selected ? Color.FromArgb("#1565C0") : Color.FromArgb("#ECEFF1");
-        button.TextColor = selected ? Colors.White : Color.FromArgb("#37474F");
+        button.ThemeColor(VisualElement.BackgroundColorProperty, selected ? ThemeKey.ButtonPrimaryBackground : ThemeKey.NeutralButtonBackground);
+        button.ThemeColor(Button.TextColorProperty, selected ? ThemeKey.OnColorText : ThemeKey.NeutralButtonText);
     }
 
     private async Task LoadAsync()
@@ -211,14 +204,13 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
 
         if (rows.Count == 0)
         {
-            _wordsStack.Children.Add(new Label
+            _wordsStack.Children.Add((new Label
             {
                 Text = "No words match the current filter.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic,
                 Margin = new Thickness(0, 20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -228,7 +220,7 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
 
     private View BuildWordRow(HookWord word)
     {
-        var row = new Grid
+        var row = (new Grid
         {
             ColumnDefinitions =
             {
@@ -237,9 +229,8 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition { Width = GridLength.Auto }
             },
             ColumnSpacing = 8,
-            Padding = new Thickness(10),
-            BackgroundColor = Colors.White
-        };
+            Padding = new Thickness(10)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var check = new CheckBox
         {
@@ -256,18 +247,17 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
         };
         row.Add(check, 0, 0);
 
-        row.Add(new Label
+        row.Add((new Label
         {
             Text = word.Word,
             FontSize = 15,
-            TextColor = Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.Center
-        }, 1, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
 
         var actions = new HorizontalStackLayout { Spacing = 6 };
         if (word.Status == "active")
         {
-            actions.Children.Add(BuildRowButton("Remove", Color.FromArgb("#FFF3E0"), Color.FromArgb("#EF6C00"), async () =>
+            actions.Children.Add(BuildRowButton("Remove", ThemeKey.WarningBackground, ThemeKey.WarningAmber, async () =>
             {
                 await _hookWordService.RemoveWordAsync(word.Id);
                 await LoadAsync();
@@ -275,14 +265,14 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
         }
         else
         {
-            actions.Children.Add(BuildRowButton("Restore", Color.FromArgb("#E8F5E9"), Color.FromArgb("#2E7D32"), async () =>
+            actions.Children.Add(BuildRowButton("Restore", ThemeKey.SuccessBackground, ThemeKey.SuccessText, async () =>
             {
                 await _hookWordService.RestoreWordAsync(word.Id);
                 await LoadAsync();
             }));
         }
 
-        actions.Children.Add(BuildRowButton("Delete", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"), async () =>
+        actions.Children.Add(BuildRowButton("Delete", ThemeKey.ErrorBackground, ThemeKey.ErrorText, async () =>
         {
             var ok = await DisplayAlert("Delete permanently?", $"Delete '{word.Word}' forever?", "Delete", "Cancel");
             if (!ok) return;
@@ -294,18 +284,16 @@ public class HookWordManagementPage : Bannister.Views.ModeThemedPage
         return row;
     }
 
-    private Button BuildRowButton(string text, Color background, Color textColor, Func<Task> action)
+    private Button BuildRowButton(string text, ThemeKey background, ThemeKey textColor, Func<Task> action)
     {
-        var button = new Button
+        var button = (new Button
         {
             Text = text,
-            BackgroundColor = background,
-            TextColor = textColor,
             CornerRadius = 6,
             FontSize = 11,
             HeightRequest = 30,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, textColor);
         button.Clicked += async (_, _) => await action();
         return button;
     }

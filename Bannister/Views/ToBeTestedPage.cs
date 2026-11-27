@@ -28,16 +28,15 @@ public class ToBeTestedPage : Bannister.Views.ModeThemedPage
             Spacing = 10
         };
 
-        _emptyLabel = new Label
+        _emptyLabel = (new Label
         {
             Text = "No activities to test right now. Mark activities as 'To Be Tested' from their edit page to add them here.",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666666"),
             HorizontalOptions = LayoutOptions.Center,
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 32, 0, 0),
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
         var contentStack = new VerticalStackLayout
         {
@@ -45,20 +44,18 @@ public class ToBeTestedPage : Bannister.Views.ModeThemedPage
             Padding = new Thickness(16),
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "To Be Tested",
                     FontSize = 28,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#222222")
-                },
-                new Label
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                (new Label
                 {
                     Text = "Activities you haven't tried in real life yet.",
                     FontSize = 14,
-                    TextColor = Color.FromArgb("#666666"),
                     Margin = new Thickness(0, -6, 0, 8)
-                },
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                 _emptyLabel,
                 _listStack
             }
@@ -101,45 +98,39 @@ public class ToBeTestedPage : Bannister.Views.ModeThemedPage
             : activity.Game;
         string category = string.IsNullOrWhiteSpace(activity.Category) ? "Misc" : activity.Category;
 
-        var title = new Label
+        var title = (new Label
         {
             Text = activity.Name,
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222222")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
 
-        var subtitle = new Label
+        var subtitle = (new Label
         {
             Text = $"{gameName} - {category}",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
-        var markTriedButton = new Button
+        var markTriedButton = (new Button
         {
             Text = "Mark as Tried",
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32"),
             CornerRadius = 8,
             HeightRequest = 40,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         markTriedButton.Clicked += async (_, _) =>
         {
             await _activities.SetIsToBeTestedAsync(activity.Id, false);
             await LoadAsync();
         };
 
-        var openButton = new Button
+        var openButton = (new Button
         {
             Text = "Open in Game",
-            BackgroundColor = Color.FromArgb("#FFF9C4"),
-            TextColor = Color.FromArgb("#F57C00"),
             CornerRadius = 8,
             HeightRequest = 40,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellowStrong).ThemeColor(Button.TextColorProperty, ThemeKey.WarningStrongText);
         openButton.Clicked += async (_, _) => await OpenActivityGameAsync(activity);
 
         var buttonRow = new HorizontalStackLayout
@@ -177,15 +168,13 @@ public class ToBeTestedPage : Bannister.Views.ModeThemedPage
         content.Add(textStack, 0, 0);
         content.Add(buttonRow, 1, 0);
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Content = content,
             Padding = 14,
             CornerRadius = 8,
-            HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Colors.White
-        };
+            HasShadow = false
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (_, _) => await OpenActivityGameAsync(activity);

@@ -81,13 +81,12 @@ public static class DailyDeadlineViewHelper
 
         if (activity == null)
         {
-            row.BackgroundColor = Color.FromArgb("#F0F0F0");
-            var missingLabel = new Label
+            row.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+            var missingLabel = (new Label
             {
                 Text = "Activity not found",
-                TextColor = Color.FromArgb("#888"),
                 VerticalOptions = LayoutOptions.Center
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
             if (options.StackButtons)
             {
                 var rightSide = new VerticalStackLayout { Spacing = 6 };
@@ -106,23 +105,20 @@ public static class DailyDeadlineViewHelper
                     row.Add(MakeDeleteButton(item, options.OnDelete), delCol, 0);
                 }
             }
-            return Task.FromResult<View>(new Border
+            return Task.FromResult<View>((new Border
             {
                 Content = row,
-                Stroke = Color.FromArgb("#DDDDDD"),
-                StrokeThickness = 1,
-                BackgroundColor = Color.FromArgb("#F0F0F0")
-            });
+                StrokeThickness = 1
+            }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface));
         }
 
-        var doneCheck = new CheckBox
+        var doneCheck = (new CheckBox
         {
             IsChecked = completedIds.Contains(item.Id),
-            Color = Color.FromArgb("#2E7D32"),
             WidthRequest = 60,
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessText);
         doneCheck.CheckedChanged += async (_, e) =>
             await SetCompletedAsync(item, e.Value, service, resetTime, username, reload);
         row.Add(doneCheck, 0, 0);
@@ -146,13 +142,11 @@ public static class DailyDeadlineViewHelper
                 row.Add(MakeDeleteButton(item, options.OnDelete), nextCol, 0);
         }
 
-        return Task.FromResult<View>(new Border
+        return Task.FromResult<View>((new Border
         {
             Content = row,
-            Stroke = Color.FromArgb("#E0E0E0"),
-            StrokeThickness = 1,
-            BackgroundColor = Colors.White
-        });
+            StrokeThickness = 1
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground));
     }
 
     public static Task<View> BuildPossibleRowAsync(
@@ -180,26 +174,24 @@ public static class DailyDeadlineViewHelper
 
         if (activity == null)
         {
-            row.BackgroundColor = Color.FromArgb("#F0F0F0");
-            row.Add(new Label { Text = "Activity not found", TextColor = Color.FromArgb("#888"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+            row.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
+            row.Add((new Label { Text = "Activity not found", VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true), 0, 0);
             if (!stackButtons)
             {
                 var missingDel = MakeDeleteButton(item, async i => { await service.DeleteItemAsync(i.Id); await reload(); });
                 row.Add(missingDel, 1, 0);
             }
-            return Task.FromResult<View>(new Border { Content = row, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Color.FromArgb("#F0F0F0") });
+            return Task.FromResult<View>((new Border { Content = row, StrokeThickness = 1 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface));
         }
 
-        var moveBtn = new Button
+        var moveBtn = (new Button
         {
             Text = "Move to Active",
             IsEnabled = !isFull,
             FontSize = 11,
             Padding = new Thickness(8, 0),
-            HeightRequest = 34,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0")
-        };
+            HeightRequest = 34
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         moveBtn.Clicked += async (_, _) => { item.IsActive = true; await service.SaveItemAsync(item); await reload(); };
 
         var delBtn = MakeDeleteButton(item, async i => { await service.DeleteItemAsync(i.Id); await reload(); });
@@ -217,13 +209,13 @@ public static class DailyDeadlineViewHelper
             row.Add(delBtn, 2, 0);
         }
 
-        return Task.FromResult<View>(new Border { Content = row, Stroke = Color.FromArgb("#E0E0E0"), StrokeThickness = 1, BackgroundColor = Colors.White });
+        return Task.FromResult<View>((new Border { Content = row, StrokeThickness = 1 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground));
     }
 
     public static View BuildActivityVisual(Activity? activity)
     {
         if (activity == null)
-            return new Label { Text = "Unavailable activity", TextColor = Color.FromArgb("#999"), VerticalOptions = LayoutOptions.Center };
+            return (new Label { Text = "Unavailable activity", VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true);
         if (activity.IsImageOnly)
         {
             if (!string.IsNullOrWhiteSpace(activity.ImagePath))
@@ -243,7 +235,7 @@ public static class DailyDeadlineViewHelper
                 HorizontalOptions = LayoutOptions.Start
             };
         }
-        return new Label { Text = activity.Name, FontSize = 14, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center };
+        return (new Label { Text = activity.Name, FontSize = 14, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
     }
 
     private static HorizontalStackLayout BuildButtonRow(
@@ -264,30 +256,26 @@ public static class DailyDeadlineViewHelper
 
     private static Button MakeMoveButton(DailyDeadlineItem item, Func<DailyDeadlineItem, Task> onMove)
     {
-        var move = new Button
+        var move = (new Button
         {
             Text = "Move to Possible",
             FontSize = 11,
             Padding = new Thickness(8, 0),
-            HeightRequest = 34,
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F")
-        };
+            HeightRequest = 34
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         move.Clicked += async (_, _) => await onMove(item);
         return move;
     }
 
     private static Button MakeDeleteButton(DailyDeadlineItem item, Func<DailyDeadlineItem, Task> onDelete)
     {
-        var del = new Button
+        var del = (new Button
         {
             Text = "Delete",
             FontSize = 11,
             Padding = new Thickness(8, 0),
-            HeightRequest = 34,
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828")
-        };
+            HeightRequest = 34
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         del.Clicked += async (_, _) => await onDelete(item);
         return del;
     }

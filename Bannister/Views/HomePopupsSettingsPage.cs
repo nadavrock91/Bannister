@@ -48,19 +48,17 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
             Spacing = 14,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = " HomePage Popups",
                     FontSize = 22,
-                    FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#1565C0")
-                },
-                new Label
+                    FontAttributes = FontAttributes.Bold
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true),
+                (new Label
                 {
                     Text = "Control which popups appear when HomePage loads. Configure independently for primary and secondary device roles.",
-                    FontSize = 13,
-                    TextColor = Color.FromArgb("#666")
-                },
+                    FontSize = 13
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                 _cardsStack
             }
         };
@@ -92,8 +90,8 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
         var primarySwitch = new Switch
         {
             IsToggled = primary,
-            OnColor = Color.FromArgb("#2E7D32"),
-            ThumbColor = Colors.White
+            OnColor = AppColors.Get(ThemeKey.SuccessText),
+            ThumbColor = AppColors.Get(ThemeKey.OnColorText)
         };
         primarySwitch.Toggled += async (_, e) =>
         {
@@ -103,8 +101,8 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
         var secondarySwitch = new Switch
         {
             IsToggled = secondary,
-            OnColor = Color.FromArgb("#1565C0"),
-            ThumbColor = Colors.White
+            OnColor = AppColors.Get(ThemeKey.InfoText),
+            ThumbColor = AppColors.Get(ThemeKey.OnColorText)
         };
         secondarySwitch.Toggled += async (_, e) =>
         {
@@ -116,8 +114,8 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
         {
             IsToggled = seenToday,
             IsEnabled = hasSeenTodayGate,
-            OnColor = Color.FromArgb("#9E9E9E"),
-            ThumbColor = Colors.White
+            OnColor = AppColors.Get(ThemeKey.DisabledButtonBackground),
+            ThumbColor = AppColors.Get(ThemeKey.OnColorText)
         };
         seenTodaySwitch.Toggled += async (_, e) =>
         {
@@ -140,7 +138,7 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
             Spacing = 4,
             Children =
             {
-                new Label { Text = "Primary device", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                (new Label { Text = "Primary device", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
                 primarySwitch
             }
         }, 0, 0);
@@ -150,7 +148,7 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
             Spacing = 4,
             Children =
             {
-                new Label { Text = "Secondary device", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                (new Label { Text = "Secondary device", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
                 secondarySwitch
             }
         }, 1, 0);
@@ -160,33 +158,29 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
             Spacing = 4,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = "Seen today",
-                    FontSize = 12,
-                    TextColor = hasSeenTodayGate ? Color.FromArgb("#666") : Color.FromArgb("#BBB")
-                },
+                    FontSize = 12
+                }).ThemeColor(Label.TextColorProperty, hasSeenTodayGate ? ThemeKey.CardText2 : ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true),
                 seenTodaySwitch
             }
         };
 
         if (!hasSeenTodayGate)
         {
-            seenTodayColumn.Children.Add(new Label
+            seenTodayColumn.Children.Add((new Label
             {
                 Text = "(no gate)",
                 FontSize = 10,
-                TextColor = Color.FromArgb("#BBB"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
 
         switchRow.Add(seenTodayColumn, 2, 0);
 
-        return new Frame
+        return (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             CornerRadius = 10,
             Padding = 14,
             HasShadow = false,
@@ -196,10 +190,10 @@ public class HomePopupsSettingsPage : Bannister.Views.ModeThemedPage
                 Children =
                 {
                     new Label { Text = title, FontSize = 15, FontAttributes = FontAttributes.Bold },
-                    new Label { Text = description, FontSize = 12, TextColor = Color.FromArgb("#666") },
+                    (new Label { Text = description, FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
                     switchRow
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 }

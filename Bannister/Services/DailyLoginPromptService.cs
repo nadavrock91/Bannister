@@ -42,8 +42,8 @@ public class DailyLoginPromptService
         {
             Username = username,
             Text = text,
-            FontColor = NormalizeHexColor(fontColor, "#FFFFFF"),
-            BackgroundColor = NormalizeHexColor(backgroundColor, "#5B63EE"),
+            FontColor = NormalizeHexColor(fontColor, AppColors.Hex(ThemeKey.OnColorText)),
+            BackgroundColor = NormalizeHexColor(backgroundColor, AppColors.Hex(ThemeKey.SecondaryButtonBackground)),
             SortOrder = prompts.Count == 0 ? 1 : prompts.Max(p => p.SortOrder) + 1
         };
 
@@ -55,8 +55,8 @@ public class DailyLoginPromptService
     public async Task UpdatePromptAsync(DailyLoginPrompt prompt)
     {
         await EnsureInitializedAsync();
-        prompt.FontColor = NormalizeHexColor(prompt.FontColor, "#FFFFFF");
-        prompt.BackgroundColor = NormalizeHexColor(prompt.BackgroundColor, "#5B63EE");
+        prompt.FontColor = NormalizeHexColor(prompt.FontColor, AppColors.Hex(ThemeKey.OnColorText));
+        prompt.BackgroundColor = NormalizeHexColor(prompt.BackgroundColor, AppColors.Hex(ThemeKey.SecondaryButtonBackground));
         var conn = await _db.GetConnectionAsync();
         await conn.UpdateAsync(prompt);
     }

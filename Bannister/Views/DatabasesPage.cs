@@ -77,20 +77,20 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
         };
 
         var dbStack = new VerticalStackLayout { Spacing = 2 };
-        dbStack.Children.Add(new Label { Text = "Database", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#555") });
-        _dbPicker = new Picker { Title = "Select database...", FontSize = 13, BackgroundColor = Colors.White };
+        dbStack.Children.Add((new Label { Text = "Database", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        _dbPicker = (new Picker { Title = "Select database...", FontSize = 13 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _dbPicker.SelectedIndexChanged += OnDatabaseSelected;
         dbStack.Children.Add(_dbPicker);
         pickerRow.Add(dbStack, 0, 0);
 
         var tableStack = new VerticalStackLayout { Spacing = 2 };
-        tableStack.Children.Add(new Label { Text = "Table", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#555") });
-        _tablePicker = new Picker { Title = "Select table...", FontSize = 13, BackgroundColor = Colors.White, IsEnabled = false };
+        tableStack.Children.Add((new Label { Text = "Table", FontSize = 11, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        _tablePicker = (new Picker { Title = "Select table...", FontSize = 13, IsEnabled = false }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _tablePicker.SelectedIndexChanged += OnTableSelected;
         tableStack.Children.Add(_tablePicker);
         pickerRow.Add(tableStack, 1, 0);
 
-        _lblStatus = new Label { Text = "", FontSize = 11, TextColor = Color.FromArgb("#888"), VerticalOptions = LayoutOptions.End, Margin = new Thickness(0, 0, 0, 6) };
+        _lblStatus = (new Label { Text = "", FontSize = 11, VerticalOptions = LayoutOptions.End, Margin = new Thickness(0, 0, 0, 6) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         pickerRow.Add(_lblStatus, 2, 0);
 
         mainGrid.Add(pickerRow, 0, 0);
@@ -121,11 +121,11 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
             IsVisible = false
         };
 
-        var btnPrev = new Button { Text = "← Previous", BackgroundColor = Color.FromArgb("#5B63EE"), TextColor = Colors.White, CornerRadius = 6, FontSize = 13, HeightRequest = 34 };
+        var btnPrev = (new Button { Text = "← Previous", CornerRadius = 6, FontSize = 13, HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnPrev.Clicked += async (s, e) => { if (_offset >= PageSize) { _offset -= PageSize; await LoadRowsAsync(); } };
         _paginationBar.Add(btnPrev, 0, 0);
 
-        var btnNext = new Button { Text = "Next →", BackgroundColor = Color.FromArgb("#5B63EE"), TextColor = Colors.White, CornerRadius = 6, FontSize = 13, HeightRequest = 34 };
+        var btnNext = (new Button { Text = "Next →", CornerRadius = 6, FontSize = 13, HeightRequest = 34 }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnNext.Clicked += async (s, e) => { if (_offset + PageSize < _totalCount) { _offset += PageSize; await LoadRowsAsync(); } };
         _paginationBar.Add(btnNext, 1, 0);
 
@@ -233,7 +233,7 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
 
         _toolbarContainer.Children.Clear();
         _gridContainer.Children.Clear();
-        _gridContainer.Children.Add(new ActivityIndicator { IsRunning = true, Color = Color.FromArgb("#5B63EE") });
+        _gridContainer.Children.Add((new ActivityIndicator { IsRunning = true }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SecondaryAccentText));
 
         try
         {
@@ -244,7 +244,7 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
             if (_totalCount == 0)
             {
                 _gridContainer.Children.Clear();
-                _gridContainer.Children.Add(new Label { Text = "Table is empty", TextColor = Color.FromArgb("#666"), HorizontalTextAlignment = TextAlignment.Center, Margin = new Thickness(0, 20) });
+                _gridContainer.Children.Add((new Label { Text = "Table is empty", HorizontalTextAlignment = TextAlignment.Center, Margin = new Thickness(0, 20) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
                 _paginationBar.IsVisible = false;
                 return;
             }
@@ -275,8 +275,8 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
             var tbl = _currentTableName;
 
             var dataGrid = DataGridView.Create(_columns, displayRows)
-                .WithHeaderStyle(Color.FromArgb("#5B63EE"), Colors.White)
-                .WithAlternateRowColor(Color.FromArgb("#F8F9FF"))
+                .WithHeaderStyle(AppColors.Get(ThemeKey.SecondaryAccentText), AppColors.Get(ThemeKey.OnColorText))
+                .WithAlternateRowColor(AppColors.Get(ThemeKey.SecondaryLavenderSurface))
                 .WithColumnWidths(60, 200)
                 .WithCellPadding(6)
                 .WithFontSize(12, 12)
@@ -304,7 +304,7 @@ public class DatabasesPage : Bannister.Views.ModeThemedPage
         catch (Exception ex)
         {
             _gridContainer.Children.Clear();
-            _gridContainer.Children.Add(new Label { Text = $"Error: {ex.Message}", TextColor = Colors.Red });
+            _gridContainer.Children.Add((new Label { Text = $"Error: {ex.Message}" }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorPureText, ThemeKey.PageText1, classifyPageText: true));
         }
     }
 

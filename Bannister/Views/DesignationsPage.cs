@@ -51,13 +51,12 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
             Spacing = 8
         };
 
-        header.Children.Add(new Label
+        header.Children.Add((new Label
         {
             Text = "Designations",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#283593")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoText, ThemeKey.PageText1, classifyPageText: true));
 
         var systemRow = new Grid
         {
@@ -71,24 +70,23 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        systemRow.Add(new Label
+        systemRow.Add((new Label
         {
             Text = "System",
             FontSize = 13,
-            TextColor = Color.FromArgb("#555"),
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true), 0, 0);
 
         _systemPicker = new Picker { Title = "Choose system", VerticalOptions = LayoutOptions.Center };
         _systemPicker.SelectedIndexChanged += async (s, e) => await OnSystemChangedAsync();
         systemRow.Add(_systemPicker, 1, 0);
 
-        var addSystemBtn = CreateActionButton("+ Add System", Color.FromArgb("#2E7D32"), Colors.White);
+        var addSystemBtn = CreateActionButton("+ Add System", ThemeKey.SuccessDarkButtonBackground, ThemeKey.OnColorText);
         addSystemBtn.IsVisible = !_designations.IsReadOnly;
         addSystemBtn.Clicked += async (s, e) => await AddSystemAsync();
         systemRow.Add(addSystemBtn, 2, 0);
 
-        var removeSystemBtn = CreateActionButton("Remove System", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+        var removeSystemBtn = CreateActionButton("Remove System", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         removeSystemBtn.IsVisible = !_designations.IsReadOnly;
         removeSystemBtn.Clicked += async (s, e) => await RemoveSystemAsync();
         systemRow.Add(removeSystemBtn, 3, 0);
@@ -108,13 +106,12 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        filterRow.Add(new Label
+        filterRow.Add((new Label
         {
             Text = "Status",
             FontSize = 13,
-            TextColor = Color.FromArgb("#555"),
             VerticalOptions = LayoutOptions.Center
-        }, 0, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true), 0, 0);
 
         _statusPicker = new Picker { WidthRequest = 160, VerticalOptions = LayoutOptions.Center };
         foreach (var status in new[] { "All", "Pending", "Completed", "Archived", "Failed" })
@@ -123,21 +120,20 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
         _statusPicker.SelectedIndexChanged += async (s, e) => await LoadDesignationsAsync();
         filterRow.Add(_statusPicker, 1, 0);
 
-        _statusLabel = new Label
+        _statusLabel = (new Label
         {
             Text = "Add a system to begin.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         filterRow.Add(_statusLabel, 2, 0);
 
-        var addDesignationBtn = CreateActionButton("+ Add Designation", Color.FromArgb("#2E7D32"), Colors.White);
+        var addDesignationBtn = CreateActionButton("+ Add Designation", ThemeKey.SuccessDarkButtonBackground, ThemeKey.OnColorText);
         addDesignationBtn.IsVisible = !_designations.IsReadOnly;
         addDesignationBtn.Clicked += async (s, e) => await AddDesignationAsync();
         filterRow.Add(addDesignationBtn, 3, 0);
 
-        var deleteDesignationBtn = CreateActionButton("Delete Designation", Color.FromArgb("#FFEBEE"), Color.FromArgb("#C62828"));
+        var deleteDesignationBtn = CreateActionButton("Delete Designation", ThemeKey.ErrorBackground, ThemeKey.ErrorText);
         deleteDesignationBtn.IsVisible = !_designations.IsReadOnly;
         deleteDesignationBtn.Clicked += async (s, e) => await DeleteSelectedDesignationAsync();
         filterRow.Add(deleteDesignationBtn, 4, 0);
@@ -153,18 +149,16 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
         Content = mainGrid;
     }
 
-    private static Button CreateActionButton(string text, Color background, Color textColor)
+    private static Button CreateActionButton(string text, ThemeKey background, ThemeKey textColor)
     {
-        return new Button
+        return (new Button
         {
             Text = text,
             FontSize = 13,
             HeightRequest = 38,
-            BackgroundColor = background,
-            TextColor = textColor,
             CornerRadius = 6,
             Padding = new Thickness(14, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, textColor);
     }
 
     private async Task LoadSystemsAsync(int? selectedSystemId = null)
@@ -217,7 +211,7 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
             return;
         }
 
-        _gridContainer.Children.Add(new ActivityIndicator { IsRunning = true, Color = Color.FromArgb("#283593") });
+        _gridContainer.Children.Add((new ActivityIndicator { IsRunning = true }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.HighlightIndigoText));
         _currentDesignations = await _designations.GetDesignationsAsync(
             _auth.CurrentUsername,
             _selectedSystem.Id,
@@ -233,25 +227,23 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
 
         if (_selectedSystem == null)
         {
-            _gridContainer.Children.Add(new Label
+            _gridContainer.Children.Add((new Label
             {
                 Text = "Add a system before creating designations.",
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
         if (_currentDesignations.Count == 0)
         {
-            _gridContainer.Children.Add(new Label
+            _gridContainer.Children.Add((new Label
             {
                 Text = "No designations match this filter.",
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -267,8 +259,8 @@ public class DesignationsPage : Bannister.Views.ModeThemedPage
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(Color.FromArgb("#283593"), Colors.White)
-            .WithAlternateRowColor(Color.FromArgb("#E8EAF6"))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.HighlightIndigoText), AppColors.Get(ThemeKey.OnColorText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightIndigo))
             .WithColumnWidths(70, 240)
             .WithCellPadding(6)
             .WithFontSize(12, 12)

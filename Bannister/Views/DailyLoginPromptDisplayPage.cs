@@ -1,5 +1,7 @@
 using Bannister.Models;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public class DailyLoginPromptDisplayPage : ContentPage
@@ -10,56 +12,50 @@ public class DailyLoginPromptDisplayPage : ContentPage
     private DailyLoginPromptDisplayPage(DailyLoginPrompt prompt, int position, int total)
     {
         Title = "Daily Prompt";
-        BackgroundColor = Color.FromArgb("#80000000");
+        BackgroundColor = AppColors.Get(ThemeKey.Overlay);
 
-        var container = new Grid
+        var container = (new Grid
         {
-            Padding = 24,
-            BackgroundColor = Color.FromArgb("#80000000")
-        };
+            Padding = 24
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Overlay);
 
-        var card = new Frame
+        var card = (new Frame
         {
             Padding = 24,
             CornerRadius = 12,
             HasShadow = true,
             BorderColor = Colors.Transparent,
-            BackgroundColor = SafeColor(prompt.BackgroundColor, "#5B63EE"),
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 520,
             MaximumWidthRequest = 720
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, SafeColor(prompt.BackgroundColor, ThemeKey.SecondaryButtonBackground));
 
         var stack = new VerticalStackLayout { Spacing = 18 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Prompt {position} of {total}",
             FontSize = 13,
-            TextColor = SafeColor(prompt.FontColor, "#FFFFFF"),
             Opacity = 0.8,
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.OnColorText), ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = prompt.Text,
             FontSize = 22,
             FontAttributes = FontAttributes.Bold,
-            TextColor = SafeColor(prompt.FontColor, "#FFFFFF"),
             HorizontalTextAlignment = TextAlignment.Center,
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.OnColorText), ThemeKey.PageText1, classifyPageText: true));
 
-        var btnNext = new Button
+        var btnNext = (new Button
         {
             Text = position == total ? "Done" : "Next",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#333333"),
             CornerRadius = 8,
             HeightRequest = 46,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         btnNext.Clicked += async (s, e) => await CloseAsync();
         stack.Children.Add(btnNext);
 
@@ -96,9 +92,9 @@ public class DailyLoginPromptDisplayPage : ContentPage
         _closed.TrySetResult();
     }
 
-    private static Color SafeColor(string value, string fallback)
+    private static Color SafeColor(string value, ThemeKey fallback)
     {
-        try { return Color.FromArgb(value); }
-        catch { return Color.FromArgb(fallback); }
+        try { return ModeTheme.ParseStoredHex(value); }
+        catch { return AppColors.Get(fallback); }
     }
 }

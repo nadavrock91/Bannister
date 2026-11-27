@@ -32,19 +32,17 @@ public class AutoAwardConfirmationPage : ContentPage
         _pendingDayCounts = pendingDayCounts ?? eligibleActivities.ToDictionary(a => a.Id, _ => 1);
 
         Title = "Auto-Award Activities";
-        BackgroundColor = Color.FromArgb("#F5F7FC");
+        BackgroundColor = AppColors.Get(ThemeKey.SecondaryLavenderSurface);
 
-        _awardButton = new Button
+        _awardButton = (new Button
         {
             Text = "Award EXP",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 12,
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
             HeightRequest = 60,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _awardButton.Clicked += OnAwardClicked;
 
         BuildUI();
@@ -53,62 +51,56 @@ public class AutoAwardConfirmationPage : ContentPage
 
     private void BuildUI()
     {
-        var mainGrid = new Grid
+        var mainGrid = (new Grid
         {
             RowDefinitions =
             {
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Star }
-            },
-            BackgroundColor = Color.FromArgb("#F5F7FC")
-        };
+            }
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
 
-        var topSection = new VerticalStackLayout
+        var topSection = (new VerticalStackLayout
         {
             Padding = 20,
-            Spacing = 15,
-            BackgroundColor = Color.FromArgb("#F5F7FC")
-        };
+            Spacing = 15
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryLavenderSurface);
 
-        topSection.Children.Add(new Label
+        topSection.Children.Add((new Label
         {
             Text = "Auto-Award Activities",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333333"),
             HorizontalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         _totalLabel.FontSize = 28;
         _totalLabel.FontAttributes = FontAttributes.Bold;
-        _totalLabel.TextColor = Color.FromArgb("#4CAF50");
+        _totalLabel.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true);
         _totalLabel.HorizontalOptions = LayoutOptions.Center;
         _totalLabel.Margin = new Thickness(0, 5, 0, 10);
         topSection.Children.Add(_totalLabel);
 
         topSection.Children.Add(_awardButton);
 
-        var skipButton = new Button
+        var skipButton = (new Button
         {
             Text = "Skip For Now",
-            BackgroundColor = Color.FromArgb("#999999"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         skipButton.Clicked += OnSkipClicked;
         topSection.Children.Add(skipButton);
 
-        topSection.Children.Add(new Label
+        topSection.Children.Add((new Label
         {
             Text = "Uncheck any you do not want to award. Pending awards will be backdated per day.",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666666"),
             LineBreakMode = LineBreakMode.WordWrap,
             Margin = new Thickness(0, 10, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         mainGrid.Add(topSection, 0, 0);
 
@@ -138,12 +130,11 @@ public class AutoAwardConfirmationPage : ContentPage
             ColumnSpacing = 10
         };
 
-        var checkbox = new CheckBox
+        var checkbox = (new CheckBox
         {
             IsChecked = true,
-            Color = Color.FromArgb("#4CAF50"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(CheckBox.ColorProperty, ThemeKey.SuccessLightText);
         checkbox.CheckedChanged += (_, _) => CalculateTotal();
         _activityCheckBoxes[activity.Id] = checkbox;
         grid.Add(checkbox, 0, 0);
@@ -183,57 +174,50 @@ public class AutoAwardConfirmationPage : ContentPage
             }
             else
             {
-                infoStack.Children.Add(new Label
+                infoStack.Children.Add((new Label
                 {
                     Text = "",
-                    FontSize = 28,
-                    TextColor = Color.FromArgb("#999")
-                });
+                    FontSize = 28
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             }
         }
         else
         {
-            infoStack.Children.Add(new Label
+            infoStack.Children.Add((new Label
             {
                 Text = activity.Name,
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333333"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         }
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = $"{GetFrequencyDescription(activity)} - {pendingDays} pending day{(pendingDays == 1 ? "" : "s")}",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        infoStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        infoStack.Children.Add((new Label
         {
             Text = $"+{expPerDay} per day",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#777777")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         grid.Add(infoStack, 1, 0);
 
-        grid.Add(new Label
+        grid.Add((new Label
         {
             Text = $"+{totalExp}",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#4CAF50"),
             VerticalOptions = LayoutOptions.Center
-        }, 2, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true), 2, 0);
 
-        return new Frame
+        return (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#DDDDDD"),
             Content = grid
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
     }
 
     private void CalculateTotal()

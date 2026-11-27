@@ -1,3 +1,5 @@
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 internal class TestLoadPromptsPage : Bannister.Views.ModeThemedPage
@@ -16,13 +18,12 @@ internal class TestLoadPromptsPage : Bannister.Views.ModeThemedPage
             Spacing = 12
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Test Load Prompts",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
         foreach (string option in new[]
         {
@@ -35,26 +36,22 @@ internal class TestLoadPromptsPage : Bannister.Views.ModeThemedPage
             "Catch-Up (Missed Days)"
         })
         {
-            var button = new Button
+            var button = (new Button
             {
                 Text = option,
                 HeightRequest = 48,
-                BackgroundColor = Color.FromArgb("#1976D2"),
-                TextColor = Colors.White,
                 CornerRadius = 8
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoHoverButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             button.Clicked += async (_, _) => await CloseAsync(option);
             stack.Children.Add(button);
         }
 
-        var cancelButton = new Button
+        var cancelButton = (new Button
         {
             Text = "Cancel",
             HeightRequest = 48,
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333333"),
             CornerRadius = 8
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         cancelButton.Clicked += async (_, _) => await CloseAsync(null);
         stack.Children.Add(cancelButton);
 

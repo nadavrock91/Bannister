@@ -1,85 +1,42 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Bannister.Views.ExpLogPage"
-             Title="Activity Log">
+
+<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Bannister.Views.ExpLogPage" Title="Activity Log" xmlns:theme="clr-namespace:Bannister.Services">
     
     <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20" RowSpacing="15">
         
         <!-- Title -->
-        <Label Grid.Row="0"
-               Text="Activity Log"
-               FontSize="24"
-               FontAttributes="Bold"
-               TextColor="#12161E"
-               HorizontalOptions="Center"/>
+        <Label Grid.Row="0" Text="Activity Log" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
         
         <!-- Stats Summary -->
-        <Frame Grid.Row="1"
-               Padding="15"
-               CornerRadius="12"
-               BackgroundColor="White"
-               HasShadow="True"
-               BorderColor="Transparent">
+        <Frame Grid.Row="1" Padding="15" CornerRadius="12" BackgroundColor="{DynamicResource ModeCardBackground}" HasShadow="True" BorderColor="Transparent" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=CardBackground">
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
                 
                 <!-- Total EXP -->
                 <VerticalStackLayout Grid.Column="0" Spacing="5">
-                    <Label Text="Total EXP"
-                           FontSize="12"
-                           TextColor="#666"
-                           HorizontalOptions="Center"/>
-                    <Label x:Name="lblTotalExp"
-                           Text="0"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#4CAF50"
-                           HorizontalOptions="Center"/>
+                    <Label Text="Total EXP" FontSize="12" TextColor="{DynamicResource ModeCardText2}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
+                    <Label x:Name="lblTotalExp" Text="0" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeSuccessLightText}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=SuccessLightText" />
                 </VerticalStackLayout>
                 
                 <!-- Today -->
                 <VerticalStackLayout Grid.Column="1" Spacing="5">
-                    <Label Text="Today"
-                           FontSize="12"
-                           TextColor="#666"
-                           HorizontalOptions="Center"/>
-                    <Label x:Name="lblTodayExp"
-                           Text="0"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#2196F3"
-                           HorizontalOptions="Center"/>
+                    <Label Text="Today" FontSize="12" TextColor="{DynamicResource ModeCardText2}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
+                    <Label x:Name="lblTodayExp" Text="0" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeInfoLinkText}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=InfoLinkText" />
                 </VerticalStackLayout>
                 
                 <!-- This Week -->
                 <VerticalStackLayout Grid.Column="2" Spacing="5">
-                    <Label Text="This Week"
-                           FontSize="12"
-                           TextColor="#666"
-                           HorizontalOptions="Center"/>
-                    <Label x:Name="lblWeekExp"
-                           Text="0"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#FF9800"
-                           HorizontalOptions="Center"/>
+                    <Label Text="This Week" FontSize="12" TextColor="{DynamicResource ModeCardText2}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
+                    <Label x:Name="lblWeekExp" Text="0" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeWarningAccentText}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=WarningAccentText" />
                 </VerticalStackLayout>
                 
             </Grid>
         </Frame>
         
         <!-- Log List -->
-        <CollectionView Grid.Row="2"
-                       x:Name="logList"
-                       SelectionMode="None">
+        <CollectionView Grid.Row="2" x:Name="logList" SelectionMode="None">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Frame Padding="15"
-                           Margin="0,0,0,10"
-                           CornerRadius="12"
-                           BackgroundColor="White"
-                           HasShadow="True"
-                           BorderColor="Transparent">
+                    <Frame Padding="15" Margin="0,0,0,10" CornerRadius="12" BackgroundColor="{DynamicResource ModeCardBackground}" HasShadow="True" BorderColor="Transparent" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=CardBackground">
                         
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             
@@ -88,54 +45,25 @@
                                 
                                 <!-- Activity Name & EXP -->
                                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                                    <Image Grid.Column="0"
-                                           IsVisible="{Binding ShowImage}"
-                                           HeightRequest="40"
-                                           WidthRequest="40"
-                                           Aspect="AspectFit">
+                                    <Image Grid.Column="0" IsVisible="{Binding ShowImage}" HeightRequest="40" WidthRequest="40" Aspect="AspectFit">
                                         <Image.Source>
-                                            <FileImageSource
-                                                File="{Binding ResolvedImagePath}"/>
+                                            <FileImageSource File="{Binding ResolvedImagePath}" />
                                         </Image.Source>
                                     </Image>
-                                    <Label Grid.Column="0"
-                                           Text="{Binding ActivityName}"
-                                           IsVisible="{Binding ShowName}"
-                                           FontSize="16"
-                                           FontAttributes="Bold"
-                                           TextColor="#12161E"/>
-                                    <Label Grid.Column="1"
-                                           Text="{Binding ExpText}"
-                                           FontSize="16"
-                                           FontAttributes="Bold"
-                                           TextColor="{Binding ExpColor}"/>
+                                    <Label Grid.Column="0" Text="{Binding ActivityName}" IsVisible="{Binding ShowName}" FontSize="16" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
+                                    <Label Grid.Column="1" Text="{Binding ExpText}" FontSize="16" FontAttributes="Bold" TextColor="{Binding ExpColor}" />
                                 </Grid>
                                 
                                 <!-- Level Change -->
-                                <Label Grid.Row="1"
-                                       Text="{Binding LevelChangeText}"
-                                       FontSize="14"
-                                       TextColor="#666"
-                                       IsVisible="{Binding LeveledUp}"/>
+                                <Label Grid.Row="1" Text="{Binding LevelChangeText}" FontSize="14" TextColor="{DynamicResource ModeCardText2}" IsVisible="{Binding LeveledUp}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
                                 
                                 <!-- Timestamp -->
-                                <Label Grid.Row="2"
-                                       Text="{Binding ExecutedAt, StringFormat='{0:MMM dd, yyyy h:mm tt}'}"
-                                       FontSize="12"
-                                       TextColor="#999"/>
+                                <Label Grid.Row="2" Text="{Binding ExecutedAt, StringFormat='{0:MMM dd, yyyy h:mm tt}'}" FontSize="12" TextColor="{DynamicResource ModeDisabledText}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=DisabledText" />
                                 
                             </Grid>
                             
                             <!-- Right side: Delete button -->
-                            <Button Grid.Column="1"
-                                    Text="🗑️"
-                                    BackgroundColor="Transparent"
-                                    TextColor="#F44336"
-                                    FontSize="18"
-                                    WidthRequest="44"
-                                    HeightRequest="44"
-                                    VerticalOptions="Center"
-                                    Clicked="OnDeleteClicked"/>
+                            <Button Grid.Column="1" Text="🗑️" BackgroundColor="Transparent" TextColor="{DynamicResource ModeErrorButtonBackground}" FontSize="18" WidthRequest="44" HeightRequest="44" VerticalOptions="Center" Clicked="OnDeleteClicked" theme:ThemeColorExtensions.NamedColorProperties="TextColor=ErrorButtonBackground" />
                             
                         </Grid>
                     </Frame>
@@ -144,26 +72,14 @@
             
             <CollectionView.EmptyView>
                 <VerticalStackLayout Padding="40" Spacing="10">
-                    <Label Text="No activity logged yet."
-                           FontSize="16"
-                           TextColor="#999"
-                           HorizontalOptions="Center"/>
-                    <Label Text="Complete activities to see your progress!"
-                           FontSize="14"
-                           TextColor="#AAA"
-                           HorizontalOptions="Center"/>
+                    <Label Text="No activity logged yet." FontSize="16" TextColor="{DynamicResource ModeText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
+                    <Label Text="Complete activities to see your progress!" FontSize="14" TextColor="{DynamicResource ModeText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
         </CollectionView>
         
         <!-- Back Button -->
-        <Button Grid.Row="3"
-                Text="Back"
-                Clicked="OnBackClicked"
-                BackgroundColor="#EEE"
-                TextColor="#333"
-                CornerRadius="8"
-                HeightRequest="45"/>
+        <Button Grid.Row="3" Text="Back" Clicked="OnBackClicked" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="8" HeightRequest="45" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
         
     </Grid>
     

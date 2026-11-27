@@ -37,33 +37,29 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
             Spacing = 12
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = " Daily Reminders",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Tap \"Send to Tomorrow\" to postpone a " +
                    "reminder as a calendar task for tomorrow.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add Reminder",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (_, _) =>
             await AddReminderAsync();
         stack.Children.Add(addBtn);
@@ -86,14 +82,13 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
 
         if (reminders.Count == 0)
         {
-            _contentContainer.Children.Add(new Label
+            _contentContainer.Children.Add((new Label
             {
                 Text = "No reminders yet. " +
                        "Tap + Add Reminder to create one.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -104,7 +99,7 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
 
     private View BuildReminderCard(DailyReminder reminder)
     {
-        var row = new Grid
+        var row = (new Grid
         {
             ColumnDefinitions =
             {
@@ -113,40 +108,35 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition(new GridLength(36))
             },
             ColumnSpacing = 6,
-            Padding = new Thickness(12, 10),
-            BackgroundColor = Colors.White
-        };
+            Padding = new Thickness(12, 10)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var infoStack = new VerticalStackLayout { Spacing = 2 };
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = reminder.Title,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.TailTruncation
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
         if (!string.IsNullOrWhiteSpace(reminder.Notes))
-            infoStack.Children.Add(new Label
+            infoStack.Children.Add((new Label
             {
                 Text = reminder.Notes,
                 FontSize = 11,
-                TextColor = Color.FromArgb("#777"),
                 LineBreakMode = LineBreakMode.TailTruncation
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         row.Add(infoStack, 0, 0);
 
-        var sendBtn = new Button
+        var sendBtn = (new Button
         {
             Text = " Tomorrow",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 11,
             HeightRequest = 36,
             Padding = new Thickness(6, 0),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         sendBtn.Clicked += async (_, _) =>
         {
             await _taskService.CreateTaskAsync(
@@ -158,30 +148,26 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
                 notes: reminder.Notes);
 
             sendBtn.Text = "✓ Sent!";
-            sendBtn.BackgroundColor =
-                Color.FromArgb("#9E9E9E");
+            sendBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground);
             sendBtn.IsEnabled = false;
 
             await Task.Delay(1500);
             sendBtn.Text = " Tomorrow";
-            sendBtn.BackgroundColor =
-                Color.FromArgb("#2E7D32");
+            sendBtn.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground);
             sendBtn.IsEnabled = true;
         };
         row.Add(sendBtn, 1, 0);
 
-        var deleteBtn = new Button
+        var deleteBtn = (new Button
         {
             Text = "✕",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 6,
             FontSize = 13,
             HeightRequest = 36,
             WidthRequest = 36,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += async (_, _) =>
         {
             bool confirm = await DisplayAlert(
@@ -194,16 +180,14 @@ public class DailyRemindersPage : Bannister.Views.ModeThemedPage
         };
         row.Add(deleteBtn, 2, 0);
 
-        return new Frame
+        return (new Frame
         {
             Content = row,
             Padding = 0,
             CornerRadius = 8,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Colors.White,
             Margin = new Thickness(0, 1)
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private async Task AddReminderAsync()

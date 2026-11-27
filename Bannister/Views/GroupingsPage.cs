@@ -40,36 +40,32 @@ public class GroupingsPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "📂 Activity Groupings",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Custom views across all games",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#D0D0FF")
-        });
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoStrong, ThemeKey.PageText1, classifyPageText: true));
 
         _listContainer = new VerticalStackLayout { Spacing = 10 };
         mainStack.Children.Add(_listContainer);
 
         // Add grouping button
-        var btnAdd = new Button
+        var btnAdd = (new Button
         {
             Text = "+ Add Grouping",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#5B63EE"),
             CornerRadius = 8,
             HeightRequest = 50,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 10, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
         btnAdd.Clicked += OnAddGroupingClicked;
         mainStack.Children.Add(btnAdd);
 
@@ -85,14 +81,13 @@ public class GroupingsPage : Bannister.Views.ModeThemedPage
 
         if (groupings.Count == 0)
         {
-            _listContainer.Children.Add(new Label
+            _listContainer.Children.Add((new Label
             {
                 Text = "No groupings yet.\n\nCreate a grouping, then assign activities to it\nfrom the ⋮ menu on any activity card.",
                 FontSize = 15,
-                TextColor = Color.FromArgb("#D0D0FF"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoStrong, ThemeKey.PageText1, classifyPageText: true));
             return;
         }
 
@@ -104,14 +99,13 @@ public class GroupingsPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildGroupingCard(ActivityGrouping grouping)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#E8EAF6"),
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo);
 
         var grid = new Grid
         {
@@ -129,36 +123,33 @@ public class GroupingsPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center
         };
 
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = grouping.Name,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = $"{grouping.ActivityCount} activities",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         Grid.SetColumn(infoStack, 0);
         grid.Children.Add(infoStack);
 
         // Right: 3-dot menu
-        var btnMenu = new Button
+        var btnMenu = (new Button
         {
             Text = "⋮",
             FontSize = 22,
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#666"),
             WidthRequest = 44,
             HeightRequest = 44,
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText2);
         int capturedId = grouping.Id;
         string capturedName = grouping.Name;
         btnMenu.Clicked += async (s, e) => await ShowGroupingMenuAsync(capturedId, capturedName);

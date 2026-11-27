@@ -39,25 +39,22 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Writing Processes",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#7B1FA2")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleText, ThemeKey.PageText1, classifyPageText: true));
 
-        var experimentBtn = new Button
+        var experimentBtn = (new Button
         {
             Text = "\U0001F9EA Writing Experiment",
-            BackgroundColor = Color.FromArgb("#FFF8E1"),
-            TextColor = Color.FromArgb("#6A1B9A"),
             CornerRadius = 8,
             HeightRequest = 44,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 12, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow).ThemeColor(Button.TextColorProperty, ThemeKey.AccentPurpleStrongText);
         experimentBtn.Clicked += async (_, _) =>
         {
             var page = new WritingExperimentPage(_auth, _experimentService, _storyService, _ideaLogger);
@@ -65,23 +62,20 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
         };
         mainStack.Children.Add(experimentBtn);
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Manage the writing processes you can assign to story projects.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add Process",
-            BackgroundColor = Color.FromArgb("#7B1FA2"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold,
             HorizontalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleSurface).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += OnAddClicked;
         mainStack.Children.Add(addBtn);
 
@@ -97,16 +91,15 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
 
         var processes = await _storyService.GetWritingProcessesAsync(_auth.CurrentUsername);
 
-        var processesHeader = new Label
+        var processesHeader = (new Label
         {
             Text = _processesExpanded
                 ? $"\u25BC \U0001F4DD Processes ({processes.Count})"
                 : $"\u25B6 \U0001F4DD Processes ({processes.Count})",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#6A1B9A"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true);
         var headerTap = new TapGestureRecognizer();
         headerTap.Tapped += async (_, _) =>
         {
@@ -120,14 +113,13 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
 
         if (processes.Count == 0)
         {
-            _listStack.Children.Add(new Label
+            _listStack.Children.Add((new Label
             {
                 Text = "No writing processes defined yet. Add one to get started.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic,
                 Margin = new Thickness(0, 12)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -136,14 +128,13 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
 
         foreach (var process in processes)
         {
-            var processFrame = new Frame
+            var processFrame = (new Frame
             {
                 Padding = 12,
                 CornerRadius = 8,
-                BackgroundColor = Colors.White,
                 HasShadow = true,
                 BorderColor = Colors.Transparent
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
             var processStack = new VerticalStackLayout { Spacing = 6 };
             var headerGrid = new Grid
@@ -156,13 +147,12 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
                 ColumnSpacing = 12
             };
 
-            headerGrid.Add(new Label
+            headerGrid.Add((new Label
             {
                 Text = process.Name,
                 FontSize = 16,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#333")
-            }, 0, 0);
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
 
             {
                 var processProjects = originalProjects
@@ -181,17 +171,15 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
                 var fbProjects = withStats.Where(project => project.FacebookStatsCapturedAt.HasValue).ToList();
                 var ttProjects = withStats.Where(project => project.TikTokStatsCapturedAt.HasValue).ToList();
 
-                var deleteButton = new Button
+                var deleteButton = (new Button
                 {
                     Text = "Delete",
-                    BackgroundColor = Color.FromArgb("#FFCDD2"),
-                    TextColor = Color.FromArgb("#C62828"),
                     CornerRadius = 8,
                     HeightRequest = 36,
                     FontSize = 12,
                     Padding = new Thickness(12, 0),
                     VerticalOptions = LayoutOptions.Center
-                };
+                }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorSelectedBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
                 var capturedProcess = process;
                 deleteButton.Clicked += async (_, _) =>
                     await DeleteProcessAsync(capturedProcess, totalCount);
@@ -199,18 +187,17 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
 
                 processStack.Children.Add(headerGrid);
                 string statsText = statsCount == 1 ? "1 has stats" : $"{statsCount} have stats";
-                processStack.Children.Add(new Label
+                processStack.Children.Add((new Label
                 {
                     Text = $"{totalCount} project(s) · {statsText}",
-                    FontSize = 12,
-                    TextColor = Color.FromArgb("#888")
-                });
+                    FontSize = 12
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
 
                 if (ytProjects.Count > 0)
                 {
                     var topYt = ytProjects.OrderByDescending(p => p.YouTubeViews).First();
                     processStack.Children.Add(BuildPlatformStats(
-                        "YouTube", "#C62828", ytProjects.Count,
+                        "YouTube", ThemeKey.ErrorText, ytProjects.Count,
                         ytProjects.Average(p => p.YouTubeViews),
                         ytProjects.Average(p => p.YouTubeLikes),
                         ytProjects.Average(p => p.YouTubeComments),
@@ -222,7 +209,7 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
                 {
                     var topFb = fbProjects.OrderByDescending(p => p.FacebookViews).First();
                     processStack.Children.Add(BuildPlatformStats(
-                        "Facebook", "#1565C0", fbProjects.Count,
+                        "Facebook", ThemeKey.InfoText, fbProjects.Count,
                         fbProjects.Average(p => p.FacebookViews),
                         fbProjects.Average(p => p.FacebookLikes),
                         fbProjects.Average(p => p.FacebookComments),
@@ -234,7 +221,7 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
                 {
                     var topTt = ttProjects.OrderByDescending(p => p.TikTokViews).First();
                     processStack.Children.Add(BuildPlatformStats(
-                        "TikTok", "#000000", ttProjects.Count,
+                        "TikTok", ThemeKey.CardTextStrong, ttProjects.Count,
                         ttProjects.Average(p => p.TikTokViews),
                         ttProjects.Average(p => p.TikTokLikes),
                         ttProjects.Average(p => p.TikTokComments),
@@ -244,13 +231,12 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
 
                 if (statsCount == 0 && totalCount > 0)
                 {
-                    processStack.Children.Add(new Label
+                    processStack.Children.Add((new Label
                     {
                         Text = "No stats logged yet for any project in this process.",
                         FontSize = 11,
-                        TextColor = Color.FromArgb("#AAA"),
                         FontAttributes = FontAttributes.Italic
-                    });
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
                 }
             }
             processFrame.Content = processStack;
@@ -260,7 +246,7 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
 
     private static View BuildPlatformStats(
         string platform,
-        string color,
+        ThemeKey color,
         int projectCount,
         double avgViews,
         double avgLikes,
@@ -272,33 +258,30 @@ public class WritingProcessesPage : Bannister.Views.ModeThemedPage
     {
         var stack = new VerticalStackLayout { Spacing = 2, Margin = new Thickness(0, 4, 0, 0) };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"{platform} ({projectCount} logged)",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb(color)
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, color, ThemeKey.PageText1, classifyPageText: true));
 
         string durationDisplay = avgDurationSeconds >= 60
             ? $"{(int)(avgDurationSeconds / 60)}m {(int)(avgDurationSeconds % 60)}s"
             : $"{(int)avgDurationSeconds}s";
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Avg: {avgViews:F0} views · {avgLikes:F0} likes · {avgComments:F0} comments · {durationDisplay} avg watch",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         string topName = topProjectName.Length > 30 ? topProjectName[..27] + "..." : topProjectName;
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Top: \"{topName}\" ({topViews} views, {topLikes} likes)",
             FontSize = 11,
-            TextColor = Color.FromArgb("#444"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3, classifyPageText: true));
 
         return stack;
     }

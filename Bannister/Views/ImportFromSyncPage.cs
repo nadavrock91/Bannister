@@ -15,7 +15,7 @@ public class ImportFromSyncPage : ContentPage
     public ImportFromSyncPage(string defaultServerUrl)
     {
         Title = "Import from Another Device";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+        BackgroundColor = AppColors.Get(ThemeKey.SecondarySurface);
 
         _bannisterUsername = NewEntry("Bannister username");
         _bannisterPassword = NewEntry("Bannister login password", isPassword: true);
@@ -24,22 +24,19 @@ public class ImportFromSyncPage : ContentPage
         _syncUsername = NewEntry("sync username");
         _syncPassword = NewEntry("sync password", isPassword: true);
 
-        var importButton = new Button
+        var importButton = (new Button
         {
             Text = "Import Database",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 48
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         importButton.Clicked += OnImportClicked;
 
-        var cancelButton = new Button
+        var cancelButton = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#5B63EE")
-        };
+            BackgroundColor = Colors.Transparent
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.SecondaryAccentText);
         cancelButton.Clicked += async (_, _) => await CompleteAsync(null);
 
         Content = new ScrollView
@@ -50,20 +47,18 @@ public class ImportFromSyncPage : ContentPage
                 Spacing = 14,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = "Import from Another Device",
                         FontSize = 24,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#333")
-                    },
-                    new Label
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label
                     {
                         Text = "Use the Bannister login password from your master device. It must match the downloaded database.",
                         FontSize = 13,
-                        TextColor = Color.FromArgb("#666"),
                         LineHeight = 1.3
-                    },
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                     LabelFor("Bannister username"),
                     _bannisterUsername,
                     LabelFor("Bannister login password"),
@@ -83,23 +78,17 @@ public class ImportFromSyncPage : ContentPage
 
     public Task<ImportFromSyncRequest?> Result => _completion.Task;
 
-    private static Entry NewEntry(string placeholder, bool isPassword = false) => new()
-    {
+    private static Entry NewEntry(string placeholder, bool isPassword = false) => (new Entry(){
         Placeholder = placeholder,
         IsPassword = isPassword,
-        FontSize = 14,
-        TextColor = Color.FromArgb("#222"),
-        PlaceholderColor = Color.FromArgb("#999"),
-        BackgroundColor = Colors.White
-    };
+        FontSize = 14
+    }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
-    private static Label LabelFor(string text) => new()
-    {
+    private static Label LabelFor(string text) => (new Label(){
         Text = text,
         FontSize = 13,
-        FontAttributes = FontAttributes.Bold,
-        TextColor = Color.FromArgb("#555")
-    };
+        FontAttributes = FontAttributes.Bold
+    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true);
 
     private async void OnImportClicked(object? sender, EventArgs e)
     {

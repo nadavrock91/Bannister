@@ -8,6 +8,9 @@ public class AppMain : Application
 
     public AppMain()
     {
+        foreach (var token in ModeTheme.Get(ActivityDisplayMode.All).Tokens)
+            Resources["Mode" + token.Key] = token.Value;
+        Resources.MergedDictionaries.Add(new Bannister.Resources.Styles.AppControlStyles());
         ConfigureDatabasePath();
         MainPage = new MainShell();
 

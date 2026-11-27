@@ -1,3 +1,5 @@
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 /// <summary>
@@ -10,7 +12,7 @@ public class OptionsPopupPage : ContentPage
 
     public OptionsPopupPage()
     {
-        BackgroundColor = Color.FromArgb("#80000000"); // Semi-transparent backdrop
+        BackgroundColor = AppColors.Get(ThemeKey.Overlay); // Semi-transparent backdrop
         BuildUI();
     }
 
@@ -30,9 +32,8 @@ public class OptionsPopupPage : ContentPage
         backdrop.GestureRecognizers.Add(backdropTap);
 
         // Card in the center
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = Colors.White,
             CornerRadius = 16,
             Padding = 0,
             HasShadow = true,
@@ -40,27 +41,25 @@ public class OptionsPopupPage : ContentPage
             MaximumHeightRequest = 620,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var cardStack = new VerticalStackLayout { Spacing = 0 };
 
         // Header
-        var header = new Label
+        var header = (new Label
         {
             Text = "⚙️ Options",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             Padding = new Thickness(20, 16, 20, 12)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         cardStack.Children.Add(header);
 
         // Separator
-        cardStack.Children.Add(new BoxView
+        cardStack.Children.Add((new BoxView
         {
-            HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0")
-        });
+            HeightRequest = 1
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
 
         // Scrollable options list
         var scrollView = new ScrollView();
@@ -69,15 +68,15 @@ public class OptionsPopupPage : ContentPage
         // Define all options
         var options = new[]
         {
-            ("🔧", "Run SQL (Dev)", Color.FromArgb("#607D8B")),
-            ("📊", "View Activity Log", Color.FromArgb("#2196F3")),
-            ("🔄", "Refresh", Color.FromArgb("#4CAF50")),
-            ("✏️", "Manual EXP Adjustment", Color.FromArgb("#FF9800")),
-            ("📁", "Change Category (All on Page)", Color.FromArgb("#FF9800")),
-            ("💡", "Set All as Possible (All on Page)", Color.FromArgb("#9C27B0")),
-            ("📤", "Export Data", Color.FromArgb("#2196F3")),
-            ("🔄", "Reset Load Prompts", Color.FromArgb("#F44336")),
-            ("⚡", "Test Load Prompts", Color.FromArgb("#FF9800")),
+            ("🔧", "Run SQL (Dev)", AppColors.Get(ThemeKey.NeutralMutedButton)),
+            ("📊", "View Activity Log", AppColors.Get(ThemeKey.InfoLinkText)),
+            ("🔄", "Refresh", AppColors.Get(ThemeKey.SuccessLightText)),
+            ("✏️", "Manual EXP Adjustment", AppColors.Get(ThemeKey.WarningAccentText)),
+            ("📁", "Change Category (All on Page)", AppColors.Get(ThemeKey.WarningAccentText)),
+            ("💡", "Set All as Possible (All on Page)", AppColors.Get(ThemeKey.AccentPurpleButtonBackground)),
+            ("📤", "Export Data", AppColors.Get(ThemeKey.InfoLinkText)),
+            ("🔄", "Reset Load Prompts", AppColors.Get(ThemeKey.ErrorButtonBackground)),
+            ("⚡", "Test Load Prompts", AppColors.Get(ThemeKey.WarningAccentText)),
         };
 
         foreach (var (icon, label, color) in options)
@@ -89,23 +88,20 @@ public class OptionsPopupPage : ContentPage
         cardStack.Children.Add(scrollView);
 
         // Separator
-        cardStack.Children.Add(new BoxView
+        cardStack.Children.Add((new BoxView
         {
-            HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0")
-        });
+            HeightRequest = 1
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
 
         // Cancel button
-        var cancelBtn = new Button
+        var cancelBtn = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#999"),
             FontSize = 16,
             HeightRequest = 50,
             CornerRadius = 0,
             BorderWidth = 0
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         cancelBtn.Clicked += (s, e) => Close(null);
         cardStack.Children.Add(cancelBtn);
 
@@ -121,22 +117,21 @@ public class OptionsPopupPage : ContentPage
 
     private View BuildOptionRow(string icon, string label, Color accentColor)
     {
-        var grid = new Grid
+        var grid = (new Grid
         {
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = 48 },
                 new ColumnDefinition { Width = GridLength.Star }
             },
-            Padding = new Thickness(16, 14),
-            BackgroundColor = Colors.White
-        };
+            Padding = new Thickness(16, 14)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         // Hover/press effect via pointer gestures
         var pointerEnter = new PointerGestureRecognizer();
-        pointerEnter.PointerEntered += (s, e) => grid.BackgroundColor = Color.FromArgb("#F5F5F5");
+        pointerEnter.PointerEntered += (s, e) => grid.ThemeColor(BackgroundColorProperty, ThemeKey.SecondarySurface);
         var pointerExit = new PointerGestureRecognizer();
-        pointerExit.PointerExited += (s, e) => grid.BackgroundColor = Colors.White;
+        pointerExit.PointerExited += (s, e) => grid.ThemeColor(BackgroundColorProperty, ThemeKey.CardBackground);
         grid.GestureRecognizers.Add(pointerEnter);
         grid.GestureRecognizers.Add(pointerExit);
 
@@ -152,13 +147,12 @@ public class OptionsPopupPage : ContentPage
         grid.Children.Add(iconLabel);
 
         // Label
-        var textLabel = new Label
+        var textLabel = (new Label
         {
             Text = label,
             FontSize = 15,
-            TextColor = Color.FromArgb("#333"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(textLabel, 1);
         grid.Children.Add(textLabel);
 
@@ -170,11 +164,10 @@ public class OptionsPopupPage : ContentPage
         // Bottom border
         var container = new VerticalStackLayout { Spacing = 0 };
         container.Children.Add(grid);
-        container.Children.Add(new BoxView
+        container.Children.Add((new BoxView
         {
-            HeightRequest = 0.5,
-            Color = Color.FromArgb("#F0F0F0")
-        });
+            HeightRequest = 0.5
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.SecondarySurface));
 
         return container;
     }

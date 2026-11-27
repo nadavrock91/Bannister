@@ -241,13 +241,12 @@ public partial class EditActivityPage : Bannister.Views.ModeThemedPage
                         }
                     }
                 });
-                inlineSection.Children.Add(new Label
+                inlineSection.Children.Add((new Label
                 {
                     Text = "Don't isolate to the 'Not Daily' section at the top, even on days when this activity normally shows.",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#666"),
                     Margin = new Thickness(38, 0, 0, 0)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
                 _chkIsToBeTested = new CheckBox();
                 inlineSection.Children.Add(new HorizontalStackLayout
@@ -265,13 +264,12 @@ public partial class EditActivityPage : Bannister.Views.ModeThemedPage
                         }
                     }
                 });
-                inlineSection.Children.Add(new Label
+                inlineSection.Children.Add((new Label
                 {
                     Text = "Mark this activity as something you haven't tried in real life yet and want to remember to try.",
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#666"),
                     Margin = new Thickness(38, 0, 0, 0)
-                });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
                 inlineSection.Children.Add(new Label
                 {
@@ -285,12 +283,11 @@ public partial class EditActivityPage : Bannister.Views.ModeThemedPage
                     Keyboard = Keyboard.Numeric
                 };
                 inlineSection.Children.Add(_entryManualPriority);
-                inlineSection.Children.Add(new Label
+                inlineSection.Children.Add((new Label
                 {
                     Text = "Activities with a priority show first, lower numbers first (1 = top). Leave blank for default order.",
-                    FontSize = 12,
-                    TextColor = Color.FromArgb("#666")
-                });
+                    FontSize = 12
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
                 mainStack.Children.Insert(scheduleIndex + 2, inlineSection);
             }
         }

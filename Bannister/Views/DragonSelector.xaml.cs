@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public partial class DragonSelector : Bannister.Views.ModeThemedPage
@@ -49,15 +51,15 @@ public partial class DragonSelector : Bannister.Views.ModeThemedPage
             // Deselect previous frame
             if (_selectedFrame != null)
             {
-                _selectedFrame.BackgroundColor = Colors.White;
+                _selectedFrame.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
                 _selectedFrame.BorderColor = Colors.Transparent;
             }
 
             // Select new frame
             _selectedImage = imageName;
             _selectedFrame = frame;
-            frame.BackgroundColor = Color.FromArgb("#E9EBFF");
-            frame.BorderColor = Color.FromArgb("#5B63EE");
+            frame.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo);
+            frame.ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SecondaryAccentText);
 
             // Enable choose button
             chooseButton.IsEnabled = true;

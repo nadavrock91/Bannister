@@ -54,11 +54,11 @@ public partial class DragonAttemptsPage : Bannister.Views.ModeThemedPage
         {
             int days = (int)(DateTime.UtcNow - (activeAttempt.StartedAt ?? DateTime.UtcNow)).TotalDays;
             lblCurrentStatus.Text = $"🟢 Attempt {activeAttempt.AttemptNumber} Active\n{days} days and counting!";
-            lblCurrentStatus.TextColor = Color.FromArgb("#4CAF50");
+            lblCurrentStatus.ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText);
             
             btnAction.Text = "❌ Mark as Failed";
-            btnAction.BackgroundColor = Color.FromArgb("#F44336");
-            btnAction.TextColor = Colors.White;
+            btnAction.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground);
+            btnAction.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         }
         else
         {
@@ -66,11 +66,11 @@ public partial class DragonAttemptsPage : Bannister.Views.ModeThemedPage
             lblCurrentStatus.Text = attemptCount > 0
                 ? $"⚪ No active attempt\n{attemptCount} previous attempt(s)"
                 : "⚪ No attempts yet\nStart your first attempt!";
-            lblCurrentStatus.TextColor = Color.FromArgb("#999");
+            lblCurrentStatus.ThemeColor(Label.TextColorProperty, ThemeKey.CardText3);
             
             btnAction.Text = attemptCount > 0 ? "🚀 Start New Attempt" : "🚀 Start First Attempt";
-            btnAction.BackgroundColor = Color.FromArgb("#5B63EE");
-            btnAction.TextColor = Colors.White;
+            btnAction.ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
+            btnAction.ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         }
         
         historyList.ItemsSource = attempts.Select(a => new AttemptHistoryViewModel(a)).ToList();
@@ -149,9 +149,9 @@ public class AttemptHistoryViewModel
     {
         get
         {
-            if (_attempt.IsActive) return Color.FromArgb("#E8F5E9");
-            if (_attempt.FailedAt.HasValue) return Color.FromArgb("#FFEBEE");
-            return Color.FromArgb("#F5F5F5");
+            if (_attempt.IsActive) return AppColors.Get(ThemeKey.SuccessBackground);
+            if (_attempt.FailedAt.HasValue) return AppColors.Get(ThemeKey.ErrorBackground);
+            return AppColors.Get(ThemeKey.SecondarySurface);
         }
     }
 

@@ -43,56 +43,50 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#5B63EE"),
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 8 };
 
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = $"🐉 {_dragon.Title}",
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
         // This will be updated after loading logs
-        _lblHeaderDays = new Label
+        _lblHeaderDays = (new Label
         {
             Text = $"Attempt #{_attempt.AttemptNumber} • Currently {_attempt.DurationDays} days",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#FFFFFFCC")
-        };
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true);
         headerStack.Children.Add(_lblHeaderDays);
 
         if (_attempt.StartedAt.HasValue)
         {
-            headerStack.Children.Add(new Label
+            headerStack.Children.Add((new Label
             {
                 Text = $"Started: {_attempt.StartedAt.Value.ToLocalTime():MMM dd, yyyy}",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#FFFFFFAA")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText3, classifyPageText: true));
         }
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
 
         // Current summary card
-        var summaryFrame = new Frame
+        var summaryFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#5B63EE"),
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.SecondaryAccentText);
 
         var summaryGrid = new Grid
         {
@@ -107,22 +101,20 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
 
         // Current days - will be updated after loading logs
         var currentStack = new VerticalStackLayout { HorizontalOptions = LayoutOptions.Center };
-        _lblCurrentDays = new Label
+        _lblCurrentDays = (new Label
         {
             Text = _attempt.DurationDays.ToString(),
             FontSize = 32,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE"),
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         currentStack.Children.Add(_lblCurrentDays);
-        currentStack.Children.Add(new Label
+        currentStack.Children.Add((new Label
         {
             Text = "Current",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(currentStack, 0);
         summaryGrid.Children.Add(currentStack);
 
@@ -134,13 +126,12 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
             FontSize = 32,
             HorizontalTextAlignment = TextAlignment.Center
         });
-        statusStack.Children.Add(new Label
+        statusStack.Children.Add((new Label
         {
             Text = _attempt.IsActive ? "Active" : "Ended",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(statusStack, 1);
         summaryGrid.Children.Add(statusStack);
 
@@ -149,21 +140,19 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
         int calendarDays = _attempt.StartedAt.HasValue 
             ? (int)(DateTime.UtcNow - _attempt.StartedAt.Value).TotalDays + 1
             : _attempt.DurationDays;
-        durationStack.Children.Add(new Label
+        durationStack.Children.Add((new Label
         {
             Text = calendarDays.ToString(),
             FontSize = 32,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#FF9800"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
-        durationStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText1, classifyPageText: true));
+        durationStack.Children.Add((new Label
         {
             Text = "Calendar Days",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(durationStack, 2);
         summaryGrid.Children.Add(durationStack);
 
@@ -171,14 +160,13 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
         mainStack.Children.Add(summaryFrame);
 
         // History section header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Change History",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             Margin = new Thickness(0, 8, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // History list container
         _historyContainer = new VerticalStackLayout { Spacing = 8 };
@@ -214,21 +202,19 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
         if (logs.Count == 0)
         {
             // No logs yet - show info message
-            _historyContainer.Children.Add(new Frame
+            _historyContainer.Children.Add((new Frame
             {
                 Padding = 16,
                 CornerRadius = 8,
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
                 BorderColor = Colors.Transparent,
                 HasShadow = false,
-                Content = new Label
+                Content = (new Label
                 {
                     Text = "📝 No detailed history recorded yet.\n\nEnable auto-increment or manually log days to see history here.",
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#1976D2"),
                     HorizontalTextAlignment = TextAlignment.Center
-                }
-            });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoStrongText, ThemeKey.PageText1, classifyPageText: true)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground));
 
             // Show synthetic start entry
             if (_attempt.StartedAt.HasValue)
@@ -253,14 +239,13 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
         foreach (var group in groupedLogs)
         {
             // Date header
-            var dateLabel = new Label
+            var dateLabel = (new Label
             {
                 Text = group.Key.ToString("dddd, MMM dd, yyyy"),
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#5B63EE"),
                 Margin = new Thickness(0, 8, 0, 4)
-            };
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
             _historyContainer.Children.Add(dateLabel);
 
             // Log entries for this date
@@ -273,14 +258,12 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildHistoryCard(DragonDayLog log)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var grid = new Grid
         {
@@ -299,21 +282,19 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center,
             HorizontalOptions = LayoutOptions.Center
         };
-        dayStack.Children.Add(new Label
+        dayStack.Children.Add((new Label
         {
             Text = $"+1",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#4CAF50"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
-        dayStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true));
+        dayStack.Children.Add((new Label
         {
             Text = $"→ {log.DayNumber}",
             FontSize = 11,
-            TextColor = Color.FromArgb("#999"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         Grid.SetColumn(dayStack, 0);
         grid.Children.Add(dayStack);
 
@@ -323,33 +304,30 @@ public class DragonHistoryPage : Bannister.Views.ModeThemedPage
             VerticalOptions = LayoutOptions.Center,
             Spacing = 2
         };
-        detailStack.Children.Add(new Label
+        detailStack.Children.Add((new Label
         {
             Text = log.Description ?? "Daily use",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
         if (log.Source == "auto")
         {
-            detailStack.Children.Add(new Label
+            detailStack.Children.Add((new Label
             {
                 Text = "🔄 Auto-incremented",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#2196F3")
-            });
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoLinkText, ThemeKey.PageText3, classifyPageText: true));
         }
         Grid.SetColumn(detailStack, 1);
         grid.Children.Add(detailStack);
 
         // Time (right)
-        var timeLabel = new Label
+        var timeLabel = (new Label
         {
             Text = log.CreatedAt.ToLocalTime().ToString("h:mm tt"),
             FontSize = 12,
-            TextColor = Color.FromArgb("#999"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         Grid.SetColumn(timeLabel, 2);
         grid.Children.Add(timeLabel);
 

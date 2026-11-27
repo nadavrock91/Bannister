@@ -36,53 +36,49 @@ public class ChartsHubPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "📊 Charts & Analytics",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Visualize your progress across all games",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 0, 0, 16)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Chart options
         mainStack.Children.Add(CreateChartButton(
             "📈 EXP Over Time",
             "See EXP progression for each game",
-            Color.FromArgb("#4CAF50"),
+            ThemeKey.SuccessLightText,
             OnExpOverTimeClicked));
 
         mainStack.Children.Add(CreateChartButton(
             "🎚️ Level Over Time",
             "Track level progression for each game",
-            Color.FromArgb("#2196F3"),
+            ThemeKey.InfoLinkText,
             OnLevelOverTimeClicked));
 
         mainStack.Children.Add(CreateChartButton(
             "🏆 All Games Comparison",
             "Compare levels across all games with monthly history",
-            Color.FromArgb("#9C27B0"),
+            ThemeKey.AccentPurpleButtonBackground,
             OnAllGamesComparisonClicked));
 
         // Back button
-        var btnBack = new Button
+        var btnBack = (new Button
         {
             Text = "← Back to Home",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 45,
             Margin = new Thickness(0, 24, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         btnBack.Clicked += async (s, e) => await Shell.Current.GoToAsync("..");
         mainStack.Children.Add(btnBack);
 
@@ -90,34 +86,31 @@ public class ChartsHubPage : Bannister.Views.ModeThemedPage
         Content = scrollView;
     }
 
-    private Frame CreateChartButton(string title, string subtitle, Color color, EventHandler<TappedEventArgs> clickHandler)
+    private Frame CreateChartButton(string title, string subtitle, ThemeKey color, EventHandler<TappedEventArgs> clickHandler)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 20,
             CornerRadius = 12,
-            BackgroundColor = color,
             HasShadow = true,
             Margin = new Thickness(0, 4)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, color);
 
         var stack = new VerticalStackLayout { Spacing = 4 };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = subtitle,
             FontSize = 13,
-            TextColor = Colors.White,
             Opacity = 0.9
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
 
         frame.Content = stack;
 

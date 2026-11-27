@@ -33,13 +33,12 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
         };
         
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "📛 " + (_category ?? "All Overdue"),
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#F44336")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true));
         
         // Countdowns list
         _countdownsLayout = new VerticalStackLayout { Spacing = 12 };
@@ -71,13 +70,12 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
         
         if (countdowns.Count == 0)
         {
-            _countdownsLayout.Children.Add(new Label
+            _countdownsLayout.Children.Add((new Label
             {
                 Text = "No overdue countdowns.",
-                TextColor = Color.FromArgb("#AAAAAA"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
         
@@ -93,13 +91,11 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
     
     private Frame CreateCountdownCard(Countdown countdown)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D44"),
-            BorderColor = Color.FromArgb("#F44336"),
             CornerRadius = 12,
             Padding = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.ErrorButtonBackground);
         
         var mainGrid = new Grid
         {
@@ -122,27 +118,24 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
             }
         };
         
-        titleRow.Children.Add(new Label
+        titleRow.Children.Add((new Label
         {
             Text = "📛 " + countdown.Name,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
         // Count with +/- buttons
         var countRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.End };
         
-        var btnMinus = new Button
+        var btnMinus = (new Button
         {
             Text = "-1",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             CornerRadius = 4,
             Padding = new Thickness(8, 4),
             FontSize = 14,
             HeightRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnMinus.Clicked += async (s, e) =>
         {
             await _countdowns.DecrementManualCountAsync(countdown);
@@ -150,28 +143,25 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
         };
         countRow.Children.Add(btnMinus);
         
-        var countLabel = new Label
+        var countLabel = (new Label
         {
             Text = countdown.ManualCount.ToString(),
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#F44336"),
             VerticalOptions = LayoutOptions.Center,
             WidthRequest = 50,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         countRow.Children.Add(countLabel);
         
-        var btnPlus = new Button
+        var btnPlus = (new Button
         {
             Text = "+1",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 4,
             Padding = new Thickness(8, 4),
             FontSize = 14,
             HeightRequest = 36
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnPlus.Clicked += async (s, e) =>
         {
             await _countdowns.IncrementManualCountAsync(countdown);
@@ -187,45 +177,41 @@ public class OverdueCategoryPage : Bannister.Views.ModeThemedPage
         // Category badge (if showing all)
         if (_category == null)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"Category: {countdown.OverdueCategory}",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#888888")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
         
         // Original category
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"From: {countdown.Category} • Started at: {countdown.OriginalManualCount}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#888888")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         
         // Created date
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Created: {countdown.CreatedAt:MMM d, yyyy}",
-            FontSize = 10,
-            TextColor = Color.FromArgb("#666666")
-        });
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         
         Grid.SetColumn(stack, 0);
         mainGrid.Children.Add(stack);
         
         // 3-dots menu button
-        var menuButton = new Button
+        var menuButton = (new Button
         {
             Text = "⋮",
             FontSize = 24,
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#AAAAAA"),
             WidthRequest = 40,
             HeightRequest = 40,
             Padding = 0,
             VerticalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         menuButton.Clicked += async (s, e) => await OnCountdownTapped(countdown);
         
         Grid.SetColumn(menuButton, 1);

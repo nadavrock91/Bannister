@@ -37,33 +37,29 @@ public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 12
         };
 
-        headerGrid.Add(new Label
+        headerGrid.Add((new Label
         {
             Text = "Daily Login Prompts",
             FontSize = 26,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333333"),
             VerticalOptions = LayoutOptions.Center
-        }, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0);
 
-        var btnAdd = new Button
+        var btnAdd = (new Button
         {
             Text = "+ Add",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 42
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAdd.Clicked += async (s, e) => await AddPromptAsync();
         headerGrid.Add(btnAdd, 1);
 
         mainStack.Children.Add(headerGrid);
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Active prompts appear once per day after the user reaches Home. Use hex colors like #FFFFFF.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         mainStack.Children.Add(_listStack);
 
         Content = new ScrollView { Content = mainStack };
@@ -82,13 +78,12 @@ public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
 
         if (prompts.Count == 0)
         {
-            _listStack.Children.Add(new Label
+            _listStack.Children.Add((new Label
             {
                 Text = "No daily prompts configured.",
                 FontSize = 15,
-                TextColor = Color.FromArgb("#777777"),
                 Margin = new Thickness(0, 16, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -100,14 +95,13 @@ public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
 
     private View CreatePromptCard(DailyLoginPrompt prompt, int position)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 8,
             HasShadow = true,
-            BorderColor = Colors.Transparent,
-            BackgroundColor = SafeColor(prompt.BackgroundColor, "#FFFFFF")
-        };
+            BorderColor = Colors.Transparent
+        }).ThemeColor(VisualElement.BackgroundColorProperty, SafeColor(prompt.BackgroundColor, ThemeKey.CardBackground));
 
         var grid = new Grid
         {
@@ -120,43 +114,38 @@ public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
         };
 
         var textStack = new VerticalStackLayout { Spacing = 4 };
-        textStack.Children.Add(new Label
+        textStack.Children.Add((new Label
         {
             Text = $"{position}. {(prompt.IsActive ? "Active" : "Inactive")}",
             FontSize = 12,
-            TextColor = SafeColor(prompt.FontColor, "#333333"),
             Opacity = 0.75
-        });
-        textStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.CardText1), ThemeKey.PageText3, classifyPageText: true));
+        textStack.Children.Add((new Label
         {
             Text = prompt.Text,
             FontSize = 17,
             FontAttributes = FontAttributes.Bold,
-            TextColor = SafeColor(prompt.FontColor, "#333333"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        textStack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.CardText1), ThemeKey.PageText1, classifyPageText: true));
+        textStack.Children.Add((new Label
         {
             Text = $"Font {prompt.FontColor} | Background {prompt.BackgroundColor}",
             FontSize = 11,
-            TextColor = SafeColor(prompt.FontColor, "#333333"),
             Opacity = 0.65
-        });
+        }).ThemeColor(Label.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.CardText1), ThemeKey.PageText3, classifyPageText: true));
 
         grid.Add(textStack, 0);
 
-        var menuButton = new Button
+        var menuButton = (new Button
         {
             Text = "⋮",
             FontSize = 22,
-            BackgroundColor = Color.FromArgb("#00000022"),
-            TextColor = SafeColor(prompt.FontColor, "#333333"),
             CornerRadius = 18,
             WidthRequest = 42,
             HeightRequest = 38,
             Padding = 0,
             VerticalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, (ThemeKey?)null).ThemeColor(Button.TextColorProperty, SafeColor(prompt.FontColor, ThemeKey.CardText1));
         menuButton.Clicked += async (s, e) => await ShowPromptMenuAsync(prompt);
         grid.Add(menuButton, 1);
 
@@ -234,7 +223,7 @@ public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
             "Enter a hex font color:",
             "Next",
             "Cancel",
-            initialValue: "#FFFFFF",
+            initialValue: AppColors.Hex(ThemeKey.OnColorText),
             maxLength: 7);
 
         if (string.IsNullOrWhiteSpace(fontColor)) return;
@@ -244,7 +233,7 @@ public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
             "Enter a hex background color:",
             "Save",
             "Cancel",
-            initialValue: "#5B63EE",
+            initialValue: AppColors.Hex(ThemeKey.SecondaryButtonBackground),
             maxLength: 7);
 
         if (string.IsNullOrWhiteSpace(backgroundColor)) return;
@@ -291,9 +280,9 @@ public class DailyLoginPromptsPage : Bannister.Views.ModeThemedPage
         await _prompts.UpdatePromptAsync(prompt);
     }
 
-    private static Color SafeColor(string value, string fallback)
+    private static Color SafeColor(string value, ThemeKey fallback)
     {
-        try { return Color.FromArgb(value); }
-        catch { return Color.FromArgb(fallback); }
+        try { return ModeTheme.ParseStoredHex(value); }
+        catch { return AppColors.Get(fallback); }
     }
 }

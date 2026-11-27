@@ -34,25 +34,22 @@ public class EnforcerLevelsPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Define levels for this enforcer. Set triggers " +
                    "for automatic level changes based on streak days " +
                    "or total resets.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add Level",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (_, _) => await AddLevelAsync();
         stack.Children.Add(addBtn);
 
@@ -69,13 +66,12 @@ public class EnforcerLevelsPage : Bannister.Views.ModeThemedPage
 
         if (levels.Count == 0)
         {
-            _levelsContainer.Children.Add(new Label
+            _levelsContainer.Children.Add((new Label
             {
                 Text = "No levels defined yet.",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
             return;
         }
 
@@ -85,22 +81,12 @@ public class EnforcerLevelsPage : Bannister.Views.ModeThemedPage
 
     private View BuildLevelCard(EnforcerLevel level)
     {
-        var card = new Frame
+        var card = (new Frame
         {
-            BackgroundColor = level.LevelNumber > 0
-                ? Color.FromArgb("#F1F8E9")
-                : level.LevelNumber < 0
-                    ? Color.FromArgb("#FFF3E0")
-                    : Color.FromArgb("#F5F5F5"),
             Padding = 12,
             CornerRadius = 10,
-            BorderColor = level.LevelNumber > 0
-                ? Color.FromArgb("#A5D6A7")
-                : level.LevelNumber < 0
-                    ? Color.FromArgb("#FFCC80")
-                    : Color.FromArgb("#E0E0E0"),
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, level.LevelNumber > 0 ? ThemeKey.HighlightLime : level.LevelNumber < 0 ? ThemeKey.WarningBackground : ThemeKey.SecondarySurface).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, level.LevelNumber > 0 ? ThemeKey.SuccessSelectedBackground : level.LevelNumber < 0 ? ThemeKey.HighlightAmberStrong : ThemeKey.Separator);
 
         var inner = new VerticalStackLayout { Spacing = 6 };
 
@@ -112,25 +98,19 @@ public class EnforcerLevelsPage : Bannister.Views.ModeThemedPage
             FontSize = 16,
             VerticalOptions = LayoutOptions.Center
         });
-        headerRow.Children.Add(new Label
+        headerRow.Children.Add((new Label
         {
             Text = level.Name,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             VerticalOptions = LayoutOptions.Center
-        });
-        headerRow.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        headerRow.Children.Add((new Label
         {
             Text = level.LevelDisplay,
             FontSize = 12,
-            TextColor = level.LevelNumber > 0
-                ? Color.FromArgb("#2E7D32")
-                : level.LevelNumber < 0
-                    ? Color.FromArgb("#E65100")
-                    : Color.FromArgb("#555"),
             VerticalOptions = LayoutOptions.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, level.LevelNumber > 0 ? ThemeKey.SuccessText : level.LevelNumber < 0 ? ThemeKey.WarningText : ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         inner.Children.Add(headerRow);
 
         // Image preview
@@ -154,54 +134,48 @@ public class EnforcerLevelsPage : Bannister.Views.ModeThemedPage
                 triggerParts.Add($"Streak ≥ {level.TriggerDays} days");
             if (level.TriggerResets >= 0)
                 triggerParts.Add($"Resets ≥ {level.TriggerResets}");
-            inner.Children.Add(new Label
+            inner.Children.Add((new Label
             {
                 Text = triggerParts.Count > 0
                     ? "Auto: " + string.Join(" OR ", triggerParts)
                     : "Manual only",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#555"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         }
         else
         {
-            inner.Children.Add(new Label
+            inner.Children.Add((new Label
             {
                 Text = "Triggered by Reset button",
                 FontSize = 12,
-                TextColor = Color.FromArgb("#E65100"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningText, ThemeKey.PageText3, classifyPageText: true));
         }
 
         // Action buttons
         var btnRow = new HorizontalStackLayout { Spacing = 8 };
 
-        var editBtn = new Button
+        var editBtn = (new Button
         {
             Text = "✏ Edit",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 34,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         var capturedLevel = level;
         editBtn.Clicked += async (_, _) => await EditLevelAsync(capturedLevel);
         btnRow.Children.Add(editBtn);
 
-        var delBtn = new Button
+        var delBtn = (new Button
         {
             Text = "✕ Delete",
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 34,
             Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         delBtn.Clicked += async (_, _) =>
         {
             bool confirm = await DisplayAlert(

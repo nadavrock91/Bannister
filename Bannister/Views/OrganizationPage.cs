@@ -26,25 +26,22 @@ public class OrganizationPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Organization",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // Backups sub-page button
-        var backupsBtn = new Button
+        var backupsBtn = (new Button
         {
             Text = "️ Backup Locations",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 10,
             HeightRequest = 52,
             FontSize = 15,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         backupsBtn.Clicked += async (s, e) =>
             await Navigation.PushAsync(new BackupLocationsPage(_db, _auth));
         stack.Children.Add(backupsBtn);

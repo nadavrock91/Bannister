@@ -41,129 +41,117 @@ public class ChangePasswordPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "🔑 Change Password",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Your database will be re-encrypted with the new password.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 0, 0, 12)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Current password
-        var currentFrame = new Frame
+        var currentFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 10,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var currentStack = new VerticalStackLayout { Spacing = 8 };
-        currentStack.Children.Add(new Label
+        currentStack.Children.Add((new Label
         {
             Text = "Current Password",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        _txtCurrentPassword = new Entry
+        _txtCurrentPassword = (new Entry
         {
             Placeholder = "Enter current password",
             IsPassword = true,
             FontSize = 16,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             ReturnType = ReturnType.Next
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _txtCurrentPassword.Completed += (s, e) => _txtNewPassword.Focus();
         currentStack.Children.Add(_txtCurrentPassword);
         currentFrame.Content = currentStack;
         mainStack.Children.Add(currentFrame);
 
         // New password
-        var newFrame = new Frame
+        var newFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 10,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var newStack = new VerticalStackLayout { Spacing = 8 };
-        newStack.Children.Add(new Label
+        newStack.Children.Add((new Label
         {
             Text = "New Password",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        _txtNewPassword = new Entry
+        _txtNewPassword = (new Entry
         {
             Placeholder = "Enter new password (min 4 characters)",
             IsPassword = true,
             FontSize = 16,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             ReturnType = ReturnType.Next
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _txtNewPassword.Completed += (s, e) => _txtConfirmPassword.Focus();
         newStack.Children.Add(_txtNewPassword);
         newFrame.Content = newStack;
         mainStack.Children.Add(newFrame);
 
         // Confirm new password
-        var confirmFrame = new Frame
+        var confirmFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 10,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var confirmStack = new VerticalStackLayout { Spacing = 8 };
-        confirmStack.Children.Add(new Label
+        confirmStack.Children.Add((new Label
         {
             Text = "Confirm New Password",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        _txtConfirmPassword = new Entry
+        _txtConfirmPassword = (new Entry
         {
             Placeholder = "Re-enter new password",
             IsPassword = true,
             FontSize = 16,
-            BackgroundColor = Color.FromArgb("#FAFAFA"),
             ReturnType = ReturnType.Done
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _txtConfirmPassword.Completed += (s, e) => OnChangePasswordClicked(s, e);
         confirmStack.Children.Add(_txtConfirmPassword);
         confirmFrame.Content = confirmStack;
         mainStack.Children.Add(confirmFrame);
 
         // Error label
-        _lblError = new Label
+        _lblError = (new Label
         {
             Text = "",
-            TextColor = Color.FromArgb("#C62828"),
             FontSize = 14,
             IsVisible = false,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(_lblError);
 
         // Buttons
@@ -178,29 +166,25 @@ public class ChangePasswordPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        var btnChange = new Button
+        var btnChange = (new Button
         {
             Text = "Change Password",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             FontSize = 16,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnChange.Clicked += OnChangePasswordClicked;
         Grid.SetColumn(btnChange, 0);
         buttonGrid.Children.Add(btnChange);
 
-        var btnCancel = new Button
+        var btnCancel = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 50,
             FontSize = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         btnCancel.Clicked += OnCancelClicked;
         Grid.SetColumn(btnCancel, 1);
         buttonGrid.Children.Add(btnCancel);

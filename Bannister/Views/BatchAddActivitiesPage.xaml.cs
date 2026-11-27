@@ -93,15 +93,14 @@ public partial class BatchAddActivitiesPage : Bannister.Views.ModeThemedPage
             _activityRows.Add(activityRow);
 
             // Row number
-            var rowLabel = new Label
+            var rowLabel = (new Label
             {
                 Text = $"{i + 1}",
-                BackgroundColor = Color.FromArgb("#F5F5F5"),
                 Padding = new Thickness(8),
                 VerticalOptions = LayoutOptions.Fill,
                 VerticalTextAlignment = TextAlignment.Center,
                 HorizontalTextAlignment = TextAlignment.Center
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondarySurface);
             Grid.SetRow(rowLabel, rowIndex);
             Grid.SetColumn(rowLabel, 0);
             activitiesGrid.Children.Add(rowLabel);
@@ -132,22 +131,20 @@ public partial class BatchAddActivitiesPage : Bannister.Views.ModeThemedPage
 
     private void AddHeaderCell(int row, int col, string text)
     {
-        var label = new Label
+        var label = (new Label
         {
             Text = text,
             FontAttributes = FontAttributes.Bold,
-            BackgroundColor = Color.FromArgb("#E9EBFF"),
             Padding = new Thickness(8),
             VerticalOptions = LayoutOptions.Fill,
             VerticalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightIndigo);
 
-        var border = new Border
+        var border = (new Border
         {
-            Stroke = Color.FromArgb("#DDD"),
             StrokeThickness = 1,
             Content = label
-        };
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator);
 
         Grid.SetRow(border, row);
         Grid.SetColumn(border, col);
@@ -156,20 +153,18 @@ public partial class BatchAddActivitiesPage : Bannister.Views.ModeThemedPage
 
     private Entry CreateEntry(string placeholder, int row, int col, Keyboard? keyboard = null)
     {
-        var entry = new Entry
+        var entry = (new Entry
         {
             Placeholder = placeholder,
-            BackgroundColor = Colors.White,
             Keyboard = keyboard ?? Keyboard.Default,
             MinimumWidthRequest = 80
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
-        var border = new Border
+        var border = (new Border
         {
-            Stroke = Color.FromArgb("#DDD"),
             StrokeThickness = 1,
             Content = entry
-        };
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator);
 
         Grid.SetRow(border, row);
         Grid.SetColumn(border, col);
@@ -180,19 +175,17 @@ public partial class BatchAddActivitiesPage : Bannister.Views.ModeThemedPage
 
     private Picker CreatePicker(List<string> items, int row, int col)
     {
-        var picker = new Picker
+        var picker = (new Picker
         {
             ItemsSource = items,
-            BackgroundColor = Colors.White,
             MinimumWidthRequest = 100
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
 
-        var border = new Border
+        var border = (new Border
         {
-            Stroke = Color.FromArgb("#DDD"),
             StrokeThickness = 1,
             Content = picker
-        };
+        }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator);
 
         Grid.SetRow(border, row);
         Grid.SetColumn(border, col);

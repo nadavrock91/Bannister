@@ -113,13 +113,13 @@ public class AttemptListItemViewModel : INotifyPropertyChanged
             if (_attempt != null)
             {
                 if (_attempt.IsActive)
-                    return Color.FromArgb("#4CAF50"); // Green
+                    return AppColors.Get(ThemeKey.SuccessLightText); // Green
                 else if (_attempt.FailedAt.HasValue)
-                    return Color.FromArgb("#F44336"); // Red
+                    return AppColors.Get(ThemeKey.ErrorButtonBackground); // Red
                 else
-                    return Color.FromArgb("#999"); // Gray
+                    return AppColors.Get(ThemeKey.CardText3); // Gray
             }
-            return Color.FromArgb("#999"); // Gray for no attempts
+            return AppColors.Get(ThemeKey.CardText3); // Gray for no attempts
         }
     }
 

@@ -34,19 +34,17 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
             Spacing = 12
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "☰ Context Menu Order",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Use ▲ ▼ buttons to reorder items.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         _listContainer = new VerticalStackLayout { Spacing = 4 };
         stack.Children.Add(_listContainer);
@@ -57,30 +55,26 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        var saveBtn = new Button
+        var saveBtn = (new Button
         {
             Text = " Save Order",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 14,
             HeightRequest = 44,
             FontAttributes = FontAttributes.Bold,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         saveBtn.Clicked += async (_, _) => await SaveOrderAsync();
         btnRow.Children.Add(saveBtn);
 
-        var resetBtn = new Button
+        var resetBtn = (new Button
         {
             Text = "↺ Reset",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 44,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         resetBtn.Clicked += async (_, _) => await ResetToDefaultAsync();
         btnRow.Children.Add(resetBtn);
 
@@ -106,7 +100,7 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
             var key = _orderedKeys[i];
             var label = ContextMenuOrderService.KeyToLabel(key);
 
-            var row = new Grid
+            var row = (new Grid
             {
                 ColumnDefinitions =
                 {
@@ -115,19 +109,17 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
                     new ColumnDefinition(new GridLength(36))
                 },
                 ColumnSpacing = 4,
-                Padding = new Thickness(12, 8),
-                BackgroundColor = Colors.White
-            };
+                Padding = new Thickness(12, 8)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-            row.Add(new Label
+            row.Add((new Label
             {
                 Text = label,
                 FontSize = 13,
-                TextColor = Color.FromArgb("#222"),
                 VerticalOptions = LayoutOptions.Center
-            }, 0, 0);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 0, 0);
 
-            var upBtn = new Button
+            var upBtn = (new Button
             {
                 Text = "▲",
                 FontSize = 12,
@@ -135,10 +127,8 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
                 WidthRequest = 32,
                 CornerRadius = 4,
                 Padding = 0,
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0"),
                 IsEnabled = i > 0
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
             upBtn.Clicked += (_, _) =>
             {
                 if (capturedI <= 0) return;
@@ -149,7 +139,7 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
             };
             row.Add(upBtn, 1, 0);
 
-            var downBtn = new Button
+            var downBtn = (new Button
             {
                 Text = "▼",
                 FontSize = 12,
@@ -157,10 +147,8 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
                 WidthRequest = 32,
                 CornerRadius = 4,
                 Padding = 0,
-                BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0"),
                 IsEnabled = i < _orderedKeys.Count - 1
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
             downBtn.Clicked += (_, _) =>
             {
                 if (capturedI >= _orderedKeys.Count - 1) return;
@@ -171,16 +159,14 @@ public class ContextMenuOrderPage : Bannister.Views.ModeThemedPage
             };
             row.Add(downBtn, 2, 0);
 
-            var frame = new Frame
+            var frame = (new Frame
             {
                 Content = row,
                 Padding = 0,
                 CornerRadius = 8,
                 HasShadow = false,
-                BorderColor = Color.FromArgb("#E0E0E0"),
-                BackgroundColor = Colors.White,
                 Margin = new Thickness(0, 2)
-            };
+            }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
             _listContainer.Children.Add(frame);
         }

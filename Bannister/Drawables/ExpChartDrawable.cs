@@ -1,5 +1,7 @@
 using Bannister.Models;
 
+using Bannister.Services;
+
 namespace Bannister.Drawables;
 
 /// <summary>
@@ -44,7 +46,7 @@ public class ExpChartDrawable : IDrawable
         float chartHeight = dirtyRect.Height - topMargin - bottomMargin;
 
         // Background
-        canvas.FillColor = Color.FromArgb("#FAFAFA");
+        canvas.FillColor = AppColors.Get(ThemeKey.SecondarySurface);
         canvas.FillRectangle(leftMargin, topMargin, chartWidth, chartHeight);
 
         // Get min/max values
@@ -54,7 +56,7 @@ public class ExpChartDrawable : IDrawable
         if (maxValue == minValue) maxValue = minValue + 100;
 
         // Draw horizontal grid lines
-        canvas.StrokeColor = Color.FromArgb("#E0E0E0");
+        canvas.StrokeColor = AppColors.Get(ThemeKey.Separator);
         canvas.StrokeSize = 1;
         int gridLines = 5;
         for (int i = 0; i <= gridLines; i++)
@@ -64,7 +66,7 @@ public class ExpChartDrawable : IDrawable
         }
 
         // Draw axes
-        canvas.StrokeColor = Color.FromArgb("#BDBDBD");
+        canvas.StrokeColor = AppColors.Get(ThemeKey.DisabledButtonBackground);
         canvas.StrokeSize = 2;
         canvas.DrawLine(leftMargin, topMargin, leftMargin, topMargin + chartHeight);  // Y axis
         canvas.DrawLine(leftMargin, topMargin + chartHeight, leftMargin + chartWidth, topMargin + chartHeight); // X axis
@@ -86,11 +88,11 @@ public class ExpChartDrawable : IDrawable
         areaPath.Close();
 
         // Fill with semi-transparent color
-        canvas.FillColor = Color.FromArgb("#335B63EE");
+        canvas.FillColor = AppColors.Get(ThemeKey.ChartAreaFill);
         canvas.FillPath(areaPath);
 
         // Draw the line on top
-        canvas.StrokeColor = Color.FromArgb("#5B63EE");
+        canvas.StrokeColor = AppColors.Get(ThemeKey.SecondaryAccentText);
         canvas.StrokeSize = 3;
 
         PathF linePath = new PathF();
@@ -110,7 +112,7 @@ public class ExpChartDrawable : IDrawable
         // Draw points only if we have fewer than 60 data points
         if (data.Count <= 60)
         {
-            canvas.FillColor = Color.FromArgb("#5B63EE");
+            canvas.FillColor = AppColors.Get(ThemeKey.SecondaryAccentText);
             for (int i = 0; i < data.Count; i++)
             {
                 float x = leftMargin + (chartWidth * i / Math.Max(1, data.Count - 1));
@@ -120,7 +122,7 @@ public class ExpChartDrawable : IDrawable
         }
 
         // Draw Y-axis labels
-        canvas.FontColor = Color.FromArgb("#666666");
+        canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
         canvas.FontSize = 11;
         canvas.DrawString($"{maxValue:N0}", 5, topMargin + 5, HorizontalAlignment.Left);
         canvas.DrawString("0", 5, topMargin + chartHeight - 5, HorizontalAlignment.Left);
@@ -143,7 +145,7 @@ public class ExpChartDrawable : IDrawable
 
     private void DrawNoData(ICanvas canvas, RectF dirtyRect)
     {
-        canvas.FontColor = Colors.Gray;
+        canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
         canvas.FontSize = 14;
         canvas.DrawString("No data available", dirtyRect.Width / 2, dirtyRect.Height / 2, HorizontalAlignment.Center);
     }

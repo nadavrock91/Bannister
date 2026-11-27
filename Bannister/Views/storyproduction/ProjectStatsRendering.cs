@@ -1,6 +1,8 @@
 using Bannister.Models;
 using System.Globalization;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public static class ProjectStatsRendering
@@ -41,23 +43,21 @@ public static class ProjectStatsRendering
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        section.Children.Add(new Label
+        section.Children.Add((new Label
         {
             Text = "YouTube Feedback",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#C62828")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true));
 
         DateTime? capturedAt = project.YouTubeStatsCapturedAt;
         bool hasStats = capturedAt.HasValue;
-        section.Children.Add(new Label
+        section.Children.Add((new Label
         {
             Text = hasStats ? $"Last updated {capturedAt:yyyy-MM-dd HH:mm}" : "No stats entered yet.",
             FontSize = 11,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontAttributes = FontAttributes.Italic
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         var metricsGrid = new Grid
         {
@@ -84,7 +84,7 @@ public static class ProjectStatsRendering
         AddMetricTile(metricsGrid, 1, 2, "New followers", hasStats ? FormatLargeNumber(project.YouTubeNewFollowers) : "—");
         section.Children.Add(metricsGrid);
 
-        section.Children.Add(CreateEditButton("Edit YouTube Stats", "#FFEBEE", "#C62828", project, isReadOnly, showReadOnlyAlert, onEdit));
+        section.Children.Add(CreateEditButton("Edit YouTube Stats", ThemeKey.ErrorBackground, ThemeKey.ErrorText, project, isReadOnly, showReadOnlyAlert, onEdit));
         return section;
     }
 
@@ -100,23 +100,21 @@ public static class ProjectStatsRendering
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        section.Children.Add(new Label
+        section.Children.Add((new Label
         {
             Text = "Facebook Feedback",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1877F2")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandFacebook, ThemeKey.PageText1, classifyPageText: true));
 
         DateTime? capturedAt = project.FacebookStatsCapturedAt;
         bool hasStats = capturedAt.HasValue;
-        section.Children.Add(new Label
+        section.Children.Add((new Label
         {
             Text = hasStats ? $"Last updated {capturedAt:yyyy-MM-dd HH:mm}" : "No stats entered yet.",
             FontSize = 11,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontAttributes = FontAttributes.Italic
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         var metricsGrid = new Grid
         {
@@ -146,7 +144,7 @@ public static class ProjectStatsRendering
         AddMetricTile(metricsGrid, 2, 1, "New followers", hasStats ? FormatLargeNumber(project.FacebookNewFollowers) : "—");
         section.Children.Add(metricsGrid);
 
-        section.Children.Add(CreateEditButton("Edit Facebook Stats", "#E7F3FF", "#1877F2", project, isReadOnly, showReadOnlyAlert, onEdit));
+        section.Children.Add(CreateEditButton("Edit Facebook Stats", ThemeKey.InfoBackground, ThemeKey.BrandFacebook, project, isReadOnly, showReadOnlyAlert, onEdit));
         return section;
     }
 
@@ -162,23 +160,21 @@ public static class ProjectStatsRendering
             Margin = new Thickness(0, 8, 0, 0)
         };
 
-        section.Children.Add(new Label
+        section.Children.Add((new Label
         {
             Text = "TikTok Feedback",
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#FE2C55")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.BrandTikTok, ThemeKey.PageText1, classifyPageText: true));
 
         DateTime? capturedAt = project.TikTokStatsCapturedAt;
         bool hasStats = capturedAt.HasValue;
-        section.Children.Add(new Label
+        section.Children.Add((new Label
         {
             Text = hasStats ? $"Last updated {capturedAt:yyyy-MM-dd HH:mm}" : "No stats entered yet.",
             FontSize = 11,
-            FontAttributes = FontAttributes.Italic,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontAttributes = FontAttributes.Italic
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         var metricsGrid = new Grid
         {
@@ -207,41 +203,37 @@ public static class ProjectStatsRendering
         AddMetricTile(metricsGrid, 2, 0, "New followers", hasStats ? FormatLargeNumber(project.TikTokNewFollowers) : "—");
         section.Children.Add(metricsGrid);
 
-        section.Children.Add(CreateEditButton("Edit TikTok Stats", "#FFE6EA", "#FE2C55", project, isReadOnly, showReadOnlyAlert, onEdit));
+        section.Children.Add(CreateEditButton("Edit TikTok Stats", ThemeKey.ErrorBackground, ThemeKey.BrandTikTok, project, isReadOnly, showReadOnlyAlert, onEdit));
         return section;
     }
 
     public static void AddMetricTile(Grid grid, int row, int col, string label, string value)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             Padding = 6,
             CornerRadius = 6,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         frame.Content = new VerticalStackLayout
         {
             Spacing = 2,
             Children =
             {
-                new Label
+                (new Label
                 {
                     Text = label,
                     FontSize = 10,
-                    TextColor = Color.FromArgb("#666"),
                     HorizontalTextAlignment = TextAlignment.Center
-                },
-                new Label
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
+                (new Label
                 {
                     Text = value,
                     FontSize = 14,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Color.FromArgb("#263238"),
                     HorizontalTextAlignment = TextAlignment.Center
-                }
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true)
             }
         };
 
@@ -253,19 +245,17 @@ public static class ProjectStatsRendering
     public static void AddStatCell(Grid grid, int row, int col, string label, string value)
     {
         var stack = new VerticalStackLayout { Spacing = 0 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = label,
-            FontSize = 10,
-            TextColor = Color.FromArgb("#999")
-        });
-        stack.Children.Add(new Label
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = value,
             FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         Grid.SetRow(stack, row);
         Grid.SetColumn(stack, col);
@@ -321,22 +311,20 @@ public static class ProjectStatsRendering
 
     private static Button CreateEditButton(
         string text,
-        string background,
-        string foreground,
+        ThemeKey background,
+        ThemeKey foreground,
         StoryProject project,
         Func<bool> isReadOnly,
         Func<Task> showReadOnlyAlert,
         Func<StoryProject, Task> onEdit)
     {
-        var editBtn = new Button
+        var editBtn = (new Button
         {
             Text = text,
-            BackgroundColor = Color.FromArgb(background),
-            TextColor = Color.FromArgb(foreground),
             CornerRadius = 8,
             FontSize = 13,
             HorizontalOptions = LayoutOptions.Fill
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
         editBtn.Clicked += async (s, e) =>
         {
             if (isReadOnly())

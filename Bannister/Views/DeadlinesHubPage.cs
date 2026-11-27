@@ -26,19 +26,17 @@ public class DeadlinesHubPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var root = new VerticalStackLayout { Padding = 16, Spacing = 12 };
-        root.Children.Add(new Label
+        root.Children.Add((new Label
         {
             Text = "Deadlines",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#6A1B9A")
-        });
-        root.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText1, classifyPageText: true));
+        root.Children.Add((new Label
         {
             Text = "Daily, weekly, monthly self-imposed deadlines.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         root.Children.Add(_tilesStack);
         Content = new ScrollView { Content = root };
     }
@@ -56,23 +54,21 @@ public class DeadlinesHubPage : Bannister.Views.ModeThemedPage
         int active = await _deadlines.GetActiveCountAsync(_auth.CurrentUsername, bucket);
         int allowance = _deadlines.GetAllowance(_auth.CurrentUsername, bucket);
 
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#CE93D8"),
             CornerRadius = 8,
             HasShadow = false,
             Padding = 14
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.AccentPurpleBorder);
 
         frame.Content = new VerticalStackLayout
         {
             Spacing = 5,
             Children =
             {
-                new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#4A148C") },
-                new Label { Text = $"{active} / {allowance} active", FontSize = 15, TextColor = active >= allowance ? Color.FromArgb("#C62828") : Color.FromArgb("#2E7D32") },
-                new Label { Text = subtitle, FontSize = 12, TextColor = Color.FromArgb("#666") }
+                (new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightVioletText, ThemeKey.PageText1, classifyPageText: true),
+                (new Label { Text = $"{active} / {allowance} active", FontSize = 15 }).ThemeColor(Label.TextColorProperty, active >= allowance ? ThemeKey.ErrorText : ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true),
+                (new Label { Text = subtitle, FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true)
             }
         };
 

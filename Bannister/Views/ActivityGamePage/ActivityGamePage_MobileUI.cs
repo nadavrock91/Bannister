@@ -1,3 +1,5 @@
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 /// <summary>
@@ -36,14 +38,13 @@ public partial class ActivityGamePage
 
     private Frame BuildDragonCardCollapsed()
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var grid = new Grid
         {
@@ -77,41 +78,36 @@ public partial class ActivityGamePage
         infoStack.Children.Add(lblGameTitle);
 
         // Current Level
-        lblCurrentLevel = new Label
+        lblCurrentLevel = (new Label
         {
             Text = "Level 1",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5B63EE")
-        };
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true);
         infoStack.Children.Add(lblCurrentLevel);
 
         // EXP Progress Bar
-        expProgressBar = new ProgressBar
+        expProgressBar = (new ProgressBar
         {
             Progress = 0,
-            ProgressColor = Color.FromArgb("#4CAF50"),
-            BackgroundColor = Color.FromArgb("#E0E0E0"),
             HeightRequest = 16
-        };
+        }).ThemeColor(ProgressBar.ProgressColorProperty, ThemeKey.SuccessLightText).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator);
         infoStack.Children.Add(expProgressBar);
 
         // EXP to Next Level
-        lblExpToNext = new Label
+        lblExpToNext = (new Label
         {
             Text = "0 / 100 EXP",
-            FontSize = 10,
-            TextColor = Color.FromArgb("#666")
-        };
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         infoStack.Children.Add(lblExpToNext);
 
         // Total EXP
-        lblExpTotal = new Label
+        lblExpTotal = (new Label
         {
             Text = "Total EXP: 0",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#999")
-        };
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true);
         infoStack.Children.Add(lblExpTotal);
 
         lblDragonTitle = new Label
@@ -136,121 +132,102 @@ public partial class ActivityGamePage
 
     private Frame BuildMobileButtonPanel()
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             BorderColor = Colors.Transparent
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
         // Conversation Practice button removed - access now from HomePage
 
-        btnCalculateExp = new Button
+        btnCalculateExp = (new Button
         {
             Text = "Calculate EXP",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnCalculateExp.Clicked += OnCalculateClicked;
         stack.Children.Add(btnCalculateExp);
 
-        btnNextGame = new Button
+        btnNextGame = (new Button
         {
             Text = "Next Game →",
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"),
             CornerRadius = 8,
             FontSize = 13,
             Margin = new Thickness(0, 6, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         btnNextGame.Clicked += OnNextGameClicked;
         stack.Children.Add(btnNextGame);
 
-        btnHome = new Button
+        btnHome = (new Button
         {
             Text = " Home",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"),
             CornerRadius = 8,
             FontSize = 13,
             Margin = new Thickness(0, 6, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         btnHome.Clicked += OnHomeClicked;
         stack.Children.Add(btnHome);
 
-        var btnSelectAll = new Button
+        var btnSelectAll = (new Button
         {
             Text = "Select All",
-            BackgroundColor = Color.FromArgb("#7E57C2"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentVioletButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSelectAll.Clicked += OnSelectAllClicked;
         stack.Children.Add(btnSelectAll);
 
-        var btnClear = new Button
+        var btnClear = (new Button
         {
             Text = "Clear Selection",
-            BackgroundColor = Color.FromArgb("#999"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnClear.Clicked += OnClearSelectionClicked;
         stack.Children.Add(btnClear);
 
         AddSetDisplayDaysButton(stack);
 
-        var btnAdd = new Button
+        var btnAdd = (new Button
         {
             Text = "+ Add Activity",
-            BackgroundColor = Color.FromArgb("#4CAF50"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAdd.Clicked += OnAddActivityClicked;
         stack.Children.Add(btnAdd);
         AddPendingActivityIdeaControls(stack);
 
-        var btnManage = new Button
+        var btnManage = (new Button
         {
             Text = "Manage",
-            BackgroundColor = Color.FromArgb("#FF9800"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnManage.Clicked += OnManageClicked;
         stack.Children.Add(btnManage);
 
-        var btnViewLog = new Button
+        var btnViewLog = (new Button
         {
             Text = "📊 View Activity Log",
-            BackgroundColor = Color.FromArgb("#2196F3"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnViewLog.Clicked += OnViewLogClicked;
         stack.Children.Add(btnViewLog);
 
         // Options button with context menu
-        var btnOptions = new Button
+        var btnOptions = (new Button
         {
             Text = "⚙️ Options",
-            BackgroundColor = Color.FromArgb("#607D8B"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralMutedButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnOptions.Clicked += OnOptionsClicked;
         stack.Children.Add(btnOptions);
 

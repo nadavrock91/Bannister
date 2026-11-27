@@ -2,6 +2,8 @@ using ConversationPractice.Models;
 using ConversationPractice.Services;
 using Microsoft.Maui.Controls;
 
+using Bannister.Services;
+
 namespace ConversationPractice.Views;
 
 /// <summary>
@@ -45,21 +47,19 @@ public class AddScenarioPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Create Custom Conversation Scenario",
             FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Design your own AI role-play scenario for practice",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, 0, 0, 12)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Title
         mainStack.Children.Add(CreateFieldLabel("Scenario Title *", "e.g., 'Difficult Client Negotiation'"));
@@ -112,13 +112,12 @@ public class AddScenarioPage : Bannister.Views.ModeThemedPage
         // System Prompt (CRITICAL)
         mainStack.Children.Add(CreateFieldLabel("AI Instructions (System Prompt) *", "Tell the AI how to behave - be specific!"));
         
-        var promptHelp = new Label
+        var promptHelp = (new Label
         {
             Text = "💡 Tip: Be specific about personality, objections, and how the AI should respond to different approaches.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#FF9800"),
             Margin = new Thickness(0, 0, 0, 8)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true);
         mainStack.Children.Add(promptHelp);
 
         txtSystemPrompt = new Editor
@@ -191,27 +190,23 @@ public class AddScenarioPage : Bannister.Views.ModeThemedPage
             Margin = new Thickness(0, 20, 0, 0)
         };
 
-        var btnSave = new Button
+        var btnSave = (new Button
         {
             Text = "Create Scenario",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnSave.Clicked += OnSaveClicked;
         Grid.SetColumn(btnSave, 0);
         buttonGrid.Children.Add(btnSave);
 
-        var btnCancel = new Button
+        var btnCancel = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#999"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.DisabledButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnCancel.Clicked += OnCancelClicked;
         Grid.SetColumn(btnCancel, 1);
         buttonGrid.Children.Add(btnCancel);
@@ -226,22 +221,20 @@ public class AddScenarioPage : Bannister.Views.ModeThemedPage
     {
         var stack = new VerticalStackLayout { Spacing = 4 };
         
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = text,
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         if (!string.IsNullOrEmpty(hint))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = hint,
-                FontSize = 12,
-                TextColor = Color.FromArgb("#999")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
 
         return stack;

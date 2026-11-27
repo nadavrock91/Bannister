@@ -32,66 +32,58 @@ public class OverdueHomePage : Bannister.Views.ModeThemedPage
         };
         
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "📛 Overdue",
             FontSize = 32,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#F44336")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true));
         
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Countdowns that have passed their target",
-            TextColor = Color.FromArgb("#AAAAAA"),
             FontSize = 14
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         
         // Stats
-        _statsLabel = new Label
+        _statsLabel = (new Label
         {
-            TextColor = Color.FromArgb("#F44336"),
             FontSize = 14,
             Margin = new Thickness(0, 0, 0, 10)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         mainStack.Children.Add(_statsLabel);
         
         // Categories section
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Categories",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             Margin = new Thickness(0, 10, 0, 0)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
         _categoriesLayout = new VerticalStackLayout { Spacing = 12 };
         mainStack.Children.Add(_categoriesLayout);
         
         // Add Category button
-        var btnAddCategory = new Button
+        var btnAddCategory = (new Button
         {
             Text = "+ Add Overdue Category",
-            BackgroundColor = Color.FromArgb("#3D3D5C"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 10, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralDarkButton).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAddCategory.Clicked += OnAddCategoryClicked;
         mainStack.Children.Add(btnAddCategory);
         
         // View All button
-        var btnViewAll = new Button
+        var btnViewAll = (new Button
         {
             Text = "📋 View All Overdue",
-            BackgroundColor = Color.FromArgb("#F44336"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50,
             Margin = new Thickness(0, 10, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnViewAll.Clicked += OnViewAllClicked;
         mainStack.Children.Add(btnViewAll);
         
@@ -127,13 +119,11 @@ public class OverdueHomePage : Bannister.Views.ModeThemedPage
     
     private Frame CreateCategoryCard(string category, int count)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D44"),
-            BorderColor = count > 0 ? Color.FromArgb("#F44336") : Colors.Transparent,
             CornerRadius = 12,
             Padding = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, count > 0 ? ThemeKey.ErrorButtonBackground : (ThemeKey?)null);
         
         var grid = new Grid
         {
@@ -146,31 +136,28 @@ public class OverdueHomePage : Bannister.Views.ModeThemedPage
         
         var leftStack = new VerticalStackLayout { Spacing = 4 };
         
-        leftStack.Children.Add(new Label
+        leftStack.Children.Add((new Label
         {
             Text = "📛 " + category,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
-        leftStack.Children.Add(new Label
+        leftStack.Children.Add((new Label
         {
             Text = $"{count} overdue",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#AAAAAA")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         
         Grid.SetColumn(leftStack, 0);
         grid.Children.Add(leftStack);
         
-        var arrow = new Label
+        var arrow = (new Label
         {
             Text = "→",
             FontSize = 24,
-            TextColor = Color.FromArgb("#F44336"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.ErrorButtonBackground, ThemeKey.PageText1, classifyPageText: true);
         Grid.SetColumn(arrow, 1);
         grid.Children.Add(arrow);
         

@@ -1,3 +1,5 @@
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public class WebsiteMultilineEditorPage : ContentPage
@@ -26,27 +28,24 @@ public class WebsiteMultilineEditorPage : ContentPage
         string placeholder = "")
     {
         Title = title;
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+        BackgroundColor = AppColors.Get(ThemeKey.SecondarySurface);
 
-        _editor = new Editor
+        _editor = (new Editor
         {
             AutoSize = EditorAutoSizeOption.Disabled,
             Text = initialText,
-            BackgroundColor = Colors.White,
-            TextColor = Color.FromArgb("#222"),
             FontSize = 13,
             HeightRequest = 400,
             MinimumHeightRequest = 300,
             Placeholder = placeholder
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText);
 
         var suggestionsStack = new VerticalStackLayout { Spacing = 8 };
-        suggestionsStack.Children.Add(new Label
+        suggestionsStack.Children.Add((new Label
         {
             Text = "Suggested constraints — tap to add:",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#555")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         foreach (var suggestion in SuggestedConstraints)
         {
             var constraintText = suggestion.Text;
@@ -85,46 +84,40 @@ public class WebsiteMultilineEditorPage : ContentPage
                 ColumnSpacing = 8
             };
             row.Add(checkBox, 0, 0);
-            row.Add(new Label
+            row.Add((new Label
             {
                 Text = constraintText,
                 FontSize = 12,
-                TextColor = Color.FromArgb("#333"),
                 LineBreakMode = LineBreakMode.WordWrap
-            }, 1, 0);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText3, classifyPageText: true), 1, 0);
             suggestionsStack.Children.Add(row);
         }
 
-        var suggestionsFrame = new Frame
+        var suggestionsFrame = (new Frame
         {
             Content = suggestionsStack,
-            BackgroundColor = Colors.White,
             CornerRadius = 8,
             Padding = 10,
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        var cancelButton = new Button
+        var cancelButton = (new Button
         {
             Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333"),
             CornerRadius = 8,
             HeightRequest = 44,
             FontSize = 14
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         cancelButton.Clicked += async (_, _) => await CloseAsync(null);
 
-        var saveButton = new Button
+        var saveButton = (new Button
         {
             Text = "Save",
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
             CornerRadius = 8,
             HeightRequest = 44,
             FontSize = 14
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         saveButton.Clicked += async (_, _) => await CloseAsync(_editor.Text ?? string.Empty);
 
         var buttonGrid = new Grid
@@ -147,19 +140,17 @@ public class WebsiteMultilineEditorPage : ContentPage
                 Spacing = 14,
                 Children =
                 {
-                    new Label
+                    (new Label
                     {
                         Text = title,
                         FontSize = 24,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#222")
-                    },
-                    new Label
+                        FontAttributes = FontAttributes.Bold
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label
                     {
                         Text = subtitle,
-                        FontSize = 14,
-                        TextColor = Color.FromArgb("#555")
-                    },
+                        FontSize = 14
+                    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                     suggestionsFrame,
                     _editor,
                     buttonGrid

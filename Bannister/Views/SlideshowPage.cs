@@ -44,21 +44,19 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
             Spacing = 14
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "️ Slideshow",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#C2185B")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightPinkText, ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Turn a folder of images into an MP4 slideshow.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, 0, 0, 4)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         stack.Children.Add(BuildSourceSection());
         stack.Children.Add(BuildOptionsSection());
@@ -70,15 +68,14 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
 
     private View BuildSourceSection()
     {
-        _sourceFolderLabel = new Label
+        _sourceFolderLabel = (new Label
         {
             Text = "(not set)",
             FontSize = 12,
-            TextColor = Color.FromArgb("#555"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
 
-        var pickButton = SmallButton("Pick folder", "#C2185B");
+        var pickButton = SmallButton("Pick folder", ThemeKey.HighlightPinkText);
         pickButton.Clicked += OnPickSourceFolderClicked;
 
         var row = new Grid
@@ -93,12 +90,11 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
         row.Add(_sourceFolderLabel, 0, 0);
         row.Add(pickButton, 1, 0);
 
-        _imageCountLabel = new Label
+        _imageCountLabel = (new Label
         {
             Text = "No folder selected.",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#777")
-        };
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
 
         return SectionFrame(new VerticalStackLayout
         {
@@ -142,15 +138,12 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        _customDurationEntry = new Entry
+        _customDurationEntry = (new Entry
         {
             Placeholder = "Custom duration in seconds",
             Keyboard = Keyboard.Numeric,
-            IsVisible = false,
-            TextColor = Color.FromArgb("#222"),
-            PlaceholderColor = Color.FromArgb("#999"),
-            BackgroundColor = Colors.White
-        };
+            IsVisible = false
+        }).ThemeColor(InputView.TextColorProperty, ThemeKey.InputText).ThemeColor(InputView.PlaceholderColorProperty, ThemeKey.CardText3).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InputBackground);
         _customDurationEntry.TextChanged += (_, _) =>
         {
             if (double.TryParse(_customDurationEntry.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var val) && val > 0)
@@ -166,13 +159,12 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
             Children =
             {
                 _randomOrderSwitch,
-                new Label
+                (new Label
                 {
                     Text = "Random order (off = alphabetical)",
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#333"),
                     VerticalOptions = LayoutOptions.Center
-                }
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true)
             }
         };
 
@@ -199,11 +191,11 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
             Children =
             {
                 SectionTitle("Options"),
-                new Label { Text = "Slide duration:", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                (new Label { Text = "Slide duration:", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
                 _durationPicker,
                 _customDurationEntry,
                 randomRow,
-                new Label { Text = "Resolution:", FontSize = 12, TextColor = Color.FromArgb("#666") },
+                (new Label { Text = "Resolution:", FontSize = 12 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true),
                 _resolutionPicker
             }
         });
@@ -211,15 +203,14 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
 
     private View BuildOutputSection()
     {
-        _outputPathLabel = new Label
+        _outputPathLabel = (new Label
         {
             Text = "(not set)",
             FontSize = 12,
-            TextColor = Color.FromArgb("#555"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
 
-        var pickButton = SmallButton("Pick output...", "#C2185B");
+        var pickButton = SmallButton("Pick output...", ThemeKey.HighlightPinkText);
         pickButton.Clicked += OnPickOutputClicked;
 
         var row = new Grid
@@ -247,33 +238,29 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
 
     private View BuildGenerateSection()
     {
-        _generateButton = new Button
+        _generateButton = (new Button
         {
             Text = " Generate Video",
-            BackgroundColor = Color.FromArgb("#C2185B"),
-            TextColor = Colors.White,
             HeightRequest = 56,
             CornerRadius = 12,
             FontAttributes = FontAttributes.Bold,
             FontSize = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightPinkText).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         _generateButton.Clicked += OnGenerateClicked;
 
-        _progressIndicator = new ActivityIndicator
+        _progressIndicator = (new ActivityIndicator
         {
-            Color = Color.FromArgb("#C2185B"),
             IsVisible = false,
             IsRunning = false
-        };
+        }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.HighlightPinkText);
 
-        _progressLabel = new Label
+        _progressLabel = (new Label
         {
             Text = "",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             HorizontalOptions = LayoutOptions.Center,
             IsVisible = false
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
         return SectionFrame(new VerticalStackLayout
         {
@@ -466,31 +453,23 @@ public class SlideshowPage : Bannister.Views.ModeThemedPage
             .Replace("'", "'\\''", StringComparison.Ordinal);
     }
 
-    private static Frame SectionFrame(View content) => new()
-    {
-        BackgroundColor = Colors.White,
-        BorderColor = Color.FromArgb("#F8BBD0"),
+    private static Frame SectionFrame(View content) => (new Frame(){
         CornerRadius = 12,
         Padding = 14,
         HasShadow = false,
         Content = content
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightPinkStrong);
 
-    private static Label SectionTitle(string text) => new()
-    {
+    private static Label SectionTitle(string text) => (new Label(){
         Text = text,
         FontSize = 14,
-        FontAttributes = FontAttributes.Bold,
-        TextColor = Color.FromArgb("#333")
-    };
+        FontAttributes = FontAttributes.Bold
+    }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
 
-    private static Button SmallButton(string text, string color) => new()
-    {
+    private static Button SmallButton(string text, ThemeKey color) => (new Button(){
         Text = text,
-        BackgroundColor = Color.FromArgb(color),
-        TextColor = Colors.White,
         CornerRadius = 8,
         HeightRequest = 38,
         FontSize = 12
-    };
+    }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
 }

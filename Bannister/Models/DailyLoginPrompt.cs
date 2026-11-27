@@ -1,5 +1,7 @@
 using SQLite;
 
+using Bannister.Services;
+
 namespace Bannister.Models;
 
 [Table("daily_login_prompts")]
@@ -13,9 +15,9 @@ public class DailyLoginPrompt
 
     public string Text { get; set; } = "";
 
-    public string FontColor { get; set; } = "#FFFFFF";
+    public string FontColor { get; set; } = AppColors.Hex(ThemeKey.OnColorText);
 
-    public string BackgroundColor { get; set; } = "#5B63EE";
+    public string BackgroundColor { get; set; } = AppColors.Hex(ThemeKey.SecondaryButtonBackground);
 
     public int SortOrder { get; set; }
 

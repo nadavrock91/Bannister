@@ -17,24 +17,21 @@ public class CustomGamesListPage : Bannister.Views.ModeThemedPage
         Title = "Custom Games";
 
 
-        _emptyLabel = new Label
+        _emptyLabel = (new Label
         {
             Text = "No custom games yet. Create one to start tracking scores.",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666666"),
             HorizontalTextAlignment = TextAlignment.Center,
             IsVisible = false,
             Margin = new Thickness(0, 24, 0, 0)
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
-        var addButton = new Button
+        var addButton = (new Button
         {
             Text = "+ New Custom Game",
-            BackgroundColor = Color.FromArgb("#EDE7F6"),
-            TextColor = Color.FromArgb("#512DA8"),
             CornerRadius = 8,
             FontAttributes = FontAttributes.Bold
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightViolet).ThemeColor(Button.TextColorProperty, ThemeKey.AccentVioletDeep);
         addButton.Clicked += async (_, _) => await Navigation.PushAsync(new CustomGameEditPage(_auth, _customGames));
 
         Content = new ScrollView
@@ -45,8 +42,8 @@ public class CustomGamesListPage : Bannister.Views.ModeThemedPage
                 Spacing = 12,
                 Children =
                 {
-                    new Label { Text = "Custom Games", FontSize = 28, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222222") },
-                    new Label { Text = "Create custom mini-games and track top scores.", FontSize = 14, TextColor = Color.FromArgb("#666666"), Margin = new Thickness(0, -6, 0, 8) },
+                    (new Label { Text = "Custom Games", FontSize = 28, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label { Text = "Create custom mini-games and track top scores.", FontSize = 14, Margin = new Thickness(0, -6, 0, 8) }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                     addButton,
                     _emptyLabel,
                     _listStack
@@ -76,33 +73,28 @@ public class CustomGamesListPage : Bannister.Views.ModeThemedPage
     private View BuildGameCard(CustomGameSummary summary)
     {
         var game = summary.Game;
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 14,
             CornerRadius = 8,
-            HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Colors.White
-        };
+            HasShadow = false
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
-        var title = new Label { Text = game.Name, FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222222") };
-        var details = new Label
+        var title = (new Label { Text = game.Name, FontSize = 18, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true);
+        var details = (new Label
         {
             Text = $"{GetEndSummary(game)}   Scores: {summary.FinishedInstanceCount}   Top: {(summary.TopScore?.ToString() ?? "-")}",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666666")
-        };
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true);
 
-        var menu = new Button
+        var menu = (new Button
         {
             Text = "⋮",
             WidthRequest = 40,
             HeightRequest = 40,
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333333"),
             CornerRadius = 8,
             Padding = new Thickness(0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         menu.Clicked += async (_, _) => await ShowGameMenuAsync(game);
 
         var grid = new Grid

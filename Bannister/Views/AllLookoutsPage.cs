@@ -34,31 +34,27 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
             Spacing = 12
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = " All Lookouts",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Scenarios to watch for across all dates.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ New Lookout",
-            BackgroundColor = Color.FromArgb("#6A1B9A"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             FontSize = 13,
             HeightRequest = 40,
             HorizontalOptions = LayoutOptions.Start,
             Padding = new Thickness(16, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (_, _) =>
             await AddLookoutAsync();
         stack.Children.Add(addBtn);
@@ -81,15 +77,14 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
 
         if (lookouts.Count == 0)
         {
-            _contentContainer.Children.Add(new Label
+            _contentContainer.Children.Add((new Label
             {
                 Text = "No lookouts yet. " +
                        "Create one from the calendar or " +
                        "tap + New Lookout above.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -105,14 +100,13 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
 
         if (withDate.Count > 0)
         {
-            _contentContainer.Children.Add(new Label
+            _contentContainer.Children.Add((new Label
             {
                 Text = " By Date",
                 FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#1565C0"),
                 Margin = new Thickness(0, 4, 0, 2)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
             foreach (var l in withDate)
                 _contentContainer.Children.Add(
                     BuildLookoutCard(l));
@@ -120,14 +114,13 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
 
         if (noDate.Count > 0)
         {
-            _contentContainer.Children.Add(new Label
+            _contentContainer.Children.Add((new Label
             {
                 Text = " No Date",
                 FontSize = 15,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#555"),
                 Margin = new Thickness(0, 8, 0, 2)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText1, classifyPageText: true));
             foreach (var l in noDate)
                 _contentContainer.Children.Add(
                     BuildLookoutCard(l));
@@ -136,7 +129,7 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
 
     private View BuildLookoutCard(LookoutScenario lookout)
     {
-        var row = new Grid
+        var row = (new Grid
         {
             ColumnDefinitions =
             {
@@ -144,52 +137,46 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition(new GridLength(70))
             },
             ColumnSpacing = 8,
-            Padding = new Thickness(12, 10),
-            BackgroundColor = Colors.White
-        };
+            Padding = new Thickness(12, 10)
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var infoStack = new VerticalStackLayout { Spacing = 2 };
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = lookout.Title,
             FontSize = 14,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.TailTruncation
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
         string dateStr = lookout.DisplayDate.HasValue
             ? lookout.DisplayDate.Value.ToString("dd MMM yyyy")
             : "No date";
-        infoStack.Children.Add(new Label
+        infoStack.Children.Add((new Label
         {
             Text = dateStr,
-            FontSize = 11,
-            TextColor = Color.FromArgb("#6A1B9A")
-        });
+            FontSize = 11
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleStrongText, ThemeKey.PageText3, classifyPageText: true));
 
         if (!string.IsNullOrWhiteSpace(lookout.Notes))
-            infoStack.Children.Add(new Label
+            infoStack.Children.Add((new Label
             {
                 Text = lookout.Notes,
                 FontSize = 11,
-                TextColor = Color.FromArgb("#777"),
                 LineBreakMode = LineBreakMode.TailTruncation
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
         row.Add(infoStack, 0, 0);
 
-        var openBtn = new Button
+        var openBtn = (new Button
         {
             Text = "Open",
-            BackgroundColor = Color.FromArgb("#6A1B9A"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             FontSize = 12,
             HeightRequest = 36,
             Padding = new Thickness(8, 0),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.AccentPurpleDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         openBtn.Clicked += async (_, _) =>
         {
             var page = new LookoutScenarioPage(
@@ -199,16 +186,14 @@ public class AllLookoutsPage : Bannister.Views.ModeThemedPage
         };
         row.Add(openBtn, 1, 0);
 
-        return new Frame
+        return (new Frame
         {
             Content = row,
             Padding = 0,
             CornerRadius = 8,
             HasShadow = false,
-            BorderColor = Color.FromArgb("#E0E0E0"),
-            BackgroundColor = Colors.White,
             Margin = new Thickness(0, 1)
-        };
+        }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private async Task AddLookoutAsync()

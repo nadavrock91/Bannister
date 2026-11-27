@@ -37,43 +37,39 @@ public class StreakTargetStatHistoryPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        var headerFrame = new Frame
+        var headerFrame = (new Frame
         {
             Padding = 16,
             CornerRadius = 12,
-            BackgroundColor = Color.FromArgb("#FF9800"),
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningButtonBackground);
 
         var headerStack = new VerticalStackLayout { Spacing = 4 };
-        _currentCountLabel = new Label
+        _currentCountLabel = (new Label
         {
             Text = "0",
             FontSize = 36,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             HorizontalTextAlignment = TextAlignment.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true);
         headerStack.Children.Add(_currentCountLabel);
-        headerStack.Children.Add(new Label
+        headerStack.Children.Add((new Label
         {
             Text = $"{_targetDays} in a row completed",
             FontSize = 14,
-            TextColor = Color.FromArgb("#FFFFFFCC"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightYellowStrong, ThemeKey.PageText1, classifyPageText: true));
 
         headerFrame.Content = headerStack;
         mainStack.Children.Add(headerFrame);
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Stat History",
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         _historyContainer = new VerticalStackLayout { Spacing = 8 };
         mainStack.Children.Add(_historyContainer);
@@ -91,34 +87,31 @@ public class StreakTargetStatHistoryPage : Bannister.Views.ModeThemedPage
         var logs = await _streaks.GetTargetStatLogsAsync(_username, _targetDays);
         if (logs.Count == 0)
         {
-            _historyContainer.Children.Add(new Frame
+            _historyContainer.Children.Add((new Frame
             {
                 Padding = 16,
                 CornerRadius = 8,
-                BackgroundColor = Color.FromArgb("#FFF8E1"),
                 BorderColor = Colors.Transparent,
                 HasShadow = false,
-                Content = new Label
+                Content = (new Label
                 {
                     Text = "No stat history recorded yet.",
                     FontSize = 13,
-                    TextColor = Color.FromArgb("#F57C00"),
                     HorizontalTextAlignment = TextAlignment.Center
-                }
-            });
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningStrongText, ThemeKey.PageText1, classifyPageText: true)
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.HighlightYellow));
             return;
         }
 
         foreach (var group in logs.GroupBy(l => l.LoggedAt.ToLocalTime().Date).OrderByDescending(g => g.Key))
         {
-            _historyContainer.Children.Add(new Label
+            _historyContainer.Children.Add((new Label
             {
                 Text = group.Key.ToString("dddd, MMM dd, yyyy"),
                 FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#5B63EE"),
                 Margin = new Thickness(0, 8, 0, 4)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
 
             foreach (var log in group.OrderByDescending(l => l.LoggedAt))
             {
@@ -129,14 +122,12 @@ public class StreakTargetStatHistoryPage : Bannister.Views.ModeThemedPage
 
     private Frame BuildLogCard(StreakTargetStatLog log)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = log.CountAfter > log.CountBefore ? Color.FromArgb("#4CAF50") : Color.FromArgb("#E53935"),
             HasShadow = false
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, log.CountAfter > log.CountBefore ? ThemeKey.SuccessLightText : ThemeKey.ErrorStrongButtonBackground);
 
         var grid = new Grid
         {
@@ -149,53 +140,48 @@ public class StreakTargetStatHistoryPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 12
         };
 
-        var changeLabel = new Label
+        var changeLabel = (new Label
         {
             Text = log.ChangeDisplay,
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
-            TextColor = log.Change >= 0 ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828"),
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, log.Change >= 0 ? ThemeKey.SuccessText : ThemeKey.ErrorText, ThemeKey.PageText1, classifyPageText: true);
         grid.Children.Add(changeLabel);
 
         var details = new VerticalStackLayout { Spacing = 2 };
-        details.Children.Add(new Label
+        details.Children.Add((new Label
         {
             Text = $"{log.CountBefore} -> {log.CountAfter} completed",
             FontSize = 14,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333")
-        });
-        details.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
+        details.Children.Add((new Label
         {
             Text = string.IsNullOrWhiteSpace(log.ActivityName)
                 ? log.ChangeTypeDisplay
                 : $"{log.ChangeTypeDisplay}: {log.ActivityName}",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         if (!string.IsNullOrWhiteSpace(log.Note))
         {
-            details.Children.Add(new Label
+            details.Children.Add((new Label
             {
                 Text = log.Note,
-                FontSize = 11,
-                TextColor = Color.FromArgb("#888")
-            });
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
         Grid.SetColumn(details, 1);
         grid.Children.Add(details);
 
-        var timeLabel = new Label
+        var timeLabel = (new Label
         {
             Text = log.TimeDisplay,
             FontSize = 12,
-            TextColor = Color.FromArgb("#777"),
             HorizontalTextAlignment = TextAlignment.End,
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         Grid.SetColumn(timeLabel, 2);
         grid.Children.Add(timeLabel);
 

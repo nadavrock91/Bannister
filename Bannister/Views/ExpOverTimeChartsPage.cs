@@ -44,23 +44,21 @@ public class ExpOverTimeChartsPage : Bannister.Views.ModeThemedPage
         };
 
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "📈 EXP Over Time",
             FontSize = 24,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             HorizontalTextAlignment = TextAlignment.Center
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = "Total EXP progression for each game",
             FontSize = 14,
-            TextColor = Color.FromArgb("#666"),
             HorizontalTextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 0, 0, 8)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         // Charts grid using FlexLayout for wrapping
         _chartsGrid = new FlexLayout
@@ -84,14 +82,13 @@ public class ExpOverTimeChartsPage : Bannister.Views.ModeThemedPage
 
         if (allGames.Count == 0)
         {
-            _chartsGrid.Children.Add(new Label
+            _chartsGrid.Children.Add((new Label
             {
                 Text = "No games found. Create a game to see charts!",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#999"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -108,43 +105,40 @@ public class ExpOverTimeChartsPage : Bannister.Views.ModeThemedPage
         double cardWidth = 280;
         double cardHeight = 240;
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 12,
             CornerRadius = 12,
-            BackgroundColor = Colors.White,
             HasShadow = true,
             WidthRequest = cardWidth,
             HeightRequest = cardHeight,
             Margin = new Thickness(8)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
 
         var stack = new VerticalStackLayout { Spacing = 6 };
 
         // Game title
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = game.DisplayName,
             FontSize = 15,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#333"),
             LineBreakMode = LineBreakMode.TailTruncation,
             MaxLines = 1
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true));
 
         // Load chart data
         var logs = await _db.GetExpLogsForGameAsync(_auth.CurrentUsername, game.GameId);
 
         if (logs.Count == 0)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = "No data",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#999"),
                 VerticalOptions = LayoutOptions.CenterAndExpand,
                 HorizontalTextAlignment = TextAlignment.Center
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         }
         else
         {
@@ -154,13 +148,12 @@ public class ExpOverTimeChartsPage : Bannister.Views.ModeThemedPage
             // Total EXP
             int totalExp = chartData.Count > 0 ? chartData.Last().Value : 0;
 
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"{totalExp:N0} EXP",
                 FontSize = 14,
-                TextColor = Color.FromArgb("#5B63EE"),
                 FontAttributes = FontAttributes.Bold
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SecondaryAccentText, ThemeKey.PageText1, classifyPageText: true));
 
             // Chart - takes most of the space (using compact drawable)
             var drawable = new ExpChartCompactDrawable(chartData);

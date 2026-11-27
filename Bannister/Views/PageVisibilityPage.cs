@@ -33,22 +33,20 @@ public class PageVisibilityPage : Bannister.Views.ModeThemedPage
             Spacing = 8
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Page Visibility",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Choose which pages appear on the home screen. " +
                    "Settings is always visible.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap,
             Margin = new Thickness(0, 0, 0, 8)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         _container = new VerticalStackLayout { Spacing = 4 };
         stack.Children.Add(_container);
@@ -85,15 +83,12 @@ public class PageVisibilityPage : Bannister.Views.ModeThemedPage
                 Margin = new Thickness(0, 2, 0, 2)
             };
 
-            row.Add(new Label
+            row.Add((new Label
             {
                 Text = setting.ButtonId,
                 FontSize = 14,
-                TextColor = isSettingsBtn
-                    ? Color.FromArgb("#999")
-                    : Color.FromArgb("#222"),
                 VerticalOptions = LayoutOptions.Center
-            }, 0, 0);
+            }).ThemeColor(Label.TextColorProperty, isSettingsBtn ? ThemeKey.CardText3 : ThemeKey.CardTextStrong, ThemeKey.PageText2, classifyPageText: true), 0, 0);
 
             var toggle = new Switch
             {

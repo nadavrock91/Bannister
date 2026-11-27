@@ -1,94 +1,51 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Bannister.Views.DragonAttemptsPage"
-             Title="Dragon Attempts">
+
+<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Bannister.Views.DragonAttemptsPage" Title="Dragon Attempts" xmlns:theme="clr-namespace:Bannister.Services">
     
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="20">
             
             <!-- Header -->
-            <Label x:Name="lblDragonTitle"
-                   FontSize="24"
-                   FontAttributes="Bold"
-                   TextColor="#12161E"
-                   HorizontalOptions="Center"/>
+            <Label x:Name="lblDragonTitle" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
             
             <!-- Current Attempt Status -->
-            <Frame x:Name="currentAttemptFrame"
-                   Padding="20"
-                   CornerRadius="12"
-                   BackgroundColor="White"
-                   HasShadow="True"
-                   BorderColor="Transparent">
+            <Frame x:Name="currentAttemptFrame" Padding="20" CornerRadius="12" BackgroundColor="{DynamicResource ModeCardBackground}" HasShadow="True" BorderColor="Transparent" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=CardBackground">
                 
                 <VerticalStackLayout Spacing="15">
-                    <Label x:Name="lblCurrentStatus"
-                           FontSize="18"
-                           FontAttributes="Bold"/>
+                    <Label x:Name="lblCurrentStatus" FontSize="18" FontAttributes="Bold" />
                     
-                    <Button x:Name="btnAction"
-                            HeightRequest="45"
-                            CornerRadius="8"/>
+                    <Button x:Name="btnAction" HeightRequest="45" CornerRadius="8" />
                 </VerticalStackLayout>
             </Frame>
             
             <!-- Attempt History Header -->
-            <Label Text="Attempt History"
-                   FontSize="18"
-                   FontAttributes="Bold"
-                   TextColor="#12161E"
-                   Margin="0,10,0,0"/>
+            <Label Text="Attempt History" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" Margin="0,10,0,0" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
             
             <!-- History List -->
-            <CollectionView x:Name="historyList"
-                           SelectionMode="None">
+            <CollectionView x:Name="historyList" SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Frame Padding="15"
-                               Margin="0,0,0,10"
-                               CornerRadius="8"
-                               BackgroundColor="{Binding BackgroundColor}"
-                               BorderColor="Transparent">
+                        <Frame Padding="15" Margin="0,0,0,10" CornerRadius="8" BackgroundColor="{Binding BackgroundColor}" BorderColor="Transparent">
                             
-                            <Grid RowDefinitions="Auto,Auto"
-                                  ColumnDefinitions="*,Auto">
+                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
                                 
-                                <Label Grid.Row="0" Grid.Column="0"
-                                       Text="{Binding AttemptTitle}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"/>
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding AttemptTitle}" FontSize="16" FontAttributes="Bold" />
                                 
-                                <Label Grid.Row="0" Grid.Column="1"
-                                       Text="{Binding StatusIcon}"
-                                       FontSize="20"/>
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding StatusIcon}" FontSize="20" />
                                 
-                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                       Text="{Binding DurationText}"
-                                       FontSize="14"
-                                       TextColor="#666"
-                                       Margin="0,4,0,0"/>
+                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding DurationText}" FontSize="14" TextColor="{DynamicResource ModeCardText2}" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
                             </Grid>
                         </Frame>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
                 
                 <CollectionView.EmptyView>
-                    <Label Text="No attempts recorded yet"
-                           FontSize="14"
-                           TextColor="#999"
-                           Padding="20"
-                           HorizontalOptions="Center"/>
+                    <Label Text="No attempts recorded yet" FontSize="14" TextColor="{DynamicResource ModeText1}" Padding="20" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
                 </CollectionView.EmptyView>
             </CollectionView>
             
             <!-- Back Button -->
-            <Button Text="Back to Attempts"
-                    Clicked="OnBackClicked"
-                    BackgroundColor="#EEE"
-                    TextColor="#333"
-                    CornerRadius="8"
-                    HeightRequest="45"/>
+            <Button Text="Back to Attempts" Clicked="OnBackClicked" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="8" HeightRequest="45" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
             
         </VerticalStackLayout>
     </ScrollView>

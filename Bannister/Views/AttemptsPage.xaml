@@ -1,77 +1,39 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Bannister.Views.AttemptsPage"
-             Title="Attempts">
+
+<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Bannister.Views.AttemptsPage" Title="Attempts" xmlns:theme="clr-namespace:Bannister.Services">
     
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="20">
             
             <!-- Header -->
-            <Label Text="Dragon-Slaying Attempts"
-                   FontSize="24"
-                   FontAttributes="Bold"
-                   TextColor="#12161E"
-                   HorizontalOptions="Center"/>
+            <Label Text="Dragon-Slaying Attempts" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
             
-            <Label Text="Track your attempts to slay each dragon. Each dragon shows its latest attempt."
-                   FontSize="14"
-                   TextColor="#5A6273"
-                   HorizontalOptions="Center"
-                   HorizontalTextAlignment="Center"
-                   MaximumWidthRequest="500"/>
+            <Label Text="Track your attempts to slay each dragon. Each dragon shows its latest attempt." FontSize="14" TextColor="{DynamicResource ModeCardText2}" HorizontalOptions="Center" HorizontalTextAlignment="Center" MaximumWidthRequest="500" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
             
             <!-- Attempts List -->
-            <CollectionView x:Name="attemptsList"
-                           SelectionMode="None"
-                           Margin="0,10,0,0">
+            <CollectionView x:Name="attemptsList" SelectionMode="None" Margin="0,10,0,0">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Frame Padding="15"
-                               Margin="0,0,0,10"
-                               CornerRadius="12"
-                               BackgroundColor="White"
-                               HasShadow="True"
-                               BorderColor="Transparent">
+                        <Frame Padding="15" Margin="0,0,0,10" CornerRadius="12" BackgroundColor="{DynamicResource ModeCardBackground}" HasShadow="True" BorderColor="Transparent" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=CardBackground">
                             <Frame.GestureRecognizers>
-                                <TapGestureRecognizer Tapped="OnAttemptTapped"/>
+                                <TapGestureRecognizer Tapped="OnAttemptTapped" />
                             </Frame.GestureRecognizers>
                             
-                            <Grid RowDefinitions="Auto,Auto,Auto"
-                                  ColumnDefinitions="*,Auto">
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
                                 
                                 <!-- Dragon Title -->
-                                <Label Grid.Row="0" Grid.Column="0"
-                                       Text="{Binding DragonTitle}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="#12161E"/>
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding DragonTitle}" FontSize="16" FontAttributes="Bold" TextColor="{DynamicResource ModeCardTextStrong}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardTextStrong" />
                                 
                                 <!-- Status Badge -->
-                                <Frame Grid.Row="0" Grid.Column="1"
-                                       Padding="8,4"
-                                       CornerRadius="12"
-                                       BackgroundColor="{Binding StatusColor}"
-                                       HasShadow="False">
-                                    <Label Text="{Binding StatusText}"
-                                           TextColor="White"
-                                           FontSize="12"
-                                           FontAttributes="Bold"/>
+                                <Frame Grid.Row="0" Grid.Column="1" Padding="8,4" CornerRadius="12" BackgroundColor="{Binding StatusColor}" HasShadow="False">
+                                    <Label Text="{Binding StatusText}" TextColor="{DynamicResource ModeOnColorText}" FontSize="12" FontAttributes="Bold" theme:ThemeColorExtensions.NamedColorProperties="TextColor=OnColorText" />
                                 </Frame>
                                 
                                 <!-- Attempt Info -->
-                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                       Text="{Binding InfoText}"
-                                       FontSize="14"
-                                       TextColor="#5A6273"
-                                       Margin="0,4,0,0"/>
+                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding InfoText}" FontSize="14" TextColor="{DynamicResource ModeCardText2}" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
                                 
                                 <!-- Game -->
-                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                                       Text="{Binding Game, StringFormat='Game: {0}'}"
-                                       FontSize="12"
-                                       TextColor="#999"
-                                       Margin="0,4,0,0"/>
+                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Game, StringFormat='Game: {0}'}" FontSize="12" TextColor="{DynamicResource ModeDisabledText}" Margin="0,4,0,0" theme:ThemeColorExtensions.NamedColorProperties="TextColor=DisabledText" />
                             </Grid>
                         </Frame>
                     </DataTemplate>
@@ -79,27 +41,14 @@
                 
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="40" Spacing="10">
-                        <Label Text="No attempts yet."
-                               FontSize="16"
-                               TextColor="#999"
-                               HorizontalOptions="Center"/>
-                        <Label Text="Create a dragon first, then start your first attempt!"
-                               FontSize="14"
-                               TextColor="#AAA"
-                               HorizontalOptions="Center"
-                               HorizontalTextAlignment="Center"/>
+                        <Label Text="No attempts yet." FontSize="16" TextColor="{DynamicResource ModeText1}" HorizontalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
+                        <Label Text="Create a dragon first, then start your first attempt!" FontSize="14" TextColor="{DynamicResource ModeText1}" HorizontalOptions="Center" HorizontalTextAlignment="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text1" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
             </CollectionView>
             
             <!-- Back Button -->
-            <Button Text="Back to Home"
-                    Clicked="OnBackClicked"
-                    BackgroundColor="#EEE"
-                    TextColor="#333"
-                    CornerRadius="8"
-                    HeightRequest="45"
-                    Margin="0,10,0,0"/>
+            <Button Text="Back to Home" Clicked="OnBackClicked" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="8" HeightRequest="45" Margin="0,10,0,0" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
             
         </VerticalStackLayout>
     </ScrollView>

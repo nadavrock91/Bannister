@@ -33,23 +33,20 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
         };
         
         // Header
-        mainStack.Children.Add(new Label
+        mainStack.Children.Add((new Label
         {
             Text = GetCategoryEmoji(_category) + " " + _category,
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
         // Add Countdown button
-        var btnAdd = new Button
+        var btnAdd = (new Button
         {
             Text = "+ Add Countdown",
-            BackgroundColor = Color.FromArgb("#5B63EE"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 50
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SecondaryButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         btnAdd.Clicked += OnAddCountdownClicked;
         mainStack.Children.Add(btnAdd);
         
@@ -78,13 +75,12 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
         
         if (countdowns.Count == 0)
         {
-            _countdownsLayout.Children.Add(new Label
+            _countdownsLayout.Children.Add((new Label
             {
                 Text = "No countdowns yet.\nTap '+ Add Countdown' to make a prediction!",
-                TextColor = Color.FromArgb("#AAAAAA"),
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 40, 0, 0)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
         
@@ -95,14 +91,13 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
         
         if (active.Count > 0)
         {
-            _countdownsLayout.Children.Add(new Label
+            _countdownsLayout.Children.Add((new Label
             {
                 Text = "⏳ Active",
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#4CAF50"),
                 Margin = new Thickness(0, 10, 0, 5)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessLightText, ThemeKey.PageText1, classifyPageText: true));
             
             foreach (var countdown in active)
             {
@@ -113,14 +108,13 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
         
         if (resolved.Count > 0)
         {
-            _countdownsLayout.Children.Add(new Label
+            _countdownsLayout.Children.Add((new Label
             {
                 Text = "📋 History",
                 FontSize = 18,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#AAAAAA"),
                 Margin = new Thickness(0, 20, 0, 5)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText1, classifyPageText: true));
             
             foreach (var countdown in resolved)
             {
@@ -132,13 +126,12 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
     
     private Frame CreateCountdownCard(Countdown countdown)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Color.FromArgb("#2D2D44"),
             BorderColor = countdown.StatusColor,
             CornerRadius = 12,
             Padding = 16
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.PublicCardBackground);
         
         var mainGrid = new Grid
         {
@@ -161,29 +154,26 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
             }
         };
         
-        titleRow.Children.Add(new Label
+        titleRow.Children.Add((new Label
         {
             Text = countdown.StatusEmoji + " " + countdown.Name,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.OnColorText, ThemeKey.PageText1, classifyPageText: true));
         
         // For manual countdowns (active), show count with buttons
         if (countdown.IsManual && countdown.Status == "Active")
         {
             var countRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.End };
             
-            var btnMinus = new Button
+            var btnMinus = (new Button
             {
                 Text = "-1",
-                BackgroundColor = Color.FromArgb("#F44336"),
-                TextColor = Colors.White,
                 CornerRadius = 4,
                 Padding = new Thickness(8, 4),
                 FontSize = 14,
                 HeightRequest = 36
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnMinus.Clicked += async (s, e) =>
             {
                 await _countdowns.DecrementManualCountAsync(countdown);
@@ -203,16 +193,14 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
             };
             countRow.Children.Add(countLabel);
             
-            var btnPlus = new Button
+            var btnPlus = (new Button
             {
                 Text = "+1",
-                BackgroundColor = Color.FromArgb("#4CAF50"),
-                TextColor = Colors.White,
                 CornerRadius = 4,
                 Padding = new Thickness(8, 4),
                 FontSize = 14,
                 HeightRequest = 36
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
             btnPlus.Clicked += async (s, e) =>
             {
                 await _countdowns.IncrementManualCountAsync(countdown);
@@ -242,81 +230,74 @@ public class CountdownCategoryPage : Bannister.Views.ModeThemedPage
         // Target date (only for auto countdowns)
         if (!countdown.IsManual)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"Target: {countdown.TargetDate:MMMM d, yyyy}",
-                FontSize = 14,
-                TextColor = Color.FromArgb("#AAAAAA")
-            });
+                FontSize = 14
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
         }
         else
         {
             // Show original count for manual
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"Started at: {countdown.OriginalManualCount} • Manual countdown",
-                FontSize = 12,
-                TextColor = Color.FromArgb("#888888")
-            });
+                FontSize = 12
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
         
         // Description if exists
         if (!string.IsNullOrWhiteSpace(countdown.Description))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = countdown.Description,
                 FontSize = 12,
-                TextColor = Color.FromArgb("#888888"),
                 FontAttributes = FontAttributes.Italic
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
         
         // Postpone info
         if (countdown.PostponeCount > 0)
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"⏱️ Postponed {countdown.PostponeCount}x ({countdown.TotalDaysPostponed} days total)",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#FF9800")
-            });
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.WarningAccentText, ThemeKey.PageText3, classifyPageText: true));
         }
         
         // Resolution notes
         if (!string.IsNullOrWhiteSpace(countdown.ResolutionNotes))
         {
-            stack.Children.Add(new Label
+            stack.Children.Add((new Label
             {
                 Text = $"📝 {countdown.ResolutionNotes}",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#888888")
-            });
+                FontSize = 11
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText3, classifyPageText: true));
         }
         
         // Created date
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $"Created: {countdown.CreatedAt:MMM d, yyyy}",
-            FontSize = 10,
-            TextColor = Color.FromArgb("#666666")
-        });
+            FontSize = 10
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         
         Grid.SetColumn(stack, 0);
         mainGrid.Children.Add(stack);
         
         // 3-dots menu button
-        var menuButton = new Button
+        var menuButton = (new Button
         {
             Text = "⋮",
             FontSize = 24,
             BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#AAAAAA"),
             WidthRequest = 40,
             HeightRequest = 40,
             Padding = 0,
             VerticalOptions = LayoutOptions.Start
-        };
+        }).ThemeColor(Button.TextColorProperty, ThemeKey.CardText3);
         menuButton.Clicked += async (s, e) => await OnCountdownTapped(countdown);
         
         Grid.SetColumn(menuButton, 1);

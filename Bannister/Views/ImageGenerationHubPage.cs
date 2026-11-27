@@ -23,21 +23,19 @@ public class ImageGenerationHubPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Image Generation",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Tools for generating images from prompts.",
             FontSize = 15,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, -8, 0, 8)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         stack.Children.Add(CreateProviderCard(
             "ChatGPT API",
@@ -58,15 +56,13 @@ public class ImageGenerationHubPage : Bannister.Views.ModeThemedPage
 
     private View CreateLockedContent()
     {
-        var backButton = new Button
+        var backButton = (new Button
         {
             Text = "Back",
-            BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#333333"),
             CornerRadius = 8,
             WidthRequest = 140,
             HorizontalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.CardText1);
         backButton.Clicked += async (_, _) => await Navigation.PopAsync();
 
         return new Grid
@@ -81,21 +77,19 @@ public class ImageGenerationHubPage : Bannister.Views.ModeThemedPage
                     HorizontalOptions = LayoutOptions.Center,
                     Children =
                     {
-                        new Label
+                        (new Label
                         {
                             Text = "Owner Mode Locked",
                             FontSize = 24,
                             FontAttributes = FontAttributes.Bold,
-                            TextColor = Color.FromArgb("#222"),
                             HorizontalTextAlignment = TextAlignment.Center
-                        },
-                        new Label
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true),
+                        (new Label
                         {
                             Text = "Image Generation is available only when Owner Mode is unlocked.",
                             FontSize = 14,
-                            TextColor = Color.FromArgb("#666"),
                             HorizontalTextAlignment = TextAlignment.Center
-                        },
+                        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true),
                         backButton
                     }
                 }
@@ -110,30 +104,26 @@ public class ImageGenerationHubPage : Bannister.Views.ModeThemedPage
             Spacing = 4
         };
 
-        textStack.Children.Add(new Label
+        textStack.Children.Add((new Label
         {
             Text = title,
             FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
 
-        textStack.Children.Add(new Label
+        textStack.Children.Add((new Label
         {
             Text = description,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 16,
             CornerRadius = 8,
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#E0E0E0"),
             HasShadow = true,
             Content = textStack
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator);
 
         var tap = new TapGestureRecognizer();
         tap.Tapped += (_, _) => tapped();

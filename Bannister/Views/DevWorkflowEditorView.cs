@@ -48,13 +48,12 @@ public class DevWorkflowEditorView : ContentView
     {
         _content.Children.Clear();
         _content.Padding = _compact ? 8 : 16;
-        _content.Children.Add(new Label
+        _content.Children.Add((new Label
         {
             Text = _source == null ? "New Workflow" : "Edit Workflow",
             FontSize = _compact ? 21 : 25,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = _compact ? Color.FromArgb("#2D1B6B") : Color.FromArgb("#222")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, _compact ? ThemeKey.DeepVioletText : ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
         _name = new Entry
         {
             Placeholder = "Workflow name",
@@ -68,14 +67,14 @@ public class DevWorkflowEditorView : ContentView
             _content.Children.Add(BuildStepRow(_steps[i], i));
         _content.Children.Add(BuildStepForm());
 
-        var save = Button("Save", "#2E7D32");
+        var save = Button("Save", ThemeKey.SuccessDarkButtonBackground);
         save.Clicked += async (_, _) => await SaveAsync();
-        var cancel = Button("Cancel", "#607D8B");
+        var cancel = Button("Cancel", ThemeKey.NeutralMutedButton);
         cancel.Clicked += async (_, _) => { if (Cancelled != null) await Cancelled.Invoke(); };
         var actions = new HorizontalStackLayout { Spacing = 7, Children = { save, cancel } };
         if (_source != null)
         {
-            var delete = Button("Delete Workflow", "#C62828");
+            var delete = Button("Delete Workflow", ThemeKey.ErrorDarkButtonBackground);
             delete.Clicked += async (_, _) => await DeleteAsync();
             actions.Children.Add(delete);
         }
@@ -97,12 +96,12 @@ public class DevWorkflowEditorView : ContentView
         });
         var buttons = new HorizontalStackLayout { Spacing = 4 };
         var edit = Small("Edit"); edit.Clicked += (_, _) => { _editingStep = step; BuildUI(); };
-        var delete = Small("Delete", "#C62828"); delete.Clicked += (_, _) => { _steps.Remove(step); if (_editingStep == step) _editingStep = null; BuildUI(); };
+        var delete = Small("Delete", ThemeKey.ErrorDarkButtonBackground); delete.Clicked += (_, _) => { _steps.Remove(step); if (_editingStep == step) _editingStep = null; BuildUI(); };
         var up = Small("↑"); up.IsEnabled = index > 0; up.Clicked += (_, _) => { Move(index, index - 1); };
         var down = Small("↓"); down.IsEnabled = index < _steps.Count - 1; down.Clicked += (_, _) => { Move(index, index + 1); };
         buttons.Children.Add(edit); buttons.Children.Add(delete); buttons.Children.Add(up); buttons.Children.Add(down);
         stack.Children.Add(buttons);
-        return new Border { Content = stack, Padding = 8, Stroke = Color.FromArgb("#DDDDDD"), StrokeThickness = 1, BackgroundColor = Colors.White };
+        return (new Border { Content = stack, Padding = 8, StrokeThickness = 1 }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     private View BuildStepForm()
@@ -173,7 +172,7 @@ public class DevWorkflowEditorView : ContentView
         }
         type.SelectedIndexChanged += (_, _) => UpdateFields();
         UpdateFields();
-        var apply = Button(current == null ? "Add Step" : "Update Step", "#1565C0");
+        var apply = Button(current == null ? "Add Step" : "Update Step", ThemeKey.ButtonPrimaryBackground);
         apply.Clicked += (_, _) =>
         {
             string selected = type.SelectedItem?.ToString() ?? "Manual";
@@ -253,7 +252,7 @@ public class DevWorkflowEditorView : ContentView
         AppendConstraints = x.AppendConstraints
     };
 
-    private static Frame Card(View content) => new() { Content = content, Padding = 10, CornerRadius = 9, HasShadow = false, BorderColor = Color.FromArgb("#DDDDDD"), BackgroundColor = Colors.White };
-    private static Button Button(string text, string color) => new() { Text = text, BackgroundColor = Color.FromArgb(color), TextColor = Colors.White, FontSize = 12, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0) };
-    private static Button Small(string text, string color = "#607D8B") => new() { Text = text, BackgroundColor = Color.FromArgb(color), TextColor = Colors.White, FontSize = 10, CornerRadius = 5, HeightRequest = 30, Padding = new Thickness(7, 0) };
+    private static Frame Card(View content) => (new Frame(){ Content = content, Padding = 10, CornerRadius = 9, HasShadow = false }).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
+    private static Button Button(string text, ThemeKey color) => (new Button(){ Text = text, FontSize = 12, CornerRadius = 6, HeightRequest = 36, Padding = new Thickness(10, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
+    private static Button Small(string text, ThemeKey color = ThemeKey.NeutralMutedButton) => (new Button(){ Text = text, FontSize = 10, CornerRadius = 5, HeightRequest = 30, Padding = new Thickness(7, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Microsoft.Maui.Controls.Button.TextColorProperty, ThemeKey.OnColorText);
 }

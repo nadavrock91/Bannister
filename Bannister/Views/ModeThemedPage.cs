@@ -179,9 +179,7 @@ public class ModeThemedPage : ContentPage, IModeThemePage
         {
             if (!picker.HasThemeColor(Picker.TextColorProperty)) BindColor(picker, Picker.TextColorProperty, "ModeInputText");
             if (!picker.HasThemeColor(Picker.TitleColorProperty)) BindColor(picker, Picker.TitleColorProperty, "ModeInputText");
-            // Windows renders Title as a header inside the requested height.
-            if (!string.IsNullOrWhiteSpace(picker.Title) && picker.HeightRequest >= 0)
-                picker.HeightRequest = Math.Max(picker.HeightRequest, 72);
+            ThemeColorExtensions.FixPickerHeader(picker);
         }
 
         if (element is IVisualTreeElement tree)
@@ -208,8 +206,8 @@ public class ModeThemedPage : ContentPage, IModeThemePage
             if ((element is Frame || element is Border) && IsNeutralNearWhite(surface.Original)) key = "ModeCardBackground";
             else if ((element is InputView || element is Picker || element is DatePicker || element is TimePicker) &&
                 (!HasBackground(surface.Original) || IsNeutralNearWhite(surface.Original))) key = "ModeInputBackground";
-            else if (element is Button button && Equals(surface.Original, Color.FromArgb("#1565C0")) &&
-                (Equals(button.TextColor, Colors.White) || surface.WasPrimaryButton))
+            else if (element is Button button && Equals(surface.Original, ModeTheme.Get(ActivityDisplayMode.All).ButtonPrimaryBackground) &&
+                (Equals(button.TextColor, ModeTheme.Get(ActivityDisplayMode.All).ButtonPrimaryText) || surface.WasPrimaryButton))
                 key = "ModeButtonPrimaryBackground";
         }
         if (key == null) return;

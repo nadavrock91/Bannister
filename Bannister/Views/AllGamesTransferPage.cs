@@ -56,16 +56,16 @@ public class AllGamesTransferPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 16 };
-        stack.Children.Add(new Label { Text = " Transfer All Games", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222") });
-        stack.Children.Add(new Label { Text = "Select activities to export per game, then copy to clipboard. On the other device paste the JSON to import.", FontSize = 13, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
+        stack.Children.Add((new Label { Text = " Transfer All Games", FontSize = 22, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label { Text = "Select activities to export per game, then copy to clipboard. On the other device paste the JSON to import.", FontSize = 13, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         var exportHeader = new Grid
         {
             ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) },
             ColumnSpacing = 8
         };
-        exportHeader.Add(new Label { Text = "Export", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), VerticalOptions = LayoutOptions.Center }, 0, 0);
-        var globalSelectAll = SmallButton("All", "#E3F2FD", "#1565C0", 28);
+        exportHeader.Add((new Label { Text = "Export", FontSize = 16, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        var globalSelectAll = SmallButton("All", ThemeKey.InfoBackground, ThemeKey.InfoText, 28);
         globalSelectAll.Clicked += (_, _) =>
         {
             foreach (var g in _exportGroups)
@@ -73,7 +73,7 @@ public class AllGamesTransferPage : Bannister.Views.ModeThemedPage
             RenderExportGroups();
         };
         exportHeader.Add(globalSelectAll, 1, 0);
-        var globalSelectNone = SmallButton("None", "#ECEFF1", "#37474F", 28);
+        var globalSelectNone = SmallButton("None", ThemeKey.NeutralButtonBackground, ThemeKey.NeutralButtonText, 28);
         globalSelectNone.Clicked += (_, _) =>
         {
             foreach (var g in _exportGroups) g.SelectedIndices.Clear();
@@ -82,28 +82,26 @@ public class AllGamesTransferPage : Bannister.Views.ModeThemedPage
         exportHeader.Add(globalSelectNone, 2, 0);
         stack.Children.Add(exportHeader);
 
-        _exportStatusLabel = new Label { Text = "Loading...", FontSize = 12, TextColor = Color.FromArgb("#666"), IsVisible = true };
+        _exportStatusLabel = (new Label { Text = "Loading...", FontSize = 12, IsVisible = true }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         stack.Children.Add(_exportStatusLabel);
         _exportContainer = new VerticalStackLayout { Spacing = 12 };
         stack.Children.Add(_exportContainer);
-        var exportBtn = new Button { Text = " Copy Selected to Clipboard", BackgroundColor = Color.FromArgb("#1565C0"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        var exportBtn = (new Button { Text = " Copy Selected to Clipboard", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         exportBtn.Clicked += async (_, _) => await ExportSelectedAsync();
         stack.Children.Add(exportBtn);
 
-        stack.Children.Add(new BoxView { HeightRequest = 1, BackgroundColor = Color.FromArgb("#E0E0E0"), Margin = new Thickness(0, 8, 0, 0) });
-        stack.Children.Add(new Label { Text = "Import", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#2E7D32") });
-        stack.Children.Add(new Label { Text = "Paste exported JSON. All activities are imported. Duplicates (same name in same game) will ask what to do.", FontSize = 12, TextColor = Color.FromArgb("#666"), LineBreakMode = LineBreakMode.WordWrap });
-        var pasteBtn = new Button { Text = " Paste & Import JSON", BackgroundColor = Color.FromArgb("#2E7D32"), TextColor = Colors.White, CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold };
+        stack.Children.Add((new BoxView { HeightRequest = 1, Margin = new Thickness(0, 8, 0, 0) }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.Separator));
+        stack.Children.Add((new Label { Text = "Import", FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label { Text = "Paste exported JSON. All activities are imported. Duplicates (same name in same game) will ask what to do.", FontSize = 12, LineBreakMode = LineBreakMode.WordWrap }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
+        var pasteBtn = (new Button { Text = " Paste & Import JSON", CornerRadius = 8, FontSize = 14, HeightRequest = 44, FontAttributes = FontAttributes.Bold }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         pasteBtn.Clicked += async (_, _) => await PasteAndImportAsync();
         stack.Children.Add(pasteBtn);
         Content = new ScrollView { Content = stack };
     }
 
-    private static Button SmallButton(string text, string background, string foreground, double height) => new()
-    {
-        Text = text, BackgroundColor = Color.FromArgb(background), TextColor = Color.FromArgb(foreground),
-        CornerRadius = 4, FontSize = 10, HeightRequest = height, Padding = new Thickness(6, 0)
-    };
+    private static Button SmallButton(string text, ThemeKey background, ThemeKey foreground, double height) => (new Button(){
+        Text = text,         CornerRadius = 4, FontSize = 10, HeightRequest = height, Padding = new Thickness(6, 0)
+    }).ThemeColor(VisualElement.BackgroundColorProperty, background).ThemeColor(Button.TextColorProperty, foreground);
 
     private async Task LoadExportGroupsAsync()
     {
@@ -137,16 +135,16 @@ public class AllGamesTransferPage : Bannister.Views.ModeThemedPage
                 ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) },
                 ColumnSpacing = 6
             };
-            headerRow.Add(new Label { Text = group.Game.DisplayName, FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1565C0"), VerticalOptions = LayoutOptions.Center }, 0, 0);
+            headerRow.Add((new Label { Text = group.Game.DisplayName, FontSize = 14, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true), 0, 0);
             var capturedGroup = group;
-            var allBtn = SmallButton("All", "#E3F2FD", "#1565C0", 24);
+            var allBtn = SmallButton("All", ThemeKey.InfoBackground, ThemeKey.InfoText, 24);
             allBtn.Clicked += (_, _) =>
             {
                 for (int i = 0; i < capturedGroup.AllActivities.Count; i++) capturedGroup.SelectedIndices.Add(i);
                 RenderExportGroups();
             };
             headerRow.Add(allBtn, 1, 0);
-            var noneBtn = SmallButton("None", "#ECEFF1", "#37474F", 24);
+            var noneBtn = SmallButton("None", ThemeKey.NeutralButtonBackground, ThemeKey.NeutralButtonText, 24);
             noneBtn.Clicked += (_, _) => { capturedGroup.SelectedIndices.Clear(); RenderExportGroups(); };
             headerRow.Add(noneBtn, 2, 0);
             gameSection.Children.Add(headerRow);
@@ -171,8 +169,8 @@ public class AllGamesTransferPage : Bannister.Views.ModeThemedPage
                         capturedGroup.SelectedIndices.Remove(capturedI);
                 };
                 row.Add(cb, 0, 0);
-                row.Add(new Label { Text = act.Name, FontSize = 13, TextColor = Color.FromArgb("#222"), VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation }, 1, 0);
-                row.Add(new Label { Text = $"+{act.ExpGain}", FontSize = 11, TextColor = Color.FromArgb("#2E7D32"), VerticalOptions = LayoutOptions.Center }, 2, 0);
+                row.Add((new Label { Text = act.Name, FontSize = 13, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+                row.Add((new Label { Text = $"+{act.ExpGain}", FontSize = 11, VerticalOptions = LayoutOptions.Center }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true), 2, 0);
                 actStack.Children.Add(row);
             }
             gameSection.Children.Add(actStack);

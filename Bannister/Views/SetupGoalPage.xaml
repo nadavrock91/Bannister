@@ -1,18 +1,14 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Bannister.Views.SetupGoalPage"
-             Title="Diet Dragon (Level 100 Goal)">
+<?xml version="1.0" encoding="utf-8" ?>
+
+<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Bannister.Views.SetupGoalPage" Title="Diet Dragon (Level 100 Goal)" xmlns:theme="clr-namespace:Bannister.Services">
 
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="16" MaximumWidthRequest="500">
 
             <!-- Header -->
-            <Label Text="Before the Diet game begins, define what Level 100 means. This is your Dragon."
-                   FontSize="20" FontAttributes="Bold" />
+            <Label Text="Before the Diet game begins, define what Level 100 means. This is your Dragon." FontSize="20" FontAttributes="Bold" />
 
-            <Label Text="Pick a long-standing challenge you've failed to achieve for years.&#x0a;Level 100 is not a vibe. It's a concrete victory.&#x0a;Your goal name must end with &quot;Dragon&quot;."
-                   TextColor="Gray" />
+            <Label Text="Pick a long-standing challenge you've failed to achieve for years.&#xA;Level 100 is not a vibe. It's a concrete victory.&#xA;Your goal name must end with &quot;Dragon&quot;." TextColor="{DynamicResource ModeCardText2}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
 
             <!-- Goal Name -->
             <Label Text="Goal name (must end with &quot;Dragon&quot;):" FontAttributes="Bold" />
@@ -23,94 +19,39 @@
             <Editor x:Name="txtGoalDesc" Placeholder="Describe what achieving this goal means to you..." HeightRequest="80" />
 
             <!-- Image Preview -->
-            <Frame BackgroundColor="Black" Padding="0" CornerRadius="8" HeightRequest="250">
+            <Frame BackgroundColor="{DynamicResource ModeShadow}" Padding="0" CornerRadius="8" HeightRequest="250" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=Shadow">
                 <Image x:Name="imgDragonPreview" Aspect="AspectFit" />
             </Frame>
 
             <!-- Image Source Selection -->
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                <Button x:Name="btnImageDefault"
-                        Text="Default"
-                        Clicked="OnDefaultClicked"
-                        BackgroundColor="#5B63EE"
-                        TextColor="White"
-                        CornerRadius="6"
-                        FontSize="12"
-                        Padding="8,10"
-                        LineBreakMode="WordWrap" />
+                <Button x:Name="btnImageDefault" Text="Default" Clicked="OnDefaultClicked" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="6" FontSize="12" Padding="8,10" LineBreakMode="WordWrap" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
 
-                <Button x:Name="btnImageLibrary"
-                        Text="Choose from Library"
-                        Clicked="OnLibraryClicked"
-                        Grid.Column="1"
-                        BackgroundColor="#EEE"
-                        TextColor="#333"
-                        CornerRadius="6"
-                        FontSize="12"
-                        Padding="8,10"
-                        LineBreakMode="WordWrap" />
+                <Button x:Name="btnImageLibrary" Text="Choose from Library" Clicked="OnLibraryClicked" Grid.Column="1" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="6" FontSize="12" Padding="8,10" LineBreakMode="WordWrap" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
 
-                <Button x:Name="btnImageOwn"
-                        Text="My Own Image"
-                        Clicked="OnOwnImageClicked"
-                        Grid.Column="2"
-                        BackgroundColor="#EEE"
-                        TextColor="#333"
-                        CornerRadius="6"
-                        FontSize="12"
-                        Padding="8,10"
-                        LineBreakMode="WordWrap" />
+                <Button x:Name="btnImageOwn" Text="My Own Image" Clicked="OnOwnImageClicked" Grid.Column="2" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="6" FontSize="12" Padding="8,10" LineBreakMode="WordWrap" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
             </Grid>
 
             <!-- Own Image Section -->
             <Grid x:Name="gridCustomImage" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="False">
-                <Button Text="Choose File"
-                        Clicked="OnChooseFile"
-                        BackgroundColor="#5B63EE"
-                        TextColor="White"
-                        CornerRadius="6" />
+                <Button Text="Choose File" Clicked="OnChooseFile" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="6" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
 
-                <Button Text="AI Generators"
-                        Clicked="OnAiGeneratorsClicked"
-                        Grid.Column="1"
-                        BackgroundColor="#EEE"
-                        TextColor="#333"
-                        CornerRadius="6" />
+                <Button Text="AI Generators" Clicked="OnAiGeneratorsClicked" Grid.Column="1" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="6" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
             </Grid>
 
             <!-- AI Prompt Box -->
-            <Frame BackgroundColor="#F0F0F0" Padding="12" CornerRadius="8" BorderColor="Transparent">
+            <Frame BackgroundColor="{DynamicResource ModeSecondarySurface}" Padding="12" CornerRadius="8" BorderColor="Transparent" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondarySurface">
                 <VerticalStackLayout Spacing="8">
-                    <Label x:Name="lblPrompt"
-                           Text="AI Prompt: Create an image of a dragon that represents diet goals. The dragon should be compelling and slightly menacing. Clean illustration style. No text."
-                           FontSize="12"
-                           TextColor="#555" />
-                    <Button Text="Copy Prompt"
-                            Clicked="OnCopyPrompt"
-                            BackgroundColor="Transparent"
-                            TextColor="#5B63EE"
-                            FontSize="12"
-                            Padding="0"
-                            HorizontalOptions="Start" />
+                    <Label x:Name="lblPrompt" Text="AI Prompt: Create an image of a dragon that represents diet goals. The dragon should be compelling and slightly menacing. Clean illustration style. No text." FontSize="12" TextColor="{DynamicResource ModeCardText2}" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2" />
+                    <Button Text="Copy Prompt" Clicked="OnCopyPrompt" BackgroundColor="Transparent" TextColor="{DynamicResource ModeSecondaryAccentText}" FontSize="12" Padding="0" HorizontalOptions="Start" theme:ThemeColorExtensions.NamedColorProperties="TextColor=SecondaryAccentText" />
                 </VerticalStackLayout>
             </Frame>
 
             <!-- Action Buttons -->
             <Grid ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,16,0,0">
-                <Button Text="Save Dragon"
-                        Clicked="OnSaveDragon"
-                        BackgroundColor="#5B63EE"
-                        TextColor="White"
-                        CornerRadius="8"
-                        HeightRequest="50" />
+                <Button Text="Save Dragon" Clicked="OnSaveDragon" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" HeightRequest="50" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
 
-                <Button Text="Skip for Now"
-                        Clicked="OnSkip"
-                        Grid.Column="1"
-                        BackgroundColor="#EEE"
-                        TextColor="#333"
-                        CornerRadius="8"
-                        HeightRequest="50" />
+                <Button Text="Skip for Now" Clicked="OnSkip" Grid.Column="1" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="8" HeightRequest="50" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
             </Grid>
 
         </VerticalStackLayout>

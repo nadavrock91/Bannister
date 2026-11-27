@@ -157,6 +157,8 @@ public static class ModeTheme
         new(ThemeKey.DarkErrorBackground,"Status","#3D2D2D"),
         new(ThemeKey.HighlightCyanButton,"Highlights","#00BCD4"),
         new(ThemeKey.HighlightAquaButton,"Highlights","#4ECDC4"),
+        new(ThemeKey.ChartAreaFill,"Highlights","#335B63EE"),
+        new(ThemeKey.OverlayFaint,"Cards","#40000000"),
         new(ThemeKey.BrandFacebook,"Brand","#1877F2",true), new(ThemeKey.BrandTikTok,"Brand","#FE2C55",true), new(ThemeKey.BrandYouTube,"Brand","#FF0000",true),
         new(ThemeKey.BrandMediaBackground,"Brand","#1E1E1E",true), new(ThemeKey.BrandMediaPanel,"Brand","#2D2D30",true),
         new(ThemeKey.BrandMediaBorder,"Brand","#3E3E42",true), new(ThemeKey.BrandMediaButton,"Brand","#4A4A4A",true),
@@ -199,7 +201,18 @@ public static class ModeTheme
     public static string ToHex(Color color) => "#" + (color.Alpha < 1 ? $"{(int)Math.Round(color.Alpha * 255):X2}" : "") +
         $"{(int)Math.Round(color.Red * 255):X2}{(int)Math.Round(color.Green * 255):X2}{(int)Math.Round(color.Blue * 255):X2}";
 
-    internal static Color ParseStoredHex(string hex) => Color.FromArgb(hex);
+    // User-entered or persisted colors are data, rather than app color defaults.
+    internal static Color ParseStoredHex(string hex) => Color.FromArgb(hex); // theme-exempt: runtime hex data parsing.
+
+    public static IEnumerable<Color> PresetDefaults()
+    {
+        var all = Get(ActivityDisplayMode.All);
+        var publicMode = Get(ActivityDisplayMode.PublicOnly);
+        var privateMode = Get(ActivityDisplayMode.PrivateOnly);
+        return new[] { all.CardBackground, all.InputBackground, all.InputText, all.CardText2,
+            publicMode.Background, privateMode.Background, all.Background,
+            all.ButtonPrimaryBackground, publicMode.Accent, privateMode.Accent };
+    }
 
     public static async Task<ModeThemeColors> GetAsync(ActivityDisplayMode mode, string username, AppSettingsService settings)
     {
@@ -207,7 +220,7 @@ public static class ModeTheme
         var prefix = StoragePrefix(mode);
         var stored = await settings.GetByPrefixAsync(username, prefix);
         Color Read(string token) => stored.TryGetValue(prefix + token, out var value) && TryNormalizeHex(value, out var hex)
-            ? Color.FromArgb(hex) : defaults.Tokens[token];
+            ? ParseStoredHex(hex) : defaults.Tokens[token];
         var colors = new ModeThemeColors(Read("PageBackground"), Read("Text1"), Read("Text2"), Read("Text3"), Read("Accent"),
             Read("CardBackground"), Read("CardText1"), Read("CardText2"), Read("InputBackground"), Read("InputText"),
             Read("ButtonPrimaryBackground"), Read("ButtonPrimaryText"))

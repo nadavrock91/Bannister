@@ -33,42 +33,39 @@ public class MusicProductionHubPage : Bannister.Views.ModeThemedPage
             Spacing = 16
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Music Production",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#3949AB")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightIndigoButton, ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Music planning tools",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 14
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         stack.Children.Add(CreateHubCard(
             "Music for Stories",
             "Plan music cues alongside script and visuals.",
-            Color.FromArgb("#E8EAF6"),
-            Color.FromArgb("#3949AB"),
+            ThemeKey.HighlightIndigo,
+            ThemeKey.HighlightIndigoButton,
             OnMusicForStoriesClicked));
 
         scroll.Content = stack;
         Content = scroll;
     }
 
-    private View CreateHubCard(string title, string subtitle, Color background, Color accent, EventHandler clicked)
+    private View CreateHubCard(string title, string subtitle, ThemeKey background, ThemeKey accent, EventHandler clicked)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
             Padding = 18,
             CornerRadius = 12,
-            BackgroundColor = background,
             BorderColor = Colors.Transparent,
             HasShadow = true
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, background);
 
         var grid = new Grid
         {
@@ -81,31 +78,27 @@ public class MusicProductionHubPage : Bannister.Views.ModeThemedPage
         };
 
         var textStack = new VerticalStackLayout { Spacing = 4 };
-        textStack.Children.Add(new Label
+        textStack.Children.Add((new Label
         {
             Text = title,
             FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = accent
-        });
-        textStack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, accent, ThemeKey.PageText1, classifyPageText: true));
+        textStack.Children.Add((new Label
         {
             Text = subtitle,
-            FontSize = 13,
-            TextColor = Color.FromArgb("#555")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         Grid.SetColumn(textStack, 0);
         grid.Children.Add(textStack);
 
-        var button = new Button
+        var button = (new Button
         {
             Text = "Open",
-            BackgroundColor = accent,
-            TextColor = Colors.White,
             CornerRadius = 8,
             Padding = new Thickness(18, 10),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, accent).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         button.Clicked += clicked;
         Grid.SetColumn(button, 1);
         grid.Children.Add(button);

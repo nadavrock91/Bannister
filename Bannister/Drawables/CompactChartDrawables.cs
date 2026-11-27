@@ -1,5 +1,7 @@
 using Bannister.Models;
 
+using Bannister.Services;
+
 namespace Bannister.Drawables;
 
 /// <summary>
@@ -47,7 +49,7 @@ public class LevelChartCompactDrawable : IDrawable
             return;
 
         // Background
-        canvas.FillColor = Color.FromArgb("#FAFAFA");
+        canvas.FillColor = AppColors.Get(ThemeKey.SecondarySurface);
         canvas.FillRectangle(leftMargin, topMargin, chartWidth, chartHeight);
 
         // Get min/max values
@@ -62,7 +64,7 @@ public class LevelChartCompactDrawable : IDrawable
         }
 
         // Draw light horizontal grid lines
-        canvas.StrokeColor = Color.FromArgb("#E8E8E8");
+        canvas.StrokeColor = AppColors.Get(ThemeKey.Separator);
         canvas.StrokeSize = 1;
         int gridLines = 3;
         for (int i = 0; i <= gridLines; i++)
@@ -72,13 +74,13 @@ public class LevelChartCompactDrawable : IDrawable
         }
 
         // Draw axes
-        canvas.StrokeColor = Color.FromArgb("#CCCCCC");
+        canvas.StrokeColor = AppColors.Get(ThemeKey.CardText3);
         canvas.StrokeSize = 1;
         canvas.DrawLine(leftMargin, topMargin, leftMargin, topMargin + chartHeight);  // Y axis
         canvas.DrawLine(leftMargin, topMargin + chartHeight, leftMargin + chartWidth, topMargin + chartHeight); // X axis
 
         // Draw step line (for levels)
-        canvas.StrokeColor = Color.FromArgb("#4CAF50");
+        canvas.StrokeColor = AppColors.Get(ThemeKey.SuccessLightText);
         canvas.StrokeSize = 2;
 
         PathF path = new PathF();
@@ -107,7 +109,7 @@ public class LevelChartCompactDrawable : IDrawable
         // Draw points only if we have fewer than 30 data points (compact view)
         if (data.Count <= 30)
         {
-            canvas.FillColor = Color.FromArgb("#4CAF50");
+            canvas.FillColor = AppColors.Get(ThemeKey.SuccessLightText);
             for (int i = 0; i < data.Count; i++)
             {
                 float x = leftMargin + (chartWidth * i / Math.Max(1, data.Count - 1));
@@ -117,7 +119,7 @@ public class LevelChartCompactDrawable : IDrawable
         }
 
         // Draw Y-axis labels (compact)
-        canvas.FontColor = Color.FromArgb("#666666");
+        canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
         canvas.FontSize = 9;
         canvas.DrawString($"{maxValue}", 2, topMargin + 4, HorizontalAlignment.Left);
         canvas.DrawString($"{minValue}", 2, topMargin + chartHeight - 2, HorizontalAlignment.Left);
@@ -125,7 +127,7 @@ public class LevelChartCompactDrawable : IDrawable
         // Draw X-axis date labels - clear and readable
         if (data.Count > 0)
         {
-            canvas.FontColor = Color.FromArgb("#555555");
+            canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
             canvas.FontSize = 9;
             
             // Start date on left
@@ -146,7 +148,7 @@ public class LevelChartCompactDrawable : IDrawable
 
     private void DrawNoData(ICanvas canvas, RectF dirtyRect)
     {
-        canvas.FontColor = Colors.Gray;
+        canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
         canvas.FontSize = 12;
         canvas.DrawString("No data", dirtyRect.Width / 2, dirtyRect.Height / 2, HorizontalAlignment.Center);
     }
@@ -197,7 +199,7 @@ public class ExpChartCompactDrawable : IDrawable
             return;
 
         // Background
-        canvas.FillColor = Color.FromArgb("#FAFAFA");
+        canvas.FillColor = AppColors.Get(ThemeKey.SecondarySurface);
         canvas.FillRectangle(leftMargin, topMargin, chartWidth, chartHeight);
 
         // Get min/max values
@@ -207,7 +209,7 @@ public class ExpChartCompactDrawable : IDrawable
         if (maxValue == minValue) maxValue = minValue + 100;
 
         // Draw light horizontal grid lines
-        canvas.StrokeColor = Color.FromArgb("#E8E8E8");
+        canvas.StrokeColor = AppColors.Get(ThemeKey.Separator);
         canvas.StrokeSize = 1;
         int gridLines = 3;
         for (int i = 0; i <= gridLines; i++)
@@ -217,7 +219,7 @@ public class ExpChartCompactDrawable : IDrawable
         }
 
         // Draw axes
-        canvas.StrokeColor = Color.FromArgb("#CCCCCC");
+        canvas.StrokeColor = AppColors.Get(ThemeKey.CardText3);
         canvas.StrokeSize = 1;
         canvas.DrawLine(leftMargin, topMargin, leftMargin, topMargin + chartHeight);  // Y axis
         canvas.DrawLine(leftMargin, topMargin + chartHeight, leftMargin + chartWidth, topMargin + chartHeight); // X axis
@@ -239,11 +241,11 @@ public class ExpChartCompactDrawable : IDrawable
         areaPath.Close();
 
         // Fill with semi-transparent color
-        canvas.FillColor = Color.FromArgb("#335B63EE");
+        canvas.FillColor = AppColors.Get(ThemeKey.ChartAreaFill);
         canvas.FillPath(areaPath);
 
         // Draw the line on top
-        canvas.StrokeColor = Color.FromArgb("#5B63EE");
+        canvas.StrokeColor = AppColors.Get(ThemeKey.SecondaryAccentText);
         canvas.StrokeSize = 2;
 
         PathF linePath = new PathF();
@@ -263,7 +265,7 @@ public class ExpChartCompactDrawable : IDrawable
         // Draw points only if we have fewer than 30 data points (compact view)
         if (data.Count <= 30)
         {
-            canvas.FillColor = Color.FromArgb("#5B63EE");
+            canvas.FillColor = AppColors.Get(ThemeKey.SecondaryAccentText);
             for (int i = 0; i < data.Count; i++)
             {
                 float x = leftMargin + (chartWidth * i / Math.Max(1, data.Count - 1));
@@ -273,7 +275,7 @@ public class ExpChartCompactDrawable : IDrawable
         }
 
         // Draw Y-axis labels (compact, use K for thousands)
-        canvas.FontColor = Color.FromArgb("#666666");
+        canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
         canvas.FontSize = 9;
         string maxLabel = maxValue >= 1000 ? $"{maxValue / 1000.0:0.#}K" : maxValue.ToString();
         canvas.DrawString(maxLabel, 2, topMargin + 4, HorizontalAlignment.Left);
@@ -282,7 +284,7 @@ public class ExpChartCompactDrawable : IDrawable
         // Draw X-axis date labels - clear and readable
         if (data.Count > 0)
         {
-            canvas.FontColor = Color.FromArgb("#555555");
+            canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
             canvas.FontSize = 9;
             
             // Start date on left
@@ -303,7 +305,7 @@ public class ExpChartCompactDrawable : IDrawable
 
     private void DrawNoData(ICanvas canvas, RectF dirtyRect)
     {
-        canvas.FontColor = Colors.Gray;
+        canvas.FontColor = AppColors.Get(ThemeKey.CardText2);
         canvas.FontSize = 12;
         canvas.DrawString("No data", dirtyRect.Width / 2, dirtyRect.Height / 2, HorizontalAlignment.Center);
     }

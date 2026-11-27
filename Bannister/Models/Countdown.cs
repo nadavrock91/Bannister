@@ -1,5 +1,7 @@
 using SQLite;
 
+using Bannister.Services;
+
 namespace Bannister.Models;
 
 public class Countdown
@@ -110,13 +112,13 @@ public class Countdown
     [Ignore]
     public Color StatusColor => Status switch
     {
-        "Active" => IsExpired ? Color.FromArgb("#FF9800") : Color.FromArgb("#4CAF50"),
-        "Overdue" => Color.FromArgb("#F44336"),
-        "Correct" => Color.FromArgb("#4CAF50"),
-        "Wrong" => Color.FromArgb("#F44336"),
-        "Postponed" => Color.FromArgb("#FF9800"),
-        "Cancelled" => Color.FromArgb("#9E9E9E"),
-        _ => Color.FromArgb("#666666")
+        "Active" => IsExpired ? AppColors.Get(ThemeKey.WarningAccentText) : AppColors.Get(ThemeKey.SuccessLightText),
+        "Overdue" => AppColors.Get(ThemeKey.ErrorButtonBackground),
+        "Correct" => AppColors.Get(ThemeKey.SuccessLightText),
+        "Wrong" => AppColors.Get(ThemeKey.ErrorButtonBackground),
+        "Postponed" => AppColors.Get(ThemeKey.WarningAccentText),
+        "Cancelled" => AppColors.Get(ThemeKey.DisabledButtonBackground),
+        _ => AppColors.Get(ThemeKey.CardText2)
     };
     
     [Ignore]

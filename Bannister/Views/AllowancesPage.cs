@@ -28,22 +28,20 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
     {
         var root = new VerticalStackLayout { Padding = 16, Spacing = 12 };
 
-        root.Children.Add(new Label
+        root.Children.Add((new Label
         {
             Text = "Allowances",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#00695C")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.HighlightMintText, ThemeKey.PageText1, classifyPageText: true));
 
-        root.Children.Add(new Label
+        root.Children.Add((new Label
         {
             Text = "Adaptive caps. Report success or failure each attempt. Three successes in a row raises the cap. One failure lowers it.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
-        var add = SmallButton("+ Add Allowance", "#00796B");
+        var add = SmallButton("+ Add Allowance", ThemeKey.TealButtonBackground);
         add.HeightRequest = 42;
         add.HorizontalOptions = LayoutOptions.Start;
         add.Clicked += async (_, _) => await AddAllowanceAsync();
@@ -60,13 +58,12 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
 
         if (allowances.Count == 0)
         {
-            _listStack.Children.Add(new Label
+            _listStack.Children.Add((new Label
             {
                 Text = "No allowances yet.",
                 FontSize = 13,
-                TextColor = Color.FromArgb("#888"),
                 Margin = new Thickness(4, 10)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -76,25 +73,22 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
 
     private View BuildAllowanceCard(Allowance allowance)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = Color.FromArgb("#80CBC4"),
             CornerRadius = 8,
             HasShadow = false,
             Padding = 12
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, ThemeKey.HighlightMintStrong);
 
         var stack = new VerticalStackLayout { Spacing = 8 };
 
-        var title = new Label
+        var title = (new Label
         {
             Text = allowance.Title,
             FontSize = 17,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true);
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (_, _) => await RenameAsync(allowance);
         title.GestureRecognizers.Add(tap);
@@ -108,34 +102,31 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
                 new ColumnDefinition(GridLength.Star)
             }
         };
-        metrics.Add(new Label
+        metrics.Add((new Label
         {
             Text = $"Cap: {allowance.Total}",
             FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238")
-        }, 0, 0);
-        metrics.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 0, 0);
+        metrics.Add((new Label
         {
             Text = $"Streak: {allowance.SuccessStreak}/3",
             FontSize = 16,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#263238"),
             HorizontalTextAlignment = TextAlignment.End
-        }, 1, 0);
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText1, ThemeKey.PageText1, classifyPageText: true), 1, 0);
         stack.Children.Add(metrics);
 
         var historyRow = new HorizontalStackLayout { Spacing = 6, HeightRequest = 18 };
         foreach (var entry in ParseHistory(allowance.RecentHistory).TakeLast(10))
         {
-            historyRow.Children.Add(new BoxView
+            historyRow.Children.Add((new BoxView
             {
                 WidthRequest = 10,
                 HeightRequest = 10,
                 CornerRadius = 5,
-                Color = entry.success ? Color.FromArgb("#2E7D32") : Color.FromArgb("#C62828"),
                 VerticalOptions = LayoutOptions.Center
-            });
+            }).ThemeColor(BoxView.ColorProperty, entry.success ? ThemeKey.SuccessText : ThemeKey.ErrorText));
         }
         stack.Children.Add(historyRow);
 
@@ -150,19 +141,19 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
             }
         };
 
-        var success = SmallButton("✓ Success", "#2E7D32");
+        var success = SmallButton("✓ Success", ThemeKey.SuccessDarkButtonBackground);
         success.FontAttributes = FontAttributes.Bold;
         success.HeightRequest = 42;
         success.Clicked += async (_, _) => await RecordOutcomeAsync(allowance, true);
         actions.Add(success, 0, 0);
 
-        var failure = SmallButton("✗ Failure", "#C62828");
+        var failure = SmallButton("✗ Failure", ThemeKey.ErrorDarkButtonBackground);
         failure.FontAttributes = FontAttributes.Bold;
         failure.HeightRequest = 42;
         failure.Clicked += async (_, _) => await RecordOutcomeAsync(allowance, false);
         actions.Add(failure, 1, 0);
 
-        var edit = SmallButton("Edit", "#00695C");
+        var edit = SmallButton("Edit", ThemeKey.HighlightMintText);
         edit.Clicked += async (_, _) => await ShowEditMenuAsync(allowance);
         actions.Add(edit, 2, 0);
 
@@ -370,17 +361,15 @@ public class AllowancesPage : Bannister.Views.ModeThemedPage
         }
     }
 
-    private static Button SmallButton(string text, string color)
+    private static Button SmallButton(string text, ThemeKey color)
     {
-        return new Button
+        return (new Button
         {
             Text = text,
             FontSize = 13,
             HeightRequest = 36,
-            BackgroundColor = Color.FromArgb(color),
-            TextColor = Colors.White,
             CornerRadius = 6,
             Padding = new Thickness(12, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, color).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
     }
 }

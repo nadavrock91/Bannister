@@ -42,19 +42,17 @@ public class SharedActivitySelectionPage : Bannister.Views.ModeThemedPage
     private void BuildUI()
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 12 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Select activities to share with your partner. Nothing selected by default.",
-            FontSize = 13, TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
+            FontSize = 13,             LineBreakMode = LineBreakMode.WordWrap
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         var globalRow = new HorizontalStackLayout { Spacing = 8 };
-        var selAllBtn = new Button
+        var selAllBtn = (new Button
         {
-            Text = "Select All", BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"), CornerRadius = 6,
+            Text = "Select All", CornerRadius = 6,
             FontSize = 12, HeightRequest = 32, Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         selAllBtn.Clicked += (_, _) =>
         {
             foreach (var g in _groups)
@@ -63,12 +61,11 @@ public class SharedActivitySelectionPage : Bannister.Views.ModeThemedPage
             RenderGroups();
         };
         globalRow.Children.Add(selAllBtn);
-        var selNoneBtn = new Button
+        var selNoneBtn = (new Button
         {
-            Text = "Select None", BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"), CornerRadius = 6,
+            Text = "Select None", CornerRadius = 6,
             FontSize = 12, HeightRequest = 32, Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         selNoneBtn.Clicked += (_, _) =>
         {
             foreach (var g in _groups) g.SelectedIndices.Clear();
@@ -78,13 +75,12 @@ public class SharedActivitySelectionPage : Bannister.Views.ModeThemedPage
         stack.Children.Add(globalRow);
         _container = new VerticalStackLayout { Spacing = 12 };
         stack.Children.Add(_container);
-        var confirmBtn = new Button
+        var confirmBtn = (new Button
         {
-            Text = "✅ Confirm Selection", BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White, CornerRadius = 8, FontSize = 14,
+            Text = "✅ Confirm Selection", CornerRadius = 8, FontSize = 14,
             HeightRequest = 44, FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         confirmBtn.Clicked += async (_, _) =>
         {
             var selected = new List<(string, string)>();
@@ -139,20 +135,18 @@ public class SharedActivitySelectionPage : Bannister.Views.ModeThemedPage
                 },
                 ColumnSpacing = 6
             };
-            headerRow.Add(new Label
+            headerRow.Add((new Label
             {
                 Text = group.DisplayName, FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#1565C0"),
                 VerticalOptions = LayoutOptions.Center
-            }, 0, 0);
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true), 0, 0);
             var capturedGroup = group;
-            var allBtn = new Button
+            var allBtn = (new Button
             {
-                Text = "All", BackgroundColor = Color.FromArgb("#E3F2FD"),
-                TextColor = Color.FromArgb("#1565C0"), CornerRadius = 4,
+                Text = "All", CornerRadius = 4,
                 FontSize = 10, HeightRequest = 24, Padding = new Thickness(6, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
             allBtn.Clicked += (_, _) =>
             {
                 for (int i = 0; i < capturedGroup.Activities.Count; i++)
@@ -160,12 +154,11 @@ public class SharedActivitySelectionPage : Bannister.Views.ModeThemedPage
                 RenderGroups();
             };
             headerRow.Add(allBtn, 1, 0);
-            var noneBtn = new Button
+            var noneBtn = (new Button
             {
-                Text = "None", BackgroundColor = Color.FromArgb("#ECEFF1"),
-                TextColor = Color.FromArgb("#37474F"), CornerRadius = 4,
+                Text = "None", CornerRadius = 4,
                 FontSize = 10, HeightRequest = 24, Padding = new Thickness(6, 0)
-            };
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
             noneBtn.Clicked += (_, _) =>
             {
                 capturedGroup.SelectedIndices.Clear();
@@ -201,19 +194,17 @@ public class SharedActivitySelectionPage : Bannister.Views.ModeThemedPage
                     else capturedGroup.SelectedIndices.Remove(capturedI);
                 };
                 row.Add(cb, 0, 0);
-                row.Add(new Label
+                row.Add((new Label
                 {
                     Text = act.Name, FontSize = 13,
-                    TextColor = Color.FromArgb("#222"),
                     VerticalOptions = LayoutOptions.Center,
                     LineBreakMode = LineBreakMode.TailTruncation
-                }, 1, 0);
-                row.Add(new Label
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+                row.Add((new Label
                 {
                     Text = $"+{act.ExpGain}", FontSize = 11,
-                    TextColor = Color.FromArgb("#2E7D32"),
                     VerticalOptions = LayoutOptions.Center
-                }, 2, 0);
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true), 2, 0);
                 actStack.Children.Add(row);
             }
             section.Children.Add(actStack);

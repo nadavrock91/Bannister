@@ -18,46 +18,42 @@ public class SharedManifestApprovalPage : ContentPage
         _items = items;
         _onApprove = onApprove;
         Title = "Approve Shared Activities";
-        BackgroundColor = Color.FromArgb("#F5F5F5");
+        BackgroundColor = AppColors.Get(ThemeKey.SecondarySurface);
         BuildUI();
     }
 
     private void BuildUI()
     {
         var stack = new VerticalStackLayout { Padding = 20, Spacing = 14 };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = $" {_createdBy} wants to share activities",
             FontSize = 18, FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222"),
             LineBreakMode = LineBreakMode.WordWrap
-        });
-        stack.Children.Add(new Label
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Select which activities you want to sync. Only approved activities will be pulled.",
-            FontSize = 13, TextColor = Color.FromArgb("#666"),
-            LineBreakMode = LineBreakMode.WordWrap
-        });
+            FontSize = 13,             LineBreakMode = LineBreakMode.WordWrap
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         var globalRow = new HorizontalStackLayout { Spacing = 8 };
-        var selAllBtn = new Button
+        var selAllBtn = (new Button
         {
-            Text = "Select All", BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0"), CornerRadius = 6,
+            Text = "Select All", CornerRadius = 6,
             FontSize = 12, HeightRequest = 32, Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         selAllBtn.Clicked += (_, _) =>
         {
             for (int i = 0; i < _items.Count; i++) _selected.Add(i);
             RenderList();
         };
         globalRow.Children.Add(selAllBtn);
-        var selNoneBtn = new Button
+        var selNoneBtn = (new Button
         {
-            Text = "Select None", BackgroundColor = Color.FromArgb("#ECEFF1"),
-            TextColor = Color.FromArgb("#37474F"), CornerRadius = 6,
+            Text = "Select None", CornerRadius = 6,
             FontSize = 12, HeightRequest = 32, Padding = new Thickness(10, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.NeutralButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.NeutralButtonText);
         selNoneBtn.Clicked += (_, _) =>
         {
             _selected.Clear();
@@ -68,13 +64,12 @@ public class SharedManifestApprovalPage : ContentPage
 
         _container = new VerticalStackLayout { Spacing = 4 };
         stack.Children.Add(_container);
-        var approveBtn = new Button
+        var approveBtn = (new Button
         {
-            Text = "✅ Approve Selected", BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White, CornerRadius = 8, FontSize = 14,
+            Text = "✅ Approve Selected", CornerRadius = 8, FontSize = 14,
             HeightRequest = 44, FontAttributes = FontAttributes.Bold,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         approveBtn.Clicked += async (_, _) =>
         {
             var approved = _selected
@@ -100,13 +95,12 @@ public class SharedManifestApprovalPage : ContentPage
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
         foreach (var gameGroup in byGame)
         {
-            _container.Children.Add(new Label
+            _container.Children.Add((new Label
             {
                 Text = gameGroup.Key, FontSize = 14,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#1565C0"),
                 Margin = new Thickness(0, 8, 0, 2)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.InfoText, ThemeKey.PageText1, classifyPageText: true));
             foreach (var (item, idx) in gameGroup)
             {
                 int capturedIdx = idx;
@@ -128,19 +122,17 @@ public class SharedManifestApprovalPage : ContentPage
                     else _selected.Remove(capturedIdx);
                 };
                 row.Add(cb, 0, 0);
-                row.Add(new Label
+                row.Add((new Label
                 {
                     Text = item.ActivityName, FontSize = 13,
-                    TextColor = Color.FromArgb("#222"),
                     VerticalOptions = LayoutOptions.Center,
                     LineBreakMode = LineBreakMode.TailTruncation
-                }, 1, 0);
-                row.Add(new Label
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true), 1, 0);
+                row.Add((new Label
                 {
                     Text = $"+{item.ExpGain}", FontSize = 11,
-                    TextColor = Color.FromArgb("#2E7D32"),
                     VerticalOptions = LayoutOptions.Center
-                }, 2, 0);
+                }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessText, ThemeKey.PageText3, classifyPageText: true), 2, 0);
                 _container.Children.Add(row);
             }
         }

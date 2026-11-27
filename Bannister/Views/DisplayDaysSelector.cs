@@ -1,5 +1,7 @@
 using Microsoft.Maui.Controls;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 /// <summary>
@@ -42,12 +44,11 @@ public class DisplayDaysSelector
             FontAttributes = FontAttributes.Bold
         });
         
-        Container.Children.Add(new Label
+        Container.Children.Add((new Label
         {
             Text = "Choose which days this activity should appear:",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 12
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         
         // Day of week checkboxes in a grid
         var daysGrid = new Grid
@@ -79,73 +80,63 @@ public class DisplayDaysSelector
         // Quick selection buttons
         var quickButtonsStack = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 4, 0, 0) };
         
-        var btnAllDays = new Button
+        var btnAllDays = (new Button
         {
             Text = "All Days",
             FontSize = 11,
             Padding = new Thickness(8, 4),
-            CornerRadius = 4,
-            BackgroundColor = Color.FromArgb("#E8F5E9"),
-            TextColor = Color.FromArgb("#2E7D32")
-        };
+            CornerRadius = 4
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessBackground).ThemeColor(Button.TextColorProperty, ThemeKey.SuccessText);
         btnAllDays.Clicked += (s, e) => SetAllDays(true);
         quickButtonsStack.Children.Add(btnAllDays);
         
-        var btnWeekdays = new Button
+        var btnWeekdays = (new Button
         {
             Text = "Weekdays",
             FontSize = 11,
             Padding = new Thickness(8, 4),
-            CornerRadius = 4,
-            BackgroundColor = Color.FromArgb("#E3F2FD"),
-            TextColor = Color.FromArgb("#1565C0")
-        };
+            CornerRadius = 4
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.InfoBackground).ThemeColor(Button.TextColorProperty, ThemeKey.InfoText);
         btnWeekdays.Clicked += (s, e) => SetWeekdays();
         quickButtonsStack.Children.Add(btnWeekdays);
         
-        var btnWeekends = new Button
+        var btnWeekends = (new Button
         {
             Text = "Weekends",
             FontSize = 11,
             Padding = new Thickness(8, 4),
-            CornerRadius = 4,
-            BackgroundColor = Color.FromArgb("#FFF3E0"),
-            TextColor = Color.FromArgb("#E65100")
-        };
+            CornerRadius = 4
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.WarningBackground).ThemeColor(Button.TextColorProperty, ThemeKey.WarningText);
         btnWeekends.Clicked += (s, e) => SetWeekends();
         quickButtonsStack.Children.Add(btnWeekends);
         
-        var btnClearDays = new Button
+        var btnClearDays = (new Button
         {
             Text = "Clear",
             FontSize = 11,
             Padding = new Thickness(8, 4),
-            CornerRadius = 4,
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828")
-        };
+            CornerRadius = 4
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         btnClearDays.Clicked += (s, e) => SetAllDays(false);
         quickButtonsStack.Children.Add(btnClearDays);
         
         Container.Children.Add(quickButtonsStack);
         
         // Separator
-        Container.Children.Add(new BoxView
+        Container.Children.Add((new BoxView
         {
             HeightRequest = 1,
-            Color = Color.FromArgb("#E0E0E0"),
             Margin = new Thickness(0, 8, 0, 4)
-        });
+        }).ThemeColor(BoxView.ColorProperty, ThemeKey.Separator));
         
         // Day of month option
         var dayOfMonthStack = new HorizontalStackLayout { Spacing = 8 };
         
-        dayOfMonthStack.Children.Add(new Label
+        dayOfMonthStack.Children.Add((new Label
         {
             Text = "Also show on day of month:",
-            VerticalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#666")
-        });
+            VerticalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
         
         PickerDayOfMonth = new Picker
         {
@@ -178,13 +169,12 @@ public class DisplayDaysSelector
         Container.Children.Add(dayOfMonthStack);
         
         // Info label
-        Container.Children.Add(new Label
+        Container.Children.Add((new Label
         {
             Text = "💡 Leave all weekdays unchecked to show every day. Weekdays and day-of-month can be used together.",
             FontSize = 11,
-            TextColor = Color.FromArgb("#9C27B0"),
             FontAttributes = FontAttributes.Italic
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentPurpleButtonBackground, ThemeKey.PageText3, classifyPageText: true));
     }
     
     private CheckBox CreateDayCheckbox(string label, int column, Grid grid)
@@ -202,13 +192,12 @@ public class DisplayDaysSelector
         };
         
         stack.Children.Add(checkbox);
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = label,
             FontSize = 10,
-            HorizontalOptions = LayoutOptions.Center,
-            TextColor = Color.FromArgb("#666")
-        });
+            HorizontalOptions = LayoutOptions.Center
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
         
         Grid.SetColumn(stack, column);
         grid.Children.Add(stack);

@@ -34,9 +34,9 @@ internal sealed class ThemeColorsView : ContentView
         resetAll.Clicked += async (_, _) => await ResetAsync(true);
         ModeThemedPage.SetPreserveColors(_preview, true);
         BuildPreview();
-        Content = new Frame
+        Content = (new Frame
         {
-            BackgroundColor = Colors.White, Padding = 20, CornerRadius = 12,
+            Padding = 20, CornerRadius = 12,
             Content = new VerticalStackLayout
             {
                 Spacing = 12,
@@ -48,7 +48,7 @@ internal sealed class ThemeColorsView : ContentView
                     new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, Children = { resetMode, resetAll } }
                 }
             }
-        };
+        }).ThemeColor(BackgroundColorProperty, ThemeKey.CardBackground);
     }
 
     public async Task ActivateAsync()
@@ -102,14 +102,13 @@ internal sealed class ThemeColorsView : ContentView
         string token = definition.Name;
         var swatch = new BoxView { Color = color, WidthRequest = 26, HeightRequest = 26, VerticalOptions = LayoutOptions.Center };
         ModeThemedPage.SetPreserveColors(swatch, true);
-        var entry = new Entry
+        var entry = (new Entry
         {
             Text = ModeTheme.ToHex(color), MaxLength = 9, WidthRequest = 130,
-            BackgroundColor = Colors.White, TextColor = Colors.Black,
             IsEnabled = !_settings.IsReadOnly && !definition.Fixed,
             AutomationId = $"Theme_{token}"
-        };
-        var validation = new Label { FontSize = 11, TextColor = Color.FromArgb("#C62828"), IsVisible = false };
+        }).ThemeColor(BackgroundColorProperty, ThemeKey.InputBackground).ThemeColor(Entry.TextColorProperty, ThemeKey.InputText);
+        var validation = new Label { FontSize = 11, IsVisible = false }.ThemeColor(Label.TextColorProperty, ThemeKey.ErrorText);
         entry.TextChanged += async (_, args) =>
         {
             if (!ModeTheme.TryNormalizeHex(args.NewTextValue, out string hex))
@@ -126,7 +125,7 @@ internal sealed class ThemeColorsView : ContentView
                 _privacy.NotifyThemeChanged(_auth.CurrentUsername);
                 if (mode == SelectedMode)
                 {
-                    _colors[token] = Color.FromArgb(hex); swatch.Color = _colors[token]; UpdatePreview();
+                    _colors[token] = ModeTheme.ParseStoredHex(hex); swatch.Color = _colors[token]; UpdatePreview();
                 }
                 _status.Text = "Saved";
             }
@@ -135,15 +134,15 @@ internal sealed class ThemeColorsView : ContentView
         };
         var palette = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
         palette.IsVisible = !definition.Fixed;
-        foreach (string hex in new[] { "#FFFFFF", "#FAFAFA", "#222222", "#666666", "#1A1A2E", "#2D0A4E", "#6B73FF", "#1565C0", "#00E5FF", "#FFD700" })
+        foreach (string hex in ModeTheme.PresetDefaults().Select(ModeTheme.ToHex))
         {
             string choice = hex;
-            var preset = new Button
+            var preset = (new Button
             {
-                Text = "", BackgroundColor = Color.FromArgb(choice), WidthRequest = 24, HeightRequest = 24,
+                Text = "", BackgroundColor = ModeTheme.ParseStoredHex(choice), WidthRequest = 24, HeightRequest = 24,
                 MinimumHeightRequest = 24, MinimumWidthRequest = 24, Margin = 2, Padding = 0,
-                CornerRadius = 4, BorderColor = Colors.Gray, BorderWidth = 1, IsEnabled = !_settings.IsReadOnly
-            };
+                CornerRadius = 4, BorderWidth = 1, IsEnabled = !_settings.IsReadOnly
+            }).ThemeColor(Button.BorderColorProperty, ThemeKey.Separator);
             ModeThemedPage.SetPreserveColors(preset, true);
             SemanticProperties.SetDescription(preset, $"{token}: {choice}");
             preset.Clicked += (_, _) => entry.Text = choice;

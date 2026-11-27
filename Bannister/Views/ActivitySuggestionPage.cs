@@ -1,5 +1,7 @@
 using Bannister.Models;
 
+using Bannister.Services;
+
 namespace Bannister.Views;
 
 public class ActivitySuggestionPage : Bannister.Views.ModeThemedPage
@@ -22,28 +24,25 @@ public class ActivitySuggestionPage : Bannister.Views.ModeThemedPage
             Padding = 20,
             Spacing = 10
         };
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Suggested Activities",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#222")
-        });
-        stack.Children.Add(new Label
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+        stack.Children.Add((new Label
         {
             Text = "Choose any activities you want to add to this game.",
-            FontSize = 13,
-            TextColor = Color.FromArgb("#666")
-        });
+            FontSize = 13
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         foreach (var suggestion in _suggestions)
         {
-            var check = new CheckBox
+            var check = (new CheckBox
             {
                 IsChecked = false,
-                Color = Color.FromArgb("#1565C0"),
                 VerticalOptions = LayoutOptions.Start
-            };
+            }).ThemeColor(CheckBox.ColorProperty, ThemeKey.InfoText);
             check.CheckedChanged += (_, e) =>
             {
                 if (e.Value) _selectedIds.Add(suggestion.Id);
@@ -51,47 +50,40 @@ public class ActivitySuggestionPage : Bannister.Views.ModeThemedPage
             };
 
             var text = new VerticalStackLayout { Spacing = 2 };
-            text.Children.Add(new Label
+            text.Children.Add((new Label
             {
                 Text = suggestion.Name,
                 FontSize = 15,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#222")
-            });
-            text.Children.Add(new Label
+                FontAttributes = FontAttributes.Bold
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardTextStrong, ThemeKey.PageText1, classifyPageText: true));
+            text.Children.Add((new Label
             {
                 Text = suggestion.Description,
                 FontSize = 12,
-                TextColor = Color.FromArgb("#777"),
                 LineBreakMode = LineBreakMode.WordWrap
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true));
 
-            var row = new HorizontalStackLayout
+            var row = (new HorizontalStackLayout
             {
                 Spacing = 8,
-                Padding = 10,
-                BackgroundColor = Colors.White
-            };
+                Padding = 10
+            }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground);
             row.Children.Add(check);
             row.Children.Add(text);
-            stack.Children.Add(new Border
+            stack.Children.Add((new Border
             {
                 Content = row,
-                Stroke = Color.FromArgb("#DDDDDD"),
-                StrokeThickness = 1,
-                BackgroundColor = Colors.White
-            });
+                StrokeThickness = 1
+            }).ThemeColor(Border.StrokeProperty, ThemeKey.Separator).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground));
         }
 
-        var continueButton = new Button
+        var continueButton = (new Button
         {
             Text = "Continue",
-            BackgroundColor = Color.FromArgb("#1565C0"),
-            TextColor = Colors.White,
             CornerRadius = 8,
             HeightRequest = 44,
             Margin = new Thickness(0, 8, 0, 0)
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ButtonPrimaryBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         continueButton.Clicked += async (_, _) =>
         {
             _tcs.TrySetResult(_suggestions

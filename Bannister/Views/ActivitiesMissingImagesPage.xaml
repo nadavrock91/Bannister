@@ -1,42 +1,24 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Bannister.Views.ActivitiesMissingImagesPage"
-             Title="Activities Missing Images">
+
+<mode:ModeThemedPage xmlns:mode="clr-namespace:Bannister.Views" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Bannister.Views.ActivitiesMissingImagesPage" Title="Activities Missing Images" xmlns:theme="clr-namespace:Bannister.Services">
 
     <Grid Padding="24" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
 
         <!-- Title -->
-        <Label Text="Activities Missing Images"
-               FontSize="20"
-               FontAttributes="Bold" />
+        <Label Text="Activities Missing Images" FontSize="20" FontAttributes="Bold" />
 
         <!-- Description -->
-        <Label Grid.Row="1"
-               Text="The following activities don't have images assigned.&#x0a;They won't appear in the activity grid until you assign images.&#x0a;Select an activity to edit it."
-               FontSize="14"
-               TextColor="#666"
-               LineBreakMode="WordWrap" />
+        <Label Grid.Row="1" Text="The following activities don't have images assigned.&#xA;They won't appear in the activity grid until you assign images.&#xA;Select an activity to edit it." FontSize="14" TextColor="{DynamicResource ModeText2}" LineBreakMode="WordWrap" theme:ThemeColorExtensions.NamedColorProperties="TextColor=Text2" />
 
         <!-- Activities List -->
-        <Frame Grid.Row="2"
-               Padding="0"
-               CornerRadius="8"
-               BorderColor="#E0E0E0">
-            <CollectionView x:Name="activitiesList"
-                            SelectionMode="Multiple"
-                            EmptyView="No activities without images found.">
+        <Frame Grid.Row="2" Padding="0" CornerRadius="8" BorderColor="{DynamicResource ModeSeparator}" theme:ThemeColorExtensions.NamedColorProperties="BorderColor=Separator">
+            <CollectionView x:Name="activitiesList" SelectionMode="Multiple" EmptyView="No activities without images found.">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Grid Padding="12"
-                              ColumnDefinitions="*,Auto"
-                              ColumnSpacing="12">
+                        <Grid Padding="12" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="{Binding Name}"
-                                       FontSize="14"
-                                       FontAttributes="Bold" />
-                                <Label TextColor="#666"
-                                       FontSize="12">
+                                <Label Text="{Binding Name}" FontSize="14" FontAttributes="Bold" />
+                                <Label TextColor="{DynamicResource ModeCardText2}" FontSize="12" theme:ThemeColorExtensions.NamedColorProperties="TextColor=CardText2">
                                     <Label.Text>
                                         <MultiBinding StringFormat="[{0}] {1} | {2} EXP">
                                             <Binding Path="Category" />
@@ -47,11 +29,7 @@
                                 </Label>
                             </VerticalStackLayout>
                             
-                            <Label Grid.Column="1"
-                                   Text="{Binding ExpGain, StringFormat='+{0} EXP'}"
-                                   FontSize="12"
-                                   TextColor="#5B63EE"
-                                   VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{Binding ExpGain, StringFormat='+{0} EXP'}" FontSize="12" TextColor="{DynamicResource ModeSecondaryAccentText}" VerticalOptions="Center" theme:ThemeColorExtensions.NamedColorProperties="TextColor=SecondaryAccentText" />
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
@@ -59,29 +37,13 @@
         </Frame>
 
         <!-- Action Buttons -->
-        <Grid Grid.Row="3"
-              ColumnDefinitions="*,*,*"
-              ColumnSpacing="12">
+        <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="12">
             
-            <Button Text="Edit Selected"
-                    Clicked="OnEditSelected"
-                    BackgroundColor="#5B63EE"
-                    TextColor="White"
-                    CornerRadius="8" />
+            <Button Text="Edit Selected" Clicked="OnEditSelected" BackgroundColor="{DynamicResource ModeSecondaryButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=SecondaryButtonBackground,TextColor=OnColorText" />
 
-            <Button Text="Delete Selected"
-                    Grid.Column="1"
-                    Clicked="OnDeleteSelected"
-                    BackgroundColor="#DC3545"
-                    TextColor="White"
-                    CornerRadius="8" />
+            <Button Text="Delete Selected" Grid.Column="1" Clicked="OnDeleteSelected" BackgroundColor="{DynamicResource ModeErrorButtonBackground}" TextColor="{DynamicResource ModeOnColorText}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=ErrorButtonBackground,TextColor=OnColorText" />
 
-            <Button Text="Close"
-                    Grid.Column="2"
-                    Clicked="OnClose"
-                    BackgroundColor="#EEE"
-                    TextColor="#333"
-                    CornerRadius="8" />
+            <Button Text="Close" Grid.Column="2" Clicked="OnClose" BackgroundColor="{DynamicResource ModeNeutralButtonBackground}" TextColor="{DynamicResource ModeCardText1}" CornerRadius="8" theme:ThemeColorExtensions.NamedColorProperties="BackgroundColor=NeutralButtonBackground,TextColor=CardText1" />
         </Grid>
 
     </Grid>

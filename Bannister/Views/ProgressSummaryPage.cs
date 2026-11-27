@@ -30,37 +30,33 @@ public class ProgressSummaryPage : Bannister.Views.ModeThemedPage
             Spacing = 14
         };
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = " Progress Summary",
             FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#5E35B1")
-        });
+            FontAttributes = FontAttributes.Bold
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.AccentVioletButton, ThemeKey.PageText1, classifyPageText: true));
 
-        stack.Children.Add(new Label
+        stack.Children.Add((new Label
         {
             Text = "Summary views for progress over time.",
             FontSize = 13,
-            TextColor = Color.FromArgb("#666"),
             Margin = new Thickness(0, 0, 0, 4)
-        });
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true));
 
         stack.Children.Add(BuildHubCard(
             "Systems Level Progress Summary",
             "Games ranked by level gained during a period.",
-            Color.FromArgb("#5E35B1"),
+            ThemeKey.AccentVioletButton,
             async () => await Navigation.PushAsync(new SystemsLevelProgressSummaryPage(_auth, _games, _exp, _db))));
 
         Content = new ScrollView { Content = stack };
     }
 
-    private Frame BuildHubCard(string header, string subtitle, Color accent, Func<Task> onTap)
+    private Frame BuildHubCard(string header, string subtitle, ThemeKey accent, Func<Task> onTap)
     {
-        var frame = new Frame
+        var frame = (new Frame
         {
-            BackgroundColor = Colors.White,
-            BorderColor = accent,
             CornerRadius = 12,
             Padding = 16,
             HasShadow = false,
@@ -69,11 +65,11 @@ public class ProgressSummaryPage : Bannister.Views.ModeThemedPage
                 Spacing = 6,
                 Children =
                 {
-                    new Label { Text = header, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = accent },
-                    new Label { Text = subtitle, FontSize = 13, TextColor = Color.FromArgb("#666") }
+                    (new Label { Text = header, FontSize = 16, FontAttributes = FontAttributes.Bold }).ThemeColor(Label.TextColorProperty, accent, ThemeKey.PageText1, classifyPageText: true),
+                    (new Label { Text = subtitle, FontSize = 13 }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText2, classifyPageText: true)
                 }
             }
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.CardBackground).ThemeColor(Microsoft.Maui.Controls.Frame.BorderColorProperty, accent);
 
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (_, _) => await onTap();

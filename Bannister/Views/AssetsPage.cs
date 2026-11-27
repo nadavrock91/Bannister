@@ -55,41 +55,36 @@ public class AssetsPage : Bannister.Views.ModeThemedPage
             ColumnSpacing = 8
         };
 
-        _summaryLabel = new Label
+        _summaryLabel = (new Label
         {
             Text = "Assets total: $0.00",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1B5E20"),
             VerticalOptions = LayoutOptions.Center
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.SuccessStrongText, ThemeKey.PageText1, classifyPageText: true);
         header.Add(_summaryLabel, 0, 0);
 
-        var addBtn = new Button
+        var addBtn = (new Button
         {
             Text = "+ Add",
             FontSize = 13,
             HeightRequest = 38,
-            BackgroundColor = Color.FromArgb("#2E7D32"),
-            TextColor = Colors.White,
             CornerRadius = 6,
             Padding = new Thickness(14, 0),
             IsVisible = !_money.IsReadOnly
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.SuccessDarkButtonBackground).ThemeColor(Button.TextColorProperty, ThemeKey.OnColorText);
         addBtn.Clicked += async (s, e) => await AddAssetAsync();
         header.Add(addBtn, 1, 0);
 
-        var deleteBtn = new Button
+        var deleteBtn = (new Button
         {
             Text = "Delete",
             FontSize = 13,
             HeightRequest = 38,
-            BackgroundColor = Color.FromArgb("#FFEBEE"),
-            TextColor = Color.FromArgb("#C62828"),
             CornerRadius = 6,
             Padding = new Thickness(14, 0),
             IsVisible = !_money.IsReadOnly
-        };
+        }).ThemeColor(VisualElement.BackgroundColorProperty, ThemeKey.ErrorBackground).ThemeColor(Button.TextColorProperty, ThemeKey.ErrorText);
         deleteBtn.Clicked += async (s, e) => await DeleteSelectedAssetAsync();
         header.Add(deleteBtn, 2, 0);
 
@@ -101,13 +96,12 @@ public class AssetsPage : Bannister.Views.ModeThemedPage
             Spacing = 6
         };
 
-        _selectedNotesLabel = new Label
+        _selectedNotesLabel = (new Label
         {
             Text = "Select an asset to view notes.",
             FontSize = 12,
-            TextColor = Color.FromArgb("#666"),
             LineBreakMode = LineBreakMode.WordWrap
-        };
+        }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText2, ThemeKey.PageText3, classifyPageText: true);
         toolbarArea.Children.Add(_selectedNotesLabel);
 
         _toolbarContainer = new VerticalStackLayout { Spacing = 4 };
@@ -126,7 +120,7 @@ public class AssetsPage : Bannister.Views.ModeThemedPage
     {
         _toolbarContainer.Children.Clear();
         _gridContainer.Children.Clear();
-        _gridContainer.Children.Add(new ActivityIndicator { IsRunning = true, Color = Color.FromArgb("#2E7D32") });
+        _gridContainer.Children.Add((new ActivityIndicator { IsRunning = true }).ThemeColor(ActivityIndicator.ColorProperty, ThemeKey.SuccessText));
 
         _currentAssets = await _money.GetAssetsAsync(_auth.CurrentUsername);
         _selectedAsset = null;
@@ -159,13 +153,12 @@ public class AssetsPage : Bannister.Views.ModeThemedPage
 
         if (_currentAssets.Count == 0)
         {
-            _gridContainer.Children.Add(new Label
+            _gridContainer.Children.Add((new Label
             {
                 Text = "No assets yet. Click + Add to log one.",
-                TextColor = Color.FromArgb("#999"),
                 HorizontalOptions = LayoutOptions.Center,
                 Margin = new Thickness(20)
-            });
+            }).ThemeColor(Label.TextColorProperty, ThemeKey.CardText3, ThemeKey.PageText2, classifyPageText: true));
             return;
         }
 
@@ -181,8 +174,8 @@ public class AssetsPage : Bannister.Views.ModeThemedPage
         }
 
         var dataGrid = DataGridView.Create(headers, displayRows)
-            .WithHeaderStyle(Color.FromArgb("#2E7D32"), Colors.White)
-            .WithAlternateRowColor(Color.FromArgb("#F1F8E9"))
+            .WithHeaderStyle(AppColors.Get(ThemeKey.SuccessText), AppColors.Get(ThemeKey.OnColorText))
+            .WithAlternateRowColor(AppColors.Get(ThemeKey.HighlightLime))
             .WithColumnWidths(60, 220)
             .WithCellPadding(6)
             .WithFontSize(12, 12)
